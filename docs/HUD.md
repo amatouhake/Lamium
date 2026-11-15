@@ -69,8 +69,8 @@ is fixed to the screen edges and is not an element.
 - Contents (L-336): one shared popover, a row per thing the element shows,
   each with the settings row's own switch (same saved field; the settings
   rows stay). Info lines: every line, switch plus up/down, the only list
-  that reorders. Target: icon, ID, other details. Durability: offhand,
-  armor, elytra, ammo. Inventory and Used slots HUD: the hotbar. Look
+  that reorders. Target: icon, ID, other details. Durability: main hand
+  (on by default, L-349), offhand, armor, elytra, ammo. Inventory and Used slots HUD: the hotbar. Look
   choices (Durability's look, Target's meters) and behavior settings stay
   in the settings table only; Target's health, armor and growth have no off
   state, so no switch. The element is measured every frame, so it takes its

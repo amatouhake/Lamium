@@ -290,6 +290,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::targetLiquids>("information.targetLiquids", "targetInfo", "targetLiquids"),
     toggle<&Settings::information, &Settings::Information::durabilityHud>("information.durabilityHud", "durabilityHud", "durabilityHud"),
     choice<&Settings::information, &Settings::Information::durabilityLook, durabilityLookLabels>("information.durabilityLook", "durabilityHud", "durabilityLook"),
+    toggle<&Settings::information, &Settings::Information::durabilityMainHand>("information.durabilityMainHand", "durabilityHud", "durabilityMainHand"),
     toggle<&Settings::information, &Settings::Information::durabilityOffhand>("information.durabilityOffhand", "durabilityHud", "durabilityOffhand"),
     toggle<&Settings::information, &Settings::Information::durabilityArmor>("information.durabilityArmor", "durabilityHud", "durabilityArmor"),
     toggle<&Settings::information, &Settings::Information::durabilityElytra>("information.durabilityElytra", "durabilityHud", "durabilityElytra"),

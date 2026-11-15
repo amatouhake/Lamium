@@ -1383,6 +1383,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"durabilityLook.number", "Number", "数値"},
     {"durabilityLook.bar", "Bar", "バー"},
     {"help.information.durabilityLook", "Bar shows the number only once a quarter or less remains.", "「バー」では残りが4分の1以下になったときだけ数値を表示します。"},
+    {"durabilityMainHand", "Main hand: {}", "メインハンド: {}"},
     {"durabilityOffhand", "Offhand: {}", "オフハンド: {}"},
     {"durabilityArmor", "Armor: {}", "防具: {}"},
     {"help.information.durabilityArmor", "Helmet, chestplate, leggings and boots.", "ヘルメット、チェストプレート、レギンス、ブーツ。"},

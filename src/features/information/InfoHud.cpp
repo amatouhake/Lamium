@@ -499,7 +499,8 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         sample(dur::Slot::Legs, player->getArmor(ArmorSlot::Legs));
         sample(dur::Slot::Feet, player->getArmor(ArmorSlot::Feet));
     }
-    auto rows = dur::rows(samples, settings.durabilityOffhand, settings.durabilityArmor, settings.durabilityElytra);
+    auto rows = dur::rows(samples, settings.durabilityOffhand, settings.durabilityArmor, settings.durabilityElytra,
+                          settings.durabilityMainHand);
     auto ammoOf = [&](dur::Row const& row) {
         return settings.durabilityAmmo ? dur::ammoFor(samples[static_cast<size_t>(row.slot)].weapon) : std::vector<dur::Ammo>{};
     };
@@ -519,7 +520,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         if (!pick.isNull()) {
             sample(dur::Slot::MainHand, pick);
             samples[0].damage = samples[0].max / 4;
-            rows = dur::rows(samples, false, false);
+            rows = dur::rows(samples, false, false, false, true);
         }
     }
     if (rows.empty()) return std::nullopt;

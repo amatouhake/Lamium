@@ -38,6 +38,9 @@ void durabilityHudTests() {
           "with both on the elytra keeps the chest position");
     check(slots(rows(worn, false, false, true)) == std::vector{Slot::MainHand},
           "the elytra switch adds no row for a chestplate");
+    check(rows(worn, false, false, true, false).empty()
+              && slots(rows(worn, true, true, true, false)) == std::vector{Slot::Offhand, Slot::Head, Slot::Chest, Slot::Legs, Slot::Feet},
+          "the main hand switch off drops only the held item's row (L-349)");
 
     check(weaponOf("minecraft:bow") == Weapon::Bow && weaponOf("minecraft:crossbow") == Weapon::Crossbow
               && weaponOf("minecraft:elytra") == Weapon::Elytra && weaponOf("minecraft:trident") == Weapon::Other,
@@ -85,6 +88,9 @@ void durabilityHudTests() {
               && !decodeSettings(R"({"information":{"durabilityAmmo":false}})").information.durabilityAmmo
               && !decodeSettings(R"({"information":{"durabilityElytra":false}})").information.durabilityElytra,
           "ammo and the elytra row show by default and their switches load");
+    check(defaults.information.durabilityMainHand && decodeSettings(R"({"information":{"durabilityHud":true}})").information.durabilityMainHand
+              && !decodeSettings(R"({"information":{"durabilityMainHand":false}})").information.durabilityMainHand,
+          "the main hand row shows by default, a file without the key shows it, and an explicit off loads (L-349)");
     check(decodeSettings(R"({"information":{"durabilityLook":9}})").information.durabilityLook == 2,
           "an unknown look is clamped");
     auto* look = settings::find("information.durabilityLook");

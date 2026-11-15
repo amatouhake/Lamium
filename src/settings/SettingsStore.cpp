@@ -119,6 +119,7 @@ Json encode(Settings const& settings) {
                          {"targetLiquids", settings.information.targetLiquids},
                          {"durabilityHud", settings.information.durabilityHud},
                          {"durabilityLook", settings.information.durabilityLook},
+                         {"durabilityMainHand", settings.information.durabilityMainHand},
                          {"durabilityOffhand", settings.information.durabilityOffhand},
                          {"durabilityArmor", settings.information.durabilityArmor},
                          {"durabilityAmmo", settings.information.durabilityAmmo},
@@ -397,6 +398,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetLiquids = settingsValue(info, "targetLiquids", value.information.targetLiquids);
         value.information.durabilityHud = settingsValue(info, "durabilityHud", value.information.durabilityHud);
         value.information.durabilityLook = settingsValue(info, "durabilityLook", value.information.durabilityLook);
+        value.information.durabilityMainHand = settingsValue(info, "durabilityMainHand", value.information.durabilityMainHand);
         value.information.durabilityOffhand = settingsValue(info, "durabilityOffhand", value.information.durabilityOffhand);
         value.information.durabilityArmor = settingsValue(info, "durabilityArmor", value.information.durabilityArmor);
         value.information.durabilityAmmo = settingsValue(info, "durabilityAmmo", value.information.durabilityAmmo);

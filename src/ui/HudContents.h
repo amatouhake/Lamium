@@ -32,7 +32,7 @@ inline Contents contentsOf(HudElementId id, std::vector<std::string> const& line
         add({"information.targetIcon", "information.targetIdentifier", "information.targetStates"});
         break;
     case HudElementId::Durability:
-        add({"information.durabilityOffhand", "information.durabilityArmor", "information.durabilityElytra",
+        add({"information.durabilityMainHand", "information.durabilityOffhand", "information.durabilityArmor", "information.durabilityElytra",
              "information.durabilityAmmo"});
         break;
     case HudElementId::Inventory: add({"information.inventoryHotbar"}); break;

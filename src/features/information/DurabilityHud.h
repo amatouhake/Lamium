@@ -39,14 +39,15 @@ inline Row row(Slot slot, Sample const& sample) {
     return {slot, sample.max - std::clamp(sample.damage, 0, sample.max), sample.max};
 }
 // A worn elytra has its own switch, apart from the armor pieces, and keeps
-// the chest position (L-150, maintainer 2026-10-12).
-inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor, bool elytra = true) {
+// the chest position (L-150, maintainer 2026-10-12). The main hand has a
+// switch too (L-349), last so older calls keep their meaning.
+inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor, bool elytra = true, bool mainHand = true) {
     std::vector<Row> out;
     auto add = [&](Slot slot) {
         auto const& sample = samples[static_cast<size_t>(slot)];
         if (usable(sample)) out.push_back(row(slot, sample));
     };
-    add(Slot::MainHand);
+    if (mainHand) add(Slot::MainHand);
     if (offhand) add(Slot::Offhand);
     bool wings = samples[static_cast<size_t>(Slot::Chest)].weapon == Weapon::Elytra;
     for (auto slot : {Slot::Head, Slot::Chest, Slot::Legs, Slot::Feet})

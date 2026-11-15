@@ -296,6 +296,7 @@ struct Settings {
         bool targetLiquids = false; // Real water and lava as the target (L-264); ghosts' always are.
         bool durabilityHud = false;
         int durabilityLook = 0; // 0 bar and number, 1 number, 2 bar (number below a quarter)
+        bool durabilityMainHand = true; // The held item's row (L-349)
         bool durabilityOffhand = true;
         bool durabilityArmor = true;
         bool durabilityAmmo = true; // Arrows and fireworks beside bows, crossbows and elytra (L-150)

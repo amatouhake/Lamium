@@ -18,8 +18,9 @@ void hudContentsTests() {
     for (auto id : {HudElementId::Status, HudElementId::Minimap, HudElementId::Chat, HudElementId::Toast})
         check(contentsOf(id, order).entries.empty(), "an element without content switches has no Contents button");
     auto durability = contentsOf(HudElementId::Durability, order);
-    check(durability.entries.size() == 4 && durability.entries[0].option == "information.durabilityOffhand"
-          && durability.entries[3].option == "information.durabilityAmmo", "Durability: offhand, armor, elytra, ammo");
+    check(durability.entries.size() == 5 && durability.entries[0].option == "information.durabilityMainHand"
+          && durability.entries[1].option == "information.durabilityOffhand"
+          && durability.entries[4].option == "information.durabilityAmmo", "Durability: main hand, offhand, armor, elytra, ammo");
     check(contentsOf(HudElementId::Inventory, order).entries[0].option == "information.inventoryHotbar"
           && contentsOf(HudElementId::UsedSlots, order).entries[0].option == "information.usedSlotsHotbar",
           "Inventory and Used slots: the hotbar switch each keeps");

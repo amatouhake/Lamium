@@ -1360,6 +1360,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"durabilityLook.number", "數值"},
     {"durabilityLook.bar", "長條"},
     {"help.information.durabilityLook", "長條：只在剩下四分之一以下時顯示數值。"},
+    {"durabilityMainHand", "主手: {}"},
     {"durabilityOffhand", "副手: {}"},
     {"durabilityArmor", "護甲: {}"},
     {"help.information.durabilityArmor", "頭盔、胸甲、護腿和靴子。"},
