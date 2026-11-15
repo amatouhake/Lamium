@@ -227,8 +227,8 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
 - Several rows of the listed layer (L-190, branch only): Ctrl/Shift + click
   keeps the map still; the selection pane (DESIGN "Several rows", with a
   two-press Delete) replaces the details, the list keeps its height; a layer
-  or dimension change drops them; Ctrl + A takes all. Ctrl + click on a map
-  mark adds or drops it (no range or box, no move); another layer's starts anew.
+  or dimension change drops them; Ctrl + A takes all. Ctrl + click on a map mark
+  adds or drops it (no range or box; no move or pick); another layer's restarts the rows.
 - Only the dimension shown. A layer switched off keeps its list
   (`State::allAreas`) with a faint "Hidden on the map" line on top.
 
