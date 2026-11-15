@@ -23,6 +23,7 @@
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/memory/Hook.h"
+#include "ll/api/memory/Symbol.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -75,13 +76,6 @@
 #include <format>
 #include <string>
 #include <unordered_map>
-
-// The game's component id of block material instances (L-324).
-// `Block::tryGetComponent<BlockMaterialInstancesComponent>` is not in the
-// symbol data, but the id behind it is; zero until the game assigned it.
-extern "C" __declspec(dllimport) unsigned short const lamiumMaterialInstancesId asm(
-    "?id@?1???$type_id@XUBlockMaterialInstancesComponent@@@Bedrock@@YA?AV?$typeid_t@X@1@XZ@4V21@A");
-static_assert(sizeof(Bedrock::typeid_t<void>) == sizeof(unsigned short));
 
 namespace lamium::map {
 namespace {
@@ -330,20 +324,44 @@ std::optional<std::uint32_t> textureColor(IClientInstance& client, ResourceLocat
     --textureLoadsLeft;
     return textureColors[path] = textureAverage(client, location);
 }
-// The material instance an add-on block shows on top ("up", else "*"),
-// null when it names no texture there (L-324).
-BlockMaterialInstance const* topMaterial(Block const& block) {
-    if (!lamiumMaterialInstancesId) return nullptr;
-    // What tryGetComponent does: the payload follows the stored base.
-    auto* base = block.mComponents->_findComponentBase(Bedrock::typeid_t<void>(lamiumMaterialInstancesId));
-    if (!base) return nullptr;
-    auto const* component = reinterpret_cast<BlockMaterialInstancesComponent const*>(&base[1]);
-    BlockMaterialInstance const* top = nullptr;
+// The game's component id of block material instances (L-324), zero until
+// the game assigned it or when the symbol is not found.
+// `Block::tryGetComponent<BlockMaterialInstancesComponent>` is not in the
+// symbol data; the id behind it is. Resolved at run time, never imported:
+// game imports are delay-loaded, so an imported variable reads a stub.
+unsigned short materialInstancesId() {
+    static_assert(sizeof(Bedrock::typeid_t<void>) == sizeof(unsigned short));
+    static auto const* id = static_cast<unsigned short const*>(
+        ll::memory::SymbolView("?id@?1???$type_id@XUBlockMaterialInstancesComponent@@@Bedrock@@YA?AV?$typeid_t@X@1@XZ@4V21@A")
+            .resolve(true));
+    return id ? *id : 0;
+}
+// What tryGetComponent does: the block state's storage, then its type's;
+// the payload follows the stored base.
+BlockMaterialInstancesComponent const* materialInstances(Block const& block, unsigned short id) {
+    Bedrock::typeid_t<void> const typeId(id);
+    auto* base = block.mComponents->_findComponentBase(typeId);
+    if (!base) base = block.getBlockType().mComponents->_findComponentBase(typeId);
+    return base ? reinterpret_cast<BlockMaterialInstancesComponent const*>(&base[1]) : nullptr;
+}
+struct TopMaterial {
+    BlockMaterialInstance const* instance = nullptr;
+    std::string why; // For the log: id, component, faces seen.
+};
+// The material instance an add-on block shows on top ("up", else "*").
+TopMaterial topMaterial(Block const& block) {
+    TopMaterial top;
+    auto id = materialInstancesId();
+    auto const* component = id ? materialInstances(block, id) : nullptr;
+    top.why = std::format("id {} component {}", id, component ? "yes" : "no");
+    if (!component) return top;
     int best = 0;
+    top.why += " faces";
     for (auto const& [face, instance] : *component->mMaterials) {
+        top.why += std::format(" '{}'", face.getString());
         int rank = topFaceRank(face.getString());
-        if (rank < 0 || instance.mTextureName->mValue.empty() || (top && rank >= best)) continue;
-        top = &instance;
+        if (rank < 0 || instance.mTextureName->mValue.empty() || (top.instance && rank >= best)) continue;
+        top.instance = &instance;
         best = rank;
     }
     return top;
@@ -384,11 +402,13 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     // No look from BlockGraphics (none, the missing texture, or unreadable):
     // an add-on block's own texture from its material instances (L-324).
     bool const addOn = drawn && addOnBlock(block.getTypeName());
-    std::string materialName, materialPath;
+    std::string materialName, materialPath, materialWhy = "not read";
     std::uint32_t materialColor = 0;
     TintMethod materialTint = TintMethod::None;
     if (addOn && !graphicsColor && versionSensitiveAllowed(capabilities::Id::MapMaterialInstances)) {
-        if (auto const* top = topMaterial(block)) {
+        auto found = topMaterial(block);
+        materialWhy = std::move(found.why);
+        if (auto const* top = found.instance) {
             materialName = top->mTextureName->mValue;
             materialTint = top->mTintMethod;
             auto uv = BlockGraphics::getTextureUVCoordinateSet(materialName, 0, 0);
@@ -406,9 +426,9 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     }
     // Where the first add-on blocks' colors come from.
     if (addOn && ++state.addOnsLogged <= 8)
-        state.diagnostics.log(std::format("add-on block {} texture '{}' material instance '{}' -> '{}' image {} color {:08x} "
-                                          "from {}",
-                                          block.getTypeName(), graphicsPath, materialName, materialPath,
+        state.diagnostics.log(std::format("add-on block {} texture '{}' material instance '{}' -> '{}' ({}) image {} "
+                                          "color {:08x} from {}",
+                                          block.getTypeName(), graphicsPath, materialName, materialPath, materialWhy,
                                           source == LookSource::MapColor ? "no" : "yes", look.color, lookSourceName(source)));
     // Which blocks fall back or stand in, for the first runs of the feature.
     if ((look.pending || (!look.skip && !look.color)) && ++state.fallbacksLogged <= 8)
