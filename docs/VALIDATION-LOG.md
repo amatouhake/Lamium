@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Rows off the scroll bar and room for Check items (2026-11-16)
+
+Build `c29aca91` (branch `l-190-waypoint-selection`), DLL SHA-256
+`45c895d9824f1674f1f570a97efda8dcae070f8b2223b2f1d650ef930ebfc4b3`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: a door with three differing items shows all three and the
+preview stays readable; Shapes, Waypoints, schematic and Highlight lists keep the selection
+frame off the bar and light no row when pointing at it, as does the HUD layout contents
+popover; the Game language list drags by its bar. On `6b443dbe`: a long settings description
+scrolls by wheel and bar. Not seen: the anvil panels (no tried item made them overflow) and a
+long Saved data list.
+
 ## L-183 follow-ups and one shared scroll bar drag (2026-11-16)
 
 Build `6b443dbe` (branch `l-190-waypoint-selection`), DLL SHA-256
