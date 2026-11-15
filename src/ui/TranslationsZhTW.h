@@ -414,7 +414,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"waypoint.columnDistance", "距離"},
     {"waypoint.meters", "{} 公尺"},
     {"waypoint.distance", "距離 {} 格"},
-    {"distance.here", "就在這裡"},
     {"waypoint.moveHere", "移到此處"},
     {"waypoint.shown", "顯示"},
     {"waypoint.color", "顏色"},

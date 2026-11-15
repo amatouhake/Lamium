@@ -418,7 +418,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"waypoint.columnDistance", "Distance", "距離"},
     {"waypoint.meters", "{} m", "{} m"},
     {"waypoint.distance", "{} blocks away", "{} ブロック先"},
-    {"distance.here", "Here", "ここ"},
     {"waypoint.moveHere", "Move here", "今いる場所に移動"},
     {"waypoint.shown", "Show", "表示する"},
     {"waypoint.color", "Color", "色"},
