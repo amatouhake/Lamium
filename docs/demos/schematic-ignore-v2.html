@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schematic Ignore v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --panel:rgba(16,17,19,.86); --edge:rgba(255,255,255,.14); --alt:rgba(255,255,255,.025); --hover:rgba(255,255,255,.07);
+  --sel:rgba(108,195,73,.16); --text:#fff; --dim:#b4b8b6; --faint:#7f8583;
+  --key:#2b2c2d; --key-edge:#5a5b5c; --state:#ffcc40; --bad:#ff5a4e; --miss:#8cccff;
+  --danger:#8f2a24; --danger-edge:#ff6a5e;
+  --font:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 17px/1.3 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:84ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.cap{color:var(--ink-2);font-size:13.5px;max-width:92ch}
+.cap b{color:var(--ink)}
+ul.cap{margin:0;padding-left:20px} ul.cap li{margin:3px 0}
+.rec{color:var(--accent);font-weight:700}
+.new{font-size:10.5px;color:var(--accent);border:1px solid var(--accent-deep);padding:0 4px;margin-left:3px;vertical-align:1px}
+.ctrl{display:grid;gap:8px;font-size:13px;color:var(--ink-2)}
+.ctrl .r{display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center}
+.ctrl .r>span:first-child{min-width:13em;color:var(--ink)}
+.grp{display:flex;gap:6px;flex-wrap:wrap}
+.grp button,.act{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:12.5px;padding:3px 10px}
+.grp button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.act:hover{border-color:var(--ink-3)}
+.stage-outer{border:1px solid var(--line);background:#0b0d0e}
+.fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--font);color:var(--text);overflow:hidden;outline:none;
+  background:linear-gradient(160deg,#2c4b3c 0%,#46523f 35%,#6b6450 60%,#3b4a57 100%)}
+.screen{position:absolute;left:13px;top:10px;width:934px;height:521px;background:var(--panel);border:1px solid var(--edge);display:grid;
+  grid-template-columns:166px 384px 1fr;grid-template-rows:28px 1fr 40px}
+.top{grid-column:1/4;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--edge);font-size:12px}
+.top .sp{flex:1}
+.btn{border:1px solid var(--key-edge);background:var(--key);padding:0 8px;height:16px;line-height:15px;font-size:11px;color:var(--text);white-space:nowrap;cursor:pointer;display:inline-block}
+.btn:hover{background:#3a3b3c}
+.btn.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.btn.off{color:var(--faint);cursor:default}.btn.off:hover{background:var(--key)}
+.btn.danger:hover{border-color:var(--danger-edge);color:var(--danger-edge)}
+.btn.armed,.btn.armed:hover{background:var(--danger);border-color:var(--danger-edge);color:#fff}
+.btn.sm{height:13px;line-height:12px;font-size:10px;padding:0 5px}
+.side{border-right:1px solid var(--edge);padding:8px 0;font-size:12.5px}
+.side div{padding:3px 12px;display:flex;justify-content:space-between}
+.side div.cur{background:var(--sel);box-shadow:inset 3px 0 var(--accent)}
+.side .n{color:var(--dim)}
+.list{border-right:1px solid var(--edge);display:flex;flex-direction:column;min-height:0}
+.stabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px 8px}
+.stabs .btn{text-align:center;font-size:12px;height:17px;line-height:16px;cursor:default}
+.chips{display:flex;gap:4px;padding:3px 8px 4px}
+.chip{border:1px solid var(--key-edge);border-radius:7px;height:15px;line-height:14px;padding:0 6px;font-size:10.5px;color:var(--dim);cursor:pointer}
+.chip.on{border-color:var(--accent);color:var(--accent)}
+.rows{flex:1;overflow:hidden;font-size:12px;border-top:1px solid var(--edge);user-select:none}
+.row{display:flex;align-items:center;gap:6px;height:21px;padding:0 9px;cursor:pointer;white-space:nowrap}
+.row:nth-child(even){background:var(--alt)}
+.row:hover{background:var(--hover)}
+.row.sel{background:var(--sel);outline:1px solid var(--accent);outline-offset:-1px}
+.row .k{width:52px} .row .p{width:96px;color:var(--dim)} .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis} .row .m{color:var(--dim)}
+.row .tg{color:var(--dim);font-size:10.5px;border:1px solid rgba(255,255,255,.22);padding:0 3px;line-height:12px}
+.row.dimr,.row.dimr .p,.row.dimr .m{color:var(--dim)}
+.row.dimr .sq{opacity:.4}
+.sq{width:7px;height:7px;display:inline-block;margin-right:4px}
+.detail{padding:8px 12px;font-size:12px;display:flex;flex-direction:column;gap:3px;min-height:0;overflow:hidden;position:relative}
+.detail .title{font-size:13px}
+.d{color:var(--dim)} .f{color:var(--faint)} .y{color:var(--state)} .rd{color:var(--bad)} .ac{color:var(--accent)} .bl{color:var(--miss)}
+.pv{border:1px solid var(--edge);background:rgba(0,0,0,.28);height:104px;flex:none;position:relative}
+.pv span{position:absolute;left:5px;top:3px;font-size:10px;color:var(--faint)}
+.two{display:grid;grid-template-columns:42% 1fr;gap:0 12px;margin-top:4px}
+.two>div:last-child{border-left:1px solid var(--edge);padding-left:8px;min-width:0}
+.two>div:last-child div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl{display:flex;align-items:center;gap:5px;min-height:15px;margin-top:2px;white-space:nowrap}
+.sl .nm{width:58px;color:var(--dim);overflow:hidden} .sl .v{flex:1;overflow:hidden;text-overflow:ellipsis}
+.sl .tag{color:var(--dim);font-size:10.5px}
+.hr{border-top:1px solid rgba(255,255,255,.1);margin:5px 0 1px}
+.acts{grid-column:3;border-top:1px solid var(--edge);display:flex;align-items:center;gap:6px;padding:0 10px}
+.acts .sp{flex:1}
+.acts .btn{height:18px;line-height:17px;font-size:11.5px;padding:0 7px}
+.foot{grid-column:1/3;border-top:1px solid var(--edge);padding:0 10px;font-size:11px;color:var(--faint);display:flex;align-items:center;gap:10px}
+.foot .msg{color:var(--state)}
+/* sections */
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:10px;align-content:start;min-width:0}
+.hudwrap{background:linear-gradient(160deg,#2c4b3c 0%,#46523f 50%,#3b4a57 100%);padding:14px;font-family:var(--font);color:var(--text)}
+.hud{width:224px;background:rgba(16,17,19,.6);padding:5px 7px;font-size:12px;line-height:1.5}
+.hud .g{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.world svg{display:block;width:100%;height:auto;background:#24302a}
+.toast{font-family:var(--font);font-size:12px;background:rgba(16,17,19,.8);border:1px solid var(--edge);padding:2px 8px;display:inline-block;color:#fff;min-height:21px;min-width:12em}
+.card{font-family:var(--font);font-size:11.5px;background:rgba(16,17,19,.8);border:1px solid var(--edge);padding:4px 8px;display:inline-block;color:#fff;line-height:1.5;min-width:16em}
+.radial svg{display:block;width:100%;max-width:420px;height:auto}
+table.mx{border-collapse:collapse;font-size:12.5px;width:100%}
+table.mx th,table.mx td{border:1px solid var(--line);padding:5px 7px;vertical-align:top;text-align:left}
+table.mx th{color:var(--ink);font-weight:500;background:#181c1f}
+table.mx td{color:var(--ink-2)}
+table.mx td.now{background:rgba(108,195,73,.08)} table.mx td.today{background:rgba(140,204,255,.07)} table.mx td.no{color:var(--ink-3)}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.lg i{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:4px;border:1px solid var(--line)}
+.scroll{overflow-x:auto}
+.qa{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.qa ol,.qa ul{margin:6px 0 0;padding-left:20px;color:var(--ink-2)} .qa li{margin:4px 0}
+.qa b{color:var(--ink)}
+code{font-size:12.5px;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">BACKLOG L-183 · Disregard selected schematic check mismatches · mockup v2 2026-11-15</div>
+  <h1>Ignoring check differences: the first scope, end to end</h1>
+  <p class="lede">The agreed first scope. Whole block in one cell (key, radial menu, Check row) or in selected cells. One state in one cell, in selected cells, or on every same block of the placement. One example drives every panel: ignoring something updates the list, totals, HUD and world. UI text is Japanese, as the game shows it. Strings tagged <span class="new">new</span> do not exist yet. Block art and positions are placeholders. Click a row. Ctrl+click adds rows, Shift+click takes a range, Ctrl+A selects all and Esc clears (click the screen first). The click-mode buttons below do the same on touch.</p>
+</header>
+
+<div class="ctrl">
+  <div class="r"><span>Choice 1 · ghost of an ignored not-placed cell</span><div class="grp" data-k="ghost">
+    <button data-v="A" aria-pressed="true">A: drawn as usual (recommended)</button>
+    <button data-v="B">B: hidden</button></div></div>
+  <div class="r"><span>Choice 2 · radial menu entry</span><div class="grp" data-k="menu">
+    <button data-v="A">A: 7th item in 表示と照合</button>
+    <button data-v="B" aria-pressed="true">B: 配置を表示 moves to 配置; 6 + 6 (recommended)</button></div></div>
+  <div class="r"><span>Click mode (touch)</span><div class="grp" data-k="mod">
+    <button data-v="" aria-pressed="true">Plain</button><button data-v="ctrl">Ctrl</button><button data-v="shift">Shift</button></div></div>
+  <div class="r"><span>Example</span><div class="grp">
+    <button class="act" id="pick3">Select the three levers</button>
+    <button class="act" id="pickMix">Select lever + door + stone</button>
+    <button class="act" id="nearCap">Fill to 62 entries (cap 64)</button>
+    <button class="act" id="reset">Reset</button></div></div>
+</div>
+
+<div class="stage-outer"><div class="fit" id="fit"><div class="stage" id="stage" tabindex="0">
+  <div class="screen">
+    <div class="top"><span>Lamium</span><span class="f">0.1.7</span><span class="sp"></span><span class="btn" style="cursor:default">閉じる (Esc)</span></div>
+    <div class="side">
+      <div>すべて</div><div>カメラ・見た目</div><div>情報・オーバーレイ</div><div>マップ</div><div>設計図</div>
+      <div style="height:20px"></div><div>形状 <span class="n">0</span></div><div>ウェイポイント <span class="n">0</span></div>
+      <div class="cur">設計図 <span class="n">3</span></div><div>ワールドマップ</div>
+    </div>
+    <div class="list">
+      <div class="stabs"><span class="btn">配置</span><span class="btn">ファイル</span><span class="btn on">照合</span><span class="btn">資材</span></div>
+      <div class="chips" id="chips"></div>
+      <div class="rows" id="rows"></div>
+    </div>
+    <div class="detail" id="detail"></div>
+    <div class="foot" id="foot"></div>
+    <div class="acts" id="acts"></div>
+  </div>
+</div></div></div>
+
+<section class="box">
+  <h2>1. One row selected: the detail pane</h2>
+  <ul class="cap">
+    <li><b>Whole block</b>: <code>ブロックごと無視</code><span class="new">new</span> sits in the action row next to ワールドで示す. It works on wrong-block, wrong-state, block-entity and not-placed rows. On an ignored row it reads <code>無視を戻す</code><span class="new">new</span>. The cell then <b>leaves the totals</b>: the "/ total" drops by one, as extras' 数えない does. The row stays in its kind and place, dimmed, with a <code>ブロック無視</code><span class="new">new</span> tag.</li>
+    <li><b>One state</b>: each line under 違う状態 has <code>ここで無視</code><span class="new">new</span> and <code>全 N 個で無視</code><span class="new">new</span>. N counts the placement's blocks of this kind. The second button covers every lever's 動力, now and later. An ignored line stays in place, dimmed, and its tag says which entry covers it: <code>無視中</code><span class="new">new</span> or <code>無視中 · 全 12 個</code><span class="new">new</span>. 戻す removes that entry. On a 全 N 個 line, 戻す reads <code>戻す（全 12 個）</code><span class="new">new</span>, because it frees every lever.</li>
+    <li>When every differing state of a row is ignored, the row <b>counts as correct</b>. It stays in its kind, dimmed, with a <code>状態無視</code><span class="new">new</span> tag. The total does not change. A row with only some states ignored is still a yellow, counted mistake.</li>
+    <li>No per-state buttons on block-entity rows (the sign), on a shulker box's opening, or on cells expecting air (Known in L-183). The sign can still be ignored as a whole block. The extra-block row (file: air) gets no whole-block button here: see question 3.</li>
+    <li>Ignoring a whole block keeps that cell's state entries. They show dimmed under it, so 無視を戻す restores the state ignores that were there before.</li>
+  </ul>
+</section>
+
+<section class="box">
+  <h2>2. Several rows selected: the selection pane (L-190)</h2>
+  <ul class="cap">
+    <li>The pane shows a count header (<code>N 行を選択</code><span class="new">new</span>) and the names in list order, as plain lines up to what fits, then ほか N 件. All selected rows share one highlight. The bulk actions sit where the single pane's buttons sit: ワールドで示す (marks every selected cell), ブロックごと無視, 無視を戻す. A button that would change nothing is disabled.</li>
+    <li><b>States when the rows do not share a key</b> (decided here): the pane lists every differing state that occurs in the selection, with how many rows have it, for example <code>動力 · 3 / 5 行</code>. Its button <code>3 行で無視</code><span class="new">new</span> adds one "here" entry on each of those rows. The other rows are left alone. A key shared by all rows needs no special case. A key already ignored on all its rows is dimmed, with 戻す.</li>
+    <li>"Every same block" is not offered here: the selection can mix block kinds. It stays on the single row's state line.</li>
+    <li><b>無視を戻す</b> removes the selected cells' own entries (whole block and "here" states). A 全 N 個 entry is not removed, so a lever it covers stays dimmed. Its tag says why.</li>
+    <li><b>Cap</b>: a bulk action that would go over 64 entries changes nothing. The footer shows the existing message <code>無視できる違いは配置ごとに 64 件まで</code>. Try "Fill to 62 entries" and then ignore three rows.</li>
+  </ul>
+</section>
+
+<section class="pair">
+  <div class="box world">
+    <h2>3. In the world: key and radial menu</h2>
+    <svg id="world" viewBox="0 0 440 160"></svg>
+    <div class="ctrl"><div class="r"><span style="min-width:5em">Look at</span><div class="grp" data-k="look" id="lookGrp"></div></div></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="act" id="pressKey">Press 見ているブロックの無視を切り替え</button>
+      <button class="act" id="pressNear">Press 最も近い間違いを示す</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start"><span class="toast" id="toast"></span></div>
+    <p class="cap">One key (<code>見ているブロックの無視を切り替え</code><span class="new">new</span>, unbound by default) and one menu item do the same thing: they ignore the looked-at cell as a whole block, or un-ignore it. The target is a ghost, or a real block in a placement cell, picked as the target card picks. Toasts<span class="new">new</span>: <code>ブロックごと無視: 石（-97, 86, -41）</code> and <code>無視を戻しました: 石</code>. On a correct block: <code>正しく置かれています</code> (existing). Off the placement: <code>設計図のブロックを見ていません</code><span class="new">new</span>. When full, the existing cap message. Finer choices (one state, every same block) stay in the screen.</p>
+    <p class="cap"><b>Choice 1</b>. <b>A</b> <span class="rec">(recommended)</span>: an ignored not-placed cell keeps its ghost, so the same key can still hit it to un-ignore. Ignoring changes the check, not the file. Cost: a part you will never build stays drawn. <b>B</b>: the ghost is hidden, which looks cleaner. Cost: nothing is left to look at, so un-ignoring needs the screen. Real ignored cells lose their red or yellow box under both options.</p>
+  </div>
+  <div class="box radial">
+    <h2>Radial menu, 表示と照合</h2>
+    <svg id="radial" viewBox="0 0 420 300"></svg>
+    <p class="cap" id="radialCap"></p>
+  </div>
+</section>
+
+<section class="box">
+  <h2>4. The Ignored list</h2>
+  <ul class="cap">
+    <li>The <code>無視: N</code> button sits right of the action row and counts the entries that apply. It is <b>hidden while the list is empty</b>. Pressed, it opens the list in place of the counts. Entries come in three kinds. Each names the file's block:<br>
+      <code>全 12 個 · レバー · 動力</code><span class="new">new</span>, <code>-97, 86, -41　石 · ブロックごと</code><span class="new">new</span>, and <code>-98, 85, -40　レッドストーンリピーター · 向き</code>.</li>
+    <li>Order: every-same-block entries first, then cells nearest first. 戻す on each line. すべて戻す takes two presses (<code>もう一度押すとすべて戻す</code>). Lines that do not fit end with ほか N 件, with no scrolling.</li>
+    <li><b>Stale</b>: the file no longer has that block at that cell, or no block of that kind at all for a 全 N 個 entry. The line is dimmed with <code>設計図にない</code>. It is not applied and not counted in N, but it keeps the button visible, so it can still be removed. All three kinds share the cap of 64.</li>
+  </ul>
+</section>
+
+<section class="pair">
+  <div class="box">
+    <h2>5. Totals and the Schematic HUD</h2>
+    <div class="hudwrap"><div class="hud" id="hud"></div></div>
+    <ul class="cap">
+      <li>A cell ignored as a whole block is <b>left out</b>: it is in no count and the total drops by one, as with extras' 数えない. An extra block's 数えない does not change the total (the file has air there). Here it only drops 違う・余計.</li>
+      <li>Ignored states <b>count as matching</b>: 状態違い drops and 正しい rises, with the same total.</li>
+      <li>最も近い間違い and the nearest-mistake key skip both kinds and fully state-ignored rows. A partly ignored row is still found. The HUD gets no "ignored" line: the count is on the Check tab's button.</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h2>6. One system: what x where</h2>
+    <div class="scroll"><table class="mx">
+      <tr><th></th><th>this cell</th><th>selected cells</th><th>every same block in the placement</th><th>every placement</th></tr>
+      <tr><th>one state</th><td class="now">ここで無視 <span class="d">(Check row)</span></td><td class="now">N 行で無視 <span class="d">(selection pane)</span></td><td class="now">全 N 個で無視 <span class="d">(Check row)</span></td><td class="today">Check switches, by category: レッドストーンの信号を無視 / 植物の成長段階を無視</td></tr>
+      <tr><th>whole block</th><td class="now">ブロックごと無視 <span class="d">(key, radial menu, Check row)</span></td><td class="now">ブロックごと無視 <span class="d">(selection pane)</span></td><td class="no">not now</td><td class="no">not now</td></tr>
+      <tr><th>block entity data</th><td class="no">not now</td><td class="no">not now</td><td class="no">—</td><td class="today">ブロックエンティティを無視 / 看板の文字を無視</td></tr>
+      <tr><th>extra blocks (file: air)</th><td class="no">question 3</td><td class="no">question 3</td><td class="today" colspan="2">per placement: 余計なブロック 赤で示す / 数えない (settings, key, radial menu)</td></tr>
+    </table></div>
+    <div class="lg"><span><i style="background:rgba(108,195,73,.25)"></i>L-183 first scope</span><span><i style="background:rgba(140,204,255,.2)"></i>today</span></div>
+    <ul class="cap">
+      <li>Two results only. <b>Left out</b>: whole block, and extras' 数えない. <b>Counts as matching</b>: every state ignore, and the Check switches.</li>
+      <li>The switches and extras stay in the settings, the keys and the menu. Entries live in the placement's file and are edited only in the Check tab. When a switch already covers a state, an entry for it is harmless and stays listed.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="qa">
+  <b>確認したいこと</b>
+  <ol>
+    <li><b>Choice 1</b>, the ghost of an ignored not-placed cell: <b>A</b> drawn as usual (recommended: the key can still un-ignore it) or <b>B</b> hidden.</li>
+    <li><b>Choice 2</b>, the radial menu: <b>A</b> a 7th item in 表示と照合 (no other item moves) or <b>B</b> 配置を表示 moves to 配置, keeping 6 + 6 (recommended: keeps the five-or-six rule, and showing is a per-placement setting). Cost of B: one item moves from where it was learned.</li>
+    <li><b>Extra-block rows</b> (file: air): allow a per-cell ブロックごと無視, so one stray torch stops counting while the placement's other extras stay red? It would extend Known's "cells expecting air cannot be ignored", which was written for states. The mockup offers no button.</li>
+    <li><b>Materials</b>: should an ignored not-placed cell leave the Materials list (consistent with "not counted"), or stay, because the file is unchanged? Not drawn here.</li>
+    <li><b>Key target</b>: the selected placement only, like the nearest-mistake key, with other placements getting <code>設計図のブロックを見ていません</code>? Or whichever placement owns the looked-at cell? The mockup assumes the selected one.</li>
+    <li><b>Target card</b>: add a dimmed line such as <code>設計図: ブロックごと無視</code><span class="new">new</span> on an ignored cell, so the key's effect is visible up close? Not drawn as decided.</li>
+    <li>Still open from v1: with only stale entries left, the button reads <code>無視: 0</code> while its list is not empty. Show the entry count in that one case, or accept it as rare?</li>
+  </ol>
+  <b style="display:block;margin-top:10px">Not changed here</b>
+  <ul>
+    <li>Saved per placement in schematic coordinates and kept across moving, turning and rejoining. A cap of 64. Older builds may drop the key. No "temporarily" in the wording.</li>
+    <li>Not in this scope: a whole block on every same block or every placement, and block-entity data per cell.</li>
+  </ul>
+</section>
+</div>
+
+<script>
+const CAP=64, TOTAL=420;
+const sameCount={"レバー":12,"レッドストーンリピーター":4,"オークのドア":2,"石":96,"レッドストーンダスト":30,"オークの看板":1};
+const cells=[
+  {id:"lev1",kind:"state",p:"-100, 85, -40",name:"レバー",d:3,x:60,states:[{k:"powered",n:"動力",now:"いいえ",want:"はい"}]},
+  {id:"rep",kind:"state",p:"-98, 85, -40",name:"レッドストーンリピーター",d:5,x:92,states:[{k:"direction",n:"向き",now:"東",want:"北"},{k:"powered",n:"動力",now:"はい",want:"いいえ"}]},
+  {id:"stone",kind:"wrong",p:"-97, 86, -41",name:"石",actual:"丸石",d:6,x:124,y:80},
+  {id:"lev2",kind:"state",p:"-96, 85, -40",name:"レバー",d:7,x:156,states:[{k:"powered",n:"動力",now:"いいえ",want:"はい"}]},
+  {id:"door",kind:"state",p:"-95, 85, -38",name:"オークのドア",d:8,x:188,states:[{k:"open_bit",n:"開閉",now:"はい",want:"いいえ"},{k:"door_hinge_bit",n:"蝶番",now:"左",want:"右"}]},
+  {id:"torch",kind:"extra",p:"-95, 86, -39",name:"空気",actual:"松明",d:8.5,x:220,y:80},
+  {id:"sign",kind:"state",be:true,p:"-93, 85, -40",name:"オークの看板",d:9,x:252,states:[{k:"text",n:"文字",now:"「入口」",want:"「出口」"}]},
+  {id:"lev3",kind:"state",p:"-92, 85, -40",name:"レバー",d:10,x:284,states:[{k:"powered",n:"動力",now:"いいえ",want:"はい"}]},
+  {id:"dust1",kind:"miss",p:"-91, 85, -40",name:"レッドストーンダスト",d:11,x:316},
+  {id:"dust2",kind:"miss",p:"-90, 85, -40",name:"レッドストーンダスト",d:12,x:348},
+];
+const start=()=>["cell:dust2","state:rep:direction","stale:-89, 86, -41　ガラス · ブロックごと"];
+let E=start();
+const S={ghost:"A",menu:"B",mod:"",look:"stone",filter:"all",sel:[0],last:0,anchor:0,open:false,armed:false,msg:"",pad:0,shown:[],near:false,toast:""};
+const kinds={wrong:["違う","var(--bad)"],extra:["余計","var(--bad)"],state:["状態","var(--state)"],miss:["未設置","var(--miss)"]};
+const byId=id=>cells.find(c=>c.id==id);
+const has=e=>E.includes(e);
+const whole=c=>has("cell:"+c.id);
+const here=(c,k)=>has(`state:${c.id}:${k}`);
+const all=(c,k)=>has(`all:${c.name}:${k}`);
+const sIgn=(c,k)=>here(c,k)||all(c,k);
+const perState=c=>c.kind=="state"&&!c.be;
+const stateDone=c=>perState(c)&&c.states.every(s=>sIgn(c,s.k));
+const dimmed=c=>whole(c)||stateDone(c);
+const isMistake=c=>c.kind!="miss"&&!dimmed(c);
+const applied=()=>E.filter(e=>!e.startsWith("stale:")).length+S.pad;
+const size=()=>E.length+S.pad;
+const ghostShown=c=>c.kind=="miss"&&!(S.ghost=="B"&&whole(c));
+function counts(){
+  const n={wrong:0,state:0,miss:0,out:0};
+  for(const c of cells){
+    if(whole(c)){if(c.kind!="extra")n.out++;continue;}
+    if(c.kind=="miss")n.miss++;else if(c.kind=="state"){if(!stateDone(c))n.state++;}else n.wrong++;
+  }
+  const wrongInFile=cells.filter(c=>c.kind=="wrong"&&!whole(c)).length;
+  n.total=TOTAL-n.out; n.correct=n.total-wrongInFile-n.state-n.miss; return n;
+}
+function visible(){
+  const f=S.filter;
+  return cells.filter(c=>f=="all"||(f=="mistake"&&c.kind!="miss")||(f=="wrong"&&(c.kind=="wrong"||c.kind=="extra"))||c.kind==f)
+    .sort((a,b)=>(a.kind=="miss")-(b.kind=="miss")||a.d-b.d);
+}
+const idx=c=>cells.indexOf(c);
+function tagOf(c){return whole(c)?"ブロック無視":stateDone(c)?"状態無視":"";}
+function renderList(){
+  const n=counts();
+  const chips=[["mistake","間違い "+(n.wrong+n.state)],["wrong","違う・余計 "+n.wrong],["state","状態違い "+n.state],["miss","未設置 "+n.miss]];
+  document.getElementById("chips").innerHTML=chips.map(([v,t])=>`<span class="chip${S.filter==v?" on":""}" data-f="${v}">${t}</span>`).join("");
+  document.querySelectorAll(".chip").forEach(e=>e.onclick=()=>{S.filter=S.filter==e.dataset.f?"all":e.dataset.f;S.sel=[];render();});
+  document.getElementById("rows").innerHTML=visible().map(c=>{
+    const t=tagOf(c),i=idx(c);
+    return `<div class="row${t?" dimr":""}${S.sel.includes(i)?" sel":""}" data-i="${i}"><span class="k"><i class="sq" style="background:${kinds[c.kind][1]}"></i>${kinds[c.kind][0]}</span><span class="p">${c.p}</span><span class="nm">${c.kind=="extra"?c.actual:c.name}</span>${t?`<span class="tg">${t}</span>`:""}<span class="m">${c.d|0} m</span></div>`;
+  }).join("");
+  document.querySelectorAll(".row").forEach(e=>e.onclick=ev=>{
+    const m=ev.ctrlKey||ev.metaKey?"ctrl":ev.shiftKey?"shift":S.mod;clickRow(+e.dataset.i,m);});
+}
+function clickRow(i,m){
+  const vis=visible().map(idx);
+  if(m=="ctrl"){S.sel=S.sel.includes(i)?S.sel.filter(x=>x!=i):[...S.sel,i];S.anchor=i;}
+  else if(m=="shift"){const a=vis.indexOf(S.anchor),b=vis.indexOf(i);
+    S.sel=a<0?[i]:vis.slice(Math.min(a,b),Math.max(a,b)+1);}
+  else{S.sel=[i];S.anchor=i;}
+  S.last=i;S.msg="";S.armed=false;render();
+}
+function add(list){
+  const fresh=list.filter(e=>!has(e));
+  if(size()+fresh.length>CAP){S.msg=`無視できる違いは配置ごとに ${CAP} 件まで`;return false;}
+  E.push(...fresh);S.msg="";return true;
+}
+function remove(pred){E=E.filter(e=>!pred(e));S.armed=false;if(!E.length&&!S.pad)S.open=false;}
+function totalsHtml(n){
+  return `<div class="f">配置全体 · すべての層</div><div class="ac">正しい: ${n.correct} / ${n.total}</div><div class="d">未設置: ${n.miss}</div><div class="rd">違う・余計: ${n.wrong}</div><div class="y">状態違い: ${n.state}</div>`;
+}
+function stateLine(c,s){
+  if(c.be) return `<div class="sl"><span class="nm">${s.n}</span><span class="v y">${s.now} → ${s.want}</span></div>`;
+  if(whole(c)) return `<div class="sl"><span class="nm">${s.n}</span><span class="v d">${s.now} → ${s.want}</span>${here(c,s.k)?`<span class="tag">無視中</span>`:all(c,s.k)?`<span class="tag">無視中 · 全 ${sameCount[c.name]} 個</span>`:""}</div>`;
+  const N=sameCount[c.name];
+  if(here(c,s.k)) return `<div class="sl"><span class="nm">${s.n}</span><span class="v d">${s.now} → ${s.want}　<span class="tag">無視中</span></span><span class="btn sm" data-rm="state:${c.id}:${s.k}">戻す</span></div>`;
+  if(all(c,s.k)) return `<div class="sl"><span class="nm">${s.n}</span><span class="v d">${s.now} → ${s.want}　<span class="tag">無視中 · 全 ${N} 個</span></span><span class="btn sm" data-rm="all:${c.name}:${s.k}">戻す（全 ${N} 個）</span></div>`;
+  return `<div class="sl"><span class="nm">${s.n}</span><span class="v y">${s.now} → ${s.want}</span><span class="btn sm" data-add="state:${c.id}:${s.k}">ここで無視</span><span class="btn sm" data-add="all:${c.name}:${s.k}">全 ${N} 個で無視</span></div>`;
+}
+function entryLine(e){
+  const [t,a,b]=e.split(":");let txt,dim=false;
+  if(t=="stale"){txt=`${e.slice(6)} · 設計図にない`;dim=true;}
+  else if(t=="cell"){const c=byId(a);txt=`${c.p}　${c.kind=="extra"?c.actual:c.name} · ブロックごと`;}
+  else if(t=="state"){const c=byId(a);txt=`${c.p}　${c.name} · ${c.states.find(s=>s.k==b).n}`;}
+  else {const s=cells.find(c=>c.name==a).states.find(s=>s.k==b);txt=`全 ${sameCount[a]} 個 · ${a} · ${s.n}`;}
+  return `<div class="sl"><span class="v ${dim?"d":""}" style="flex:1">${txt}</span><span class="btn sm" data-rm="${e}">戻す</span></div>`;
+}
+function ignoredList(){
+  let h=`<div style="display:flex;align-items:center;margin-top:5px"><span class="f" style="flex:1">無視している違い</span><span class="btn sm danger${S.armed?" armed":""}" id="undoAll">${S.armed?"もう一度押すとすべて戻す":"すべて戻す"}</span></div>`;
+  const order=[...E].sort((x,y)=>{const r=e=>e.startsWith("all:")?0:e.startsWith("stale:")?2:1;
+    const d=e=>{const c=byId(e.split(":")[1]);return c?c.d:99;};return r(x)-r(y)||d(x)-d(y);});
+  const fit=14;
+  h+=order.slice(0,fit).map(entryLine).join("");
+  const more=order.length-Math.min(fit,order.length)+S.pad;
+  if(more>0)h+=`<div class="f">ほか ${more} 件</div>`;
+  return h;
+}
+function singlePane(){
+  const n=counts(),c=cells[S.sel[0]];
+  let h=`<div class="title">回路の家</div><div class="pv"><span>プレビュー（省略）</span></div>`;
+  if(S.open) return h+ignoredList();
+  let right="";
+  if(c){
+    const w=whole(c),done=stateDone(c);
+    const col=w||done?"d":c.kind=="state"?"y":c.kind=="miss"?"bl":"rd";
+    const kind=w?"ブロックごと無視中":done?"状態をすべて無視中":{wrong:"違うブロック",extra:"余計なブロック",state:"状態違い",miss:"未設置"}[c.kind];
+    right=`<div class="${col}">この場所 ${c.p}</div><div class="${col}">${kind}</div><div class="d">設計図では: ${c.name}</div>`+
+      (c.kind=="miss"?"":`<div class="d">ワールドでは: ${c.actual||c.name}</div>`);
+  }
+  h+=`<div class="two"><div>${totalsHtml(n)}</div><div>${right}</div></div>`;
+  if(c&&c.states){
+    h+=`<div class="hr"></div><div class="f">違う状態</div>`+c.states.map(s=>stateLine(c,s)).join("");
+    if(c.be)h+=`<div class="d" style="font-size:11px">ブロックエンティティの違いは状態ごとに無視できません。ブロックごとなら無視できます。</div>`;
+    if(whole(c))h+=`<div class="d" style="font-size:11px">ブロックごと無視しているため、この場所は数えていません。</div>`;
+  }
+  return h;
+}
+function selectionPane(){
+  const sel=visible().map(idx).filter(i=>S.sel.includes(i)).map(i=>cells[i]);
+  let h=`<div class="title">${sel.length} 行を選択</div>`;
+  const fit=7;
+  h+=sel.slice(0,fit).map(c=>`<div class="${dimmed(c)?"d":""}" style="white-space:nowrap;overflow:hidden">${c.p}　${c.kind=="extra"?c.actual:c.name}</div>`).join("");
+  if(sel.length>fit)h+=`<div class="f">ほか ${sel.length-fit} 件</div>`;
+  if(S.open) return h+`<div class="hr"></div>`+ignoredList();
+  const keys=[];
+  for(const c of sel)if(perState(c))for(const s of c.states)if(!keys.find(k=>k.k==s.k))keys.push({k:s.k,n:s.n});
+  h+=`<div class="hr"></div><div class="f">違う状態（選択中の行）</div>`;
+  if(!keys.length)h+=`<div class="d">選んだ行に、状態ごとに無視できる違いはありません。</div>`;
+  for(const k of keys){
+    const rows=sel.filter(c=>perState(c)&&c.states.some(s=>s.k==k.k));
+    const open=rows.filter(c=>!sIgn(c,k.k));
+    const own=rows.filter(c=>here(c,k.k));
+    const label=`${k.n} · ${rows.length} / ${sel.length} 行`;
+    if(open.length) h+=`<div class="sl"><span class="v y">${label}</span><span class="btn sm" data-bulkstate="${k.k}">${open.length} 行で無視</span></div>`;
+    else{const viaAll=rows.find(c=>!here(c,k.k));
+      h+=`<div class="sl"><span class="v d">${label}　<span class="tag">無視中${viaAll?` · ${viaAll.name} 全 ${sameCount[viaAll.name]} 個を含む`:""}</span></span>${own.length?`<span class="btn sm" data-bulkunstate="${k.k}">戻す</span>`:""}</div>`;}
+  }
+  if(sel.some(c=>c.be))h+=`<div class="d" style="font-size:11px">看板の文字は状態ごとには無視できません。</div>`;
+  return h;
+}
+function renderPane(){
+  const multi=S.sel.length>1;
+  document.getElementById("detail").innerHTML=multi?selectionPane():singlePane();
+  const sel=S.sel.map(i=>cells[i]);
+  let b="";
+  if(!multi){
+    const c=sel[0];
+    b+=`<span class="btn${c?"":" off"}" id="show">ワールドで示す</span>`;
+    if(c&&c.kind!="extra")b+=whole(c)?`<span class="btn" id="wholeOff">無視を戻す</span>`:`<span class="btn" id="wholeOn">ブロックごと無視</span>`;
+  } else {
+    const canOn=sel.filter(c=>c.kind!="extra"&&!whole(c)).length;
+    const canOff=sel.filter(c=>E.some(e=>e=="cell:"+c.id||e.startsWith(`state:${c.id}:`))).length;
+    b+=`<span class="btn" id="show">ワールドで示す</span><span class="btn${canOn?"":" off"}" id="${canOn?"wholeOn":""}">ブロックごと無視</span><span class="btn${canOff?"":" off"}" id="${canOff?"wholeOff":""}">無視を戻す</span>`;
+  }
+  b+=`<span class="sp"></span>`;
+  if(size()>0)b+=`<span class="btn${S.open?" on":""}" id="ignBtn">無視: ${applied()}</span>`;
+  document.getElementById("acts").innerHTML=b;
+  const foot=multi?"Ctrl+クリック: 追加 | Shift+クリック: 範囲 | Esc: 選択を解除":"クリック: 選択 | Ctrl+クリック: 追加 | Esc: 閉じる";
+  document.getElementById("foot").innerHTML=S.msg?`<span class="msg">${S.msg}</span>`:foot;
+  const on=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f;};
+  on("ignBtn",()=>{S.open=!S.open;S.armed=false;render();});
+  on("undoAll",()=>{if(S.armed){E=[];S.pad=0;S.armed=false;S.open=false;}else S.armed=true;render();});
+  on("show",()=>{S.shown=sel.map(c=>c.id);render();});
+  on("wholeOn",()=>{add(sel.filter(c=>c.kind!="extra").map(c=>"cell:"+c.id));render();});
+  on("wholeOff",()=>{const ids=sel.map(c=>c.id);remove(e=>{const [t,a]=e.split(":");return (t=="cell"||t=="state")&&ids.includes(a);});render();});
+  document.querySelectorAll("[data-add]").forEach(e=>e.onclick=()=>{add([e.dataset.add]);render();});
+  document.querySelectorAll("[data-rm]").forEach(e=>e.onclick=()=>{remove(x=>x==e.dataset.rm);render();});
+  document.querySelectorAll("[data-bulkstate]").forEach(e=>e.onclick=()=>{const k=e.dataset.bulkstate;
+    add(sel.filter(c=>perState(c)&&c.states.some(s=>s.k==k)&&!sIgn(c,k)).map(c=>`state:${c.id}:${k}`));render();});
+  document.querySelectorAll("[data-bulkunstate]").forEach(e=>e.onclick=()=>{const k=e.dataset.bulkunstate,ids=sel.map(c=>c.id);
+    remove(x=>ids.some(id=>x==`state:${id}:${k}`));render();});
+}
+function nearest(){return cells.filter(isMistake).sort((a,b)=>a.d-b.d)[0];}
+function renderHud(){
+  const n=counts(),nm=nearest();
+  document.getElementById("hud").innerHTML=`<div>回路の家 <span class="f">· すべての層</span></div>
+  <div class="g"><span class="ac">正しい ${n.correct}/${n.total}</span><span class="d">未設置 ${n.miss}</span><span class="rd">違う・余計 ${n.wrong}</span><span class="y">状態違い ${n.state}</span></div>
+  <div class="d">${nm?`最も近い間違い: ${nm.d|0} m`:"&nbsp;"}</div>`;
+}
+const looks=[["stone","石 (wrong)"],["door","ドア (state)"],["dust1","ダスト (ghost)"],["dust2","ダスト (ghost, ignored)"],["ok","正しいブロック"],["sky","空"]];
+function lookTarget(){
+  if(S.look=="ok"||S.look=="sky")return S.look;
+  const c=byId(S.look);
+  if(c.kind=="miss"&&!ghostShown(c))return "sky";
+  return c;
+}
+function renderWorld(){
+  const nm=nearest();
+  let g=`<rect x="0" y="112" width="440" height="48" fill="#3b4a2f"/>`;
+  g+=`<rect x="14" y="80" width="10" height="32" fill="#c9b18a"/><text x="19" y="74" font-size="9" fill="#a6b0ab" text-anchor="middle" font-family="Noto Sans JP">you</text>`;
+  const fill={lev1:"#8a8f94",lev2:"#8a8f94",lev3:"#8a8f94",rep:"#b04a3a",stone:"#7d7d7d",door:"#a07a48",torch:"#e0b040",sign:"#b08850"};
+  const lab={lev1:"lever",lev2:"lever",lev3:"lever",rep:"repeater",stone:"cobble",door:"door",torch:"torch",sign:"sign",dust1:"dust",dust2:"dust"};
+  for(const c of cells){
+    const y=c.y||96;
+    if(c.kind=="miss"){ if(ghostShown(c))g+=`<rect x="${c.x}" y="${y}" width="16" height="16" fill="rgba(140,204,255,.18)" stroke="#8cccff" stroke-dasharray="2 2"/>`; }
+    else g+=`<rect x="${c.x}" y="${y}" width="16" height="16" fill="${fill[c.id]}"/>`;
+    if(isMistake(c))g+=`<rect x="${c.x-2}" y="${y-2}" width="20" height="20" fill="none" stroke="${c.kind=="state"?"#ffcc40":"#ff5a4e"}" stroke-width="1.5"/>`;
+    if(S.shown.includes(c.id))g+=`<rect x="${c.x-4}" y="${y-4}" width="24" height="24" fill="none" stroke="#fff" stroke-width="1.2"/>`;
+    g+=`<text x="${c.x+8}" y="132" font-size="8.5" fill="#a6b0ab" text-anchor="middle" font-family="Noto Sans JP">${lab[c.id]}</text>`;
+    const t=tagOf(c);if(t)g+=`<text x="${c.x+8}" y="144" font-size="8" fill="#77827c" text-anchor="middle" font-family="Noto Sans JP">ignored</text>`;
+  }
+  g+=`<rect x="392" y="96" width="16" height="16" fill="#7d7d7d"/><text x="400" y="132" font-size="8.5" fill="#a6b0ab" text-anchor="middle" font-family="Noto Sans JP">stone ok</text>`;
+  const t=S.look=="ok"?{x:392,y:96}:S.look=="sky"?{x:300,y:30}:{x:byId(S.look).x,y:byId(S.look).y||96};
+  g+=`<line x1="22" y1="86" x2="${t.x+8}" y2="${t.y+8}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 3"/><circle cx="${t.x+8}" cy="${t.y+8}" r="3" fill="none" stroke="#fff"/>`;
+  if(S.near&&nm){const y=nm.y||96;g+=`<rect x="${nm.x+6}" y="0" width="4" height="${y-2}" fill="#fff" opacity=".55"/>`;}
+  document.getElementById("world").innerHTML=g;
+  document.getElementById("lookGrp").innerHTML=looks.map(([v,t])=>`<button data-v="${v}" aria-pressed="${S.look==v}">${t}</button>`).join("");
+  document.querySelectorAll("#lookGrp button").forEach(b=>b.onclick=()=>{S.look=b.dataset.v;S.toast="";render();});
+  document.getElementById("toast").textContent=S.toast||" ";
+}
+function pressKey(){
+  const c=lookTarget();
+  if(c=="sky"){S.toast="設計図のブロックを見ていません";}
+  else if(c=="ok"){S.toast="正しく置かれています";}
+  else if(whole(c)){remove(e=>e=="cell:"+c.id);S.toast=`無視を戻しました: ${c.name}`;}
+  else if(size()+1>CAP){S.toast=`無視できる違いは配置ごとに ${CAP} 件まで`;}
+  else {E.push("cell:"+c.id);S.toast=`ブロックごと無視: ${c.kind=="wrong"?c.name:c.name}（${c.p}）`;}
+  S.near=false;render();
+}
+function renderRadial(){
+  const itemsA=["設計図","配置を表示","エンティティ","余計なブロック","間違いの印","最寄りの間違い","見ているブロックを無視"];
+  const itemsB=["設計図","見ているブロックを無視","エンティティ","余計なブロック","間違いの印","最寄りの間違い"];
+  const items=S.menu=="A"?itemsA:itemsB;
+  const cx=210,cy=150,r=105;let g=`<circle cx="${cx}" cy="${cy}" r="${r+30}" fill="rgba(16,17,19,.35)"/>`;
+  g+=`<text x="${cx}" y="${cy-4}" font-size="13" fill="#fff" text-anchor="middle" font-family="DotGothic16,monospace">表示と照合</text>`;
+  g+=`<text x="${cx}" y="${cy+14}" font-size="10" fill="#7f8583" text-anchor="middle" font-family="DotGothic16,monospace">右クリック: 戻る</text>`;
+  items.forEach((t,i)=>{const a=-Math.PI/2+i*2*Math.PI/items.length,x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);
+    const nw=t=="見ているブロックを無視",w=t.length*11+14;
+    g+=`<rect x="${x-w/2}" y="${y-11}" width="${w}" height="22" fill="${nw?"rgba(60,133,39,.85)":"rgba(43,44,45,.92)"}" stroke="${nw?"#6cc349":"#5a5b5c"}"/>`;
+    g+=`<text x="${x}" y="${y+4}" font-size="11" fill="#fff" text-anchor="middle" font-family="DotGothic16,monospace">${t}</text>`;});
+  document.getElementById("radial").innerHTML=g;
+  document.getElementById("radialCap").innerHTML=S.menu=="A"
+    ?`<b>A</b>: the new item is 7th, and nothing else moves. Cost: seven items, against the menu's rule of five or six per category (seven felt crowded when the menu was tried). 配置 keeps 選択中の配置, 回転, 反転, 向きを戻す, 配置を動かす &gt;.`
+    :`<b>B</b> <span class="rec">(recommended)</span>: 配置を表示 joins the per-placement items in 配置 (選択中の配置, 配置を表示, 回転, 反転, 向きを戻す, 配置を動かす &gt;, six). The new item takes its place in 表示と照合. Cost: one item moves from where players learned it. Item label <code>見ているブロックを無視</code><span class="new">new</span>. It toggles, and the toast says which way. Hovering it shows its key, as for every item.`;
+}
+function render(){
+  renderList();renderPane();renderHud();renderWorld();renderRadial();
+  document.querySelectorAll(".grp[data-k]").forEach(gp=>{if(gp.id=="lookGrp")return;gp.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",S[gp.dataset.k]==b.dataset.v));});
+}
+document.querySelectorAll(".grp[data-k] button").forEach(b=>b.onclick=()=>{S[b.parentNode.dataset.k]=b.dataset.v;render();});
+const stage=document.getElementById("stage");
+stage.addEventListener("keydown",ev=>{
+  if(ev.key=="Escape"){if(S.sel.length>1)S.sel=[];else if(S.open)S.open=false;else S.sel=[];S.msg="";render();ev.preventDefault();}
+  if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()=="a"){S.sel=visible().map(idx);render();ev.preventDefault();}
+});
+stage.addEventListener("mousedown",()=>stage.focus());
+document.getElementById("pick3").onclick=()=>{S.sel=["lev1","lev2","lev3"].map(id=>idx(byId(id)));S.open=false;S.msg="";render();};
+document.getElementById("pickMix").onclick=()=>{S.sel=["lev1","door","stone"].map(id=>idx(byId(id)));S.open=false;S.msg="";render();};
+document.getElementById("nearCap").onclick=()=>{S.pad=Math.max(0,62-E.length);render();};
+document.getElementById("reset").onclick=()=>{E=start();Object.assign(S,{filter:"all",sel:[0],last:0,anchor:0,open:false,armed:false,msg:"",pad:0,shown:[],near:false,toast:"",look:"stone"});render();};
+document.getElementById("pressKey").onclick=pressKey;
+document.getElementById("pressNear").onclick=()=>{const nm=nearest();S.near=true;S.toast=nm?`${nm.kind=="extra"?nm.actual:nm.name}: ${nm.d|0} m 先`:"間違いはありません";render();};
+function fit(){const f=document.getElementById("fit");const k=f.clientWidth/960;stage.style.transform=`scale(${k})`;f.style.height=540*k+"px";}
+window.addEventListener("resize",fit);fit();render();
+</script>
+</body>
+</html>
