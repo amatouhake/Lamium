@@ -57,8 +57,8 @@ void rowSelectionTests() {
         && bulkActions(SelectionList::Shapes) == bulkActions(SelectionList::Waypoints)
         && bulkActions(SelectionList::Placements) == bulkActions(SelectionList::Waypoints),
         "the screens' lists show, hide and delete together");
-    check(bulkActions(SelectionList::MapPanel) == std::vector{BulkAction::Show, BulkAction::Hide},
-        "the map's side panel shows and hides only");
+    check(bulkActions(SelectionList::MapPanel) == bulkActions(SelectionList::Waypoints),
+        "the map's side panel shows, hides and deletes as the screens' lists do");
     BulkArm arm;
     check(arm.press(BulkAction::Show) && arm.press(BulkAction::Hide), "show and hide act on the first press");
     check(!arm.press(BulkAction::Delete) && arm.armed == BulkAction::Delete, "delete arms on the first press");
@@ -97,7 +97,18 @@ void rowSelectionTests() {
     narrow.buttonH = 12;
     check(narrow.at(narrow.buttonX[1] + 1, 105) == 1 && narrow.at(90, 105) == 2 && narrow.at(90, 113) == -1
         && narrow.at(narrow.buttonX[0] + narrow.buttonW[0] + 2, 105) == -1, "a press finds its button and only its button");
-    SelectionPaneLayout map;
-    placeSelectionButtons(map, bulkActions(SelectionList::MapPanel), 0, 30, 3, 0, 0);
-    check(map.buttonX == std::vector<float>{0, 33} && map.buttonW == std::vector<float>{30, 30}, "without Delete the buttons keep their width");
+    SelectionPaneLayout plain;
+    placeSelectionButtons(plain, {BulkAction::Show, BulkAction::Hide}, 0, 30, 3, 0, 0);
+    check(plain.buttonX == std::vector<float>{0, 33} && plain.buttonW == std::vector<float>{30, 30}, "without Delete the buttons keep their width");
+
+    // The map's side panel: 116 units inside at its narrowest, Japanese-sized labels.
+    auto map = compactSelectionPane(1000, 116, 200, 400, 11, 40, bulkActions(SelectionList::MapPanel), 35, 53);
+    check(map.buttonX.size() == 3 && map.buttonX[2] + map.buttonW[2] == 1116 && map.buttonX[1] + map.buttonW[1] + 3 <= map.buttonX[2]
+        && map.buttonX[0] == 1000 && map.buttonW[0] >= 16, "the map panel's Delete sits at its right edge, Show and Hide clear of it");
+    check(map.buttonsY + map.buttonH <= 400 && map.summaryY > map.y && map.linesTop > map.summaryY && map.fit.more > 0
+        && map.linesTop + (map.fit.names + 1) * map.lineHeight <= map.buttonsY, "the names stop above the buttons, the last line saying how many more");
+    auto few = compactSelectionPane(1000, 116, 200, 400, 11, 3, bulkActions(SelectionList::MapPanel), 35, 53);
+    check(few.fit.names == 3 && few.fit.more == 0, "a few names are all listed");
+    auto cramped = compactSelectionPane(1000, 116, 200, 220, 11, 3, bulkActions(SelectionList::MapPanel), 35, 53);
+    check(cramped.buttonX.empty() && cramped.fit.names == 0, "a panel without room keeps the count and drops the buttons");
 }

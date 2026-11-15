@@ -427,11 +427,14 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         auto const pane = l.selectionPane(static_cast<int>(chosen.size()));
         std::vector<SelectedName> names;
         std::vector<map::Waypoint const*> marks;
-        for (size_t i = 0; i < chosen.size() && i < static_cast<size_t>(pane.fit.names); ++i) {
-            int index = indexOfId(waypointSet.waypoints, chosen[i].id);
+        size_t shown = 0;
+        for (auto const& key : chosen) {
+            int index = indexOfId(waypointSet.waypoints, key.id);
             if (index < 0) continue;
             auto const& c = waypointSet.waypoints[static_cast<size_t>(index)];
-            names.push_back({c.name, c.dimension != screen::playerDimension()});
+            if (c.visible) ++shown;
+            if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
+            names.push_back({c.name, c.dimension != screen::playerDimension(), listDistanceText(c.x, c.z, c.dimension)});
             marks.push_back(&c);
         }
         drawSelectionPane(context,pane,chosen.size(),names,[&](size_t i, float gx, float gy) {
@@ -442,7 +445,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
                 drawDiamondGlyph(context, gx, gy, 7, waypointRgb(c.color), opacity);
                 if (c.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), palette::shade, .85f);
             }
-        },l.selecting,waypointBulk,pointer.x,pointer.y);
+        },l.selecting,waypointBulk,pointer.x,pointer.y,shown);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     } else if (!w) {
         paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() ? "waypoint.empty"

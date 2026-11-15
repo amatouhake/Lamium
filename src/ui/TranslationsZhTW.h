@@ -424,6 +424,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"list.deleteSelected", "刪除"},
     {"list.deleteSelectedArmed", "刪除 {} 項？"},
     {"list.moreSelected", "還有 {} 項"},
+    {"list.shownHidden", "顯示 {} / 隱藏 {}"},
     {"waypoint.elsewhere", "位於其他維度；只在那裡顯示"},
     {"waypoint.shownState", "顯示在小地圖和世界中"},
     {"waypoint.hiddenState", "已隱藏"},

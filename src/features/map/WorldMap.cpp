@@ -653,8 +653,10 @@ Request panelAction(Hit const& hit) {
         auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
         if (!state.rows.several() || hit.item < 0 || hit.item >= static_cast<int>(actions.size())) break;
         auto action = actions[static_cast<size_t>(hit.item)];
-        if (state.bulk.press(action) && !setVisible(state.rows.keys, action == ui::BulkAction::Show))
-            say(ui::translated("waypoint.saveError"));
+        if (!state.bulk.press(action)) break;
+        bool saved = action == ui::BulkAction::Delete ? map::remove(state.rows.keys) : setVisible(state.rows.keys, action == ui::BulkAction::Show);
+        if (!saved) say(ui::translated("waypoint.saveError"));
+        if (action == ui::BulkAction::Delete) select(std::nullopt, false);
         break;
     }
     case Target::OpenScreen:
@@ -1815,23 +1817,52 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     ui::fill(context, x0 + 1, y, w - 1, 1, ui::palette::white, .14f);
     y += 4;
     if (state.rows.several()) {
-        // Where one row's details and buttons go: how many, then Show and Hide
-        // (no names: the panel is narrow).
+        // Where one row's details go: how many, how many shown, the names as
+        // space allows, then Show, Hide and Delete on the panel's last row.
         auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
-        ui::SelectionPaneLayout pane{.x = x, .y = y + inset - 3, .w = inner, .linesTop = y + 12};
-        pane.buttonsY = y + 12;
-        pane.buttonH = buttonHeight;
-        float bx = x;
-        for (auto action : actions) {
-            auto text = ui::translated(action == ui::BulkAction::Show ? "list.showSelected" : "list.hideSelected");
-            float bw = std::min(x + inner - bx, ui::textWidth(context, text) + 8);
-            pane.buttonX.push_back(bx);
-            pane.buttonW.push_back(bw);
-            bx += bw + 3;
+        auto const count = state.rows.keys.size();
+        float plainW = std::max(ui::textWidth(context, ui::translated("list.showSelected")),
+                                ui::textWidth(context, ui::translated("list.hideSelected"))) + 8;
+        float deleteW = std::max(ui::textWidth(context, ui::translated("list.deleteSelected")),
+                                 ui::textWidth(context, ui::translated("list.deleteSelectedArmed", count))) + 8;
+        auto const pane = ui::compactSelectionPane(x, inner, y + inset - 3, bottom, buttonHeight, static_cast<int>(count), actions,
+                                                   plainW, deleteW);
+        std::vector<ui::SelectedName> names;
+        std::vector<MarkKey> marks;
+        size_t shown = 0;
+        for (auto const& mark : state.rows.inOrder(state.listOrder)) {
+            bool visible = false;
+            std::string name, far;
+            if (auto const* p = waypointOf(set, mark)) {
+                visible = p->visible;
+                name = p->name;
+                if (int index = indexOfId(set.waypoints, mark.id); index >= 0 && spot && spot->dimension == state.dimension)
+                    far = ui::translated("waypoint.meters", static_cast<int>(std::lround(distance(index))));
+            } else if (auto const* area = areaOf(mark)) {
+                visible = area->visible;
+                name = area->name;
+                if (spot && spot->dimension == state.dimension)
+                    far = ui::translated("waypoint.meters", static_cast<int>(std::lround(areaDistance(*area))));
+            } else continue;
+            if (visible) ++shown;
+            if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
+            names.push_back({name, !visible, far});
+            marks.push_back(mark);
         }
-        if (pane.buttonsY + buttonHeight > bottom) { pane.buttonX.clear(); pane.buttonW.clear(); }
-        ui::drawSelectionPane(context, pane, state.rows.keys.size(), {}, nullptr, actions, state.bulk,
-            static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y));
+        ui::drawSelectionPane(context, pane, count, names, [&](size_t i, float gx, float gy) {
+            auto mark = marks[i];
+            if (auto const* p = waypointOf(set, mark)) {
+                Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(p->color))]);
+                if (p->death) cross(context, gx, gy, color, p->visible ? 1.f : .4f);
+                else diamond(context, gx, gy, 7, color, p->visible ? 1.f : .4f, p->temporary);
+            } else if (auto const* area = areaOf(mark)) {
+                float alpha = area->visible ? 1.f : .4f;
+                if (mark.layer == MarkLayer::Placement) footprintIcon(context, gx - 3, gy, rgb(area->color), alpha);
+                else if (area->round) shapeIcon(context, gx - 3, gy, rgb(area->color), alpha);
+                else ui::frame(context, gx - 3, gy - 3, 7, 6, rgb(area->color), alpha);
+            }
+        }, actions, state.bulk, static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y), shown);
+        if (!pane.buttonX.empty()) ui::fill(context, x0 + 1, pane.buttonsY - 3, w - 1, 1, ui::palette::white, .14f);
         for (size_t i = 0; i < pane.buttonX.size(); ++i)
             state.hits.push_back({pane.buttonX[i], pane.buttonsY, pane.buttonW[i], buttonHeight, Target::Bulk, static_cast<int>(i)});
         return;

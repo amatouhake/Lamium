@@ -122,7 +122,7 @@ void shapeEditorTests() {
               "the selection pane's Delete is where the editor's Delete is");
         check(pane.hit(pane.detailLeft + 20, pane.nameY + 2).zone == Zone::None && pane.hit(pane.layerStepperX() + 1, pane.layerY() + 2).zone == Zone::None
               && pane.hit(pane.stepperX() + 1, pane.fieldsTop + 2).zone == Zone::None, "nothing of the editor takes clicks under the selection pane");
-        check(p.y == pane.nameY && p.linesTop == pane.nameY + ui::ShapesLayout::rowHeight && p.fit.more > 0
+        check(p.y == pane.nameY && p.summaryY == pane.nameY + ui::ShapesLayout::rowHeight && p.linesTop == p.summaryY + p.lineHeight && p.fit.more > 0
               && p.linesTop + (p.fit.names + 1) * p.lineHeight <= pane.actionsY - 4, "the names stop above the buttons, the last line saying how many more");
     }
     float bar = many.listLeft + many.listWidth - 2;

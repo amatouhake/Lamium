@@ -1182,11 +1182,23 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (!l.selecting.empty()) {
             auto const pane = l.selectionPane(static_cast<int>(placementRows.keys.size()));
             std::vector<SelectedName> names;
+            std::vector<schematic::SavedPlacement const*> marks;
+            size_t shown = 0;
             for (auto const& p : schematicSet.placements) {
-                if (names.size() >= static_cast<size_t>(pane.fit.names)) break;
-                if (placementRows.contains(p.id)) names.push_back({p.name, p.dimension != screen::playerDimension()});
+                if (!placementRows.contains(p.id)) continue;
+                if (p.visible) ++shown;
+                if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
+                auto center = placementCenter(p);
+                std::string progress = "-";
+                if (auto tally = schematic::ghosts::progress(p); tally && tally->total())
+                    progress = std::format("{}%", static_cast<int>(100.0 * static_cast<double>(tally->correct) / static_cast<double>(tally->total())));
+                names.push_back({p.name, p.dimension != screen::playerDimension(), listDistanceText(center.first, center.second, p.dimension), progress});
+                marks.push_back(&p);
             }
-            drawSelectionPane(context,pane,placementRows.keys.size(),names,nullptr,l.selecting,placementBulk,pointer.x,pointer.y);
+            drawSelectionPane(context,pane,placementRows.keys.size(),names,[&](size_t i, float gx, float gy) {
+                auto const& m = *marks[i];
+                drawFootprintGlyph(context,gx-3,gy,placementRgb(),m.visible && m.dimension == screen::playerDimension() ? 1.f : .4f);
+            },l.selecting,placementBulk,pointer.x,pointer.y,shown,progressColumn);
             fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         } else if (auto const* p = selectedPlacement()) {
             label(context,dx,l.nameY+1+boxTextInset(),dw,p->name);

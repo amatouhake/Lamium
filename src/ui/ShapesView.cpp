@@ -559,10 +559,12 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         auto const pane = l.selectionPane(static_cast<int>(chosen.size()));
         std::vector<SelectedName> names;
         std::vector<overlay::ShapeDefinition const*> marks;
+        size_t shown = 0;
         for (auto const& item : shapeList) {
-            if (names.size() >= static_cast<size_t>(pane.fit.names)) break;
             if (!shapeRows.contains(item.id)) continue;
-            names.push_back({item.definition.name, item.definition.dimension != screen::playerDimension()});
+            if (item.definition.visible) ++shown;
+            if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
+            names.push_back({item.definition.name, item.definition.dimension != screen::playerDimension(), shapeDistanceText(item.definition)});
             marks.push_back(&item.definition);
         }
         drawSelectionPane(context,pane,chosen.size(),names,[&](size_t i, float gx, float gy) {
@@ -570,7 +572,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             Rgb glyph = shapeRgb(d.color);
             if (!d.visible || d.dimension != screen::playerDimension()) glyph = {glyph.r * .4f, glyph.g * .4f, glyph.b * .4f};
             drawTypeIcon(context,gx-4,gy-5,shape::typeIndex(d),glyph);
-        },l.selecting,shapeBulk,pointer.x,pointer.y);
+        },l.selecting,shapeBulk,pointer.x,pointer.y,shown);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     } else if (!definition) {
         paragraph(context,dx,l.detailTop+6,dw,translated(shapeList.empty() ? "shape.empty" : "shape.selectHint"),3,palette::faint);

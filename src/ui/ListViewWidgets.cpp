@@ -63,14 +63,22 @@ void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rg
 }
 void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
-                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY) {
+                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
+                       size_t shown, float ownWidth) {
     label(context,pane.x,pane.y+3,pane.w,translated("list.selectedCount", count));
+    shown = std::min(shown, count);
+    label(context,pane.x,pane.summaryY+2,pane.w,translated("list.shownHidden", shown, count - shown),palette::dim);
+    auto const c = listColumns(pane.x - ListColumns::pad, pane.w + 2 * ListColumns::pad, ownWidth, 0);
     float y = pane.linesTop;
     for (size_t i = 0; i < names.size() && i < static_cast<size_t>(pane.fit.names); ++i, y += pane.lineHeight) {
-        if (drawMark) drawMark(i, pane.x + 4, y + pane.lineHeight / 2);
-        label(context,pane.x+11,y+2,pane.w-11,names[i].name,names[i].faded ? palette::faint : palette::text);
+        auto const& line = names[i];
+        Rgb ink = line.faded ? palette::faint : palette::text;
+        if (drawMark) drawMark(i, c.markX + 4, y + pane.lineHeight / 2);
+        label(context,c.nameX,y+2,c.nameWidth,line.name,ink);
+        if (c.hasDistance()) label(context,c.distanceX,y+2,c.distanceWidth,line.distance,palette::dim,Align::Right);
+        if (c.hasOwn()) label(context,c.ownX,y+2,c.ownWidth,line.own,line.faded ? palette::faint : palette::dim,Align::Right);
     }
-    if (pane.fit.more > 0) label(context,pane.x+11,y+2,pane.w-11,translated("list.moreSelected", pane.fit.more),palette::faint);
+    if (pane.fit.more > 0) label(context,c.nameX,y+2,pane.w-(c.nameX-pane.x),translated("list.moreSelected", pane.fit.more),palette::faint);
     auto text = [&](BulkAction action) {
         switch (action) {
         case BulkAction::Show: return translated("list.showSelected");

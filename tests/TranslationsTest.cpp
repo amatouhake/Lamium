@@ -55,7 +55,7 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(number, number));
             else if (entry.key == "hudEditor.anchorReadout") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "worldMap.layer" || entry.key == "schematic.layerValue" || entry.key == "calc.history" || entry.key == "schematic.summary.correct"
-                || entry.key == "schematic.materials.left")
+                || entry.key == "schematic.materials.left" || entry.key == "list.shownHidden")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "debugEntityKinds.line")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining, remaining, remaining));

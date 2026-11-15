@@ -428,6 +428,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"list.deleteSelected", "Delete", "削除"},
     {"list.deleteSelectedArmed", "Delete {}?", "{} 件削除？"},
     {"list.moreSelected", "{} more", "ほか {} 件"},
+    {"list.shownHidden", "Shown {} / Hidden {}", "表示 {} / 非表示 {}"},
     {"waypoint.elsewhere", "in another dimension; shown only there", "別のディメンションにあります（そこでのみ表示）"},
     {"waypoint.shownState", "shown on the minimap and in the world", "ミニマップとワールドに表示中"},
     {"waypoint.hiddenState", "hidden", "非表示"},

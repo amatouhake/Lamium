@@ -69,10 +69,9 @@ struct RowSelection {
 // order. Not saved.
 enum class BulkAction { Show, Hide, Delete };
 enum class SelectionList { Waypoints, Shapes, Placements, MapPanel };
-// Maintainer 2026-11-15: no bulk move or turn; the map's side panel shows and
-// hides only, deleting stays in each list's own screen.
-inline std::vector<BulkAction> bulkActions(SelectionList list) {
-    if (list == SelectionList::MapPanel) return {BulkAction::Show, BulkAction::Hide};
+// Maintainer 2026-11-15: no bulk move or turn; the map's side panel matches
+// the screens' lists (after the check).
+inline std::vector<BulkAction> bulkActions(SelectionList) {
     return {BulkAction::Show, BulkAction::Hide, BulkAction::Delete};
 }
 inline bool irreversible(BulkAction action) { return action == BulkAction::Delete; }
@@ -107,11 +106,12 @@ inline NamesFit namesFit(int count, float room, float lineHeight) {
     if (lines <= 0) return {};
     return {lines - 1, count - (lines - 1)};
 }
-// The selection pane: the count on top, the names under it, the actions'
-// buttons in one row. Built by the list's own layout (ShapesLayout, the map
+// The selection pane: the count on top, how many are shown and hidden under
+// it, then the names, the actions' buttons in one row. Built by the list's own layout (ShapesLayout, the map
 // panel), drawn by drawSelectionPane, hit by the next click.
 struct SelectionPaneLayout {
     float x = 0, y = 0, w = 0; // the count's line
+    float summaryY = 0;        // "Shown N / Hidden M"
     float linesTop = 0, lineHeight = 12;
     NamesFit fit;
     float buttonsY = 0, buttonH = 0;
@@ -146,5 +146,26 @@ inline void placeSelectionButtons(SelectionPaneLayout& pane, std::vector<BulkAct
         pane.buttonX.push_back(left + k++ * (w + gap));
         pane.buttonW.push_back(w);
     }
+}
+// The selection pane in a narrow panel (the world map's side panel): the
+// count from `top`, the summary and the names under it, the buttons on the
+// panel's last row above `bottom`, Show and Hide `plainWidth` wide from `x`,
+// Delete `deleteWidth` wide at the right edge. No buttons when that row
+// would cover the count and summary.
+inline SelectionPaneLayout compactSelectionPane(float x, float w, float top, float bottom, float buttonH, int count,
+                                                std::vector<BulkAction> const& actions, float plainWidth, float deleteWidth,
+                                                float gap = 3, float lineHeight = 11) {
+    SelectionPaneLayout p;
+    p.x = x; p.w = w; p.y = top;
+    p.lineHeight = lineHeight;
+    p.summaryY = top + 12;
+    p.linesTop = p.summaryY + lineHeight;
+    p.buttonH = buttonH;
+    p.buttonsY = bottom - buttonH - 2;
+    if (p.buttonsY < p.linesTop) return p;
+    p.fit = namesFit(count, p.buttonsY - 3 - p.linesTop, lineHeight);
+    deleteWidth = std::min(deleteWidth, w / 2);
+    placeSelectionButtons(p, actions, x, std::min(plainWidth, w), gap, x + w - deleteWidth, deleteWidth, 16);
+    return p;
 }
 }

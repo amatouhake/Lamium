@@ -39,15 +39,18 @@ std::string listDistanceText(int x, int z, int dimension);
 // a faint fill and a frame with corner dots, 7 wide from `x`, centered on `cy`.
 void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha = 1);
 // The selection pane while several rows are selected (L-190), laid out by
-// `pane`: "N selected", then the first pane.fit.names of `names` (the
-// selected rows in list order; faded ones faint) each after its mark, which
-// `drawMark(index, x, centerY)` draws in a 9-unit column, "N more" when they
-// do not all fit, and a button per action; Delete is destructive, armed by
-// `arm`. The view draws the rule above the buttons, as for its own.
-struct SelectedName { std::string name; bool faded = false; };
+// `pane`: "N selected", "Shown N / Hidden M" (`shown` of `count`), then the
+// first pane.fit.names of `names` (the selected rows in list order; faded
+// ones faint) in the lists' columns without the switch: the mark, which
+// `drawMark(index, x, centerY)` draws in a 9-unit column, the name, the
+// distance and the list's own column (`ownWidth`, 0: none) as its rows show
+// them; "N more" when they do not all fit, and a button per action; Delete
+// is destructive, armed by `arm`. The view draws the rule above the buttons.
+struct SelectedName { std::string name; bool faded = false; std::string distance, own; };
 void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
-                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY);
+                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
+                       size_t shown, float ownWidth = 0);
 // The body of a docked view too short for its editor (!l.usable()): Expand and
 // a hint under the header, which matches what ShapesLayout::hit() answers then.
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);

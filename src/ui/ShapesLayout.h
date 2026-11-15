@@ -139,11 +139,12 @@ struct ShapesLayout {
     // The delete action sits at the right edge.
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
     // The selection pane in the detail pane: the count where the name sits,
-    // the names below, the buttons where the editor's actions are.
+    // the summary and the names below, the buttons where the editor's actions are.
     SelectionPaneLayout selectionPane(int count) const {
         SelectionPaneLayout p;
         p.x = detailLeft + pad; p.w = detailWidth - 2 * pad; p.y = nameY;
-        p.linesTop = nameY + rowHeight;
+        p.summaryY = nameY + rowHeight;
+        p.linesTop = p.summaryY + p.lineHeight;
         p.fit = namesFit(count, actionsY - 4 - p.linesTop, p.lineHeight);
         p.buttonsY = actionsY + 2; p.buttonH = 12;
         placeSelectionButtons(p, selecting, actionX(0), actionWidth, 4, deleteX(), deleteWidth);
