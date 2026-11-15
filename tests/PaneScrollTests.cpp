@@ -30,3 +30,19 @@ void scrollBarTests() {
     check(lower.thumbTop() == 25, "the thumb follows the first row");
     check(rowScrollBar(100, 0, 100, 1000, 10, 0, 8).thumb == 8, "a long list keeps a thumb you can take");
 }
+#include "ui/ScrollDrag.h"
+void scrollDragTests() {
+    using namespace lamium::ui;
+    int first = 0, other = 0;
+    auto bar = rowScrollBar(100, 0, 100, 20, 10, 0);
+    check(!scroll_drag::press(bar, 50, 10, scroll_drag::firstRow(first), &first) && !scroll_drag::holding(&first),
+          "a press off the bar holds nothing");
+    check(scroll_drag::press(bar, 100, 60, scroll_drag::firstRow(first), &first) && first == 7 && scroll_drag::holding(&first)
+          && !scroll_drag::holding(&other) && !scroll_drag::holding(nullptr),
+          "a press on the track centers the thumb there and holds that bar");
+    scroll_drag::follow(500);
+    check(first == 10, "while held the bar follows the pointer to its end");
+    scroll_drag::release();
+    scroll_drag::follow(0);
+    check(first == 10 && !scroll_drag::holding(&first), "after release the pointer moves nothing");
+}

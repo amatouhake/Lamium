@@ -20,6 +20,7 @@
 #include "features/information/SlimeChunk.h"
 #include <tuple>
 #include "app/Runtime.h"
+#include "ui/ScrollDrag.h"
 #include "ui/DataNotice.h"
 #include "ui/Localization.h"
 #include "ui/NumberInput.h"
@@ -221,7 +222,6 @@ struct State {
     // The side list's scroll bar (L-347): rows and visible rows as last drawn, its column, held.
     int listRows = 0, listVisible = 0;
     float listBarX = 0;
-    bool listDragging = false;
     float arrowAngle = NAN;
     bool arrowUploaded = false;
     float cameraArrowAngle = NAN;
@@ -383,12 +383,9 @@ bool onListBar(float x, float y) {
     return state.listRows > state.listVisible && x >= state.listBarX - 5 && x < state.listBarX + 3
         && y >= state.listTop && y < state.listBottom;
 }
-// Pressing or dragging the bar puts the first row under the pointer, as the other lists do.
-int listFirstAt(float y) {
-    float track = state.listBottom - state.listTop;
-    if (state.listRows <= state.listVisible || !(track > 0)) return 0;
-    float t = std::clamp((y - state.listTop) / track, 0.0f, 1.0f);
-    return static_cast<int>(std::lround(t * static_cast<float>(state.listRows - state.listVisible)));
+// The side list's bar, the shared one (ScrollBar.h, dragged through ScrollDrag.h).
+ui::ScrollBar listBar() {
+    return ui::rowScrollBar(state.listBarX, state.listTop, state.listBottom - state.listTop, state.listRows, state.listVisible, state.listFirst);
 }
 void say(std::string text) {
     state.notice = std::move(text);
@@ -1758,12 +1755,12 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     state.listRows = rows;
     state.listVisible = maxRows;
     state.listBarX = x0 + w - 3;
-    if (state.listDragging) state.listFirst = listFirstAt(static_cast<float>(state.pointer.y));
+    ui::scroll_drag::follow(static_cast<float>(state.pointer.y));
+    state.listFirst = std::clamp(state.listFirst, 0, std::max(0, rows - maxRows));
     if (rows > maxRows) {
-        float track = maxRows * rowH, thumb = std::max(8.0f, track * maxRows / rows);
-        float thumbY = y + (track - thumb) * state.listFirst / (rows - maxRows);
-        ui::drawScrollbar(context, state.listBarX, y, track, thumbY, thumb,
-            state.listDragging || onListBar(static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y)));
+        auto bar = listBar();
+        ui::drawScrollbar(context, bar.x, bar.top, bar.track, bar.thumbTop(), bar.thumb,
+            ui::scroll_drag::holding(&state.listFirst) || onListBar(static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y)));
     }
     if (!rows) {
         constexpr std::array<std::string_view, 3> emptyTexts{"worldMap.noWaypoints", "worldMap.noPlacements", "worldMap.noShapes"};
@@ -2107,8 +2104,7 @@ Request press(float x, float y, bool right) {
         return request;
     }
     if (!right && onListBar(x, y)) {
-        state.listDragging = true;
-        state.listFirst = listFirstAt(y);
+        ui::scroll_drag::hold(listBar(), y, ui::scroll_drag::firstRow(state.listFirst), &state.listFirst);
         return request;
     }
     auto const* hit = hitAt(x, y);
@@ -2185,7 +2181,7 @@ Request press(float x, float y, bool right) {
     return request;
 }
 void release() {
-    state.listDragging = false;
+    ui::scroll_drag::release();
     // A click on a marker (no drag) selects it in the side panel.
     if (state.drag && !state.drag->moved && state.drag->marker) {
         setPanelOpen(true);

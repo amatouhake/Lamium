@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/RowSelection.h"
+#include "ui/ScrollBar.h"
 #include "ui/SettingsTable.h"
 #include <algorithm>
 #include <cmath>
@@ -100,17 +101,15 @@ struct ShapesLayout {
     }
     bool usable() const { return width > 0 && fieldVisible > 0; }
     float listRowY(int index) const { return rowsTop + (index - listFirst) * rowHeight; }
-    // The list's scrollbar, along its right edge while the rows overflow:
-    // a press there or a drag puts the first row where the pointer is.
+    // The list's scrollbar, along its right edge while the rows overflow
+    // (the press zone; the drag is the shared one, ScrollDrag.h).
     bool onScrollbar(float x, float y) const {
         float right = listLeft + listWidth;
         return usable() && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
     }
-    int firstAt(float y) const {
-        float track = listVisible * rowHeight;
-        if (listCount <= listVisible || !(track > 0)) return 0;
-        float t = std::clamp((y - rowsTop) / track, 0.0f, 1.0f);
-        return static_cast<int>(std::lround(t * static_cast<float>(listCount - listVisible)));
+    // The list's bar as drawn (drawListScrollbar) and dragged.
+    ScrollBar scrollBar() const {
+        return rowScrollBar(listLeft + listWidth - 3, rowsTop, listVisible * rowHeight, listCount, listVisible, listFirst);
     }
     float fieldY(int index) const { return fieldsTop + (index - fieldFirst) * (picking ? pickHeight : rowHeight); }
     // Values are right-aligned steppers in the editor.

@@ -8,6 +8,7 @@
 #include "ui/EnchantChooser.h"
 #include "ui/EnchantLayout.h"
 #include "ui/EnchantSteps.h"
+#include "ui/ScrollDrag.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
@@ -543,6 +544,7 @@ struct Pending {
     float y = 0;
 };
 std::vector<Pending> pendingPresses;
+bool pendingRelease = false; // the left button went up (a held scroll bar lets go)
 int pendingWheel = 0, pendingStepsWheel = 0;
 bool pressSwallow = false;
 int chooserFirst = 0, stepsFirst = 0;
@@ -600,7 +602,8 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     auto const hover = list.free ? l.hit(list.pointerX, list.pointerY) : EnchantLayout::Hit{};
     size_t const before = icons.size();
     int itemsDrawn = 0;
-    enchant_chooser::draw(context, l, shown, hover, icons, itemsDrawn, list.free && l.rows.onScrollbar(list.pointerX, list.pointerY));
+    enchant_chooser::draw(context, l, shown, hover, icons, itemsDrawn,
+        ui::scroll_drag::holding(&chooserFirst) || (list.free && l.rows.onScrollbar(list.pointerX, list.pointerY)));
     // In their turn and not in batches, so an item held on the pointer, drawn last, is above them all.
     for (size_t i = before; i < icons.size(); ++i) { icons[i].alpha = list.opacity; icons[i].direct = true; }
     fill(context, l.left, l.footerTop, l.width, 1, palette::white, .14f);
@@ -705,6 +708,7 @@ void enterScreen(ll::event::UIRenderEvent& event) {
 // Everything Lamium attaches to the anvil screen goes with it.
 void endAnvil() {
     if (anvilOpened) close();
+    if (ui::scroll_drag::holding(&chooserFirst) || ui::scroll_drag::holding(&stepsFirst)) ui::scroll_drag::release();
     chooserMessage.clear();
     std::scoped_lock lock(pressLock);
     pressState = {};
@@ -733,9 +737,11 @@ void seeItems(ItemStack const* hand, ItemStack const& input) {
 void applyPresses() {
     std::vector<Pending> presses;
     int wheel = 0, stepsWheel = 0;
+    bool released = false;
     {
         std::scoped_lock lock(pressLock);
         presses.swap(pendingPresses);
+        released = std::exchange(pendingRelease, false);
         wheel = std::exchange(pendingWheel, 0);
         stepsWheel = std::exchange(pendingStepsWheel, 0);
     }
@@ -745,8 +751,9 @@ void applyPresses() {
     if (stepsWheel) stepsFirst = ui::SettingsTable::clampFirst(stepsFirst + stepsWheel, stepRows.listCount, stepRows.listVisible);
     for (auto const& press : presses) {
         if (press.goal) { if (opened) { flipGoal(); stepsFirst = 0; } continue; }
-        if (press.stepsScrollbar) { stepsFirst = stepRows.firstAt(press.y); continue; }
-        if (press.scrollbar) { chooserFirst = rows.firstAt(press.y); continue; }
+        // The bars are the shared ones (ScrollDrag.h): held until the button goes up.
+        if (press.stepsScrollbar) { ui::scroll_drag::hold(stepRows.scrollBar(), press.y, ui::scroll_drag::firstRow(stepsFirst), &stepsFirst); continue; }
+        if (press.scrollbar) { ui::scroll_drag::hold(rows.scrollBar(), press.y, ui::scroll_drag::firstRow(chooserFirst), &chooserFirst); continue; }
         if (!opened) continue;
         // The level between a stepper's ends is typed on the planner screen; here it does nothing (not a toggle).
         if (press.level && ui::enchant_chooser::levelStepper(shown, press.hit.index)) continue;
@@ -755,6 +762,10 @@ void applyPresses() {
         if (pressed == ui::enchant_chooser::Pressed::NewItem) chooserFirst = 0;
         if (!message.empty()) { chooserMessage = std::move(message); chooserMessageAt = std::chrono::steady_clock::now(); }
         else if (pressed != ui::enchant_chooser::Pressed::No) chooserMessage.clear();
+    }
+    if (ui::scroll_drag::holding(&chooserFirst) || ui::scroll_drag::holding(&stepsFirst)) {
+        ui::scroll_drag::follow(pressState.pointerY);
+        if (released) ui::scroll_drag::release();
     }
 }
 // Beside the anvil screen: the steps right of the window and, with room and the setting, the choosing panel
@@ -1140,7 +1151,10 @@ void flipGoal() {
 int anvilPress(bool left, bool down) {
     std::scoped_lock lock(pressLock);
     if (!left) return 0;
-    if (!down) return std::exchange(pressSwallow, false) ? 1 : 0;
+    if (!down) {
+        pendingRelease = true;
+        return std::exchange(pressSwallow, false) ? 1 : 0;
+    }
     pressSwallow = false;
     auto const& state = pressState;
     // What a frame drew a moment ago: the panels are gone or moved otherwise.

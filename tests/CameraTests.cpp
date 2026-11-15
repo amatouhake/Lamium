@@ -181,6 +181,8 @@ int main() try {
     paneScrollTests();
     extern void scrollBarTests();
     scrollBarTests();
+    extern void scrollDragTests();
+    scrollDragTests();
     extern void worldMapTests();
     worldMapTests();
     extern void mapRegionFormatTests();
