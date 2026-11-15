@@ -109,11 +109,14 @@ constexpr int navCount = nav::count, hotkeysNav = nav::hotkeys, shapesNav = nav:
     schematicsNav = nav::schematics, worldMapNav = nav::worldMap, hudNav = nav::hud;
 // Leaving the HUD layout editor returns to editorReturn.
 int editorReturn = 0;
-// A tool page (HUD layout, the block highlight list, Enchantment order) opened
+// A tool page (HUD layout and the pages that replace the rows, RowPages.h) opened
 // by its key or from the anvil, not from the settings: Esc there returns to
 // the game or the anvil, as the calculator and the world map do (L-338).
 // Going anywhere else in the settings ends it.
 bool directTool = false;
+// The screen closes from a page: nothing more is drawn while the scene pops,
+// not the table behind the page.
+bool pageClosing = false;
 bool pendingRelease = false;
 SettingsNavigation navigation;
 float displayedInverseScale = 0;
@@ -428,8 +431,10 @@ void clear() {
     releaseTextKeyboard();
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
-    scene.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
-    pendingClose = false;
+    scene.reset(); seen = false; closing = false; pageClosing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
+    pendingClose = false; pendingRelease = false;
+    // The button may go up where the screen no longer sees it.
+    scroll_drag::release();
     // A draft is never kept once the screen is gone.
     shapes_view::reset();
     prompt.reset();
@@ -1105,6 +1110,7 @@ void render(ll::event::UIRenderEvent& event) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
             pendingClick.reset();
     } else forgetEditField();
+    if (pageClosing) return;
     if (auto const* page = row_pages::open()) {
         if (!page->typing) releaseTextKeyboard();
         if (!closing) {
@@ -1119,7 +1125,8 @@ void render(ll::event::UIRenderEvent& event) {
             for (int key : std::exchange(pendingKeys, {})) if (page->opened()) page->key(key);
         }
         pendingSearch = false;
-        if (!scene) return;
+        pageClosing = closing;
+        if (!scene || closing) return;
         if (page->typing && page->opened()) syncTextKeyboard(lastPointer.x, lastPointer.y);
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         followScrollbar(lastPointer.y);
@@ -1127,8 +1134,12 @@ void render(ll::event::UIRenderEvent& event) {
         table_view::render(context, current, size / screenScale, lastPointer);
         return;
     }
+    // No page: a tool opened by its key has become the ordinary settings.
+    if (!hudEditorView()) directTool = false;
     if (calculatorOpen) {
-        if (std::exchange(pendingRelease, false)) { calculator_view::release(); scroll_drag::release(); }
+        // Press before release, as on the map: a quick click delivers both
+        // between two frames and must not leave the bar held.
+        bool released = std::exchange(pendingRelease, false);
         if (!closing) {
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right
                 && calculator_view::click(click->x, click->y, size) == calculator_view::Result::Close) {
@@ -1141,6 +1152,7 @@ void render(ll::event::UIRenderEvent& event) {
                     close();
                 }
         }
+        if (released) { calculator_view::release(); scroll_drag::release(); }
         if (!scene || !calculatorOpen) return;
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         auto at = calculator_view::fieldPosition(size);
@@ -1232,13 +1244,9 @@ void render(ll::event::UIRenderEvent& event) {
     } else if (!closing && std::exchange(pendingClose, false)) {
         close();
     } else if (!closing) {
-        if (std::exchange(pendingRelease, false)) {
-            table_view::release();
-            scroll_drag::release();
-            schematics_view::release();
-        }
-        schematics_view::drag(lastPointer);
-        followScrollbar(lastPointer.y);
+        // Press before release, as on the map: a quick click delivers both
+        // between two frames and must not leave a drag running.
+        bool released = std::exchange(pendingRelease, false);
         if (shapesView()) {
             shapes_view::refresh();
             if (auto click = std::exchange(pendingClick, std::nullopt)) shapes_view::click(click->x, click->y, click->right);
@@ -1259,6 +1267,13 @@ void render(ll::event::UIRenderEvent& event) {
                 table_view::key(key);
             }
         }
+        if (released) {
+            table_view::release();
+            scroll_drag::release();
+            schematics_view::release();
+        }
+        schematics_view::drag(lastPointer);
+        followScrollbar(lastPointer.y);
     }
     dropMovedWarning();
     if (!scene) return;
@@ -1391,8 +1406,8 @@ void open(IClientInstance& current) {
         || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr)
         || (overAnvilScreen && current.getScreenName() == "anvil_screen"))) return;
     CameraSessions::instance().suspendInput();
-    error.clear(); rangeWarning.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
-    pendingClose = false;
+    error.clear(); rangeWarning.reset(); seen = false; closing = false; pageClosing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
+    pendingClose = false; pendingRelease = false;
     numberDirty = false; uiHeld.clear();
     // The key that opened the screen may still be down: its repeats must not
     // close it again (L-188).
@@ -1617,6 +1632,8 @@ void cancelInputCapture() {
     std::lock_guard lock(mutex);
     // Pages that replace the rows stay where they are: looking at another window to compare, then coming back (L-343).
     row_pages::calmAll();
+    // The button may go up in another window.
+    scroll_drag::release();
     if (savePrompt && savePrompt->overwrite) { savePrompt->overwrite = false; savePrompt->problem.clear(); } // an armed Overwrite disarms
     if (savePrompt) endCornerEdit(*savePrompt, true);
     releaseTextKeyboard();

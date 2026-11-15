@@ -27,7 +27,7 @@ void choose() {
         notice = {};
     }
 }
-void back() { reset(); table_view::rebuild(true); }
+void back() { screen::endDirectTool(); reset(); table_view::rebuild(true); }
 void reveal() {
     selection.first = SettingsTable::reveal(selection.first, selection.selected, last.listVisible);
     selection.first = SettingsTable::clampFirst(selection.first, last.listCount, last.listVisible);
@@ -78,6 +78,7 @@ bool click(float x, float y, bool right) {
     return true;
 }
 void key(int key) {
+    if (key == 0x1b && screen::leaveDirectTool()) return;
     if (key == 0x1b || key == 0x08) { back(); return; }
     if (busy()) return;
     switch (key) {
