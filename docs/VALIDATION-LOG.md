@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Schematic ignore rebuilt as places and rules (L-183, 2026-11-15)
+
+Build `e44d7cc4` (branch `l-190-waypoint-selection`), DLL SHA-256
+`66dc504b0d07bbfd983889e56879ffa5910e0e7da92fe3aec285ac2146dd06af`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: the one-of filters switch rows; kind squares, hollow when
+ignored, with 場所を無視 / 違いを無視 tags; cut names in full on hover; "Ignore on every
+<block>" and Undo; Ignore this place and its undo, extras included; several rows mark the
+preview and ignore or stop ignoring places; the ignore view's list, preview marks, two-press
+Undo all and Esc back. Much clearer than before. Raised: whether All should sort by kind
+rather than distance; the filter row is cramped in Japanese and English (English drops "Not
+placed" to its square, "Ignore settings" is cut); after changing the language in game the
+ignore view's list keeps the old language; long item lists in the ignore view and long tags;
+seen in a screenshot: a facing state shown as its raw key (minecraft:c...), a lectern "Page - ->
+0", "Whole placement - ..." cut.
+
 ## Schematic ignore rebuild and Check list selection (L-183, 2026-11-15)
 
 Build `41ace47e` (branch `l-190-waypoint-selection`), DLL SHA-256
