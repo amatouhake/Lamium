@@ -6,13 +6,37 @@ param(
 $ErrorActionPreference = 'Stop'
 $projectDirectory = Split-Path $PSScriptRoot -Parent
 $sourceRoot = Join-Path $projectDirectory 'src'
-$hookPattern = 'LL_(?:AUTO_)?(?:TYPE_)?(?:INSTANCE|STATIC)_HOOK\(\s*(\w+)'
+$hookPattern = 'LL_(?:AUTO_)?(?:TYPE_)?(?:INSTANCE|STATIC)_HOOK\(\s*([\w#]+)'
+# A macro that makes hooks is counted by its uses, each with the name it
+# builds, so adding or dropping one changes the list.
+$definePattern = '(?m)^[ \t]*#define[ \t]+(\w+)\(([^)]*)\)((?:.*\\\r?\n)*.*)'
+function Get-HookNames([string]$text) {
+    $names = @()
+    $plain = $text
+    foreach ($define in [regex]::Matches($text, $definePattern)) {
+        $made = @([regex]::Matches($define.Groups[3].Value, $hookPattern) | ForEach-Object { $_.Groups[1].Value })
+        if (-not $made) { continue }
+        $plain = $plain.Replace($define.Value, '')
+        $parameters = @($define.Groups[2].Value.Split(',') | ForEach-Object { $_.Trim() })
+        foreach ($use in [regex]::Matches($text, "(?m)^[ \t]*$($define.Groups[1].Value)\(([^)]*)\)")) {
+            $arguments = @($use.Groups[1].Value.Split(',') | ForEach-Object { $_.Trim() })
+            foreach ($name in $made) {
+                $names += -join ($name -split '##' | ForEach-Object {
+                    $at = [array]::IndexOf($parameters, $_)
+                    if ($at -ge 0 -and $at -lt $arguments.Count) { $arguments[$at] } else { $_ }
+                })
+            }
+        }
+    }
+    $names += [regex]::Matches($plain, $hookPattern) | ForEach-Object { $_.Groups[1].Value }
+    $names | Sort-Object -Unique
+}
 
 $inCode = @{}
 foreach ($file in Get-ChildItem -LiteralPath $sourceRoot -Recurse -File -Include '*.cpp', '*.h') {
     $text = Get-Content -LiteralPath $file.FullName -Raw
     if (-not $text) { continue }
-    $names = [regex]::Matches($text, $hookPattern) | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+    $names = Get-HookNames $text
     if ($names) {
         $relative = [System.IO.Path]::GetRelativePath($projectDirectory, $file.FullName).Replace('\', '/')
         $inCode[$relative] = @($names)

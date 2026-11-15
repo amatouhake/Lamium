@@ -134,7 +134,7 @@ the package/SDK loader-policy alignment in CI.
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
-| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | everything else |
+| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge), and English Search does not find enchanted books by enchantment name (`EnglishSearch.cpp` `storedEnchantNames`) | everything else |
 | Item details (item data reads) | `Inspection.cpp` (`Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`, burn and use times in the item's components, `getCooldownDuration`, the suspicious stew's effect) | the tooltip has no stew effect, property values, ID, tags or NBT lines | the game's tooltip, durability numbers, food values; the work penalty follows Enchantment order's capability |
 | Map colors of add-on blocks (block material instances) | `Minimap.cpp` `topMaterial` (the game's `type_id<void, BlockMaterialInstancesComponent>` id, resolved by name with `SymbolView`, `BlockComponentStorage::_findComponentBase` on the state then the type, `mMaterials` "up"/"*" and their `mTextureName` and `mTintMethod`, resolved with `BlockGraphics::getTextureUVCoordinateSet`) | an add-on block whose `BlockGraphics` texture is missing is drawn in the game's map color | every other map color, vanilla blocks |
 
@@ -268,8 +268,8 @@ one draw from that box as for the scoreboard, then restored. Gated (Boss bar
 position); a renamed grid, a clipping panel on the way or invalid geometry
 leaves it vanilla. Hidden boss bars (L-334) are skipped here as well as by
 `HideEffects.cpp`. Hide boss bars skips the same draws whatever the hook
-order. The first measured box is logged once. Built 2026-11-14 (L-323), not
-yet checked in game.
+order. The first measured box is logged once. Built 2026-11-14 (L-323);
+what was seen in game is in VALIDATION.md.
 
 ### `src/features/information/ScoreboardPosition.cpp`
 Hooks: `ScoreboardHudRender`, `ScoreboardTextRender`, `ScoreboardBackgroundRender`
@@ -317,7 +317,9 @@ Hooks: `SearchHook`
 Meaning: the crafting screen filters by the text passed to `_filterByText`.
 Enchanted books (L-344) read `ItemStackBase::constructItemEnchantsFromUserData`,
 `Enchant::mEnchants`, `mEnchantType`, `mDescription` (en_US key, with or
-without the `enchantment.` prefix) and `mStringId`.
+without the `enchantment.` prefix) and `mStringId`. These reads ask the
+Enchantment order capability: on an unverified game a book is found by its
+own name and ID only.
 
 ### `src/features/inspection/hover/HoverTracker.cpp`
 Hooks: `ContainerSlotHoveredHook`, `CraftingSlotHoveredHook`, `ContainerSlotUnhoveredHook`, `ContainerScreenLeaveHook`
@@ -326,7 +328,10 @@ Meaning: hover events arrive per slot with the container's collection names.
 ### `src/features/inspection/Inspection.cpp`
 Hooks: `ShulkerContentsText`, `DurabilityHovertext`, `TooltipFontDraw`, `TooltipPainter`
 Meaning: the hover text's line layout and the placeholder glyph line the
-painter covers with hunger-bar icons; fonts' sheet scales.
+painter covers with hunger-bar icons; fonts' sheet scales. `TooltipPainter`
+takes the tooltip's box from `HoverTextRenderer::mCursorPosition`, `mOffset`
+and `mBoxDimensions`; the bundle's own tooltip is the panel named
+`bundle_cursor_tooltip`.
 Item details (L-319) read, under the Item details capability (decided 2026-11-14, L-338): `Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`,
 `FurnaceBlockActor::getItemBurnDuration` and, where that is 0, `FuelItemComponent::mFuelDuration` (seconds),
 `Item::getCooldownDuration`, the `minecraft:use_modifiers` component's `UseModifiersItemComponent::mUseDuration`
@@ -527,11 +532,11 @@ server's slot updates, and the entity event for a totem pop. Restocks are
 confirmed from the inventory, not from these events alone.
 
 ### `src/features/inventory/OffhandUseTrace.cpp`
-Hooks: `Build`, `HandleBuild`, `Name`, `StartUse`
-Trace (`Name` is the macro that makes several hooks).
+Hooks: `Build`, `HandleBuild`, `StartUse`, `Use`, `UseOn`, `Interact`, `ReleaseUse`, `StopUse`, `CompleteUse`, `SurvivalUse`, `SurvivalUseOn`, `SurvivalInteract`
+Trace (one macro makes the hooks after `StartUse`).
 
 ### `src/features/interaction/SneakPlacement.cpp`
-Hooks: `SneakPlacementInput`, `SneakPlacementSend`, `SneakPlacement`
+Hooks: `SneakPlacementInput`, `SneakPlacementSend`, `SneakPlacementGameModeBuild`, `SneakPlacementGameModeStartBuild`, `SneakPlacementGameModeUseOn`, `SneakPlacementSurvivalModeBuild`, `SneakPlacementSurvivalModeStartBuild`, `SneakPlacementSurvivalModeUseOn`
 Meaning (L-293): `SneakPlacementSend` (`LoopbackPacketSender::$send`) reads
 the `Sneaking` bit of each sent `PlayerAuthInputPacket`; the local server
 decides a use with the sneak state of the auth inputs that arrived before its
@@ -545,17 +550,19 @@ the six build hooks. Protected by the
 `SneakPlacement` capability; a use is never held without it.
 
 ### `src/features/interaction/SneakUseTrace.cpp`
-Hooks: `SneakTraceSend`, `Name`
+Hooks: `SneakTraceSend`, `SneakTraceUseOn`, `SneakTraceSurvivalUseOn`
 Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent
 `PlayerAuthInputPacket`, sent item-use transactions, and the sneak flag of the
 player whose `useItemOn` runs (the local player, and in a local world the
-server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
+server's copy). One macro makes the two `useItemOn` hooks.
 
 ### Saved data per world (`WaypointSession.cpp`, no hooks)
 L-343. At a join, reads `Social::GameConnectionInfo` (`mUnresolvedUrl`, `mHostIpAddress`, `mPort`), `Level::getLevelId`,
 `LevelData::mLevelName` and the worlds folder (`FilePathManager::mWorlds`) to name where the world's waypoints, map,
 placements and death layout are kept. A wrong value names the wrong folder: new data starts there and nothing is
-overwritten. The `server_trace` option logs these and the connection's other ids.
+overwritten. Deleting could remove another world's folder, so the Saved data page's Delete is off while
+`verifiedGameExecutable()` is false; looking and "Use this data" stay. The `server_trace` option logs these and the
+connection's other ids.
 
 ### Enchantment order (`EnchantOrderGame.cpp`, no hooks)
 L-170. A hook on `InventoryItemRenderer::$render` to paint the list before the slots was tried and removed
@@ -565,7 +572,9 @@ L-170. A hook on `InventoryItemRenderer::$render` to paint the list before the s
 (`constructItemEnchantsFromUserData`) and anvil uses (`getBaseRepairCost`). Kind names are the game's
 `itemGroup.name.*` texts through `getI18n()`, `mPrimarySlots`/`mSecondarySlots` say how many kinds an enchantment goes
 on, and the list beside the anvil reads the player's level (`Player::LEVEL()`) and the 36 carried slots
-(`combined_hotbar_and_inventory_items`, `cursor_items`). Meaning a rebuild cannot check: the
+(`hotbar_items`, `inventory_items`, `cursor_items`). The slot marks take their boxes from the controls
+`hotbar_grid`, `inventory_grid`, `input_item_slot`, `material_item_slot`, `result_item_slot` and
+`inventory_selected_icon_button`, and the panels fade with the window's `UIControl::mAlpha`. Meaning a rebuild cannot check: the
 frequency values 30, 10, 3, 1 as the anvil's per-level cost (read in game 2026-11-12), the 40-level limit, and on the
 anvil screen its name, the `root_panel` control as the window, the two slot collections and
 `AnvilContainerManagerController::mCost` (a class-layout read, compared with the plan and shown when it differs).
@@ -766,10 +775,12 @@ places from `BlockGraphics::getTextureUVCoordinateSet`. Gated (Connected
 Textures): on an unverified game nothing is added.
 
 ### `src/features/visuals/ConnectedTexturesHooks.cpp`
-Hooks: `ConnectedBlock`, `Name`, `ConnectedPane`, `ConnectedPaneGlass`, `ConnectedRebuild`
+Hooks: `ConnectedBlock`, `ConnectedDown`, `ConnectedUp`, `ConnectedNorth`, `ConnectedSouth`, `ConnectedWest`, `ConnectedEast`, `ConnectedPane`, `ConnectedPaneGlass`, `ConnectedRebuild`
 Meaning: the chunk mesh's vertex positions and UVs for glass and panes,
 `BlockGraphics` texture slots, and when chunks rebuild. Gated (Connected
-Textures). `Name` is the macro that makes the per-shape hooks.
+Textures). The six face hooks come from one macro and are on
+`BlockTessellator::tessellateFaceDown`, `tessellateFaceUp`, `tessellateNorth`,
+`tessellateSouth`, `tessellateWest` and `tessellateEast`.
 
 ### `src/features/visuals/EffectTrace.cpp`
 Hooks: `EffectSpriteTrace`, `EffectTextTrace`, `EffectCustomTrace`, `EffectFogTrace`, `EffectDensityTrace`, `EffectResolvedFogTrace`, `EffectMeshTrace`, `EffectMetadataMeshTrace`, `EffectSpanMeshTrace`, `EffectTextureBlitTrace`, `EffectVariantBlitTrace`, `EffectRectBlitTrace`, `EffectScreenStageTrace`, `EffectPostStageTrace`, `EffectVignetteTrace`, `UiTextureTrace`, `UiImageTrace`, `UiFlushTrace`, `ChunkItemTrace`, `EffectTessellatorTrace`
