@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout hatching the same on every hidden element (2026-11-16)
+
+Build `05447b92` (main), DLL SHA-256
+`e27a3fdefc30a7f04639e052d869563ab954f20b402a84daf19cacac39f5827a`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: the Inventory, Used slots, Status effects and Durability
+HUDs, hidden, all show the same dotted diagonal lines (large ones spaced wider, no scattered
+dots, seen on `53abd22d`); the legend's Hidden swatch shows even solid diagonal lines. Not
+seen: an element larger than those four.
+
 ## Rows off the scroll bar and room for Check items (2026-11-16)
 
 Build `c29aca91` (branch `l-190-waypoint-selection`), DLL SHA-256
