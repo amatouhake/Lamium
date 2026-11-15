@@ -205,7 +205,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-349](backlog/L-349.md) Settings and HUD follow-ups from the 2026-11-15 check (Ready): Open, not started; agreed 2026-11-15
+- [L-349](backlog/L-349.md) Settings and HUD follow-ups from the 2026-11-15 check (Ready): Partly built, not checked in game: chat part default; the other three not started
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
 - [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design): Built and checked in game (`10325a18`); a large map with small text is now awkward, to be agreed
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.

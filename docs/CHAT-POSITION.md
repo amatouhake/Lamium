@@ -6,9 +6,12 @@ HUD layout places and scales the game's own HUD chat messages. The chat is
 one part of **Game HUD placement** (default off), beside the paper doll, the
 scoreboard and the boss bars ([HUD.md](HUD.md), "Game HUD placement" and
 "Showing, hiding and names"). Its row there is Standard / Placed /
-Hidden, default Placed, with one unbound key that steps the three. Older
-settings with Chat position on load with Game HUD placement on and only the
-chat selected.
+Hidden, default Standard, with one unbound key that steps the three. The
+other parts start Placed at the game's own place, so switching the feature on
+changes nothing; the chat's default place is not the game's, so it starts
+Standard to keep that true (L-349). A saved chat choice stays as it is.
+Older settings with Chat position on load with Game HUD placement on and only
+the chat selected.
 
 ## Behavior
 

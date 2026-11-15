@@ -310,10 +310,13 @@ struct Settings {
         bool inventoryHud = false, usedSlots = false, inventoryHotbar = false, usedSlotsHotbar = true;
         // Game HUD placement (L-321): one switch, default off, lets the HUD
         // layout place and scale parts of the game's own HUD; each part can be
-        // left out and is selected by default (the chat L-174, the paper doll
-        // L-309, the scoreboard sidebar, the boss bars L-323).
+        // left out (the chat L-174, the paper doll L-309, the scoreboard
+        // sidebar, the boss bars L-323). Every part but the chat is selected by
+        // default: they start at the game's place, while the chat's default
+        // place differs, so it starts Standard and switching the group on
+        // moves nothing (L-349).
         bool gameHud = false;
-        bool chatPosition = true, paperDollPosition = true, scoreboardPosition = true, bossBarPosition = true;
+        bool chatPosition = false, paperDollPosition = true, scoreboardPosition = true, bossBarPosition = true;
         bool placesChat() const { return gameHud && chatPosition; }
         bool placesPaperDoll() const { return gameHud && paperDollPosition; }
         bool placesScoreboard() const { return gameHud && scoreboardPosition; }

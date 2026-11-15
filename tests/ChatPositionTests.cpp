@@ -49,15 +49,20 @@ void chatPositionTests() {
           "older settings leave chat vanilla and the keys unbound");
     // Game HUD placement (L-321): one switch over the three parts.
     Settings grouped;
-    check(!grouped.information.gameHud && grouped.information.chatPosition && grouped.information.paperDollPosition
-          && grouped.information.scoreboardPosition && !grouped.information.placesChat(),
-          "game HUD placement starts off with every part selected");
+    check(!grouped.information.gameHud && !grouped.information.chatPosition && grouped.information.paperDollPosition
+          && grouped.information.scoreboardPosition && grouped.information.bossBarPosition && !grouped.information.placesChat(),
+          "game HUD placement starts off, the chat Standard and the other parts selected (L-349)");
+    auto savedPlaced = decodeSettings(R"({"information":{"gameHud":false,"chatPosition":true}})");
+    check(savedPlaced.information.chatPosition && !savedPlaced.information.placesChat(),
+          "a saved Placed chat stays Placed under the new default (L-349)");
+    auto savedStandard = decodeSettings(R"({"information":{"gameHud":true,"chatPosition":false}})");
+    check(!savedStandard.information.chatPosition, "a saved Standard chat stays Standard");
     auto legacyOn = decodeSettings(R"({"information":{"chatPosition":true}})");
     check(legacyOn.information.gameHud && legacyOn.information.placesChat() && !legacyOn.information.placesPaperDoll()
           && !legacyOn.information.placesScoreboard(),
           "a file from before the group keeps a moved chat and moves nothing else");
     auto legacyOff = decodeSettings(R"({"information":{"chatPosition":false}})");
-    check(!legacyOff.information.gameHud && legacyOff.information.chatPosition && legacyOff.information.scoreboardPosition,
+    check(!legacyOff.information.gameHud && !legacyOff.information.chatPosition && legacyOff.information.scoreboardPosition,
           "a file from before the group with the chat off gets the new defaults");
     auto partOff = decodeSettings(R"({"information":{"gameHud":true,"chatPosition":false}})");
     check(partOff.information.gameHud && !partOff.information.placesChat() && partOff.information.placesPaperDoll(),
@@ -65,7 +70,9 @@ void chatPositionTests() {
     Settings value;
     value.hud.chat = moved;
     value.hud.info.dx = 19;
-    check(input::toggleAction(value, input::Action::ToggleGameHud) && value.information.placesChat(), "the group has a toggle action");
+    check(input::toggleAction(value, input::Action::ToggleGameHud) && value.information.gameHud && !value.information.placesChat(),
+          "the group has a toggle action, and switching it on leaves the chat Standard");
+    value.information.chatPosition = true;
     auto path = std::filesystem::temp_directory_path()
         / ("lamium-chat-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".json");
     writeSettings(path, value);
@@ -108,7 +115,7 @@ void chatPositionTests() {
           && input::toggleAction(board, input::Action::ToggleGameHud) && board.information.placesScoreboard()
           && (settings::find("information.scoreboardPosition")->adjust(board, 1), board.information.hidesScoreboard())
           && (settings::find("information.scoreboardPosition")->adjust(board, 1), !board.information.placesScoreboard())
-          && board.information.placesChat(),
+          && board.information.placesPaperDoll(),
           "the scoreboard follows the group, has an unbound key and can be left out alone");
     auto boardSaved = decodeSettings(R"({"information":{"scoreboardPosition":true},"hud":{"scoreboard":{"anchor":0,"dx":7,"dy":9,"scale":150}}})");
     check(boardSaved.information.placesScoreboard() && boardSaved.hud.scoreboard.dx == 7 && boardSaved.hud.scoreboard.scale == 150,
@@ -174,13 +181,15 @@ void chatPositionTests() {
         Settings parts;
         auto const* chatRow = settings::find("information.chatPosition");
         auto mode = [&] { return std::get<settings::ChoiceValue>(chatRow->read(parts)).label; };
-        check(mode() == "gameHudPart.placed", "a part is Placed by default");
+        auto const* dollRow = settings::find("information.paperDollPosition");
+        check(mode() == "gameHudPart.vanilla" && std::get<settings::ChoiceValue>(dollRow->read(parts)).label == "gameHudPart.placed",
+              "the chat starts Standard, the other parts Placed (L-349)");
+        chatRow->adjust(parts, 1);
+        bool placedFirst = mode() == "gameHudPart.placed" && parts.information.chatPosition && parts.information.showChat;
         chatRow->adjust(parts, 1);
         bool hidden = mode() == "gameHudPart.hidden" && parts.information.chatPosition && !parts.information.showChat;
         chatRow->adjust(parts, 1);
-        bool standard = mode() == "gameHudPart.vanilla" && !parts.information.chatPosition && parts.information.showChat;
-        chatRow->adjust(parts, 1);
-        check(hidden && standard && mode() == "gameHudPart.placed",
+        check(placedFirst && hidden && mode() == "gameHudPart.vanilla" && !parts.information.chatPosition && parts.information.showChat,
               "a part's row steps Placed, Hidden, Standard with its two saved switches");
         check(ui::optionAction("information.bossBarPosition") == input::Action::HideBossBars
               && ui::optionAction("information.chatPosition") == input::Action::ToggleChatPosition
@@ -207,7 +216,7 @@ void chatPositionTests() {
         shown.information.scoreboardPosition = true;
         shown.information.gameHud = false;
         check(!shown.information.hidesScoreboard(), "the main switch off shows every part");
-        auto hiddenSaved = decodeSettings(R"({"information":{"gameHud":true,"showChat":false,"showPaperDoll":false}})");
+        auto hiddenSaved = decodeSettings(R"({"information":{"gameHud":true,"chatPosition":true,"showChat":false,"showPaperDoll":false}})");
         check(hiddenSaved.information.hidesChat() && hiddenSaved.information.hidesPaperDoll()
               && !hiddenSaved.information.hidesScoreboard() && !hiddenSaved.information.hidesBossBars(),
               "the parts' show values load");

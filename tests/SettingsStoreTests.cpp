@@ -145,7 +145,7 @@ void settingsStoreTests() {
         check(!dormant.information.hidesBossBars() && !dormant.information.gameHud
               && !unpicked.information.hidesBossBars() && !unpicked.information.gameHud,
               "a file from before that did not hide boss bars keeps them shown");
-        auto grouped = decodeSettings(R"({"information":{"gameHud":true,"bossBarPosition":false},"visuals":{"hideEffects":true}})");
+        auto grouped = decodeSettings(R"({"information":{"gameHud":true,"chatPosition":true,"bossBarPosition":false},"visuals":{"hideEffects":true}})");
         check(grouped.information.hidesBossBars() && grouped.information.placesChat(),
               "with the group already on, old hidden boss bars are hidden and the other parts stay");
         auto current = decodeSettings(R"({"information":{"showBossBars":true},"visuals":{"hideEffects":true,"hideBossBars":true}})");
@@ -153,7 +153,7 @@ void settingsStoreTests() {
         Settings value;
         value.information.gameHud = true;
         settings::find("information.bossBarPosition")->adjust(value, 1);
-        check(value.information.hidesBossBars() && value.information.placesChat() && !value.visuals.hideEffects,
+        check(value.information.hidesBossBars() && value.information.placesPaperDoll() && !value.visuals.hideEffects,
               "the boss bars' row hides them without changing another part");
         check(visuals::effectMask(false,true,true,true) == 0
               && visuals::effectMask(true,false,false,true) == visuals::bossBarsBit

@@ -216,8 +216,9 @@ is fixed to the screen edges and is not an element.
 What HUD layout places of the game's own HUD is one feature with a saved,
 default-off main switch and a row per part (chat, paper doll, scoreboard,
 boss bars). Each row is Standard (the game's own), Placed (moved and scaled
-by the layout) or Hidden (not drawn), default Placed, saved as the part
-switch and a show value. Each part has one unbound key that steps Standard,
+by the layout) or Hidden (not drawn), saved as the part switch and a show
+value. The chat starts Standard, the other parts Placed, so switching the
+feature on moves nothing (L-349). Each part has one unbound key that steps Standard,
 Placed, Hidden like Tool Switch's drop priority; with the main switch off it
 changes the choice only and says so. The boss bars' key is the old Hide boss
 bars key. The main switch off leaves every part the game's and keeps the
@@ -231,9 +232,11 @@ choices. The hotbar is not part of it.
   selected.
 - The game's look and when a part shows stay vanilla; its elements have no
   look controls.
-- **Chat**: default lower left, flush left, bottom 44 units up (decided
-  2026-11-11), so switching the feature on moves the chat at once while the
-  others stay until dragged. Why not the game's place: the game has no fixed
+- **Chat**: starts Standard (L-349): its default place is not the game's,
+  so a Placed default would move it the moment the feature is switched on,
+  unlike every other part. Choosing Placed puts it at the default place,
+  lower left, flush left, bottom 44 units up (decided 2026-11-11). A saved
+  chat choice stays as it is. Why not the game's place: the game has no fixed
   chat place (it is the last item of a stack whose height changes with what
   shows), a fixed default would imitate one state and sit on the default
   Info HUD, and the lower left keeps clear of Lamium's HUD and matches Java

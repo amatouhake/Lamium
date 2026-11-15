@@ -414,7 +414,7 @@ Settings decodeSettings(std::string_view text) {
         // Game HUD placement (L-321) put one switch over what were separate
         // ones. A file from before has no "gameHud": any of them on turns the
         // group on and keeps each choice; none on leaves the group off with
-        // every part selected, the new default.
+        // the new defaults (the chat Standard, the other parts selected).
         if (info.contains("gameHud")) {
             value.information.gameHud = settingsValue(info, "gameHud", value.information.gameHud);
             value.information.chatPosition = settingsValue(info, "chatPosition", value.information.chatPosition);
