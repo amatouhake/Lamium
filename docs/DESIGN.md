@@ -182,8 +182,8 @@ the same commit. A screen never draws its own variant.
   Hidden M", the names in list order as plain lines in the list's columns
   without the switch (mark, name, distance, own column; "N more" when they
   do not fit), and Show, Hide and Delete where the pane's own buttons sit,
-  Delete (destructive; armed "Again: Delete N", the pane having no text
-  beside it for the count) in the single pane's Delete place. No
+  Delete (destructive; armed "Again: Delete N", an exception to the count
+  beside the button) in the single pane's Delete place. No
   bar in or under the list. Esc lets several rows go (nothing selected),
   then closes. The map's side panel has the same pane with its buttons on
   its last row (`compactSelectionPane`).
