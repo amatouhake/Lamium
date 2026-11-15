@@ -101,7 +101,7 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(key, key, remaining));
             else if (entry.key == "worldMap.reference" || entry.key == "worldMap.cameraY"
                 || entry.key == "worldMap.matchingCameraHeight" || entry.key == "worldMap.matchingHeight"
-                || entry.key == "worldMap.fixedY" || entry.key == "worldMap.followingY")
+                || entry.key == "worldMap.fixedY" || entry.key == "worldMap.followingY" || entry.key == "confirm.deleteCount")
                 rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
                 || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed" || entry.key == "edgeMargin"

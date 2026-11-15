@@ -1,6 +1,7 @@
 #include "ui/ListViewWidgets.h"
 #include "ui/ItemAmount.h"
 #include "ui/Localization.h"
+#include "ui/TextFit.h"
 #include <vector>
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include <algorithm>
@@ -35,8 +36,18 @@ void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float
     box(context,x,y,w,h,hovered,armed ? palette::danger : palette::keyFill,red ? palette::dangerEdge : palette::keyEdge);
     centered(context,x,y,w,h,std::move(text),red && !armed ? palette::dangerText : palette::text);
 }
-std::string againLabel(std::string label, bool armed) {
-    return armed ? translated("confirm.again", label) : label;
+std::string armedLabel(MinecraftUIRenderContext& context, std::string label, std::string confirm, bool armed, float width) {
+    if (!armed) return label;
+    // Inside the button's 1-unit edges.
+    return armedText(label, confirm, translated("confirm.short"), armed, width - 2,
+        [&](std::string_view text) { return textWidth(context, text); });
+}
+std::string armedLabel(std::string label, std::string confirm, bool armed) { return armed ? confirm : label; }
+float armedWidth(MinecraftUIRenderContext& context, std::string_view label, std::string_view confirm, float padding) {
+    return armedTextWidth(label, confirm, [&](std::string_view text) { return textWidth(context, text); }) + padding;
+}
+std::string confirmDelete(std::optional<int> count) {
+    return count ? translated("confirm.deleteCount", *count) : translated("confirm.delete");
 }
 void drawPageHeading(MinecraftUIRenderContext& context, SettingsTable const& t, std::string_view section, std::string_view feature,
                      float backX, bool backHovered, std::string const& aside) {

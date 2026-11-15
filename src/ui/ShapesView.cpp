@@ -573,7 +573,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         } else {
             drawButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
             drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                againLabel(translated("shape.delete"), shapeDeleteArmed),over(ShapeZone::Action,1), shapeDeleteArmed);
+                armedLabel(context,translated("shape.delete"),confirmDelete(),shapeDeleteArmed,ShapesLayout::deleteWidth),over(ShapeZone::Action,1), shapeDeleteArmed);
         }
     }
 

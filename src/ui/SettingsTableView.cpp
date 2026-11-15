@@ -975,8 +975,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (auto scope = capturing_ || findingKey ? ResetScope::None : resetScope(); scope != ResetScope::None) {
         bool keys = scope == ResetScope::Keys;
         drawDangerButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
-            againLabel(translated(keys ? "reset.keys" : scope == ResetScope::Section ? "reset.section" : "reset.all"),
-                resetArmed),
+            armedLabel(context,translated(keys ? "reset.keys" : scope == ResetScope::Section ? "reset.section" : "reset.all"),
+                translated("confirm.reset"),resetArmed,SettingsTable::headActionWidth),
             t.headAction(hover.x,hover.y,keys),
             resetArmed);
     }
@@ -1099,8 +1099,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             auto name = translated("mapCache") + "  " + (bytes ? std::format("{:.1f} MB", *bytes / 1048576.0) : translated("mapCacheNone"));
             label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
             if (bytes) {
-                auto text = againLabel(translated("mapCacheClear"), mapCacheArmed);
-                float w = textWidth(context,text) + 8, bx = t.stateX + t.controlWidth() - w;
+                // Delete holds both its labels, so arming moves nothing.
+                float w = armedWidth(context,translated("mapCacheClear"),confirmDelete(),8), bx = t.stateX + t.controlWidth() - w;
+                auto text = armedLabel(context,translated("mapCacheClear"),confirmDelete(),mapCacheArmed,w);
                 mapCacheButtonX = bx;
                 mapCacheButtonWidth = w;
                 bool over = pointer.x >= bx && pointer.x < bx + w && pointer.y >= y + 2 && pointer.y < y + 2 + capHeight;

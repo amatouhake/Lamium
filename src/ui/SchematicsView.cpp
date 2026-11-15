@@ -1134,7 +1134,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             }
             fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
             drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                againLabel(translated("shape.delete"), schematicDeleteArmed),over(ShapeZone::Action,1), schematicDeleteArmed);
+                armedLabel(context,translated("shape.delete"),confirmDelete(),schematicDeleteArmed,ShapesLayout::deleteWidth),over(ShapeZone::Action,1), schematicDeleteArmed);
         } else paragraph(context,dx,l.detailTop+6,dw,translated(schematicSet.placements.empty() ? "schematic.noPlacements"
             : "schematic.selectHint"),4,palette::faint);
         break;
@@ -1264,8 +1264,10 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (verifyIgnoredOpen) {
             // L-183: what is ignored here, each with Undo, and Undo all.
             float y = textTop;
-            std::string undoAll = againLabel(translated("schematic.ignore.undoAll"), verifyUndoAllArmed);
-            float allW = ignored.empty() ? 0 : textWidth(context, undoAll) + 10;
+            std::string const undoLabel = translated("schematic.ignore.undoAll"), undoConfirm = translated("confirm.undoAll");
+            // Undo all holds both its labels, so arming moves nothing.
+            float allW = ignored.empty() ? 0 : armedWidth(context, undoLabel, undoConfirm, 10);
+            std::string undoAll = armedLabel(context, undoLabel, undoConfirm, verifyUndoAllArmed, allW);
             label(context,dx,y,dw-allW-4,translated("schematic.ignore.title"),palette::faint);
             if (!ignored.empty()) {
                 float ax = dx + dw - allW;

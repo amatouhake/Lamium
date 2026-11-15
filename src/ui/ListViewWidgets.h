@@ -8,6 +8,7 @@
 #include "ui/ShapesLayout.h"
 #include "ui/Widgets.h"
 #include <cstdint>
+#include <optional>
 #include <string>
 class MinecraftUIRenderContext;
 namespace lamium::ui {
@@ -27,9 +28,18 @@ Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, 
 // visible one (a section's Reset) does not draw the eye.
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed);
-// What a press-twice button reads (DESIGN "Controls"): its own label, and once
-// armed "Again: " + that label, so no screen words the armed state itself.
-std::string againLabel(std::string label, bool armed = true);
+// What a press-twice button reads (DESIGN "Controls"): `label`, and once armed
+// `confirm`, what a second press does ("Confirm delete", 「削除を確定」); in a
+// button of `width` too narrow for that, just "Confirm" (`confirm.short`).
+std::string armedLabel(MinecraftUIRenderContext& context, std::string label, std::string confirm, bool armed, float width);
+// The same where nothing cuts the text (a context menu sized by its items).
+std::string armedLabel(std::string label, std::string confirm, bool armed);
+// A press-twice button sized by its text: wide enough for both labels plus
+// `padding`, so arming moves nothing.
+float armedWidth(MinecraftUIRenderContext& context, std::string_view label, std::string_view confirm, float padding);
+// A delete's `confirm`: "Confirm delete", with a count "Confirm delete 5" (the
+// one count a button holds, DESIGN "Controls").
+std::string confirmDelete(std::optional<int> count = {});
 // The body of a docked view too short for its editor (!l.usable()): Expand and
 // a hint under the header, which matches what ShapesLayout::hit() answers then.
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);

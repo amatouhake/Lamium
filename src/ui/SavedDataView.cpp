@@ -163,10 +163,11 @@ void calm() { dragging = false; armed.clear(); }
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     auto const* d = chosen();
     bool const server = d && d->kind == Data::Kind::Server;
-    std::string const useText = translated("savedData.use"), removeText = againLabel(translated("savedData.delete"), d && armed == d->key);
-    // Sized for the armed label, so arming moves nothing.
+    std::string const useText = translated("savedData.use"), removeLabel = translated("savedData.delete");
+    // Delete holds both its labels, so arming moves nothing.
     last = SavedDataLayout::fit(t, static_cast<int>(items.size()), first, server && !d->host.empty(), d && d->canUse,
-        d && d->canDelete, textWidth(context, useText) + 12, textWidth(context, againLabel(translated("savedData.delete"))) + 12);
+        d && d->canDelete, textWidth(context, useText) + 12, armedWidth(context, removeLabel, confirmDelete(), 12));
+    std::string const removeText = armedLabel(context, removeLabel, confirmDelete(), d && armed == d->key, last.deleteWidth);
     if (!last.usable()) return;
     if (dragging) first = last.list.firstAt(pointer.y);
     first = last.list.listFirst = SettingsTable::clampFirst(first, last.list.listCount, last.list.listVisible);
