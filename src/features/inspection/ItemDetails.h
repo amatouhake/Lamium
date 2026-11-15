@@ -26,6 +26,8 @@ struct Line {
     bool operator==(Line const&) const = default;
 };
 inline constexpr size_t valueLimit = 40, lineWidth = 44, tagLines = 4, dataLines = 24, dataWidth = 60;
+// An identifier or a tag name: a pack's may be anything, so it is cleaned and cut like a value.
+inline constexpr size_t nameLimit = 64;
 inline constexpr float smeltTicks = 200, ticksPerSecond = 20;
 // A bow or a shield is held for as long as the button is; that is not a time to tell.
 inline constexpr float longestUse = 1200;
@@ -86,7 +88,7 @@ inline std::vector<std::string> wrapped(std::vector<std::string> const& names, s
                                         size_t lines = tagLines) {
     std::vector<std::string> out;
     for (size_t i = 0; i < names.size(); ++i) {
-        auto const piece = names[i] + (i + 1 < names.size() ? ", " : "");
+        auto const piece = clip(names[i], nameLimit) + (i + 1 < names.size() ? ", " : "");
         if (out.empty() || (!out.back().empty() && out.back().size() + piece.size() > width)) {
             if (out.size() == lines) {
                 out.back() += "\xE2\x80\xA6";
@@ -105,19 +107,23 @@ inline constexpr size_t dataBudget = (dataWidth + 1) * 4;
 // Tags at or above this many (counted up to it) are written by Lamium within the budget; smaller ones are the
 // game's own text.
 inline constexpr size_t smallTagNodes = 32;
+// A string as SNBT writes it, no further than `room` bytes of it: one longer than that is cut on its line
+// anyway, so it is left open.
+inline std::string snbtText(std::string_view text, size_t room) {
+    std::string out = "\"";
+    for (char c : text.substr(0, room)) {
+        if (c == '"' || c == '\\') out += '\\';
+        out += c;
+    }
+    return text.size() > room ? out : out + '"';
+}
 // A compound's key as SNBT writes it: bare when plain, quoted otherwise.
 inline std::string snbtKey(std::string_view key) {
     bool bare = !key.empty() && std::all_of(key.begin(), key.end(), [](char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-'
             || c == '.' || c == '+';
     });
-    if (bare) return std::string(key);
-    std::string out = "\"";
-    for (char c : key) {
-        if (c == '"' || c == '\\') out += '\\';
-        out += c;
-    }
-    return out + '"';
+    return bare ? std::string(key) : snbtText(key, key.size());
 }
 inline std::vector<Line> lines(Item const& item) {
     std::vector<Line> out;
@@ -128,7 +134,10 @@ inline std::vector<Line> lines(Item const& item) {
     if (item.cooldownTicks > 0) value("itemDetails.cooldown", number(item.cooldownTicks / ticksPerSecond));
     if (item.useTicks > 0 && item.useTicks <= longestUse) value("itemDetails.useTime", number(item.useTicks / ticksPerSecond));
     if (item.burnTicks > 0) value("itemDetails.fuel", number(item.burnTicks / smeltTicks));
-    if (!item.id.empty()) out.push_back({"", item.aux ? std::format("{} #{}", item.id, item.aux) : item.id, true});
+    if (!item.id.empty()) {
+        auto id = clip(item.id, nameLimit);
+        out.push_back({"", item.aux ? std::format("{} #{}", id, item.aux) : std::move(id), true});
+    }
     // One row sits beside the label; more go under it, all indented alike, since no count of spaces lines a
     // row up with text after a label.
     if (auto rows = wrapped(item.tags); rows.size() == 1) out.push_back({"itemDetails.tags", std::move(rows[0]), true});

@@ -1,4 +1,5 @@
 #include "ui/SavedDataView.h"
+#include "app/Versions.h"
 #include "features/map/MapColors.h"
 #include "features/map/SavedData.h"
 #include "features/map/Waypoints.h"
@@ -29,7 +30,7 @@ std::string rowName;
 double rowNameAt = -1;
 double now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 
-void back() { reset(); table_view::rebuild(true); }
+void back() { screen::endDirectTool(); reset(); table_view::rebuild(true); }
 Data const* chosen() { return selected >= 0 && selected < static_cast<int>(items.size()) ? &items[static_cast<size_t>(selected)] : nullptr; }
 std::string shown(Data const& d) { return d.name.empty() ? translated("savedData.unnamed") : d.name; }
 void reload(std::string const& keep = {}) {
@@ -51,13 +52,17 @@ void use() {
     if (map::waypoints::useData(key)) { reload(key); say(translated("savedData.switched", name)); }
     else say(translated("savedData.failed"), true);
 }
+// The folder is named from game values a rebuild cannot check: on a game they were not checked on it could be
+// another world's, so nothing is deleted there. Looking and choosing stay.
+bool deletable() { return verifiedGameExecutable(); }
 void remove() {
     auto const* d = chosen();
     if (!d || !d->canDelete) return;
+    if (!deletable()) { say(translated("savedData.deleteUnverified"), true); return; }
     if (armed != d->key) { armed = d->key; return; }
-    std::string const name = shown(*d);
+    std::string const name = shown(*d), key = d->key;
     if (map::waypoints::removeData(*d)) { reload(); say(translated("savedData.deleted", name)); }
-    else { armed.clear(); say(translated("savedData.failed"), true); }
+    else { reload(key); say(translated("savedData.failed"), true); } // A failed delete may have removed part.
 }
 void anyPort() {
     auto const* d = chosen();
@@ -140,7 +145,8 @@ bool click(float x, float y, bool right) {
 void key(int key) {
     if (key == 0x1b || key == 0x08) {
         if (!armed.empty()) { armed.clear(); return; }
-        back();
+        // Esc goes back to where the page was opened from: the game when its key opened it.
+        if (key != 0x1b || !screen::leaveDirectTool()) back();
         return;
     }
     armed.clear();
@@ -284,7 +290,10 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (last.use)
             drawButton(context, last.useX, last.useY(), last.useWidth, SavedDataLayout::buttonHeight, useText,
                 hover.zone == Zone::Use, ButtonKind::Primary);
-        if (last.remove) {
+        if (last.remove && !deletable())
+            drawButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeLabel,
+                false, ButtonKind::Plain, false);
+        else if (last.remove) {
             // The same red as the other press-twice deletes (L-341 collects them).
             bool const isArmed = armed == d->key;
             drawDangerButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeText,
@@ -296,9 +305,12 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
     float const textLeft = t.left + SettingsTable::pad, textWidth_ = t.width - 2 * SettingsTable::pad;
     std::string const current = currentName();
+    // Under the pointer a Delete that cannot be pressed says why.
+    bool const whyNot = notice.empty() && hover.zone == Zone::Delete && !deletable();
     label(context, textLeft, t.footerTop + 3, textWidth_,
-        !notice.empty() ? notice : current.empty() ? translated("savedData.noCurrent") : translated("savedData.current", current),
-        !notice.empty() && noticeWarns ? palette::warning : palette::text);
+        !notice.empty() ? notice : whyNot ? translated("savedData.deleteUnverified")
+            : current.empty() ? translated("savedData.noCurrent") : translated("savedData.current", current),
+        whyNot || (!notice.empty() && noticeWarns) ? palette::warning : palette::text);
     label(context, textLeft, t.footerTop + 16, textWidth_, translated("help.savedData"), palette::dim);
     label(context, textLeft, t.footerTop + 30, textWidth_, translated("savedData.hint"), palette::faint);
     context.flushText(0, std::nullopt);

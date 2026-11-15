@@ -1849,6 +1849,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"savedData.rowServer", "此服务器的数据"},
     {"savedData.rowChoose", "重新选择 >"},
     {"savedData.rowOpen", "打开 >"},
+    {"savedData.deleteUnverified", "尚未在此游戏版本上验证，因此无法在此删除。"},
     {"key.Lamium.opensaveddata", "Lamium: 打开保存的数据"},
     {"key.Lamium.opengamelanguage", "Lamium: 打开游戏语言"},
     {"language.current", "当前: {}"},

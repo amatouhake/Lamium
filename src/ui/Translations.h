@@ -1885,6 +1885,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"savedData.rowServer", "This server's data", "このサーバーのデータ"},
     {"savedData.rowChoose", "Choose >", "選び直す >"},
     {"savedData.rowOpen", "Open >", "開く >"},
+    {"savedData.deleteUnverified", "Not checked on this game version, so nothing can be deleted here.", "このゲームバージョンでは未確認のため、ここでは削除できません。"},
     {"key.Lamium.opensaveddata", "Lamium: Open the saved data", "Lamium: 保存データを開く"},
     {"key.Lamium.opengamelanguage", "Lamium: Open the game language", "Lamium: ゲームの言語を開く"},
     {"language.current", "Current: {}", "現在: {}"},

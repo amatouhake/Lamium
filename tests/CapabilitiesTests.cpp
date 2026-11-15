@@ -146,9 +146,50 @@ void capabilitiesTests() {
     selected = lamium::paused::affected(settings,[&](Id id) { return fresh.status(id); });
     check(selected.size() == 1 && selected[0] == "hideEffects", "non-version hook failures also reach the shared notices");
     lamium::Settings anvil;
+    anvil.inspection.itemTooltip = anvil.inspection.englishSearch = false;
     check(!lamium::paused::requested(Id::EnchantOrder, anvil)
           && (anvil.inventory.enchantOrderAnvil = true, lamium::paused::requested(Id::EnchantOrder, anvil)),
         "the anvil's enchantment order list counts as using Enchantment order, so the join notice can name it (L-339)");
+    {
+        using lamium::paused::requested;
+        lamium::Settings quiet;
+        quiet.inspection.itemTooltip = quiet.inspection.englishSearch = false;
+        check(!requested(Id::EnchantOrder, quiet) && !requested(Id::ItemDetails, quiet)
+            && !requested(Id::MapMaterialInstances, quiet), "nothing that reads gated data is on, so nothing is named");
+        auto search = quiet;
+        search.inspection.englishSearch = true;
+        auto penalty = quiet;
+        penalty.inspection.itemTooltip = penalty.inspection.workPenalty = true;
+        check(requested(Id::EnchantOrder, search) && requested(Id::EnchantOrder, penalty)
+            && (penalty.inspection.workPenalty = false, !requested(Id::EnchantOrder, penalty)),
+            "English Search's enchanted books and the tooltip's work penalty line count as using the enchantment data");
+        auto lines = quiet;
+        lines.inspection.itemTooltip = true;
+        lines.inspection.itemDetails = lines.inspection.itemDetailsStew = lines.inspection.itemDetailsId = false;
+        lines.inspection.itemDetailsTags = lines.inspection.itemDetailsNbt = false;
+        check(!requested(Id::ItemDetails, lines), "durability and food values alone read no gated item data");
+        for (auto field : {&lamium::Settings::Inspection::itemDetails, &lamium::Settings::Inspection::itemDetailsStew,
+                 &lamium::Settings::Inspection::itemDetailsId, &lamium::Settings::Inspection::itemDetailsTags,
+                 &lamium::Settings::Inspection::itemDetailsNbt}) {
+            auto one = lines;
+            one.inspection.*field = true;
+            check(requested(Id::ItemDetails, one), "each gated tooltip line counts as using Item details");
+            one.inspection.itemTooltip = false;
+            check(!requested(Id::ItemDetails, one), "the tooltip's main switch off asks for none of its lines");
+        }
+        auto minimap = quiet, worldMap = quiet;
+        minimap.map.minimap = true;
+        worldMap.map.worldMap = true;
+        check(requested(Id::MapMaterialInstances, minimap) && requested(Id::MapMaterialInstances, worldMap),
+            "either map reads add-on block colors");
+        auto names = [](lamium::Settings const& s, std::string_view feature) {
+            for (auto used : lamium::paused::inUse(s)) if (used == feature) return true;
+            return false;
+        };
+        check(names(minimap, "minimap") && !names(quiet, "minimap") && names(search, "enchantOrder")
+            && !names(quiet, "enchantOrder") && names(lamium::Settings{}, "itemDetails") && !names(quiet, "itemDetails"),
+            "on an unverified game the notice names the map, the enchantment data and Item details only while they are used");
+    }
     Notice notice;
     check(notice.poll(1,1) && !notice.changed(""), "pending initialization stays quiet on join");
     check(notice.poll(1,2) && notice.changed("terrain failed"), "a meaningful failure after joining notifies");

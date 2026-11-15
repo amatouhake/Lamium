@@ -90,15 +90,20 @@ After the game's own text:
    - Use time: `Item::mMaxUseDuration`; where that is 0, the
      `minecraft:use_modifiers` component's `mUseDuration` (seconds).
 6. **ID** (dark grey): the type name, with " #N" for a data value other
-   than 0.
-7. **Tags** (dark grey): `Item::mTags`, joined by ", " into rows of about 44
+   than 0. Cleaned like the NBT lines (a section sign becomes "&", a
+   control character a space) and cut at 64 characters.
+7. **Tags** (dark grey): `Item::mTags`, each name cleaned and cut the same
+   way, joined by ", " into rows of about 44
    bytes, four rows at most, then an ellipsis. One row sits beside the
    "Tags:" label; more go under it, every row indented two spaces.
 8. **NBT** (dark grey): the raw content, one line per top-level entry of
    `mUserData`, "key: value", the key cut at 40 characters and the value at
    60; a compound or list is its SNBT text on that line. A large one (32
-   tags or more) is written by Lamium only as far as the line needs, so it
-   is never serialised whole; a smaller one is the game's own text. At most 24
+   tags or more, or one holding a long string or array) is written by Lamium
+   only as far as the line needs, so it is never serialised whole; a smaller
+   one is the game's own text. A string longer than the line's budget (244
+   bytes) is written only that far, and a byte or int array of more
+   elements than that as "[B;…]" or "[I;…]". At most 24
    entries, then "… N more". A section sign in the data is replaced by "&"
    so it cannot recolour the tooltip. The line says "NBT", the only name the
    game's language file has for it. A shulker box's items are one cut line:
@@ -113,11 +118,13 @@ long as the button is).
 
 - The work penalty line asks `versionSensitiveAllowed(EnchantOrder)`, the
   enchantment order's capability: on a game version that is not verified
-  the line is left out, and nothing marks Item details as paused.
+  the line is left out and, while the line and the main switch are on, the
+  paused notice names Enchantment order.
 - The stew's effect, property values, ID, tags and NBT ask
   `versionSensitiveAllowed(ItemDetails)` ("Item details (item data reads)",
-  partial impact). On an unverified game those lines are left out and the
-  feature is marked partly paused; the game's tooltip, the durability
+  partial impact). On an unverified game those lines are left out, the
+  feature is marked partly paused and, while the main switch and one of
+  those lines are on, the paused notice names it; the game's tooltip, the durability
   numbers and the food values stay. Reads only; no game memory is written.
   What it reads: `Item::mTags`, `ItemStackBase::mUserData` and
   `CompoundTag::mTags`, `Item::mFullName`, `Item::mMaxUseDuration`,
@@ -141,7 +148,7 @@ long as the button is).
   text is remembered until the pointer moves to another item, a new offer
   arrives or the settings change.
 - Pure: `src/features/inspection/ItemDetails.h` (`details::lines`,
-  `wrapped`, `clip`, `plain`, `toldBelowName`, `snbtKey`, `effectTint`,
+  `wrapped`, `clip`, `plain`, `toldBelowName`, `snbtKey`, `snbtText`, `effectTint`,
   `modifierLine`, the limits),
   tested in `tests/ItemDetailsTests.cpp`; `enchantPlan::workPenalty` and
   `priorUses` in `src/features/inventory/EnchantPlan.h`, tested in
@@ -189,9 +196,10 @@ long as the button is).
 
 - "Main switch off leaves the game's own tooltip" holds for the lines above
   only; "Hide shulker box contents text" stays in force (L-319 Open).
-- With "Show NBT" on, each of the first 24 entries is serialised whole
-  (`toSnbt`) and cut to 60 characters afterwards; the locked-trades tip asks
-  for the text every frame (L-319 Next).
+- With "Show NBT" on, a small entry (under 32 tags, no long string or
+  array) is still serialised whole (`toSnbt`) and cut to 60 characters
+  afterwards; the locked-trades tip asks for the text every frame (L-319
+  Next).
 - The stew's effect line is left out when the tooltip already contains the
   effect's text anywhere, e.g. a renamed stew
   ([L-339 Smaller bugs found by the 2026-11-14 code review](backlog/L-339.md)).

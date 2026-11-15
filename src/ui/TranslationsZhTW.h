@@ -1849,6 +1849,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"savedData.rowServer", "此伺服器的資料"},
     {"savedData.rowChoose", "重新選擇 >"},
     {"savedData.rowOpen", "開啟 >"},
+    {"savedData.deleteUnverified", "尚未在此遊戲版本上驗證，因此無法在此刪除。"},
     {"key.Lamium.opensaveddata", "Lamium: 開啟儲存的資料"},
     {"key.Lamium.opengamelanguage", "Lamium: 開啟遊戲語言"},
     {"language.current", "目前: {}"},

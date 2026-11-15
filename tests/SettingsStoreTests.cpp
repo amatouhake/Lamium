@@ -482,6 +482,7 @@ void settingsStoreTests() {
         s.inventory.repeatTrades = false;
         s.inventory.transfer = false;
         s.ui.bookPaste = false;
+        s.inspection.itemTooltip = s.inspection.englishSearch = false;
         s.lighting.nightVision = true;
         s.visuals.hideEffects = true;
         s.visuals.hideWater = s.visuals.hideLava = s.visuals.hidePowderSnow = s.visuals.hideDistanceFog = false;

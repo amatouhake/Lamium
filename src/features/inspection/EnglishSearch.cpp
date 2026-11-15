@@ -1,5 +1,6 @@
 #include "features/inspection/EnglishSearch.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/memory/Hook.h"
@@ -63,9 +64,11 @@ std::string const& enchantName(Enchant::Type type) {
 }
 // A Creative enchanted book is found by its stored enchantments; other
 // items keep only their own name. Books are never in the recipe book, so
-// this stays a Creative search addition.
+// this stays a Creative search addition. The enchantment data is read under
+// Enchantment order's capability, which checked the same registry: on a game
+// it was not checked on a book is found by its own name only.
 std::string storedEnchantNames(ItemInstance const& item) {
-    if (item.getTypeName() != "minecraft:enchanted_book") return {};
+    if (item.getTypeName() != "minecraft:enchanted_book" || !versionSensitiveAllowed(capabilities::Id::EnchantOrder)) return {};
     auto const stored = item.constructItemEnchantsFromUserData().getAllEnchants();
     std::string out;
     std::lock_guard lock{namesMutex};

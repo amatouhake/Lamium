@@ -11,6 +11,9 @@
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
 #include "mc/deps/nbt/ListTag.h"
+#include "mc/deps/nbt/StringTag.h"
+#include "mc/deps/nbt/ByteArrayTag.h"
+#include "mc/deps/nbt/IntArrayTag.h"
 #include "mc/world/item/ItemTag.h"
 #include "mc/locale/I18n.h"
 #include "mc/world/effect/MobEffect.h"
@@ -67,8 +70,19 @@ void rememberFood(std::string text, std::vector<information::saturation::FoodIco
     if (tooltipFood.size() >= tooltipFoodKept) tooltipFood.erase(tooltipFood.begin());
     tooltipFood.push_back({std::move(text), std::move(icons)});
 }
-// "Show NBT" (L-319): the nodes of a tag, counted no further than `limit`.
+// A leaf whose text grows with what it holds: its bytes or elements, else 0.
+size_t leafSize(Tag const& tag) {
+    switch (tag.getId()) {
+    case Tag::String: return static_cast<StringTag const&>(tag).size();
+    case Tag::ByteArray: return static_cast<ByteArrayTag const&>(tag).size();
+    case Tag::IntArray: return static_cast<IntArrayTag const&>(tag).size();
+    default: return 0;
+    }
+}
+// "Show NBT" (L-319): the nodes of a tag, counted no further than `limit`. A long leaf counts as all of them,
+// so the tag holding it is never taken for a small one.
 size_t nodesUpTo(Tag const& tag, size_t limit) {
+    if (leafSize(tag) > details::dataBudget) return limit;
     size_t n = 1;
     if (tag.getId() == Tag::Compound) {
         for (auto const& [key, child] : static_cast<CompoundTag const&>(tag).mTags) {
@@ -84,10 +98,16 @@ size_t nodesUpTo(Tag const& tag, size_t limit) {
     return n;
 }
 // A tag's SNBT, written no further than about `budget` bytes. A small tag is the game's own text; a large
-// compound or list is walked here so its rest is never serialised for a line that shows 60 characters.
+// compound or list is walked here, and a long string or array is cut before it is written, so the rest is
+// never serialised for a line that shows 60 characters.
 void boundedSnbt(Tag const& tag, std::string& out, size_t budget) {
     if (out.size() >= budget) return;
     bool const compound = tag.getId() == Tag::Compound, list = tag.getId() == Tag::List;
+    if (!compound && !list && leafSize(tag) > details::dataBudget) {
+        if (tag.getId() == Tag::String) out += details::snbtText(static_cast<StringTag const&>(tag), budget - out.size());
+        else out += tag.getId() == Tag::ByteArray ? "[B;\xE2\x80\xA6]" : "[I;\xE2\x80\xA6]";
+        return;
+    }
     if ((!compound && !list) || nodesUpTo(tag, details::smallTagNodes) < details::smallTagNodes) {
         out += tag.toSnbt(SnbtFormat::Minimize);
         return;

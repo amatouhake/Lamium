@@ -13,6 +13,11 @@ void itemDetailsTests() {
         auto cut = wrapped({"aaaa", "bbbb", "cccc"}, 6, 2);
         check(cut.size() == 2 && cut[1] == "bbbb, \xE2\x80\xA6", "names past the last line become an ellipsis");
         check(wrapped({}).empty(), "no names, no lines");
+        auto longName = wrapped({std::string(nameLimit + 10, 'a'), "b"});
+        check(longName.size() == 2 && longName[0] == std::string(nameLimit, 'a') + "\xE2\x80\xA6, " && longName[1] == "b",
+              "one name is cut at its own limit, however long a pack made it");
+        check(wrapped({"\xC2\xA7" "kloud\ntag"}) == std::vector<std::string>{"&kloud tag"},
+              "a tag name cannot recolour or break the tooltip");
     }
     check(lines({}).empty(), "an item with nothing to tell adds nothing");
     {
@@ -38,6 +43,8 @@ void itemDetailsTests() {
         check(snbtKey("Items") == "Items" && snbtKey("display.Name") == "display.Name" && snbtKey("a b") == "\"a b\""
                   && snbtKey("q\"") == "\"q\\\"\"" && snbtKey("") == "\"\"",
               "an NBT key is bare when plain and quoted otherwise");
+        check(snbtText("abc", 8) == "\"abc\"" && snbtText("a\"b", 8) == "\"a\\\"b\"" && snbtText("abcdef", 3) == "\"abc",
+              "a string is quoted like a key, and one longer than the room is stopped there and left open");
         check(dataBudget / 4 > dataWidth && clip(std::string(dataBudget, 'x'), dataWidth).ends_with("\xE2\x80\xA6"),
               "a value stopped at the NBT budget is still longer than its line, so it shows the ellipsis");
     }
@@ -68,6 +75,9 @@ void itemDetailsTests() {
         check(rows.size() == 3 && rows[0] == Line{"itemDetails.tags", "", true} && rows[1] == Line{"", "  " + std::string(30, 'a') + ", ", true}
                   && rows[2] == Line{"", "  " + std::string(30, 'b'), true},
               "tags that wrap go under their label, every row indented alike");
+        Item odd{.id = "\xC2\xA7" "cpack:" + std::string(nameLimit, 'i'), .aux = 2};
+        check(lines(odd)[0] == Line{"", "&cpack:" + std::string(nameLimit - 7, 'i') + "\xE2\x80\xA6 #2", true},
+              "the ID line is cleaned and cut like a value, its number kept");
         Item big{.id = "x"};
         for (size_t i = 0; i < dataLines + 9; ++i) big.data.push_back({"k", "v"});
         auto cut = lines(big);

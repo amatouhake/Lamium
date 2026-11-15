@@ -73,8 +73,17 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick: return s.schematic.enabled;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
     case Id::BookPastePages: return s.ui.bookPaste;
-    // The planner screen says so itself when opened; the anvil's list is the standing use.
-    case Id::EnchantOrder: return s.inventory.enchantOrderAnvil;
+    // The planner screen says so itself when opened; the standing uses are the anvil's list, the tooltip's
+    // work penalty line and English Search's enchanted books, which read the same enchantment data.
+    case Id::EnchantOrder:
+        return s.inventory.enchantOrderAnvil || (s.inspection.itemTooltip && s.inspection.workPenalty)
+            || s.inspection.englishSearch;
+    case Id::ItemDetails: {
+        auto const& i = s.inspection;
+        return i.itemTooltip && (i.itemDetailsStew || i.itemDetails || i.itemDetailsId || i.itemDetailsTags || i.itemDetailsNbt);
+    }
+    // Asked whenever map colors are read, for the minimap or the world map's recording.
+    case Id::MapMaterialInstances: return s.map.minimap || s.map.worldMap;
     default: return false;
     }
 }
