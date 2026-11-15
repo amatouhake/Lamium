@@ -154,7 +154,10 @@ the same commit. A screen never draws its own variant.
   (`drawDangerButton`: looks plain until pointed at, then `dangerEdge` and
   `dangerText`, so an always visible one such as a section's Reset does not
   draw the eye; the first press arms it, `danger` fill with `dangerEdge` and
-  white text; the second press acts; losing focus disarms).
+  white text; the second press acts; losing focus disarms). Armed, it reads
+  "Again: " + its own label ("Again: Delete", 「もう一度: 削除」), built by
+  `againLabel` and never worded by a screen; what the press removes (a
+  count, a size) goes in the text beside the button, not in its label.
 - **Text fields** (`drawTextField`): a shaded back with a `keyEdge` edge,
   `accent` while typing; a placeholder faintly when empty. Enter or a click
   outside keeps the edit; Esc drops it and shows the stored value again.
@@ -165,9 +168,10 @@ the same commit. A screen never draws its own variant.
 - **List columns** (L-190, `ui/ListColumns.h`, `drawListHeadings`): the
   Waypoints, Shapes and Placed lists, docked or not, share one shape: the
   mark (kind and color; a shape's mark is its type glyph, a placement's a
-  footprint), the name, the distance from the player (horizontal, to a
-  waypoint, a shape's center or a plane's origin, a footprint's center; the
-  dimension's name for another dimension), the list's own column
+  footprint), the name, the distance from the player (to a waypoint as the
+  Waypoints setting measures it, 3D by default; horizontal to a shape's
+  center or a plane's origin, a footprint's center, since areas have no
+  height; the dimension's name for another dimension), the list's own column
   (placements: progress) and the shown switch. Positions stay in the detail
   pane. A narrow list drops the distance first, then its own column.
 - **Several rows** (L-190, `ui/RowSelection.h`): in a list that offers
@@ -178,7 +182,8 @@ the same commit. A screen never draws its own variant.
   Hidden M", the names in list order as plain lines in the list's columns
   without the switch (mark, name, distance, own column; "N more" when they
   do not fit), and Show, Hide and Delete where the pane's own buttons sit,
-  Delete (destructive, "Delete N?") in the single pane's Delete place. No
+  Delete (destructive; armed "Again: Delete N", the pane having no text
+  beside it for the count) in the single pane's Delete place. No
   bar in or under the list. Esc lets several rows go (nothing selected),
   then closes. The map's side panel has the same pane with its buttons on
   its last row (`compactSelectionPane`).
@@ -246,6 +251,9 @@ the same commit. A screen never draws its own variant.
   beside text). These are fixed, not settings.
 - Lamium draws its own text shadow half a unit away (the engine's reads as
   doubled on Japanese lines).
+- Deleting what the player made or saved (waypoints, shapes, placements,
+  saved data, the map cache) is "Delete" / 削除 / 删除 / 刪除, never 消す;
+  labels use plain forms, not polite ones (no 〜します on a button).
 - A feature's name and its actions' labels may differ (a command says what
   it does; a child label may be shorter than its Hotkeys name).
 

@@ -83,9 +83,6 @@ std::string dateText(std::int64_t seconds) {
     std::snprintf(text, sizeof text, "%04d-%02d-%02d", local.tm_year + 1900, local.tm_mon + 1, local.tm_mday);
     return text;
 }
-std::string deleteText(Data const& d) {
-    return armed == d.key ? translated("savedData.deleteArmed", d.waypoints, sizeText(d.mapBytes, d.mapMore)) : translated("savedData.delete");
-}
 // Why it may be the joined server's data, as the row's mark.
 std::string maybeText(map::servers::Maybe maybe) {
     using M = map::servers::Maybe;
@@ -166,9 +163,10 @@ void calm() { dragging = false; armed.clear(); }
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     auto const* d = chosen();
     bool const server = d && d->kind == Data::Kind::Server;
-    std::string const useText = translated("savedData.use"), removeText = d ? deleteText(*d) : std::string();
+    std::string const useText = translated("savedData.use"), removeText = againLabel(translated("savedData.delete"), d && armed == d->key);
+    // Sized for the armed label, so arming moves nothing (the text beside it included).
     last = SavedDataLayout::fit(t, static_cast<int>(items.size()), first, server && !d->host.empty(), d && d->canUse,
-        d && d->canDelete, textWidth(context, useText) + 12, textWidth(context, removeText) + 12);
+        d && d->canDelete, textWidth(context, useText) + 12, textWidth(context, againLabel(translated("savedData.delete"))) + 12);
     if (!last.usable()) return;
     if (dragging) first = last.list.firstAt(pointer.y);
     first = last.list.listFirst = SettingsTable::clampFirst(first, last.list.listCount, last.list.listVisible);
@@ -291,6 +289,10 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             bool const isArmed = armed == d->key;
             drawDangerButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeText,
                 hover.zone == Zone::Delete, isArmed);
+            // What a delete takes, beside the button rather than in it (L-351).
+            float const whatX = last.deleteX + last.deleteWidth + 6;
+            label(context, whatX, last.deleteY + (SavedDataLayout::buttonHeight - 10) / 2 + boxTextInset() - 1, x + width - whatX,
+                translated("savedData.deleteWhat", d->waypoints, sizeText(d->mapBytes, d->mapMore)), isArmed ? palette::text : palette::dim);
         }
     }
 

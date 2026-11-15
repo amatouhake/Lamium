@@ -49,13 +49,14 @@ bool fromMapFlag = false; // opened from the world map: Close goes back to it
 // ---- Waypoints view ----
 void refreshWaypoints() {
     waypointSet = map::waypoints::current();
-    double x = 0, z = 0;
+    double x = 0, y = 0, z = 0;
     if (auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr) {
         auto feet = player->getFeetPos();
         x = feet.x;
+        y = feet.y;
         z = feet.z;
     }
-    waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, z);
+    waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, y, z, screen::waypointsHorizontal());
     waypointRows.retain([](map::MarkKey const& key) { return indexOfId(waypointSet.waypoints, key.id) >= 0; });
     syncSelected();
 }
@@ -412,7 +413,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         }
         label(context,columns.nameX,y+3,columns.nameWidth,w.name,here ? palette::text : palette::faint);
         if (columns.hasDistance())
-            label(context,columns.distanceX,y+3,columns.distanceWidth,listDistanceText(w.x, w.z, w.dimension),palette::dim,Align::Right);
+            label(context,columns.distanceX,y+3,columns.distanceWidth,listDistanceText(w.x, w.y, w.z, w.dimension),palette::dim,Align::Right);
         toggleSwitch(context,columns.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
     drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
@@ -434,7 +435,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             auto const& c = waypointSet.waypoints[static_cast<size_t>(index)];
             if (c.visible) ++shown;
             if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
-            names.push_back({c.name, c.dimension != screen::playerDimension(), listDistanceText(c.x, c.z, c.dimension)});
+            names.push_back({c.name, c.dimension != screen::playerDimension(), listDistanceText(c.x, c.y, c.z, c.dimension)});
             marks.push_back(&c);
         }
         drawSelectionPane(context,pane,chosen.size(),names,[&](size_t i, float gx, float gy) {
@@ -474,7 +475,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
         if (w->dimension == screen::playerDimension()) {
-            int const away = screen::distanceTo(w->x, w->z);
+            int const away = screen::distanceTo(w->x, w->y, w->z);
             label(context,ix,l.previewY+23,iw,away == 0 ? translated("distance.here") : translated("waypoint.distance", away),palette::dim);
         }
         if (w->temporary) paragraph(context,ix,l.previewY+36,iw,translated("waypoint.temporaryNote"),2,palette::faint);
@@ -513,7 +514,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     }
     if (waypointSelected) {
         drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-            translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), waypointDeleteArmed);
+            againLabel(translated("shape.delete"), waypointDeleteArmed),over(ShapeZone::Action,1), waypointDeleteArmed);
     }
 
     // Footer.

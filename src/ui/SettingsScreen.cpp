@@ -520,7 +520,15 @@ std::optional<Place> standingPlace() {
 std::string dimensionName(int dimension) {
     return translated(dimension == 1 ? "dimension.nether" : dimension == 2 ? "dimension.end" : "dimension.overworld");
 }
-int distanceTo(int x, int z) {
+bool waypointsHorizontal() { return Runtime::instance().snapshot()->map.waypointMeasure == 1; }
+int distanceTo(int x, int y, int z) {
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return 0;
+    auto feet = player->getFeetPos();
+    map::Waypoint at; at.x = x; at.y = y; at.z = z;
+    return static_cast<int>(std::lround(map::waypointDistance(at, feet.x, feet.y, feet.z, waypointsHorizontal())));
+}
+int horizontalDistanceTo(int x, int z) {
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return 0;
     auto feet = player->getFeetPos();
@@ -1361,7 +1369,9 @@ void numberReset() { numberDirty = false; }
 std::optional<Place> standingPlace() { return ui::standingPlace(); }
 int playerDimension() { return ui::playerDimension(); }
 std::string dimensionName(int dimension) { return ui::dimensionName(dimension); }
-int distanceTo(int x, int z) { return ui::distanceTo(x, z); }
+bool waypointsHorizontal() { return ui::waypointsHorizontal(); }
+int distanceTo(int x, int y, int z) { return ui::distanceTo(x, y, z); }
+int horizontalDistanceTo(int x, int z) { return ui::horizontalDistanceTo(x, z); }
 void returnToMap() { enterWorldMap(mapFromSettings, true); }
 void showSavedData() {
     finishNumber();

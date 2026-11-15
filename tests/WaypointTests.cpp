@@ -352,9 +352,22 @@ void prompt() {
 void order() {
     std::vector<Waypoint> list{{"far", 0, 100, 64, 0, 0}, {"nether", 0, 1, 64, 1, 1}, {"near", 0, 5, 64, 0, 0},
                                {"end", 0, 0, 64, 0, 2}, {"alpha", 0, 9, 64, 9, 1}};
-    auto order = waypointOrder(list, 0, 0, 0);
+    auto order = waypointOrder(list, 0, 0, 64, 0, true);
     check(order.size() == 5 && order[0] == 2 && order[1] == 0, "this dimension first, nearest first");
     check(order[2] == 4 && order[3] == 3 && order[4] == 1, "then the others by name");
+    // L-350: 3D by default, horizontal as an option; a high one is near only horizontally.
+    std::vector<Waypoint> stacked{{"above", 0, 0, 100, 0, 0}, {"beside", 0, 20, 64, 0, 0}};
+    auto flat = waypointOrder(stacked, 0, .5, 64, .5, true);
+    auto spatial = waypointOrder(stacked, 0, .5, 64, .5, false);
+    check(flat[0] == 0 && spatial[0] == 1, "the order follows the distance setting");
+}
+void distances() {
+    Waypoint here{"here", 0, 10, 64, -3, 0};
+    check(waypointDistance(here, 10.5, 64, -2.5, false) == 0 && waypointDistance(here, 10.5, 64, -2.5, true) == 0,
+          "a waypoint where the player stands reads 0 (Here) either way");
+    check(waypointDistance(here, 10.5, 34, -2.5, false) == 30 && waypointDistance(here, 10.5, 34, -2.5, true) == 0,
+          "30 blocks below it: 30 in 3D, 0 horizontally");
+    check(waypointDistance(3, 4, 12, false) == 13 && waypointDistance(3, 4, 4, true) == 5, "3D and horizontal from offsets");
 }
 void waypointTests() {
 
@@ -384,6 +397,7 @@ void waypointTests() {
               "ids are not saved");
     }
     order();
+    distances();
     prompt();
     basics();
     markers();

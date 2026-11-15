@@ -292,7 +292,8 @@ Json encode(Settings const& settings) {
                  {"radarPlayers", settings.map.radarPlayers}, {"radarHostile", settings.map.radarHostile},
                  {"radarPassive", settings.map.radarPassive}, {"radarItems", settings.map.radarItems},
                  {"radarInvisible", settings.map.radarInvisible}, {"waypoints", settings.map.waypoints},
-                 {"waypointsWorld", settings.map.waypointsWorld}, {"waypointDistance", settings.map.waypointDistance},
+                 {"waypointsWorld", settings.map.waypointsWorld}, {"waypointMeasure", settings.map.waypointMeasure},
+                 {"waypointDistance", settings.map.waypointDistance},
                  {"waypointsDeath", settings.map.waypointsDeath},
                  {"waypointsDeathTemporary", settings.map.waypointsDeathTemporary},
                  {"waypointsCrossScale", settings.map.waypointsCrossScale}, {"waypointArrival", settings.map.waypointArrival},
@@ -610,6 +611,7 @@ Settings decodeSettings(std::string_view text) {
             if (world->is_boolean()) value.map.waypointsWorld = world->get<bool>() ? 0 : 2;
             else value.map.waypointsWorld = settingsValue(map, "waypointsWorld", value.map.waypointsWorld);
         }
+        value.map.waypointMeasure = settingsValue(map, "waypointMeasure", value.map.waypointMeasure);
         value.map.waypointDistance = settingsValue(map, "waypointDistance", value.map.waypointDistance);
         value.map.waypointsDeath = settingsValue(map, "waypointsDeath", value.map.waypointsDeath);
         value.map.waypointsDeathTemporary = settingsValue(map, "waypointsDeathTemporary", value.map.waypointsDeathTemporary);

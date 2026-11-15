@@ -975,8 +975,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (auto scope = capturing_ || findingKey ? ResetScope::None : resetScope(); scope != ResetScope::None) {
         bool keys = scope == ResetScope::Keys;
         drawDangerButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
-            translated(resetArmed ? "reset.confirm" : keys ? "reset.keys"
-                : scope == ResetScope::Section ? "reset.section" : "reset.all"),
+            againLabel(translated(keys ? "reset.keys" : scope == ResetScope::Section ? "reset.section" : "reset.all"),
+                resetArmed),
             t.headAction(hover.x,hover.y,keys),
             resetArmed);
     }
@@ -1099,7 +1099,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             auto name = translated("mapCache") + "  " + (bytes ? std::format("{:.1f} MB", *bytes / 1048576.0) : translated("mapCacheNone"));
             label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
             if (bytes) {
-                auto text = translated(mapCacheArmed ? "mapCacheArmed" : "mapCacheClear");
+                auto text = againLabel(translated("mapCacheClear"), mapCacheArmed);
                 float w = textWidth(context,text) + 8, bx = t.stateX + t.controlWidth() - w;
                 mapCacheButtonX = bx;
                 mapCacheButtonWidth = w;

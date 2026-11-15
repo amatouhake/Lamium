@@ -753,7 +753,7 @@ std::vector<std::string> menuItems(Menu const& menu, WaypointSet const& set) {
         auto const* w = waypointOf(set, menu.mark);
         bool visible = w && w->visible;
         items = {ui::translated("worldMap.edit"), ui::translated(visible ? "worldMap.hide" : "worldMap.show"),
-                 ui::translated(menu.armed ? "worldMap.deleteArmed" : "worldMap.delete")};
+                 ui::againLabel(ui::translated("worldMap.delete"), menu.armed)};
     }
     // Last, so the other items keep their positions.
     if (teleportTarget(menu, set)) items.push_back(ui::translated(menu.kind == MenuKind::Ground ? "worldMap.teleportHere" : "worldMap.teleport"));
@@ -1675,6 +1675,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     if (!panelOpen()) { state.panelWidth = 0; return; }
     auto set = waypoints::current();
     auto spot = playerSpot();
+    bool const horizontal = Runtime::instance().snapshot()->map.waypointMeasure == 1; // L-350
     float w = std::clamp(size.x * .3f, 124.f, 160.f), x0 = size.x - w, top = state.top, bottom = size.y - bottomHeight;
     state.panelWidth = w;
     ui::fill(context, x0, top, w, bottom - top, ui::palette::panel, ui::opacity::floating);
@@ -1690,7 +1691,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         if (set.waypoints[i].dimension == state.dimension) listed.push_back(static_cast<int>(i));
     auto distance = [&](int i) {
         auto const& p = set.waypoints[static_cast<size_t>(i)];
-        return spot && spot->dimension == state.dimension ? std::hypot(p.x + .5 - spot->x, p.z + .5 - spot->z) : 0.0;
+        return spot && spot->dimension == state.dimension ? waypointDistance(p, spot->x, spot->y, spot->z, horizontal) : 0.0;
     };
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());
@@ -1824,8 +1825,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         auto const count = state.rows.keys.size();
         float plainW = std::max(ui::textWidth(context, ui::translated("list.showSelected")),
                                 ui::textWidth(context, ui::translated("list.hideSelected"))) + 8;
-        float deleteW = std::max(ui::textWidth(context, ui::translated("list.deleteSelected")),
-                                 ui::textWidth(context, ui::translated("list.deleteSelectedArmed", count))) + 8;
+        float deleteW = std::max(ui::textWidth(context, ui::bulkDeleteLabel(count, false)),
+                                 ui::textWidth(context, ui::bulkDeleteLabel(count, true))) + 8;
         auto const pane = ui::compactSelectionPane(x, inner, y + inset - 3, bottom, buttonHeight, static_cast<int>(count), actions,
                                                    plainW, deleteW);
         std::vector<ui::SelectedName> names;
@@ -1877,7 +1878,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         state.hits.push_back({sx, sy, bw, buttonHeight, target, item});
         return bw;
     };
-    auto deleteText = ui::translated(state.deleteArmed ? "worldMap.deleteArmed" : "worldMap.delete");
+    auto deleteText = ui::againLabel(ui::translated("worldMap.delete"), state.deleteArmed);
     if (auto const* area = state.selected ? areaOf(*state.selected) : nullptr) {
         // A placement or a shape: what it covers, shown or not, and its own screen.
         ui::label(context, x, y + inset, inner, area->name);

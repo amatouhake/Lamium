@@ -32,9 +32,11 @@ void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float
                       bool hovered, bool armed);
 // The lists' shared columns (ListColumns): the heading row from `top`, with
 // `ownKey` over the list's own column, and the distance cell's text, meters
-// from the player in its dimension, else that dimension's name.
+// from the player in its dimension, else that dimension's name: horizontal
+// for an area (no height, L-350), as the Waypoints setting says with a y.
 void drawListHeadings(MinecraftUIRenderContext& context, ListColumns const& c, float top, std::string_view ownKey = {});
 std::string listDistanceText(int x, int z, int dimension);
+std::string listDistanceText(int x, int y, int z, int dimension);
 // A footprint's small mark (a placement in the lists and the map, L-296):
 // a faint fill and a frame with corner dots, 7 wide from `x`, centered on `cy`.
 void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha = 1);
@@ -51,6 +53,12 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
                        size_t shown, float ownWidth = 0);
+// What a press-twice button reads (DESIGN "Controls"): its own label, and once
+// armed "Again: " + that label, so no screen words the armed state itself.
+std::string againLabel(std::string label, bool armed = true);
+// Bulk Delete's label for `count` selected rows: "Delete", armed
+// "Again: Delete N" (the map panel sizes its button by the armed one).
+std::string bulkDeleteLabel(size_t count, bool armed);
 // The body of a docked view too short for its editor (!l.usable()): Expand and
 // a hint under the header, which matches what ShapesLayout::hit() answers then.
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);

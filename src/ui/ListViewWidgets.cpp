@@ -53,7 +53,11 @@ void drawListHeadings(MinecraftUIRenderContext& context, ListColumns const& c, f
 }
 std::string listDistanceText(int x, int z, int dimension) {
     if (dimension != screen::playerDimension()) return screen::dimensionName(dimension);
-    return translated("waypoint.meters", screen::distanceTo(x, z));
+    return translated("waypoint.meters", screen::horizontalDistanceTo(x, z));
+}
+std::string listDistanceText(int x, int y, int z, int dimension) {
+    if (dimension != screen::playerDimension()) return screen::dimensionName(dimension);
+    return translated("waypoint.meters", screen::distanceTo(x, y, z));
 }
 void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
     fill(context, x, cy - 3, 7, 6, color, .16f * alpha);
@@ -83,7 +87,7 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
         switch (action) {
         case BulkAction::Show: return translated("list.showSelected");
         case BulkAction::Hide: return translated("list.hideSelected");
-        default: return arm.armed == action ? translated("list.deleteSelectedArmed", count) : translated("list.deleteSelected");
+        default: return bulkDeleteLabel(count, arm.armed == action);
         }
     };
     for (size_t i = 0; i < actions.size() && i < pane.buttonX.size(); ++i) {
@@ -91,6 +95,12 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
         if (irreversible(actions[i])) drawDangerButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),over,arm.armed == actions[i]);
         else drawButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),over);
     }
+}
+std::string bulkDeleteLabel(size_t count, bool armed) {
+    return armed ? againLabel(translated("list.deleteCount", count)) : translated("list.deleteSelected");
+}
+std::string againLabel(std::string label, bool armed) {
+    return armed ? translated("confirm.again", label) : label;
 }
 void drawPageHeading(MinecraftUIRenderContext& context, SettingsTable const& t, std::string_view section, std::string_view feature,
                      float backX, bool backHovered, std::string const& aside) {

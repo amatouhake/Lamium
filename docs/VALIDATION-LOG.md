@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## List selection pane (L-190, 2026-11-15)
+
+Build `00d4be5f` (branch `l-190-waypoint-selection` with main), DLL SHA-256
+`aa15987f9fd2700a2542e2394cab9c7af2445c9bc7d628908c0c73da5dc9e95f`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Two or more rows in Waypoints, Shapes and the Placed tab
+(docked too) turn the detail pane into "N selected" with the names, Show/Hide/Delete where
+the single pane's buttons sit, Delete armed as "Delete N?", no bar in the list; "N more"
+when the names do not fit; Esc clears all, then closes; the map side panel shows the count
+with Show/Hide and keeps its list height. The Contents popover keeps switched-off rows at
+full brightness. Raised: the pane has room for more than names; the "Delete N?" wording; the
+lists' columns differ (Shapes name/type/position/shown, Waypoints name/distance/shown,
+placements name/position/progress/shown); the map panel has no Delete and no names; no
+selecting several on the map itself; waypoint distances are horizontal (they always were);
+in HUD layout, deselecting with the Contents popover open left elements under it
+unclickable (fixed in `d8a24b7a`, not seen).
+
 ## Add-on block looks on the map; list selection trial (L-324, L-190, 2026-11-15)
 
 Build `f164c145` (branch `l-190-waypoint-selection` with main at `2cc9db54`), DLL SHA-256

@@ -16,7 +16,7 @@ Settings (category "Map", `Settings::Map`): "Minimap" (switch, key; range,
 heading up, round, Cave view, Nether view, Debug View hiding, zoom/enlarge keys,
 layout link); "Map text" heading (compass letters, coordinates, biome, Text size);
 "Radar" (switch, one row per kind, invisible ones, faces); "Waypoints"
-(switch, add key, Show in the world with its key, Show up to, Show on the
+(switch, add key, Show in the world with its key, Distance, Show up to, Show on the
 minimap, Record the death point, Temporary death point, cross-dimension
 scale, arrival distance, open-screen key); "World map" (switch = Record, open
 key `M`, seed link, saved map size with a two-press clear); "Map marks" and
@@ -124,8 +124,9 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   the crosshair is within 20 x 30 units; far ones first; on whole screen
   pixels. "Show in the world": Always (key hides while held) / While the key
   is held / Off (key does nothing). "Show up to": 0 = any, 100-10000 by 100.
-  Distance, range and order use the rendered FreeCamera eye, else the
-  player's horizontal feet distance (L-199).
+  Distance, range and order (also the lists and the map panel) use the rendered
+  FreeCamera eye, else the feet (L-199), as "Distance: 3D / Horizontal" says
+  (L-350, default 3D; arrival always 3D; placements and shapes horizontal).
 - Optional (off): Overworld waypoints in the Nether at 1/8 coordinates and
   Nether ones in the Overworld at 8x.
 - Waypoints screen, built like Shapes (list and detail, dock button, "Show
@@ -224,11 +225,10 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
 - Placement and shape rows match waypoint rows (symbol in the mark's color,
   name, distance, nearest first, switch); a click centers and selects (a
   placement also becomes the schematic's selected one), details and "Open" below.
-- Several rows of the listed layer (L-190, branch only): Ctrl/Shift + click
-  keeps the map still; the selection pane (DESIGN "Several rows", with a
-  two-press Delete) replaces the details, the list keeps its height; a layer
-  or dimension change drops them; Ctrl + A takes all. Ctrl + click on a map mark
-  adds or drops it (no range or box; no move or pick); another layer's restarts the rows.
+- Several rows (L-190, branch only): Ctrl/Shift + click keeps the map still;
+  the selection pane (DESIGN "Several rows") replaces the details, the list
+  keeps its height; a layer or dimension change drops them; Ctrl + A takes all.
+  Ctrl + click on a map mark adds or drops it (another layer's restarts the rows).
 - Only the dimension shown. A layer switched off keeps its list
   (`State::allAreas`) with a faint "Hidden on the map" line on top.
 
