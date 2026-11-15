@@ -14,7 +14,7 @@ group 3).
 
 Settings (category "Map", `Settings::Map`): "Minimap" (switch, key; range,
 heading up, round, Cave view, Nether view, Debug View hiding, zoom/enlarge keys,
-layout link); "Map text" heading (compass letters, coordinates, biome);
+layout link); "Map text" heading (compass letters, coordinates, biome, Text size);
 "Radar" (switch, one row per kind, invisible ones, faces); "Waypoints"
 (switch, add key, Show in the world with its key, Show up to, Show on the
 minimap, Record the death point, Temporary death point, cross-dimension
@@ -80,7 +80,10 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   than 3 blocks away; the roof check uses most of the 3x3 columns around.
 - HUD element, default top right; its HUD scale alone sizes it: at 100 % the
   side is 20 % of the screen height (10-40 % across 50-200 %), text growing
-  with it (L-337). A settings file from before, with "Map size" (`map.size`),
+  with it (L-337). "Text size" (Map text, 50-200 %, 5 % steps, default
+  100 %) multiplies the scale for the minimap's text only: compass letters
+  (and their margin outside the frame), the lines below and player names;
+  the box grows with them. The world map's text is not affected. A settings file from before, with "Map size" (`map.size`),
   converts once on load: scale x (size / 20), rounded to the 5 % step and
   clamped to 50-200 %; the next save removes `map.size`, so a converted file
   cannot convert again. Hold-to-enlarge: twice the

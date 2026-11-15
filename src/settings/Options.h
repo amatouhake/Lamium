@@ -560,6 +560,10 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::compass>("map.compass", "mapText", "mapCompass"),
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),
+    {"map.textSize", "mapText", "mapTextSize",
+        [](Settings const& s) -> OptionValue { return s.map.textSize; },
+        [](Settings& s, int direction) { s.map.textSize = ui::stepHudScale(s.map.textSize, direction); s.normalize(); },
+        NumericOption{ui::hudScaleMin, ui::hudScaleMax, [](Settings& s, float v) { s.map.textSize = v; }}},
     toggle<&Settings::map, &Settings::Map::debugHide>("map.debugHide", "minimap", "mapDebugHide"),
     // L-297: three headings of one shape, each with a "Shown on" row.
     toggle<&Settings::map, &Settings::Map::mapMarks>("map.mapMarks", "mapMarks", "mapMarks"),
