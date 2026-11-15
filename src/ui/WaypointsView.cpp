@@ -443,7 +443,10 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             auto const& c = *marks[i];
             float opacity = c.visible && c.dimension == screen::playerDimension() ? 1.f : .35f;
             if (c.death) drawCrossGlyph(context, gx, gy, waypointRgb(c.color), 2, 1, opacity);
-            else drawDiamondGlyph(context, gx, gy, 7, waypointRgb(c.color), opacity);
+            else {
+                drawDiamondGlyph(context, gx, gy, 7, waypointRgb(c.color), opacity);
+                if (c.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), palette::shade, .85f);
+            }
         },l.selecting,waypointBulk,pointer.x,pointer.y);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     } else if (!w) {

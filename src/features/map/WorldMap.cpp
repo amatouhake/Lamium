@@ -202,7 +202,7 @@ struct State {
     float top = rowHeight; // The top bar, one or two rows.
     double pixelsPerUnit = 1; // Screen pixels per GUI unit, as last drawn.
     float panelWidth = 0;  // The side panel as last drawn; 0 when closed.
-    std::optional<MarkKey> selected; // Side panel: a waypoint, a placement or a shape; rows' shown row.
+    std::optional<MarkKey> selected; // Side panel: a waypoint, a placement or a shape; rows' row while it is alone.
     // What the side list has selected (L-190), in its drawn order; several
     // rows are always of the listed layer and dimension.
     ui::RowSelection<MarkKey> rows;
