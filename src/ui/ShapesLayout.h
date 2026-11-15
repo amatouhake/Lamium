@@ -103,10 +103,16 @@ struct ShapesLayout {
     float listRowY(int index) const { return rowsTop + (index - listFirst) * rowHeight; }
     // The list's scrollbar, along its right edge while the rows overflow
     // (the press zone; the drag is the shared one, ScrollDrag.h).
+    // A list without a detail pane (Game language) has one too; a docked
+    // panel too short for its body has none.
     bool onScrollbar(float x, float y) const {
         float right = listLeft + listWidth;
-        return usable() && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
+        return (usable() || (detailWidth <= 0 && listWidth > 0)) && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
     }
+    // A row's background and hover stop short of the bar while it shows, so
+    // the selection frame never covers it and pointing at it lights no row.
+    static constexpr float barGutter = 6;
+    float rowWidth() const { return listWidth - 2 - (listCount > listVisible ? barGutter : 0); }
     // The list's bar as drawn (drawListScrollbar) and dragged.
     ScrollBar scrollBar() const {
         return rowScrollBar(listLeft + listWidth - 3, rowsTop, listVisible * rowHeight, listCount, listVisible, listFirst);
@@ -185,7 +191,7 @@ struct ShapesLayout {
                 return {Zone::DrawAll};
             if (y >= toolbarTop && y < toolbarTop + toolbarHeight)
                 return x < listLeft + pad + newWidth ? Hit{Zone::NewShape} : Hit{};
-            if (y < rowsTop) return {};
+            if (y < rowsTop || onScrollbar(x, y)) return {};
             int offset = static_cast<int>((y - rowsTop) / rowHeight);
             int row = listFirst + offset;
             return offset < listVisible && row < listCount ? Hit{Zone::ListRow, row} : Hit{};

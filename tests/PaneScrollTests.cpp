@@ -46,3 +46,11 @@ void scrollDragTests() {
     scroll_drag::follow(0);
     check(first == 10 && !scroll_drag::holding(&first), "after release the pointer moves nothing");
 }
+void previewHeightTests() {
+    using namespace lamium::ui;
+    check(previewHeight(300, 0, 80, 12) == 165, "without item lines the preview keeps its share");
+    check(previewHeight(250, 3, 80, 12) == 250 - 11 - 80 - 36, "item lines take room from the preview");
+    check(previewHeight(300, 9, 80, 12) == previewHeight(300, 4, 80, 12), "only four lines are made room for; more scroll");
+    check(previewHeight(150, 4, 80, 12) == 60, "the preview never goes under its minimum");
+    check(previewHeight(600, 2, 80, 12) == 240, "with room to spare the preview keeps its size");
+}

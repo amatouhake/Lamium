@@ -66,7 +66,7 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
         bool const rowHover = rowZone(hover.zone) && hover.index == i;
         bool const on = row.state == game::RowState::On, fixed = row.state == game::RowState::Fixed;
         bool const off = row.state == game::RowState::Blocked || row.state == game::RowState::Full;
-        rowBackground(context, rc.listLeft + 1, y, rc.listWidth - 2, ShapesLayout::rowHeight, false, rowHover && !off && !fixed);
+        rowBackground(context, rc.listLeft + 1, y, rc.rowWidth(), ShapesLayout::rowHeight, false, rowHover && !off && !fixed);
         // Name, the level as a stepper, then the switch at the right edge. What
         // replaces them (on the item, a conflict) is written in their place.
         float const nameLeft = rc.listLeft + pad;

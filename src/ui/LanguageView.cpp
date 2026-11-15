@@ -109,8 +109,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         auto const& choice = selection.choices[i];
         float y = last.listRowY(i);
         bool hovered = pointer.x >= last.listLeft && pointer.x < last.listLeft + last.listWidth
-            && pointer.y >= y && pointer.y < y + ShapesLayout::rowHeight;
-        rowBackground(context, last.listLeft + 1, y, last.listWidth - 2, ShapesLayout::rowHeight, selection.selected == i, hovered);
+            && pointer.y >= y && pointer.y < y + ShapesLayout::rowHeight && !last.onScrollbar(pointer.x, pointer.y);
+        rowBackground(context, last.listLeft + 1, y, last.rowWidth(), ShapesLayout::rowHeight, selection.selected == i, hovered);
         label(context, t.nameX, y + 3, t.keyX - t.nameX - SettingsTable::gap, choice.name,
             choice.code == current ? palette::accent : palette::text);
         label(context, t.keyX, y + 3, codeWidth, choice.code, choice.code == current ? palette::accent : palette::faint);

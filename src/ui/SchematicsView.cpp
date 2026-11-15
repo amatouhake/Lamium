@@ -1352,7 +1352,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     };
     for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
         float y = l.listRowY(i);
-        if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
+        if (i % 2) fill(context,l.listLeft+1,y,l.rowWidth(),ShapesLayout::rowHeight,palette::white,.025f);
         bool chosen = schematicTab == SchematicTab::Verify ? (ignoreView ? ignorePick && ignorePick->names(ignoreList[static_cast<size_t>(i)])
                                                                          : checkRows.contains(checkKeyOf(i)))
             : schematicTab == SchematicTab::Placements ? placementRows.contains(schematicSet.placements[static_cast<size_t>(i)].id)
@@ -1362,7 +1362,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             || (schematicTab == SchematicTab::Materials && materialListRows[static_cast<size_t>(i)] < 0)
             || (schematicTab == SchematicTab::Verify && ignoreView && !ignoreList[static_cast<size_t>(i)].selectable());
         if (schematicTab == SchematicTab::Materials && !heading) chosen = materialListRows[static_cast<size_t>(i)] == materialSelected;
-        if (!heading) rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,chosen,over(ShapeZone::ListRow,i));
+        if (!heading) rowBackground(context,l.listLeft+1,y,l.rowWidth(),ShapesLayout::rowHeight,chosen,over(ShapeZone::ListRow,i));
         switch (schematicTab) {
         case SchematicTab::Placements: {
             auto const& p = schematicSet.placements[static_cast<size_t>(i)];
@@ -1683,7 +1683,18 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         // Layout A (Check tab review): the preview at a fixed size on top,
         // then the counts beside the selected row, then its items. Lines that
         // do not fit above the buttons are left out.
-        float pvTop = l.previewY - 2, pvHeight = std::clamp((l.actionsY - pvTop) * .55f, 60.f, 240.f);
+        // Item lines take room from the preview, up to four of them (L-183).
+        int itemLines = 0;
+        float itemsBelow = 0;
+        if (ignoreView && picked && picked->kind == IgnoreKind::Block) {
+            auto const& compared = comparedItemsOf(fileStructure);
+            if (auto found = compared.find(picked->block); found != compared.end()) itemLines = static_cast<int>(found->second.size());
+            itemsBelow = 12;
+        } else if (!ignoreView && selected && !selected->states.empty()) {
+            itemLines = static_cast<int>(selected->states.size());
+            itemsBelow = 12 + 57 + 11;
+        }
+        float pvTop = l.previewY - 2, pvHeight = previewHeight(l.actionsY - pvTop, itemLines, itemsBelow, 12);
         float textTop = pvTop + pvHeight + 5, textEnd = l.actionsY - 6;
         auto fits = [&](float y) { return y + 10 <= textEnd; };
         auto pointed = [&](float x, float top, float w, float h) {

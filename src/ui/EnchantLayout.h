@@ -158,7 +158,7 @@ struct EnchantLayout {
     bool onLevel(float x) const { return x >= levelX() && x < levelX() + levelWidth; }
     float minusX() const { return levelX() - stepWidth; }
     static int rowAt(ShapesLayout const& c, float x, float y) {
-        if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop) return -1;
+        if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop || c.onScrollbar(x, y)) return -1;
         int offset = static_cast<int>((y - c.rowsTop) / ShapesLayout::rowHeight);
         if (offset >= c.listVisible || offset + c.listFirst >= c.listCount) return -1;
         return offset + c.listFirst;

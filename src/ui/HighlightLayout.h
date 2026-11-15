@@ -49,7 +49,7 @@ struct HighlightLayout {
     float removeX() const { return listed.listLeft + listed.listWidth - SettingsTable::pad - removeWidth; }
     float addX() const { return rightLeft + rightWidth - SettingsTable::pad - addWidth; }
     static int rowAt(ShapesLayout const& c, float x, float y) {
-        if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop) return -1;
+        if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop || c.onScrollbar(x, y)) return -1;
         int offset = static_cast<int>((y - c.rowsTop) / ShapesLayout::rowHeight);
         if (offset >= c.listVisible || offset + c.listFirst >= c.listCount) return -1;
         return offset + c.listFirst;

@@ -284,7 +284,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         auto const& name = list[static_cast<size_t>(i)].name;
         float y = lc.listRowY(i);
         bool rowHover = (hover.zone == Zone::Listed || hover.zone == Zone::Remove) && hover.index == i;
-        rowBackground(context, lc.listLeft + 1, y, lc.listWidth - 2, ShapesLayout::rowHeight, false, rowHover);
+        rowBackground(context, lc.listLeft + 1, y, lc.rowWidth(), ShapesLayout::rowHeight, false, rowHover);
         drawIcon(context, name, lc.listLeft + pad, y + 2);
         float nameLeft = lc.listLeft + pad + 14;
         std::string count;
@@ -319,7 +319,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         float y = rc.listRowY(i);
         bool rowHover = hover.zone == Zone::Result && hover.index == i;
         bool listedNow = isListed(list, choice.name);
-        rowBackground(context, rc.listLeft + 1, y, rc.listWidth - 2, ShapesLayout::rowHeight, selected == i, rowHover);
+        rowBackground(context, rc.listLeft + 1, y, rc.rowWidth(), ShapesLayout::rowHeight, selected == i, rowHover);
         drawIcon(context, choice.name, rc.listLeft + pad, y + 2);
         float nameLeft = rc.listLeft + pad + 14;
         label(context, nameLeft, y + 3, idLeft - nameLeft - 4, choice.display.empty() ? std::string(hl::shortName(choice.name)) : choice.display,

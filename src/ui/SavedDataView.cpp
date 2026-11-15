@@ -185,7 +185,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     for (int i = list.listFirst; i < list.listFirst + list.listVisible && i < list.listCount; ++i) {
         auto const& item = items[static_cast<size_t>(i)];
         float const y = list.listRowY(i);
-        rowBackground(context, list.listLeft + 1, y, list.listWidth - 2, ShapesLayout::rowHeight, selected == i,
+        rowBackground(context, list.listLeft + 1, y, list.rowWidth(), ShapesLayout::rowHeight, selected == i,
             hover.zone == Zone::Row && hover.index == i);
         std::string const tag = item.inUse ? translated("savedData.inUse") : maybeText(item.maybe);
         float const tagWidth = tag.empty() ? 0 : textWidth(context, tag) + SettingsTable::gap;

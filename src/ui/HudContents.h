@@ -81,7 +81,8 @@ inline ContentsLayout layoutContents(Spot toolbar, float toolbarH, int count, bo
         ContentsRow row;
         row.index = out.first + i;
         float ry = listTop + i * rowH;
-        row.row = {at.x + 2, ry, w - 4, rowH};
+        // The row stops short of the bar, so pointing at it lights no row.
+        row.row = {at.x + 2, ry, w - 4 - (out.track ? 6.f : 0.f), rowH};
         row.switchAt = {at.x + 5, ry + (rowH - switchH) / 2};
         row.labelAt = {at.x + 8 + switchW, ry + 1};
         if (reorder) {

@@ -399,8 +399,8 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
         float y = l.listRowY(i);
         auto value = waypointAtRow(i);
-        if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
-        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && waypointRows.contains(*value),over(ShapeZone::ListRow,i));
+        if (i % 2) fill(context,l.listLeft+1,y,l.rowWidth(),ShapesLayout::rowHeight,palette::white,.025f);
+        rowBackground(context,l.listLeft+1,y,l.rowWidth(),ShapesLayout::rowHeight,value && waypointRows.contains(*value),over(ShapeZone::ListRow,i));
         float gx = columns.markX + 4, gy = y + ShapesLayout::rowHeight / 2;
         int index = value ? indexOfId(waypointSet.waypoints, value->id) : -1;
         if (index < 0) continue;

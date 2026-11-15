@@ -22,4 +22,15 @@ inline LineScroll lineScroll(int count, int first, float top, float bottom, floa
     s.first = std::clamp(first, 0, std::max(0, s.count - s.visible));
     return s;
 }
+// The Check pane's preview (L-183): its usual share of the room above the
+// buttons, given back so up to `maxLines` item lines fit under it (`below`
+// is what stands between the preview and the first line); never under
+// `minH`. Text starts 5 under the preview and ends 6 above the buttons.
+inline float previewHeight(float room, int lines, float below, float pitch, int maxLines = 4,
+                           float share = .55f, float minH = 60, float maxH = 240) {
+    float usual = std::clamp(room * share, minH, maxH);
+    if (lines <= 0) return usual;
+    float wanted = room - 11 - below - static_cast<float>(std::min(lines, maxLines)) * pitch;
+    return std::clamp(wanted, std::min(minH, usual), usual);
+}
 }
