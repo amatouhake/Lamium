@@ -259,7 +259,7 @@ struct Settings {
         bool connectedTextures = false; // Glass without inner borders (L-96), Experimental
         bool connectedCorners = false; // Keep an edge where glass blocks turn inward, and inside an L-shaped pane (L-208, L-270), Experimental
         bool connectedPaneCorners = false; // Keep an edge at an L-shaped glass pane corner; the inside edge needs connectedCorners too (L-208, L-255, L-270), Experimental
-        bool blockHighlight = false; // Designated block types tinted in the terrain mesh (L-320), Experimental
+        bool blockHighlight = false; // Designated block types tinted in the terrain mesh (L-320)
         std::vector<visuals::highlight::Entry> highlightBlocks;
         bool highlightThroughWalls = false; // Recorded (exposed) faces also drawn faint behind terrain (L-320, 2026-11-09)
         visuals::highlight::Look highlightColor = visuals::highlight::Look::Rainbow; // L-320, 2026-11-09

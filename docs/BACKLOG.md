@@ -110,31 +110,17 @@ published for whoever wants it. There is no "first release" gate.
   grow. A step that is not usable yet stays out of the settings screen (or
   behind a build option) instead of being shown half-working.
 
-Experimental badge decisions (moved from DESIGN.md Components on 2026-11-14):
+Experimental badge, as it stands (the `experimental` flag in
+`SettingsRows.h` is the source):
 
-- Freelook, Auto Attack, Auto Use, Light Level Overlay, Permanent Sneak and
-  Permanent Sprint have no Experimental badge after maintainer use. For
-  0.3.0 (decided 2026-10-22) FreeCamera, Hand Restock, Tool Protection, Auto
-  Elytra and Edge Guard lose it too after server use; their remaining limits
-  stay in the README's known issues (Edge Guard: rare drops under heavy lag
-  or a very small margin). Inventory transfer keeps it and is off for new
-  installs (a saved on stays on); none of the features reviewed for 0.3.0
-  keeps the badge while on by default. Radar and Waypoints remain on inside
-  the Experimental Map. Which features carry the badge now is the
-  `experimental` flag in `SettingsRows.h` (2026-11-14: Block highlight,
-  Inventory transfer, Death layout restore, Enchantment order, the Map
-  features and Schematics); when it comes off is BACKLOG "Release policy"
-  (decided 2026-11-13).
-- (Decided 2026-11-13) The badge comes off when a feature has been in two
-  or more releases, has no open bug item and no planned change of behavior
-  (BACKLOG "Release policy"). By that rule Hide effects,
-  Fake Offhand, Sneak placement, Slime chunks, Game language and Skip
-  server resource packs lose it. Kept: the maps, map marks and Schematics
-  (open bugs), Inventory transfer (L-299), Death layout restore (L-240),
-  Waypoints (L-328 changes the death point), Radar (its mob icons are to be
-  fixed, L-330), Block highlight and Enchantment order (too new). Connected Textures lost
-  it, got it back the same day over its glass pane edges (L-331) and lost
-  it again once that was fixed and confirmed.
+- Carry it: Inventory transfer (L-299; off for new installs, a saved on
+  stays on), Death layout restore (L-240, L-338), Enchantment order (not
+  released yet), the Map features (minimap, map marks, Radar for L-330,
+  Waypoints, world map) and Schematics (open bugs).
+- Settled without it: everything else. Remaining limits stay in the
+  README's known issues (Edge Guard: rare drops under heavy lag or a very
+  small margin). Block highlight lost it on 2026-11-16 (maintainer, ahead of
+  its second release).
 
 ## Current execution order
 
@@ -150,11 +136,11 @@ from the file); never restate them here.
    L-315.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10), in this order: the follow-ups of L-338 death layout time
-   limit, L-170 enchantment order planner, L-319 item details and L-320
-   block highlight; then L-340 settings grouping, L-330 radar icons, L-166
-   trade helpers, L-167 resource packs, L-168 trade finder, L-169 transfer
-   extensions, L-173 quick shapes, L-163 a Lamium inventory screen, L-249
-   simulation distance and L-265 placement assist.
+   limit, L-170 enchantment order planner and L-319 item details; then
+   L-340 settings grouping, L-330 radar icons, L-166 trade helpers, L-167
+   resource packs, L-168 trade finder, L-169 transfer extensions, L-173
+   quick shapes, L-163 a Lamium inventory screen, L-249 simulation distance
+   and L-265 placement assist.
    Agree open choices before building. L-165 Mass Craft stays
    below the map work and needs a scope conversation first.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
@@ -206,7 +192,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
-- [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices and unchecked cases remain
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed

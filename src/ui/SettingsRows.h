@@ -39,7 +39,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"hideOffhand", "feature.hideOffhand", "help.hideOffhand", "visuals.hideOffhand", false, input::Action::HideOffhand},
     {"hideEffects", "feature.hideEffects", "help.hideEffects", "visuals.hideEffects", false, input::Action::ToggleHideEffects},
     {"connectedTextures", "feature.connectedTextures", "help.connectedTextures", "visuals.connectedTextures", false, input::Action::ToggleConnectedTextures},
-    {"blockHighlight", "feature.blockHighlight", "help.blockHighlight", "visuals.blockHighlight", true, input::Action::ToggleBlockHighlight},
+    {"blockHighlight", "feature.blockHighlight", "help.blockHighlight", "visuals.blockHighlight", false, input::Action::ToggleBlockHighlight},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews", false, input::Action::TogglePreviews},
     // The lines Lamium adds to an item's tooltip: each kind of line a switch of its own, kept while the main
     // switch is off (L-319).

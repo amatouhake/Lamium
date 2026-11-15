@@ -68,7 +68,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"blockHighlight", "方块高亮: {}"},
     {"key.Lamium.blockhighlight", "切换方块高亮"},
     {"key.Lamium.highlightaimedblock", "高亮准星所指的方块种类（再按一次取消）"},
-    {"help.blockHighlight", "让选定种类的方块以流动的彩虹色（或选定的一种颜色）发光，远处或黑暗中也容易发现。准星对准方块按下按键即可添加该种类，再按一次则移除。只有接触空气、水等透明方块的面会发光，四周都被包住的方块不会显示。下方的列表（打开）可查看种类，也能添加尚未发现的方块。实验性功能。"},
+    {"help.blockHighlight", "让选定种类的方块以流动的彩虹色（或选定的一种颜色）发光，远处或黑暗中也容易发现。准星对准方块按下按键即可添加该种类，再按一次则移除。只有接触空气、水等透明方块的面会发光，四周都被包住的方块不会显示。下方的列表（打开）可查看种类，也能添加尚未发现的方块。"},
     {"highlightThroughWalls", "透过墙壁显示"},
     {"help.visuals.highlightThroughWalls", "墙壁后面的发光面也会以较淡的颜色显示。只包括用自由摄像机能看到的面（接触空气、水等透明方块的面），四周都被包住的方块仍然不会显示。"},
     {"highlightColorRow", "颜色: {}"},

@@ -96,7 +96,7 @@ border where glass block walls turn a corner, on the inside of the turn;
 "Edges at glass pane corners" adds an edge on the outside of an L-shaped
 pane. The flat-notch corner texel is kept whenever Connected Textures is on.
 
-### Block highlight (experimental)
+### Block highlight
 
 The block types you pick glow in rainbow colors flowing across the world, so
 they stand out far away and in the dark, up to the render distance. Aim at a

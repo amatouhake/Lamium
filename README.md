@@ -103,7 +103,7 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
 | Hide effects | Hide rain, particles, nausea, fogs, the portal screen | — | Off |
 | Connected Textures | Glass, panes, bookshelves and sandstone without seams | — | Off |
-| Block highlight *Exp.* | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
+| Block highlight | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
 
 ### HUD & overlays
 
