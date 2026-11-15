@@ -175,6 +175,8 @@ int main() try {
     waypointTests();
     extern void rowSelectionTests();
     rowSelectionTests();
+    extern void listColumnsTests();
+    listColumnsTests();
     extern void worldMapTests();
     worldMapTests();
     extern void mapRegionFormatTests();

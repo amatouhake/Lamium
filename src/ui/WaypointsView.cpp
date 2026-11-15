@@ -250,7 +250,7 @@ void handleWaypointClick(float x, float y, bool right) {
     case ShapeZone::ListRow: {
         auto value = waypointAtRow(hit.index);
         auto const& l = waypointsDisplayed;
-        if (value && value->layer == map::MarkLayer::Waypoint && x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
+        if (value && value->layer == map::MarkLayer::Waypoint && listColumns(l.listLeft, l.listWidth, 0, switchWidth).onShown(x)) {
             if (!changeWaypoint(value, [](map::Waypoint& t) { t.visible = !t.visible; })) screen::setMessage(translated("waypoint.saveError"));
             else screen::clearMessage();
             refreshWaypoints();
@@ -387,16 +387,11 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     drawToolHeader(context,l,translated("waypoint.showAll"),preferences.map.waypoints,waypointsDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // List pane.
-    float listRight = l.listLeft + l.listWidth;
     drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("waypoint.addHere"),
         over(ShapeZone::NewShape),ButtonKind::Primary);
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
-    float nameX = l.listLeft + ShapesLayout::pad + 14;
-    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
-    float distanceX = shownX - 56;
-    label(context,nameX,l.theadTop+2,distanceX-nameX-4,translated("shape.columnName"),palette::faint);
-    label(context,distanceX,l.theadTop+2,52,translated("waypoint.columnDistance"),palette::faint,Align::Right);
-    label(context,shownX-6,l.theadTop+2,switchWidth+12,translated("shape.columnShown"),palette::faint,Align::Center);
+    auto const columns = listColumns(l.listLeft, l.listWidth, 0, switchWidth);
+    drawListHeadings(context,columns,l.theadTop);
     fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
     if (l.listCount == 0)
         paragraph(context,l.listLeft+ShapesLayout::pad,l.rowsTop+3,l.listWidth-2*ShapesLayout::pad,translated("waypoint.empty"),3,palette::faint);
@@ -405,7 +400,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         auto value = waypointAtRow(i);
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
         rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && waypointRows.contains(*value),over(ShapeZone::ListRow,i));
-        float gx = l.listLeft + ShapesLayout::pad + 4, gy = y + ShapesLayout::rowHeight / 2;
+        float gx = columns.markX + 4, gy = y + ShapesLayout::rowHeight / 2;
         int index = value ? indexOfId(waypointSet.waypoints, value->id) : -1;
         if (index < 0) continue;
         auto const& w = waypointSet.waypoints[static_cast<size_t>(index)];
@@ -415,10 +410,10 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
             if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), palette::shade, .85f); // hollow: temporary (L-261)
         }
-        label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
-        label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.z)) : screen::dimensionName(w.dimension),
-            palette::dim,Align::Right);
-        toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
+        label(context,columns.nameX,y+3,columns.nameWidth,w.name,here ? palette::text : palette::faint);
+        if (columns.hasDistance())
+            label(context,columns.distanceX,y+3,columns.distanceWidth,listDistanceText(w.x, w.z, w.dimension),palette::dim,Align::Right);
+        toggleSwitch(context,columns.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
     drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);

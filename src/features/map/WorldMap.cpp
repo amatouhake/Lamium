@@ -1319,10 +1319,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
 // Footprints as the map draws them, small (L-296): a placement's fill and
 // frame with corner dots, a shape's ring.
 void footprintIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
-    ui::fill(context, x, cy - 3, 7, 6, color, .16f * alpha);
-    ui::frame(context, x, cy - 3, 7, 6, color, alpha);
-    for (float dx : {-1.f, 6.f})
-        for (float dy : {-4.f, 2.f}) ui::fill(context, x + dx, cy + dy, 2, 2, color, alpha);
+    ui::drawFootprintGlyph(context, x, cy, color, alpha);
 }
 void shapeIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
     int ix = static_cast<int>(x), iy = static_cast<int>(cy) - 3;

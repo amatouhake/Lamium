@@ -300,7 +300,7 @@ void handleShapeClick(float x, float y, bool right) {
         if (index < 0 || index >= static_cast<int>(shapeList.size())) return;
         auto const& item = shapeList[index];
         auto const& l = shapesDisplayed;
-        if (x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
+        if (listColumns(l.listLeft, l.listWidth, 0, switchWidth).onShown(x)) {
             try { overlay::shapes::setVisible(item.id, !item.definition.visible); screen::clearMessage(); }
             catch (overlay::ShapeSaveError const&) { screen::setMessage(translated("shape.saveError")); }
             catch (std::exception const&) { screen::setMessage(translated("shape.editError")); }
@@ -468,6 +468,16 @@ Rgb shapeRgb(overlay::ShapeColor color) {
     default: return palette::shapeCyan;
     }
 }
+// The distance column (L-190): from the player to the shape's center or a
+// plane's origin, as the Waypoints list measures; a following shape is
+// drawn around the player, so it has none.
+std::string shapeDistanceText(overlay::ShapeDefinition const& definition) {
+    if (definition.follow && definition.dimension == screen::playerDimension()) return "-";
+    if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry))
+        return listDistanceText(static_cast<int>(std::floor(spec->center.x)), static_cast<int>(std::floor(spec->center.z)), definition.dimension);
+    auto const& origin = std::get<overlay::PlaneSpec>(definition.geometry).origin;
+    return listDistanceText(origin.x, origin.z, definition.dimension);
+}
 void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type, Rgb color) {
     auto pattern = shape::typeGlyphs[static_cast<size_t>(std::clamp(type, 0, static_cast<int>(shape::typeGlyphs.size()) - 1))];
     for (int i = 0; i < 25 && i < static_cast<int>(pattern.size()); ++i)
@@ -497,16 +507,11 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     drawToolHeader(context,l,translated("shape.drawAll"),preferences.overlays.shapes,shapesDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // List pane.
-    float listRight = l.listLeft + l.listWidth;
     drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
         over(ShapeZone::NewShape) || shapePicking,ButtonKind::Primary); // lit while picking a type
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
-    float nameX = l.listLeft + ShapesLayout::pad + 14;
-    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
-    float typeX = shownX - 50;
-    label(context,nameX,l.theadTop+2,typeX-nameX-4,translated("shape.columnName"),palette::faint);
-    label(context,typeX,l.theadTop+2,48,translated("shape.columnType"),palette::faint);
-    label(context,shownX-6,l.theadTop+2,switchWidth+12,translated("shape.columnShown"),palette::faint,Align::Center);
+    auto const columns = listColumns(l.listLeft, l.listWidth, 0, switchWidth);
+    drawListHeadings(context,columns,l.theadTop);
     fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
     int draftOffset = shapeDraft ? 1 : 0;
     if (l.listCount == 0)
@@ -524,14 +529,14 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         // The same type glyph and color as the opened shape; dimmed when hidden or elsewhere.
         Rgb glyph = isDraft ? palette::info : shapeRgb(shown.color);
         if (!shown.visible || elsewhere) glyph = {glyph.r * .4f, glyph.g * .4f, glyph.b * .4f};
-        drawTypeIcon(context,l.listLeft+ShapesLayout::pad,y+2,shape::typeIndex(shown),glyph);
-        std::string suffix = isDraft ? translated("shape.draftTag") : elsewhere ? translated("shape.otherDimension", shown.dimension) : "";
+        drawTypeIcon(context,columns.markX,y+2,shape::typeIndex(shown),glyph);
+        std::string suffix = isDraft ? translated("shape.draftTag") : "";
         float suffixWidth = suffix.empty() ? 0 : textWidth(context, suffix) + 6;
-        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? palette::info : elsewhere ? palette::faint : palette::text);
-        if (!suffix.empty())
-            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? palette::info : palette::faint);
-        label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
-        if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
+        float nameEnd = columns.nameX + columns.nameWidth;
+        label(context,columns.nameX,y+3,columns.nameWidth-suffixWidth,shown.name,isDraft ? palette::info : elsewhere ? palette::faint : palette::text);
+        if (!suffix.empty()) label(context,nameEnd-suffixWidth+2,y+3,suffixWidth,suffix,palette::info);
+        if (columns.hasDistance()) label(context,columns.distanceX,y+3,columns.distanceWidth,shapeDistanceText(shown),palette::dim,Align::Right);
+        if (!isDraft) toggleSwitch(context,columns.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
     }
     drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     // Divider between list and editor.

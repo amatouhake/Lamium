@@ -18,6 +18,7 @@
 #include "ui/RadialLayout.h"
 #include "ui/Animations.h"
 #include "ui/Toast.h"
+#include "features/map/MapLayers.h"
 #include "features/map/WaypointSession.h"
 #include "app/SessionIds.h"
 #include "features/schematic/SchematicSession.h"
@@ -151,6 +152,8 @@ bool schematicDeleteArmed = false;
 // selected none is picked and the schematic's selected placement stays.
 RowSelection<std::uint64_t> placementRows;
 BulkArm placementBulk;
+// The Placed list's own column: progress (L-190).
+constexpr float progressColumn = 26;
 int editingSchematicField = -1;
 void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& apply);
 // ---- Schematics view (L-93) ----
@@ -700,7 +703,7 @@ void handleSchematicClick(float x, float y, bool right) {
         auto const& l = schematicsDisplayed;
         switch (schematicTab) {
         case SchematicTab::Placements:
-            if (x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
+            if (listColumns(l.listLeft, l.listWidth, progressColumn, switchWidth).onShown(x)) {
                 schematic::session::change([&](schematic::PlacementSet& set) {
                     if (row < 0 || row >= static_cast<int>(set.placements.size())) return false;
                     set.placements[static_cast<size_t>(row)].visible = !set.placements[static_cast<size_t>(row)].visible;
@@ -890,6 +893,20 @@ std::string mismatchKind(schematic::CellState state) {
     default: return translated("schematic.kind.missing");
     }
 }
+// The map's placement color, for the Placed list's footprint marks (L-190).
+Rgb placementRgb() {
+    auto c = map::placementColor;
+    return {map::channel(c, 0) / 255.f, map::channel(c, 1) / 255.f, map::channel(c, 2) / 255.f};
+}
+// Where the distance column measures to: the footprint's center as the map
+// lists it, or the origin while the file is not read yet.
+std::pair<int, int> placementCenter(schematic::SavedPlacement const& p) {
+    auto const& origin = p.placement.origin;
+    auto structure = schematic::session::loaded(p.file);
+    if (!structure) return {origin.x, origin.z};
+    auto area = schematic::footprint(structure->size, p.placement);
+    return {static_cast<int>(std::floor((area.x0 + area.x1) / 2.0)), static_cast<int>(std::floor((area.z0 + area.z1) / 2.0))};
+}
 Rgb mismatchColor(schematic::CellState state) {
     switch (state) {
     case schematic::CellState::Wrong: case schematic::CellState::Extra: return {1.f, .35f, .3f};
@@ -921,7 +938,6 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     // List.
     float listRight = l.listLeft + l.listWidth;
     float left = l.listLeft + ShapesLayout::pad;
-    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
     auto heading = [&](float x, float w, std::string_view key, Align align = Align::Left) {
         label(context,x,l.theadTop+2,w,translated(key),palette::faint,align);
     };
@@ -939,11 +955,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     float blocksW = 40, blocksX = listRight - ShapesLayout::pad - blocksW, sizeW = 54, sizeX = blocksX - 4 - sizeW;
     bool showSize = sizeX - left >= 80;
     bool loadedOne = false; // At most one file is read per frame to fill the columns.
-    // Placed: progress left of the switch; coordinates only while the name
-    // keeps room (the detail pane always shows them).
-    float progressW = 26, progressX = shownX - 6 - progressW;
-    float coordsW = 66, coordsX = progressX - 4 - coordsW;
-    bool showCoords = coordsX - left >= 70;
+    // Placed: the lists' shared columns, progress as its own (the detail pane
+    // shows the position).
+    auto const placed = listColumns(l.listLeft, l.listWidth, progressColumn, switchWidth);
     if (schematicTab == SchematicTab::Placements) schematic::ghosts::wantProgress();
     float kindW = 38, distW = 28, posW = listRight - left - kindW - distW - ShapesLayout::pad - 78 >= 90 ? 78.f : 0.f;
     float numW = 34, carriedX = listRight - ShapesLayout::pad - numW, leftX = carriedX - numW - 2;
@@ -951,18 +965,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     float placedX = leftX - numW - 2, neededX = (showPlaced ? placedX : leftX) - numW - 2;
     switch (schematicTab) {
     case SchematicTab::Placements:
-    {
-        // Measured, with a gap: centered over the switch, an English "Shown"
-        // is wider than its column and ran into "Done" (L-195).
-        float shownW = std::max(switchWidth + 12, textWidth(context, translated("shape.columnShown")));
-        float shownHeadX = std::min(shownX + switchWidth / 2 - shownW / 2, listRight - 2 - shownW);
-        float doneW = textWidth(context, translated("schematic.column.progress"));
-        float doneEnd = std::min(progressX + progressW + 2, shownHeadX - 6);
-        heading(left, shownX - left - 74, "shape.columnName");
-        heading(doneEnd - doneW, doneW, "schematic.column.progress", Align::Right);
-        heading(shownHeadX, shownW, "shape.columnShown", Align::Center);
+        drawListHeadings(context,placed,l.theadTop,"schematic.column.progress");
         break;
-    }
     case SchematicTab::Files:
         heading(left, (showSize ? sizeX : blocksX) - left - 4, "shape.columnName");
         if (showSize) heading(sizeX, sizeW, "schematic.column.size", Align::Right);
@@ -1035,8 +1039,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             bool here = p.dimension == screen::playerDimension();
             // The selected placement: the accent bar, like the sidebar's current entry.
             if (i == schematicSet.selected) fill(context,l.listLeft+1,y,2,ShapesLayout::rowHeight,palette::accent);
-            float nameEnd = showCoords ? coordsX - 4 : progressX - 4;
-            float nameX = left;
+            drawFootprintGlyph(context,placed.markX+1,y+ShapesLayout::rowHeight/2,placementRgb(),p.visible && here ? 1.f : .4f);
+            float nameEnd = placed.nameX + placed.nameWidth;
+            float nameX = placed.nameX;
             bool unreadable = !schematic::session::loadError(p.file).empty();
             if (unreadable) {
                 float markW = textWidth(context,"! ");
@@ -1044,17 +1049,18 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 nameX += markW;
             }
             label(context,nameX,y+3,nameEnd-nameX,p.name,unreadable ? palette::warning : here ? palette::text : palette::faint);
-            if (showCoords)
-                label(context,coordsX,y+3,coordsW,here ? std::format("{}, {}, {}", p.placement.origin.x, p.placement.origin.y, p.placement.origin.z)
-                    : screen::dimensionName(p.dimension),palette::dim,Align::Right);
-            if (auto tally = schematic::ghosts::progress(p); tally && tally->total()) {
+            if (placed.hasDistance()) {
+                auto center = placementCenter(p);
+                label(context,placed.distanceX,y+3,placed.distanceWidth,listDistanceText(center.first, center.second, p.dimension),palette::dim,Align::Right);
+            }
+            if (auto tally = placed.hasOwn() ? schematic::ghosts::progress(p) : std::nullopt; tally && tally->total()) {
                 float fraction = static_cast<float>(tally->correct) / static_cast<float>(tally->total());
-                label(context,progressX,y+1,progressW,std::format("{}%", static_cast<int>(fraction * 100)),
+                label(context,placed.ownX,y+1,placed.ownWidth,std::format("{}%", static_cast<int>(fraction * 100)),
                     here ? palette::text : palette::faint,Align::Right);
-                fill(context,progressX,y+11,progressW,1,palette::white,.12f);
-                fill(context,progressX,y+11,progressW*fraction,1,palette::accent,here ? 1.f : .5f);
-            } else label(context,progressX,y+3,progressW,"-",palette::faint,Align::Right);
-            toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,p.visible);
+                fill(context,placed.ownX,y+11,placed.ownWidth,1,palette::white,.12f);
+                fill(context,placed.ownX,y+11,placed.ownWidth*fraction,1,palette::accent,here ? 1.f : .5f);
+            } else if (placed.hasOwn()) label(context,placed.ownX,y+3,placed.ownWidth,"-",palette::faint,Align::Right);
+            toggleSwitch(context,placed.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,p.visible);
             break;
         }
         case SchematicTab::Files: {

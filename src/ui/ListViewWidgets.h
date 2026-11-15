@@ -2,6 +2,7 @@
 // Pieces the list-and-detail views (Shapes, Waypoints, Schematics) and the
 // prompts draw with, on top of Widgets.h.
 #include "ui/HudContents.h"
+#include "ui/ListColumns.h"
 #include "ui/NumberInput.h"
 #include "ui/RowSelection.h"
 #include "ui/SearchQuery.h"
@@ -29,6 +30,14 @@ Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, 
 // visible one (a section's Reset) does not draw the eye.
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed);
+// The lists' shared columns (ListColumns): the heading row from `top`, with
+// `ownKey` over the list's own column, and the distance cell's text, meters
+// from the player in its dimension, else that dimension's name.
+void drawListHeadings(MinecraftUIRenderContext& context, ListColumns const& c, float top, std::string_view ownKey = {});
+std::string listDistanceText(int x, int z, int dimension);
+// A footprint's small mark (a placement in the lists and the map, L-296):
+// a faint fill and a frame with corner dots, 7 wide from `x`, centered on `cy`.
+void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha = 1);
 // The selection pane while several rows are selected (L-190), laid out by
 // `pane`: "N selected", then the first pane.fit.names of `names` (the
 // selected rows in list order; faded ones faint) each after its mark, which
