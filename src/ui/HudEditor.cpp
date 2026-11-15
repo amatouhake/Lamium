@@ -383,7 +383,9 @@ void reset() {
     scrolling = false;
 }
 void select(std::optional<HudElementId> id) {
-    if (selected != id) { spot.reset(); popover = Popover::None; contentsFirst = 0; resetArmed = false; editingScale = false; }
+    // The toolbar draw is what refreshes popoverBox, and nothing draws it
+    // once the selection goes, so a stale box would keep eating clicks.
+    if (selected != id) { spot.reset(); popover = Popover::None; popoverBox.reset(); contentsShown.reset(); contentsFirst = 0; resetArmed = false; editingScale = false; }
     selected = id;
 }
 void render(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
