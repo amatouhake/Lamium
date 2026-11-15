@@ -75,22 +75,28 @@ inline CellState classifyReading(CellReading const& r, bool countExtras) {
     return r.expectsAir ? state : withLiquid(state, r.liquidsMatch);
 }
 
-// L-183: which ignore entry covers a difference (CheckIgnores.h), and what
-// the entries make of a cell: left out as a whole block, or a wrong state
-// whose every difference is ignored, counted as correct.
-enum class Covered : std::uint8_t { None, Here, Every };
-enum class IgnoreMark : std::uint8_t { None, Block, States };
+// L-183: what the ignore entries (CheckIgnores.h) make of a cell: left out
+// as a place, or a wrong state whose every difference a rule covers, counted
+// as correct.
+enum class IgnoreMark : std::uint8_t { None, Place, Items };
 
 // For a block of the right kind in the wrong state: which states differ, in
 // key order, at most `limit` of them. A state only one side has shows "-".
 struct StateDifference {
     std::string key, expected, actual;
-    // Not a block state (block entity data, a shulker box's opening): an
-    // ignore entry (L-183) cannot name it.
+    // Not a block state (block entity data, a shulker box's opening).
     bool fixed = false;
-    Covered covered = Covered::None;
+    // L-183: what a rule names: empty for a block state (its key), else a
+    // language-independent id starting with '#' (`key` is then the label as
+    // drawn, which the target card matches on).
+    std::string item;
+    bool ruled = false; // a rule covers it
     bool operator==(StateDifference const&) const = default;
 };
+// The item a rule names for a difference: a block state's name, or the '#'
+// id of a block entity field, note block instrument or shulker box opening.
+inline std::string const& itemId(StateDifference const& d) { return d.item.empty() ? d.key : d.item; }
+inline constexpr std::string_view instrumentItem = "#instrument", openingItem = "#opening";
 inline std::vector<StateDifference> stateDifferences(std::map<std::string, std::string> const& expected,
                                                      std::map<std::string, std::string> const& actual,
                                                      size_t limit = 3) {
@@ -119,15 +125,15 @@ inline StateDifference liquidDifference(bool expected, bool actual) {
 inline StateDifference faceDifference(int expected, int actual) {
     constexpr char const* names[6] = {"down", "up", "north", "south", "west", "east"};
     auto name = [&](int face) { return face >= 0 && face < 6 ? std::string(names[face]) : std::to_string(face); };
-    return {"facing", name(expected), name(actual), true};
+    return {"facing", name(expected), name(actual), true, std::string(openingItem)};
 }
 
 // What a cell adds to the counts once ignore entries apply (L-183): nothing
-// for a whole block (like extras' "do not count"); a correct block for a
-// wrong state whose differences are all ignored.
+// for a place (like extras' "do not count"); a correct block for a wrong
+// state whose differences are all ruled.
 inline std::optional<CellState> countedState(CellState state, IgnoreMark mark) {
-    if (mark == IgnoreMark::Block) return std::nullopt;
-    if (mark == IgnoreMark::States) return CellState::Correct;
+    if (mark == IgnoreMark::Place) return std::nullopt;
+    if (mark == IgnoreMark::Items) return CellState::Correct;
     return state;
 }
 struct Tally {

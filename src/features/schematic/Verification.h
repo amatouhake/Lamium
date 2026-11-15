@@ -19,14 +19,26 @@ struct Mismatch {
     std::vector<StateDifference> states; // CellState::State: what differs
     std::string identifier; // the expected block's name (minecraft:oak_trapdoor), for naming its states
     // What an ignore entry (L-183) names: the structure cell and the file's
-    // block there; local.x is -1 for an entity or an expected air cell.
+    // block there (minecraft:air for an extra); local.x is -1 for an entity.
     Point local{-1, -1, -1};
     std::string fileBlock;
-    // L-183: ignored rows stay listed in their own kind, dimmed, and count
-    // as the entries say (countedState); `states` then holds every
-    // difference, each with what covers it.
+    // L-183: ignored rows stay listed in their own kind and count as the
+    // entries say (countedState); `states` then holds every difference,
+    // each marked when a rule covers it.
     IgnoreMark ignore = IgnoreMark::None;
 };
+// The Check list's filters (L-183): all rows (mistakes first, then not
+// placed), wrong block (extras too), wrong state, not placed.
+enum class CheckFilter { All, WrongBlock, WrongState, NotPlaced };
+inline bool listedIn(CheckFilter filter, CellState state) {
+    switch (filter) {
+    case CheckFilter::WrongBlock: return state == CellState::Wrong || state == CellState::Extra;
+    case CheckFilter::WrongState: return state == CellState::State;
+    case CheckFilter::NotPlaced: return state == CellState::Missing;
+    case CheckFilter::All: break;
+    }
+    return true;
+}
 // A row the counts, the HUD's nearest mistake and the nearest-mistake key
 // treat as a mistake: wrong, extra or wrong state, not ignored. Every reader
 // of the rows asks this, so an ignored difference is never one of them.

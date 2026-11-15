@@ -33,8 +33,8 @@ inline TargetInfo::DetailRow ghostRow() {
     row.tone = Tone::Missing;
     return row;
 }
-// The card's row for a cell of the selected placement ignored as a whole
-// block (L-183), dimmed: the key's effect seen up close.
+// The card's row for an ignored place of the selected placement (L-183),
+// dimmed: the key's effect seen up close.
 inline TargetInfo::DetailRow ignoredRow() {
     TargetInfo::DetailRow row{"target.schematic", "target.schematicIgnored", true};
     row.kind = DetailKind::Schematic;

@@ -342,9 +342,10 @@ void nearestMistake(LocalPlayer& player) {
         : nearest->state == CellState::Extra ? "schematic.kind.extra" : "schematic.kind.state";
     ui::showMessageToast(ui::translated("schematic.toast.nearest", ui::translated(kind), static_cast<int>(std::lround(std::sqrt(best)))));
 }
-// L-183: the looked-at cell of the selected placement, ignored as a whole
-// block or given back. The target is the one the target card picks: a ghost,
-// or a real block in a placement cell. Finer choices are in the Check tab.
+// L-183: the looked-at place of the selected placement, ignored or given
+// back. The target is the one the target card picks: a ghost, or a real
+// block in a placement cell (an extra on the file's air too). Rules are set
+// in the Check tab.
 void ignoreLooked(IClientInstance& client, LocalPlayer& player) {
     auto set = session::current();
     if (set.selected < 0 || set.selected >= static_cast<int>(set.placements.size())) {
@@ -375,18 +376,16 @@ void ignoreLooked(IClientInstance& client, LocalPlayer& player) {
     auto index = structure->blocks[static_cast<size_t>(structure->cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= structure->palette.size()) return notLooking();
     auto const& file = structure->palette[static_cast<size_t>(index)];
-    // Extras (air in the file) have "do not count" instead.
-    if (file.isAir()) return notLooking();
-    auto label = ghosts::blockLabel(file).name;
+    auto m = ghosts::mismatchAt(player.getDimensionBlockSource(), world);
+    // An extra is named by what stands on the file's air.
+    auto label = file.isAir() ? (m ? m->actualName : std::string{}) : ghosts::blockLabel(file).name;
     std::string name = label.empty() ? file.name : label;
-    auto entry = blockEntry(*local, file.name);
+    auto entry = placeEntry(*local, file.name);
     bool const on = p.ignored.contains(entry);
-    if (!on)
-        if (auto m = ghosts::mismatchAt(player.getDimensionBlockSource(), world);
-            m && m->state == CellState::Correct && m->ignore == IgnoreMark::None) {
-            ui::showMessageToast(ui::translated("schematic.pick.correct"));
-            return;
-        }
+    if (!on && m && m->state == CellState::Correct && m->ignore == IgnoreMark::None) {
+        ui::showMessageToast(ui::translated("schematic.pick.correct"));
+        return;
+    }
     auto added = IgnoreList::Added::Invalid;
     bool saved = session::change([&](PlacementSet& s) {
         if (s.selected != selected || static_cast<size_t>(selected) >= s.placements.size()) return false;
@@ -397,7 +396,7 @@ void ignoreLooked(IClientInstance& client, LocalPlayer& player) {
     });
     if (!on && added == IgnoreList::Added::Full) ui::showMessageToast(ui::translated("schematic.ignore.full", maxIgnored));
     else if (!saved) ui::showMessageToast(ui::translated("schematic.saveError"));
-    else if (on) ui::showMessageToast(ui::translated("schematic.toast.unignored", name));
+    else if (on) ui::showMessageToast(ui::translated("schematic.toast.unignored", name, world.x, world.y, world.z));
     else ui::showMessageToast(ui::translated("schematic.toast.ignoredBlock", name, world.x, world.y, world.z));
 }
 // A corner of the area to save: the block in the crosshair.

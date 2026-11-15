@@ -71,6 +71,12 @@ inline constexpr Field fields[] = {
     {"HangingSign", "IgnoreLighting", "BackText", Kind::Value, false, {}, true},
 };
 
+// What an ignore rule (L-183) names for a field: '#', then the compound it
+// sits in and its key ("#FrontText.Text", "#note"), so it never reads as a
+// block state's name.
+inline std::string itemId(Field const& f) {
+    return f.within.empty() ? "#" + std::string(f.key) : "#" + std::string(f.within) + "." + std::string(f.key);
+}
 inline std::string_view entityId(nbt::Compound const& data) {
     auto const* id = data.find("id");
     auto const* text = id ? id->as<std::string>() : nullptr;

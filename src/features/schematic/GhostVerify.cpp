@@ -5,6 +5,7 @@
 #include "features/schematic/BlockEntityCheck.h"
 #include "features/information/BlockEntityRows.h"
 #include "features/information/NoteSounds.h"
+#include "features/information/SchematicTarget.h"
 #include "ui/Localization.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/Actor.h"
@@ -135,12 +136,18 @@ int actualShulkerFace(BlockSource& region, Point world) {
 // label as it is drawn - already translated, or the stored key - because the
 // card's own row for the same field carries its key and the two are matched by
 // the text the card shows (TargetInfo.cpp `fixedStates`).
-std::vector<StateDifference> entityStates(std::vector<entitycheck::Difference> const& differences) {
+std::string fieldLabel(entitycheck::Field const& f) {
     auto const& names = information::gameBlockEntityNames();
     auto label = [&](std::string_view key) {
         std::string text = names.label ? names.label(key) : std::string{};
         return text.empty() ? std::string(key) : text;
     };
+    return f.within.empty() ? label(f.key)
+        : f.key == "Text"   ? label(f.within)
+                            : std::format("{} {}", label(f.within), label(f.key));
+}
+std::vector<StateDifference> entityStates(std::vector<entitycheck::Difference> const& differences) {
+    auto const& names = information::gameBlockEntityNames();
     std::vector<StateDifference> out;
     for (auto const& d : differences) {
         auto const& f = *d.field;
@@ -153,10 +160,7 @@ std::vector<StateDifference> entityStates(std::vector<entitycheck::Difference> c
             auto text = information::blockEntityValue(f.key, *tag, names);
             return text.empty() ? "-" : text;
         };
-        std::string name = f.within.empty() ? label(f.key)
-            : f.key == "Text"               ? label(f.within)
-                                            : std::format("{} {}", label(f.within), label(f.key));
-        out.push_back({std::move(name), value(d.expected), value(d.actual), true});
+        out.push_back({fieldLabel(f), value(d.expected), value(d.actual), true, entitycheck::itemId(f)});
     }
     return out;
 }
@@ -345,7 +349,8 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
                 auto [belowKnown, below] = fileAt(-1);
                 if (auto instrument = information::noteInstrumentMismatch(region, pos, aboveKnown, above, belowKnown, below)) {
                     same = false;
-                    c.entityStates.push_back({ui::translated("blockEntity.instrument"), instrument->first, instrument->second, true});
+                    c.entityStates.push_back({ui::translated("blockEntity.instrument"), instrument->first, instrument->second, true,
+                                              std::string(instrumentItem)});
                 }
             }
         }
@@ -360,14 +365,14 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
                                .liquidsMatch = c.expectedLiquid == c.actualLiquid},
                               placement.countExtras);
     // L-183: the state stays what the world shows; the mark says how the
-    // entries count it. Differences are read only for a wrong state an entry
-    // may cover.
-    if (!c.air) {
+    // entries count it. Differences are read only for a wrong state a rule
+    // may cover. An extra's air cell takes a place too.
+    {
         auto const& name = structure.palette[static_cast<size_t>(paletteIndex)].name;
         if (placement.ignored.touches(c.local, name)) {
             std::vector<StateDifference> all;
             if (c.state == CellState::State) all = cellDifferences(c);
-            c.mark = judgeIgnores(c.state, true, all, placement.ignored, c.local, name, c.state == CellState::State && all.empty());
+            c.mark = judgeIgnores(c.state, all, placement.ignored, c.local, name, c.state == CellState::State && all.empty());
         }
     }
     return c;
@@ -379,10 +384,12 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks, session::Shown const
     Mismatch m{c.state, c.world, {}, {}, {}, {}};
     m.ignore = c.mark;
     std::string_view fileBlock;
-    if (!c.air && c.palette >= 0) {
-        auto const& info = blocks.items[static_cast<size_t>(c.palette)];
-        m.expected = info.icon;
-        m.expectedName = info.name;
+    if (c.palette >= 0) {
+        if (!c.air) {
+            auto const& info = blocks.items[static_cast<size_t>(c.palette)];
+            m.expected = info.icon;
+            m.expectedName = info.name;
+        }
         fileBlock = shown.structure->palette[static_cast<size_t>(c.palette)].name;
         m.local = c.local;
         m.fileBlock = std::string(fileBlock);
@@ -393,7 +400,7 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks, session::Shown const
         m.actualName = info.name;
         if (c.state == CellState::State && c.expected) {
             m.states = cellDifferences(c);
-            if (!c.air) markCovered(m.states, shown.placement.ignored, c.local, fileBlock);
+            if (!c.air) markRuled(m.states, shown.placement.ignored, fileBlock);
             if (m.states.size() > listedDifferences) m.states.resize(listedDifferences);
             m.identifier = c.expected->getTypeName();
         }
@@ -613,6 +620,21 @@ bool ignoredAt(BlockSource& region, session::Shown const& shown, Resolved const&
     auto n = (static_cast<std::uint64_t>(ox) * placed.y + static_cast<std::uint64_t>(oy)) * placed.z + static_cast<std::uint64_t>(oz);
     auto c = classifyCell(region, shown, blocks, placed, n);
     return c.inside && c.mark != IgnoreMark::None;
+}
+std::string itemName(std::string_view item, std::string_view identifier) {
+    auto translate = [](std::string_view key) { return ui::translated(key); };
+    auto state = [&](std::string const& key) {
+        auto named = information::stateName(key, "0", identifier, translate);
+        return named.labelIsKey ? ui::translated(named.label) : named.label;
+    };
+    if (item == instrumentItem) return ui::translated("blockEntity.instrument");
+    if (item == openingItem) return state("facing");
+    if (item.starts_with('#')) {
+        for (auto const& f : entitycheck::fields)
+            if (entitycheck::itemId(f) == item) return fieldLabel(f);
+        return std::string(item.substr(1));
+    }
+    return state(std::string(item));
 }
 void resetVerification() {
     entitiesChecked = {};

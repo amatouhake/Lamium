@@ -117,6 +117,10 @@ void stop();
 void invalidateResources();
 // The latest finished verification of the selected placement (never null).
 std::shared_ptr<Verification const> verification();
+// What an ignore rule's item (L-183, itemId) is called on a block of type
+// `identifier`: a state's readable name, or a block entity field's label as
+// the Check rows draw it.
+std::string itemName(std::string_view item, std::string_view identifier);
 // Progress for the Placed list (L-93 screen review): correct / total in the
 // placement's shown layers, counted in the background for about a second
 // after each wantProgress(); nullopt until a pass finished.

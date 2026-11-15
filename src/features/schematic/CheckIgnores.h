@@ -1,50 +1,54 @@
 #pragma once
+#include "features/schematic/BlockEntityCheck.h"
 #include "features/schematic/Placement.h"
 #include "features/schematic/Structure.h"
 #include "features/schematic/Verification.h"
 #include "features/schematic/Verify.h"
 #include <algorithm>
 #include <charconv>
+#include <climits>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
 
 // Differences the player chose to disregard in the check (L-183), kept per
 // placement in structure coordinates, so moving, turning or mirroring the
-// placement keeps them on the same build cells. Three kinds:
-// - Block: the whole block of one cell. The cell is left out of the counts,
-//   like extras' "do not count".
-// - State: one state of one cell; that difference counts as matching.
-// - Every: one state of every cell holding the block in this placement.
-// A cell entry whose cell no longer holds the named block, or an Every entry
-// whose block the file no longer has, is stale: kept, never applied.
+// placement keeps them on the same build cells. Two kinds:
+// - Place: one cell, whatever is there (an extra's air too). The cell is left
+//   out of the counts, like extras' "do not count".
+// - Rule: one item (a block state or a compared block entity field) on every
+//   cell of the placement holding the block; that difference counts as
+//   matching.
+// The per-state build's one item on one cell (CellItem) still loads and
+// saves unchanged, but is never applied or widened: it shows as stale.
+// A place whose cell no longer holds the named block, or a rule whose block
+// the file no longer has, is stale: kept, never applied.
 namespace lamium::schematic {
-enum class IgnoreKind : std::uint8_t { Block, State, Every };
+enum class IgnoreKind : std::uint8_t { Place, CellItem, Rule };
 struct IgnoreEntry {
-    IgnoreKind kind = IgnoreKind::State;
-    Point cell{};       // structure-local; {0, 0, 0} for Every
-    std::string block;  // the file's block (palette name)
-    std::string state;  // the state key, as StateDifference::key; empty for Block
+    IgnoreKind kind = IgnoreKind::Place;
+    Point cell{};       // structure-local; {0, 0, 0} for a rule
+    std::string block;  // the file's block (palette name; minecraft:air for an extra's place)
+    std::string item;   // itemId of the difference; empty for a place
     bool operator==(IgnoreEntry const&) const = default;
 };
-inline IgnoreEntry blockEntry(Point cell, std::string block) { return {IgnoreKind::Block, cell, std::move(block), {}}; }
-inline IgnoreEntry stateEntry(Point cell, std::string block, std::string state) {
-    return {IgnoreKind::State, cell, std::move(block), std::move(state)};
-}
-inline IgnoreEntry everyEntry(std::string block, std::string state) {
-    return {IgnoreKind::Every, {}, std::move(block), std::move(state)};
+inline IgnoreEntry placeEntry(Point cell, std::string block) { return {IgnoreKind::Place, cell, std::move(block), {}}; }
+inline IgnoreEntry ruleEntry(std::string block, std::string item) { return {IgnoreKind::Rule, {}, std::move(block), std::move(item)}; }
+inline IgnoreEntry cellItemEntry(Point cell, std::string block, std::string item) {
+    return {IgnoreKind::CellItem, cell, std::move(block), std::move(item)};
 }
 // Per placement, all kinds together. Kept small so a full placement document
 // stays far under its size limit (PlacementStore's 1 MB with 64 placements);
 // names are bounded for the same reason.
 inline constexpr size_t maxIgnored = 64, maxIgnoredBlockName = 96, maxIgnoredStateName = 48;
 
-// Cell entries sorted by cell, then the Every entries; shared and immutable,
-// because the placement it belongs to is copied into every frame's snapshot.
+// Cell entries sorted by cell, then the rules; shared and immutable, because
+// the placement it belongs to is copied into every frame's snapshot.
 class IgnoreList {
 public:
     enum class Added { Added, Already, Full, Invalid };
@@ -57,8 +61,8 @@ public:
         if (entries.empty()) return;
         auto list = std::make_shared<Data>();
         list->entries = std::move(entries);
-        list->everyFrom = static_cast<size_t>(std::find_if(list->entries.begin(), list->entries.end(),
-            [](auto const& e) { return e.kind == IgnoreKind::Every; }) - list->entries.begin());
+        list->rulesFrom = static_cast<size_t>(std::find_if(list->entries.begin(), list->entries.end(),
+            [](auto const& e) { return e.kind == IgnoreKind::Rule; }) - list->entries.begin());
         list_ = std::move(list);
     }
     std::vector<IgnoreEntry> const& entries() const {
@@ -73,10 +77,11 @@ public:
                 && std::none_of(text.begin(), text.end(), [](char c) { return c == ' ' || c == ',' || c == '*' || c < 0x20; });
         };
         if (!plain(e.block, maxIgnoredBlockName)) return false;
+        bool cell = e.cell.x >= 0 && e.cell.y >= 0 && e.cell.z >= 0;
         switch (e.kind) {
-        case IgnoreKind::Block: return e.state.empty() && e.cell.x >= 0 && e.cell.y >= 0 && e.cell.z >= 0;
-        case IgnoreKind::State: return plain(e.state, maxIgnoredStateName) && e.cell.x >= 0 && e.cell.y >= 0 && e.cell.z >= 0;
-        case IgnoreKind::Every: return plain(e.state, maxIgnoredStateName) && e.cell == Point{};
+        case IgnoreKind::Place: return e.item.empty() && cell;
+        case IgnoreKind::CellItem: return plain(e.item, maxIgnoredStateName) && cell;
+        case IgnoreKind::Rule: return plain(e.item, maxIgnoredStateName) && e.cell == Point{};
         }
         return false;
     }
@@ -111,25 +116,30 @@ public:
         auto const& e = entries();
         return std::binary_search(e.begin(), e.end(), entry, less);
     }
-    // The whole block of the cell is ignored.
-    bool wholeBlock(Point cell, std::string_view block) const {
+    // The cell is ignored as a place.
+    bool place(Point cell, std::string_view block) const {
         for (auto it = firstAt(cell); it != cellEnd() && it->cell == cell; ++it)
-            if (it->kind == IgnoreKind::Block && it->block == block) return true;
+            if (it->kind == IgnoreKind::Place && it->block == block) return true;
         return false;
     }
-    // Which entry covers a state difference of the cell: its own first.
-    Covered covers(Point cell, std::string_view block, std::string_view state) const {
-        for (auto it = firstAt(cell); it != cellEnd() && it->cell == cell; ++it)
-            if (it->kind == IgnoreKind::State && it->block == block && it->state == state) return Covered::Here;
+    // A rule disregards the item on every such block.
+    bool ruled(std::string_view block, std::string_view item) const {
         for (auto it = cellEnd(); it != entries().end(); ++it)
-            if (it->block == block && it->state == state) return Covered::Every;
-        return Covered::None;
+            if (it->block == block && it->item == item) return true;
+        return false;
+    }
+    // The items ruled on the block, in saved order.
+    std::vector<std::string> rules(std::string_view block) const {
+        std::vector<std::string> out;
+        for (auto it = cellEnd(); it != entries().end(); ++it)
+            if (it->block == block) out.push_back(it->item);
+        return out;
     }
     // The cheap question a check pass asks of every cell first: whether any
     // entry could apply to it.
     bool touches(Point cell, std::string_view block) const {
         if (empty()) return false;
-        if (auto it = firstAt(cell); it != cellEnd() && it->cell == cell) return true;
+        if (place(cell, block)) return true;
         for (auto it = cellEnd(); it != entries().end(); ++it)
             if (it->block == block) return true;
         return false;
@@ -146,13 +156,13 @@ public:
     }
     bool operator==(IgnoreList const& other) const { return entries() == other.entries(); }
 
-    // Saved form, one string per entry: "x,y,z block" (whole block),
-    // "x,y,z block state" (one state of a cell; the per-state build's only
-    // form) and "* block state" (every same block).
+    // Saved form, one string per entry: "x,y,z block" (a place), "* block
+    // item" (a rule) and "x,y,z block item" (the per-state build's one item
+    // on one cell, kept as it was).
     static std::string encode(IgnoreEntry const& e) {
-        if (e.kind == IgnoreKind::Every) return "* " + e.block + " " + e.state;
+        if (e.kind == IgnoreKind::Rule) return "* " + e.block + " " + e.item;
         auto cell = std::to_string(e.cell.x) + "," + std::to_string(e.cell.y) + "," + std::to_string(e.cell.z) + " " + e.block;
-        return e.kind == IgnoreKind::Block ? cell : cell + " " + e.state;
+        return e.kind == IgnoreKind::Place ? cell : cell + " " + e.item;
     }
     static std::optional<IgnoreEntry> decode(std::string_view text) {
         std::vector<std::string_view> parts;
@@ -166,10 +176,10 @@ public:
         if (parts.size() < 2 || parts.size() > 3) return std::nullopt;
         IgnoreEntry e;
         e.block = std::string(parts[1]);
-        if (parts.size() == 3) e.state = std::string(parts[2]);
+        if (parts.size() == 3) e.item = std::string(parts[2]);
         if (parts[0] == "*") {
             if (parts.size() != 3) return std::nullopt;
-            e.kind = IgnoreKind::Every;
+            e.kind = IgnoreKind::Rule;
         } else {
             int values[3]{};
             char const* at = parts[0].data();
@@ -185,7 +195,7 @@ public:
             }
             if (at != end) return std::nullopt;
             e.cell = {values[0], values[1], values[2]};
-            e.kind = parts.size() == 2 ? IgnoreKind::Block : IgnoreKind::State;
+            e.kind = parts.size() == 2 ? IgnoreKind::Place : IgnoreKind::CellItem;
         }
         if (!valid(e)) return std::nullopt;
         return e;
@@ -194,10 +204,10 @@ public:
 private:
     struct Data {
         std::vector<IgnoreEntry> entries;
-        size_t everyFrom = 0;
+        size_t rulesFrom = 0;
     };
     using Iterator = std::vector<IgnoreEntry>::const_iterator;
-    Iterator cellEnd() const { return list_ ? list_->entries.begin() + static_cast<std::ptrdiff_t>(list_->everyFrom) : entries().end(); }
+    Iterator cellEnd() const { return list_ ? list_->entries.begin() + static_cast<std::ptrdiff_t>(list_->rulesFrom) : entries().end(); }
     Iterator firstAt(Point cell) const {
         return std::lower_bound(entries().begin(), cellEnd(), cell, [](IgnoreEntry const& a, Point const& p) { return before(a.cell, p); });
     }
@@ -207,12 +217,12 @@ private:
         return a.z < b.z;
     }
     static bool less(IgnoreEntry const& a, IgnoreEntry const& b) {
-        bool ae = a.kind == IgnoreKind::Every, be = b.kind == IgnoreKind::Every;
-        if (ae != be) return be;
+        bool ar = a.kind == IgnoreKind::Rule, br = b.kind == IgnoreKind::Rule;
+        if (ar != br) return br;
         if (a.cell != b.cell) return before(a.cell, b.cell);
         if (a.kind != b.kind) return a.kind < b.kind;
         if (a.block != b.block) return a.block < b.block;
-        return a.state < b.state;
+        return a.item < b.item;
     }
     std::shared_ptr<Data const> list_;
 };
@@ -220,7 +230,7 @@ inline std::string encodeIgnored(IgnoreEntry const& e) { return IgnoreList::enco
 inline std::optional<IgnoreEntry> decodeIgnored(std::string_view text) { return IgnoreList::decode(text); }
 
 // How many cells of each block the file holds (air and structure void left
-// out): the "every same block" count, and whether such an entry applies.
+// out): whether a rule applies.
 using BlockCounts = std::map<std::string, std::uint64_t, std::less<>>;
 inline BlockCounts blockCounts(Structure const& structure) {
     std::vector<std::uint64_t> perPalette(structure.palette.size());
@@ -236,143 +246,184 @@ inline std::uint64_t sameBlocks(BlockCounts const& counts, std::string_view bloc
     return found == counts.end() ? 0 : found->second;
 }
 
-// The structure still holds the named block (never air) where the entry says.
+// A place applies while its cell still holds the named block (air included);
+// a rule while the file holds its block; a one-item cell entry never.
 inline bool ignoreApplies(IgnoreEntry const& e, Structure const& structure, BlockCounts const& counts) {
-    if (e.kind == IgnoreKind::Every) return sameBlocks(counts, e.block) > 0;
+    if (e.kind == IgnoreKind::Rule) return sameBlocks(counts, e.block) > 0;
+    if (e.kind == IgnoreKind::CellItem) return false;
     auto const& s = structure.size;
     if (e.cell.x >= s.x || e.cell.y >= s.y || e.cell.z >= s.z) return false;
     auto index = static_cast<size_t>(structure.cell(e.cell.x, e.cell.y, e.cell.z));
     if (index >= structure.blocks.size()) return false;
     auto palette = structure.blocks[index];
     if (palette == voidCell || static_cast<size_t>(palette) >= structure.palette.size()) return false;
-    auto const& block = structure.palette[static_cast<size_t>(palette)];
-    return !block.isAir() && block.name == e.block;
-}
-struct IgnoreCount {
-    size_t applied = 0, stale = 0;
-};
-inline IgnoreCount countIgnores(IgnoreList const& list, Structure const& structure, BlockCounts const& counts) {
-    IgnoreCount out;
-    for (auto const& e : list.entries()) ++(ignoreApplies(e, structure, counts) ? out.applied : out.stale);
-    return out;
-}
-// The Ignored button (maintainer 2026-11-15): hidden with no entries;
-// "Ignored: N" counts the entries that apply; with only stale ones left it
-// also says how many, so a list that is not empty never reads "Ignored: 0".
-enum class IgnoredButton { Hidden, Count, CountStale };
-inline IgnoredButton ignoredButton(IgnoreCount count) {
-    if (count.applied + count.stale == 0) return IgnoredButton::Hidden;
-    return count.applied == 0 ? IgnoredButton::CountStale : IgnoredButton::Count;
+    return structure.palette[static_cast<size_t>(palette)].name == e.block;
 }
 
-// Marks which differences the entries cover (fixed rows never: block entity
-// data, a shulker box's opening).
-inline void markCovered(std::vector<StateDifference>& differences, IgnoreList const& list, Point cell, std::string_view block) {
-    for (auto& d : differences) d.covered = d.fixed ? Covered::None : list.covers(cell, block, d.key);
+// Marks which differences a rule covers.
+inline void markRuled(std::vector<StateDifference>& differences, IgnoreList const& list, std::string_view block) {
+    for (auto& d : differences) d.ruled = list.ruled(block, itemId(d));
 }
 // A cell's verdict once the entries are applied. `differences` are all of a
-// wrong-state cell's differences (filled with what covers each); `unlisted`
-// says the reading found a cause it could not name as a row, which keeps a
-// wrong state a mistake. A whole-block entry wins over states, whatever the
-// cell's state; a cell expecting air (an extra) has no entries.
-inline IgnoreMark judgeIgnores(CellState state, bool expectsBlock, std::vector<StateDifference>& differences,
-                               IgnoreList const& list, Point cell, std::string_view block, bool unlisted = false) {
-    if (!expectsBlock || list.empty()) return IgnoreMark::None;
-    markCovered(differences, list, cell, block);
-    if (list.wholeBlock(cell, block)) return IgnoreMark::Block;
+// wrong-state cell's differences (marked with what a rule covers);
+// `unlisted` says the reading found a cause it could not name as a row,
+// which keeps a wrong state a mistake. A place wins over items, whatever
+// the cell's state.
+inline IgnoreMark judgeIgnores(CellState state, std::vector<StateDifference>& differences, IgnoreList const& list,
+                               Point cell, std::string_view block, bool unlisted = false) {
+    if (list.empty()) return IgnoreMark::None;
+    markRuled(differences, list, block);
+    if (list.place(cell, block)) return IgnoreMark::Place;
     if (state != CellState::State || unlisted || differences.empty()) return IgnoreMark::None;
-    bool all = std::all_of(differences.begin(), differences.end(), [](auto const& d) { return d.covered != Covered::None; });
-    return all ? IgnoreMark::States : IgnoreMark::None;
+    bool all = std::all_of(differences.begin(), differences.end(), [](auto const& d) { return d.ruled; });
+    return all ? IgnoreMark::Items : IgnoreMark::None;
 }
 
 // The world cell an entry stands for under the placement now.
 inline Point ignoredWorldCell(IgnoreEntry const& e, Size size, Placement const& placement) {
     return toWorld(size, placement, e.cell);
 }
-// The Ignored list's order: every-same-block entries first, then the cell
-// entries nearest to `from` (a world cell), stale ones last.
-inline std::vector<IgnoreEntry> listOrder(IgnoreList const& list, Structure const* structure, BlockCounts const& counts,
-                                          Placement const& placement, Point from) {
-    auto out = list.entries();
-    auto rank = [&](IgnoreEntry const& e) {
-        if (!structure || !ignoreApplies(e, *structure, counts)) return 2;
-        return e.kind == IgnoreKind::Every ? 0 : 1;
-    };
-    auto distance = [&](IgnoreEntry const& e) -> std::int64_t {
-        if (e.kind == IgnoreKind::Every || !structure) return 0;
-        auto w = toWorld(structure->size, placement, e.cell);
-        std::int64_t dx = w.x - from.x, dy = w.y - from.y, dz = w.z - from.z;
-        return dx * dx + dy * dy + dz * dz;
-    };
-    std::stable_sort(out.begin(), out.end(), [&](auto const& a, auto const& b) {
-        int ra = rank(a), rb = rank(b);
-        if (ra != rb) return ra < rb;
-        return distance(a) < distance(b);
-    });
+
+// A Check row can take a place when it names a cell of the file (an extra's
+// air too), not an entity.
+inline bool takesIgnores(Mismatch const& m) { return !m.entity && m.local.x >= 0 && !m.fileBlock.empty(); }
+// A row's mark under the entries as they are now, before the next pass has
+// judged it again: the Check tab tags rows by it, so a press shows at once.
+// A wrong state passes when every difference listed is ruled.
+inline IgnoreMark liveMark(Mismatch const& m, IgnoreList const& list) {
+    if (!takesIgnores(m)) return m.ignore;
+    if (list.place(m.local, m.fileBlock)) return IgnoreMark::Place;
+    if (m.state != CellState::State || m.states.empty()) return IgnoreMark::None;
+    bool all = std::all_of(m.states.begin(), m.states.end(), [&](auto const& d) { return list.ruled(m.fileBlock, itemId(d)); });
+    return all ? IgnoreMark::Items : IgnoreMark::None;
+}
+// Several rows' "Ignore places": the rows not yet ignored as a place.
+inline std::vector<IgnoreEntry> placesToAdd(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
+    std::vector<IgnoreEntry> out;
+    for (auto const* m : rows)
+        if (takesIgnores(*m) && !list.place(m->local, m->fileBlock)) out.push_back(placeEntry(m->local, m->fileBlock));
+    return out;
+}
+// Several rows' "Stop ignoring": the rows' places; rules stay, they cover
+// other blocks too.
+inline std::vector<IgnoreEntry> placesToRemove(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
+    std::vector<IgnoreEntry> out;
+    for (auto const* m : rows)
+        if (takesIgnores(*m) && list.place(m->local, m->fileBlock)) out.push_back(placeEntry(m->local, m->fileBlock));
     return out;
 }
 
-// Several Check rows at once (L-183 with L-190's selection). A row can take
-// entries when it names a block cell of the file: not an entity, an extra or
-// another cell expecting air.
-inline bool takesIgnores(Mismatch const& m) { return !m.entity && m.local.x >= 0 && !m.fileBlock.empty(); }
-// A row's mark under the entries as they are now, before the next pass has
-// judged it again: the Check tab dims and tags rows by it, so a press shows
-// at once. A wrong state passes when every difference listed is covered.
-inline IgnoreMark liveMark(Mismatch const& m, IgnoreList const& list) {
-    if (!takesIgnores(m)) return m.ignore;
-    if (list.wholeBlock(m.local, m.fileBlock)) return IgnoreMark::Block;
-    if (m.state != CellState::State || m.states.empty()) return IgnoreMark::None;
-    bool all = std::all_of(m.states.begin(), m.states.end(), [&](auto const& d) {
-        return !d.fixed && list.covers(m.local, m.fileBlock, d.key) != Covered::None;
-    });
-    return all ? IgnoreMark::States : IgnoreMark::None;
-}
-// "Ignore whole blocks": the rows not yet ignored as a whole block.
-inline std::vector<IgnoreEntry> wholeBlocksToAdd(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
-    std::vector<IgnoreEntry> out;
-    for (auto const* m : rows)
-        if (takesIgnores(*m) && !list.wholeBlock(m->local, m->fileBlock)) out.push_back(blockEntry(m->local, m->fileBlock));
-    return out;
-}
-// "Un-ignore": the rows' own entries (whole block and states here); an
-// every-same-block entry stays, it covers other blocks too.
-inline std::vector<IgnoreEntry> ownEntries(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
-    std::vector<IgnoreEntry> out;
-    for (auto const& e : list.entries()) {
-        if (e.kind == IgnoreKind::Every) continue;
-        for (auto const* m : rows)
-            if (takesIgnores(*m) && m->local == e.cell && m->fileBlock == e.block) { out.push_back(e); break; }
+// The items a rule can name on each block type of the file: its block states
+// (every palette entry of that name), then the compared block entity fields
+// of its cells (BlockEntityCheck.h; none while block entities are not
+// compared, no sign fields while sign text is not), a note block's
+// instrument and a shulker box's opening. Air has none; a block without
+// items is left out.
+using ComparedItems = std::map<std::string, std::vector<std::string>, std::less<>>;
+inline ComparedItems comparedItems(Structure const& structure, bool ignoreSign, bool ignoreEntities) {
+    ComparedItems out;
+    std::vector<bool> used(structure.palette.size());
+    for (auto index : structure.blocks)
+        if (index != voidCell && static_cast<size_t>(index) < used.size()) used[static_cast<size_t>(index)] = true;
+    auto add = [&](std::string const& block, std::string item) {
+        auto& items = out[block];
+        if (std::find(items.begin(), items.end(), item) == items.end()) items.push_back(std::move(item));
+    };
+    for (size_t i = 0; i < structure.palette.size(); ++i) {
+        auto const& entry = structure.palette[i];
+        if (!used[i] || entry.isAir()) continue;
+        out[entry.name];
+        for (auto const& state : entry.states.entries) add(entry.name, state.name);
     }
-    return out;
-}
-// Every state key differing on some of the rows, in first-seen order, with
-// how many rows have it: `open` the entries "Ignore on N rows" adds (rows
-// where nothing covers it yet), `own` the rows' entries for it that Undo
-// takes back, `every` whether an every-same-block entry covers it somewhere.
-// Rows ignored as a whole block and block entity rows take no part.
-struct SelectedState {
-    std::string key, identifier;
-    size_t rows = 0;
-    std::vector<IgnoreEntry> open, own;
-    bool every = false;
-};
-inline std::vector<SelectedState> selectedStates(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
-    std::vector<SelectedState> out;
-    for (auto const* m : rows) {
-        if (!takesIgnores(*m) || list.wholeBlock(m->local, m->fileBlock)) continue;
-        for (auto const& d : m->states) {
-            if (d.fixed) continue;
-            auto found = std::find_if(out.begin(), out.end(), [&](auto const& s) { return s.key == d.key; });
-            if (found == out.end()) { out.push_back({d.key, m->identifier}); found = out.end() - 1; }
-            ++found->rows;
-            switch (list.covers(m->local, m->fileBlock, d.key)) {
-            case Covered::None: found->open.push_back(stateEntry(m->local, m->fileBlock, d.key)); break;
-            case Covered::Here: found->own.push_back(stateEntry(m->local, m->fileBlock, d.key)); break;
-            case Covered::Every: found->every = true; break;
-            }
+    if (!ignoreEntities) {
+        std::set<std::pair<std::string, std::string>> seen;
+        for (auto const& [cell, data] : structure.blockEntities) {
+            if (cell < 0 || static_cast<size_t>(cell) >= structure.blocks.size()) continue;
+            auto index = structure.blocks[static_cast<size_t>(cell)];
+            if (index == voidCell || static_cast<size_t>(index) >= structure.palette.size()) continue;
+            auto const& block = structure.palette[static_cast<size_t>(index)];
+            auto id = std::string(entitycheck::entityId(data));
+            if (block.isAir() || id.empty() || !seen.insert({block.name, id}).second) continue;
+            for (auto const& f : entitycheck::fields)
+                if (f.id == id && !(f.sign && ignoreSign)) add(block.name, entitycheck::itemId(f));
+            if (id == "Music") add(block.name, std::string(instrumentItem));
+            if (id == "ShulkerBox") add(block.name, std::string(openingItem));
         }
     }
+    std::erase_if(out, [](auto const& line) { return line.second.empty(); });
     return out;
+}
+// The ignore view's block types in the Materials tab's order: by where a
+// line of the same name stands there, the others after them by name.
+inline std::vector<std::string> inMaterialsOrder(std::vector<std::pair<std::string, std::string>> blocks,
+                                                 std::vector<std::string> const& materialNames) {
+    auto rank = [&](std::string const& name) {
+        return static_cast<size_t>(std::find(materialNames.begin(), materialNames.end(), name) - materialNames.begin());
+    };
+    std::stable_sort(blocks.begin(), blocks.end(), [&](auto const& a, auto const& b) {
+        auto ra = rank(a.second), rb = rank(b.second);
+        if (ra != rb) return ra < rb;
+        return a.second < b.second;
+    });
+    std::vector<std::string> out;
+    for (auto& b : blocks) out.push_back(std::move(b.first));
+    return out;
+}
+
+// The ignore view's list (L-183): "Ignored places" (applied ones nearest to
+// `from`, a world cell, then stale ones and old one-item entries; "None"
+// without any), then "Blocks whose differences can be ignored" (`blocks`, in
+// the order given, each with its rules), then the rules of blocks the file
+// no longer has, one row per block (a ruled block not given but still in the
+// file comes before them as a block).
+struct IgnoreRow {
+    enum class Kind { PlacesHeading, NoPlaces, Place, BlocksHeading, Block, StaleBlock };
+    Kind kind = Kind::PlacesHeading;
+    IgnoreEntry entry{};            // Place
+    std::string block;              // Block, StaleBlock, and a place's block
+    std::vector<std::string> rules; // Block, StaleBlock: the items ruled
+    bool stale = false;
+    bool selectable() const { return kind == Kind::Place || kind == Kind::Block || kind == Kind::StaleBlock; }
+};
+inline std::vector<IgnoreRow> ignoreRows(IgnoreList const& list, Structure const* structure, BlockCounts const& counts,
+                                         std::vector<std::string> const& blocks, Placement const& placement, Point from) {
+    std::vector<IgnoreRow> out;
+    out.push_back({IgnoreRow::Kind::PlacesHeading});
+    std::vector<std::pair<std::int64_t, IgnoreRow>> places;
+    for (auto const& e : list.entries()) {
+        if (e.kind == IgnoreKind::Rule) continue;
+        bool applies = structure && ignoreApplies(e, *structure, counts);
+        std::int64_t order = INT64_MAX;
+        if (applies) {
+            auto w = toWorld(structure->size, placement, e.cell);
+            std::int64_t dx = w.x - from.x, dy = w.y - from.y, dz = w.z - from.z;
+            order = dx * dx + dy * dy + dz * dz;
+        }
+        places.push_back({order, {IgnoreRow::Kind::Place, e, e.block, {}, !applies}});
+    }
+    std::stable_sort(places.begin(), places.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    if (places.empty()) out.push_back({IgnoreRow::Kind::NoPlaces});
+    for (auto& p : places) out.push_back(std::move(p.second));
+    out.push_back({IgnoreRow::Kind::BlocksHeading});
+    for (auto const& block : blocks) out.push_back({IgnoreRow::Kind::Block, {}, block, list.rules(block)});
+    // Ruled blocks not given (none of their items compared now, or gone).
+    std::vector<IgnoreRow> later;
+    for (auto const& e : list.entries()) {
+        if (e.kind != IgnoreKind::Rule || std::find(blocks.begin(), blocks.end(), e.block) != blocks.end()
+            || std::any_of(later.begin(), later.end(), [&](auto const& r) { return r.block == e.block; }))
+            continue;
+        bool applies = structure && ignoreApplies(e, *structure, counts);
+        later.push_back({applies ? IgnoreRow::Kind::Block : IgnoreRow::Kind::StaleBlock, {}, e.block, list.rules(e.block), !applies});
+    }
+    std::stable_partition(later.begin(), later.end(), [](auto const& r) { return !r.stale; });
+    out.insert(out.end(), later.begin(), later.end());
+    return out;
+}
+// How many listed rows of the block differ in the item now.
+inline size_t differingRows(std::vector<Mismatch> const& rows, std::string_view block, std::string_view item) {
+    return static_cast<size_t>(std::count_if(rows.begin(), rows.end(), [&](Mismatch const& m) {
+        return m.state == CellState::State && m.fileBlock == block
+            && std::any_of(m.states.begin(), m.states.end(), [&](auto const& d) { return itemId(d) == item; });
+    }));
 }
 }
