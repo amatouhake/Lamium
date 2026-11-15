@@ -559,13 +559,17 @@ void colors() {
     check(tinted(packColor(10, 20, 30), 2, NAN, -1) == packColor(10, 20, 0), "tints never brighten or break");
     check(usableTint(.596f, .765f, .357f) && !usableTint(0, 0, 0) && !usableTint(NAN, 1, 1),
           "a black or broken biome tint is not used");
-    check(usesDefinedMapColor("pack:ruby_block", true, 1) && !usesDefinedMapColor("minecraft:dirt", true, 1)
-              && !usesDefinedMapColor("pack:ruby_block", false, 1) && !usesDefinedMapColor("pack:ruby_block", true, 0),
-          "only an add-on block that defines a visible map color uses it");
+    check(!knownTexture("textures/blocks/missing_tile") && !knownTexture("")
+              && knownTexture("textures/blocks/stone") && knownTexture("textures/blocks/lamiumtest_look_cyan"),
+          "the game's missing texture is no look");
+    check(addOnBlock("pack:ruby_block") && !addOnBlock("minecraft:dirt"), "add-on blocks are outside minecraft:");
     check(!addOnBlock("stone") && !addOnBlock(":stone") && addOnBlock("minecraftx:stone"), "the namespace decides");
-    check(definedMapColor(0, 0, 0) == packColor(0, 0, 0) && definedMapColor(0, 0, 0) != 0
-              && definedMapColor(1, .5f, NAN) == packColor(255, 128, 0),
-          "a defined black is still a color");
+    check(topFaceRank("up") < topFaceRank("*") && topFaceRank("*") >= 0 && topFaceRank("north") < 0
+              && topFaceRank("down") < 0 && topFaceRank("") < 0,
+          "the top face's material instance wins over the default one");
+    check(lookSource(packColor(1, 2, 3), packColor(4, 5, 6)) == LookSource::Graphics
+              && lookSource(0, packColor(4, 5, 6)) == LookSource::MaterialInstance && lookSource(0, 0) == LookSource::MapColor,
+          "the look comes first, the material instance's texture next, the map color last");
 }
 void surface() {
     // The heightmap (100) holds the ground under a carpet (101): the scan

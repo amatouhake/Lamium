@@ -30,21 +30,27 @@ inline std::optional<std::uint32_t> averageColor(std::uint8_t const* rgba, size_
     auto c = [&](double v) { return static_cast<int>(std::lround(v / weight)); };
     return packColor(c(r), c(g), c(b));
 }
-// An add-on block (outside the `minecraft` namespace) that defines
-// `minecraft:map_color` is drawn in that color (L-324): its textures may not
-// be in `BlockGraphics`. Every other block keeps its texture color, and the
-// game's map color only where no texture color was found.
+// Every block is drawn by its look first, the game's map color only when no
+// look is found (L-324). The game names a texture it could not find this
+// way; its average is the brown add-on blocks showed.
+inline constexpr std::string_view missingTexturePath = "textures/blocks/missing_tile";
+inline constexpr bool knownTexture(std::string_view path) { return !path.empty() && path != missingTexturePath; }
+// Add-on blocks (outside the `minecraft` namespace) may name their textures
+// only in `minecraft:material_instances`, not in `BlockGraphics`.
 inline constexpr bool addOnBlock(std::string_view typeName) {
     auto colon = typeName.find(':');
     return colon != std::string_view::npos && colon > 0 && typeName.substr(0, colon) != "minecraft";
 }
-inline constexpr bool usesDefinedMapColor(std::string_view typeName, bool defined, float alpha) {
-    return defined && alpha > 0 && addOnBlock(typeName);
+// Which material instance shows on top: "up", else "*" (every face). Lower
+// wins; -1 never shows on top.
+inline constexpr int topFaceRank(std::string_view face) { return face == "up" ? 0 : face == "*" ? 1 : -1; }
+enum class LookSource : std::uint8_t { Graphics, MaterialInstance, MapColor };
+// Texture colors are 0 when the path was missing or the image unreadable.
+inline constexpr LookSource lookSource(std::uint32_t graphicsColor, std::uint32_t materialColor) {
+    return graphicsColor ? LookSource::Graphics : materialColor ? LookSource::MaterialInstance : LookSource::MapColor;
 }
-// The defined color, opaque, so it is never the 0 that means "no color".
-inline std::uint32_t definedMapColor(float r, float g, float b) {
-    auto byte = [](float v) { return static_cast<int>(std::lround(std::clamp(std::isfinite(v) ? v : 0.f, 0.f, 1.f) * 255)); };
-    return packColor(byte(r), byte(g), byte(b));
+inline constexpr std::string_view lookSourceName(LookSource source) {
+    return source == LookSource::Graphics ? "texture" : source == LookSource::MaterialInstance ? "material instance" : "map color";
 }
 // A biome tint the map can use. The block renderer's tint comes back black
 // (0, 0, 0) for a while after a chunk loads; black grass was saved over

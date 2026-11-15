@@ -33,7 +33,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"capability.BossBarPosition", "Boss 血條位置"},
     {"capability.EnchantOrder", "附魔順序（花費與鐵砧步驟）"},
     {"capability.ItemDetails", "物品詳情（燉菜效果、屬性值、ID、標籤和 NBT）"},
-    {"capability.MapColorComponent", "附加包方塊的地圖顏色"},
+    {"capability.MapMaterialInstances", "附加包方塊的地圖顏色"},
     {"capability.FreeCameraHand", "隱藏手部"},
     {"capability.FreeCameraHud", "隱藏整個 HUD"},
     {"capability.HideParticles", "粒子的隱藏"},

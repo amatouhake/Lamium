@@ -1,2 +1,4 @@
-tile.lamiumtest:map_magenta.name=Map Color Test (magenta)
-tile.lamiumtest:map_none.name=Map Color Test (no map_color)
+tile.lamiumtest:look_cyan.name=Map test A: cyan texture, magenta map_color
+tile.lamiumtest:look_yellow.name=Map test B: yellow texture, no map_color
+tile.lamiumtest:missing_magenta.name=Map test C: missing texture, magenta map_color
+tile.lamiumtest:missing_plain.name=Map test D: missing texture, no map_color

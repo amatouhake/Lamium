@@ -341,11 +341,14 @@ Under `src/features/map/` unless stated; pure parts tested in
 - Textures: a CPU-composed `cg::ImageBuffer` (256 px, 512 enlarged) via
   `IClientInstance::getTextureGroup()` / `uploadTexture`, then
   `updateTextureInPlace`.
-- Block color: average top texture (`BlockGraphics`, at most 6 new textures a
-  frame, cached by state and path) times the tint (`BiomeColorSampling`
-  grass/foliage, water color); the map color only as fallback. An add-on
-  block (outside `minecraft:`) with a `minecraft:map_color` component uses
-  that color and the component's tint instead (L-324). Renderer tint
+- Block color: every block by its look first: the average top texture
+  (`BlockGraphics`, at most 6 new textures a frame, cached by state and path)
+  times the tint (`BiomeColorSampling` grass/foliage, water color). Where
+  `BlockGraphics` gives none, the missing texture
+  (`textures/blocks/missing_tile`) or an unreadable image, an add-on block
+  (outside `minecraft:`) takes the texture of its `minecraft:material_instances`
+  ("up", else "*", and that instance's tint). The game's map color only when
+  no look is found (L-324, `MapColors.h` `lookSource`). Renderer tint
   can come back black (fallback and rescan). Surface: the heightmap block or
   the covering block above (snow layer, carpet), seen through glass/plants.
 - Unreceived blocks are request stand-ins; a chunk is received unless all its
