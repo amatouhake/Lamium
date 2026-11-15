@@ -67,7 +67,7 @@ void traceHunger(MinecraftUIRenderContext& context, ScreenView const& view) noex
                                             screen.y));
         // Assumed layout: ten 9x9 icons right to left from the control, 8 apart.
         for (int i = 0; i < 10; ++i)
-            ui::frame(context, p.x - 8 - 8 * i, p.y, 9, 9, ui::Rgb{1.f, .78f, .2f}, 1.f);
+            ui::frame(context, p.x - 8 - 8 * i, p.y, 9, 9, ui::palette::warning, 1.f);
     } catch (...) {
     }
 }

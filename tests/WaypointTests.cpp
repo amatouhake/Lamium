@@ -1,3 +1,5 @@
+#include <map>
+#include "features/map/MapThumbnail.h"
 #include "features/map/WaypointStore.h"
 #include "features/map/Waypoints.h"
 #include "app/SessionIds.h"
@@ -96,6 +98,25 @@ void arrival() {
     auto near = step(others, list, 0, 3.5, 64, .5, 6);
     check(near.size() == 1 && near[0] == 1, "normal waypoints and other dimensions are never reached");
 }
+// L-328: a death is a waypoint with a cross.
+void deathWaypoints() {
+    WaypointSet set;
+    set.waypoints.push_back({"home", 3, 1, 64, 1, 0, true});
+    check(recordDeath(set, DeathPoint{10, 70, -5, 1}, "Death point", true) && set.waypoints.size() == 2 && set.waypoints[1].death
+              && set.waypoints[1].temporary && set.waypoints[1].color == deathColorIndex && set.waypoints[1].dimension == 1,
+          "a death adds a red waypoint of the set kind where the player died");
+    check(set.lastColor == deathColorIndex && nextColor(set.lastColor) != deathColorIndex,
+          "a death's waypoint advances the color counter, so the next waypoint is not red too");
+    recordDeath(set, DeathPoint{20, 70, -5, 0}, "Death point", false);
+    check(set.waypoints.size() == 3 && set.waypoints[1].x == 10 && set.waypoints[2].x == 20 && !set.waypoints[2].temporary
+              && set.waypoints[0].name == "home",
+          "the next death adds its own and leaves the earlier ones alone (L-332)");
+    check(decodeWaypoints(encodeWaypoints(set)) == set, "the cross mark is saved");
+    check(deathName("Death point", 3, 7, 9, 5) == "Death point 03-07 09:05", "a death's waypoint is named with its local date and time (L-333)");
+    WaypointSet full;
+    full.waypoints.resize(maxWaypoints);
+    check(!recordDeath(full, DeathPoint{}, "x", true), "a full list takes no death waypoint");
+}
 // L-276: the watch keeps a reached waypoint armed until its removal is saved.
 void arrivalSave() {
     WaypointSet set;
@@ -126,6 +147,164 @@ void storage() {
           "unsafe characters are replaced");
     check(serverFileName("", 19132).empty() && serverFileName("host", 0).empty() && serverFileName("..", 1).empty(),
           "nothing to identify gives no file");
+    {
+        // The Saved data page's map picture (L-343): three regions across, eight blocks to a pixel.
+        namespace th = lamium::map::thumbnail;
+        th::Area area{{2, -1}};
+        check(th::side == 96 && area.originX() == 256 && area.originZ() == -512 && area.region(0, 0) == lamium::map::RegionKey{1, -2}
+              && area.region(2, 2) == lamium::map::RegionKey{3, 0}, "the picture is the center region and the ring around it");
+        auto middle = area.at(256 + 384, -512 + 384);
+        check(middle && std::abs(middle->first - .5f) < .01f && std::abs(middle->second - .5f) < .01f
+              && !area.at(255, 0) && !area.at(256 + 768, 0) && area.at(256, -512), "a block finds its place in the picture, or is outside it");
+        std::vector<std::uint32_t> shaded(static_cast<size_t>(lamium::map::regionColumns), 0);
+        // One pixel's 8x8 blocks: half recorded as (200, 100, 0), half not recorded.
+        for (int z = 0; z < 8; ++z) for (int x = 0; x < 4; ++x) shaded[static_cast<size_t>(z * 256 + x)] = lamium::map::packColor(200, 100, 0);
+        auto image = th::blank();
+        th::blit(image, shaded, 1, 2);
+        auto const first = image[static_cast<size_t>((2 * 32) * 96 + 32)];
+        check(first == lamium::map::packColor(200, 100, 0) && image[static_cast<size_t>((2 * 32) * 96 + 33)] == 0 && image[0] == 0,
+              "a pixel is the average of its recorded blocks and clear where none is recorded");
+        auto untouched = image;
+        th::blit(image, shaded, 3, 0);
+        th::blit(image, std::vector<std::uint32_t>(4, 0), 0, 0);
+        check(image == untouched, "a region outside the picture or of the wrong size changes nothing");
+    }
+    {
+        namespace sv = lamium::map::servers;
+        check(sv::hostOf("http://198.51.100.20:19135") == "198.51.100.20" && sv::hostOf("https://featured.example.com:19132") == "featured.example.com"
+              && sv::hostOf("Play.Example.com") == "Play.Example.com" && sv::hostOf("host:19132/path") == "host"
+              && sv::hostOf("[::1]:19132") == "::1" && sv::hostOf("::1") == "::1" && sv::hostOf("").empty(),
+              "the host is the address without scheme, port and path");
+        check(sv::worldKey("AbCd1234EfG=") == "world_41624364313233344566473d" && sv::worldKey("").empty()
+              && sv::worldKey("a/b") != sv::worldKey("a_b"), "a world without an address is named by its level id, exactly");
+        std::map<std::string, long long> disk;
+        int weighed = 0;
+        auto held = [&](std::string const& key) { ++weighed; auto found = disk.find(key); return found == disk.end() ? -1 : found->second; };
+        std::vector<sv::Entry> entries;
+        // The names in use before L-343 keep their data.
+        disk["http___198.51.100.20_19133_19133"] = 0;
+        check(sv::choose(entries, "http://198.51.100.20:19133", "198.51.100.20", 19133, "local_world", held)
+              == "http___198.51.100.20_19133_19133", "a join keeps using the name its data is already under");
+        // The same server joined by its name: at the same IP and port, with more data under the name.
+        disk["play.example.net_19133"] = 2'000'000'000'000;
+        disk["http___play.example.net_19133_19133"] = 500;
+        check(sv::choose(entries, "play.example.net", "198.51.100.20", 19133, "local_world", held) == "play.example.net_19133"
+              && entries.size() == 1, "of the names of one server the one holding the most is used, as one record");
+        check((entries[0].others == std::vector<std::string>{"http___198.51.100.20_19133_19133", "http___play.example.net_19133_19133"}),
+              "the names passed over are remembered");
+        check(sv::choose(entries, "http://198.51.100.20:19133", "198.51.100.20", 19133, "local_world", held)
+              == "play.example.net_19133", "and from then on however the server is reached");
+        // What is in use stays in use: a deleted map or a grown other folder changes nothing.
+        disk["play.example.net_19133"] = 0;
+        disk["http___198.51.100.20_19133_19133"] = 9'000'000'000'000;
+        weighed = 0;
+        check(sv::choose(entries, "play.example.net", "198.51.100.20", 19133, "local_world", held) == "play.example.net_19133"
+              && sv::choose(entries, "http://198.51.100.20:19133", "198.51.100.20", 19133, "local_world", held)
+                     == "play.example.net_19133" && weighed == 0, "a recorded server keeps its key without looking at the folders");
+        check(sv::choose(entries, "play.example.net", "203.0.113.9", 19133, "local_world", held) == "play.example.net_19133"
+              && entries[0].ip == "203.0.113.9", "a name finds its server at a new IP, and the folders passed over stay passed over");
+        // The old IP now belongs to someone else: neither a new name there nor a bare join brings this data.
+        check(sv::choose(entries, "other.example.net", "198.51.100.20", 19133, "other", held) == "other.example.net_19133"
+              && sv::choose(entries, "third.example.net", "203.0.113.9", 19133, "local_world", held) == "third.example.net_19133",
+              "another name is another server, even at a known IP and with the same level id");
+        std::vector<sv::Entry> byIp;
+        check(sv::choose(byIp, "http://198.51.100.7:19132", "198.51.100.7", 19132, "a", held) == "198.51.100.7_19132"
+              && sv::choose(byIp, "http://198.51.100.7:19132", "198.51.100.7", 19132, "b", held) == "198.51.100.7_19132"
+              && byIp.size() == 1, "one address keeps one folder whatever level id it sends");
+        std::vector<sv::Entry> moved;
+        check(sv::choose(moved, "named.example.net", "198.51.100.8", 19132, "a", held) == "named.example.net_19132"
+              && sv::choose(moved, "http://198.51.100.8:19132", "198.51.100.8", 19132, "b", held) == "198.51.100.8_19132"
+              && sv::choose(moved, "http://198.51.100.8:19132", "198.51.100.8", 19132, "a", held) == "named.example.net_19132",
+              "a join by IP alone finds a named server there only when the level id agrees");
+        check(sv::choose(entries, "play.example.net", "198.51.100.20", 19134, "farm", held) == "play.example.net_19134",
+              "another port is another server, even with the same address");
+        std::vector<sv::Entry> fresh;
+        check(sv::choose(fresh, "https://featured.example.com:19132", "203.0.113.50", 19132, "Featured Network", held) == "featured.example.com_19132"
+              && fresh.size() == 1 && fresh[0].hosts == std::vector<std::string>{"featured.example.com"}
+              && fresh[0].ip == "203.0.113.50" && fresh[0].levelId == "Featured Network",
+              "a server seen for the first time is named by host and port and remembered");
+        check(sv::choose(fresh, "", "", 0, "id", held).empty() && sv::choose(fresh, "host", "1.2.3.4", 0, "id", held).empty(),
+              "no address gives no server name");
+        // The player's choice (part 3).
+        std::vector<sv::Entry> picked;
+        (void)sv::choose(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", held);
+        check(sv::assign(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", "old.example.net_19140")
+              && picked.size() == 1 && picked[0].key == "old.example.net_19140"
+              && picked[0].others == std::vector<std::string>{"198.51.100.30_19140"}
+              && sv::choose(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", held) == "old.example.net_19140",
+              "a chosen key is used from then on, and the one in use before is remembered");
+        check(sv::assign(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", "198.51.100.30_19140")
+              && picked[0].key == "198.51.100.30_19140" && picked[0].others == std::vector<std::string>{"old.example.net_19140"},
+              "choosing the earlier key again goes back");
+        check(sv::maybe(picked, "198.51.100.30_19140", "old.example.net_19140") == sv::Maybe::UsedBefore
+              && sv::maybe(picked, "198.51.100.30_19140", "unrelated_1") == sv::Maybe::No
+              && !sv::assign(picked, "", "", 0, "lv", "x_1"), "a key passed over is a candidate; no address, no choice");
+        // One data for every port of an address, with one port given other data.
+        std::vector<sv::Entry> wide;
+        (void)sv::choose(wide, "realm.example.net", "203.0.113.70", 30001, "r", held);
+        check(sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30002"
+              && sv::maybe(wide, "realm.example.net_30002", "realm.example.net_30001") == sv::Maybe::SameLevel,
+              "another port is another server until the player says otherwise, and reads as a candidate");
+        (void)sv::choose(wide, "elsewhere.example.net", "203.0.113.71", 30002, "r", held);
+        auto const before = wide;
+        check(sv::setAnyPort(wide, "realm.example.net_30001", true) == 1 && wide.size() == before.size()
+              && sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30001"
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30003, "r", held) == "realm.example.net_30001"
+              && sv::choose(wide, "elsewhere.example.net", "203.0.113.71", 30002, "r", held) == "elsewhere.example.net_30002",
+              "with the switch on, every port of the address uses the data; other addresses keep theirs");
+        check(sv::setAnyPort(wide, "realm.example.net_30001", false) == 0
+              && sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30002",
+              "switching it off brings each port's own data back: no record was given up");
+        check(sv::setAnyPort(wide, "nowhere_1", true) < 0, "no record, no switch");
+        (void)sv::setAnyPort(wide, "realm.example.net_30001", true);
+        check(sv::assign(wide, "realm.example.net", "203.0.113.72", 30004, "other", "elsewhere_30004")
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30004, "other", held) == "elsewhere_30004"
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30005, "r", held) == "realm.example.net_30001",
+              "a port given other data while the switch is on keeps it; the rest still follow the switch");
+        check(sv::setAnyPort(wide, "realm.example.net_30001", true) >= 2
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30004, "other", held) == "realm.example.net_30001",
+              "setting the switch again takes every port once more");
+        check(sv::choose(wide, "stranger.example.net", "203.0.113.72", 30006, "r", held) == "stranger.example.net_30006",
+              "the switch is for the address it was set on");
+        {
+            // The notice of fuller data: per kind, the fullest candidate that beats the data in use.
+            auto best = sv::fuller({2, 0, 500}, {{12, 3, 100}, {1, 0, 9000}, {30, 3, 400}});
+            check(best.waypoints == 2 && best.placements == 0 && best.map == 1, "each kind names the candidate holding the most of it");
+            auto none = sv::fuller({12, 3, 9000}, {{12, 3, 100}, {1, 0, 9000}});
+            check(none.waypoints < 0 && none.placements < 0 && none.map < 0, "data that holds as much is not second-guessed");
+            auto keys = sv::candidates(wide, "realm.example.net_30001");
+            check(std::find(keys.begin(), keys.end(), "realm.example.net_30002") != keys.end()
+                  && std::find(keys.begin(), keys.end(), "realm.example.net_30001") == keys.end(),
+                  "candidates are the keys passed over and those alike, never the one in use");
+        }
+        // A data reads by its own key, whoever uses it now.
+        std::vector<sv::Entry> lent{{"play.example.net_19133", {"play.example.net"}, "198.51.100.20", 19134, "x", {}}};
+        check(sv::shownName("play.example.net_19133") == "play.example.net:19133"
+              && sv::shownName("http___198.51.100.20_19133_19133") == "198.51.100.20:19133"
+              && sv::shownName("https___featured.example.com_19132_19132") == "featured.example.com:19132"
+              && sv::shownName("world_41") == "world:41" && sv::shownName("odd") == "odd",
+              "a key reads as the host and port it was made from");
+        check(sv::maybe(lent, "play.example.net_19133", "http___play.example.net_19135_19135") == sv::Maybe::SameAddress
+              && sv::maybe(lent, "play.example.net_19133", "198.51.100.20_19140") == sv::Maybe::SameAddress
+              && sv::maybe(lent, "play.example.net_19133", "elsewhere.example.org_19133") == sv::Maybe::No,
+              "data no record points at is a candidate when its key names this server's address");
+        sv::List all{wide, {{"world_41", "A friend's world"}}};
+        check(lamium::map::decodeServers(lamium::map::encodeServers(all)) == all, "the server list survives saving");
+        sv::forget(all, "realm.example.net_30001");
+        sv::forget(all, "world_41");
+        check(all.worlds.empty() && std::none_of(all.servers.begin(), all.servers.end(), [](sv::Entry const& e) {
+                  return e.key == "realm.example.net_30001"
+                      || std::find(e.others.begin(), e.others.end(), "realm.example.net_30001") != e.others.end(); }),
+              "deleted data leaves no record pointing at it");
+        auto cleaned = lamium::map::decodeServers(
+            R"({"version":1,"servers":[{"key":"../x","port":1},{"key":"ok_1","port":1,"hosts":["a",5]},{"key":"p","port":0}],
+                "worlds":[{"key":"a/b","name":"n"},{"key":"world_1","name":"n"}]})");
+        check(cleaned.servers.size() == 1 && cleaned.servers[0].key == "ok_1" && cleaned.servers[0].hosts == std::vector<std::string>{"a"}
+              && cleaned.worlds.size() == 1, "entries that could leave the folder or make no sense are dropped");
+        bool rejected = false;
+        try { (void)lamium::map::decodeServers(R"({"version":2})"); } catch (...) { rejected = true; }
+        check(rejected, "another version of the server list is rejected");
+    }
     WaypointSet set;
     set.waypoints.push_back({"家", 6, -60, 70, 40, 0, true});
     set.waypoints.push_back({"Fortress", 0, 30, 72, -140, 1, false});
@@ -134,7 +313,7 @@ void storage() {
     set.lastColor = 6;
     set.lastTemporary = true;
     check(decodeWaypoints(encodeWaypoints(set)) == set,
-          "waypoints, temporary ones, the death point and the last color and kind round-trip");
+          "waypoints, temporary ones, an older file's death point and the last color and kind round-trip");
     auto partial = decodeWaypoints(R"({"version":1,"waypoints":[{"name":"a","x":1},{"x":2},{"name":"b","color":99,"dimension":7}]})");
     check(partial.waypoints.size() == 2 && partial.waypoints[0].visible && partial.waypoints[0].x == 1
           && partial.waypoints[1].color == 11 && partial.waypoints[1].dimension == 2 && !partial.death
@@ -209,6 +388,7 @@ void waypointTests() {
     basics();
     markers();
     arrival();
+    deathWaypoints();
     arrivalSave();
     storage();
 }

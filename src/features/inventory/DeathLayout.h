@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <optional>
 #include <string>
 #include <vector>
@@ -35,8 +36,36 @@ struct Layout {
     // Set once a slot holds its death-time item; it is never touched again,
     // so later rearranging by the player is left alone.
     std::array<bool, slotCount> done{};
+    // An item of it was picked up at the place of the death (L-332).
+    bool started = false;
+    // Client ticks spent with the place loaded around the player (L-338).
+    int loadedTicks = 0;
     bool operator==(Layout const&) const = default;
 };
+// L-332: the layout belongs to the place of the death, not to a waypoint.
+// Pickups count only within this distance of it, in its dimension; once one
+// happened there, going farther ends the layout, so pickups elsewhere never
+// rearrange the inventory. Measured across, at any height: after a death high
+// up the items fall farther than this (maintainer 2026-11-15, L-339).
+inline constexpr double placeDistance = 32;
+inline bool atPlace(Layout const& layout, int dimension, double x, double z) {
+    return dimension == layout.dimension && std::hypot(layout.x + .5 - x, layout.z + .5 - z) <= placeDistance;
+}
+// L-338: the layout ends when the dropped items are gone. A dropped item
+// lasts 5 minutes, counted only while its chunk is loaded and ticking, so
+// time counts only while the player is near enough for that at any
+// simulation distance (the smallest is 4 chunks); far away or in another
+// dimension the count stands still and a later return still restores.
+inline constexpr int despawnTicks = 5 * 60 * 20;
+inline constexpr double loadedDistance = 48;
+inline bool loadedAround(Layout const& layout, int dimension, double x, double z) {
+    return dimension == layout.dimension && std::hypot(layout.x + .5 - x, layout.z + .5 - z) <= loadedDistance;
+}
+// One client tick; true once the items can no longer be there.
+inline bool age(Layout& layout, bool loaded) {
+    if (loaded && layout.loadedTicks < despawnTicks) ++layout.loadedTicks;
+    return layout.loadedTicks >= despawnTicks;
+}
 // Equipment, offhand, hotbar, then the main inventory.
 inline std::array<int, slotCount> targetOrder() {
     std::array<int, slotCount> order{};
@@ -177,10 +206,12 @@ inline int countOf(Slots const& slots, std::string const& kind) {
     for (auto const& s : slots) if (!s.empty() && s.kind == kind) n += s.count;
     return n;
 }
-inline bool pickedUp(Layout const& layout, Slots const& before, Slots const& after, Scope scope = Scope::All) {
+// Any item the layout names counts, also one for a slot outside the scope:
+// the first pickup at the place starts the layout, as the help says (L-339).
+inline bool pickedUp(Layout const& layout, Slots const& before, Slots const& after) {
     for (int s = 0; s < slotCount; ++s) {
         auto const& kind = layout.slots[s].kind;
-        if (layout.slots[s].empty() || layout.done[s] || !inScope(s, scope)) continue;
+        if (layout.slots[s].empty() || layout.done[s]) continue;
         if (countOf(after, kind) > countOf(before, kind)) return true;
     }
     return false;

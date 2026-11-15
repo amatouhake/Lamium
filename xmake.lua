@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 set_license("LGPL-3.0-only")
 
 -- Single source for the manifest version and the string the Debug View shows.
-local lamiumVersion = "0.5.0"
+local lamiumVersion = "0.6.0"
 set_policy("package.requires_lock", true)
 
 add_repositories("levimc-repo https://github.com/LiteLDev/xmake-repo.git")
@@ -33,10 +33,22 @@ option("research_trace")
     set_description("Enable bounded diagnostics for research items L-36, L-37, L-40, L-44, L-49 and L-58")
 option_end()
 
+option("world_probe")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Read-only probes for L-249, L-33 and L-30: log the chunk tick range, nearby actors' age and breeding components and the dragon's part boxes every 5 s")
+option_end()
+
 option("slime_trace")
     set_default(false)
     set_showmenu(true)
     set_description("Compare the L-232 slime chunk rule against the game's slime spawn rule")
+option_end()
+
+option("spawn_area_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Issue #32: log the hardcoded spawn areas the client holds for the chunks around the player")
 option_end()
 
 option("icon_trace")
@@ -165,6 +177,12 @@ option("effects_trace")
     set_description("Observe bounded UI renderer routes and immersion fog selection for L-42")
 option_end()
 
+option("server_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Log what identifies the joined server (address forms, ids, level id and name), for L-343")
+option_end()
+
 option("camera_trace")
     set_default(false)
     set_showmenu(true)
@@ -201,6 +219,12 @@ option("schematic_quad_trace")
     set_description("L-268: log the quads one ghost of each non-cube block draws, and which were dropped")
 option_end()
 
+option("doll_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-309: draw the paper doll three more times (moved, resized, through a matrix)")
+option_end()
+
 option("schematic_model_trace")
     set_default(false)
     set_showmenu(true)
@@ -222,7 +246,7 @@ option_end()
 includes("packages/levilamina-client-sdk.lua")
 -- A new SDK (game or LeviLamina version): follow the playbook in
 -- docs/GAME-UPDATES.md; the verified game in src/app/Versions.cpp changes last.
-add_requires("levilamina-client-sdk 26.60.3", {configs = {shared = true}})
+add_requires("levilamina-client-sdk 26.60.4", {configs = {shared = true}})
 
 add_requires("levibuildscript")
 add_requires("nlohmann_json v3.12.0")
@@ -234,6 +258,7 @@ end
 
 target("Lamium")
     if has_config("effects_trace") then add_defines("LAMIUM_EFFECTS_TRACE") end
+    if has_config("server_trace") then add_defines("LAMIUM_SERVER_TRACE") end
     if has_config("automation_trace") then add_defines("LAMIUM_AUTOMATION_TRACE") end
     if has_config("restock_trace") then add_defines("LAMIUM_RESTOCK_TRACE") end
     if has_config("camera_trace") or has_config("camera_probe") or has_config("camera_position_probe") then add_defines("LAMIUM_CAMERA_TRACE") end
@@ -243,7 +268,9 @@ target("Lamium")
     if has_config("radar_icon_probe") then add_defines("LAMIUM_RADAR_ICON_PROBE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
+    if has_config("world_probe") then add_defines("LAMIUM_WORLD_PROBE") end
     if has_config("ghost_probe") then add_defines("LAMIUM_GHOST_PROBE") end
+    if has_config("doll_trace") then add_defines("LAMIUM_DOLL_TRACE") end
     if has_config("schematic_model_trace") then add_defines("LAMIUM_SCHEMATIC_MODEL_TRACE") end
     if has_config("schematic_perf_trace") then add_defines("LAMIUM_SCHEMATIC_PERF_TRACE") end
     if has_config("edge_guard_perf") then add_defines("LAMIUM_EDGE_PERF") end
@@ -256,6 +283,7 @@ target("Lamium")
     if has_config("book_paste_trace") then add_defines("LAMIUM_BOOK_PASTE_TRACE") end
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
     if has_config("slime_trace") then add_defines("LAMIUM_SLIME_TRACE") end
+    if has_config("spawn_area_trace") then add_defines("LAMIUM_SPAWN_AREA_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end

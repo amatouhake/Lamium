@@ -2,11 +2,13 @@
 #include "features/camera/CameraSessions.h"
 #include "features/interaction/PermanentSneak.h"
 #include "features/interaction/PeriodicInput.h"
+#include "features/inventory/EnchantOrderGame.h"
 #include "features/inventory/FakeOffhand.h"
 #include "features/inventory/RepeatTrades.h"
 #include "input/Binding.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
+#include "ui/Toast.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
 #include "features/inventory/game/TransferSession.h"
@@ -44,10 +46,13 @@ void flush() {
         work.swap(queued);
         flushScheduled = false;
     }
+    // Keys bound alike arrive together: their toggles share one toast.
+    ui::beginToastGroup();
     for (auto [action, press] : work) {
         if (!press) { releaseAction(action); continue; }
         if (auto client = ll::service::getClientInstance()) executeAction(*client, action);
     }
+    ui::endToastGroup();
 }
 void post(Action action, bool press) {
     std::scoped_lock lock(queueLock);
@@ -64,12 +69,6 @@ std::string screen;
 bool installed = false;
 void releaseStates() {
     for (auto transition : dispatch.reset()) post(static_cast<Action>(transition.action), false);
-}
-bool opensMenu(Action action) {
-    return action == Action::Settings || action == Action::OpenShapes || action == Action::OpenHotkeys
-        || action == Action::OpenHudLayout || action == Action::OpenSchematics || action == Action::OpenSchematicFiles
-        || action == Action::OpenSchematicCheck || action == Action::OpenSchematicMaterials || action == Action::OpenSchematicPlaced
-        || action == Action::OpenSchematicKeys || action == Action::SaveSchematicArea || action == Action::SchematicMenu;
 }
 void invalidate() {
     inventory::repeatTrades::cancel();
@@ -137,7 +136,13 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
         for (size_t i = 0; i < actions.size(); ++i)
             if (i != static_cast<size_t>(Action::FakeOffhandUse)
                 && dispatch.isActive(static_cast<Action>(i)) && contains(allowed[i], token)) nativeUse = false;
-    return result.consumed && !nativeUse;
+    // A mouse button bound alone keeps the game's own click (attack, use, pick block): the action runs and the
+    // game gets the click too. A chord with a modifier (Alt + left click) still takes it.
+    bool gameKeeps = gameClick(Chord{token}) != GameClick::None;
+    if (gameKeeps)
+        for (size_t i = 0; i < actions.size(); ++i)
+            if (dispatch.isActive(static_cast<Action>(i)) && contains(allowed[i], token) && allowed[i].size() > 1) gameKeeps = false;
+    return result.consumed && !nativeUse && !gameKeeps;
 }
 }
 void resetCustomInput() { invalidate(); }
@@ -172,6 +177,20 @@ void startCustomInput() {
             : Token{Device::Mouse, button > MouseAction::ActionWheel ? button - 1 : button};
         bool down = wheel || event.buttonData() == MouseAction::DataDown;
         if (down) inventory::repeatTrades::cancel();
+        // The panels beside the anvil: their presses and wheel turns stay from the game. The Change button
+        // opens the planner on the client thread.
+        if (!wheel && !event.isCancelled()) {
+            if (int const taken = inventory::enchantOrder::game::anvilPress(button == MouseAction::ActionLeft, down)) {
+                if (taken == 2 && down) clientTasks::post([] {
+                    if (auto client = ll::service::getClientInstance()) ui::openEnchantOrder(*client, true);
+                });
+                event.cancel();
+                return;
+            }
+        } else if (wheel && !event.isCancelled() && inventory::enchantOrder::game::anvilWheel(event.buttonData() > 0 ? -3 : 3)) {
+            event.cancel();
+            return;
+        }
         bool consumed = process(token, down, event.isCancelled());
         auto const& keys = held.value();
         bool shift = contains(keys, Token{Device::Key, 0x10}) || contains(keys, Token{Device::Key, 0xA0})

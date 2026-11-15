@@ -359,6 +359,14 @@ void bindingTests() {
         } while (std::next_permutation(order.begin(), order.end()));
     }
     {
+        Token const left{Device::Mouse, 1}, right{Device::Mouse, 2}, middle{Device::Mouse, 3}, side{Device::Mouse, 4};
+        check(gameClick({left}) == GameClick::Attack && gameClick({right}) == GameClick::Use && gameClick({middle}) == GameClick::Pick,
+              "a mouse button alone is the game's own click");
+        check(gameClick({side}) == GameClick::None && gameClick({Token{Device::Key, 0x12}, left}) == GameClick::None
+              && gameClick({b}) == GameClick::None && gameClick({}) == GameClick::None,
+              "side buttons, chords with a modifier and keys are not the game's click");
+    }
+    {
         Bindings bindings;
         bindings[static_cast<size_t>(Action::NightVision)] = Chord{b};
         bindings[static_cast<size_t>(Action::Hitboxes)] = Chord{b};

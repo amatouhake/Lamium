@@ -1,6 +1,7 @@
 #include "app/PausedFeatures.h"
 #include "settings/SettingsStore.h"
 #include "settings/Options.h"
+#include "features/information/DebugVanillaHud.h"
 #include "features/inventory/FakeOffhandPlan.h"
 #include "features/visuals/EffectVisibility.h"
 #include "input/ToggleAction.h"
@@ -25,6 +26,21 @@ void settingsStoreTests() {
           && decodeSettings(R"({"information":{"targetSchematic":2}})").information.targetSchematic,
           "a display mode number from a test build reads as on or off");
     {
+        auto none = decodeSettings("{}").visuals;
+        check(!none.blockHighlight && none.highlightBlocks.empty(), "block highlight starts off with an empty list");
+        auto loaded = decodeSettings(R"({"visuals":{"blockHighlight":true,"highlightBlocks":[{"name":"minecraft:diamond_ore","color":5},{"name":"minecraft:diamond_ore"},{"color":2},"x",{"name":"minecraft:ancient_debris"}]}})").visuals;
+        check(loaded.blockHighlight && loaded.highlightBlocks.size() == 2 && loaded.highlightBlocks[0].color == 5
+                  && loaded.highlightBlocks[1] == visuals::highlight::Entry{"minecraft:ancient_debris", 0},
+              "the highlight list loads names and colors and skips malformed or repeated entries");
+        check(none.highlightColor == visuals::highlight::Look::Rainbow && none.highlightStrength == 50,
+              "the highlight starts as the rainbow at 50 %");
+        auto look = decodeSettings(R"({"visuals":{"highlightColor":"pink","highlightStrength":250}})").visuals;
+        check(look.highlightColor == visuals::highlight::Look::Pink && look.highlightStrength == 100,
+              "the highlight color loads by name and the strength is clamped");
+        check(decodeSettings(R"({"visuals":{"highlightColor":"teal"}})").visuals.highlightColor == visuals::highlight::Look::Rainbow,
+              "an unknown highlight color falls back to the rainbow");
+    }
+    {
         check(decodeSettings("{}").visuals.hideNausea
               && !decodeSettings(R"({"visuals":{"hideNausea":false}})").visuals.hideNausea,
               "nausea color is selected by default and loads independently");
@@ -32,7 +48,7 @@ void settingsStoreTests() {
         value.visuals.hideNausea = false;
         check(input::defaultChord(input::Action::HideNausea).empty()
               && input::toggleAction(value,input::Action::HideNausea) && value.visuals.hideNausea
-              && !value.visuals.hideEffects && value.visuals.hideBossBars && value.visuals.hideParticles,
+              && !value.visuals.hideEffects && value.visuals.hideParticles,
               "the unbound nausea key changes only its selection while the master is off");
         using visuals::hideNauseaMesh;
         check(hideNauseaMesh(visuals::effectMask(true,false,false,false,true),true,
@@ -116,15 +132,29 @@ void settingsStoreTests() {
               "fog with nothing to hide and unreadable values stay vanilla");
     }
     {
-        check(decodeSettings("{}").visuals.hideBossBars
-              && !decodeSettings(R"({"visuals":{"hideBossBars":false}})").visuals.hideBossBars,
-              "boss bars are selected by default and load their independent selection");
+        // Hide boss bars moved to Game HUD placement (L-334).
+        auto fresh = decodeSettings("{}");
+        check(fresh.information.showBossBars && !fresh.information.hidesBossBars() && !fresh.information.gameHud,
+              "boss bars are shown by default");
+        auto both = decodeSettings(R"({"visuals":{"hideEffects":true}})");
+        check(both.information.hidesBossBars() && !both.information.placesChat() && !both.information.placesScoreboard()
+              && !both.information.placesPaperDoll() && both.hud.bossBars.dy == 2,
+              "a file from before that hid boss bars keeps them hidden and moves nothing else");
+        auto dormant = decodeSettings(R"({"visuals":{"hideEffects":false,"hideBossBars":true}})");
+        auto unpicked = decodeSettings(R"({"visuals":{"hideEffects":true,"hideBossBars":false}})");
+        check(!dormant.information.hidesBossBars() && !dormant.information.gameHud
+              && !unpicked.information.hidesBossBars() && !unpicked.information.gameHud,
+              "a file from before that did not hide boss bars keeps them shown");
+        auto grouped = decodeSettings(R"({"information":{"gameHud":true,"chatPosition":true,"bossBarPosition":false},"visuals":{"hideEffects":true}})");
+        check(grouped.information.hidesBossBars() && grouped.information.placesChat(),
+              "with the group already on, old hidden boss bars are hidden and the other parts stay");
+        auto current = decodeSettings(R"({"information":{"showBossBars":true},"visuals":{"hideEffects":true,"hideBossBars":true}})");
+        check(!current.information.hidesBossBars(), "a current file's show value wins over the old key");
         Settings value;
-        value.visuals.hideBossBars = false;
-        check(input::defaultChord(input::Action::HideBossBars).empty()
-              && input::toggleAction(value,input::Action::HideBossBars) && value.visuals.hideBossBars
-              && !value.visuals.hideEffects && value.visuals.hideWeather && value.visuals.hideParticles,
-              "the unbound boss key changes only its selection while the master is off");
+        value.information.gameHud = true;
+        settings::find("information.bossBarPosition")->adjust(value, 1);
+        check(value.information.hidesBossBars() && value.information.placesPaperDoll() && !value.visuals.hideEffects,
+              "the boss bars' row hides them without changing another part");
         check(visuals::effectMask(false,true,true,true) == 0
               && visuals::effectMask(true,false,false,true) == visuals::bossBarsBit
               && visuals::effectMask(true,true,true,true) == 7,
@@ -401,12 +431,29 @@ void settingsStoreTests() {
           "the side panel's list starts on waypoints and loads clamped (L-204)");
     check(!old.camera.zoomWideAngle && decodeSettings(R"({"camera":{"zoomWideAngle":true}})").camera.zoomWideAngle,
           "Wide-angle view stays off until saved on (L-140)");
+    check(Settings{}.camera.zoomResetOnRelease
+              && decodeSettings(R"({"camera":{"zoomWideAngle":false}})").camera.zoomResetOnRelease
+              && !decodeSettings(R"({"camera":{"zoomResetOnRelease":false}})").camera.zoomResetOnRelease
+              && decodeSettings(R"({"camera":{"zoomResetOnRelease":true}})").camera.zoomResetOnRelease,
+          "Reset on release is on for a fresh or keyless file and a saved value is kept (L-325)");
     check(!old.visuals.skipServerPacks && decodeSettings(R"({"visuals":{"skipServerPacks":true}})").visuals.skipServerPacks,
           "server resource packs apply until skipping is saved on (L-167)");
-    check(old.information.debugHideVanilla && !decodeSettings(R"({"information":{"debugHideVanilla":false}})").information.debugHideVanilla,
-          "Debug View hides the game's position and paper doll unless saved off");
-    check(old.information.hudHidePaperDoll && !decodeSettings(R"({"information":{"hudHidePaperDoll":false}})").information.hudHidePaperDoll,
-          "the Info HUD hides a covered paper doll unless saved off (L-145)");
+    {
+        // L-348: two switches under Game HUD placement, part of its switch.
+        auto hidden = decodeSettings(R"({"information":{"gameHud":true,"hideGamePosition":true,"hideGameDays":true}})");
+        check(!old.information.hideGamePosition && !old.information.hideGameDays
+              && hidden.information.hidesGamePosition() && hidden.information.hidesGameDays(),
+              "the game's position and days lines show until hiding is saved on");
+        auto groupOff = decodeSettings(R"({"information":{"gameHud":false,"hideGamePosition":true,"hideGameDays":true}})");
+        check(!groupOff.information.hidesGamePosition() && !groupOff.information.hidesGameDays(),
+              "with Game HUD placement off the game's lines are its own again");
+        using information::debugVanilla::vanillaLine;
+        using information::debugVanilla::VanillaLine;
+        check(vanillaLine("player_position") == VanillaLine::Position && vanillaLine("player_position_text") == VanillaLine::Position
+              && vanillaLine("number_of_days_played") == VanillaLine::Days
+              && vanillaLine("number_of_days_played_text") == VanillaLine::Days && vanillaLine("hud_player") == VanillaLine::None,
+              "the vanilla HUD's position and days played controls are told apart by name");
+    }
     {
         // L-137: what players see of the gates on an unverified game.
         using lamium::paused::Level;
@@ -449,6 +496,11 @@ void settingsStoreTests() {
     check(!equipment.inventory.restockOffhand && equipment.inventory.toolSwitchInventory
           && !equipment.interaction.toolGuard && equipment.interaction.elytraSwap,
           "equipment follow-up switches load from disk");
+    check(decodeSettings(R"({"inventory":{"toolSwitchDrop":1}})").inventory.toolSwitchDrop == 1
+              && decodeSettings(R"({"inventory":{"toolSwitchSilkDrop":true}})").inventory.toolSwitchDrop == 2
+              && decodeSettings(R"({"inventory":{"toolSwitchDrop":7}})").inventory.toolSwitchDrop == 0
+              && decodeSettings(R"({})").inventory.toolSwitchDrop == 0,
+          "the drop priority loads, the old Silk Touch switch maps to it, and bad values reset to speed");
     check(!old.inventory.handRestock && old.inventory.restockFromHotbar,
           "restock defaults off and hotbar sources on in older files");
     auto restock = decodeSettings(R"({"inventory":{"handRestock":true,"restockFromHotbar":false}})");
@@ -529,7 +581,19 @@ void settingsStoreTests() {
           "OpenHotkeys is unbound by default");
     check(decodeSettings(R"({"interface":{"gameplayHints":false}})").ui.automationStatus,
           "removed gameplay hints key loads without error");
-    check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");
+    check(old.inspection.hideShulkerContents
+          && !decodeSettings(R"({"inspection":{"hideShulkerContents":false}})").inspection.hideShulkerContents,
+          "the shulker box contents text is hidden unless a saved choice keeps it");
+    check(!old.inspection.itemDetailsTags && !old.inspection.itemDetailsNbt, "item tags and NBT stay out of tooltips until asked for (L-319)");
+    {
+        auto off = decodeSettings(R"({"inspection":{"itemDetails":false}})").inspection;
+        auto split = decodeSettings(R"({"inspection":{"itemDetails":false,"itemDetailsStew":true,"itemDetailsId":true}})").inspection;
+        check(old.inspection.itemTooltip && off.itemTooltip,
+              "the tooltip lines' main switch is on for an older file, whatever its Item details was (L-319)");
+        check(old.inspection.itemDetailsStew && old.inspection.itemDetailsId && !off.itemDetailsStew && !off.itemDetailsId
+              && split.itemDetailsStew && split.itemDetailsId && !split.itemDetails,
+              "a file from before the stew's effect and the ID had switches keeps what Item details showed (L-319)");
+    }
     check(old.inspection.shulkerPreviews && old.inspection.emptyShulkerPreviews
           && old.inspection.bundlePreviews && old.inspection.emptyBundlePreviews,
           "older files retain the existing preview behavior including empty containers");
@@ -548,7 +612,7 @@ void settingsStoreTests() {
             "bindings":{"sort":[{"device":"key","code":75}]},"hud":{"info":{"dx":123,"scale":"huge","shadow":false}}})");
         Settings defaults;
         check(mixed.camera.magnification == defaults.camera.magnification && mixed.map.minimap && !mixed.map.rotate
-              && mixed.map.size == defaults.map.size && !mixed.inventory.sorting
+              && mixed.hud.minimap.scale == defaults.hud.minimap.scale && !mixed.inventory.sorting
               && mixed.inventory.restockThreshold == defaults.inventory.restockThreshold,
               "wrong section and field types keep defaults without discarding valid settings");
         check(mixed.bindings[static_cast<size_t>(input::Action::Sort)] == input::Chord{{input::Device::Key, 75}}
@@ -600,6 +664,29 @@ void settingsStoreTests() {
     }
     writeSettings(path, disabledTrading);
     check(!readSettings(path).inventory.repeatTrades, "disabled repeated trading survives saving");
+    {
+        // L-337: "Map size" merges into the minimap's HUD scale once.
+        using Map = Settings::Map;
+        check(Map::scaleFromLegacySize(100, 20) == 100, "the default map size keeps the scale");
+        check(Map::scaleFromLegacySize(100, 30) == 150 && Map::scaleFromLegacySize(150, 10) == 75,
+              "the new scale is the old one times size / 20");
+        check(Map::scaleFromLegacySize(110, 23) == 125, "the result rounds to the 5 % step");
+        check(Map::scaleFromLegacySize(100, 80) == 200 && Map::scaleFromLegacySize(100, 4) == 50,
+              "a size outside the old 10-50 % reads as its nearest end");
+        check(Map::scaleFromLegacySize(200, 50) == 200 && Map::scaleFromLegacySize(50, 10) == 50,
+              "the result stays within 50-200 %");
+        auto none = decodeSettings(R"({"hud":{"minimap":{"scale":120}},"map":{"minimap":true}})");
+        check(none.hud.minimap.scale == 120, "a file without map.size keeps its scale");
+        { std::ofstream file(path, std::ios::trunc); file << R"({"hud":{"minimap":{"scale":120}},"map":{"size":30}})"; }
+        auto converted = readSettings(path);
+        check(converted.hud.minimap.scale == 180, "a file with map.size converts on load");
+        writeSettings(path, converted);
+        std::ifstream file(path);
+        std::string saved{std::istreambuf_iterator<char>(file), {}};
+        file.close();
+        check(saved.find("\"size\"") == std::string::npos, "saving removes map.size");
+        check(readSettings(path).hud.minimap.scale == 180, "a converted file does not convert again");
+    }
     {
         Settings target;
         target.information.targetSchematic = false;

@@ -14,7 +14,6 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::HideOffhand: field = &value.visuals.hideOffhand; break;
     case Action::HideWeather: field = &value.visuals.hideWeather; break;
     case Action::HideParticles: field = &value.visuals.hideParticles; break;
-    case Action::HideBossBars: field = &value.visuals.hideBossBars; break;
     case Action::HideNausea: field = &value.visuals.hideNausea; break;
     case Action::HideWater: field = &value.visuals.hideWater; break;
     case Action::HideLava: field = &value.visuals.hideLava; break;
@@ -40,10 +39,11 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleDeathRestore: field = &value.inventory.deathRestore; break;
     case Action::ToggleHideEffects: field = &value.visuals.hideEffects; break;
     case Action::ToggleConnectedTextures: field = &value.visuals.connectedTextures; break;
+    case Action::ToggleBlockHighlight: field = &value.visuals.blockHighlight; break;
     case Action::ToggleDurabilityHud: field = &value.information.durabilityHud; break;
     case Action::ToggleInventoryHud: field = &value.information.inventoryHud; break;
     case Action::ToggleUsedSlots: field = &value.information.usedSlots; break;
-    case Action::ToggleChatPosition: field = &value.information.chatPosition; break;
+    case Action::ToggleGameHud: field = &value.information.gameHud; break;
     case Action::ToggleStatusEffects: field = &value.information.effectsHud; break;
     case Action::ToggleOffhandSlot: field = &value.information.offhandSlot; break;
     case Action::ToggleSaturation: field = &value.information.saturation; break;
@@ -52,6 +52,13 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleRepeatTrades: field = &value.inventory.repeatTrades; break;
     case Action::ToggleSkipServerPacks: field = &value.visuals.skipServerPacks; break;
     case Action::ToggleEnglishSearch: field = &value.inspection.englishSearch; break;
+    case Action::ToggleWorkPenalty: field = &value.inspection.workPenalty; break;
+    case Action::ToggleItemDetails: field = &value.inspection.itemDetails; break;
+    case Action::ToggleItemTooltip: field = &value.inspection.itemTooltip; break;
+    case Action::ToggleItemStew: field = &value.inspection.itemDetailsStew; break;
+    case Action::ToggleItemId: field = &value.inspection.itemDetailsId; break;
+    case Action::ToggleItemTags: field = &value.inspection.itemDetailsTags; break;
+    case Action::ToggleItemNbt: field = &value.inspection.itemDetailsNbt; break;
     case Action::ToggleAutomationStatus: field = &value.ui.automationStatus; break;
     case Action::ToggleRadar: field = &value.map.radar; break;
     case Action::ToggleMapMarks: field = &value.map.mapMarks; break;

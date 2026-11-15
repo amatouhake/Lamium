@@ -24,6 +24,7 @@
 #include "ui/Translations.h"
 #include <algorithm>
 #include <mutex>
+#include <unordered_map>
 #include <unordered_set>
 #ifdef LAMIUM_RESEARCH_TRACE
 #include "app/Runtime.h"
@@ -33,7 +34,7 @@ namespace lamium::ui {
 namespace {
 constexpr mce::Color white{1.f,1.f,1.f,1.f};
 mce::Color color(Rgb value) { return {value.r, value.g, value.b, 1.f}; }
-float currentScale = 1;
+float currentScale = 1, currentOpacity = 1;
 Font& defaultFont(MinecraftUIRenderContext& context) {
     return fontOf(context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default"));
 }
@@ -43,17 +44,52 @@ DrawScale::DrawScale(float scale) : previous(currentScale) {
     currentScale = std::isfinite(scale) && scale > 0 ? scale : 1;
 }
 DrawScale::~DrawScale() { currentScale = previous; }
+float drawOpacity() { return currentOpacity; }
+DrawOpacity::DrawOpacity(float opacity) : previous(currentOpacity) {
+    currentOpacity = std::isfinite(opacity) ? std::clamp(opacity, 0.f, 1.f) * previous : previous;
+}
+DrawOpacity::~DrawOpacity() { currentOpacity = previous; }
+namespace {
+// Characters the font measures 0 wide (TextFit.h, labelRuns): each is
+// measured once per font and remembered.
+Font const* quirkFont = nullptr;
+std::unordered_map<std::string, bool> zeroWide;
+bool zeroGlyph(Font& font, std::string_view glyph) {
+    if (quirkFont != &font) { quirkFont = &font; zeroWide.clear(); }
+    auto found = zeroWide.find(std::string(glyph));
+    if (found == zeroWide.end())
+        found = zeroWide.emplace(std::string(glyph), font.getLineLength(glyph, 1.0f, false) <= 0).first;
+    return found->second;
+}
+// The width such a character is owed: a full-width character's.
+float fullWidth(Font& font, float size) { return static_cast<float>(font.getLineLength("\xe4\xb8\xad", size, false)); }
+// A text's width with its zero-wide characters counted in.
+float measured(Font& font, std::string_view text, float size) {
+    float width = static_cast<float>(font.getLineLength(text, size, false));
+    if (std::none_of(text.begin(), text.end(), [](unsigned char ch) { return ch >= 0x80; })) return width;
+    auto zeros = zeroGlyphs(text, [&](std::string_view glyph) { return zeroGlyph(font, glyph); });
+    return zeros ? width + static_cast<float>(zeros) * fullWidth(font, size) : width;
+}
+}
 float textWidth(MinecraftUIRenderContext& context, std::string_view text) {
-    return defaultFont(context).getLineLength(text, 1.0f, false);
+    return measured(defaultFont(context), text, 1.0f);
 }
 float textWidthScaled(MinecraftUIRenderContext& context, std::string_view text, float size) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
-    return static_cast<float>(defaultFont(context).getLineLength(text, size, false));
+    return measured(defaultFont(context), text, size);
 }
 void fill(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
-    if (width <= 0 || height <= 0) return;
+    if (width <= 0 || height <= 0 || currentOpacity <= 0) return;
     float s = currentScale;
-    context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f));
+    context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f) * currentOpacity);
+    context.flushImages(white,1,HashedString{"ui_fillColor"});
+}
+void fills(MinecraftUIRenderContext& context, std::vector<ImageRect> const& rects, Rgb value, float opacity) {
+    if (rects.empty() || currentOpacity <= 0) return;
+    float s = currentScale, alpha = std::clamp(opacity,0.f,1.f) * currentOpacity;
+    for (auto const& r : rects)
+        if (r.w > 0 && r.h > 0)
+            context.fillRectangle(RectangleArea{r.x*s,(r.x+r.w)*s,r.y*s,(r.y+r.h)*s}, color(value), alpha);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
 }
 void frame(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
@@ -65,39 +101,44 @@ void frame(MinecraftUIRenderContext& context, float x, float y, float width, flo
 namespace {
 // With a Japanese locale, Latin letters and digits are drawn from glyphs that sit
 // lower than kana and kanji on the same line. Raise those runs to share the line.
+// Japanese only: there a run drawn on its own keeps the line's font. In Chinese it
+// gets the pixel font, so a raise changes its shape and width as well (L-319).
 bool japaneseLocale() { return translations::japanese(*getI18n().getCurrentLanguage()->mCode); }
 float latinRaise() {
     auto locale = getI18n().getCurrentLanguage();
-    return translations::japanese(*locale->mCode) ? 1.5f : 0.f;
+    return translations::japanese(*locale->mCode) ? 1.f : 0.f;
 }
 // The engine shadow sits one GUI unit away, which reads as doubled on dense
 // Japanese lines; Lamium draws its own, closer copy instead.
 float const labelShadowOffset = .5f;
 void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, float width, std::string text, Rgb value,
              ::ui::TextAlignment align, float size) {
+    if (currentOpacity <= 0) return;
     float s = currentScale;
     TextMeasureData const measure{size*s, 0.0f, false, false, false, align};
     CaretMeasureData const caret{-1, false};
-    context.drawText(font, RectangleArea{x*s,(x+width)*s,y*s,(y+14*size)*s}, std::move(text), color(value), size*s, align,
+    // The text's opacity goes in the color: the next argument is its size.
+    mce::Color ink = color(value);
+    ink.a = currentOpacity;
+    context.drawText(font, RectangleArea{x*s,(x+width)*s,y*s,(y+14*size)*s}, std::move(text), ink, size*s, align,
                      measure, caret);
 }
 }
 float boxTextInset() { return japaneseLocale() ? 0.f : 1.f; }
 float textStroke() { return japaneseLocale() ? .5f : 1.f; }
 float shapeTextDrop() { return japaneseLocale() ? 1.f : 0.f; }
+float rowTextLift() {
+    auto const code = *getI18n().getCurrentLanguage()->mCode;
+    return translations::localeFor(code) == translations::Locale::English ? 0.f : 1.f;
+}
 float labelWidth(MinecraftUIRenderContext& context, std::string_view text, float size) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
     auto& font = defaultFont(context);
     bool latin = std::any_of(text.begin(), text.end(), [](unsigned char ch) { return ch < 0x80 && ch != ' '; });
-    if (!latinRaise() || !latin) return static_cast<float>(font.getLineLength(text, size, false));
+    if (!latinRaise() || !latin) return measured(font, text, size);
     float total = 0;
-    for (size_t start = 0; start < text.size();) {
-        bool ascii = static_cast<unsigned char>(text[start]) < 0x80;
-        size_t end = start;
-        while (end < text.size() && (static_cast<unsigned char>(text[end]) < 0x80) == ascii) ++end;
-        total += static_cast<float>(font.getLineLength(text.substr(start, end - start), size, false));
-        start = end;
-    }
+    for (auto const& run : labelRuns(text, [&](std::string_view glyph) { return zeroGlyph(font, glyph); }))
+        total += measured(font, run.text, size);
     return total;
 }
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, Rgb value, Align align) {
@@ -107,13 +148,15 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
                  Rgb value, Align align, bool shadow) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
     auto& font = defaultFont(context);
-    auto measure = [&](std::string_view part) { return static_cast<float>(font.getLineLength(part, size, false)); };
+    auto measure = [&](std::string_view part) { return measured(font, part, size); };
     text = fitLabel(text, width, measure);
     if (text.empty()) return;
+    auto parts = labelRuns(text, [&](std::string_view glyph) { return zeroGlyph(font, glyph); });
+    bool zeros = std::any_of(parts.begin(), parts.end(), [](LabelRun const& run) { return run.kind == RunKind::Zero; });
     auto paint = [&](float px, float py, Rgb ink) {
         float raise = latinRaise() * size;
         bool latin = std::any_of(text.begin(), text.end(), [](unsigned char ch) { return ch < 0x80 && ch != ' '; });
-        if (!raise || !latin) {
+        if ((!raise || !latin) && !zeros) {
             auto native = align == Align::Right ? ::ui::TextAlignment::Right
                 : align == Align::Center ? ::ui::TextAlignment::Center : ::ui::TextAlignment::Left;
             drawRun(context, font, px, py, width, text, ink, native, size);
@@ -123,25 +166,23 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
         // can be raised. Right and center lines are laid out from the anchored
         // right edge with the engine's own right alignment, so a run's measured
         // width being slightly off stays between runs instead of moving the edge
-        // (positioning runs left to right was visibly ragged).
-        struct Run { std::string_view text; bool ascii; float width; };
+        // (positioning runs left to right was visibly ragged). A zero-wide
+        // character is drawn one width left of the pen: from the left its pen
+        // starts a width further right, and right alignment already ends it
+        // at the run's right edge.
+        struct Run { std::string_view text; bool ascii, zero; float width; };
         std::vector<Run> runs;
         float total = 0;
-        for (size_t start = 0; start < text.size();) {
-            bool ascii = static_cast<unsigned char>(text[start]) < 0x80;
-            size_t end = start;
-            while (end < text.size() && (static_cast<unsigned char>(text[end]) < 0x80) == ascii) ++end;
-            std::string_view run(text.data() + start, end - start);
-            float runWidth = measure(run);
-            runs.push_back({run, ascii, runWidth});
+        for (auto const& part : parts) {
+            float runWidth = measure(part.text);
+            runs.push_back({part.text, part.kind == RunKind::Ascii, part.kind == RunKind::Zero, runWidth});
             total += runWidth;
-            start = end;
         }
         if (align == Align::Left) {
             float cursor = px;
             for (auto const& run : runs) {
-                drawRun(context, font, cursor, run.ascii ? py - raise : py, run.width + 2, std::string(run.text), ink,
-                        ::ui::TextAlignment::Left, size);
+                drawRun(context, font, run.zero ? cursor + run.width : cursor, run.ascii ? py - raise : py, run.width + 2,
+                        std::string(run.text), ink, ::ui::TextAlignment::Left, size);
                 cursor += run.width;
             }
             return;
@@ -163,8 +204,7 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
 void paragraph(MinecraftUIRenderContext& context, float x, float y, float width, std::string_view text, size_t maxLines,
                Rgb value) {
     auto& font = defaultFont(context);
-    auto lines = wrapLabel(text, width, maxLines,
-        [&](std::string_view part) { return font.getLineLength(part, 1.0f, false); });
+    auto lines = wrapLabel(text, width, maxLines, [&](std::string_view part) { return measured(font, part, 1.0f); });
     for (auto& line : lines) {
         label(context, x, y, width, std::move(line), value);
         y += 12;
@@ -172,7 +212,7 @@ void paragraph(MinecraftUIRenderContext& context, float x, float y, float width,
 }
 size_t paragraphLines(MinecraftUIRenderContext& context, float width, std::string_view text, size_t maxLines) {
     auto& font = defaultFont(context);
-    return wrapLabel(text, width, maxLines, [&](std::string_view part) { return font.getLineLength(part, 1.0f, false); }).size();
+    return wrapLabel(text, width, maxLines, [&](std::string_view part) { return measured(font, part, 1.0f); }).size();
 }
 void panel(MinecraftUIRenderContext& context, float left, float top, float width, float height, float opacity) {
     fill(context,left,top,width,height,palette::panel,opacity);
@@ -192,14 +232,14 @@ void rowBackground(MinecraftUIRenderContext& context, float left, float top, flo
 }
 void images(MinecraftUIRenderContext& context, std::string_view texture, std::vector<ImageRect> const& rects,
             float opacity) {
-    if (rects.empty()) return;
+    if (rects.empty() || currentOpacity <= 0) return;
     auto pointer = context.getTexture(ResourceLocation(Core::PathView(texture)), false);
     std::shared_ptr<BedrockTextureData const> const& data = pointer.mClientTexture;
     if (!data) return;
     for (auto const& r : rects)
         context.drawImage(*data->mClientTexture, glm::vec2{r.x, r.y} * currentScale, glm::vec2{r.w, r.h} * currentScale, glm::vec2{0, 0},
                           glm::vec2{1, 1}, false);
-    context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
+    context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});
 }
 namespace {
 // The ui loader answers an unknown path with its missing-texture placeholder,
@@ -229,11 +269,12 @@ std::shared_ptr<BedrockTextureData const> iconTexture(MinecraftUIRenderContext& 
 }
 void imageUv(MinecraftUIRenderContext& context, std::string_view texture, ImageRect rect, float u0, float v0, float u1,
              float v1, float opacity, Rgb tint) {
+    if (currentOpacity <= 0) return;
     auto data = iconTexture(context, texture);
     if (!data) return;
     context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale,
                       glm::vec2{u0, v0}, glm::vec2{u1 - u0, v1 - v0}, false);
-    context.flushImages(mce::Color{tint.r, tint.g, tint.b, 1.f}, std::clamp(opacity, 0.f, 1.f),
+    context.flushImages(mce::Color{tint.r, tint.g, tint.b, 1.f}, std::clamp(opacity, 0.f, 1.f) * currentOpacity,
                         HashedString{"ui_textured_and_glcolor"});
 }
 bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& texture, ImageRect rect, float opacity) {
@@ -245,18 +286,21 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
     if (!data) return false;
     IsMissingTexture missing = data->mIsMissingTexture;
     if (missing == IsMissingTexture::Yes) return false;
+    if (currentOpacity <= 0) return true;
     context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale, glm::vec2{u, v},
                       glm::vec2{uSpan, vSpan}, false);
-    context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
+    context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});
     return true;
 }
-void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on) {
-    fill(context,x,y,switchWidth,switchHeight,on ? palette::accentDeep : palette::off);
-    frame(context,x,y,switchWidth,switchHeight,on ? palette::accent : Rgb{.18f,.18f,.19f});
-    float knob = switchHeight - 2;
-    float knobX = on ? x + switchWidth - 1 - knob : x + 1;
+void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on, float scale) {
+    if (!(scale > 0)) scale = 1;
+    float const w = switchWidth * scale, h = switchHeight * scale;
+    fill(context,x,y,w,h,on ? palette::accentDeep : palette::off);
+    frame(context,x,y,w,h,on ? palette::accent : palette::controlEdge);
+    float knob = h - 2;
+    float knobX = on ? x + w - 1 - knob : x + 1;
     fill(context,knobX,y+1,knob,knob,on ? palette::knobOn : palette::knobOff);
-    fill(context,knobX,y+knob-1,knob,2,on ? Rgb{.71f,.71f,.72f} : Rgb{.6f,.61f,.62f});
+    fill(context,knobX,y+1+knob-2*scale,knob,2*scale,on ? palette::gripOn : palette::gripOff);
 }
 void slider(MinecraftUIRenderContext& context, float x, float y, float width, float fraction, bool active) {
     if (width < sliderKnobWidth + 2) return;
@@ -266,11 +310,11 @@ void slider(MinecraftUIRenderContext& context, float x, float y, float width, fl
     float split = knobX + sliderKnobWidth / 2;
     fill(context,x,trackY,split-x,sliderTrackHeight,palette::accentDeep);
     fill(context,split,trackY,x+width-split,sliderTrackHeight,palette::off);
-    frame(context,x,trackY,width,sliderTrackHeight,Rgb{.18f,.18f,.19f});
+    frame(context,x,trackY,width,sliderTrackHeight,palette::controlEdge);
     fill(context,x+1,trackY,split-x-1,1,palette::accent);
     fill(context,knobX,y,sliderKnobWidth,sliderKnobHeight,active ? palette::white : palette::knobOn);
-    fill(context,knobX,y+sliderKnobHeight-2,sliderKnobWidth,2,Rgb{.6f,.61f,.62f});
-    frame(context,knobX,y,sliderKnobWidth,sliderKnobHeight,Rgb{.18f,.18f,.19f});
+    fill(context,knobX,y+sliderKnobHeight-2,sliderKnobWidth,2,palette::gripOff);
+    frame(context,knobX,y,sliderKnobWidth,sliderKnobHeight,palette::controlEdge);
 }
 void chevron(MinecraftUIRenderContext& context, float x, float y, bool expanded, Rgb value) {
     // A 5-unit triangle: pointing right when collapsed, down when expanded.
@@ -334,7 +378,7 @@ float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, 
         if (capWidth < 8) break;
         fill(context,x+used,y,capWidth,capHeight,filled ? palette::warning : palette::keyFill);
         frame(context,x+used,y,capWidth,capHeight,edge);
-        fill(context,x+used+1,y+capHeight-2,capWidth-2,1,Rgb{0,0,0},filled ? .25f : .5f);
+        fill(context,x+used+1,y+capHeight-2,capWidth-2,1,palette::shade,filled ? .25f : .5f);
         // Dark text on the filled cap would smear with the font's shadow.
         labelScaled(context,x+used+3,y+boxTextInset(),capWidth-5,keys[i],1.f,ink,Align::Left,!filled);
         used += capWidth;

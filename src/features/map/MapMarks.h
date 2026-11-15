@@ -9,20 +9,17 @@
 // overlay ShapeId), never by a list position, so adding or removing another
 // entry cannot move a selection or an open menu to a different one.
 namespace lamium::map {
-enum class MarkLayer : std::uint8_t { Shape, Placement, Waypoint, Death };
+enum class MarkLayer : std::uint8_t { Shape, Placement, Waypoint };
 struct MarkKey {
     MarkLayer layer = MarkLayer::Waypoint;
     std::uint64_t id = 0;
     bool operator==(MarkKey const&) const = default;
 };
-// There is one death point at most; it has a fixed key.
-inline constexpr MarkKey deathKey{MarkLayer::Death, 0};
 inline constexpr MarkKey waypointKey(std::uint64_t id) { return {MarkLayer::Waypoint, id}; }
 inline constexpr MarkKey placementKey(std::uint64_t id) { return {MarkLayer::Placement, id}; }
 inline constexpr MarkKey shapeKey(std::uint64_t id) { return {MarkLayer::Shape, id}; }
-inline constexpr bool pointLayer(MarkLayer layer) { return layer == MarkLayer::Waypoint || layer == MarkLayer::Death; }
-// The world map's layer switches (L-146): which marks it draws. The death
-// point goes with waypoints.
+inline constexpr bool pointLayer(MarkLayer layer) { return layer == MarkLayer::Waypoint; }
+// The world map's layer switches (L-146): which marks it draws.
 struct LayerSwitches {
     bool waypoints = true, schematics = true, shapes = true;
 };
@@ -47,8 +44,8 @@ enum class Blocked { No, HeadingOff, MinimapOnly };
 inline constexpr Blocked worldMapBlocked(bool heading, int shownOn) {
     return !heading ? Blocked::HeadingOff : !onWorldMap(shownOn) ? Blocked::MinimapOnly : Blocked::No;
 }
-// The world map's side panel lists one layer at a time (L-204): 0 waypoints
-// and the death point, 1 schematic placements, 2 shapes.
+// The world map's side panel lists one layer at a time (L-204): 0 waypoints,
+// 1 schematic placements, 2 shapes.
 inline constexpr int listKind(MarkLayer layer) { return pointLayer(layer) ? 0 : layer == MarkLayer::Placement ? 1 : 2; }
 inline constexpr int clampListKind(int kind) { return kind < 0 || kind > 2 ? 0 : kind; }
 

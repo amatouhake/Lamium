@@ -12,6 +12,10 @@
 #include "ll/api/service/TargetedBedrock.h"
 #include "features/camera/CameraSessions.h"
 #include "features/information/InfoHud.h"
+#include "features/information/TargetCard.h"
+#include "features/information/TargetInfo.h"
+#include "features/schematic/RayCells.h"
+#include "mc/world/level/dimension/Dimension.h"
 #include "features/information/PlayerList.h"
 #include "features/inventory/Inventory.h"
 #include "features/inventory/game/ScreenTracker.h"
@@ -20,6 +24,9 @@
 #include "features/map/WaypointSession.h"
 #include "features/map/WaypointMarkers.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/world/level/BlockSource.h"
+#include "mc/world/level/block/Block.h"
+#include "mc/world/phys/HitResult.h"
 #include "ui/SettingsScreen.h"
 #include "ui/SettingsRows.h"
 #include "ui/Toast.h"
@@ -41,16 +48,31 @@ std::optional<std::string> autoModeText(Settings const& value, input::Action act
     return interaction::autoModeText(attack ? value.interaction.attackMode : value.interaction.useMode,
         attack ? value.interaction.attackHeldOnly : value.interaction.useHeldOnly);
 }
+std::optional<std::string_view> gameHudPartOption(input::Action action) {
+    switch (action) {
+    case input::Action::ToggleChatPosition: return "information.chatPosition";
+    case input::Action::TogglePaperDollPosition: return "information.paperDollPosition";
+    case input::Action::ToggleScoreboardPosition: return "information.scoreboardPosition";
+    case input::Action::HideBossBars: return "information.bossBarPosition";
+    default: return std::nullopt;
+    }
+}
 std::string toggleFeatureName(input::Action action) {
     auto key = ui::toggleToastKey(action);
-    return key.empty() ? std::string(input::actions[static_cast<size_t>(action)].feature) : ui::translated(key);
+    auto name = key.empty() ? std::string(input::actions[static_cast<size_t>(action)].feature) : ui::translated(key);
+    // A child switch is named under its feature, with the label the settings screen gives it. ASCII between them:
+    // another sign changes the font in English and sits low in Japanese.
+    // The mode keys are named like the feature's own: "Auto Attack: Hold", not "Auto Attack > Mode: Hold".
+    if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode) return name;
+    for (auto const& option : settings::options)
+        if (ui::optionAction(option.id) == action) return name + " > " + ui::splitLabel(ui::translated(option.label)).name;
+    return name;
 }
 bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
     (void)client;
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
     if (action == input::Action::HideWeather) return value.visuals.hideWeather;
     if (action == input::Action::HideParticles) return value.visuals.hideParticles;
-    if (action == input::Action::HideBossBars) return value.visuals.hideBossBars;
     if (action == input::Action::HideNausea) return value.visuals.hideNausea;
     if (action == input::Action::HideWater) return value.visuals.hideWater;
     if (action == input::Action::HideLava) return value.visuals.hideLava;
@@ -68,6 +90,12 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     if (action == input::Action::Zoom) return CameraSessions::instance().wanted(CameraSessions::Session::Zoom);
     if (action == input::Action::Freelook) return CameraSessions::instance().wanted(CameraSessions::Session::Freelook);
     if (action == input::Action::FreeCamera) return CameraSessions::instance().wanted(CameraSessions::Session::FreeCamera);
+    // A key on a child switch's row speaks for that switch, not for its feature's.
+    for (auto const& option : settings::options)
+        if (ui::optionAction(option.id) == action) {
+            auto current = option.read(value);
+            if (auto state = std::get_if<bool>(&current)) return *state;
+        }
     auto id = input::actions[static_cast<size_t>(action)].feature;
     for (auto const& feature : ui::features) {
         if (feature.id != id || feature.toggle.empty()) continue;
@@ -81,7 +109,8 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
 void emitToggleToast(IClientInstance& client, input::Action action, Settings const& value) {
     auto name = toggleFeatureName(action);
     if (auto mode = autoModeText(value, action)) name += ": " + *mode;
-    if (ui::effectsPaused(input::actions[static_cast<size_t>(action)].feature,value))
+    // Only a child's key: the feature's own key is the main switch.
+    if (ui::shownOnOption(action) && ui::effectsPaused(input::actions[static_cast<size_t>(action)].feature,value))
         name += " (" + ui::translated("effectsPaused") + ")";
     bool on = toggleState(client, value, action);
     auto level = pausedLevel(input::actions[static_cast<size_t>(action)].feature);
@@ -95,7 +124,6 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
         switch (action) {
         case input::Action::HideWeather: any = stopped(Id::HideWeather); break;
         case input::Action::HideParticles: any = stopped(Id::HideParticles); break;
-        case input::Action::HideBossBars: any = stopped(Id::HideBossBars); break;
         case input::Action::HideNausea: any = stopped(Id::HideNausea); break;
         case input::Action::HidePortal: any = stopped(Id::HidePortal); break;
         case input::Action::HideWater: case input::Action::HideLava: case input::Action::HideDistanceFog:
@@ -104,6 +132,18 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
         default:
             for (auto const& d : capabilities::definitions)
                 if (d.feature == "hideEffects" && paused::requested(d.id, value) && stopped(d.id)) any = true;
+        }
+        level = any ? paused::Level::Partly : paused::Level::No;
+    }
+    // The same for the game HUD's parts: the chat's toggle speaks for the chat.
+    if (input::actions[static_cast<size_t>(action)].feature == "gameHud") {
+        using capabilities::Id;
+        auto stopped = [](Id id) { return capabilities::registry().status(id).paused(); };
+        bool any = false;
+        switch (action) {
+        default:
+            for (auto const& d : capabilities::definitions)
+                if (d.feature == "gameHud" && paused::requested(d.id, value) && stopped(d.id)) any = true;
         }
         level = any ? paused::Level::Partly : paused::Level::No;
     }
@@ -196,6 +236,10 @@ void executeAction(IClientInstance& client, input::Action action) {
         return;
     }
     if (action == input::Action::OpenCalculator) { ui::openCalculator(client); return; }
+    if (action == input::Action::OpenBlockHighlight) { ui::openBlockHighlight(client); return; }
+    if (action == input::Action::OpenEnchantOrder) { ui::openEnchantOrder(client); return; }
+    if (action == input::Action::OpenSavedData) { ui::openSavedData(client); return; }
+    if (action == input::Action::OpenGameLanguage) { ui::openGameLanguage(client); return; }
     if (action == input::Action::OpenWorldMap) { ui::openWorldMap(client); return; }
     if (action == input::Action::FakeOffhandUse) { inventory::fakeOffhand::press(client); return; }
     if (action == input::Action::ElytraSwapKey) { interaction::elytraSwap::press(); return; }
@@ -278,11 +322,71 @@ void executeAction(IClientInstance& client, input::Action action) {
     }
     if (action == input::Action::MinimapView) {
         if (!value.map.minimap) return;
-        auto next = map::cycleForce(map::viewForceOf(value.map.caveView));
-        value.map.caveView = static_cast<int>(next);
+        value.map.caveView = map::nextCaveView(value.map.caveView);
+        auto next = map::viewForceOf(value.map.caveView);
         if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save minimap view"); return; }
         ui::showMessageToast(ui::translated(next == map::ViewForce::Cave ? "mapView.cave"
             : next == map::ViewForce::Surface ? "mapView.surface" : "mapView.auto"));
+        return;
+    }
+    if (action == input::Action::MinimapNetherView) {
+        if (!value.map.minimap) return;
+        value.map.netherView = map::nextNetherView(value.map.netherView);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save minimap Nether view"); return; }
+        static constexpr char const* toasts[] = {"mapNetherView.same", "mapNetherView.auto", "mapNetherView.surface", "mapNetherView.cave"};
+        ui::showMessageToast(ui::translated(toasts[value.map.netherView]));
+        return;
+    }
+    if (action == input::Action::HighlightAimedBlock) {
+        auto* player = client.getLocalPlayer();
+        std::optional<BlockPos> aimed;
+        if (auto view = player ? CameraSessions::instance().detachedViewRay(client) : std::nullopt) {
+            // A detached Freelook or FreeCamera view owns the crosshair (L-230):
+            // take the block it looks at, as far as the target card reaches.
+            auto const& info = value.information;
+            auto const& height = player->getDimension().mHeightRange;
+            double reach = schematic::reachInHeight(view->y, view->dy,
+                information::targetReach(info.targetDistance, info.targetFullRange, client.getOptions().getViewDistanceChunks()),
+                height->mMin, height->mMax);
+            auto target = information::collectTargetInfo(client, false,
+                information::ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach, true}, false);
+            if (target && target->blockPosition) aimed = BlockPos{target->blockPosition->x, target->blockPosition->y, target->blockPosition->z};
+        } else if (player) {
+            auto const& hit = client.getLatestHitResult();
+            if (hit.mType == HitResultType::Tile && !hit.mIndirectHit) aimed = hit.mBlock;
+        }
+        if (!aimed) {
+            ui::showMessageToast(ui::translated("highlight.noBlock"));
+            return;
+        }
+        auto const& block = player->getDimensionBlockSource().getBlock(*aimed);
+        auto change = visuals::highlight::toggle(value.visuals.highlightBlocks, block.getTypeName());
+        if (change == visuals::highlight::Change::Invalid) return;
+        if (change == visuals::highlight::Change::Full) { ui::showMessageToast(ui::translated("highlight.full")); return; }
+        // Adding a type means wanting to see it.
+        if (change == visuals::highlight::Change::Added) value.visuals.blockHighlight = true;
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save block highlight list"); return; }
+        ui::showMessageToast(ui::translated(change == visuals::highlight::Change::Added ? "highlight.added" : "highlight.removed",
+                                            block.buildDescriptionName()));
+        return;
+    }
+    // A game HUD part's key steps it through Standard, Placed and Hidden (L-334).
+    if (auto part = gameHudPartOption(action)) {
+        auto const* option = settings::find(*part);
+        option->adjust(value, 1);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save the game HUD part"); return; }
+        auto choice = std::get<settings::ChoiceValue>(option->read(value)).label;
+        auto text = ui::translated("feature.gameHud") + " > "
+            + ui::translated(std::string(option->label), ui::translated(std::string(choice)));
+        if (!value.information.gameHud) text += " (" + ui::translated("effectsPaused") + ")";
+        ui::showMessageToast(text);
+        return;
+    }
+    if (action == input::Action::CycleToolDrop) {
+        settings::find("inventory.toolSwitchDrop")->adjust(value,1);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save drop priority"); return; }
+        auto label = settings::toolDropLabels[static_cast<size_t>(value.inventory.toolSwitchDrop) % settings::toolDropLabels.size()];
+        ui::showMessageToast(ui::translated("toolDrop.toast", ui::translated(std::string(label))));
         return;
     }
     if (action == input::Action::CycleBreakingMode) {

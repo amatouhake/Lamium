@@ -1,3 +1,4 @@
+#include "ui/DataNotice.h"
 #include "ui/WaypointsView.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
@@ -56,22 +57,15 @@ void refreshWaypoints() {
         z = feet.z;
     }
     waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, z);
-    waypointRows.retain([](map::MarkKey const& key) {
-        return key.layer == map::MarkLayer::Death ? waypointSet.death.has_value() : indexOfId(waypointSet.waypoints, key.id) >= 0;
-    });
+    waypointRows.retain([](map::MarkKey const& key) { return indexOfId(waypointSet.waypoints, key.id) >= 0; });
     syncSelected();
 }
-int waypointRowCount() { return static_cast<int>(waypointList.size()) + (waypointSet.death ? 1 : 0); }
-// The selection a list row stands for: the death point first, if any.
+int waypointRowCount() { return static_cast<int>(waypointList.size()); }
+// The selection a list row stands for.
 std::optional<map::MarkKey> waypointAtRow(int row) {
-    if (waypointSet.death) {
-        if (row == 0) return map::deathKey;
-        --row;
-    }
     if (row < 0 || row >= static_cast<int>(waypointList.size())) return std::nullopt;
     return map::waypointKey(waypointSet.waypoints[waypointList[static_cast<size_t>(row)]].id);
 }
-bool deathSelected() { return waypointSelected == map::deathKey; }
 map::Waypoint const* selectedWaypoint() {
     if (!waypointSelected || waypointSelected->layer != map::MarkLayer::Waypoint) return nullptr;
     int index = indexOfId(waypointSet.waypoints, waypointSelected->id);
@@ -118,6 +112,7 @@ void addWaypointHere() {
     map::Waypoint w;
     w.x = place->x; w.y = place->y; w.z = place->z; w.dimension = place->dimension;
     w.color = map::nextColor(waypointSet.lastColor);
+    w.temporary = waypointSet.lastTemporary; // as the key and map prompts start
     w.name = map::defaultWaypointName(waypointSet.waypoints, [](int n) { return translated("waypoint.defaultName", n); });
     if (auto id = map::waypoints::add(w)) {
         refreshWaypoints();
@@ -149,7 +144,7 @@ void activateWaypointField(int index, int part) {
         }
         changeSelected([&](map::Waypoint& t) {
             int& c = index == 0 ? t.x : index == 1 ? t.y : t.z;
-            c = std::clamp(c + direction, -map::coordinateLimit, map::coordinateLimit);
+            c = std::clamp(c + direction * (screen::heldShift() ? 10 : 1), -map::coordinateLimit, map::coordinateLimit);
         });
         return;
     }
@@ -183,7 +178,6 @@ void deleteSelectedWaypoint() {
     int row = 0;
     for (int i = 0; i < waypointRowCount(); ++i) if (waypointAtRow(i) == selection) row = i;
     bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        if (selection->layer == map::MarkLayer::Death) { set.death.reset(); return true; }
         int index = indexOfId(set.waypoints, selection->id);
         if (index < 0) return false;
         set.waypoints.erase(set.waypoints.begin() + index);
@@ -195,10 +189,8 @@ void deleteSelectedWaypoint() {
     int rowsLeft = waypointRowCount();
     selectWaypoint(rowsLeft ? waypointAtRow(std::min(row, rowsLeft - 1)) : std::nullopt);
 }
-// Ctrl + click toggles a row, Shift + click takes a range. Only waypoints take
-// part: the death point has no switch and is kept or deleted on its own.
+// Ctrl + click toggles a row, Shift + click takes a range.
 void pickRows(map::MarkKey const& value, bool range) {
-    if (waypointSelected == map::deathKey) waypointRows.clear();
     if (range) {
         std::vector<map::MarkKey> order;
         order.reserve(waypointList.size());
@@ -241,24 +233,19 @@ void deleteSelectedRows() {
     selectWaypoint(std::nullopt);
     refreshWaypoints();
 }
-void keepDeathPoint() {
-    if (!waypointSet.death) return;
-    auto death = *waypointSet.death;
-    map::Waypoint w{translated("waypoint.deathName"), map::nextColor(waypointSet.lastColor), death.x, death.y, death.z,
-                    death.dimension, true};
-    bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        set.waypoints.push_back(w);
-        set.lastColor = w.color;
-        set.death.reset();
-        return true;
-    });
-    if (!saved) { screen::setMessage(translated("waypoint.saveError")); return; }
-    screen::clearMessage();
-    refreshWaypoints();
-    if (!waypointSet.waypoints.empty()) selectWaypoint(map::waypointKey(waypointSet.waypoints.back().id));
-}
 void handleWaypointClick(float x, float y, bool right) {
     screen::finishEditing();
+    // A right click steps a stepper down and presses nothing else (L-346).
+    if (right) {
+        if (auto hit = waypointsDisplayed.hit(x, y); hit.zone == ShapeZone::Field) activateWaypointField(hit.index, -1);
+        return;
+    }
+    if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
+        if (pressed == data_notice::Pressed::Open) screen::showSavedData();
+        else refresh();
+        if (auto done = data_notice::takeResult()) done->warns ? screen::setMessage(done->text) : screen::setInfo(done->text);
+        return;
+    }
     if (!right && screen::pressScrollbar(waypointsDisplayed, waypointListFirst, x, y)) return;
     if (!waypointsDocked && screen::navClick(x, y)) return;
     auto hit = waypointsDisplayed.hit(x, y);
@@ -280,7 +267,7 @@ void handleWaypointClick(float x, float y, bool right) {
             refreshWaypoints();
             return;
         }
-        if (!right && value && value->layer == map::MarkLayer::Waypoint && (screen::heldCtrl() || screen::heldShift())) {
+        if (value && (screen::heldCtrl() || screen::heldShift())) {
             pickRows(*value, screen::heldShift());
             return;
         }
@@ -314,7 +301,7 @@ void handleWaypointClick(float x, float y, bool right) {
             else deleteSelectedRows();
             return;
         }
-        if (hit.index == 0) { if (deathSelected()) keepDeathPoint(); return; }
+        if (hit.index == 0) return;
         if (!waypointSelected) return;
         // A temporary waypoint goes on the first click (L-261).
         if (auto const* w = selectedWaypoint(); !waypointDeleteArmed && !(w && w->temporary)) { waypointDeleteArmed = true; return; }
@@ -328,7 +315,8 @@ void handleWaypointKey(int key) {
         switch (key) {
         case 0x08: if (waypointNameInput.backspace()) waypointNameDirty = true; break;
         case 0x41: if (screen::heldCtrl()) waypointNameInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -336,7 +324,8 @@ void handleWaypointKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -363,7 +352,6 @@ Rgb waypointRgb(int color) {
     auto c = map::waypointColors[static_cast<size_t>(map::clampColor(color))];
     return {map::channel(c, 0) / 255.f, map::channel(c, 1) / 255.f, map::channel(c, 2) / 255.f};
 }
-constexpr Rgb deathRgb{230 / 255.f, 46 / 255.f, 46 / 255.f};
 // Small pixel glyphs for list rows and the editor.
 void drawDiamondGlyph(MinecraftUIRenderContext& context, float cx, float cy, int size, Rgb color, float opacity = 1) {
     auto rows = map::diamondRows(size);
@@ -371,38 +359,35 @@ void drawDiamondGlyph(MinecraftUIRenderContext& context, float cx, float cy, int
     for (size_t i = 0; i < rows.size(); ++i)
         fill(context, cx - rows[i] - .5f, top + i, 2.f * rows[i] + 1, 1, color, opacity);
 }
-void drawCrossGlyph(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
-    for (int i = -2; i <= 2; ++i) {
-        fill(context, cx + i - .5f, cy + i - .5f, 1, 1, color);
-        fill(context, cx + i - .5f, cy - i - .5f, 1, 1, color);
+// A death's waypoint (L-328): a cross of `reach` units each way, `thick` wide.
+void drawCrossGlyph(MinecraftUIRenderContext& context, float cx, float cy, Rgb color, int reach = 2, float thick = 1,
+                    float opacity = 1) {
+    for (int i = -reach; i <= reach; ++i) {
+        fill(context, cx + i - thick / 2, cy + i - thick / 2, thick, thick, color, opacity);
+        fill(context, cx + i - thick / 2, cy - i - thick / 2, thick, thick, color, opacity);
     }
 }
 std::string waypointDescription() {
     if (severalSelected()) return translated("waypoint.selectedCount", waypointRows.keys.size());
-    if (deathSelected() && waypointSet.death) return translated("waypoint.deathNote");
     auto const* w = selectedWaypoint();
-    if (!w) return translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty" : "waypoint.selectHint");
+    if (!w) return translated(waypointSet.waypoints.empty() ? "waypoint.empty" : "waypoint.selectHint");
     if (editingWaypointField >= 0) return translated("integerRange", -map::coordinateLimit, map::coordinateLimit);
     if (w->dimension != screen::playerDimension()) return w->name + ": " + translated("waypoint.elsewhere");
     return w->name + ": " + translated(w->visible ? "waypoint.shownState" : "waypoint.hiddenState");
 }
 void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer) {
+    if (l.noticeHeight > 0)
+        data_notice::draw(context, l.listLeft + ShapesLayout::pad, l.noticeTop + 2, l.listWidth - 2 * ShapesLayout::pad,
+            data_notice::Kind::Waypoints, pointer);
     auto const preferences = Runtime::instance().preferences();
     auto hover = l.hit(pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("waypoint.showAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.map.waypoints);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(waypointsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawToolHeader(context,l,translated("waypoint.showAll"),preferences.map.waypoints,waypointsDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // List pane.
     float listRight = l.listLeft + l.listWidth;
-    drawSmallButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("waypoint.addHere"),
-        over(ShapeZone::NewShape),palette::accentDeep,palette::accent);
+    drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("waypoint.addHere"),
+        over(ShapeZone::NewShape),ButtonKind::Primary);
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
     float nameX = l.listLeft + ShapesLayout::pad + 14;
     float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
@@ -419,73 +404,62 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
         rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && waypointRows.contains(*value),over(ShapeZone::ListRow,i));
         float gx = l.listLeft + ShapesLayout::pad + 4, gy = y + ShapesLayout::rowHeight / 2;
-        if (value == map::deathKey) {
-            auto const& d = *waypointSet.death;
-            bool here = d.dimension == screen::playerDimension();
-            drawCrossGlyph(context, gx, gy, deathRgb);
-            label(context,nameX,y+3,distanceX-nameX-4,translated("waypoint.death"),here ? palette::text : palette::faint);
-            label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(d.x, d.z)) : screen::dimensionName(d.dimension),
-                palette::dim,Align::Right);
-            continue;
-        }
         int index = value ? indexOfId(waypointSet.waypoints, value->id) : -1;
         if (index < 0) continue;
         auto const& w = waypointSet.waypoints[static_cast<size_t>(index)];
         bool here = w.dimension == screen::playerDimension();
-        drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
-        if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), Rgb{0,0,0}, .85f); // hollow: temporary (L-261)
+        if (w.death) drawCrossGlyph(context, gx, gy, waypointRgb(w.color), 2, 1, w.visible && here ? 1.f : .35f);
+        else {
+            drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
+            if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), palette::shade, .85f); // hollow: temporary (L-261)
+        }
         label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
         label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.z)) : screen::dimensionName(w.dimension),
             palette::dim,Align::Right);
         toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
-    drawListScrollbar(context,l);
+    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
     // Editor pane.
     float dx = l.detailLeft + ShapesLayout::pad, dw = l.detailWidth - 2 * ShapesLayout::pad;
     auto const* w = selectedWaypoint();
-    if (deathSelected() && waypointSet.death) {
-        auto const& d = *waypointSet.death;
-        drawCrossGlyph(context, dx + 5, l.nameY + 7, deathRgb);
-        label(context,dx+14,l.nameY+1+boxTextInset(),dw-14,translated("waypoint.death"));
-        label(context,dx,l.previewY+1,dw,std::format("{}, {}, {}", d.x, d.y, d.z));
-        label(context,dx,l.previewY+12,dw,screen::dimensionName(d.dimension),palette::dim);
-        if (d.dimension == screen::playerDimension())
-            label(context,dx,l.previewY+23,dw,translated("waypoint.distance", screen::distanceTo(d.x, d.z)),palette::dim);
-        paragraph(context,dx,l.previewY+36,dw,translated("waypoint.deathNote"),3,palette::faint);
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("waypoint.keep"),
-            over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
-    } else if (severalSelected()) {
+    if (severalSelected()) {
         label(context,dx,l.detailTop+6,dw,translated("waypoint.selectedCount", waypointRows.keys.size()));
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(anySelectedHidden() ? "waypoint.showSelected" : "waypoint.hideSelected"),
-            over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
+        drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(anySelectedHidden() ? "waypoint.showSelected" : "waypoint.hideSelected"),
+            over(ShapeZone::Action,0));
     } else if (!w) {
-        paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty"
+        paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() ? "waypoint.empty"
             : "waypoint.selectHint"),3,palette::faint);
     } else {
         // Name field with the waypoint's diamond.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
-        frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
-        drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
-        if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), Rgb{0,0,0}, .85f);
-        if (editingWaypointName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
-        else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
+        drawTextField(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName,&waypointNameInput,w->name,{},17);
+        if (w->death) drawCrossGlyph(context, dx + 7, l.nameY + 6.5f, waypointRgb(w->color));
+        else {
+            drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
+            if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), palette::shade, .85f);
+        }
         // The preview area: a large diamond and where the waypoint is.
         float size = ShapesLayout::previewSize;
-        fill(context,dx,l.previewY,size,size,Rgb{0,0,0},.35f);
+        fill(context,dx,l.previewY,size,size,palette::shade,.35f);
         frame(context,dx,l.previewY,size,size,palette::white,.14f);
-        drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, Rgb{0,0,0}, .8f);
-        drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
-        if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, map::hollowSize(25), Rgb{0,0,0}, .85f);
+        if (w->death) {
+            drawCrossGlyph(context, dx + size / 2, l.previewY + size / 2, palette::shade, 10, 6, .8f);
+            drawCrossGlyph(context, dx + size / 2, l.previewY + size / 2, waypointRgb(w->color), 9, 3);
+        } else {
+            drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, palette::shade, .8f);
+            drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
+            if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, map::hollowSize(25), palette::shade, .85f);
+        }
         float ix = dx + size + 8, iw = dw - size - 8;
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
-        if (w->dimension == screen::playerDimension())
-            label(context,ix,l.previewY+23,iw,translated("waypoint.distance", screen::distanceTo(w->x, w->z)),palette::dim);
+        if (w->dimension == screen::playerDimension()) {
+            int const away = screen::distanceTo(w->x, w->z);
+            label(context,ix,l.previewY+23,iw,away == 0 ? translated("distance.here") : translated("waypoint.distance", away),palette::dim);
+        }
         if (w->temporary) paragraph(context,ix,l.previewY+36,iw,translated("waypoint.temporaryNote"),2,palette::faint);
         // Fields.
         for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(map::waypointFields.size()); ++i) {
@@ -504,7 +478,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
                 toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,w->temporary);
                 break;
             case map::WaypointField::MoveHere:
-                drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated("waypoint.moveHere"),
+                drawButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated("waypoint.moveHere"),
                     over(ShapeZone::Field,i));
                 break;
             case map::WaypointField::Color:
@@ -513,7 +487,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
                 break;
             default: {
                 int value = i == 0 ? w->x : i == 1 ? w->y : w->z;
-                drawShapeStepper(context,l,y,true,std::to_string(value),editingWaypointField == i ? &screen::number() : nullptr);
+                drawShapeStepper(context,l,y,true,std::to_string(value),editingWaypointField == i ? &screen::number() : nullptr,pointer.x,pointer.y);
                 break;
             }
             }
@@ -521,10 +495,8 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     }
     if (waypointSelected || severalSelected()) {
-        drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-            translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-            waypointDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-            waypointDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
+        drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
+            translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), waypointDeleteArmed);
     }
 
     // Footer.
@@ -532,9 +504,9 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
     bool shortFooter = l.docked;
     std::string text = !screen::message().empty() ? screen::message() : waypointDescription();
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : palette::warning);
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : screen::messageColor());
     else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : palette::warning);
+        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());
         label(context,textLeft,l.footerTop+30,available,translated(editingWaypointName || editingWaypointField >= 0
             ? "shape.numberHint" : "waypoint.screenHint"),palette::faint);
     }
@@ -542,9 +514,8 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
 ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
     int fieldCount = selectedWaypoint() ? static_cast<int>(map::waypointFields.size()) : 0;
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
-        waypointFieldFirst, false, false);
-    // Keeping the death point needs a wider first button.
-    if (deathSelected() || severalSelected()) l.firstActionWidth = 110;
+        waypointFieldFirst, false, false, false, data_notice::height(data_notice::Kind::Waypoints));
+    if (severalSelected()) l.firstActionWidth = 110;
     waypointsDisplayed = l;
     waypointListFirst = l.listFirst;
     waypointFieldFirst = l.fieldFirst;
@@ -562,13 +533,8 @@ void renderWaypointsDocked(MinecraftUIRenderContext& context, glm::vec2 size, gl
         context.flushText(0, std::nullopt);
         return;
     }
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.waypoints"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated(fromMapFlag ? "worldMap.back" : "closeButton"),
-        closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+    drawDockedFrame(context,l,translated("nav.waypoints"),translated(fromMapFlag ? "worldMap.back" : "closeButton"),
+        l.hit(pointer.x, pointer.y).zone == ShapeZone::Close);
     if (l.usable()) drawWaypointsBody(context, l, pointer);
     else drawDockedTooShort(context, l, pointer.x, pointer.y);
     context.flushText(0,std::nullopt);

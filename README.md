@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.5.0 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.6.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -28,7 +28,7 @@ experimental in the settings are still settling (see
 [Known issues](#known-issues)). Runtime evidence and
 remaining gaps are tracked in [validation status](docs/VALIDATION.md).
 
-Supported: Minecraft Bedrock 1.26.60.05, LeviLamina Client 26.60.3 or later
+Supported: Minecraft Bedrock 1.26.60.05, LeviLamina Client 26.60.4 or later
 (26.60 series), Windows x64. Android support is not currently planned: it
 would be a separate ARM64 port, not a repackaged build. On a game version
 Lamium has not been checked on, the parts that depend on it (for example
@@ -38,7 +38,7 @@ say which features are paused.
 
 ## Install
 
-**LeviLauncher (recommended).** In an instance with LeviLamina Client 26.60.3
+**LeviLauncher (recommended).** In an instance with LeviLamina Client 26.60.4
 or later for Minecraft 1.26.60.05, find Lamium in LeviLauncher's mod browser
 (Bedrinth) and install it. Update and uninstall it the same way. Updates keep
 your settings. Start Minecraft, enter a world and press `L` to open Lamium
@@ -51,7 +51,7 @@ Only the LeviLauncher path has been tested by the maintainer.
 
 **Manual ZIP (fallback).**
 
-1. Install LeviLamina Client 26.60.3 or later for Minecraft 1.26.60.05.
+1. Install LeviLamina Client 26.60.4 or later for Minecraft 1.26.60.05.
 2. Download `Lamium-<version>-client-windows-x64.zip` from the
    [Releases](https://github.com/amatouhake/Lamium/releases) page.
 3. Extract it so that `Lamium.dll` and `manifest.json` end up in
@@ -101,8 +101,9 @@ feature does in detail: [Features](docs/FEATURES.md).
 | FreeCamera | Fly the view while the player stays in place | — | — |
 | Night Vision | Brighten the view locally, optionally without dark rings | — | Off |
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
-| Hide effects *Exp.* | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
-| Connected Textures *Exp.* | Glass, panes, bookshelves and sandstone without seams | — | Off |
+| Hide effects | Hide rain, particles, nausea, fogs, the portal screen | — | Off |
+| Connected Textures | Glass, panes, bookshelves and sandstone without seams | — | Off |
+| Block highlight *Exp.* | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
 
 ### HUD & overlays
 
@@ -116,9 +117,9 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Saturation | Saturation as gold outlines on the hunger bar | — | On |
 | Player list | Players with faces, platform, dimension and distance | `Tab` (hold) | — |
 | Inventory HUD | Your inventory as a 9x3 grid during play | — | Off |
-| Used slots | Used inventory slots, such as 13/36 | — | Off |
+| Used slots HUD | Used inventory slots, such as 13/36 | — | Off |
 | Status effects HUD | Effects with levels and remaining time | — | Off |
-| Chat position | Chat messages at the bottom left, as on Java Edition | — | Off |
+| Game HUD placement | Move and resize the game's own chat, paper doll, scoreboard and boss bars in HUD layout, or hide each of them, and hide its position and days played lines; the chat goes to the bottom left by default, as on Java Edition | — | Off |
 | Toggle toasts | A notice when a key turns a feature on or off | — | On |
 | Chunk Borders | Java-style chunk edges | `F3+G` | Off |
 | Hitboxes | Entity bounds with eye and look markers | `F3+B` | Off |
@@ -135,11 +136,11 @@ The HUD layout view moves and styles Lamium's HUD elements.
 | Map marks | Waypoints, schematic placements and shapes on the maps | — | On |
 | Radar | Players, mobs and items on the minimap or the world map | — | On |
 | Slime chunks | Slime chunks shaded green on the maps | — | Off |
-| Waypoints | Waypoints and the last death point, on the maps and in the world | — | On |
-| World map | A full-screen map of the areas you have visited | `M` | Off |
+| Waypoints | Waypoints, with one added where you die, on the maps and in the world | — | On |
+| World map | A full-screen map of the areas you have visited | `M` | Recording off |
 
 Map marks, Radar and Slime chunks each choose the maps they show on.
-Waypoints and the death point also show in the world, with both maps off.
+Waypoints also show in the world, with both maps off.
 
 ### Schematics *Exp.*
 
@@ -155,19 +156,20 @@ Waypoints and the death point also show in the world, with both maps off.
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
 | Container previews | Shulker Box and Bundle contents in the tooltip | — | On |
-| Durability numbers | Remaining durability in the tooltip | — | On |
-| Food values | Hunger and saturation a food restores, in the tooltip | — | On |
+| Item details | Lines added to an item's tooltip, a switch for each: durability, the anvil work penalty and its anvil uses, a suspicious stew's effect, what a food restores, values the game does not print (enchantability, small stacks, cooldown, use time, fuel) and the ID; tags and NBT are off until asked for | — | On |
 | All trader levels | Every trade level in the trade screen | — | On |
 | Repeated trades | Shift + right click repeats a trade | — | On |
 | Search English names too | Recipe and creative search by English name or ID | — | On |
 | Inventory sorting | Sort the inventory or an open container | `R` | On |
 | Inventory transfer *Exp.* | Move items with the wheel, modified clicks and drags | — | Off |
-| Tool Switch | Pick the right tool when mining | — | Off |
+| Tool Switch | Pick the right tool when mining; optionally prefer Fortune or Silk Touch | — | Off |
 | Weapon Switch | Pick the strongest weapon when attacking | — | Off |
 | Offhand swap | Swap the held item with the offhand | `F` | On |
-| Fake Offhand *Exp.* | Use a hotbar block or item as if it were in the offhand | Right click | Off |
+| Fake Offhand | Use a hotbar block or item as if it were in the offhand | Right click | Off |
 | Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
+| Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
+| Paste across book pages | A long paste into a book continues on new pages | — | On |
 
 ### Actions
 
@@ -187,8 +189,8 @@ Waypoints and the death point also show in the world, with both maps off.
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
 | Calculator | A calculator with stack, chest and shulker box units | — | — |
-| Game language *Exp.* | Change Minecraft's language without leaving the world | — | — |
-| Skip server resource packs *Exp.* | Show a server's world without its resource packs | — | Off |
+| Game language | Change Minecraft's language without leaving the world | — | — |
+| Skip server resource packs | Show a server's world without its resource packs | — | Off |
 
 Lamium's keys are its own and do not appear in Minecraft's keyboard
 settings. Change them under each feature or in the Hotkeys view; new
@@ -212,12 +214,11 @@ requests are handled. What has been checked in game, per feature, is in
   run `PeEditor.exe -mb --exe Minecraft.Windows.exe --inplace` in the instance
   folder, then start it from LeviLauncher. Keep a copy of the old file. Repairing
   was checked on one instance.
-- **Hide Offhand:** a map in the off hand stays drawn.
+- **Hide Offhand:** with a map in the off hand, the map is hidden but the arm
+  that holds it stays drawn.
 - **Schematics:** the target card shows no instrument for a ghost note block, and
   the check does not compare a note block's instrument. Real note blocks show
   theirs, and the note is still compared.
-- **Connected Textures:** a glass pane can show an edge at a chunk border where
-  the pane continues (L-306).
 
 **Camera & view**
 
@@ -244,8 +245,17 @@ requests are handled. What has been checked in game, per feature, is in
   sandstone connect. Joined glass panes stretch their glass by one texel at
   the joins instead of keeping the texture's own scale (drawn that way,
   panes shaded dark on one half).
+- **Block highlight:** checked in a local world in Fancy graphics; Vibrant
+  Visuals and servers are unverified. A block that is not a full cube glows
+  as its whole cell, not along its shape. The rainbow costs frame rate when
+  many blocks are listed (a single color is cheaper). Some servers may treat
+  "Through walls" as unfair.
 
 **HUD & overlays**
+
+- **Game HUD placement:** checked in a local world at the desktop GUI scale;
+  Pocket UI, other GUI scales and servers' own sidebars are untested. A paper
+  doll placed over another HUD element may not be shown.
 
 - **Player list:** knows where other players are only while they share your
   dimension: elsewhere it shows the dimension they were last seen in, faded,
@@ -294,10 +304,17 @@ requests are handled. What has been checked in game, per feature, is in
 - **Hand Restock:** checked in local worlds and in everyday server use; server timing and very fast use
   or ambiguous inventory changes may skip a refill. It does not refill tools
   (Tool Protection swaps a tool before it breaks).
+- **Enchantment order:** checked in a local Creative world with swords, a pickaxe, a mace and
+  books. Survival (the 40-level refusal and the level warning), servers and other GUI scales are
+  untested. It plans with fresh books only and does not merge two books of one enchantment into a
+  higher level. The cost rules were read from the anvil of 1.26.60; on another game version the
+  planner says it is not checked and stays closed.
 - **Death layout restore:** checked in local worlds; with instant respawn the
   inventory may be read as kept and nothing is restored. In use it sometimes
   restores after a death you did not expect, or in a layout that looks
   wrong (under investigation). Servers with latency are untested.
+- **Paste across book pages:** checked in a local world. Servers, replacing a
+  selection and the message when 50 pages are not enough are untested.
 
 **Actions**
 
@@ -346,7 +363,7 @@ continuing.
 
 ## Build
 
-Target: Windows x64, Minecraft 1.26.60.05, LeviLamina Client v26.60.3.
+Target: Windows x64, Minecraft 1.26.60.05, LeviLamina Client v26.60.4.
 Install Visual Studio Build Tools with the Windows SDK and C++ toolchain, LLVM
 (clang-cl), Git and xmake. Dependencies are resolved by xmake; no sibling
 project or machine-specific configuration is required.

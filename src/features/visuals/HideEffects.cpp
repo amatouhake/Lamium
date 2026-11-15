@@ -304,8 +304,10 @@ LL_TYPE_INSTANCE_HOOK(PortalScreenVisibility, ll::memory::HookPriority::Normal, 
 void configure(Settings const& settings) {
     auto const& v = settings.visuals;
     portalHidden = v.hideEffects && v.hidePortal;
-    configured = effectMask(v.hideEffects, EffectSelection{v.hideWeather, v.hideParticles, v.hideBossBars,
-        v.hideNausea, v.hideWater, v.hideLava, v.hidePowderSnow, v.hideDistanceFog});
+    // Boss bars are hidden from Game HUD placement since L-334.
+    configured = effectMask(v.hideEffects, EffectSelection{v.hideWeather, v.hideParticles, false,
+        v.hideNausea, v.hideWater, v.hideLava, v.hidePowderSnow, v.hideDistanceFog})
+        | (settings.information.hidesBossBars() ? bossBarsBit : 0);
 }
 void start() noexcept {
     for (auto id : {capabilities::Id::HideWeather,capabilities::Id::HideParticles,capabilities::Id::HideBossBars,

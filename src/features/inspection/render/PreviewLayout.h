@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 
 // Pure geometry for the preview overlay. Deliberately free of game types so it
 // can be unit-tested without LeviLamina or the game.
@@ -65,6 +66,30 @@ struct PreviewLayout {
             rows,
             Rect{x, y, x + width, y + height}
         };
+    }
+
+    /// The same frame moved clear of `box` (the game's hover text): above it
+    /// when there is room, else below it; unchanged when it does not overlap
+    /// or fits neither way.
+    /// With `attach`, it goes right above the box (or below) even when apart,
+    /// so it sits by a tooltip drawn lower than the pointer (the bundle's).
+    [[nodiscard]] constexpr PreviewLayout clearOf(Rect const& box, float gap, float screenHeight, bool attach = false) const {
+        bool const overlaps = frame.x0 < box.x1 && box.x0 < frame.x1 && frame.y0 < box.y1 + gap && box.y0 - gap < frame.y1;
+        if (!overlaps && !attach) return *this;
+        float const height = frame.height();
+        float y = box.y0 - gap - height;
+        if (y < 0.0f) {
+            y = box.y1 + gap;
+            if (y + height > screenHeight) return *this;
+        }
+        return PreviewLayout{columns, rows, Rect{frame.x0, y, frame.x1, y + height}};
+    }
+
+    /// The frame on whole GUI units: at a fractional pointer the fills and the
+    /// border rounded apart and the background showed past the border.
+    [[nodiscard]] PreviewLayout snapped() const {
+        float const x = std::round(frame.x0), y = std::round(frame.y0);
+        return PreviewLayout{columns, rows, Rect{x, y, x + frame.width(), y + frame.height()}};
     }
 
     /// Full 18x18 cell of `slot` (row-major, matching container slot order).

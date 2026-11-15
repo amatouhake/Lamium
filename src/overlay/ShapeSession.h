@@ -25,6 +25,8 @@ struct Footprint {
     bool round = false; // roundFromAbove
 };
 std::vector<Footprint> footprints(int dimension);
+// Where the player's feet last were in a dimension this session (L-311).
+std::optional<Cell> lastFeet(int dimension);
 // Previews a definition that is not yet part of the collection; nullopt ends it.
 void setDraft(std::optional<ShapeDefinition>);
 enum class Storage { Session, LocalWorld, LoadFailed };

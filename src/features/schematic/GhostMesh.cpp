@@ -420,6 +420,17 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
         if (checked && block && block->getBlockType().mBlockEntityType != BlockActorType::Undefined && mistakes->has({x, y, z}))
             hash = (hash ^ 0x9E3779B97F4A7C15ull) * 1099511628211ull;
     });
+    // L-183: the ignore entries on this section's cells decide its marks.
+    if (auto const& ignored = shown.placement.ignored; !ignored.empty()) {
+        auto [index, sx, sy, sz] = key;
+        for (auto const& e : ignored.entries()) {
+            auto w = toWorld(shown.structure->size, shown.placement.placement, e.cell);
+            auto outside = [](int v, int s) { return v < s * sectionSize || v >= (s + 1) * sectionSize; };
+            if (outside(w.x, sx) || outside(w.y, sy) || outside(w.z, sz)) continue;
+            for (unsigned char c : e.block + ' ' + e.state + ' ' + std::to_string(w.x) + ',' + std::to_string(w.y) + ',' + std::to_string(w.z))
+                hash = (hash ^ c) * 1099511628211ull;
+        }
+    }
     return hash;
 }
 std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, SectionKey key) {
@@ -466,6 +477,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     // records must be the one its marks are drawn from (L-303).
     auto const entityMarks = entityMistakes();
     out.signature = signatureOf(region, shown, key, entityMarks);
+    out.layers = sectionLayersOf(slab, shown, key);
     out.complete = true;
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
@@ -530,8 +542,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     int face = expectedShulkerFace(structure, structure.cell(local->x, local->y, local->z), placement.placement);
                     int placedFace = face >= 0 ? actualShulkerFace(region, {x, y, z}) : -1;
                     // And block entity data the check found different (L-303).
-                    if (showMarks && (fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face)
-                                      || (entityChecked && entityMarks->has({x, y, z}))))
+                    bool const differs = fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face)
+                        || (entityChecked && entityMarks->has({x, y, z}));
+                    // Unless every difference there is ignored (L-183).
+                    if (showMarks && differs
+                        && !(placement.ignored.anyAt(*local) && passesWithIgnores(region, shown, blocks, {x, y, z})))
                         marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
                     continue;
                 }
@@ -539,7 +554,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     bool sameType = relaxedSameType(*expected, actual, relax);
                     // Something else is there: red, or yellow when only the state differs.
                     Outline mark = sameType ? Outline{boxLow, boxHigh, 1.f, .8f, .2f} : Outline{boxLow, boxHigh, 1.f, .25f, .2f};
-                    if (showMarks) marks.push_back(mark);
+                    bool const passes = sameType && placement.ignored.anyAt(*local) && passesWithIgnores(region, shown, blocks, {x, y, z});
+                    if (showMarks && !passes) marks.push_back(mark);
                     continue;
                 }
                 // A missing liquid: a shell, built after the blocks.

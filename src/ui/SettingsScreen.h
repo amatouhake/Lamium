@@ -22,6 +22,14 @@ void openSchematicMenu(IClientInstance& client);
 void openWorldMap(IClientInstance& client);
 // The calculator panel over the world (L-171).
 void openCalculator(IClientInstance& client);
+// The block highlight list in the settings (L-320).
+void openBlockHighlight(IClientInstance& client);
+// The enchantment order planner in the settings (L-170).
+// `overAnvil`: asked from the anvil list; the screen may then open over the anvil screen.
+void openEnchantOrder(IClientInstance& client, bool overAnvil = false);
+// General > Saved data (L-343).
+void openSavedData(IClientInstance& client);
+void openGameLanguage(IClientInstance& client);
 bool ownsInput();
 void cancelInputCapture();
 }

@@ -73,6 +73,12 @@ void hudElementTests() {
     check(magnet(697, 100, 800).position == 700 - hudInset, "the far inset snaps too");
     check(magnet(351, 100, 800).position == 350 && magnet(351, 100, 800).line == 400.f, "the center line snaps");
     check(!magnet(200, 100, 800).line && magnet(200, 100, 800).position == 200, "free space does not snap");
-    check(scaledExtent(100, 100) == 100 && scaledExtent(100, 50) == 75 && scaledExtent(100, 200) == 150,
+    check(scaledExtent(100, 100) == 100 && scaledExtent(100, 20) == 50 && scaledExtent(100, 400) == 200,
           "scale clamps to its bounds");
+    check(stepHudScale(100, 1) == 105 && stepHudScale(100, -1) == 95, "a scale step is five percent");
+    check(stepHudScale(123, 1) == 125 && stepHudScale(123, -1) == 120, "a typed scale steps to the next multiple");
+    check(stepHudScale(200, 1) == 200 && stepHudScale(50, -1) == 50, "scale steps stop at the bounds");
+    check(hudConditional(HudElementId::Target) && hudConditional(HudElementId::PlayerList)
+          && !hudConditional(HudElementId::Info) && !hudConditional(HudElementId::Chat),
+          "only elements that appear by situation are shown as frames");
 }

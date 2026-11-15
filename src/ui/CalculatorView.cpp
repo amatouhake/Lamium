@@ -77,10 +77,10 @@ constexpr std::array<std::array<Key, 6>, 7> grid{{
 }};
 Rgb inkOf(Kind kind) {
     switch (kind) {
-    case Kind::Operator: return Rgb{.84f, .95f, .79f};
-    case Kind::Unit: return Rgb{1.f, .85f, .54f};
-    case Kind::Variable: return Rgb{.66f, .83f, 1.f};
-    case Kind::Function: return Rgb{.89f, .77f, 1.f};
+    case Kind::Operator: return palette::syntaxOperator;
+    case Kind::Unit: return palette::syntaxUnit;
+    case Kind::Variable: return palette::syntaxVariable;
+    case Kind::Function: return palette::syntaxFunction;
     default: return palette::text;
     }
 }
@@ -117,7 +117,7 @@ std::string chests(double value) {
 void copy(std::string const& text) {
     if (text.empty() || !copyText(text)) return;
     note = translated("calc.copied", text);
-    noteUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(1500);
+    noteUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(static_cast<int>(noticeSeconds * 1000));
 }
 std::string errorText() {
     switch (result.error) {
@@ -227,8 +227,8 @@ void drawKeyLabel(MinecraftUIRenderContext& context, Key const& k, float x, floa
     labelScaled(context, x, y + (h - 10 * scale) / 2 + boxTextInset() * scale - scale, w, text, scale, ink, Align::Center);
 }
 void arrowButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool over, bool open) {
-    drawSmallButton(context, x, y, w, h, "", over, palette::keyFill, open ? palette::accent : palette::keyEdge);
-    downArrow(context, x + w / 2, y + h / 2 - 1, open ? palette::accent : palette::text);
+    Rgb ink = drawButtonBox(context, x, y, w, h, over, open ? ButtonKind::Primary : ButtonKind::Plain);
+    downArrow(context, x + w / 2, y + h / 2 - 1, ink);
 }
 }
 
@@ -333,7 +333,7 @@ void wheel(int direction) {
 void release() { dragging = false; }
 glm::vec2 fieldPosition(glm::vec2 size) {
     auto l = Layout::at(size);
-    return {l.leftX() + 3, l.fieldY()};
+    return {l.leftX() + 4, l.fieldY()};
 }
 void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
     // The player's block position for x, y and z.
@@ -352,22 +352,19 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     if (dragging) scrollTo(l, pointer.y);
     clampScroll(l);
     float x = l.leftX(), lw = Layout::leftWidth;
-    panel(context, l.left, l.top, l.width, l.height, .88f);
+    panel(context, l.left, l.top, l.width, l.height, opacity::screen);
     frame(context, l.left, l.top, l.width, l.height, palette::white, .14f);
     label(context, x, l.top + 6, 120, translated("calc.title"));
-    drawSmallButton(context, l.helpX(), l.top + 4, 12, 12, "?", inside(pointer.x, pointer.y, l.helpX(), l.top + 4, 12, 12),
-                    palette::keyFill, helpOpen ? palette::accent : palette::keyEdge);
-    drawSmallButton(context, l.closeX(), l.top + 4, Layout::closeWidth, 12, translated("closeButton"),
+    drawButton(context, l.helpX(), l.top + 4, 12, 12, "?", inside(pointer.x, pointer.y, l.helpX(), l.top + 4, 12, 12), helpOpen ? ButtonKind::Primary : ButtonKind::Plain);
+    drawButton(context, l.closeX(), l.top + 4, Layout::closeWidth, 12, translated("closeButton"),
         inside(pointer.x, pointer.y, l.closeX(), l.top + 4, Layout::closeWidth, 12));
     fill(context, l.left, l.top + 18, l.width, 1, palette::white, .14f);
 
     // ---- Left: field, result, chests, keys ----
-    fill(context, x, l.fieldY(), lw, 14, Rgb{0, 0, 0}, .45f);
-    frame(context, x, l.fieldY(), lw, 14, palette::accent);
-    drawEditField(context, x + 3, l.fieldY(), 14, lw - 6, line);
+    drawTextField(context, x, l.fieldY(), lw, 14, true, &line, {});
     if (result.value) {
         labelScaled(context, x, l.resultY(), lw - Layout::copyWidth - Layout::arrowWidth - 6, "= " + calculator::format(*result.value), 1.5f);
-        drawSmallButton(context, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12, translated("calc.copy"),
+        drawButton(context, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12, translated("calc.copy"),
                         inside(pointer.x, pointer.y, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12));
         float ax = l.copyX() + Layout::copyWidth + 1;
         arrowButton(context, ax, l.resultY() + 1, Layout::arrowWidth, 12, inside(pointer.x, pointer.y, ax, l.resultY() + 1, Layout::arrowWidth, 12),
@@ -385,8 +382,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
             float kx = l.keyX(column), ky = l.keyY(row);
             bool over = inside(pointer.x, pointer.y, kx, ky, l.cell(), rh);
             bool equals = k.kind == Kind::Equals;
-            fill(context, kx, ky, l.cell(), rh, equals ? palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : palette::keyFill);
-            frame(context, kx, ky, l.cell(), rh, equals ? palette::accent : palette::keyEdge);
+            drawButtonBox(context, kx, ky, l.cell(), rh, over, equals ? ButtonKind::Primary : ButtonKind::Plain);
             drawKeyLabel(context, k, kx, ky, l.cell(), rh);
             if (over && !k.tip.empty()) { tip = k.tip; tipX = kx; tipY = ky - 13; }
         }
@@ -414,7 +410,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         if (auto amount = chests(entry.value); !amount.empty()) labelScaled(context, rx + 4, *top + 22, rw - 13, amount, .75f, palette::faint);
         if (buttons) {
             float cx = cardCopyX(l);
-            drawSmallButton(context, cx, *top + 3, Layout::copyWidth, 10, translated("calc.copy"), inside(pointer.x, pointer.y, cx, *top + 3, Layout::copyWidth, 10));
+            drawButton(context, cx, *top + 3, Layout::copyWidth, 10, translated("calc.copy"), inside(pointer.x, pointer.y, cx, *top + 3, Layout::copyWidth, 10));
             arrowButton(context, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10,
                         inside(pointer.x, pointer.y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10), menuFor == index);
         }
@@ -424,8 +420,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     if (scrollRange(l) > 0) {
         float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), from = thumbTop(l);
         bool overBar = dragging || onScrollbar(l, pointer.x, pointer.y);
-        fill(context, rx + rw - 3, l.cardsTop(), 2, track, palette::white, overBar ? .14f : .08f);
-        fill(context, rx + rw - (overBar ? 4 : 3), from, overBar ? 3 : 2, thumb, overBar ? palette::text : palette::keyEdge);
+        drawScrollbar(context, rx + rw - 3, l.cardsTop(), track, from, thumb, overBar);
     }
     // Text is drawn when flushed: flush what lies under the overlays first, so
     // their backgrounds cover it (help showed the history through it).
@@ -436,7 +431,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         float my = (menuFor == -1 ? l.resultY() + 1 : *cardY(l, menuFor) + 3) + 13;
         double value = menuFor == -1 ? *result.value : history[static_cast<size_t>(menuFor)].value;
         bool hasChests = !chests(value).empty();
-        fill(context, mx, my, 110, 25, palette::panel, .98f);
+        fill(context, mx, my, 110, 25, palette::panel, opacity::floating);
         frame(context, mx, my, 110, 25, palette::accent);
         bool overLine = inside(pointer.x, pointer.y, mx, my, 110, 12), overChests = hasChests && inside(pointer.x, pointer.y, mx, my + 12, 110, 12);
         if (overLine) fill(context, mx + 1, my + 1, 108, 11, palette::white, .08f);
@@ -446,7 +441,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     }
     if (helpOpen) {
         float hx = rx - 2, hy = l.top + 22, hw = rw + 4, hh = l.height - 28;
-        fill(context, hx, hy, hw, hh, palette::panel, .98f);
+        fill(context, hx, hy, hw, hh, palette::panel, opacity::floating);
         frame(context, hx, hy, hw, hh, palette::accent);
         float y = hy + 5;
         for (auto keyName : {"calc.help.keys", "calc.help.copy", "calc.help.units", "calc.help.variables", "calc.help.functions", "calc.help.private"}) {
@@ -460,16 +455,11 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         auto text = translated(tip);
         float w = textWidth(context, text) + 8;
         float tx = std::clamp(tipX, l.left + 2, l.left + l.width - w - 2);
-        fill(context, tx, tipY, w, 12, palette::panel, .97f);
-        frame(context, tx, tipY, w, 12, palette::keyEdge);
-        label(context, tx + 4, tipY + 1 + boxTextInset() - 1, w - 8, text, palette::dim);
+        drawTipBox(context, tx, tipY, w, 12);
+        label(context, tx + 4, tipY + 1 + boxTextInset() - 1, w - 8, text);
     }
     if (!note.empty() && std::chrono::steady_clock::now() < noteUntil) {
-        float w = std::min(l.width, textWidth(context, note) + 12);
-        float nx = l.left + (l.width - w) / 2, ny = std::min(l.top + l.height + 4, size.y - 14);
-        fill(context, nx, ny, w, 12, palette::panel, .97f);
-        frame(context, nx, ny, w, 12, palette::accent);
-        label(context, nx, ny + 1 + boxTextInset() - 1, w, note, palette::text, Align::Center);
+        drawNotice(context, l.left + l.width / 2, std::min(l.top + l.height + 4, size.y - 14), l.width, note, false, true);
     }
     context.flushText(0, std::nullopt);
 }

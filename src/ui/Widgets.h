@@ -1,4 +1,16 @@
 #pragma once
+// Every Lamium screen and HUD element draws through this file (and the list
+// pieces in ListViewWidgets.h). Rules, checked by scripts/Check-UiTokens.ps1:
+// - No color literals elsewhere: a missing color becomes a palette token here.
+//   Each Lamium color has one meaning: purple Experimental, yellow (warning)
+//   a warning, red a destructive action, light blue "reference, not Lamium's
+//   own content". Colors sampled from the game only match the game.
+// - A control a screen needs and this file lacks is added here, not drawn in
+//   the screen and not copied from another screen. Buttons: plain, primary
+//   (accent fill), destructive (press twice, armed in red).
+// - A control that must look or behave unlike the one here is a design
+//   question for the maintainer, not a local variant.
+// Details: docs/DESIGN.md "Visual language".
 #include <string>
 #include <string_view>
 #include <vector>
@@ -12,9 +24,32 @@ struct Rgb { float r, g, b; };
 namespace palette {
 inline constexpr Rgb panel{.063f,.067f,.075f}, white{1,1,1}, text{1,1,1}, dim{.706f,.722f,.714f},
     faint{.498f,.522f,.514f}, accent{.424f,.765f,.286f}, accentDeep{.235f,.522f,.153f}, off{.282f,.286f,.29f},
-    keyFill{.169f,.173f,.176f}, keyEdge{.353f,.357f,.361f}, experimental{.725f,.545f,1.f}, warning{1.f,.761f,.29f},
-    knobOn{1,1,1}, knobOff{.816f,.82f,.831f}, heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
-    armor{.722f,.725f,.769f}; // #B8B9C4, sampled from the vanilla armor icon
+    keyFill{.169f,.173f,.176f}, keyEdge{.353f,.357f,.361f}, experimental{.725f,.545f,1.f},
+    warning{1.f,.761f,.29f}, danger{.54f,.18f,.16f}, dangerEdge{.85f,.33f,.3f}, dangerText{1.f,.7f,.68f},
+    info{.62f,.83f,1.f}, knobOn{1,1,1}, knobOff{.816f,.82f,.831f},
+    shade{0,0,0}, // black scrims and outlines; each use sets its own opacity
+    mismatch{1.f,.35f,.3f}, // a schematic block that differs from the world: not destructive, so not danger
+    cornerOne{1.f,.4f,.35f}, cornerTwo{.45f,.65f,1.f}; // schematic area corners, as their marks in the world
+// Parts of the switch and slider drawing only: the off edge and the knob's grip line.
+inline constexpr Rgb controlEdge{.18f,.18f,.19f}, gripOn{.71f,.71f,.72f}, gripOff{.6f,.61f,.62f};
+// The calculator's expression colors: operators, units, variables, functions.
+inline constexpr Rgb syntaxOperator{.84f,.95f,.79f}, syntaxUnit{1.f,.85f,.54f}, syntaxVariable{.66f,.83f,1.f}, syntaxFunction{.89f,.77f,1.f};
+// The shapes' four colors, also the anvil's left (cyan) and right (pink) stacks.
+inline constexpr Rgb shapeCyan{.25f,.82f,.88f}, shapePink{.94f,.5f,.75f}, shapeYellow{.95f,.8f,.24f}, shapeWhite{.95f,.95f,.95f};
+inline constexpr Rgb mapGround{11 / 255.f, 12 / 255.f, 13 / 255.f}; // the world map where nothing is recorded
+// Sampled from the game: they only match what the game draws, no Lamium meaning.
+namespace vanilla {
+inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
+    armor{.722f,.725f,.769f}, // #B8B9C4, the armor icon
+    curse{1.f,.333f,.333f}, // curses in an item's tooltip
+    tooltipBorder{.55f,.35f,.7f}; // the container preview's frame, as the item tooltip's
+}
+}
+// Two panel opacities (DESIGN "Colors"), by what is under the panel: the
+// world (the screen, docked panels, prompts, the radial, the HUD editor's
+// panels) or another Lamium panel (tips, menus, the world map's side panels).
+namespace opacity {
+inline constexpr float screen = .8f, floating = .97f;
 }
 enum class Align { Left, Right, Center };
 
@@ -28,6 +63,17 @@ struct DrawScale {
     ~DrawScale();
     DrawScale(DrawScale const&) = delete;
     DrawScale& operator=(DrawScale const&) = delete;
+};
+
+// Everything drawn inside the scope (fills, text) is multiplied by this
+// opacity: a list that fades with a closing screen. 1 outside a scope.
+float drawOpacity();
+struct DrawOpacity {
+    float previous;
+    explicit DrawOpacity(float opacity);
+    ~DrawOpacity();
+    DrawOpacity(DrawOpacity const&) = delete;
+    DrawOpacity& operator=(DrawOpacity const&) = delete;
 };
 
 // Coordinates use the game's GUI units. Widgets borrow the render context only
@@ -50,6 +96,9 @@ float textStroke();
 // letters, in text units: Japanese glyphs sit about one unit lower than
 // Latin ones (the change arrow measured 2026-10-08).
 float shapeTextDrop();
+// How much higher text centered in a row starts in Japanese and Chinese, in text units: their glyphs sit about one
+// unit lower in the line than the pixel font's (the toast beside its switch, measured in Japanese 2026-11-13).
+float rowTextLift();
 void paragraph(MinecraftUIRenderContext&, float x, float y, float width, std::string_view text, size_t maxLines,
                Rgb color = palette::text);
 // How many lines paragraph() would draw.
@@ -69,11 +118,14 @@ void card(MinecraftUIRenderContext&, float left, float top, float width, float h
 void rowBackground(MinecraftUIRenderContext&, float left, float top, float width, float height,
                    bool selected, bool hovered);
 // Bedrock-style switch: the knob position carries the state as well as color.
-void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on);
+// `scale` sizes it with a HUD element (the toggle toast); the edge stays one unit.
+void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on, float scale = 1);
 // Draws a vanilla UI texture (e.g. "textures/ui/heart") into each rectangle,
 // batched into one flush. Rectangles are x, y, width, height.
 struct ImageRect { float x, y, w, h; };
 void images(MinecraftUIRenderContext&, std::string_view texture, std::vector<ImageRect> const& rects, float opacity = 1);
+// Many rectangles of one color, flushed once (the editor's hatching, L-334).
+void fills(MinecraftUIRenderContext&, std::vector<ImageRect> const& rects, Rgb color, float opacity = 1);
 // One rectangle with an explicit sub-rectangle of the texture (uv in 0-1);
 // used for block textures whose source image holds several animation frames.
 // `tint` multiplies the texture (water's gray texture, L-294).

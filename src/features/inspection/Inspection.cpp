@@ -1,9 +1,28 @@
 #include "features/inspection/Inspection.h"
+#include <utility>
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inspection/preview/HoveredPreviewCache.h"
 #include "features/inspection/render/PreviewRenderer.h"
 #include "features/information/SaturationHud.h"
 #include "features/inspection/TooltipGlyphs.h"
+#include "features/inspection/ItemDetails.h"
+#include "ui/Widgets.h"
+#include <format>
+#include "mc/deps/nbt/CompoundTag.h"
+#include "mc/deps/nbt/CompoundTagVariant.h"
+#include "mc/deps/nbt/ListTag.h"
+#include "mc/world/item/ItemTag.h"
+#include "mc/locale/I18n.h"
+#include "mc/world/effect/MobEffect.h"
+#include "mc/world/attribute/Attribute.h"
+#include "mc/world/attribute/AttributeModifier.h"
+#include <optional>
+#include <atomic>
+#include "mc/world/item/components/FuelItemComponent.h"
+#include "mc/world/item/components/UseModifiersItemComponent.h"
+#include <cmath>
+#include <variant>
+#include "mc/world/level/block/actor/FurnaceBlockActor.h"
 #include "mc/client/gui/Font.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/gui/controls/renderers/HoverTextRenderer.h"
@@ -12,12 +31,18 @@
 #include "mc/world/item/components/IFoodItemComponent.h"
 #include <string_view>
 #include <vector>
+#include "app/Capabilities.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
+#include "features/inventory/EnchantPlan.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/gui/screens/ScreenController.h"
+#include "mc/client/gui/controls/UIControl.h"
+#include "mc/client/gui/controls/VisualTree.h"
+#include "mc/client/gui/screens/ScreenView.h"
 #include "mc/safety/RedactableString.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemStackBase.h"
@@ -42,10 +67,90 @@ void rememberFood(std::string text, std::vector<information::saturation::FoodIco
     if (tooltipFood.size() >= tooltipFoodKept) tooltipFood.erase(tooltipFood.begin());
     tooltipFood.push_back({std::move(text), std::move(icons)});
 }
+// "Show NBT" (L-319): the nodes of a tag, counted no further than `limit`.
+size_t nodesUpTo(Tag const& tag, size_t limit) {
+    size_t n = 1;
+    if (tag.getId() == Tag::Compound) {
+        for (auto const& [key, child] : static_cast<CompoundTag const&>(tag).mTags) {
+            if (n >= limit) break;
+            n += nodesUpTo(child.get(), limit - n);
+        }
+    } else if (tag.getId() == Tag::List) {
+        for (auto const& child : static_cast<ListTag const&>(tag)) {
+            if (n >= limit) break;
+            if (child) n += nodesUpTo(*child, limit - n);
+        }
+    }
+    return n;
+}
+// A tag's SNBT, written no further than about `budget` bytes. A small tag is the game's own text; a large
+// compound or list is walked here so its rest is never serialised for a line that shows 60 characters.
+void boundedSnbt(Tag const& tag, std::string& out, size_t budget) {
+    if (out.size() >= budget) return;
+    bool const compound = tag.getId() == Tag::Compound, list = tag.getId() == Tag::List;
+    if ((!compound && !list) || nodesUpTo(tag, details::smallTagNodes) < details::smallTagNodes) {
+        out += tag.toSnbt(SnbtFormat::Minimize);
+        return;
+    }
+    bool first = true;
+    out += compound ? '{' : '[';
+    if (compound) {
+        for (auto const& [key, child] : static_cast<CompoundTag const&>(tag).mTags) {
+            if (out.size() >= budget) return;
+            if (!std::exchange(first, false)) out += ',';
+            out += details::snbtKey(key) + ':';
+            boundedSnbt(child.get(), out, budget);
+        }
+    } else {
+        for (auto const& child : static_cast<ListTag const&>(tag)) {
+            if (out.size() >= budget) return;
+            if (!child) continue;
+            if (!std::exchange(first, false)) out += ',';
+            boundedSnbt(*child, out, budget);
+        }
+    }
+    out += compound ? '}' : ']';
+}
 std::vector<information::saturation::FoodIcon> const* foodFor(std::string_view text) {
     for (auto it = tooltipFood.rbegin(); it != tooltipFood.rend(); ++it)
         if (it->text == text) return &it->icons;
     return nullptr;
+}
+// The effect a shown line starts with: the game's effects by their translated names, the longest that fits. Whether
+// it is harmful, and what it does to attributes at its first level in the game's words. Asked again only when the
+// line changes.
+struct EffectInfo {
+    std::optional<bool> harmful;
+    std::vector<std::string> modifiers;
+};
+EffectInfo const& effectInfo(std::string const& shown) {
+    static std::string last;
+    static EffectInfo answer;
+    if (shown == last) return answer;
+    last = shown;
+    answer = {};
+    auto language = getI18n().getCurrentLanguage();
+    size_t best = 0;
+    for (uint id = 1; id <= 38; ++id) {
+        auto const name = MobEffect::getNameById(id);
+        auto const* effect = name.empty() ? nullptr : MobEffect::getByName(name);
+        if (!effect) continue;
+        std::string const& key = effect->mDescriptionId;
+        auto const label = getI18n().get(key, language);
+        if (label.size() <= best || label == key || !shown.starts_with(label)) continue;
+        best = label.size();
+        answer.harmful = static_cast<bool>(effect->mIsHarmful);
+        answer.modifiers.clear();
+        for (auto const& [attribute, modifier] : *effect->mAttributeModifiers) {
+            if (!attribute || !modifier) continue;
+            auto const attributeKey = "attribute.name." + attribute->mName->getString();
+            auto const attributeName = getI18n().get(attributeKey, language);
+            float const value = effect->getAttributeModifierValue(0, *modifier);
+            if (attributeName != attributeKey && std::isfinite(value) && value != 0)
+                answer.modifiers.push_back(details::modifierLine(value, static_cast<int>(modifier->mOperation), attributeName));
+        }
+    }
+    return answer;
 }
 LL_TYPE_INSTANCE_HOOK(ShulkerContentsText, ll::memory::HookPriority::Normal, ShulkerBoxBlockItem,
     &ShulkerBoxBlockItem::$appendFormattedHovertext, void, ItemStackBase const& stack,
@@ -70,6 +175,7 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
         if (!runtime.enabled() || isNull() || !mItem) return text;
         auto const snapshot = runtime.snapshot();
         auto const& settings = snapshot->inspection;
+        if (!settings.itemTooltip) return text;
         if (settings.durability && isDamageableItem()) {
             int maximum = mItem->getMaxDamage();
             if (maximum > 0) {
@@ -77,14 +183,71 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
                 text += "\n\u00a77" + ui::translated("durabilityValue", remaining, maximum);
             }
         }
+        // The anvil's surcharge on this item (L-319). Read the way the enchantment order reads it, and under the
+        // same capability: what the number means was checked against the anvil screen for that feature.
+        if (settings.workPenalty && versionSensitiveAllowed(capabilities::Id::EnchantOrder))
+            if (auto const penalty = inventory::enchantPlan::workPenalty(getBaseRepairCost()))
+                text += "\n\u00a77" + (penalty->uses ? ui::translated("workPenaltyValue", penalty->levels, *penalty->uses)
+                                                      : ui::translated("workPenaltyOnly", penalty->levels));
+        // The game tells a suspicious stew's effect only in Creative (L-319): the same lines elsewhere, where the
+        // game puts them, above the food.
+        // The lines below read item data whose layout a rebuild cannot check (L-338): the game's own tooltip, the
+        // durability numbers and the food values stay on a game this was not checked on.
+        bool const reads = versionSensitiveAllowed(capabilities::Id::ItemDetails);
+        if (reads && settings.itemDetailsStew && mItem->mFullName->getString() == "minecraft:suspicious_stew") {
+            auto const effect = details::plain(mItem->buildEffectDescriptionName(*this, true));
+            if (!effect.empty() && !details::toldBelowName(text.mUnredactedString, effect)) {
+                auto const& info = effectInfo(effect);
+                auto const tint = std::string("\n\u00a7") + details::effectTint(info.harmful);
+                text += tint + effect;
+                for (auto const& line : info.modifiers) text += tint + line;
+            }
+        }
+        // The glyph line goes above Lamium's detail lines; it is remembered with the whole text further down.
+        std::vector<information::saturation::FoodIcon> icons;
         if (settings.foodValues)
             if (auto* food = mItem->getFood()) {
-                auto icons = information::saturation::foodIcons(food->getNutrition(), food->getSaturationModifier());
-                if (!icons.empty()) {
-                    text += tooltip::glyphLine(tooltip::placeholders(static_cast<int>(icons.size())));
-                    rememberFood(text.mUnredactedString, std::move(icons));
-                }
+                icons = information::saturation::foodIcons(food->getNutrition(), food->getSaturationModifier());
+                if (!icons.empty()) text += tooltip::glyphLine(tooltip::placeholders(static_cast<int>(icons.size())));
             }
+        // The rest the game knows and does not print (L-319).
+        if (reads && (settings.itemDetails || settings.itemDetailsId || settings.itemDetailsTags || settings.itemDetailsNbt)) {
+            details::Item item;
+            if (settings.itemDetailsId) {
+                item.id = getTypeName();
+                item.aux = getAuxValue();
+            }
+            if (settings.itemDetailsTags)
+                for (auto const& tag : *mItem->mTags) item.tags.push_back(tag.getString());
+            // A compound or list is its whole text, cut to a line by the pure side; past the lines shown only counted.
+            if (settings.itemDetailsNbt && mUserData)
+                for (auto const& [key, tag] : mUserData->mTags) {
+                    std::string shown;
+                    if (item.data.size() < details::dataLines) boundedSnbt(tag.get(), shown, details::dataBudget);
+                    item.data.push_back({key, std::move(shown)});
+                }
+            if (settings.itemDetails) {
+                item.enchantability = mItem->getEnchantValue();
+                item.maxStack = getMaxStackSize();
+                item.cooldownTicks = mItem->getCooldownDuration();
+                // Seconds in the item's components. Coal's burn time is only there: the furnace's own answer for it is 0.
+                auto seconds = [&](char const* id, auto read) -> float {
+                    auto* component = mItem->getComponent(HashedString{id});
+                    float const value = component ? read(component) : 0;
+                    return std::isfinite(value) && value > 0 && value < 100000 ? value * details::ticksPerSecond : 0;
+                };
+                item.burnTicks = FurnaceBlockActor::getItemBurnDuration(*mItem, details::smeltTicks);
+                if (!(item.burnTicks > 0))
+                    item.burnTicks = seconds("minecraft:fuel", [](ItemComponent* c) { return static_cast<FuelItemComponent*>(c)->mFuelDuration; });
+                // Eating and drinking times are the item's own; newer items keep theirs in a component.
+                item.useTicks = static_cast<float>(mItem->mMaxUseDuration);
+                if (!(item.useTicks > 0))
+                    item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
+            }
+            for (auto const& line : details::lines(item))
+                text += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
+        }
+        if (!icons.empty()) rememberFood(text.mUnredactedString, std::move(icons));
     } catch (...) {
     }
     return text;
@@ -93,6 +256,13 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
 // keep the call that carries the glyph line while the tooltip renders.
 struct GlyphDraw { Font* font; float x, y; tooltip::GlyphRun run; std::vector<information::saturation::FoodIcon> icons; };
 bool tooltipRendering = false;
+void (*beforeTooltip)(MinecraftUIRenderContext&) = nullptr;
+// The hover text's box in this frame's UI pass, for the container preview to stay clear of. Tagged with the UI
+// frame it was drawn in; the preview, drawn after the UI pass, ignores one from an earlier frame.
+struct TooltipBox { render::HoverTextBox box; unsigned frame; };
+std::optional<TooltipBox> tooltipBox;
+std::optional<std::pair<float, float>> tooltipTextAt;
+unsigned uiFrame = 0;
 std::optional<GlyphDraw> glyphDraw;
 LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &Font::$drawCached, void,
     ScreenContext& screenContext, std::string_view str, float x, float y, mce::Color const& color,
@@ -100,6 +270,7 @@ LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &
     int caretPosition, bool shadow, float linePadding, mce::Color const& resetColorOverride,
     mce::Color const& shaderDarkColor, float outlineWidth, float yCaretOffset,
     OffscreenCaptureDescription const& offscreenCaptureDescription, bool autoGenNormalsAndTangents) {
+    if (tooltipRendering && !tooltipTextAt) tooltipTextAt = std::pair{x, y};
     if (tooltipRendering && !glyphDraw)
         if (auto run = tooltip::findGlyphRun(str)) {
             auto const* icons = foodFor(str);
@@ -121,10 +292,20 @@ LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &
 }
 LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTextRenderer, &HoverTextRenderer::$render,
     void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner, int pass) {
+    if (beforeTooltip) try { beforeTooltip(context); } catch (...) {}
     glyphDraw.reset();
+    tooltipTextAt.reset();
     tooltipRendering = true;
     origin(context, client, owner, pass);
     tooltipRendering = false;
+    try {
+        glm::vec2 const at = *mCursorPosition + *mOffset, size = *mBoxDimensions;
+        // Only a box with text: over a bundle the game draws an empty 9x18 one on some frames only, and following
+        // it made the preview jump between two places.
+        if (size.x > 0 && size.y > 0 && tooltipTextAt)
+            tooltipBox = TooltipBox{{{at.x, at.y, at.x + size.x, at.y + size.y}, mCursorPosition->x, mCursorPosition->y}, uiFrame};
+    } catch (...) {
+    }
     try {
         if (!glyphDraw) return;
         // Text is batched and drawn after the tooltip renders; draw it now so
@@ -147,7 +328,33 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     } catch (...) {
     }
 }
+// The game's bundle tooltip is a UI panel ("bundle_cursor_tooltip", gameplay UI) placed by the cursor, not hover
+// text; its box is the union of its shown parts (the purple background reaches past the panel). Logged 2026-11-14:
+// it sits at the pointer + (10, 10), 90 units wide.
+void unite(UIControl const& control, render::Rect& box, bool& any, int depth) {
+    if (depth > 6 || (static_cast<int>(control.mVisible) & 1) == 0 || control.mCachedPositionDirty) return;
+    glm::vec2 const at = *control.mCachedPosition, size = *control.mSize;
+    if (size.x > 0 && size.y > 0) {
+        render::Rect const r{at.x, at.y, at.x + size.x, at.y + size.y};
+        box = any ? render::Rect{std::min(box.x0, r.x0), std::min(box.y0, r.y0), std::max(box.x1, r.x1), std::max(box.y1, r.y1)} : r;
+        any = true;
+    }
+    for (auto const& child : *control.mChildren)
+        if (child) unite(*child, box, any, depth + 1);
 }
+std::optional<render::Rect> bundleTooltipBox(ScreenView const& view) {
+    VisualTree* tree = view.mVisualTree.get();
+    if (!tree) return std::nullopt;
+    auto control = tree->getControlByName("bundle_cursor_tooltip", true);
+    if (!control) return std::nullopt;
+    render::Rect box{};
+    bool any = false;
+    unite(*control, box, any, 0);
+    if (!any) return std::nullopt;
+    return box;
+}
+}
+void setBeforeTooltip(void (*painter)(MinecraftUIRenderContext&)) { beforeTooltip = painter; }
 bool start() {
     try {
         tooltipHookInstalled = ShulkerContentsText::hook(true) == 0;
@@ -160,6 +367,7 @@ bool start() {
         hover::HoverTracker::getInstance().install();
         auto& bus = ll::event::EventBus::getInstance();
         renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
+            unsigned const frame = uiFrame++;
             auto settings = Runtime::instance().preferences();
             auto* controller = event.screenView().mController.get();
             if (!controller || !controller->_isContainerScreen()) return;
@@ -171,7 +379,14 @@ bool start() {
             if (!(shulker ? preferences.shulkerPreviews : preferences.bundlePreviews)) return;
             if (contents->filledSlotCount() == 0 && contents->skippedSlotCount == 0
                 && !(shulker ? preferences.emptyShulkerPreviews : preferences.emptyBundlePreviews)) return;
-            renderer.render(event.screenView(), event.uiRenderContext(), *contents);
+            std::optional<render::HoverTextBox> hoverText;
+            if (tooltipBox && tooltipBox->frame == frame) hoverText = tooltipBox->box;
+            if (!shulker)
+                if (auto box = bundleTooltipBox(event.screenView())) {
+                    glm::vec2 const pointer = event.screenView().mPointerLocationPrevious;
+                    hoverText = render::HoverTextBox{*box, pointer.x, pointer.y, true};
+                }
+            renderer.render(event.screenView(), event.uiRenderContext(), *contents, hoverText);
         });
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { cache.clear(); });
         return true;

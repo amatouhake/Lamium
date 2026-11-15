@@ -30,9 +30,14 @@ A path that writes game memory or relies on a meaning a rebuild cannot check
 asks `versionSensitiveAllowed(capabilities::Id::...)` (`app/Versions.h`).
 `app/Capabilities.h` owns the typed definitions, feature/partial-loss mapping,
 compatibility policy, runtime stage and reason. All native adapters use one
-loader policy: series 26.60, minimum patch 0; later patches do not need an
+loader policy: series 26.60, minimum patch 4; later patches do not need an
 allowlist edit. This is not a promise that a patch cannot break an ABI: each
 adapter retains its target, ownership and contract checks.
+
+`tooth.json` names the series (`26.60.*`, which `Check-Capabilities.ps1` requires),
+not the minimum patch: the README states the minimum. An older patch of the series
+can still be installed; gated capabilities stay vanilla there, and whether the DLL
+loads on it at all is unchecked. Kept this way for 0.5.1 (maintainer 2026-11-07).
 
 The minimum may stay below the SDK the DLL is built against only while every
 LeviLamina symbol Lamium imports exists in that older loader:
@@ -48,6 +53,10 @@ LeviLamina's own types.
 - 2026-11-06: SDK 26.60.3 and minimum loader 26.60.3 are the same version. The
   minimum rose because book paste links through bedrock-runtime-data
   v26.60.5-client.9 and was only seen working there (L-259).
+- 2026-11-07: SDK 26.60.4 and minimum loader 26.60.4 are the same version. The
+  minimum rose because 26.60.4 fixes the crash log at exit (L-314,
+  LeviLamina#1869), so the README no longer lists it; bedrock-runtime-data is
+  v26.60.5-client.11.
 
 The shared verified Minecraft executable is 1.26.60.05, checked in game on
 2026-11-04 (L-305). An unverified
@@ -92,6 +101,7 @@ the package/SDK loader-policy alignment in CI.
 |---|---|---|---|
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp`, `ConnectedSprites.cpp` | glass with borders | the setting (no effect) |
+| Block highlight (chunk section marks) | `BlockHighlightHooks.cpp` | no glow | the key, list and setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
 | Edge Guard (replay capture) | `EdgeGuardHistory.cpp` | vanilla replay capture | ordinary movement guarding |
@@ -109,11 +119,14 @@ the package/SDK loader-policy alignment in CI.
 | Skip server resource packs (pack stack packet) | `ServerPacks.cpp` | server packs applied as vanilla | the setting and key (no effect) |
 | FreeCamera hide (hotbar control) | `FreeCameraHide.cpp` `FreeCameraHud` (the hotbar control's visibility, restored after the draw) | the hotbar stays drawn in FreeCamera | hiding the hand and the whole HUD |
 | Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
-| Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
+| Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview; the other parts of Game HUD placement |
+| Scoreboard position (HUD control positions) | `ScoreboardPosition.cpp` | vanilla scoreboard position | the setting, key and layout preview; the other parts of Game HUD placement |
+| Boss bar position (HUD control positions) | `BossBarPosition.cpp` | vanilla boss bar position | the setting, key and layout preview; Hide boss bars; the other parts of Game HUD placement |
+| Paper doll position (HUD control position) | `DebugVanillaHud.cpp` `DollPlacement` (the `hud_player` control's cached position and size, restored after the draw) | the doll where the game puts it | the setting, key and layout preview; hiding the doll; the other parts of Game HUD placement |
 | FreeCamera hide (hand pass) | `FreeCameraHide.cpp` | hand drawn | FreeCamera and independent HUD paths |
 | FreeCamera hide (HUD pass) | `FreeCameraHide.cpp` | whole HUD drawn | FreeCamera and hand hiding |
 | Hide effects (particle passes) | `HideEffects.cpp` | particles drawn | independent hide selections |
-| Hide effects (boss bar passes) | `HideEffects.cpp` | boss bars drawn | independent hide selections |
+| Hide boss bars (boss bar passes) | `HideEffects.cpp` `BossBarPosition.cpp` | boss bars drawn | Hide effects; boss bar placement; the other parts of Game HUD placement |
 | Schematic ghosts (blended pass) | `GhostRenderer.cpp` | no blended ghost pass | ordinary ghosts and checking |
 | Schematic ghosts (actor lighting) | `GhostActors.cpp` | vanilla ghost actor lighting | ghost rendering and checking |
 | Schematic pick (creative inventory give) | `GhostPick.cpp`, `InventoryMove.cpp` (`giveCreative`) | a creative ghost pick of a block not carried does nothing | picks of carried blocks, survival picks |
@@ -121,6 +134,9 @@ the package/SDK loader-policy alignment in CI.
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
+| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | everything else |
+| Item details (item data reads) | `Inspection.cpp` (`Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`, burn and use times in the item's components, `getCooldownDuration`, the suspicious stew's effect) | the tooltip has no stew effect, property values, ID, tags or NBT lines | the game's tooltip, durability numbers, food values; the work penalty follows Enchantment order's capability |
+| Map colors of add-on blocks (block map color component) | `Minimap.cpp` `blockLook` (`Block::tryGetComponent<BlockMapColorComponent>`, its `mMapColor` and `mTintMethod`) | add-on blocks are drawn in their top texture's color | every other map color |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -160,6 +176,15 @@ asks for them, with the mangled names from the linker. A granted function turns
 `bedrock_runtime_api.lib`, not `LeviLamina.dll`'s export table, so check it by
 linking. `LAMIUM_MCAPI_PENDING` in `xmake.lua` holds back what still waits for
 one (L-305).
+
+Trace options are not built in CI. Of the existing ones only `transfer_trace`
+was built on 26.60 (L-305); build the one you need before relying on it.
+`spawn_area_trace` (issue #32, built on 26.60 2026-11-13) has no hook and so
+no inventory entry: it reads `LevelChunk::mSpawningAreas` and the storages of
+`LevelChunkVolumeData::mDataRegistry` for the chunks around the player, on the
+client and on a local world's built-in server, and logs the counts. The
+members' places are not checked by a rebuild; counts too large to be real are
+left out. Its result is in VALIDATION-LOG (2026-11-13).
 
 ## Inventory
 
@@ -208,9 +233,19 @@ hotbar part is gated (FreeCamera hide).
 ### `src/features/information/DebugVanillaHud.cpp`
 Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
 Meaning: the vanilla HUD's position panel is named `player_position` (label
-`player_position_text`) and the HUD paper doll is drawn by
+`player_position_text`), the days played panel beside it
+`number_of_days_played` (label `number_of_days_played_text`; both in the
+vanilla `ui.brarchive` of 1.26.60, hidden by the same two hooks, L-348), and
+the HUD paper doll is drawn by
 `HudPlayerRenderer`, its control named `hud_player` (where the Info HUD
-covers it, L-145). A renamed control only stops the hiding.
+covers it, L-145, or Game HUD placement hides it, L-334). A renamed control only stops the hiding. With Paper
+doll position on (gated, L-309) the same hook draws the doll where the HUD
+layout puts it: `HudPlayerRenderer` centers the doll in `hud_player` and
+sizes it by the control, so the control's cached position and, for a scale
+other than 100 %, its size are set for the one call and restored at once; a dirty cached position, a
+renamed control or bad geometry leaves the doll vanilla. The
+`doll_trace` option draws the doll three more times in that hook (moved,
+resized, through the world matrix; L-309).
 
 ### `src/features/information/StatusEffectsVanilla.cpp`
 Hooks: `VanillaEffectIcons`
@@ -219,6 +254,37 @@ Meaning: `HudMobEffectsRenderer` draws the HUD's effect icons on the right
 Effects HUD read the effects that frame; a change only stops the hiding or
 hides those icons with the HUD showing the same effects (L-147).
 
+### `src/features/information/BossBarPosition.cpp`
+Hooks: `BossBarHudRender`, `BossBarTextRender`, `BossBarSpriteRender`
+Meaning: the HUD stacks the boss bars in a grid named `boss_health_grid`
+(`hud.boss_health_grid`: 182 wide, 30 % of the screen tall, top middle,
+offset 2 under `boss_hud_panel`), one 182x20 item per bar holding the name
+label and the progress bar images (the filled one clipped by its ratio). The
+items are named after the template `boss_health_panel`, which is also the
+outer full-screen panel, so a part is recognized by the grid within 16
+controls. The first part drawn in a frame measures the box from the grid's
+top to its lowest shown item; every part is translated (and scaled) for its
+one draw from that box as for the scoreboard, then restored. Gated (Boss bar
+position); a renamed grid, a clipping panel on the way or invalid geometry
+leaves it vanilla. Hidden boss bars (L-334) are skipped here as well as by
+`HideEffects.cpp`. Hide boss bars skips the same draws whatever the hook
+order. The first measured box is logged once. Built 2026-11-14 (L-323), not
+yet checked in game.
+
+### `src/features/information/ScoreboardPosition.cpp`
+Hooks: `ScoreboardHudRender`, `ScoreboardTextRender`, `ScoreboardBackgroundRender`
+Meaning: the HUD has the scoreboard as a panel named `sidebar`
+(`scoreboard.scoreboard_sidebar`, anchored to the middle of the right edge,
+sized by its content) whose parts are plain images and labels with generic
+names, so a part is recognized by that ancestor within 16 controls. As for
+the chat, the screen hook establishes the render scope and each part's cached
+position is translated for its one draw from the sidebar's measured box, then
+restored; a scale other than 100 % sets the control's size and a text's font
+scale and line height for that draw as the chat does. Gated (Scoreboard position); a renamed sidebar, a clipping panel on
+the way (logged once when it is the sidebar itself) or invalid geometry
+leaves it vanilla. Checked locally on `f90e1f61` (L-321). A part hidden from Game HUD placement (L-334) is recognized the same way
+and its draw is skipped instead of moved.
+
 ### `src/features/information/ChatPosition.cpp`
 Hooks: `ChatHudRender`, `ChatTextRender`, `ChatBackgroundRender`
 Meaning: the HUD has `chat_panel` immediately under an unclipped
@@ -226,8 +292,14 @@ Meaning: the HUD has `chat_panel` immediately under an unclipped
 screen hook establishes the render scope; each component uses the panel's
 current measured size after native layout, translates only its cached
 position while drawing, then restores it without invalidating the tree.
+For a scale other than 100 % the same hooks also set the control's size
+and, for a text, `TextComponent::mFontScaleFactor` and `mLineHeight` for the
+one draw and restore them: the layout's line breaks and spacing carry over
+(checked with the removed `chat_scale_trace` build, L-321).
 Gated (Chat position); renamed controls, clipping, invalid geometry or an
-ancestor walk beyond 16 controls leave it vanilla. Basic scope and the
+ancestor walk beyond 16 controls leave it vanilla. A part hidden from Game HUD placement (L-334) is recognized the same way
+and its draw is skipped instead of moved.
+Basic scope and the
 message-expiry/long-message regression passed on `b28a40d` (L-174);
 broader coverage remains in VALIDATION.
 
@@ -243,6 +315,9 @@ Rebuild.
 ### `src/features/inspection/EnglishSearch.cpp`
 Hooks: `SearchHook`
 Meaning: the crafting screen filters by the text passed to `_filterByText`.
+Enchanted books (L-344) read `ItemStackBase::constructItemEnchantsFromUserData`,
+`Enchant::mEnchants`, `mEnchantType`, `mDescription` (en_US key, with or
+without the `enchantment.` prefix) and `mStringId`.
 
 ### `src/features/inspection/hover/HoverTracker.cpp`
 Hooks: `ContainerSlotHoveredHook`, `CraftingSlotHoveredHook`, `ContainerSlotUnhoveredHook`, `ContainerScreenLeaveHook`
@@ -252,6 +327,12 @@ Meaning: hover events arrive per slot with the container's collection names.
 Hooks: `ShulkerContentsText`, `DurabilityHovertext`, `TooltipFontDraw`, `TooltipPainter`
 Meaning: the hover text's line layout and the placeholder glyph line the
 painter covers with hunger-bar icons; fonts' sheet scales.
+Item details (L-319) read, under the Item details capability (decided 2026-11-14, L-338): `Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`,
+`FurnaceBlockActor::getItemBurnDuration` and, where that is 0, `FuelItemComponent::mFuelDuration` (seconds),
+`Item::getCooldownDuration`, the `minecraft:use_modifiers` component's `UseModifiersItemComponent::mUseDuration`
+(seconds) where `mMaxUseDuration` is 0, and for a suspicious stew `Item::buildEffectDescriptionName` with the effect found by its translated name
+(`MobEffect::getNameById` 1..38, `mDescriptionId`, `mIsHarmful`, `mAttributeModifiers`). The game asks for a slot's
+hover text when the pointer reaches it and keeps it, so a setting changed meanwhile shows at the next hover.
 
 ### `src/features/inspection/LockedTrades.cpp`
 Hooks: `TierVisibleHook`, `OfferHook`
@@ -332,7 +413,8 @@ must own the supplied values rather than retain a component reference;
 two BDS correction replays verify that guarded raw/processed values survive
 preApply, calculation and postApply (`4fe7b29`, L-162). This does not guard
 against a correction that already moves the feet off support: a fall while
-slab bridging is recorded despite preserved input, and L-162 stays open.
+slab bridging is recorded despite preserved input; L-162 closed on 2026-10-13
+with that limit.
 
 ### `src/features/visuals/PortalTrace.cpp`
 Hooks: `PortalPackets`, `PortalInsideCheck`, `PortalScreenValid`, `PortalCraftingScreenValid`, `PortalModelValid`, `PortalCraftingValid`, `PortalSchedulePop`, `PortalInventoryKey`, `PortalOpenInventory`, `PortalCanOpen`, `PortalInside`, `PortalTick`
@@ -469,46 +551,103 @@ Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent
 player whose `useItemOn` runs (the local player, and in a local world the
 server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
 
+### Saved data per world (`WaypointSession.cpp`, no hooks)
+L-343. At a join, reads `Social::GameConnectionInfo` (`mUnresolvedUrl`, `mHostIpAddress`, `mPort`), `Level::getLevelId`,
+`LevelData::mLevelName` and the worlds folder (`FilePathManager::mWorlds`) to name where the world's waypoints, map,
+placements and death layout are kept. A wrong value names the wrong folder: new data starts there and nothing is
+overwritten. The `server_trace` option logs these and the connection's other ids.
+
+### Enchantment order (`EnchantOrderGame.cpp`, no hooks)
+L-170. A hook on `InventoryItemRenderer::$render` to paint the list before the slots was tried and removed
+(2026-11-12): drawing there turned the list and enchanted items white. Reads the enchantments from `Enchant::mEnchants()` (`mEnchantType`, `mFrequency`, `mIsDisabled`,
+`getMaxLevel`, `isCompatibleWith`), names from `EnchantUtils::getEnchantNameAndLevel`, what goes on an item from
+`EnchantUtils::canEnchant` on one item per enchant slot (`Item::getEnchantSlot`), and the main-hand item's enchantments
+(`constructItemEnchantsFromUserData`) and anvil uses (`getBaseRepairCost`). Kind names are the game's
+`itemGroup.name.*` texts through `getI18n()`, `mPrimarySlots`/`mSecondarySlots` say how many kinds an enchantment goes
+on, and the list beside the anvil reads the player's level (`Player::LEVEL()`) and the 36 carried slots
+(`combined_hotbar_and_inventory_items`, `cursor_items`). Meaning a rebuild cannot check: the
+frequency values 30, 10, 3, 1 as the anvil's per-level cost (read in game 2026-11-12), the 40-level limit, and on the
+anvil screen its name, the `root_panel` control as the window, the two slot collections and
+`AnvilContainerManagerController::mCost` (a class-layout read, compared with the plan and shown when it differs).
+The list is painted from `Inspection.cpp`'s `TooltipPainter` right before the game's tooltip draws (inside the anvil
+screen's own drawing, between its `BeforeUIRenderEvent` and `AfterUIRenderEvent`), so it is above the screen's dark
+layer and under the tooltip; in a frame without a tooltip it is painted after the screen. Relies on the tooltip
+being drawn after the screen's other controls. The item held on the pointer is drawn again over the list in the
+box of the control `selected_item_icon` (name and 21-unit size read from the log 2026-11-12).
+Gated (Enchantment order). After a game update: read a few costs from the anvil again and open the planner beside it.
+
 ### `src/features/inventory/BookPaste.cpp`
 Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
 Meaning (L-259): `ContextText` is `TextEditContext::feedText`, where a paste
 arrives after `feedAction(Paste)`. A paste into the page box of an editable book
 and quill that does not fit is split; the detour inserts only the part that fits
-through the game's own `origin`, and the kept pages are written on the book's
-next frame: `_addPageAt` for each new page in order, which the game sends as one
-`BookEditPacket(add)` per page and moves later pages back. Nothing writes the
-page model inside `feedText`: `_setPageText`/`_addPageAt` there rebuilt the page
-UI and invalidated the text edit context being edited, which crashed the game on
-the 2026-10-27 merged build. `BookScreenTick` (`$preFrameTick`) names the screen,
-bumps its generation and applies the kept pages from owned strings only (same
-controller address and generation, still editable, the page still holding what
-the paste left, and room under the 50-page limit); `BookScreenValid`
-(`$_isStillValid`) drops the remembered screen and its plan when the book closes.
-It only intercepts while the book is editable, the view is Viewing, the text edit
-context's limit is the page's 256 characters, and `PageBoxFocus`
-(`handleFocusSet`) or `TextTrySet` (`trySetText`) has named the 256-character
-constrained page box; every other text field, and any gate that fails, goes to
-the game untouched. The page text gate accepts a stored page that is a prefix of
-the live text (typing reaches the page model a frame later) and counts the caret
-against the live text. The page's size test is the game's own
-(`_textFitsInControl` plus the 256-character limit), so a game update that
-changes page wrapping or the page length shows up as wrong page breaks. Verify
-after an update by pasting a short text (vanilla refuses nothing), a text longer
-than one page (new pages after the current one, later pages moved back),
-Japanese text (whole characters, no split sequences), a selection replaced by a
-paste, and a paste one frame after typing.
+through the game's own `origin`, and everything else is done on the book's next
+frame. Nothing writes the page model inside `feedText`: `_setPageText`/`_addPageAt`
+there rebuilt the page UI and invalidated the text edit context being edited, which
+crashed the game on the 2026-10-27 merged build.
+
+The paste leaves the page's text through three writes the game does not expect
+from a mod, and these are what the `BookPastePages` capability guards. Inside
+`feedText`, when text followed the caret, `_setText` and the box's `trySetText` cut
+the page down to its first part; then `mCaret` goes to the end of that part and
+`mSelection` to 0:0, because the calls before it left the caret wandering. On the
+next frame `PageContent::mText` of the pasted page is written directly and parsed
+with `_parsePageText`: the box's new text does not reach the page model by itself,
+and leaving the page then sent the old text to the server and loaded it back.
+
+`BookScreenTick` (`$preFrameTick`) names the screen and applies that frame's work
+from owned strings only. A different controller address, or 250 ms without a
+frame, is a new screen: a new generation, no remembered boxes, no plan. The head
+write needs the same screen and a page at the index. The new pages also need the
+book still editable and room under the 50-page limit, and go in through `_addPageAt`
+after the pasted page, which the game sends as one `BookEditPacket(add)` per page
+and moves later pages back; each is parsed and `mForceUIRefresh` and
+`mShouldRefreshText` make the screen show them. The book stays on the pasted page:
+writing `mCurrentPage` turned the shown spread but left the box holding this page's
+text, which the game saved over the target page. `BookScreenValid` (`$_isStillValid`)
+drops the remembered screen and its plan when the book closes.
+
+It only intercepts while the book is editable, the view is Viewing, and these
+readings hold, each of which a rebuild cannot check; every other text field, and any
+gate that fails, goes to the game untouched:
+- The text edit context's limit is at least the page's 256 characters. It is a
+  lower bound because the game raises a page context's limit to the text's bytes
+  when it refocuses a page holding more than 256 bytes (seen: 258, 394). The title
+  and author take 512 but live in the Signing view.
+- A remembered 256-character constrained page box has `mSelected`. `PageBoxFocus`
+  (`handleFocusSet`) and `TextTrySet` (`trySetText`) only remember the spread's two
+  boxes; focus follows the mouse over the other half, so it does not pick one.
+- `mPageHasCursor` (the green caret) names the half of the spread `mCurrentPage`
+  counts, which gives the page. The page model's text confirms nothing: it lags the
+  box until the player leaves the page, and repeated text makes other pages hold
+  the same words.
+- The context's caret and selection are within its own text, counted in characters.
+
+`feedText` is taken to be a paste: the detour cannot tell it from other text that
+arrives there, so a game update that sends more through it would split that too.
+The page's size test is the game's own (`_textFitsInControl` plus the 256-character
+limit), so a game update that changes page wrapping or the page length shows up as
+wrong page breaks. Verify after an update by pasting a short text (vanilla refuses
+nothing), a text longer than one page from the middle of a page (new pages after
+the current one, later pages moved back, the page's text kept after leaving it and
+reopening the book, the caret at the end of the page's paste), on the right half of
+a later spread with the mouse over the left half, a page holding more than 256 bytes
+after reopening the book, Japanese text (whole characters, no split sequences), a
+selection replaced by a paste, and a paste one frame after typing. Type into a full
+page too: nothing happens and no page is added.
 Trace (`book_paste_trace`): read-only observations of the paste path, plus the
 new path's gate verdict, split plan, kept plan and deferred write. The text box's
 character event and text-fit test, the text edit context's actions, caret,
 selection and limit, the book controller's page parse, set and add, the screen
 manager's page edit and add, and BookEdit packets on both send routes (`$send`,
-`$sendToServer`). This path's own lines are `paste gate=<reason>` (the verdict
-word: `ok`, `pending-typing`, `text-unrelated`, `option`, `limit`, `box`,
-`not-editable`, `view`, `page-index`, `photo`, `caret`, `empty`, `split`),
+`$sendToServer`). This path's own lines are `paste gate=<reason>` for a paste left
+to the game or refused (`empty`, `option`, `unverified-game`, `limit`, `screen`,
+`box`, `not-editable`, `busy`, `view`, `no-caret`, `photo`, `caret`, `split`),
+`paste where` (the page readings), `paste decision=<vanilla|refused|split>`,
 `paste defer index= frame= extra= head= trim=` (what was kept for the next
-frame), and `paste apply index= added= pages=->` or
-`paste apply skipped=<reason>` (`screen`, `not-editable`, `page`, `page-moved`,
-`no-room`, `empty`). `BookScreenOpen` is `$addStaticScreenVars`: the vanilla
+frame), and `paste apply index= added= pages=-> current=` or
+`paste apply skipped=<reason>` (`screen`, `not-editable`, `page`, `no-room`,
+`empty`). `BookScreenOpen` is `$addStaticScreenVars`: the vanilla
 JSON's `$max_page_length` is not readable through the SDK (`Json::Value` is
 forward declared only), so the page limit is logged from the text box and the
 text edit context instead. Re-trace after a game update by pasting short, long
@@ -526,7 +665,9 @@ Meaning: `BaseLightData`'s night vision fields. Gated (Night Vision).
 ### `src/features/map/Minimap.cpp`
 Hooks: `FrameAlphaHook`, `CommandListHook`
 Meaning: the available commands packet lists `tp` or `teleport` when the
-player may use it (world map teleport).
+player may use it (world map teleport). Block colors (L-324): a block's
+`BlockMapColorComponent`, found with `Block::tryGetComponent`, holds the
+`minecraft:map_color` an add-on defined.
 
 ### `src/features/map/PlayerLocationTrace.cpp`
 Hooks: `UpdateHook`, `HideHook`
@@ -544,6 +685,14 @@ Trace. L-167 observations; read-only except the research-only `server_pack_skip`
 ### `src/features/research/ResearchTrace.cpp`
 Hooks: `FovSampleHook`
 Trace.
+
+### `src/features/research/WorldProbe.cpp`
+Hooks: `ProbeHook`
+Trace (`world_probe`). Read-only: the client level's chunk tick range (L-249), nearby
+actors' `AgeableComponent`/`BreedableComponent` (L-33) and the eight `EnderDragon` part
+boxes (L-30, a class-layout read); once per run the `Enchant::mEnchants()` registry and
+`EnchantUtils::canEnchant` on the held item (L-170); on the anvil screen its control boxes,
+slot contents and `AnvilContainerManagerController::mCost` (L-170, a class-layout read).
 
 ### `src/features/research/TradeTrace.cpp`
 Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`
@@ -585,6 +734,23 @@ first primitive), the alpha pass order,
 and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
+### `src/features/visuals/BlockHighlightHooks.cpp`
+Hooks: `HighlightBlock`, `HighlightShape`, `HighlightSection`, `HighlightRebuild`
+Meaning: the vertices a designated cube adds to the chunk mesh (none added
+means the block is hidden); `tessellateInWorld` as the dispatcher every
+shape other than a full cube goes through, calling `tessellateBlockInWorld`
+for its cube parts on the same thread, and called for blocks drawn as block
+entities too (chests), which add no vertices; `RenderChunkBuilder::build` as
+one 16-block section build, named by the first block tessellated in it;
+`BlockType::mIsOpaqueFullBlock` as covering a neighbour's face; and when
+chunks rebuild. The tessellator's `faces` argument is not the drawn faces
+(it read all six for blocks that added no quad).
+Gated (Block highlight). The list screen (`src/ui/HighlightView.cpp`, no
+hooks) reads every type from `BlockTypeRegistry::mBlockLookupMap`, its
+`mDefaultState` for the display name and the icon (`ItemStack::reinit`
+from a block), and counts the recorded marks by the block now at each
+cell.
+
 ### `src/features/visuals/ConnectedSprites.cpp`
 Hooks: `SpriteAtlas`, `SpritePackIndex`, `SpritePackLoad`
 Meaning (`SpritePackIndex` sits on `ResourcePackLoader` since 26.60): the terrain atlas's `texture_data` entries (`texture_name`
@@ -613,11 +779,13 @@ names, particle effect names, the camera medium flags and fog values that
 medium, weather densities, the nausea mesh.
 
 ### `src/features/visuals/HideOffhand.cpp`
-Hooks: `OffhandFirstPerson`, `OffhandItem`, `OffhandVisibility`, `OffhandAttachable`, `OffhandAttachableNoChecks`
+Hooks: `OffhandFirstPerson`, `OffhandItem`, `OffhandVisibility`, `OffhandAttachable`, `OffhandAttachableNoChecks`, `OffhandMap`
 Meaning: the off hand is drawn through these calls in first person.
 Since 26.60 the first-person pass draws the main hand through `renderItem` and
 a flat offhand item straight through `renderObject`; `OffhandVisibility` skips a
-`renderObject` outside `renderItem` during `renderFirstPerson`.
+`renderObject` outside `renderItem` during `renderFirstPerson`. A map in the
+off hand is drawn by `_renderPhotoMapItem` with `isMainHand` false; `OffhandMap`
+skips that call (`_renderMiniMapHand` runs after it and does not draw the map).
 
 ### `src/features/visuals/ServerPacks.cpp`
 Hooks: `ServerPacksJoin`, `ServerPacksStack`

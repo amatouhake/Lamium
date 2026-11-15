@@ -51,7 +51,11 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::EdgeGuardMovement: case Id::EdgeGuardReplay: return s.interaction.edgeGuard;
     case Id::SneakPlacement: return s.interaction.sneakPlacement;
     case Id::ConnectedTextures: return v.connectedTextures;
-    case Id::ChatPosition: return s.information.chatPosition;
+    case Id::BlockHighlight: return v.blockHighlight && !v.highlightBlocks.empty();
+    case Id::ChatPosition: return s.information.placesChat();
+    case Id::PaperDollPosition: return s.information.placesPaperDoll();
+    case Id::ScoreboardPosition: return s.information.placesScoreboard();
+    case Id::BossBarPosition: return s.information.placesBossBars();
     case Id::RepeatedTrades: return s.inventory.repeatTrades;
     case Id::TransferRoutes: return s.inventory.transfer;
     case Id::SkipServerPacks: return v.skipServerPacks;
@@ -60,7 +64,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::HideNausea: return v.hideEffects && (v.hideNausea || v.hidePowderSnow);
     case Id::HidePortal: return v.hideEffects && v.hidePortal;
     case Id::HideParticles: return v.hideEffects && v.hideParticles;
-    case Id::HideBossBars: return v.hideEffects && v.hideBossBars;
+    case Id::HideBossBars: return s.information.hidesBossBars();
     // Both are used by the card's rows and by the check itself, which reads a
     // note block's data whenever the schematic is on (L-303).
     case Id::NoteBlockSounds: case Id::NoteBlockInstrument:
@@ -69,6 +73,8 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick: return s.schematic.enabled;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
     case Id::BookPastePages: return s.ui.bookPaste;
+    // The planner screen says so itself when opened; the anvil's list is the standing use.
+    case Id::EnchantOrder: return s.inventory.enchantOrderAnvil;
     default: return false;
     }
 }

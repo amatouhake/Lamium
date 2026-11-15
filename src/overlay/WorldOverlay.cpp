@@ -5,12 +5,15 @@
 #include "overlay/Hitboxes.h"
 #include "overlay/Depth.h"
 #include "overlay/LineColor.h"
+#include "ui/Widgets.h"
 #include "features/camera/CameraSessions.h"
 #include "overlay/LightOverlay.h"
 #include "overlay/ShapeSession.h"
 #include "overlay/ShapeWorkspace.h"
 #include "overlay/LocalShapePath.h"
 #include "features/interaction/BreakingRestriction.h"
+#include "features/visuals/BlockHighlightHooks.h"
+#include "app/Capabilities.h"
 #include "mc/world/phys/HitResult.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
@@ -68,7 +71,9 @@ auto const& shapeCollection = shapeWorkspace.collection();
 ll::event::ListenerPtr exitListener;
 ll::event::ListenerPtr startJoinListener, joinListener;
 std::atomic<bool> joiningLocal{false};
-std::optional<Cell> followFeet; // This frame's feet block, under shapeMutex (L-311).
+// The latest feet block per dimension, under shapeMutex (L-311): a following
+// shape stays where the player left its dimension.
+std::map<int, Cell> followFeet;
 bool identityFailed = false;
 #ifdef LAMIUM_SHAPE_TRACE
 std::atomic<unsigned> identitySamples{0};
@@ -148,7 +153,7 @@ thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
 thread_local uint64_t eyeFrame = 0;
 thread_local int eyeDimension = 0;
 std::array<float,3> shapeColor(ShapeColor color, bool draft) {
-    if (draft) return {.62f,.83f,1.f};
+    if (draft) return {ui::palette::info.r,ui::palette::info.g,ui::palette::info.b}; // as the Shapes list
     switch (color) {
     case ShapeColor::Yellow: return {.95f,.8f,.24f};
     case ShapeColor::Pink: return {.94f,.5f,.75f};
@@ -310,6 +315,211 @@ void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, Light
         chunk.lineVertices = static_cast<uint32_t>(lines.size() * 2);
     }
 }
+// Block highlight glow (BACKLOG L-320): the exposed faces of designated
+// blocks, recorded while their chunk sections were built, drawn unlit in a
+// rainbow that flows across the world and pulses, so they stand out in the
+// dark and under Night Vision. A still color keeps its meshes until
+// something they show changes; the rainbow refreshes a few batches a frame
+// (rainbowRefreshHz). Through-walls faces depend on the eye and follow the
+// camera.
+struct GlowMesh {
+    std::optional<mce::Mesh> mesh;
+    uint32_t vertices = 0;
+};
+struct GlowParts {
+    std::vector<GlowMesh> faces, edges;
+    struct Key {
+        std::uint64_t faces; visuals::highlight::Look look; int strength; int variant;
+        bool operator==(Key const&) const = default;
+    };
+    std::optional<Key> key;
+    size_t batchFaces = visuals::highlight::glowBatchFaces;
+    size_t cursor = 0;  // the rainbow's next batch to refresh
+    double owed = 0;    // the rainbow's fraction of a batch carried to the next frame
+    double builtAt = 0; // when the rainbow last refreshed
+    Cell origin{};      // the glow meshes' vertices are relative to this cell
+    Vec3 camera{};      // the through-walls meshes were moved for this eye
+    void clear() { faces.clear(); edges.clear(); key.reset(); cursor = 0; owed = 0; }
+    bool valid() const {
+        auto ok = [](GlowMesh const& m) { return !m.mesh || m.mesh->isValid(); };
+        return std::all_of(faces.begin(), faces.end(), ok) && std::all_of(edges.begin(), edges.end(), ok);
+    }
+};
+struct GlowState {
+    std::uint64_t revision = 0;
+    std::vector<visuals::highlight::Mark> marks;
+    std::vector<CellFace> faces;
+    std::uint64_t facesRevision = 0; // bumped whenever `faces` is rechosen
+    int dimension = 0;
+    double prunedAt = 0;
+    std::optional<Cell> chosenAt; // the eye the nearest faces were chosen for, when capped
+    bool capped = false;          // the limit left marks out last time (says so once per new excess)
+    GlowParts still, through;
+};
+GlowState glow;
+void releaseGlow() {
+    glow.marks.clear();
+    glow.faces.clear();
+    glow.revision = 0;
+    glow.chosenAt.reset();
+    glow.capped = false;
+    glow.still.clear();
+    glow.through.clear();
+}
+void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
+                       Settings::Visuals const& visuals) {
+    if (!context.mImpl) return;
+    int dimension = static_cast<int>(player.getDimensionId());
+    if (dimension != glow.dimension) { visuals::highlight::clearMarks(); releaseGlow(); glow.dimension = dimension; }
+    double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    // Sections whose chunk left, or whose block is no longer designated
+    // (another dimension's leftovers, a list change in flight), go.
+    if (now - glow.prunedAt > .5 || now < glow.prunedAt) {
+        glow.prunedAt = now;
+        auto& region = player.getDimensionBlockSource();
+        visuals::highlight::pruneMarks(dimension, [&](visuals::highlight::Mark const& mark) {
+            BlockPos at{mark.cell.x, mark.cell.y, mark.cell.z};
+            if (!region.getChunkAt(at)) return false;
+            auto const& name = region.getBlock(at).getTypeName();
+            return std::any_of(visuals.highlightBlocks.begin(), visuals.highlightBlocks.end(),
+                               [&](auto const& e) { return e.name == name; });
+        });
+    }
+    Vec3 const eyePos = context.mImpl->mCameraPosition;
+    Cell const eye{static_cast<int>(std::floor(eyePos.x)), static_cast<int>(std::floor(eyePos.y)),
+                   static_cast<int>(std::floor(eyePos.z))};
+    bool changed = visuals::highlight::marks(dimension, glow.revision, glow.marks);
+    // A capped choice follows the eye: re-chosen after moving 8 blocks.
+    bool moved = glow.chosenAt && std::max({std::abs(eye.x - glow.chosenAt->x), std::abs(eye.y - glow.chosenAt->y),
+                                            std::abs(eye.z - glow.chosenAt->z)}) >= 8;
+    if (changed || moved) {
+        auto chosen = visuals::highlight::chooseNearest(glow.marks, eye, visuals::highlight::maxGlowFaces);
+        glow.faces.clear();
+        ++glow.facesRevision;
+        for (size_t i = 0; i < chosen.count; ++i) visuals::highlight::appendFaces(glow.faces, glow.marks[i]);
+        if (chosen.capped) glow.chosenAt = eye;
+        else glow.chosenAt.reset();
+        if (chosen.capped && !glow.capped) {
+            visuals::highlight::reportCapped(glow.faces.size());
+            try { Runtime::instance().self().getLogger().debug("Block highlight: {} marks, nearest {} faces shown", glow.marks.size(), glow.faces.size()); } catch (...) {}
+        }
+        glow.capped = chosen.capped;
+    }
+    if (glow.faces.empty()) return;
+    auto const material = faceMaterial(client);
+    if (!material.material.mRenderMaterialInfoPtr) return;
+    ScreenContext& screen = context.mScreenContext;
+    Vec3 const camera = context.mImpl->mCameraPosition;
+    double seconds = std::fmod(now, 3600.0);
+    auto const look = visuals.highlightColor;
+    bool const animated = visuals::highlight::animated(look);
+    auto const stillColor = visuals::highlight::lookColor(look);
+    size_t const perFace = material.twoSided ? 8 : 4;
+    GlowParts::Key const key{glow.facesRevision, look, visuals.highlightStrength, material.variant};
+    // Rebuilds batch `index` of `parts` with the colors and pulse of `at`;
+    // `share` scales the faces' alpha, `place` turns a world point into the
+    // vertex written. Faces are skipped at zero alpha.
+    auto buildPart = [&](GlowParts& parts, size_t index, double at, float share, bool withEdges, auto&& place) {
+        size_t first = index * parts.batchFaces;
+        std::span<CellFace const> part(glow.faces.data() + first, std::min(parts.batchFaces, glow.faces.size() - first));
+        float const faceAlpha = share * visuals::highlight::glowAlpha(material.alpha, visuals.highlightStrength, look,
+                                                                      visuals::highlight::pulse(at));
+        bool const withFaces = faceAlpha > 0;
+        auto& faces = parts.faces[index];
+        auto& lines = parts.edges[index];
+        faces.mesh.reset(); faces.vertices = 0;
+        lines.mesh.reset(); lines.vertices = 0;
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        if (withFaces) batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(part.size() * perFace), false);
+        Tessellator edges(screen.tessellator.mBufferResourceService);
+        if (withEdges) edges.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(part.size() * 8), false);
+        for (auto const& face : part) {
+            auto [r, g, b] = animated ? visuals::highlight::hueColor(visuals::highlight::rainbowHue(at, face.cell)) : stillColor;
+            auto corners = faceVertices(face);
+            if (withFaces) {
+                batch.color(r, g, b, faceAlpha);
+                for (auto p : corners) place(batch, p);
+                if (material.twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) place(batch, *it);
+            }
+            if (withEdges) {
+                edges.color(r, g, b, 1.f);
+                for (size_t k = 0; k < 4; ++k) { place(edges, corners[k]); place(edges, corners[(k + 1) % 4]); }
+            }
+        }
+        if (withFaces) {
+            faces.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium highlight glow", SupplementaryFieldAutoGenerationMode{}));
+            faces.vertices = static_cast<uint32_t>(part.size() * perFace);
+        }
+        if (withEdges) {
+            lines.mesh.emplace(edges.end(Tessellator::UploadMode::Buffered, "Lamium highlight edges", SupplementaryFieldAutoGenerationMode{}));
+            lines.vertices = static_cast<uint32_t>(part.size() * 8);
+        }
+    };
+    auto build = [&](GlowParts& parts, size_t batchFaces, float share, bool withEdges, auto&& place) {
+        parts.clear();
+        parts.key = key;
+        parts.batchFaces = batchFaces;
+        parts.builtAt = now;
+        size_t batches = (glow.faces.size() + batchFaces - 1) / batchFaces;
+        parts.faces.resize(batches);
+        parts.edges.resize(batches);
+        for (size_t i = 0; i < batches; ++i) buildPart(parts, i, seconds, share, withEdges, place);
+    };
+    // Through walls (option): the same faces again, faint and without edges,
+    // moved along their rays in front of the terrain; drawn first, so where a
+    // face is in sight the normal glow lies over it at full strength. The
+    // move depends on the eye, so these follow the camera.
+    if (visuals.highlightThroughWalls) {
+        auto& through = glow.through;
+        bool sameEye = through.camera.x == camera.x && through.camera.y == camera.y && through.camera.z == camera.z;
+        if (animated || through.key != key || !sameEye || !through.valid()) {
+            through.camera = camera;
+            build(through, visuals::highlight::glowBatchFaces, visuals::highlight::throughShare, false, [&](Tessellator& batch, Point p) {
+                auto q = visuals::highlight::throughWall({p.x - camera.x, p.y - camera.y, p.z - camera.z});
+                batch.vertex(static_cast<float>(q.x), static_cast<float>(q.y), static_cast<float>(q.z));
+            });
+        }
+        drawPulled(screen, glm::vec3{0.f}, 1.f, [&] {
+            for (auto const& part : through.faces)
+                if (part.mesh) part.mesh->renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+                                                     part.vertices, OffscreenCaptureDescription{}, nullptr);
+        });
+    } else if (glow.through.key) {
+        glow.through.clear();
+    }
+    // The glow itself, relative to the cell the eye was in at the last full
+    // build. A still color draws the same meshes until the faces, look,
+    // strength or material change; the rainbow also refreshes its batches in
+    // turn, about rainbowRefreshHz times a second each.
+    auto& glowParts = glow.still;
+    auto placeGlow = [&](Tessellator& batch, Point p) {
+        batch.vertex(static_cast<float>(p.x - glowParts.origin.x), static_cast<float>(p.y - glowParts.origin.y),
+                     static_cast<float>(p.z - glowParts.origin.z));
+    };
+    if (glowParts.key != key || !glowParts.valid()) {
+        glowParts.origin = eye;
+        build(glowParts, animated ? visuals::highlight::rainbowBatchFaces : visuals::highlight::glowBatchFaces, 1.f, true, placeGlow);
+    } else if (animated && !glowParts.faces.empty()) {
+        size_t batches = glowParts.faces.size();
+        size_t count = visuals::highlight::refreshCount(glowParts.owed, batches, now - glowParts.builtAt);
+        glowParts.builtAt = now;
+        for (size_t i = 0; i < count; ++i) {
+            glowParts.cursor %= batches;
+            buildPart(glowParts, glowParts.cursor++, seconds, 1.f, true, placeGlow);
+        }
+    }
+    // Edges with vertex colors on the debug material: one draw for every hue.
+    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
+    withTowardEye(context, glowParts.origin, [&] {
+        for (auto const& part : glowParts.faces)
+            if (part.mesh) part.mesh->renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+                                                 part.vertices, OffscreenCaptureDescription{}, nullptr);
+        if (!lineMaterial.mRenderMaterialInfoPtr) return;
+        for (auto const& part : glowParts.edges)
+            if (part.mesh) part.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0,
+                                                 part.vertices, OffscreenCaptureDescription{}, nullptr);
+    });
+}
 void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
                       Settings::Overlays const& preferences) {
     if (!context.mImpl) return;
@@ -412,11 +622,15 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     auto const settings = runtime.snapshot();
     auto const& preferences = settings->overlays;
     bool breaking = settings->interaction.breaking;
-    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); restrictionMesh.release(); releaseLight(); eyeTracks.clear(); }
+    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); restrictionMesh.release(); releaseLight(); releaseGlow(); eyeTracks.clear(); }
     if (!preferences.hitboxes) eyeTracks.clear();
     if (!preferences.light && !lightChunks.empty()) releaseLight();
     bool shapesShown = preferences.shapes && hasShapes();
-    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown) return;
+    auto const& visuals = settings->visuals;
+    bool glowShown = visuals.blockHighlight && !visuals.highlightBlocks.empty()
+        && capabilities::registry().status(capabilities::Id::BlockHighlight).available();
+    if (!glowShown && glow.revision) releaseGlow();
+    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown && !glowShown) return;
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
@@ -427,10 +641,11 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             int dimensionId = static_cast<int>(player->getDimensionId());
             // The body, not a detached camera: FreeCamera looks at the shape around it.
             Vec3 const body = player->getFeetPos();
-            followFeet = Cell{static_cast<int>(std::floor(body.x)), static_cast<int>(std::floor(body.y)),
-                              static_cast<int>(std::floor(body.z))};
+            Cell const feet{static_cast<int>(std::floor(body.x)), static_cast<int>(std::floor(body.y)),
+                            static_cast<int>(std::floor(body.z))};
+            followFeet[dimensionId] = feet;
             shapeCollection.forVisible(dimensionId,
-                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false, followFeet); });
+                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false, feet); });
             draftCollection.forVisible(dimensionId,
                 [&](ShapeId, ManagedShape const& shape) { drawShape(context, faces, draftKey, shape, true); });
             // Release meshes of removed shapes.
@@ -471,6 +686,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
         }
         auto& dimension = player->getDimension();
         if (preferences.light) drawLightOverlay(context, client, *player, preferences);
+        if (glowShown) drawHighlightGlow(context, client, *player, visuals);
         if (preferences.chunkBorders) {
             auto const& range = dimension.mHeightRange;
             Vec3 const position = player->getPosition();
@@ -572,6 +788,11 @@ bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
     return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
+std::optional<Cell> lastFeet(int dimension) {
+    std::lock_guard lock(shapeMutex);
+    auto found = followFeet.find(dimension);
+    return found == followFeet.end() ? std::nullopt : std::optional(found->second);
+}
 std::vector<Footprint> footprints(int dimension) {
     std::lock_guard lock(shapeMutex);
     // Boxes by shape and the revision they were computed for.
@@ -584,8 +805,8 @@ std::vector<Footprint> footprints(int dimension) {
         if (cached.first != shape.revision || !cached.first) cached = {shape.revision, shapeFootprint(shape)};
         if (!cached.second) continue;
         auto area = *cached.second;
-        if (shape.definition.follow && followFeet) {
-            auto const shift = followShift(shape.definition, *followFeet);
+        if (auto feet = followFeet.find(dimension); shape.definition.follow && feet != followFeet.end()) {
+            auto const shift = followShift(shape.definition, feet->second);
             area = {area.x0 + shift.x, area.z0 + shift.z, area.x1 + shift.x, area.z1 + shift.z};
         }
         result.push_back({id, shape.definition.name, shape.definition.color, shape.definition.visible, area,
@@ -602,7 +823,8 @@ void clear() {
     std::lock_guard lock(shapeMutex);
     draftCollection.clear();
     releaseMeshes = true;
-    followFeet.reset();
+    visuals::highlight::clearMarks();
+    followFeet.clear();
     shapeWorkspace.leave();
     joiningLocal = false;
     identityFailed = false;

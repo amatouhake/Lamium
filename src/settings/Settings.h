@@ -12,6 +12,7 @@
 #include "features/camera/FreeCameraSpeed.h"
 #include "features/map/MapMarks.h"
 #include "features/map/MapView.h"
+#include "features/visuals/BlockHighlight.h"
 
 namespace lamium {
 struct Settings {
@@ -62,6 +63,7 @@ struct Settings {
         float freeCameraSpeed = 20.f;
         float magnification = 3.0f;
         bool zoomWideAngle = false; // L-140: the wheel may go below 1x.
+        bool zoomResetOnRelease = true; // L-325: each press starts from magnification; on for new installs.
         bool showMagnification = true;
         bool operator==(Camera const&) const = default;
     } camera;
@@ -73,11 +75,16 @@ struct Settings {
         bool containerPreviews = true;
         bool shulkerPreviews = true;
         bool emptyShulkerPreviews = true;
-        bool hideShulkerContents = false;
+        bool hideShulkerContents = true; // The preview shows the same contents (2026-11-13).
         bool bundlePreviews = true;
         bool emptyBundlePreviews = true;
         bool durability = true;
         bool foodValues = true; // Hunger and saturation gain on hovered food (L-64)
+        bool workPenalty = true; // An item's anvil work penalty in its tooltip (L-319)
+        bool itemTooltip = true; // Main switch of the tooltip lines below; off leaves the game's own tooltip (L-319)
+        bool itemDetails = true; // The values of an item's kind that the game does not print (L-319)
+        bool itemDetailsStew = true; // A suspicious stew's effect outside Creative
+        bool itemDetailsId = true, itemDetailsTags = false, itemDetailsNbt = false; // Its id, tags and user data
         bool lockedTrades = true; // Every trader level in the trade screen (L-129)
         bool englishSearch = true; // Recipe and creative search match English names too (L-130)
     } inspection;
@@ -87,6 +94,11 @@ struct Settings {
         bool offhandSwap = true; // The Swap with offhand key works (L-94)
         bool deathRestore = false; // Put picked-up items back in their death-time slots (L-109, experimental)
         bool deathRestoreAll = false; // Also the main inventory; off: the hotbar, armor and offhand
+        // The planned steps listed beside the anvil screen (L-170). Off for new installs while the feature is
+        // Experimental (L-338); the two below only act with it on.
+        bool enchantOrderAnvil = false;
+        bool enchantOrderAnvilChoose = true; // The planner's choosing column left of the anvil screen
+        bool enchantOrderAnvilMarks = true;  // The tints on the slots the next step uses and on the anvil's own
         // Fireworks swap with Fake Offhand's slot, not the real offhand, while
         // Fake Offhand is on: it can launch them (maintainer 2026-10-07).
         bool offhandSwapFireworks = true;
@@ -115,6 +127,7 @@ struct Settings {
         int restockThreshold = 6; // Refill when the held count is at or below this; 0 only when empty.
         int restockOrder = 1; // Within a source region: 0 largest stack first, 1 smallest first (default, 2026-10-07).
         bool toolSwitchInventory = false; // Fetch a tool from the main inventory (L-69).
+        int toolSwitchDrop = 0; // Drop priority: speed, Fortune, Silk Touch (L-318).
         bool weaponSwitch = false; // Pick the strongest hotbar weapon when attacking (L-67).
         bool weaponSwitchInventory = false;
         // Where a fetch goes: 0 the selected slot, 1-9 a fixed hotbar slot (L-97).
@@ -145,16 +158,32 @@ struct Settings {
         ui::HudElement inventory = ui::defaultHudElement(ui::HudElementId::Inventory);
         ui::HudElement usedSlots = ui::defaultHudElement(ui::HudElementId::UsedSlots);
         ui::HudElement chat = ui::defaultHudElement(ui::HudElementId::Chat);
+        ui::HudElement paperDoll = ui::defaultHudElement(ui::HudElementId::PaperDoll);
+        ui::HudElement scoreboard = ui::defaultHudElement(ui::HudElementId::Scoreboard);
+        ui::HudElement bossBars = ui::defaultHudElement(ui::HudElementId::BossBars);
         ui::HudElement statusEffects = ui::defaultHudElement(ui::HudElementId::StatusEffects);
     } hud;
     struct Map {
         bool minimap = false;
         int zoom = map::defaultZoomIndex; // Index into map::zoomSteps; saved as blocks ("range").
-        float size = 20; // Map side, percent of the screen height; text follows the HUD layout scale.
+        // L-337: the HUD scale alone sizes the map; at 100 % its side is this
+        // share of the screen height.
+        static constexpr float sideAtFullScale = .2f;
+        // Before L-337 "size" (percent of the screen height) multiplied the
+        // scale. A file that still has it converts once; the key is removed
+        // on the next save, so a converted file has nothing left to convert.
+        static float scaleFromLegacySize(float scale, float size) {
+            if (!std::isfinite(size) || size <= 0) return ui::clampHudScale(scale);
+            size = std::clamp(std::round(size), 10.f, 50.f); // The old row's range.
+            float merged = ui::clampHudScale(scale) * size / (sideAtFullScale * 100);
+            return ui::clampHudScale(std::round(merged / ui::hudScaleStep) * ui::hudScaleStep);
+        }
         bool rotate = false; // Heading up instead of north up.
         bool round = false;
         // map::ViewForce: 0 automatic, 1 surface, 2 cave; the key cycles it (L-253).
         int caveView = 0;
+        // L-317: 0 same as caveView, else map::ViewForce + 1, used in the Nether.
+        int netherView = 0;
         bool coordinates = false;
         bool biome = false;
         bool compass = false;
@@ -167,6 +196,7 @@ struct Settings {
         int waypointsWorld = 0; // map::WorldMarkers: always, while the key is held, off.
         float waypointDistance = 0; // World markers up to this many blocks away; 0 shows all.
         bool waypointsDeath = true; // Record the last death point.
+        bool waypointsDeathTemporary = true; // It goes on arrival like a temporary waypoint (L-326).
         bool waypointsCrossScale = false; // Overworld ones in the Nether at 1/8, Nether ones at 8x.
         float waypointArrival = 6; // Temporary waypoints go within this many blocks (L-261); 0 keeps them.
         bool worldMap = false; // Recording and the world map screen.
@@ -226,9 +256,13 @@ struct Settings {
         bool connectedTextures = false; // Glass without inner borders (L-96), Experimental
         bool connectedCorners = false; // Keep an edge where glass blocks turn inward, and inside an L-shaped pane (L-208, L-270), Experimental
         bool connectedPaneCorners = false; // Keep an edge at an L-shaped glass pane corner; the inside edge needs connectedCorners too (L-208, L-255, L-270), Experimental
+        bool blockHighlight = false; // Designated block types tinted in the terrain mesh (L-320), Experimental
+        std::vector<visuals::highlight::Entry> highlightBlocks;
+        bool highlightThroughWalls = false; // Recorded (exposed) faces also drawn faint behind terrain (L-320, 2026-11-09)
+        visuals::highlight::Look highlightColor = visuals::highlight::Look::Rainbow; // L-320, 2026-11-09
+        int highlightStrength = visuals::highlight::defaultStrength; // percent, 0-100
         bool hideWeather = true;
         bool hideParticles = true;
-        bool hideBossBars = true;
         bool hideNausea = true;
         bool hideWater = true;
         bool hideLava = true;
@@ -243,7 +277,6 @@ struct Settings {
         int debugLabels = 0; // 0 game standard, 1 Java F3 style
         bool debugHideHud = true;    // Hide the Info HUD while Debug is on
         bool debugHideTarget = true; // Hide the Target card while Debug is on
-        bool debugHideVanilla = true; // Hide the game's position line and paper doll while Debug is on
         bool debugShadow = true;     // Text shadow on the debug panel
         int debugBackground = 1;     // 0 none, 1 a background behind each line (L-98, default per line)
         bool debugEntityKinds = true; // The entity total by kind under it (L-120)
@@ -255,6 +288,7 @@ struct Settings {
         int targetArmor = 0;  // 0 icons, 1 bar, 2 number
         int targetGrowth = 0; // 0 bar, 1 number
         float targetDistance = 6; // Blocks from the viewpoint (the body, or a detached camera)
+        bool targetFullRange = false; // Up to the render distance instead (L-308)
         bool targetStates = false; // Other details
         bool targetCoordinates = false;
         bool targetMeasure = false; // The distance to the target (L-308); a hold key flips it.
@@ -262,6 +296,7 @@ struct Settings {
         bool targetLiquids = false; // Real water and lava as the target (L-264); ghosts' always are.
         bool durabilityHud = false;
         int durabilityLook = 0; // 0 bar and number, 1 number, 2 bar (number below a quarter)
+        bool durabilityMainHand = true; // The held item's row (L-349)
         bool durabilityOffhand = true;
         bool durabilityArmor = true;
         bool durabilityAmmo = true; // Arrows and fireworks beside bows, crossbows and elytra (L-150)
@@ -274,14 +309,44 @@ struct Settings {
         // Inventory grid and used-slot counter (L-127), each with its own hotbar switch:
         // the grid shows the main 27 by default, the counter counts all 36 (2026-10-11).
         bool inventoryHud = false, usedSlots = false, inventoryHotbar = false, usedSlotsHotbar = true;
-        bool chatPosition = false;
+        // Game HUD placement (L-321): one switch, default off, lets the HUD
+        // layout place and scale parts of the game's own HUD; each part can be
+        // left out (the chat L-174, the paper doll L-309, the scoreboard
+        // sidebar, the boss bars L-323). Every part but the chat is selected by
+        // default: they start at the game's place, while the chat's default
+        // place differs, so it starts Standard and switching the group on
+        // moves nothing (L-349).
+        bool gameHud = false;
+        bool chatPosition = false, paperDollPosition = true, scoreboardPosition = true, bossBarPosition = true;
+        bool placesChat() const { return gameHud && chatPosition; }
+        bool placesPaperDoll() const { return gameHud && paperDollPosition; }
+        bool placesScoreboard() const { return gameHud && scoreboardPosition; }
+        bool placesBossBars() const { return gameHud && bossBarPosition; }
+        // Shown or hidden while placed (L-334): a hidden part is not drawn;
+        // with its part switch or the main switch off it is the game's again.
+        bool showChat = true, showPaperDoll = true, showScoreboard = true, showBossBars = true;
+        bool hidesChat() const { return placesChat() && !showChat; }
+        bool hidesPaperDoll() const { return placesPaperDoll() && !showPaperDoll; }
+        bool hidesScoreboard() const { return placesScoreboard() && !showScoreboard; }
+        bool hidesBossBars() const { return placesBossBars() && !showBossBars; }
+        // L-348: the game's position and days played lines, hidden without
+        // changing the world's options; part of the group's switch.
+        bool hideGamePosition = false, hideGameDays = false;
+        bool hidesGamePosition() const { return gameHud && hideGamePosition; }
+        bool hidesGameDays() const { return gameHud && hideGameDays; }
+        // Hides the boss bars with nothing else changing: an off group comes on
+        // for the boss bars alone, which stay at their place (L-334).
+        void hideBossBarsAlone() {
+            if (!gameHud) { gameHud = true; chatPosition = paperDollPosition = scoreboardPosition = false; }
+            bossBarPosition = true;
+            showBossBars = false;
+        }
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
         bool saturationPreview = true; // What the held food would add
         bool hud = false;
-        bool hudHidePaperDoll = true; // L-145: the game's paper doll is not drawn where the Info HUD covers it.
-        bool coordinates = true; // Defaults match DESIGN "HUD".
+        bool coordinates = true; // Defaults match docs/HUD.md.
         bool scaledCoordinates = false;
         bool dimension = false;
         bool biome = true;
@@ -325,6 +390,9 @@ struct Settings {
             if (static_cast<unsigned>(mode) >= count) mode = lamium::interaction::RestrictionMode::Plane;
         };
         normalizeMode(interaction.breakingMode, lamium::interaction::restrictionLabels.size());
+        visuals::highlight::normalize(visuals.highlightBlocks);
+        if (static_cast<unsigned>(visuals.highlightColor) >= visuals::highlight::lookNames.size()) visuals.highlightColor = visuals::highlight::Look::Rainbow;
+        visuals.highlightStrength = std::clamp(visuals.highlightStrength, 0, 100);
         if (!std::isfinite(interaction.breakingBand)) interaction.breakingBand = 2;
         interaction.breakingBand = std::clamp(std::round(interaction.breakingBand), 1.f, 16.f);
         for (auto* mode : {&interaction.attackMode, &interaction.useMode})
@@ -347,12 +415,13 @@ struct Settings {
         ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
         if (!std::isfinite(information.targetDistance)) information.targetDistance = 6;
-        information.targetDistance = std::clamp(std::round(information.targetDistance), 2.f, 256.f);
+        information.targetDistance = std::clamp(std::round(information.targetDistance), 2.f, 64.f);
         if (!std::isfinite(interaction.edgeMargin)) interaction.edgeMargin = 0.1f;
         interaction.edgeMargin = std::clamp(interaction.edgeMargin, .02f, .3f);
         normalizeMode(interaction.placementMode, lamium::interaction::placementLabels.size());
         if (inventory.fakeOffhandSlot < 1 || inventory.fakeOffhandSlot > 9) inventory.fakeOffhandSlot = 9;
         inventory.toolSwitchSlot = std::clamp(inventory.toolSwitchSlot, 0, 9);
+        if (inventory.toolSwitchDrop < 0 || inventory.toolSwitchDrop > 2) inventory.toolSwitchDrop = 0;
         inventory.weaponSwitchSlot = std::clamp(inventory.weaponSwitchSlot, 0, 9);
         inventory.restockThreshold = std::clamp(inventory.restockThreshold, 0, 63);
         if (inventory.restockOrder < 0 || inventory.restockOrder > 1) inventory.restockOrder = 1;
@@ -373,7 +442,7 @@ struct Settings {
             element.dx = std::clamp(element.dx, -512.f, 512.f);
             element.dy = std::clamp(element.dy, -512.f, 512.f);
             if (!std::isfinite(element.scale)) element.scale = defaultValue.scale;
-            element.scale = std::clamp(element.scale, 75.f, 150.f);
+            element.scale = std::clamp(element.scale, ui::hudScaleMin, ui::hudScaleMax);
             if (static_cast<unsigned>(element.anchor) > 8) element.anchor = defaultValue.anchor;
             if (static_cast<unsigned>(element.background) > (lines ? 2u : 1u)) element.background = defaultValue.background;
         };
@@ -389,15 +458,22 @@ struct Settings {
         normalizeElement(hud.inventory, ui::defaultHudElement(ui::HudElementId::Inventory));
         normalizeElement(hud.usedSlots, ui::defaultHudElement(ui::HudElementId::UsedSlots));
         normalizeElement(hud.chat, ui::defaultHudElement(ui::HudElementId::Chat));
-        hud.chat.scale = 100;
         hud.chat.background = ui::ElementBackground::None;
         hud.chat.shadow = true;
+        normalizeElement(hud.paperDoll, ui::defaultHudElement(ui::HudElementId::PaperDoll));
+        hud.paperDoll.background = ui::ElementBackground::None;
+        hud.paperDoll.shadow = true;
+        normalizeElement(hud.scoreboard, ui::defaultHudElement(ui::HudElementId::Scoreboard));
+        hud.scoreboard.background = ui::ElementBackground::None;
+        hud.scoreboard.shadow = true;
+        normalizeElement(hud.bossBars, ui::defaultHudElement(ui::HudElementId::BossBars));
+        hud.bossBars.background = ui::ElementBackground::None;
+        hud.bossBars.shadow = true;
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);
         map.zoom = map::clampZoomIndex(map.zoom);
-        if (!std::isfinite(map.size)) map.size = 20;
-        map.size = std::clamp(std::round(map.size), 10.f, 50.f);
         map.waypointsWorld = std::clamp(map.waypointsWorld, 0, 2);
         map.caveView = std::clamp(map.caveView, 0, 2);
+        map.netherView = std::clamp(map.netherView, 0, 3);
         for (auto* shownOn : {&map.marksShownOn, &map.radarShownOn, &map.slimeShownOn}) *shownOn = map::clampShownOn(*shownOn);
         if (!std::isfinite(map.waypointDistance)) map.waypointDistance = 0;
         map.waypointDistance = std::clamp(std::round(map.waypointDistance / 100) * 100, 0.f, 10000.f);

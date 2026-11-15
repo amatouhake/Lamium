@@ -1,9 +1,13 @@
 #include "ui/SettingsTableView.h"
 #include "ui/CapabilityStatus.h"
+#include "ui/HighlightView.h"
+#include "ui/EnchantView.h"
 #include "ui/LanguageView.h"
+#include "ui/SavedDataView.h"
 #include "ui/GameLanguage.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/RowPages.h"
 #include "settings/Options.h"
 #include "ui/SettingsRows.h"
 #include "ui/SettingsNavigation.h"
@@ -215,7 +219,9 @@ void clearKeyQuery() {
 // overwritten by a stale copy captured when the screen opened.
 void adjustOption_(settings::Option const& option, int direction) {
     auto value = Runtime::instance().preferences();
-    option.adjust(value, direction);
+    // Shift steps a number ten of its own steps (DESIGN "Controls"); a choice or switch steps once.
+    int const times = option.numeric && screen::heldShift() ? 10 : 1;
+    for (int i = 0; i < times; ++i) option.adjust(value, direction);
     screen::setMessage(Runtime::instance().save(value) ? std::string{} : translated("saveError"));
     if (option.id == "schematic.enabled") schematic::actions::resetState();
     // The stepper of a row being typed into shows the typed text; replace it
@@ -259,6 +265,11 @@ void beginNumber(settings::Option const& option) {
 // Enter / Space / click on the name of a row.
 void openLayout(std::optional<HudElementId> element) {
     screen::selectNav(nav::hud);
+    // Game HUD placement's link names the chat; a part left Standard is not
+    // in the editor, so the first one that is, or none.
+    auto const preferences = Runtime::instance().preferences();
+    if (element && !settings::hudInEditor(preferences, *element))
+        element = hudGameDrawn(*element) ? settings::firstGameHudPart(preferences) : std::nullopt;
     hud_editor::select(element);
 }
 void setSlider(settings::Option const& option, float fraction) {
@@ -273,7 +284,7 @@ void setSlider(settings::Option const& option, float fraction) {
 void pressMapCache() {
     if (!std::exchange(mapCacheArmed, true)) return;
     mapCacheArmed = false;
-    if (map::store::clear()) showMessageToast(translated("mapCacheCleared"));
+    if (map::store::clear()) screen::setInfo(translated("mapCacheCleared"));
 }
 // Open buttons on tool rows (L-231): the 24 px state cell is too narrow for
 // the word, so the button borrows the gap and a little of the name cell.
@@ -285,7 +296,6 @@ void activateRow(int row, bool space) {
     switch (entry.kind) {
     case RowKind::Section: return;
     case RowKind::Feature:
-        if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) { screen::openTool(*primary); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
@@ -299,6 +309,7 @@ void activateRow(int row, bool space) {
     case RowKind::Action: startCapture(*entry.action); return;
     case RowKind::Layout: openLayout(*entry.layout); return;
     case RowKind::MapCache: pressMapCache(); return;
+    case RowKind::SavedData: row_pages::begin(row_pages::savedData()); return;
     }
 }
 void moveSelection(int step) {
@@ -355,6 +366,8 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
             ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
         return;
     }
+    // The header and the sidebar answer the left button only.
+    if (right && hit.zone != Zone::Row) return;
     switch (hit.zone) {
     case Zone::Search: clearKeyQuery(); searchFocused_() = true; return;
     case Zone::Close: screen::close(); return;
@@ -374,7 +387,6 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     }
     switch (entry.kind) {
     case RowKind::Feature:
-        if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) {
             float openX = openButtonX(displayed);
             if (hit.x >= openX && hit.x < openX + openButtonWidth) { screen::openTool(*primary); return; }
@@ -401,7 +413,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
             setSlider(*entry.option, fraction);
             return;
         }
-        int part = displayed.stepperPart(hit.x, linked.has_value());
+        int part = displayed.stepperPart(hit.x);
         if (part == -1 || part == 1) adjustOption_(*entry.option, part);
         else if (part == 0) {
             if (entry.option->numeric) beginNumber(*entry.option);
@@ -418,6 +430,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         return;
     case RowKind::Layout: openLayout(*entry.layout); return;
     case RowKind::MapCache: if (onMapCacheButton(hit.x)) pressMapCache(); return;
+    case RowKind::SavedData: row_pages::begin(row_pages::savedData()); return;
     default: return;
     }
 }
@@ -438,7 +451,8 @@ void handleKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -527,9 +541,18 @@ input::Relation strongestConflict(std::vector<input::Conflict> const& conflicts)
     for (auto conflict : conflicts) relation = std::max(relation, conflict.relation);
     return relation;
 }
-KeyTone conflictTone(input::Relation relation) {
+KeyTone conflictTone(input::Relation relation, bool gameClick = false) {
     return relation == input::Relation::Shared ? KeyTone::Filled
-        : relation == input::Relation::Overlap ? KeyTone::Outline : KeyTone::Plain;
+        : relation == input::Relation::Overlap || gameClick ? KeyTone::Outline : KeyTone::Plain;
+}
+// The tip's line for a binding that is the game's own click, empty otherwise.
+std::string gameClickNote(input::Chord const& chord) {
+    switch (input::gameClick(chord)) {
+    case input::GameClick::Attack: return translated("tip.gameAttack");
+    case input::GameClick::Use: return translated("tip.gameUse");
+    case input::GameClick::Pick: return translated("tip.gamePick");
+    default: return {};
+    }
 }
 // Open buttons on tool rows (L-231). The 24 px state cell is too narrow for
 // the word, so the button borrows the gap and a little of the name cell.
@@ -543,7 +566,7 @@ void drawOpenButton(MinecraftUIRenderContext& context, SettingsTable const& t, f
     fill(context,x,cy,openButtonWidth,capHeight,palette::keyFill);
     if (hovered) fill(context,x,cy,openButtonWidth,capHeight,palette::white,.1f);
     frame(context,x,cy,openButtonWidth,capHeight,palette::keyEdge);
-    fill(context,x+1,cy+capHeight-2,openButtonWidth-2,1,Rgb{0,0,0},.5f);
+    fill(context,x+1,cy+capHeight-2,openButtonWidth-2,1,palette::shade,.5f);
     labelScaled(context,x,cy+boxTextInset(),openButtonWidth,translated("open"),1.f,palette::text,Align::Center,true);
 }
 void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, float y, input::Action action) {
@@ -551,16 +574,19 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     // its text lines up with the row name at y + 3.
     float x = displayed.keyX, width = displayed.keyWidth, cy = y + 2;
     if (capturing_ == action) {
-        fill(context,x,cy-1,width,capHeight+2,palette::accent,.25f);
-        frame(context,x,cy-1,width,capHeight+2,palette::accent);
-        auto text = capture.value().empty() ? translated("captureBox") : bindingChordName(current, capture.value());
-        label(context,x+3,cy+boxTextInset(),width-6,std::move(text));
+        // The selected row marks the cell; the keys held draw as the caps they
+        // become, followed by a text field's caret, so a kept chord does not move.
+        if (capture.value().empty()) {
+            label(context,x,cy+1,width,translated("captureBox"),palette::faint);
+            caretBar(context,x,cy-1,capHeight+2);
+        } else caretBar(context,x+keycaps(context,x,cy,width-3,chordKeys(current,capture.value()))+2,cy-1,capHeight+2);
         return;
     }
     auto keys = bindingKeys(current, action);
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
-    auto relation = strongestConflict(input::bindingConflicts(Runtime::instance().preferences().bindings, action));
-    keycaps(context,x,cy,width,keys,conflictTone(relation));
+    auto const& bindings = Runtime::instance().preferences().bindings;
+    auto relation = strongestConflict(input::bindingConflicts(bindings, action));
+    keycaps(context,x,cy,width,keys,conflictTone(relation, input::gameClick(input::effectiveChord(bindings, action)) != input::GameClick::None));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -580,24 +606,11 @@ void drawName(MinecraftUIRenderContext& context, float x, float y, float right, 
     if (count > 0) { label(context,cursor,y+3,right-cursor,countText,palette::faint); cursor += textWidth(context, countText) + 5; }
     if (experimental && cursor + 8 < right) badge(context,cursor,y,std::move(exp),palette::experimental);
 }
-void drawStepper(MinecraftUIRenderContext& context, float y, settings::Option const& option, std::string const& value,
-                 bool editing, bool warn = false) {
-    bool keyed = optionAction(option.id).has_value();
-    float x = displayed.stepperX(keyed), w = displayed.stepperWidth(keyed), aw = SettingsTable::arrowWidth;
-    float cy = y + 1, h = SettingsTable::rowHeight - 2;
-    fill(context,x,cy,aw,h,palette::keyFill);
-    fill(context,x+w-aw,cy,aw,h,palette::keyFill);
-    frame(context,x,cy,w,h,editing ? palette::accent : warn ? palette::warning : palette::keyEdge);
-    bool numeric = option.numeric.has_value();
-    if (numeric) {
-        label(context,x,cy+1+boxTextInset(),aw,"-",palette::dim,Align::Center);
-        label(context,x+w-aw,cy+1+boxTextInset(),aw,"+",palette::dim,Align::Center);
-    } else {
-        arrow(context,x+4,cy+3,true);
-        arrow(context,x+w-aw+4,cy+3,false);
-    }
-    if (editing) drawEditField(context,x+aw+1,cy,h,w-2*aw-2,screen::number(),Align::Center,warn ? palette::warning : palette::text);
-    else label(context,x+aw+1,cy+1+boxTextInset(),w-2*aw-2,value,warn ? palette::warning : palette::text,Align::Center);
+void drawOptionStepper(MinecraftUIRenderContext& context, float y, settings::Option const& option, std::string const& value,
+                 bool editing, glm::vec2 pointer, bool warn = false) {
+    float x = displayed.stepperX(), w = displayed.stepperWidth(), aw = SettingsTable::arrowWidth;
+    drawStepper(context,x,y+1,w,SettingsTable::rowHeight-2,option.numeric.has_value(),value,
+        {.editing = editing ? &screen::number() : nullptr, .warn = warn, .cell = aw, .pointerX = pointer.x, .pointerY = pointer.y});
 }
 void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
     float x = displayed.nameX + 3;
@@ -634,8 +647,6 @@ std::string baseDescription() {
     if (!valid(selected)) return query.value().find_first_not_of(' ') != std::string::npos
         ? translated("noResultsFor", query.value()) : std::string{};
     auto const& entry = rows[selected];
-    if (entry.child() && effectsPaused(entry.feature->id,Runtime::instance().preferences()))
-        return translated("help.effectsPaused");
     switch (entry.kind) {
     case RowKind::Feature: {
         auto text = translated(entry.feature->description);
@@ -651,6 +662,8 @@ std::string baseDescription() {
             auto const& range = *entry.option->numeric;
             text += "\n" + translated("numberRangeLine", range.minimum, range.maximum);
         }
+        // The setting's own help stays readable under the note.
+        if (effectsPaused(entry.feature->id,Runtime::instance().preferences())) text = translated("help.effectsPaused") + "\n" + text;
         return text;
     }
     case RowKind::Action: {
@@ -662,6 +675,11 @@ std::string baseDescription() {
     }
     case RowKind::Layout: return translated("help.layoutLink");
     case RowKind::MapCache: return translated("help.mapCache");
+    case RowKind::SavedData: {
+        // The footer has the name in full, however little of it the row has room for.
+        auto name = saved_data_view::currentName();
+        return (name.empty() ? std::string() : translated("savedData.current", name) + "  ") + translated("help.savedData");
+    }
     default: return {};
     }
 }
@@ -709,10 +727,12 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (chord.empty()) return false;
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
     auto const keys = chordKeys(current, chord);
+    auto const gameNote = gameClickNote(chord);
     // Hovering the key cell reveals a binding only when the cell clips it; the
-    // keyboard tip still appears only when there is a conflict (L-235).
-    if (!hoveredKey && conflicts.empty()) return false;
-    if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return false;
+    // keyboard tip still appears only when there is a conflict (L-235) or the game's click.
+    bool const warns = !conflicts.empty() || !gameNote.empty();
+    if (!hoveredKey && !warns) return false;
+    if (hoveredKey && !warns && keycapsWidth(context, keys) <= t.keyWidth) return false;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     // Size the tip to the chord it reveals: the count on the right must not
     // squeeze the caps the row clipped (L-235).
@@ -730,6 +750,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     // little space below; alone they keep equal padding.
     float header = conflicts.empty() ? capsHeight : std::max(headHeight, capsHeight + 4);
     std::vector<std::string> notes;
+    if (!gameNote.empty()) notes.push_back(gameNote);
     bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
     else if (leads && input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold)
@@ -761,12 +782,9 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     float x = std::max(t.left + 2, t.keyX + t.keyWidth - width);
     float y = under ? rowBottom + 1 : rowTop - 1 - height;
 
-    // Row text is queued until a flush; flush it so the tooltip covers it.
-    context.flushText(0, std::nullopt);
-    fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,conflicts.empty() ? palette::keyEdge : palette::warning);
+    drawTipBox(context,x,y,width,height,warns);
     float cursor = y + pad;
-    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation),3);
+    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, !gameNote.empty()),3);
     if (!count.empty())
         label(context,x+pad,cursor+boxTextInset(),inner,count,palette::warning,Align::Right);
     cursor += header;
@@ -804,9 +822,7 @@ void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, S
     size_t noteLines = note.empty() ? 0 : paragraphLines(context, width - 2*pad, note, 4);
     float height = (2 + noteLines)*lineHeight + 2*pad;
     float x = std::min(t.versionX, t.left + t.width - SettingsTable::pad - width), y = t.top + SettingsTable::headerHeight + 1;
-    context.flushText(0, std::nullopt);
-    fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,palette::keyEdge);
+    drawTipBox(context,x,y,width,height);
     label(context,x+pad,y+pad,width-2*pad,std::move(line));
     if (noteLines) paragraph(context,x+pad,y+pad+lineHeight,width-2*pad,note,noteLines,palette::warning);
     label(context,x+pad,y+pad+(1 + noteLines)*lineHeight,width-2*pad,std::move(hint),palette::faint);
@@ -819,14 +835,13 @@ void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, Set
     if (editingNumber_) return;
     int row = -1;
     if (hover.zone == Zone::Row && valid(hover.index) && rows[hover.index].kind == RowKind::Option
-        && t.stepperPart(hover.x, optionAction(rows[hover.index].option->id).has_value()) != 2) row = hover.index;
+        && t.stepperPart(hover.x) != 2) row = hover.index;
     else if (keyboardTip && valid(selected)) row = selected;
     if (row == taken || row < t.first || row >= t.first + t.visible || rows[row].kind != RowKind::Option) return;
     auto const& option = *rows[row].option;
     auto value = option.read(Runtime::instance().preferences());
     if (std::holds_alternative<bool>(value) || (option.numeric && option.numeric->step > 0)) return;
-    bool keyed = optionAction(option.id).has_value();
-    float sx = t.stepperX(keyed), sw = t.stepperWidth(keyed);
+    float sx = t.stepperX(), sw = t.stepperWidth();
     auto text = optionValueText(option, value);
     if (textWidth(context, text) <= sw - 2*SettingsTable::arrowWidth - 2) return;
     constexpr float pad = 4, lineHeight = 12;
@@ -834,14 +849,12 @@ void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, Set
     float rowTop = t.rowY(row), rowBottom = rowTop + SettingsTable::rowHeight;
     bool under = rowBottom + 1 + height <= t.top + t.height - 2;
     float x = std::max(t.left + 2, sx + sw - width), y = under ? rowBottom + 1 : rowTop - 1 - height;
-    // Row text is queued until a flush; flush it so the tooltip covers it.
-    context.flushText(0, std::nullopt);
-    fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,palette::keyEdge);
+    drawTipBox(context,x,y,width,height);
     label(context,x+pad,y+pad,width-2*pad,std::move(text));
 }
 void copyVersion_() {
-    showMessageToast(translated(copyText(runningVersionLine()) ? "version.copied" : "version.copyFailed"));
+    if (copyText(runningVersionLine())) screen::setInfo(translated("version.copied"));
+    else screen::setMessage(translated("version.copyFailed"));
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
@@ -868,7 +881,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     displayed = t;
     if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
     first = t.first;
-    fill(context,0,0,size.x,size.y,Rgb{0,0,0},.2f);
+    fill(context,0,0,size.x,size.y,palette::shade,.2f);
     if (!t.usable()) {
         label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
         context.flushText(0, std::nullopt);
@@ -878,7 +891,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     keyQueryName = keyQuery ? bindingChordName(current, *keyQuery) : std::string{};
     auto hover = t.hit(pointer.x, pointer.y, nav::count);
     if (pointer != tipPointer) { keyboardTip = false; tipPointer = pointer; }
-    panel(context,t.left,t.top,t.width,t.height,.8f);
+    panel(context,t.left,t.top,t.width,t.height,opacity::screen);
     frame(context,t.left,t.top,t.width,t.height,palette::white,.14f);
 
     // Header: title, search field (table views), Close.
@@ -891,9 +904,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (auto paused = pausedHeader(); !paused.empty())
             label(context,t.versionX+versionWidth,t.top+6,t.versionWidth-versionWidth+2,std::move(paused),palette::warning);
     }
-    if (!shapesView() && !waypointsView() && !schematicsView() && !language_view::opened()) {
-    fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
-    frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()) ? palette::accent : palette::keyEdge);
+    if (!shapesView() && !waypointsView() && !schematicsView() && !row_pages::any()) {
+    drawFieldBox(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()));
     if (findingKey && hotkeysView())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("captureBox"),palette::accent);
     else if (keyQuery && hotkeysView())
@@ -935,8 +947,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (!count.empty()) label(context,x+w-5-countWidth,ty,countWidth,count,palette::faint,Align::Right);
     }
 
-    if (language_view::opened()) {
-        language_view::renderContent(context, t, pointer);
+    if (auto const* page = row_pages::open()) {
+        page->render(context, t, pointer);
         drawVersionTip(context, t, hover);
         return;
     }
@@ -958,17 +970,15 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     }
     label(context,t.keyX,theadY,t.keyWidth,translated("column.key"),palette::faint);
     if (hotkeysView() && !capturing_ && t.keyFindShown())
-        drawSmallButton(context,t.keyFindX(),t.theadTop,SettingsTable::keyFindWidth,11,translated("keyFind.button"),
-            t.keyFind(hover.x,hover.y),palette::keyFill,
-            findingKey || keyQuery ? palette::accent : palette::keyEdge,findingKey || keyQuery ? palette::text : palette::dim);
+        drawButton(context,t.keyFindX(),t.theadTop,SettingsTable::keyFindWidth,11,translated("keyFind.button"),
+            t.keyFind(hover.x,hover.y),findingKey || keyQuery ? ButtonKind::Primary : ButtonKind::Plain);
     if (auto scope = capturing_ || findingKey ? ResetScope::None : resetScope(); scope != ResetScope::None) {
         bool keys = scope == ResetScope::Keys;
-        drawSmallButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
+        drawDangerButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
             translated(resetArmed ? "reset.confirm" : keys ? "reset.keys"
                 : scope == ResetScope::Section ? "reset.section" : "reset.all"),
             t.headAction(hover.x,hover.y,keys),
-            resetArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,resetArmed ? Rgb{.54f,.23f,.2f} : palette::keyEdge,
-            resetArmed ? palette::text : palette::dim);
+            resetArmed);
     }
     fill(context,t.tableLeft,t.rowsTop-1,t.tableWidth,1,palette::white,.14f);
 
@@ -988,6 +998,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         rowBackground(context,rowLeft,y,rowWidth,SettingsTable::rowHeight,selected == i,hover.zone == Zone::Row && hover.index == i);
         // The edited row's buttons take the place of its switch or stepper.
         bool editingRow = capturing_ && i == captureRow;
+        // Dims everything the row draws after its background, text included (text is
+        // drawn at the end, so a band laid over it would not cover it).
+        DrawOpacity dim{dimsWhenPaused(entry.kind) && entry.feature && effectsPaused(entry.feature->id,preferences)
+            ? pausedRowOpacity : 1.f};
         auto buttons = captureButtons();
         float buttonsX = t.captureButtonX(0, static_cast<int>(buttons.size()));
         float nameRight = editingRow ? buttonsX - SettingsTable::gap : t.stateX - SettingsTable::gap;
@@ -1006,10 +1020,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     sessionState(entry.feature->id));
             if (primary) drawKeyCell(context,current,y,*primary);
-            if (entry.feature->id == "gameLanguage") {
-                float width = t.keyX + t.keyWidth - t.stateX;
-                drawSmallButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
-                    hover.zone == Zone::Row && hover.index == i);
+            if (entry.feature->id == "gameLanguage" && !editingRow) {
+                // The current language faintly beside the Open button.
+                float nameLeft = t.nameX + 9 + textWidth(context, featureName(*entry.feature)) + 2 * SettingsTable::gap;
+                float openX = openButtonX(t) - SettingsTable::gap;
+                if (openX > nameLeft) label(context, nameLeft, y + 3, openX - nameLeft, game_language::currentName(), palette::faint, Align::Right);
             }
             if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
             break;
@@ -1018,8 +1033,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawGuide(context,y,entry.lastChild);
             auto value = entry.option->read(preferences);
             auto name = splitLabel(translated(entry.option->label)).name;
-            bool paused = effectsPaused(entry.feature->id,preferences);
-            if (paused) name += " (" + translated("effectsPaused") + ")";
+            // Dimmed by `dim` above, the name as it is: the footer says why.
             if (editingRow) {
                 label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
             } else if (auto flag = std::get_if<bool>(&value)) {
@@ -1027,7 +1041,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,*flag);
             } else {
                 bool asSlider = entry.option->numeric && entry.option->numeric->step > 0 && editingNumber_ != entry.option;
-                float nameEnd = asSlider ? t.sliderX() : t.stepperX(optionAction(entry.option->id).has_value());
+                float nameEnd = asSlider ? t.sliderX() : t.stepperX();
                 label(context,t.nameX+12,y+3,nameEnd-SettingsTable::gap-t.nameX-12,std::move(name),palette::dim);
                 if (asSlider) {
                     auto const& range = *entry.option->numeric;
@@ -1037,12 +1051,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                     label(context,t.sliderValueX(),y+3,SettingsTable::sliderValueWidth,optionValueText(*entry.option,value),
                         palette::text,Align::Right);
                 } else {
-                    drawStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber_ == entry.option,
+                    drawOptionStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber_ == entry.option,pointer,
                         optionWarning(entry.option->id,preferences).has_value());
                 }
             }
             if (auto linked = optionAction(entry.option->id)) drawKeyCell(context,current,y,*linked);
-            if (paused) fill(context,t.nameX+12,y,t.rowsRight()-t.nameX-12,SettingsTable::rowHeight,palette::panel,.4f);
             break;
         }
         case RowKind::Action: {
@@ -1064,6 +1077,21 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             label(context,t.stateX,y+3,t.controlWidth(),translated("layoutLinkValue"),palette::accent,Align::Right);
             break;
         }
+        case RowKind::SavedData: {
+            // Like the layout link: what is in use, and the way to the page that chooses it.
+            drawGuide(context,y,entry.lastChild);
+            auto name = saved_data_view::currentName();
+            auto link = translated(name.empty() ? "savedData.rowOpen" : "savedData.rowChoose");
+            float linkWidth = textWidth(context,link) + SettingsTable::gap;
+            auto title = translated(entry.feature->id == "savedData" ? "savedData.rowServer" : "savedData.row");
+            // The name takes the row's free width, not only the value column: an address is long.
+            float nameLeft = t.nameX + 12 + textWidth(context,title) + 2 * SettingsTable::gap;
+            float nameEnd = t.stateX + t.controlWidth() - linkWidth;
+            label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(title),palette::dim);
+            if (nameEnd > nameLeft) label(context,nameLeft,y+3,nameEnd-nameLeft,std::move(name),palette::text,Align::Right);
+            label(context,t.stateX,y+3,t.controlWidth(),std::move(link),palette::accent,Align::Right);
+            break;
+        }
         case RowKind::MapCache: {
             drawGuide(context,y,entry.lastChild);
             auto bytes = map::store::usage();
@@ -1075,9 +1103,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 float w = textWidth(context,text) + 8, bx = t.stateX + t.controlWidth() - w;
                 mapCacheButtonX = bx;
                 mapCacheButtonWidth = w;
-                fill(context,bx,y+2,w,capHeight,mapCacheArmed ? Rgb{.54f,.18f,.16f} : Rgb{.23f,.15f,.14f});
-                frame(context,bx,y+2,w,capHeight,Rgb{.54f,.23f,.2f});
-                label(context,bx,y+2+boxTextInset(),w,std::move(text),mapCacheArmed ? palette::text : Rgb{1.f,.7f,.68f},Align::Center);
+                bool over = pointer.x >= bx && pointer.x < bx + w && pointer.y >= y + 2 && pointer.y < y + 2 + capHeight;
+                drawDangerButton(context,bx,y+2,w,capHeight,std::move(text),over,mapCacheArmed);
             }
             break;
         }
@@ -1087,17 +1114,15 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             for (size_t b = 0; b < buttons.size(); ++b) {
                 float bx = t.captureButtonX(static_cast<int>(b), static_cast<int>(buttons.size())), by = y + 1.5f;
                 bool over = t.captureButton(hover.x, hover.y, y, static_cast<int>(buttons.size())) == static_cast<int>(b);
-                fill(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
-                frame(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
-                label(context,bx,by+boxTextInset(),SettingsTable::captureButtonWidth,translated(buttons[b]),palette::text,Align::Center);
+                drawButton(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,translated(buttons[b]),over);
             }
     }
     if (static_cast<int>(rows.size()) > t.visible) {
         float track = t.visible * SettingsTable::rowHeight;
         float thumb = std::max(8.0f, track * t.visible / rows.size());
         float thumbY = t.rowsTop + (track - thumb) * t.first / (rows.size() - t.visible);
-        fill(context,t.rowsRight()-3,t.rowsTop,2,track,palette::white,.08f);
-        fill(context,t.rowsRight()-3,thumbY,2,thumb,palette::keyEdge);
+        drawScrollbar(context,t.rowsRight()-3,t.rowsTop,track,thumbY,thumb,
+            scrollDrag == ScrollDrag::List || t.onListScrollbar(pointer.x,pointer.y));
     }
 
     // Footer: description and hints, or the binding editor's buttons.
@@ -1111,15 +1136,15 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
-        fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
-        frame(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
-        label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,translated("cancelShort"),palette::text,Align::Center);
+        drawButton(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,translated("cancelShort"),over);
         float after = t.footerButtonX(1);
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
-            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
-            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
+        if (auto note = gameClickNote(capture.value()); !note.empty())
+            label(context,textLeft,t.footerTop+16,textWidthAvailable,note,palette::warning);
         label(context,textLeft,t.footerTop+30,textWidthAvailable,captureText(*capturing_),palette::faint);
     } else {
         for (int i = 0; i < SettingsTable::descriptionLines && helpFirst + i < helpLineCount; ++i)
@@ -1130,11 +1155,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             float track = SettingsTable::descriptionLines * SettingsTable::descriptionLineHeight;
             float thumb = std::max(4.0f, track * SettingsTable::descriptionLines / helpLineCount);
             float y = t.footerTop + 3 + (track-thumb) * helpFirst / (helpLineCount-SettingsTable::descriptionLines);
-            fill(context,t.left+t.width-SettingsTable::pad,t.footerTop+3,2,track,palette::white,.08f);
-            fill(context,t.left+t.width-SettingsTable::pad,y,2,thumb,palette::keyEdge);
+            drawScrollbar(context,t.left+t.width-SettingsTable::pad,t.footerTop+3,track,y,thumb,
+                scrollDrag == ScrollDrag::Description || t.onDescriptionScrollbar(pointer.x,pointer.y,helpLineCount));
             if (screen::message().empty()) hint = translated("description.hint") + " | " + hint;
         }
-        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
+        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : screen::messageColor());
     }
     int conflictRow = -1;
     if (!capturing_ && !findingKey)
@@ -1214,8 +1239,10 @@ void applyBinding() {
     auto value = Runtime::instance().preferences();
     value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
     bool saved = Runtime::instance().save(value);
+    // A binding on the game's own click keeps saying so in the footer after the button is let go.
+    auto note = gameClickNote(input::effectiveChord(value.bindings, bindingEdit->action));
     cancelCapture_();
-    screen::setMessage(saved ? std::string{} : translated("saveError"));
+    screen::setMessage(saved ? note : translated("saveError"));
 }
 bool onCaptureButton(float x, float y) {
     if (findingKey) {

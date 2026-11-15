@@ -7,11 +7,11 @@
 #include <string_view>
 
 namespace lamium::ui {
-// HUD element placement model (BACKLOG L-04a, DESIGN "HUD", docs/demos/hud.html).
+// HUD element placement model (BACKLOG L-04a, docs/HUD.md, docs/demos/hud.html).
 // Elements are info lines, target, status, toast and the zoom magnification.
 // The debug view is not an element: it is fixed to the screen edges. Pure
 // math; InfoHud draws. Append new ids: they index saved boxes.
-enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat };
+enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat, PaperDoll, Scoreboard, BossBars };
 enum class Anchor {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, Center, MiddleRight,
@@ -34,14 +34,41 @@ inline constexpr AnchorFactors anchorFactors(Anchor anchor) {
 // Line: a background behind each line (Info, Status and the player list; L-98, L-128). Append: saved as ints.
 enum class ElementBackground { None, Card, Line };
 // Placement is an anchor plus an offset, but the anchor is never chosen
-// directly: where an element is dropped decides it (DESIGN "HUD").
+// directly: where an element is dropped decides it (docs/HUD.md).
 struct HudElement {
     Anchor anchor = Anchor::TopLeft;
     float dx = 0, dy = 0; // GUI-unit offset from the anchor point.
-    float scale = 100; // Percent, 75-150.
+    float scale = 100; // Percent, hudScaleMin-hudScaleMax.
     ElementBackground background = ElementBackground::None;
     bool shadow = true;
 };
+// Scale bounds and the step of the editor's buttons and handles (L-321);
+// a typed value may be any whole percent.
+inline constexpr float hudScaleMin = 50, hudScaleMax = 200, hudScaleStep = 5;
+inline float clampHudScale(float scale) {
+    return std::clamp(std::isfinite(scale) ? scale : 100.f, hudScaleMin, hudScaleMax);
+}
+// One press of - or +: to the next multiple of the step, so a typed 123 goes
+// to 120 or 125.
+inline float stepHudScale(float scale, int direction) {
+    float units = clampHudScale(scale) / hudScaleStep;
+    float next = direction < 0 ? std::ceil(units) - 1 : std::floor(units) + 1;
+    return clampHudScale(next * hudScaleStep);
+}
+// Elements that appear only in some situations: the layout editor shows them
+// as a named frame until selected (L-321).
+inline constexpr bool hudConditional(HudElementId id) {
+    return id == HudElementId::Target || id == HudElementId::Status || id == HudElementId::Toast
+        || id == HudElementId::Magnification || id == HudElementId::Schematic || id == HudElementId::PlayerList
+        || id == HudElementId::Scoreboard || id == HudElementId::BossBars;
+}
+// Drawn by the game and only moved by Lamium (L-174, L-309): the editor
+// frames them in another color and offers position and scale but no look
+// controls.
+inline constexpr bool hudGameDrawn(HudElementId id) {
+    return id == HudElementId::Chat || id == HudElementId::PaperDoll || id == HudElementId::Scoreboard
+        || id == HudElementId::BossBars;
+}
 // Gap from the screen edge used by defaults and snap-to; flush is allowed.
 inline constexpr float hudInset = 4;
 // Defaults match docs/demos/hud-editor.html.
@@ -68,6 +95,12 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     case HudElementId::StatusEffects: return {Anchor::MiddleRight, -hudInset, 48, 100, ElementBackground::Card, true};
     // Flush left, above two default durability rows with a 4-unit gap (L-174).
     case HudElementId::Chat: return {Anchor::BottomLeft, 0, -44, 100, ElementBackground::None, true};
+    // The game's own place on desktop UI: the top left corner (L-309).
+    case HudElementId::PaperDoll: return {Anchor::TopLeft, 0, 0, 100, ElementBackground::None, true};
+    // The game's own place: the middle of the right edge (L-321).
+    case HudElementId::Scoreboard: return {Anchor::MiddleRight, 0, 0, 100, ElementBackground::None, true};
+    // The game's own place on desktop UI: top center, its grid 2 units down (L-323).
+    case HudElementId::BossBars: return {Anchor::TopCenter, 0, 2, 100, ElementBackground::None, true};
     // Above the armor and absorption rows over the hotbar.
     default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }
@@ -86,12 +119,15 @@ inline constexpr std::string_view hudElementKey(HudElementId id) {
     case HudElementId::UsedSlots: return "usedSlots";
     case HudElementId::StatusEffects: return "statusEffects";
     case HudElementId::Chat: return "chat";
+    case HudElementId::PaperDoll: return "paperDoll";
+    case HudElementId::Scoreboard: return "scoreboard";
+    case HudElementId::BossBars: return "bossBars";
     default: return "toast";
     }
 }
 inline float scaledExtent(float size, float scale) {
     if (!std::isfinite(size) || size < 0) return 0;
-    return size * std::clamp(std::isfinite(scale) ? scale : 100.f, 75.f, 150.f) / 100;
+    return size * clampHudScale(scale) / 100;
 }
 struct ElementPlacement { float x, y; };
 // Top-left of an element whose anchor point sits `factor` across the screen.

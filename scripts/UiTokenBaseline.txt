@@ -1,0 +1,3 @@
+# Check-UiTokens.ps1 baseline: kind, file, count. Only ever goes down.
+button src/ui/HudEditor.cpp 1
+button src/ui/SettingsTableView.cpp 1

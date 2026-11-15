@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace lamium::information {
-// Target card content (BACKLOG L-08, DESIGN "HUD"). Pure: decides which rows
+// Target card content (BACKLOG L-08, docs/HUD.md). Pure: decides which rows
 // the card shows and how ranged values are drawn; InfoHud draws them.
 enum class Meter { Hearts, Icons, Bar, Number };
 struct CardOptions {
@@ -86,6 +86,8 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
             add({detail.label, detail.value, true, detail.valueIsKey, detail.progress,
                  detail.progress ? options.growth : Meter::Number});
     }
+    for (auto const& detail : target.details)
+        if (detail.kind == DetailKind::Highlight) add({detail.label, detail.value, true, detail.valueIsKey});
     if (options.coordinates && target.blockPosition) {
         auto const& p = *target.blockPosition;
         add({"target.position", std::to_string(p.x) + ", " + std::to_string(p.y) + ", " + std::to_string(p.z)});
@@ -101,6 +103,11 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
         else add({state.substr(0, split), state.substr(split + 2), false});
     }
     return rows;
+}
+// How far the card looks (L-308). The render distance is a square of chunks, so
+// its corner is the farthest loaded block; a block never loaded just ends the ray.
+inline double targetReach(float range, bool fullRange, int renderChunks) {
+    return fullRange && renderChunks > 0 ? std::ceil(renderChunks * 16 * std::sqrt(2.0)) : range;
 }
 // Ten icons like the vanilla armor bar: each is full, half or empty.
 enum class Heart { Empty, Half, Full };

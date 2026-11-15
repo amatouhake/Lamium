@@ -36,6 +36,7 @@ int editingShapeField = -1;
 bool editingShapeName = false;
 SearchQuery shapeNameInput;
 bool shapeNameDirty = false;
+std::string shapeNameOrigin; // the name before typing, for Esc (names apply as typed)
 // Applies an edited definition: a draft only updates its world preview; an
 // existing shape is saved through the session, reporting failures in the footer.
 void applyShape(overlay::ShapeDefinition definition) {
@@ -172,15 +173,17 @@ void activateShapeField(int index, int part) {
         return;
     }
     case shape::Field::Follow: {
-        // Off keeps the shape where it is drawn: the body's block, not a detached
-        // camera's. In another dimension it is not drawn, so its saved place stands.
+        // Off keeps the shape where it was last drawn: the body's block, not a
+        // detached camera's. From another dimension, where the player left its
+        // own; the saved place stands only if the player was not there this session.
         auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
-        if (definition->follow && player && definition->dimension == screen::playerDimension()) {
-            auto const feet = player->getFeetPos();
-            applyShape(overlay::settledAt(*definition, {static_cast<int>(std::floor(feet.x)),
-                static_cast<int>(std::floor(feet.y)), static_cast<int>(std::floor(feet.z))}));
-            return;
+        std::optional<overlay::Cell> feet = overlay::shapes::lastFeet(definition->dimension);
+        if (player && definition->dimension == screen::playerDimension()) {
+            auto const body = player->getFeetPos();
+            feet = overlay::Cell{static_cast<int>(std::floor(body.x)), static_cast<int>(std::floor(body.y)),
+                                 static_cast<int>(std::floor(body.z))};
         }
+        if (definition->follow && feet) { applyShape(overlay::settledAt(*definition, *feet)); return; }
         break;
     }
     case shape::Field::MoveHere: {
@@ -200,7 +203,11 @@ void activateShapeField(int index, int part) {
         screen::clearMessage();
         return;
     }
-    applyShape(shape::adjust(*definition, row.field, direction));
+    // Shift steps a number ten of its own steps; a choice steps once.
+    int const times = shape::numeric(*definition, row.field) && screen::heldShift() ? 10 : 1;
+    auto stepped = *definition;
+    for (int i = 0; i < times; ++i) stepped = shape::adjust(stepped, row.field, direction);
+    applyShape(std::move(stepped));
 }
 void moveShapeField(int step) {
     auto definition = currentShape();
@@ -226,6 +233,13 @@ void openShapeKeySettings() {
 }
 void handleShapeClick(float x, float y, bool right) {
     screen::finishEditing();
+    // A right click steps a stepper down and presses nothing else (L-346).
+    if (right) {
+        auto hit = shapesDisplayed.hit(x, y);
+        if (hit.zone == ShapeZone::Field) activateShapeField(hit.index, -1);
+        else if (hit.zone == ShapeZone::LayerDown || hit.zone == ShapeZone::LayerUp) --shapeLayer;
+        return;
+    }
     if (!right && screen::pressScrollbar(shapesDisplayed, shapeListFirst, x, y)) return;
     if (!shapesDocked && screen::navClick(x, y)) return;
     auto hit = shapesDisplayed.hit(x, y);
@@ -260,14 +274,15 @@ void handleShapeClick(float x, float y, bool right) {
     case ShapeZone::Name:
         if (auto definition = currentShape()) {
             editingShapeName = true;
+            shapeNameOrigin = definition->name;
             shapeNameInput.clear();
             shapeNameInput.append(definition->name);
             shapeNameInput.selectAll();
             screen::clearMessage();
         }
         return;
-    case ShapeZone::LayerDown: --shapeLayer; return;
-    case ShapeZone::LayerUp: ++shapeLayer; return;
+    case ShapeZone::LayerDown: shapeLayer -= screen::heldShift() ? 10 : 1; return;
+    case ShapeZone::LayerUp: shapeLayer += screen::heldShift() ? 10 : 1; return;
     case ShapeZone::Field:
         if (!right && hit.part != 2) if (auto definition = currentShape()) {
             auto fields = shape::rows(*definition, shapeDraft.has_value());
@@ -316,7 +331,8 @@ void handleShapeKey(int key) {
         switch (key) {
         case 0x08: if (shapeNameInput.backspace()) shapeNameDirty = true; break;
         case 0x41: if (screen::heldCtrl()) shapeNameInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -324,7 +340,8 @@ void handleShapeKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -385,13 +402,12 @@ shape::Preview const* previewFor(overlay::ShapeDefinition const& definition) {
 }
 Rgb shapeRgb(overlay::ShapeColor color) {
     switch (color) {
-    case overlay::ShapeColor::Yellow: return {.95f,.8f,.24f};
-    case overlay::ShapeColor::Pink: return {.94f,.5f,.75f};
-    case overlay::ShapeColor::White: return {.95f,.95f,.95f};
-    default: return {.25f,.82f,.88f};
+    case overlay::ShapeColor::Yellow: return palette::shapeYellow;
+    case overlay::ShapeColor::Pink: return palette::shapePink;
+    case overlay::ShapeColor::White: return palette::shapeWhite;
+    default: return palette::shapeCyan;
     }
 }
-constexpr Rgb draftRgb{.62f,.83f,1.f};
 void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type, Rgb color) {
     auto pattern = shape::typeGlyphs[static_cast<size_t>(std::clamp(type, 0, static_cast<int>(shape::typeGlyphs.size()) - 1))];
     for (int i = 0; i < 25 && i < static_cast<int>(pattern.size()); ++i)
@@ -416,20 +432,13 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     auto const preferences = Runtime::instance().preferences();
     auto hover = l.hit(pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
     // Header controls.
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("shape.drawAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.overlays.shapes);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(shapesDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawToolHeader(context,l,translated("shape.drawAll"),preferences.overlays.shapes,shapesDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // List pane.
     float listRight = l.listLeft + l.listWidth;
-    drawSmallButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
-        over(ShapeZone::NewShape),shapePicking ? palette::accent : palette::accentDeep,palette::accent);
+    drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
+        over(ShapeZone::NewShape) || shapePicking,ButtonKind::Primary); // lit while picking a type
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
     float nameX = l.listLeft + ShapesLayout::pad + 14;
     float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
@@ -449,21 +458,21 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         bool chosen = isDraft || (!shapeDraft && item && shapeSelected == item->id);
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
         rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,chosen && !isDraft,over(ShapeZone::ListRow,i));
-        if (isDraft) frame(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,draftRgb);
+        if (isDraft) frame(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::info);
         bool elsewhere = shown.dimension != screen::playerDimension();
         // The same type glyph and color as the opened shape; dimmed when hidden or elsewhere.
-        Rgb glyph = isDraft ? draftRgb : shapeRgb(shown.color);
+        Rgb glyph = isDraft ? palette::info : shapeRgb(shown.color);
         if (!shown.visible || elsewhere) glyph = {glyph.r * .4f, glyph.g * .4f, glyph.b * .4f};
         drawTypeIcon(context,l.listLeft+ShapesLayout::pad,y+2,shape::typeIndex(shown),glyph);
         std::string suffix = isDraft ? translated("shape.draftTag") : elsewhere ? translated("shape.otherDimension", shown.dimension) : "";
         float suffixWidth = suffix.empty() ? 0 : textWidth(context, suffix) + 6;
-        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? draftRgb : elsewhere ? palette::faint : palette::text);
+        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? palette::info : elsewhere ? palette::faint : palette::text);
         if (!suffix.empty())
-            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? draftRgb : palette::faint);
+            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? palette::info : palette::faint);
         label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
         if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
     }
-    drawListScrollbar(context,l);
+    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     // Divider between list and editor.
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
@@ -482,16 +491,13 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     } else if (!definition) {
         paragraph(context,dx,l.detailTop+6,dw,translated(shapeList.empty() ? "shape.empty" : "shape.selectHint"),3,palette::faint);
     } else {
-        if (shapeDraft) label(context,dx,l.detailTop+4,dw,translated("shape.draftNote"),draftRgb);
+        if (shapeDraft) label(context,dx,l.detailTop+4,dw,translated("shape.draftNote"),palette::info);
         // Name field.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
-        frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName ? palette::accent : palette::keyEdge);
-        drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? draftRgb : shapeRgb(definition->color));
-        if (editingShapeName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,shapeNameInput);
-        else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,definition->name);
+        drawTextField(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName,&shapeNameInput,definition->name,{},17);
+        drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? palette::info : shapeRgb(definition->color));
         // Preview: one layer seen from above; plane seen along its normal.
         float px = dx, py = l.previewY, size = ShapesLayout::previewSize;
-        fill(context,px,py,size,size,Rgb{0,0,0},.35f);
+        fill(context,px,py,size,size,palette::shade,.35f);
         frame(context,px,py,size,size,palette::white,.14f);
         auto const* preview = previewFor(*definition);
         if (preview) {
@@ -499,7 +505,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             float scale = std::min((size - 4) / spanU, (size - 4) / spanV);
             float ox = px + (size - spanU * scale) / 2 - preview->minU * scale;
             float oy = py + (size - spanV * scale) / 2 - preview->minV * scale;
-            Rgb color = shapeDraft ? draftRgb : shapeRgb(definition->color);
+            Rgb color = shapeDraft ? palette::info : shapeRgb(definition->color);
             for (auto const& run : preview->runs)
                 fill(context,ox + run.u * scale,oy + run.v * scale,std::max(1.0f, run.length * scale),std::max(1.0f, scale),color,.9f);
             fill(context,ox,oy,std::max(1.0f, scale),std::max(1.0f, scale),palette::accent);
@@ -511,16 +517,13 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             auto feet = player->getFeetPos();
             auto center = centerOf(*definition);
             int distance = static_cast<int>(std::round(std::hypot(center.x - feet.x, center.z - feet.z)));
-            label(context,ix,py+22,iw,translated("shape.distance",distance),palette::dim);
+            label(context,ix,py+22,iw,distance == 0 ? translated("distance.here") : translated("shape.distance",distance),palette::dim);
         }
         if (preview && preview->lowLayer != preview->highLayer) {
             float lx = l.layerStepperX(), ly = l.layerY(), lw = 64, aw = ShapesLayout::arrowWidth;
-            fill(context,lx,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
-            fill(context,lx+lw-aw,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
-            frame(context,lx,ly+1,lw,ShapesLayout::rowHeight-2,palette::keyEdge);
-            label(context,lx,ly+2+boxTextInset(),aw,"-",palette::dim,Align::Center);
-            label(context,lx+lw-aw,ly+2+boxTextInset(),aw,"+",palette::dim,Align::Center);
-            label(context,lx+aw,ly+2+boxTextInset(),lw-2*aw,translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),palette::text,Align::Center);
+            drawStepper(context,lx,ly+1,lw,ShapesLayout::rowHeight-2,true,
+                translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),
+                {.cell = aw, .pointerX = pointer.x, .pointerY = pointer.y});
         }
         paragraph(context,ix,py+45,iw,translated("shape.previewHint"),1,palette::faint);
         // Fields.
@@ -540,7 +543,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
                     row.field == shape::Field::Follow ? definition->follow : definition->visible);
                 break;
             case shape::Row::Kind::Button:
-                drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated(row.label),over(ShapeZone::Field,i));
+                drawButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated(row.label),over(ShapeZone::Field,i));
                 break;
             default: {
                 if (row.field == shape::Field::Color) {
@@ -556,7 +559,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
                         value = range->integer ? value : std::format("{:.3f}", range->value);
                     else value = translated("shape.blocks", value);
                 } else value = translated(shape::choiceLabel(*definition, row.field, shapeReference));
-                drawShapeStepper(context,l,y,range.has_value(),std::move(value),editingShapeField == i ? &screen::number() : nullptr);
+                drawShapeStepper(context,l,y,range.has_value(),std::move(value),editingShapeField == i ? &screen::number() : nullptr,pointer.x,pointer.y);
                 break;
             }
             }
@@ -564,15 +567,13 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         // Actions.
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         if (shapeDraft) {
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.create"),
-                over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
-            drawSmallButton(context,l.actionX(1),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.cancel"),over(ShapeZone::Action,1));
+            drawButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.create"),
+                over(ShapeZone::Action,0),ButtonKind::Primary);
+            drawButton(context,l.actionX(1),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.cancel"),over(ShapeZone::Action,1));
         } else {
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
-            drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                translated(shapeDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-                shapeDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-                shapeDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
+            drawButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
+            drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
+                translated(shapeDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), shapeDeleteArmed);
         }
     }
 
@@ -585,9 +586,10 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     bool simple = screen::client() && screen::client()->getOptions().getGraphicsMode() == GraphicsMode::Simple;
     bool warn = !screen::message().empty() || simple;
     std::string text = !screen::message().empty() ? screen::message() : simple && shortFooter ? translated("shape.simpleWarning") : shapeDescription(definition);
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),warn ? palette::warning : palette::text);
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),
+        !screen::message().empty() ? screen::messageColor() : warn ? palette::warning : palette::text);
     else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : palette::warning);
+        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());
         label(context,textLeft,l.footerTop+30,available,translated(simple ? "shape.simpleWarning"
             : editingShapeName || editingShapeField >= 0 ? "shape.numberHint" : "shape.hint"),simple ? palette::warning : palette::faint);
     }
@@ -623,13 +625,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
         return;
     }
     // Docked: the world stays visible; only the panel is drawn.
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.shapes"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover,
-        palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+    drawDockedFrame(context,l,translated("nav.shapes"),translated("closeButton"),l.hit(pointer.x, pointer.y).zone == ShapeZone::Close);
     if (l.usable()) drawShapesBody(context, l, pointer, definition);
     else drawDockedTooShort(context, l, pointer.x, pointer.y);
     context.flushText(0,std::nullopt);
@@ -671,6 +667,13 @@ void applyNumber() {
     applyShape(shape::setNumber(*definition, field, *parsed));
 }
 void applyName() { applyShapeName(); }
+void revertName() {
+    if (!editingShapeName) return;
+    shapeNameInput.clear();
+    shapeNameInput.append(shapeNameOrigin);
+    shapeNameDirty = true;
+    applyShapeName();
+}
 void endEditing() { editingShapeField = -1; editingShapeName = false; shapeNameDirty = false; }
 glm::vec2 caret() {
     return {shapesDisplayed.stepperX(), editingShapeName ? shapesDisplayed.nameY : shapesDisplayed.fieldY(std::max(0, editingShapeField))};

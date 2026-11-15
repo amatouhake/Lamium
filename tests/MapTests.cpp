@@ -451,6 +451,18 @@ void cave() {
     check(viewForceOf(-1) == ViewForce::Auto && viewForceOf(3) == ViewForce::Auto
           && viewForceOf(0) == ViewForce::Auto && viewForceOf(1) == ViewForce::Surface
           && viewForceOf(2) == ViewForce::Cave, "a corrupt saved mode reads as automatic");
+    // L-317: the Nether view row.
+    check(resolveForce(1, 0, true) == ViewForce::Surface && resolveForce(2, 0, false) == ViewForce::Cave,
+          "Same as others uses the Cave view row everywhere");
+    check(resolveForce(1, 3, true) == ViewForce::Cave && resolveForce(1, 1, true) == ViewForce::Auto
+          && resolveForce(1, 3, false) == ViewForce::Surface, "a Nether override applies only in the Nether");
+    check(resolveForce(2, 9, true) == ViewForce::Cave && resolveForce(2, -1, true) == ViewForce::Cave,
+          "a corrupt Nether choice reads as the same as others");
+    check(nextCaveView(0) == 1 && nextCaveView(1) == 2 && nextCaveView(2) == 0 && nextCaveView(7) == 1,
+          "the Cave view key steps only its own row: automatic, surface, cave");
+    check(nextNetherView(0) == 1 && nextNetherView(1) == 2 && nextNetherView(2) == 3 && nextNetherView(3) == 0
+          && nextNetherView(9) == 1 && nextNetherView(-1) == 1,
+          "the Nether view key steps its row as the stepper does, back to Same as others (L-317)");
     ViewSwitch view;
     check(view.update(ViewMode::Cave, 10) == ViewMode::Cave, "the first switch is immediate");
     check(view.update(ViewMode::Surface, 10.5) == ViewMode::Cave && view.update(ViewMode::Surface, 11) == ViewMode::Surface,
@@ -546,6 +558,13 @@ void colors() {
     check(tinted(packColor(10, 20, 30), 2, NAN, -1) == packColor(10, 20, 0), "tints never brighten or break");
     check(usableTint(.596f, .765f, .357f) && !usableTint(0, 0, 0) && !usableTint(NAN, 1, 1),
           "a black or broken biome tint is not used");
+    check(usesDefinedMapColor("pack:ruby_block", true, 1) && !usesDefinedMapColor("minecraft:dirt", true, 1)
+              && !usesDefinedMapColor("pack:ruby_block", false, 1) && !usesDefinedMapColor("pack:ruby_block", true, 0),
+          "only an add-on block that defines a visible map color uses it");
+    check(!addOnBlock("stone") && !addOnBlock(":stone") && addOnBlock("minecraftx:stone"), "the namespace decides");
+    check(definedMapColor(0, 0, 0) == packColor(0, 0, 0) && definedMapColor(0, 0, 0) != 0
+              && definedMapColor(1, .5f, NAN) == packColor(255, 128, 0),
+          "a defined black is still a color");
 }
 void surface() {
     // The heightmap (100) holds the ground under a carpet (101): the scan

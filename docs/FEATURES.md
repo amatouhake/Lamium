@@ -43,7 +43,8 @@ settings. Bindings are edited under each feature or in the Hotkeys view.
 ### Zoom
 
 Zoom up to 50x with a smooth wheel. Optional: a magnification readout, and a
-wide-angle view where the wheel goes below 1x. Hold or toggle.
+wide-angle view where the wheel goes below 1x, and a reset to the set
+magnification on every release. Hold or toggle.
 
 ### Freelook
 
@@ -74,17 +75,17 @@ everything evenly, with no dark rings by light sources.
 Hides the first-person offhand drawing, shields included. Equipment and use
 are kept. On Minecraft 1.26.60.05 a map in the off hand stays drawn.
 
-### Hide effects (experimental)
+### Hide effects
 
 Hides the selected visual effects; one main switch turns the selection on.
 Sound and gameplay stay unchanged.
 
-- Rain and snow, particles and boss bars.
+- Rain and snow, and particles.
 - The nausea color and the Nether portal's purple screen.
 - Underwater, lava and powder snow fog.
 - The distance fog on land, in the Nether and in the End.
 
-### Connected Textures (experimental)
+### Connected Textures
 
 Glass, glass panes, bookshelves and sandstone next to the same block draw as
 one surface, without seams. Glass, bookshelves and sandstone keep the
@@ -94,6 +95,22 @@ Two child switches are off by default. "Edges at inside corners" keeps the
 border where glass block walls turn a corner, on the inside of the turn;
 "Edges at glass pane corners" adds an edge on the outside of an L-shaped
 pane. The flat-notch corner texel is kept whenever Connected Textures is on.
+
+### Block highlight (experimental)
+
+The block types you pick glow in rainbow colors flowing across the world, so
+they stand out far away and in the dark, up to the render distance. Aim at a
+block and press the key to add its type, or remove it if it is listed. Only
+faces open to the air (or water and other see-through blocks) glow, so a block
+buried on every side never shows. Through walls (off by default) also shows
+those faces behind terrain, fainter. Color picks the rainbow (default) or one
+still color (cyan, yellow, pink, white), which is also lighter to draw;
+Strength (default 50 %) sets how strongly the faces are colored, and at 0 %
+only the edges show. Blocks of any shape glow as their whole cell, chests
+and shulker boxes included. A list, opened from the
+settings row, shows the listed types with a count of those nearby, removes
+them, and adds any block type by searching its name or ID. Matching uses the
+block name only, so deepslate ores are their own types. With many blocks in view, only the nearest glow.
 
 ## HUD & overlays
 
@@ -109,7 +126,10 @@ A card for the block or mob you aim at: icon, name, hearts in real health
 units (one heart per 2 HP), armor and bars such as growth. "Other details" adds
 the block's own states and what its block entity stores: a sign's text, a note
 block's pitch and instrument, a lectern's book and page. "Show distance" adds
-how far the target is from your eye; a key can flip it while held.
+how far the target is from your eye. Keys can flip the distance, the other
+details and the position while held. The card looks for a target up to its Range,
+or as far as the game draws with "Up to the render distance", which costs more
+while you look across open ground.
 
 ### Debug View
 
@@ -121,8 +141,10 @@ cannot know (server TPS, mob caps, local difficulty) is not shown.
 
 ### Durability HUD
 
-Durability of the held item, and optionally the offhand and armor. Arrows
-and fireworks are counted beside bow, crossbow and elytra durability.
+Durability of the held item (its own switch, on by default), and
+optionally the offhand and armor. Arrows
+and fireworks are counted beside bow, crossbow and elytra durability. Items look as
+they do in a slot: a loaded crossbow shows its arrow or firework.
 
 ### Offhand slot
 
@@ -139,7 +161,7 @@ food previews what eating it would add.
 While `Tab` is held: the players with their faces, platform, dimension,
 distance and permission marks.
 
-### Inventory HUD and Used slots
+### Inventory HUD and Used slots HUD
 
 Your inventory as a 9x3 grid during play, and a counter of used slots such
 as 13/36. Each works without the other.
@@ -149,15 +171,20 @@ as 13/36. Each works without the other.
 Active effects with icons, numeric levels and remaining time. The game's own
 effect icons are hidden while it shows.
 
-### Chat position
+### Game HUD placement
 
-Off by default. Chat messages at the bottom left as on Java Edition, movable
-in the HUD layout editor. Text, backgrounds and fading stay vanilla.
+Off by default. Lets the HUD layout editor move and resize four parts of
+the game's own HUD, each with its own switch: the chat (at the bottom left
+by default, as on Java Edition), the paper doll, the scoreboard and the boss bars. Each
+can also be hidden while placed. Their text, backgrounds and fading stay vanilla.
+Two more switches hide the game's position and days played lines, even where
+a server's world shows them.
 
 ### HUD layout and toggle toasts
 
-A live HUD layout editor places Lamium's HUD elements and shows where the
-game's hotbar is. Toggle toasts give a short notice when a key turns a
+A live HUD layout editor places and scales Lamium's HUD elements (50-200 %),
+switches them on or off from a check on their name tag (a switched-off element
+is drawn faint and hatched) and shows where the game's hotbar is. Toggle toasts give a short notice when a key turns a
 feature on or off.
 
 ### Chunk Borders, Hitboxes and Light Level Overlay
@@ -189,11 +216,12 @@ A HUD element colored from your block textures.
   where the camera looks.
 - Cave view: under a roof and in the Nether it shows the floors around your
   height. The Cave view row, or its key, fixes the surface or cave view, or
-  returns to switching on its own.
+  returns to switching on its own. A Nether view row can choose another view
+  for the Nether alone.
 
 ### Map marks
 
-Waypoints with the death point, schematic placements and shapes on the maps.
+Waypoints, schematic placements and shapes on the maps.
 Each has its own switch (the same as in the world map's top bar), and "Shown
 on" picks the minimap, the world map or both. Turning Map marks off hides
 them from both maps; the world drawing is unchanged.
@@ -212,9 +240,16 @@ world and on servers. Slimes spawn there below Y 40 at any light level.
 
 ### Waypoints
 
-Waypoints with the last death point, shown on the maps and in the world,
-edited in a Waypoints screen.
+Waypoints, with one added where you die, shown on the maps and in the world,
+edited in a Waypoints screen. With Waypoints off nothing is shown, no death point
+is recorded and reached temporary waypoints stay; saved waypoints are kept. To hide
+only the markers, use "Show in the world" and the Map marks layer.
 
+- Dying adds a waypoint named "Death point" with the date and time, drawn
+  as a cross. It is
+  temporary by default (removed when reached); "Temporary death point" off
+  makes it a normal one. It is edited and deleted like any waypoint; each
+  death adds its own.
 - Temporary waypoints (a switch in the add prompt, which remembers the
   last choice) are drawn hollow, disappear when you get within a set
   distance (6 blocks by default) and are deleted with one click.
@@ -222,6 +257,7 @@ edited in a Waypoints screen.
 ### World map
 
 A full-screen map (`M`) of the areas you have visited, recorded per world.
+It opens whether or not Record is on; off only stops recording.
 
 - Zooms out until everything explored fits on the screen.
 - A side panel lists waypoints, placed schematics and shapes, with a link
@@ -277,13 +313,37 @@ build them.
 
 ## Inventory
 
-### Container previews, Durability numbers and Food values
+### Container previews and Item details
 
-Inside the game's item tooltip:
+Inside the game's item tooltip. Container previews is a feature with its own switch. Item
+details has a main switch and one switch per kind of line: Durability numbers, Work penalty,
+Suspicious stew effect, Food values, Property values, Show ID, Show tags and Show NBT. The
+first six are on by default. With the main switch off the tooltip is the game's own and the
+other switches keep their values. Every row has a toggle key (unbound).
 
-- Shulker Box and Bundle contents.
+- Shulker Box and Bundle contents, in a box right above the game's tooltip (for a
+  Bundle, its contents tooltip below the pointer). With the pointer on the left of a
+  Bundle's slot the box can cover part of that slot's icon; accepted by the maintainer
+  2026-11-14.
 - Remaining durability.
 - What food restores: hunger and saturation as hunger-bar icons.
+- The anvil work penalty ("Work penalty: +3 (2 anvil uses)"): the levels the item adds
+  to any anvil use and how many times it has been through an anvil. An item that has
+  never been through one shows nothing; a surcharge that no number of anvil uses
+  gives (set by a command, say) is shown without the count. It does not predict what
+  an operation will cost: that depends on the other item too.
+- Above the food icons, a suspicious stew's effect outside Creative, in the game's
+  words and colours.
+- Property values, the values of the item's kind that the game knows and does not print,
+  each only where the item has one, under the food icons: enchantability; a stack limit below 64 (above 1); the cooldown and the time the
+  item takes to use, in seconds; how many items it smelts as fuel.
+- Darker, its ID (with "#N" for a data value other than 0). Two more, off by default:
+  "Show tags" lists its item tags, and "Show NBT" its NBT, one line per
+  top-level entry, a compound or list as its whole text on that line, cut at 60
+  characters; past 24 entries the rest is
+  counted. Armor values and attack damage are the game's own lines and are not
+  repeated. Enchantability is the number an enchanting table works from: the higher,
+  the better the enchantments it offers.
 
 ### Trades
 
@@ -339,11 +399,20 @@ Picks the hotbar tool when mining, or the weapon that deals the most damage
 to what you hit. Optionally fetches one from the inventory, into the
 selected slot or a fixed one.
 
+A drop priority, cycled with a key, decides between tools where the
+enchantment changes what a block drops (read from the block's own drops):
+Speed (default), Fortune (the highest-level Fortune tool that harvests the
+block) or Silk Touch (a Silk Touch tool, even when slower). A block that
+drops nothing without Silk Touch, such as glass or ice, always takes a Silk
+Touch tool. Between equally good tools, the one used last wins. A tool is
+fetched from the inventory only when the hotbar has none that fits; under
+Fortune, also when the inventory holds a higher Fortune level.
+
 ### Offhand swap
 
 Swaps the held item with the offhand (`F`, as in Java Edition).
 
-### Fake Offhand (experimental)
+### Fake Offhand
 
 Uses a hotbar block or item as if it were in the offhand, also when the item
 in your hand has nothing to do where you aim. Under Sneak placement its key
@@ -358,7 +427,56 @@ bottles, empty buckets) and refills an offhand totem after it saves you.
 ### Death layout restore (experimental)
 
 Picking up your dropped items puts the hotbar, armor and offhand, optionally
-the whole inventory, back the way they were when you died.
+the whole inventory, back the way they were when you died. It works within 32
+blocks of where you died and ends at the next death, when you walk away after
+picking items up, or once you have spent 5 minutes in total within 48 blocks of
+the place (dropped items are gone by then; time away does not count).
+
+### Enchantment order (experimental)
+
+Opened from its Open button or an unbound key. Choose what to enchant: a kind of item
+(sword, pickaxe, ... or enchanted books to merge into one), or the last cell, the item
+in your main hand as it is. Turn on the enchantments you want; `-` and `+` change a
+level, and `-` at the lowest level turns one off. Enchantments that exclude each other
+are grey with the reason. "All highest" turns on everything at its highest level
+without curses, taking the most common one of a group that excludes each other; "Last
+choice" brings back what was chosen for that kind before.
+
+The right side is the plan: the goal, the total with your level beside it and how many
+of the materials (the item and the books) you have, the levels needed at once (the
+dearest step) and the work penalty the finished item will carry, then the anvil uses
+in order, each with its level cost and the prior-work part of it. A name in yellow is
+something you do not have yet, a faint step is done, and a white bar marks the next
+step; the last line says what to do next or what is still missing. The goal switches
+between the fewest levels and the least prior work left on the result (later changes
+then cost less). An order with a step of 40 levels or more is left out, as the anvil
+refuses it; in Creative there is no limit.
+
+With the main-hand item chosen, what it carries stays and its earlier anvil uses are
+charged; a carried level can be raised, which costs only the difference. Books are
+always counted as fresh, and two books of one enchantment are not merged into a higher
+level. A plain book is not offered as an item to plan from, although the anvil does
+enchant one from an enchanted book: the result is that book again with one more anvil
+use on it, and the step list could not tell it from the other books afterwards.
+
+The same plan is shown right of the anvil screen ("List the steps beside the anvil",
+off until you turn it on), with the step whose two items lie in the slots highlighted and the
+last line speaking of that pair (it matches a step, the game's cost differs, an item
+is not part of the plan). The slots themselves are tinted: in the inventory the stack
+to put left in cyan and the one to put right in pink, with the same colours on the
+anvil's two slots while they wait; a slot holding the wrong thing in red; and the
+result slot green when the pair is a step at the planned cost, yellow when the game's
+cost differs, red when it is no step. Left of the anvil screen the same choices as in the
+planner are shown ("Choose enchantments beside the anvil", on by default), so a plan
+is made and changed with the anvil open: the kinds, the main-hand item's cell and
+after it a cell for the item in the anvil's left slot, the set buttons and the
+enchantment rows, with the wheel scrolling the rows; the goal is switched on the right
+as in the planner. With that setting off, or without room on both sides,
+only the steps are listed, with a "Change" button that opens the planner. Both step
+aside for the game's item tooltip and close with the anvil; a finished plan is cleared
+when the anvil closes (its enchantments stay under "Last choice"). An unfinished plan
+opens as it was left, whatever is in the main hand or the slot. The plan lasts for the
+session.
 
 ## Actions
 
@@ -421,11 +539,11 @@ stays on the pasted page, with the caret at the end of the part that landed ther
 so a second paste goes in before the rest of the first. If 50 pages would not be
 enough, nothing is pasted and the pages needed are shown when the book closes.
 
-### Game language (experimental)
+### Game language
 
 Changes Minecraft's display language without leaving the world.
 
-### Skip server resource packs (experimental)
+### Skip server resource packs
 
 A server's packs are accepted as it asks but not shown: the world looks
 vanilla. Local worlds keep their packs.

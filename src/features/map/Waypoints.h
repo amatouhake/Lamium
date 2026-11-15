@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -22,6 +23,7 @@ inline constexpr std::array<std::uint32_t, 12> waypointColors{
     packColor(224, 74, 60), packColor(240, 154, 62), packColor(242, 204, 61), packColor(127, 214, 90),
     packColor(63, 191, 127), packColor(63, 208, 224), packColor(74, 141, 240), packColor(122, 108, 240),
     packColor(183, 124, 240), packColor(239, 127, 192), packColor(242, 242, 242), packColor(138, 143, 148)};
+inline constexpr int deathColorIndex = 0; // A death's waypoint starts red.
 inline constexpr int clampColor(int index) { return std::clamp(index, 0, static_cast<int>(waypointColors.size()) - 1); }
 // A new waypoint takes the color after the last one used, so neighbors differ.
 inline constexpr int nextColor(int last) {
@@ -36,6 +38,9 @@ struct Waypoint {
     bool visible = true;
     bool temporary = false; // removed on arrival, deleted without confirmation (L-261)
     std::uint64_t id = 0; // session id (app/SessionIds.h, L-139); not saved
+    // Added where the player died (L-328, L-332): an ordinary waypoint in
+    // every way; this only makes its mark a cross.
+    bool death = false;
     bool operator==(Waypoint const&) const = default;
 };
 struct DeathPoint {
@@ -44,6 +49,7 @@ struct DeathPoint {
 };
 struct WaypointSet {
     std::vector<Waypoint> waypoints;
+    // Files from before L-328 only: the session turns it into a waypoint.
     std::optional<DeathPoint> death;
     int lastColor = -1; // The next waypoint starts at color 0.
     bool lastTemporary = false; // The add prompt opens with the kind chosen last.
@@ -105,6 +111,23 @@ std::vector<std::string> arrivalStep(ArrivalWatch& watch, WaypointSet const& set
 }
 inline constexpr size_t maxWaypoints = 1000;
 inline constexpr size_t maxNameBytes = 128;
+// A death adds a waypoint (L-328): red to start with, temporary or normal as
+// the setting says. Earlier ones are left alone (L-332): temporary ones go
+// when reached, the rest when the player deletes them. False when the list
+// is full.
+// Its name carries when the player died, in local time, so the latest of
+// several is told apart (L-333): "Death point 11-13 21:05".
+inline std::string deathName(std::string_view base, int month, int day, int hour, int minute) {
+    return std::format("{} {:02}-{:02} {:02}:{:02}", base, month, day, hour, minute);
+}
+inline bool recordDeath(WaypointSet& set, DeathPoint const& at, std::string name, bool temporary) {
+    if (set.waypoints.size() >= maxWaypoints) return false;
+    Waypoint w{std::move(name), deathColorIndex, at.x, at.y, at.z, at.dimension, true, temporary};
+    w.death = true;
+    set.waypoints.push_back(std::move(w));
+    set.lastColor = deathColorIndex; // The next waypoint differs from the red cross.
+    return true;
+}
 // The name a new waypoint gets: the lowest "N" not used yet.
 template<class Name>
 std::string defaultWaypointName(std::vector<Waypoint> const& existing, Name name) {
@@ -164,11 +187,11 @@ inline void drawDiamond(std::vector<std::uint32_t>& pixels, int n, double cx, do
             if (middle > 0) pixel = over(pixel, 0, 0, 0, middle);
         }
 }
-// The death point's cross is red: white read as a passive mob's dot
-// (maintainer, 2026-10-01); its shape tells it from the red hostile dots.
-inline constexpr std::uint32_t deathColor = packColor(230, 46, 46);
-// The death point's cross: red with a black edge.
-inline void drawCross(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double size) {
+// A death's waypoint is a cross with a black edge, red to start with: white
+// read as a passive mob's dot (maintainer, 2026-10-01); its shape tells it
+// from the red hostile dots.
+inline void drawCross(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double size,
+                      std::uint32_t color = waypointColors[deathColorIndex]) {
     double half = size / 2, thick = std::max(1.0, size / 5);
     int x0 = std::max(0, int(std::floor(cx - half - thick))), x1 = std::min(n - 1, int(std::ceil(cx + half + thick)));
     int y0 = std::max(0, int(std::floor(cy - half - thick))), y1 = std::min(n - 1, int(std::ceil(cy + half + thick)));
@@ -184,7 +207,7 @@ inline void drawCross(std::vector<std::uint32_t>& pixels, int n, double cx, doub
             auto& pixel = pixels[static_cast<size_t>(y) * n + x];
             pixel = over(pixel, 0, 0, 0, ring);
             float fill = static_cast<float>(std::clamp(thick / 2 + .5 - d, 0.0, 1.0));
-            if (fill > 0) pixel = over(pixel, channel(deathColor, 0), channel(deathColor, 1), channel(deathColor, 2), fill);
+            if (fill > 0) pixel = over(pixel, channel(color, 0), channel(color, 1), channel(color, 2), fill);
         }
 }
 

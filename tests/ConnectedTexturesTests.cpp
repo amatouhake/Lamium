@@ -140,6 +140,21 @@ void connectedTexturesTests() {
     auto post = partsOf(std::vector<Box>{{0.438f, 0.562f, 0.438f, 0.562f}});
     check(post.has(Part::Center) && !post.has(Part::East) && !post.has(Part::North), "a lone pane is only its post");
     auto straight = partsOf(std::vector<Box>{{0.f, 1.f, 0.438f, 0.562f}});
+    {
+        // L-331: an L under a lone post, as reported: the post does not join, the arms have nothing to join.
+        auto bend = partsOf(std::vector<Box>{{0.5f, 1.f, 0.438f, 0.562f}, {0.438f, 0.562f, 0.5f, 1.f}});
+        auto alone = partsOf(std::vector<Box>{{0.438f, 0.562f, 0.438f, 0.562f}});
+        auto line = partsOf(std::vector<Box>{{0.f, 1.f, 0.438f, 0.562f}});
+        check(!paneJoinsVertically(Part::Center, bend, alone) && !paneJoinsVertically(Part::Center, alone, bend)
+                  && !paneJoinsVertically(Part::East, bend, alone),
+              "a post joins the pane above or below only when both have the same arms");
+        check(paneJoinsVertically(Part::Center, bend, bend) && paneJoinsVertically(Part::East, bend, bend)
+                  && paneJoinsVertically(Part::Center, alone, alone) && paneJoinsVertically(Part::Center, line, line),
+              "panes of one shape join whole, as before");
+        check(paneJoinsVertically(Part::East, bend, line) && !paneJoinsVertically(Part::South, bend, line)
+                  && !paneJoinsVertically(Part::Center, bend, line) && !paneJoinsVertically(Part::Center, bend, Parts{}),
+              "an arm joins the same arm of a pane shaped otherwise; nothing joins what is not a pane");
+    }
     check(straight.has(Part::East) && straight.has(Part::West), "a straight pane has both arms");
     check(!Parts{}.has(Part::Center), "no pane, no parts");
     // L-208: the L corner point, per orientation, and the post UV rewrite.
@@ -392,6 +407,17 @@ void connectedTexturesTests() {
     check(widePieces.size() == 3 && widePieces[0].to == widePieces[1].from && widePieces[1].to == widePieces[2].from
               && !widePieces[1].lowCorner && !widePieces[1].highCorner && widePieces[2].to == 1.f,
           "a wider face keeps an untouched middle between its two corner slices");
+    // L-306: the pane path's frame. A mesh minimum a hair below an integer used
+    // to floor to the previous block, which made every block-edge test in
+    // adjustPane miss and left the tile border on one side of a join.
+    check(blockOrigin(0.f) == 0.f && blockOrigin(-0.f) == 0.f && blockOrigin(1e-7f) == 0.f
+              && blockOrigin(-1e-7f) == 0.f && blockOrigin(0.4375f) == 0.f && blockOrigin(0.4375f - 1e-7f) == 0.f,
+          "a pane's frame is its own block even when the mesh minimum lands on the edge");
+    check(blockOrigin(15.f) == 15.f && blockOrigin(15.4375f) == 15.f && blockOrigin(std::nextafter(16.f, 0.f)) == 16.f
+              && blockOrigin(-0.5625f) == -1.f && blockOrigin(-46.f) == -46.f && blockOrigin(std::nextafter(-46.f, -47.f)) == -46.f,
+          "neighbouring blocks keep their own frame, negative coordinates included");
+    check(blockOrigin(0.5f) == 0.f && blockOrigin(0.9f) == 0.f && blockOrigin(15.5f) == 15.f && blockOrigin(-0.5f) == -1.f,
+          "a minimum in a block's high half keeps that block's frame");
     // A corner slice is the tile border's own width, so sliding it costs no
     // texel of texture: two texels of geometry keep showing two.
     std::array<float, 4> sx{0.5625f, 0.6875f, 0.5625f, 0.6875f}, sz{p0, p0, p0, p0};

@@ -438,6 +438,8 @@ LL_TYPE_INSTANCE_HOOK(ContextText, ll::memory::HookPriority::Normal, TextEditCon
             // The calls above leave the caret wherever they left it. Without this
             // it wandered (66, 103, 140 for one spot, seen in game 2026-11-06).
             mCaret = outcome.caret;
+            // Equal ends mean no selection, whatever their value: a selection the
+            // paste replaced must not stay marked. The caret alone says where.
             mSelection.get().mStartCaretPos = 0;
             mSelection.get().mEndCaretPos = 0;
             break;

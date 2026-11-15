@@ -643,6 +643,11 @@ void press(IClientInstance& client) {
         bool instant = false;
         auto slot = chooseSlot(client, client.getLatestHitResult(), selected, instant, !rightClick);
         traceChoice("press-choice", client, selected, slot, instant);
+        if (plainUse(!rightClick, selected, targetSlot.load())) {
+            syntheticThread.store(std::this_thread::get_id());
+            synthetic.store(interaction::periodic::sendUseEdge(client, true));
+            return;
+        }
         auto action = queuedPressAction(rightClick, slot, instant);
         if (action == QueuedPress::Instant) {
             beginInstant(client, selected, *slot, true);

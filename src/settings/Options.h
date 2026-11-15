@@ -76,6 +76,9 @@ inline constexpr std::array<std::string_view,3> shownOnLabels{
 // L-253: the minimap's chosen view, in map::ViewForce order.
 inline constexpr std::array<std::string_view,3> caveViewLabels{
     "caveView.auto", "caveView.surface", "caveView.cave"};
+// L-317: Settings::Map::netherView, "Same as others" then caveViewLabels.
+inline constexpr std::array<std::string_view,4> netherViewLabels{
+    "netherView.same", "caveView.auto", "caveView.surface", "caveView.cave"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard"});
 // Info, Status, the player list and Durability also offer a background behind each line (L-98, L-128).
@@ -87,6 +90,10 @@ inline constexpr std::array<std::string_view,4> freeCameraHideLabels{"freeCamera
 inline constexpr std::array<std::string_view,7> undergroundHoldLabels{"undergroundHold.0", "undergroundHold.1", "undergroundHold.3",
     "undergroundHold.5", "undergroundHold.10", "undergroundHold.30", "undergroundHold.always"};
 inline constexpr std::array<std::string_view,4> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick", "ghostLines.none"};
+// L-318: Tool Switch's drop priority, in inventory::DropPriority order.
+inline constexpr std::array<std::string_view,3> toolDropLabels{"toolDrop.speed", "toolDrop.fortune", "toolDrop.silk"};
+// A game HUD part (L-334): the game's own, placed by the layout, or hidden.
+inline constexpr std::array<std::string_view,3> gameHudPartLabels{"gameHudPart.vanilla", "gameHudPart.placed", "gameHudPart.hidden"};
 // L-97: the selected slot, then hotbar slots 1-9.
 inline constexpr std::array<std::string_view,10> fetchSlotLabels{"fetchSlot.selected", "hotbarSlot.1", "hotbarSlot.2",
     "hotbarSlot.3", "hotbarSlot.4", "hotbarSlot.5", "hotbarSlot.6", "hotbarSlot.7", "hotbarSlot.8", "hotbarSlot.9"};
@@ -104,6 +111,9 @@ inline ui::HudElement const& hudElement(Settings const& value, ui::HudElementId 
     case ui::HudElementId::UsedSlots: return value.hud.usedSlots;
     case ui::HudElementId::StatusEffects: return value.hud.statusEffects;
     case ui::HudElementId::Chat: return value.hud.chat;
+    case ui::HudElementId::PaperDoll: return value.hud.paperDoll;
+    case ui::HudElementId::Scoreboard: return value.hud.scoreboard;
+    case ui::HudElementId::BossBars: return value.hud.bossBars;
     default: return value.hud.toast;
     }
 }
@@ -121,8 +131,75 @@ inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
     case ui::HudElementId::UsedSlots: return value.hud.usedSlots;
     case ui::HudElementId::StatusEffects: return value.hud.statusEffects;
     case ui::HudElementId::Chat: return value.hud.chat;
+    case ui::HudElementId::PaperDoll: return value.hud.paperDoll;
+    case ui::HudElementId::Scoreboard: return value.hud.scoreboard;
+    case ui::HudElementId::BossBars: return value.hud.bossBars;
     default: return value.hud.toast;
     }
+}
+// What HUD layout's show/hide switches (L-334): a Lamium element's own
+// feature switch, a game part's show value. None for the player list (a held
+// key) and for a game part that is not placed: its show value does nothing.
+inline bool* hudShownField(Settings& value, ui::HudElementId id) {
+    auto& info = value.information;
+    switch (id) {
+    case ui::HudElementId::Info: return &info.hud;
+    case ui::HudElementId::Target: return &info.target;
+    case ui::HudElementId::Status: return &value.ui.automationStatus;
+    case ui::HudElementId::Toast: return &value.ui.toggleToasts;
+    case ui::HudElementId::Magnification: return &value.camera.showMagnification;
+    case ui::HudElementId::Durability: return &info.durabilityHud;
+    case ui::HudElementId::Minimap: return &value.map.minimap;
+    case ui::HudElementId::Schematic: return &value.schematic.hud;
+    case ui::HudElementId::Inventory: return &info.inventoryHud;
+    case ui::HudElementId::UsedSlots: return &info.usedSlots;
+    case ui::HudElementId::StatusEffects: return &info.effectsHud;
+    case ui::HudElementId::Chat: return info.placesChat() ? &info.showChat : nullptr;
+    case ui::HudElementId::PaperDoll: return info.placesPaperDoll() ? &info.showPaperDoll : nullptr;
+    case ui::HudElementId::Scoreboard: return info.placesScoreboard() ? &info.showScoreboard : nullptr;
+    case ui::HudElementId::BossBars: return info.placesBossBars() ? &info.showBossBars : nullptr;
+    default: return nullptr;
+    }
+}
+inline std::optional<bool> hudShown(Settings const& value, ui::HudElementId id) {
+    auto* field = hudShownField(const_cast<Settings&>(value), id);
+    return field ? std::optional(*field) : std::nullopt;
+}
+// A game part left Standard (or with Game HUD placement off) is the game's
+// own and not in HUD layout at all (L-334): moving it would change nothing.
+inline bool hudInEditor(Settings const& value, ui::HudElementId id) {
+    auto const& info = value.information;
+    switch (id) {
+    case ui::HudElementId::Chat: return info.placesChat();
+    case ui::HudElementId::PaperDoll: return info.placesPaperDoll();
+    case ui::HudElementId::Scoreboard: return info.placesScoreboard();
+    case ui::HudElementId::BossBars: return info.placesBossBars();
+    default: return true;
+    }
+}
+// Where Game HUD placement's layout link opens: its first part in the editor.
+inline std::optional<ui::HudElementId> firstGameHudPart(Settings const& value) {
+    for (auto id : {ui::HudElementId::Chat, ui::HudElementId::PaperDoll, ui::HudElementId::Scoreboard, ui::HudElementId::BossBars})
+        if (hudInEditor(value, id)) return id;
+    return std::nullopt;
+}
+// One row for a game HUD part's two saved switches: its part switch and
+// its show value (L-334). Standard leaves it the game's; Hidden places it
+// so that it can be hidden.
+template<auto Placed, auto Shown>
+constexpr Option gameHudPart(std::string_view id, std::string_view label) {
+    return {id, "gameHud", label,
+        [](Settings const& value) -> OptionValue {
+            auto const& info = value.information;
+            return ChoiceValue{gameHudPartLabels[!(info.*Placed) ? 0 : (info.*Shown) ? 1 : 2]};
+        },
+        [](Settings& value, int direction) {
+            auto& info = value.information;
+            size_t index = !(info.*Placed) ? 0 : (info.*Shown) ? 1 : 2;
+            index = (index + (direction < 0 ? 2 : 1)) % 3;
+            info.*Placed = index != 0;
+            info.*Shown = index != 2;
+        }};
 }
 template<ui::HudElementId Id, auto Field>
 constexpr Option hudToggle(std::string_view id, std::string_view feature, std::string_view label) {
@@ -145,14 +222,14 @@ constexpr Option hudChoice(std::string_view id, std::string_view feature, std::s
             field = static_cast<std::remove_reference_t<decltype(field)>>(index);
         }};
 }
-template<ui::HudElementId Id, auto Field, int Step>
+template<ui::HudElementId Id, auto Field>
 constexpr Option hudNumeric(std::string_view id, std::string_view feature, std::string_view label,
                             float minimum, float maximum) {
     return {id, feature, label,
         [](Settings const& value) -> OptionValue { return hudElement(value, Id).*Field; },
         [](Settings& value, int direction) {
             auto& field = hudElement(value, Id).*Field;
-            field += direction * Step;
+            field = ui::stepHudScale(field, direction);
             value.normalize();
         },
         NumericOption{minimum, maximum, [](Settings& value, float number) { hudElement(value, Id).*Field = number; }}};
@@ -191,7 +268,6 @@ inline constexpr auto options = std::to_array<Option>({
     choice<&Settings::information, &Settings::Information::debugLabels, debugLabelLabels>("information.debugLabels", "debugView", "debugLabelStyle"),
     toggle<&Settings::information, &Settings::Information::debugHideHud>("information.debugHideHud", "debugView", "debugHideHud"),
     toggle<&Settings::information, &Settings::Information::debugHideTarget>("information.debugHideTarget", "debugView", "debugHideTarget"),
-    toggle<&Settings::information, &Settings::Information::debugHideVanilla>("information.debugHideVanilla", "debugView", "debugHideVanilla"),
     toggle<&Settings::information, &Settings::Information::debugShadow>("information.debugShadow", "debugView", "hudShadow"),
     choice<&Settings::information, &Settings::Information::debugBackground, debugBackgroundLabels>("information.debugBackground", "debugView", "hudBackground"),
     toggle<&Settings::information, &Settings::Information::debugEntityKinds>("information.debugEntityKinds", "debugView", "debugEntityKinds"),
@@ -205,7 +281,8 @@ inline constexpr auto options = std::to_array<Option>({
     {"information.targetDistance", "targetInfo", "targetDistance",
         [](Settings const& s) -> OptionValue { return s.information.targetDistance; },
         [](Settings& s, int direction) { s.information.targetDistance += direction; s.normalize(); },
-        NumericOption{2, 256, [](Settings& s, float v) { s.information.targetDistance = v; }, 1}},
+        NumericOption{2, 64, [](Settings& s, float v) { s.information.targetDistance = v; }, 1}},
+    toggle<&Settings::information, &Settings::Information::targetFullRange>("information.targetFullRange", "targetInfo", "targetFullRange"),
     toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
     toggle<&Settings::information, &Settings::Information::targetCoordinates>("information.targetCoordinates", "targetInfo", "targetCoordinates"),
     toggle<&Settings::information, &Settings::Information::targetMeasure>("information.targetMeasure", "targetInfo", "targetMeasure"),
@@ -213,6 +290,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::targetLiquids>("information.targetLiquids", "targetInfo", "targetLiquids"),
     toggle<&Settings::information, &Settings::Information::durabilityHud>("information.durabilityHud", "durabilityHud", "durabilityHud"),
     choice<&Settings::information, &Settings::Information::durabilityLook, durabilityLookLabels>("information.durabilityLook", "durabilityHud", "durabilityLook"),
+    toggle<&Settings::information, &Settings::Information::durabilityMainHand>("information.durabilityMainHand", "durabilityHud", "durabilityMainHand"),
     toggle<&Settings::information, &Settings::Information::durabilityOffhand>("information.durabilityOffhand", "durabilityHud", "durabilityOffhand"),
     toggle<&Settings::information, &Settings::Information::durabilityArmor>("information.durabilityArmor", "durabilityHud", "durabilityArmor"),
     toggle<&Settings::information, &Settings::Information::durabilityElytra>("information.durabilityElytra", "durabilityHud", "durabilityElytra"),
@@ -223,25 +301,35 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::playerListDimension>("information.playerListDimension", "playerList", "playerListDimension"),
     toggle<&Settings::information, &Settings::Information::playerListDistance>("information.playerListDistance", "playerList", "playerListDistance"),
     toggle<&Settings::information, &Settings::Information::playerListMembers>("information.playerListMembers", "playerList", "playerListMembers"),
-    hudNumeric<ui::HudElementId::PlayerList, &ui::HudElement::scale, 25>("hud.playerList.scale", "playerList", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::PlayerList, &ui::HudElement::scale>("hud.playerList.scale", "playerList", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::PlayerList, &ui::HudElement::background, lineBackgroundLabels>("hud.playerList.background", "playerList", "hudBackground"),
     hudToggle<ui::HudElementId::PlayerList, &ui::HudElement::shadow>("hud.playerList.shadow", "playerList", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::inventoryHud>("information.inventoryHud", "inventoryHud", "inventoryHud"),
     toggle<&Settings::information, &Settings::Information::inventoryHotbar>("information.inventoryHotbar", "inventoryHud", "inventoryHotbar"),
-    hudNumeric<ui::HudElementId::Inventory, &ui::HudElement::scale, 25>("hud.inventory.scale", "inventoryHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Inventory, &ui::HudElement::scale>("hud.inventory.scale", "inventoryHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Inventory, &ui::HudElement::background, elementBackgroundLabels>("hud.inventory.background", "inventoryHud", "hudBackground"),
     hudToggle<ui::HudElementId::Inventory, &ui::HudElement::shadow>("hud.inventory.shadow", "inventoryHud", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::usedSlots>("information.usedSlots", "usedSlots", "usedSlots"),
     toggle<&Settings::information, &Settings::Information::usedSlotsHotbar>("information.usedSlotsHotbar", "usedSlots", "inventoryHotbar"),
-    hudNumeric<ui::HudElementId::UsedSlots, &ui::HudElement::scale, 25>("hud.usedSlots.scale", "usedSlots", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::UsedSlots, &ui::HudElement::scale>("hud.usedSlots.scale", "usedSlots", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::UsedSlots, &ui::HudElement::background, elementBackgroundLabels>("hud.usedSlots.background", "usedSlots", "hudBackground"),
     hudToggle<ui::HudElementId::UsedSlots, &ui::HudElement::shadow>("hud.usedSlots.shadow", "usedSlots", "hudShadow"),
-    toggle<&Settings::information, &Settings::Information::chatPosition>("information.chatPosition", "chatPosition", "chatPosition"),
+    toggle<&Settings::information, &Settings::Information::gameHud>("information.gameHud", "gameHud", "gameHud"),
+    gameHudPart<&Settings::Information::chatPosition, &Settings::Information::showChat>("information.chatPosition", "chatPart"),
+    hudNumeric<ui::HudElementId::Chat, &ui::HudElement::scale>("hud.chat.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    gameHudPart<&Settings::Information::scoreboardPosition, &Settings::Information::showScoreboard>("information.scoreboardPosition", "scoreboardPart"),
+    hudNumeric<ui::HudElementId::Scoreboard, &ui::HudElement::scale>("hud.scoreboard.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    gameHudPart<&Settings::Information::paperDollPosition, &Settings::Information::showPaperDoll>("information.paperDollPosition", "paperDollPart"),
+    hudNumeric<ui::HudElementId::PaperDoll, &ui::HudElement::scale>("hud.paperDoll.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    gameHudPart<&Settings::Information::bossBarPosition, &Settings::Information::showBossBars>("information.bossBarPosition", "bossBarsPart"),
+    hudNumeric<ui::HudElementId::BossBars, &ui::HudElement::scale>("hud.bossBars.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    toggle<&Settings::information, &Settings::Information::hideGamePosition>("information.hideGamePosition", "gameHud", "hideGamePosition"),
+    toggle<&Settings::information, &Settings::Information::hideGameDays>("information.hideGameDays", "gameHud", "hideGameDays"),
     toggle<&Settings::information, &Settings::Information::effectsHud>("information.effectsHud", "statusEffects", "statusEffects"),
     toggle<&Settings::information, &Settings::Information::effectsNames>("information.effectsNames", "statusEffects", "effectsNames"),
     toggle<&Settings::information, &Settings::Information::effectsWarning>("information.effectsWarning", "statusEffects", "effectsWarning"),
     toggle<&Settings::information, &Settings::Information::effectsHideVanilla>("information.effectsHideVanilla", "statusEffects", "effectsHideVanilla"),
-    hudNumeric<ui::HudElementId::StatusEffects, &ui::HudElement::scale, 25>("hud.statusEffects.scale", "statusEffects", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::StatusEffects, &ui::HudElement::scale>("hud.statusEffects.scale", "statusEffects", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::StatusEffects, &ui::HudElement::background, lineBackgroundLabels>("hud.statusEffects.background", "statusEffects", "hudBackground"),
     hudToggle<ui::HudElementId::StatusEffects, &ui::HudElement::shadow>("hud.statusEffects.shadow", "statusEffects", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::saturation>("information.saturation", "saturation", "saturation"),
@@ -288,6 +376,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitch>("inventory.toolSwitch", "toolSwitch", "toolSwitch"),
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitchInventory>("inventory.toolSwitchInventory", "toolSwitch", "toolSwitchInventory"),
     choice<&Settings::inventory, &Settings::Inventory::toolSwitchSlot, fetchSlotLabels>("inventory.toolSwitchSlot", "toolSwitch", "fetchSlot"),
+    choice<&Settings::inventory, &Settings::Inventory::toolSwitchDrop, toolDropLabels>("inventory.toolSwitchDrop", "toolSwitch", "toolDrop"),
     toggle<&Settings::inventory, &Settings::Inventory::weaponSwitch>("inventory.weaponSwitch", "weaponSwitch", "weaponSwitch"),
     toggle<&Settings::inventory, &Settings::Inventory::weaponSwitchInventory>("inventory.weaponSwitchInventory", "weaponSwitch", "weaponSwitchInventory"),
     choice<&Settings::inventory, &Settings::Inventory::weaponSwitchSlot, fetchSlotLabels>("inventory.weaponSwitchSlot", "weaponSwitch", "fetchSlot"),
@@ -330,8 +419,14 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::visuals, &Settings::Visuals::connectedTextures>("visuals.connectedTextures", "connectedTextures", "connectedTextures"),
     toggle<&Settings::visuals, &Settings::Visuals::connectedCorners>("visuals.connectedCorners", "connectedTextures", "connectedCorners"),
     toggle<&Settings::visuals, &Settings::Visuals::connectedPaneCorners>("visuals.connectedPaneCorners", "connectedTextures", "connectedPaneCorners"),
+    toggle<&Settings::visuals, &Settings::Visuals::blockHighlight>("visuals.blockHighlight", "blockHighlight", "blockHighlight"),
+    toggle<&Settings::visuals, &Settings::Visuals::highlightThroughWalls>("visuals.highlightThroughWalls", "blockHighlight", "highlightThroughWalls"),
+    choice<&Settings::visuals, &Settings::Visuals::highlightColor, visuals::highlight::lookLabels>("visuals.highlightColor", "blockHighlight", "highlightColorRow"),
+    {"visuals.highlightStrength", "blockHighlight", "highlightStrength",
+        [](Settings const& s) -> OptionValue { return static_cast<float>(s.visuals.highlightStrength); },
+        [](Settings& s, int direction) { s.visuals.highlightStrength += direction * 5; s.normalize(); },
+        NumericOption{0, 100, [](Settings& s, float v) { s.visuals.highlightStrength = static_cast<int>(std::lround(v)); }, 5}},
     toggle<&Settings::visuals, &Settings::Visuals::skipServerPacks>("visuals.skipServerPacks", "skipServerPacks", "skipServerPacks"),
-    toggle<&Settings::visuals, &Settings::Visuals::hideBossBars>("visuals.hideBossBars", "hideEffects", "hideBossBars"),
     toggle<&Settings::visuals, &Settings::Visuals::hideNausea>("visuals.hideNausea", "hideEffects", "hideNausea"),
     toggle<&Settings::visuals, &Settings::Visuals::hideWeather>("visuals.hideWeather", "hideEffects", "hideWeather"),
     toggle<&Settings::visuals, &Settings::Visuals::hideParticles>("visuals.hideParticles", "hideEffects", "hideParticles"),
@@ -379,6 +474,7 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings& s, int direction) { s.camera.magnification += direction * .5f; s.normalize(); },
         NumericOption{2, 50, [](Settings& s, float v) { s.camera.magnification = v; }, .5f}},
     toggle<&Settings::camera, &Settings::Camera::zoomWideAngle>("camera.zoomWideAngle", "zoom", "zoomWideAngle"),
+    toggle<&Settings::camera, &Settings::Camera::zoomResetOnRelease>("camera.zoomResetOnRelease", "zoom", "zoomResetOnRelease"),
     toggle<&Settings::camera, &Settings::Camera::showMagnification>("camera.showMagnification", "zoom", "showMagnification"),
     toggle<&Settings::lighting, &Settings::Lighting::nightVision>("lighting.nightVision", "nightVision", "nightVision"),
     toggle<&Settings::lighting, &Settings::Lighting::nightVisionEven>("lighting.nightVisionEven", "nightVision", "nightVisionEven"),
@@ -388,8 +484,16 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inspection, &Settings::Inspection::hideShulkerContents>("inspection.hideShulkerContents", "previews", "hideShulkerContents"),
     toggle<&Settings::inspection, &Settings::Inspection::bundlePreviews>("inspection.bundlePreviews", "previews", "bundlePreviews"),
     toggle<&Settings::inspection, &Settings::Inspection::emptyBundlePreviews>("inspection.emptyBundlePreviews", "previews", "emptyBundlePreviews"),
-    toggle<&Settings::inspection, &Settings::Inspection::durability>("inspection.durability", "durability", "durability"),
-    toggle<&Settings::inspection, &Settings::Inspection::foodValues>("inspection.foodValues", "foodValues", "foodValues"),
+    // One heading, a switch per kind of line, in the tooltip's order (L-319).
+    toggle<&Settings::inspection, &Settings::Inspection::itemTooltip>("inspection.itemTooltip", "itemDetails", "itemTooltip"),
+    toggle<&Settings::inspection, &Settings::Inspection::durability>("inspection.durability", "itemDetails", "durability"),
+    toggle<&Settings::inspection, &Settings::Inspection::workPenalty>("inspection.workPenalty", "itemDetails", "workPenalty"),
+    toggle<&Settings::inspection, &Settings::Inspection::itemDetailsStew>("inspection.itemDetailsStew", "itemDetails", "itemDetailsStew"),
+    toggle<&Settings::inspection, &Settings::Inspection::foodValues>("inspection.foodValues", "itemDetails", "foodValues"),
+    toggle<&Settings::inspection, &Settings::Inspection::itemDetails>("inspection.itemDetails", "itemDetails", "itemDetails"),
+    toggle<&Settings::inspection, &Settings::Inspection::itemDetailsId>("inspection.itemDetailsId", "itemDetails", "itemDetailsId"),
+    toggle<&Settings::inspection, &Settings::Inspection::itemDetailsTags>("inspection.itemDetailsTags", "itemDetails", "itemDetailsTags"),
+    toggle<&Settings::inspection, &Settings::Inspection::itemDetailsNbt>("inspection.itemDetailsNbt", "itemDetails", "itemDetailsNbt"),
     toggle<&Settings::inspection, &Settings::Inspection::lockedTrades>("inspection.lockedTrades", "lockedTrades", "lockedTrades"),
     toggle<&Settings::inspection, &Settings::Inspection::englishSearch>("inspection.englishSearch", "englishSearch", "englishSearch"),
     toggle<&Settings::inventory, &Settings::Inventory::sorting>("inventory.sorting", "sorting", "sorting"),
@@ -398,6 +502,9 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::offhandSwapFireworks>("inventory.offhandSwapFireworks", "offhandSwap", "offhandSwapFireworks"),
     toggle<&Settings::inventory, &Settings::Inventory::deathRestore>("inventory.deathRestore", "deathRestore", "deathRestore"),
     toggle<&Settings::inventory, &Settings::Inventory::deathRestoreAll>("inventory.deathRestoreAll", "deathRestore", "deathRestoreAll"),
+    toggle<&Settings::inventory, &Settings::Inventory::enchantOrderAnvil>("inventory.enchantOrderAnvil", "enchantOrder", "enchantOrderAnvil"),
+    toggle<&Settings::inventory, &Settings::Inventory::enchantOrderAnvilChoose>("inventory.enchantOrderAnvilChoose", "enchantOrder", "enchantOrderAnvilChoose"),
+    toggle<&Settings::inventory, &Settings::Inventory::enchantOrderAnvilMarks>("inventory.enchantOrderAnvilMarks", "enchantOrder", "enchantOrderAnvilMarks"),
     toggle<&Settings::inventory, &Settings::Inventory::sortContainers>("inventory.sortContainers", "sorting", "storage"),
     toggle<&Settings::inventory, &Settings::Inventory::transfer>("inventory.transfer", "transfer", "transfer"),
     toggle<&Settings::inventory, &Settings::Inventory::transferWheelOne>("inventory.transferWheelOne", "transfer", "transferWheelOne"),
@@ -426,34 +533,30 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{0, 100, [](Settings& s, float v) { s.ui.hudBackgroundOpacity = static_cast<int>(std::lround(v)); }, 4}},
     toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
     toggle<&Settings::ui, &Settings::Interface::bookPaste>("interface.bookPaste", "bookPaste", "bookPaste"),
-    hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale, 25>("hud.info.scale", "infoHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale>("hud.info.scale", "infoHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Info, &ui::HudElement::background, lineBackgroundLabels>("hud.info.background", "infoHud", "hudBackground"),
     hudToggle<ui::HudElementId::Info, &ui::HudElement::shadow>("hud.info.shadow", "infoHud", "hudShadow"),
-    toggle<&Settings::information, &Settings::Information::hudHidePaperDoll>("infoHud.hidePaperDoll", "infoHud", "hudHidePaperDoll"),
-    hudNumeric<ui::HudElementId::Target, &ui::HudElement::scale, 25>("hud.target.scale", "targetInfo", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Target, &ui::HudElement::scale>("hud.target.scale", "targetInfo", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Target, &ui::HudElement::background, elementBackgroundLabels>("hud.target.background", "targetInfo", "hudBackground"),
     hudToggle<ui::HudElementId::Target, &ui::HudElement::shadow>("hud.target.shadow", "targetInfo", "hudShadow"),
-    hudNumeric<ui::HudElementId::Status, &ui::HudElement::scale, 25>("hud.status.scale", "automationStatus", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Status, &ui::HudElement::scale>("hud.status.scale", "automationStatus", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Status, &ui::HudElement::background, lineBackgroundLabels>("hud.status.background", "automationStatus", "hudBackground"),
     hudToggle<ui::HudElementId::Status, &ui::HudElement::shadow>("hud.status.shadow", "automationStatus", "hudShadow"),
-    hudNumeric<ui::HudElementId::Toast, &ui::HudElement::scale, 25>("hud.toast.scale", "toasts", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Toast, &ui::HudElement::scale>("hud.toast.scale", "toasts", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Toast, &ui::HudElement::background, elementBackgroundLabels>("hud.toast.background", "toasts", "hudBackground"),
     hudToggle<ui::HudElementId::Toast, &ui::HudElement::shadow>("hud.toast.shadow", "toasts", "hudShadow"),
-    hudNumeric<ui::HudElementId::Magnification, &ui::HudElement::scale, 25>("hud.magnification.scale", "zoom", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Magnification, &ui::HudElement::scale>("hud.magnification.scale", "zoom", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Magnification, &ui::HudElement::background, elementBackgroundLabels>("hud.magnification.background", "zoom", "hudBackground"),
     hudToggle<ui::HudElementId::Magnification, &ui::HudElement::shadow>("hud.magnification.shadow", "zoom", "hudShadow"),
-    hudNumeric<ui::HudElementId::Durability, &ui::HudElement::scale, 25>("hud.durability.scale", "durabilityHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Durability, &ui::HudElement::scale>("hud.durability.scale", "durabilityHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Durability, &ui::HudElement::background, lineBackgroundLabels>("hud.durability.background", "durabilityHud", "hudBackground"),
     hudToggle<ui::HudElementId::Durability, &ui::HudElement::shadow>("hud.durability.shadow", "durabilityHud", "hudShadow"),
     toggle<&Settings::map, &Settings::Map::minimap>("map.minimap", "minimap", "minimap"),
     choice<&Settings::map, &Settings::Map::zoom, mapZoomLabels>("map.zoom", "minimap", "mapZoom"),
-    {"map.size", "minimap", "mapSize",
-        [](Settings const& s) -> OptionValue { return s.map.size; },
-        [](Settings& s, int direction) { s.map.size += direction; s.normalize(); },
-        NumericOption{10, 50, [](Settings& s, float v) { s.map.size = v; }, 1}},
     toggle<&Settings::map, &Settings::Map::rotate>("map.rotate", "minimap", "mapRotate"),
     toggle<&Settings::map, &Settings::Map::round>("map.round", "minimap", "mapRound"),
     choice<&Settings::map, &Settings::Map::caveView, caveViewLabels>("map.caveView", "minimap", "mapCaveView"),
+    choice<&Settings::map, &Settings::Map::netherView, netherViewLabels>("map.netherView", "minimap", "mapNetherView"),
     toggle<&Settings::map, &Settings::Map::compass>("map.compass", "mapText", "mapCompass"),
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),
@@ -481,6 +584,7 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings& s, int direction) { s.map.waypointDistance += direction * 100.f; s.normalize(); },
         NumericOption{0, 10000, [](Settings& s, float v) { s.map.waypointDistance = v; }, 100}},
     toggle<&Settings::map, &Settings::Map::waypointsDeath>("map.waypointsDeath", "waypoints", "mapWaypointsDeath"),
+    toggle<&Settings::map, &Settings::Map::waypointsDeathTemporary>("map.waypointsDeathTemporary", "waypoints", "mapWaypointsDeathTemporary"),
     toggle<&Settings::map, &Settings::Map::waypointsCrossScale>("map.waypointsCrossScale", "waypoints", "mapWaypointsCrossScale"),
     {"map.waypointArrival", "waypoints", "mapWaypointArrival",
         [](Settings const& s) -> OptionValue { return s.map.waypointArrival; },
@@ -512,10 +616,10 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::schematic, &Settings::Schematic::hud>("schematic.hud", "schematicHud", "schematicHud"),
     toggle<&Settings::schematic, &Settings::Schematic::hudVerify>("schematic.hudVerify", "schematicHud", "schematicHudVerify"),
     toggle<&Settings::schematic, &Settings::Schematic::hudMaterials>("schematic.hudMaterials", "schematicHud", "schematicHudMaterials"),
-    hudNumeric<ui::HudElementId::Schematic, &ui::HudElement::scale, 25>("hud.schematic.scale", "schematicHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Schematic, &ui::HudElement::scale>("hud.schematic.scale", "schematicHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Schematic, &ui::HudElement::background, elementBackgroundLabels>("hud.schematic.background", "schematicHud", "hudBackground"),
     hudToggle<ui::HudElementId::Schematic, &ui::HudElement::shadow>("hud.schematic.shadow", "schematicHud", "hudShadow"),
-    hudNumeric<ui::HudElementId::Minimap, &ui::HudElement::scale, 25>("hud.minimap.scale", "minimap", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Minimap, &ui::HudElement::scale>("hud.minimap.scale", "minimap", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Minimap, &ui::HudElement::background, elementBackgroundLabels>("hud.minimap.background", "minimap", "hudBackground"),
     hudToggle<ui::HudElementId::Minimap, &ui::HudElement::shadow>("hud.minimap.shadow", "minimap", "hudShadow"),
 });

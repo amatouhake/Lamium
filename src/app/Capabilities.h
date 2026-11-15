@@ -13,7 +13,8 @@ enum class Id {
     FreeCameraHand, FreeCameraHud, HideParticles, HideBossBars,
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
-    NoteBlockInstrument, BookPastePages, Count
+    NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, BossBarPosition,
+    ItemDetails, MapColorComponent, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -50,11 +51,11 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::SkipServerPacks, "Skip server resource packs (pack stack packet)", "skipServerPacks", "capability.SkipServerPacks", Impact::Fully},
     {Id::FreeCameraHotbar, "FreeCamera hide (hotbar control)", "freecamera", "capability.FreeCameraHotbar", Impact::Partly},
     {Id::FakeOffhandTargets, "Fake Offhand (item use targets)", "fakeOffhand", "capability.FakeOffhandTargets", Impact::Partly},
-    {Id::ChatPosition, "Chat position (HUD control positions)", "chatPosition", "capability.ChatPosition", Impact::Fully},
+    {Id::ChatPosition, "Chat position (HUD control positions)", "gameHud", "capability.ChatPosition", Impact::Partly},
     {Id::FreeCameraHand, "FreeCamera hide (hand pass)", "freecamera", "capability.FreeCameraHand", Impact::Partly, false},
     {Id::FreeCameraHud, "FreeCamera hide (HUD pass)", "freecamera", "capability.FreeCameraHud", Impact::Partly, false},
     {Id::HideParticles, "Hide effects (particle passes)", "hideEffects", "capability.HideParticles", Impact::Partly, false},
-    {Id::HideBossBars, "Hide effects (boss bar passes)", "hideEffects", "capability.HideBossBars", Impact::Partly, false},
+    {Id::HideBossBars, "Hide boss bars (boss bar passes)", "gameHud", "capability.HideBossBars", Impact::Partly, false},
     {Id::SchematicBlend, "Schematic ghosts (blended pass)", "schematic", "capability.SchematicBlend", Impact::Partly},
     {Id::SchematicActorLight, "Schematic ghosts (actor lighting)", "schematic", "capability.SchematicActorLight", Impact::Partly},
     {Id::SchematicCreativePick, "Schematic pick (creative inventory give)", "schematic", "capability.SchematicCreativePick", Impact::Partly, true, true},
@@ -64,6 +65,13 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::NoteBlockSounds, "Note block pitch (level sound events)", "targetInfo", "capability.NoteBlockSounds", Impact::Partly},
     {Id::NoteBlockInstrument, "Ghost note block instrument (block instrument component)", "targetInfo", "capability.NoteBlockInstrument", Impact::Partly, true, true},
     {Id::BookPastePages, "Paste across book pages (page model and caret)", "bookPaste", "capability.BookPastePages", Impact::Fully, true, true},
+    {Id::BlockHighlight, "Block highlight (chunk section marks)", "blockHighlight", "capability.BlockHighlight", Impact::Fully},
+    {Id::PaperDollPosition, "Paper doll position (HUD control position)", "gameHud", "capability.PaperDollPosition", Impact::Partly},
+    {Id::ScoreboardPosition, "Scoreboard position (HUD control positions)", "gameHud", "capability.ScoreboardPosition", Impact::Partly},
+    {Id::EnchantOrder, "Enchantment order (enchantment costs and anvil screen)", "enchantOrder", "capability.EnchantOrder", Impact::Fully, true, true},
+    {Id::BossBarPosition, "Boss bar position (HUD control positions)", "gameHud", "capability.BossBarPosition", Impact::Partly},
+    {Id::ItemDetails, "Item details (item data reads)", "itemDetails", "capability.ItemDetails", Impact::Partly, true, true},
+    {Id::MapColorComponent, "Map colors of add-on blocks (block map color component)", "minimap", "capability.MapColorComponent", Impact::Partly, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);
@@ -80,7 +88,7 @@ inline constexpr Definition const& definition(Id id) { return definitions[static
 
 // One policy for every native adapter. A patch is not a new ABI claim; native
 // checks still apply. Minecraft verification is a separate, stricter decision.
-inline constexpr int loaderMajor = 26, loaderMinor = 60, minimumLoaderPatch = 3;
+inline constexpr int loaderMajor = 26, loaderMinor = 60, minimumLoaderPatch = 4;
 struct Environment {
     bool verifiedGame;
     int major, minor, patch;

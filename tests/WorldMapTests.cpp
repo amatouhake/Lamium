@@ -18,20 +18,20 @@ void mapMarks() {
     using namespace lamium::map;
     // L-139: a waypoint over a placement over a shape; a small placement inside a large one.
     std::vector<ScreenMark> marks{{shapeKey(7), 0, 0, 100, 100}, {placementKey(3), 10, 10, 90, 90},
-                                  {placementKey(4), 40, 40, 60, 60}, {waypointKey(9), 50, 50, 50, 50}, {deathKey, 80, 80, 80, 80}};
+                                  {placementKey(4), 40, 40, 60, 60}, {waypointKey(9), 50, 50, 50, 50}, {waypointKey(11), 80, 80, 80, 80}};
     check(markAt(marks, 52, 51) == waypointKey(9), "a waypoint over placements and shapes takes the cursor");
     check(markAt(marks, 45, 45) == placementKey(4), "of overlapping placements the smaller one is reached");
     check(markAt(marks, 20, 20) == placementKey(3) && markAt(marks, 5, 5) == shapeKey(7), "placements come before shapes");
-    check(markAt(marks, 82, 81) == deathKey && !markAt(marks, 150, 150), "the death point is a point too; empty map is nothing");
+    check(markAt(marks, 82, 81) == waypointKey(11) && !markAt(marks, 150, 150), "another point is reached where it is; empty map is nothing");
     std::vector<ScreenMark> twins{{waypointKey(1), 10, 10, 10, 10}, {waypointKey(2), 10, 10, 10, 10}};
     check(markAt(twins, 10, 10) == waypointKey(1), "two waypoints in one place stay apart by id; the first drawn wins");
     check(present(marks, placementKey(4)) && !present(marks, placementKey(5)) && !present(marks, shapeKey(3)),
           "a selection on a mark that is gone is dropped");
     LayerSwitches on{true, false, true};
-    check(layerShown(on, MarkLayer::Waypoint) && layerShown(on, MarkLayer::Death) && !layerShown(on, MarkLayer::Placement)
-              && layerShown(on, MarkLayer::Shape) && !layerShown({false, true, true}, MarkLayer::Death),
-          "each layer switch hides its own marks; the death point goes with waypoints (L-146)");
-    check(listKind(MarkLayer::Death) == 0 && listKind(MarkLayer::Waypoint) == 0 && listKind(MarkLayer::Placement) == 1
+    check(layerShown(on, MarkLayer::Waypoint) && !layerShown(on, MarkLayer::Placement)
+              && layerShown(on, MarkLayer::Shape) && !layerShown({false, true, true}, MarkLayer::Waypoint),
+          "each layer switch hides its own marks (L-146)");
+    check(listKind(MarkLayer::Waypoint) == 0 && listKind(MarkLayer::Placement) == 1
               && listKind(MarkLayer::Shape) == 2 && clampListKind(5) == 0 && clampListKind(2) == 2,
           "the side panel's list follows a mark's layer; an unknown saved choice lists waypoints (L-204)");
 }

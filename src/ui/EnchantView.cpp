@@ -1,0 +1,172 @@
+#include "ui/EnchantView.h"
+#include "ui/EnchantChooser.h"
+#include "ui/EnchantLayout.h"
+#include "ui/EnchantSteps.h"
+#include "ui/ListViewWidgets.h"
+#include "ui/Localization.h"
+#include "ui/ScreenParts.h"
+#include "ui/SettingsTableView.h"
+#include "ui/Widgets.h"
+#include "features/inspection/render/ItemIcon.h"
+#include "features/inventory/EnchantOrderGame.h"
+#include "mc/client/game/IClientInstance.h"
+#include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
+#include "mc/world/item/ItemStack.h"
+#include <algorithm>
+#include <cmath>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace lamium::ui::enchant_view {
+namespace {
+using Zone = EnchantLayout::Zone;
+namespace order = inventory::enchantOrder;
+namespace game = inventory::enchantOrder::game;
+bool open = false;
+int rowFirst = 0, stepFirst = 0;
+enum class Drag { None, Rows, Steps } dragging = Drag::None;
+int typingRow = -1;  // a level being typed (digits), -1 when none
+NumberInput typed;
+// Enter, Tab or a click elsewhere keeps it; Esc drops it.
+void endTyping(bool keep) {
+    if (typingRow < 0) return;
+    if (keep)
+        if (auto level = typed.committedPrecise(1, 255, true)) game::setRowLevel(typingRow, static_cast<int>(*level));
+    typingRow = -1;
+}
+EnchantLayout last;
+glm::vec2 lastPointer{};
+
+void back() { screen::endDirectTool(); reset(); table_view::rebuild(true); }
+// Icons are collected while the view draws and drawn in one call at the end,
+// each from a stack of its own: that is how glints survive (the container
+// previews do the same).
+std::vector<inspection::render::IconAt> icons;
+}
+bool begin() {
+    reset();
+    auto* client = screen::client();
+    if (!client) { screen::setMessage(translated("worldOnly")); return false; }
+    table_view::endSearch();
+    screen::finishEditing();
+    std::string problem;
+    if (!game::open(*client, problem)) { screen::setMessage(translated(problem)); return false; }
+    open = true;
+    return true;
+}
+bool opened() { return open; }
+void calm() { dragging = Drag::None; endTyping(true); }
+void reset() {
+    typingRow = -1;
+    if (open) game::close();
+    open = false;
+    rowFirst = stepFirst = 0;
+    dragging = Drag::None;
+    last = {};
+}
+bool click(float x, float y, bool right) {
+    if (!last.usable() || x < last.left || x >= last.left + last.width || y < last.headTop || y >= last.footerTop) return false;
+    if (right) return true;
+    if (last.rows.onScrollbar(x, y)) { rowFirst = last.rows.firstAt(y); dragging = Drag::Rows; return true; }
+    if (last.side.rows.onScrollbar(x, y)) { stepFirst = last.side.rows.firstAt(y); dragging = Drag::Steps; return true; }
+    auto hit = last.hit(x, y);
+    screen::clearMessage();
+    if (hit.zone == Zone::Row && last.onLevel(x) && enchant_chooser::levelStepper(game::view(), hit.index)) {
+        if (typingRow != hit.index) {
+            endTyping(true);
+            typingRow = hit.index;
+            typed.beginPrecise(game::view().rows[static_cast<size_t>(hit.index)].level);
+        }
+        return true;
+    }
+    endTyping(true);
+    switch (hit.zone) {
+    case Zone::Back: back(); return true;
+    case Zone::Goal: game::flipGoal(); stepFirst = 0; return true;
+    default: {
+        // The choosing part's zones, shared with the anvil's panel.
+        std::string message;
+        auto const pressed = enchant_chooser::press(hit, message);
+        if (!message.empty()) screen::setMessage(message);
+        if (pressed == enchant_chooser::Pressed::NewItem) rowFirst = 0;
+        if (pressed != enchant_chooser::Pressed::No && hit.zone != Zone::RowMinus && hit.zone != Zone::RowPlus) stepFirst = 0;
+        return true;
+    }
+    }
+}
+void key(int key) {
+    if (typingRow >= 0) {
+        if (key >= 0x30 && key <= 0x39) typed.append(std::string(1, static_cast<char>(key)));
+        else if (key >= 0x60 && key <= 0x69) typed.append(std::string(1, static_cast<char>('0' + key - 0x60)));
+        else if (key == 0x08) typed.backspace();
+        else if (key == 0x0d || key == 0x09) endTyping(true);
+        else if (key == 0x1b) endTyping(false);
+        return;
+    }
+    if (key == 0x1b && !screen::leaveDirectTool()) back();
+}
+void wheel(int amount) {
+    if (lastPointer.x < last.dividerX) rowFirst = SettingsTable::clampFirst(rowFirst + amount, last.rows.listCount, last.rows.listVisible);
+    else stepFirst = SettingsTable::clampFirst(stepFirst + amount, last.side.rows.listCount, last.side.rows.listVisible);
+}
+void release() { dragging = Drag::None; }
+void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
+    lastPointer = pointer;
+    icons.clear();
+    int itemsDrawn = 0;
+    auto const& v = game::view();
+    // Where the player stands with the plan, from the inventory as it is now.
+    if (auto* client = screen::client()) game::followInventory(*client);
+    auto const& info = game::steps();
+    int const stepCount = info.planned ? static_cast<int>(info.steps.size()) : 0;
+    auto fit = [&](int detailLines, int footLines) {
+        return EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), v.heldCell, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst,
+            detailLines, footLines);
+    };
+    last = fit(1, 1);
+    // The two details go on a line each where the column does not hold them side by side, and the last line
+    // wraps where it is long.
+    if (last.usable() && last.side.usable()) {
+        int const lines = enchant_steps::detailLines(context, info, last.side.width), foot = enchant_steps::footLines(context, info, last.side.width);
+        if (lines != 1 || foot != 1) last = fit(lines, foot);
+    }
+    if (!last.usable()) return;
+    if (dragging == Drag::Rows) last.rows.listFirst = last.rows.firstAt(pointer.y);
+    if (dragging == Drag::Steps) last.side.rows.listFirst = last.side.rows.firstAt(pointer.y);
+    rowFirst = last.rows.listFirst = SettingsTable::clampFirst(last.rows.listFirst, last.rows.listCount, last.rows.listVisible);
+    stepFirst = last.side.rows.listFirst = SettingsTable::clampFirst(last.side.rows.listFirst, last.side.rows.listCount, last.side.rows.listVisible);
+    auto hover = last.hit(pointer.x, pointer.y);
+    float const pad = SettingsTable::pad;
+
+    // Heading row: where this screen belongs, and the way back to it.
+    drawPageHeading(context, t, "section.inventory", "feature.enchantOrder", last.backX, hover.zone == Zone::Back);
+    fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
+
+    // Left: the item, the kinds and the main hand's cell, the sets, the rows.
+    enchant_chooser::draw(context, last, v, hover, icons, itemsDrawn,
+        dragging == Drag::Rows || last.rows.onScrollbar(pointer.x, pointer.y), typingRow, &typed);
+
+    // Right: the goal, the totals, the steps. The same drawing as right of the anvil screen.
+    auto const tip = enchant_steps::draw(context, last.side, info, pointer.x, pointer.y, true, icons);
+
+    // Footer, as in the table: status first, then what the screen is, then the limit.
+    fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
+    float const textLeft = t.left + pad, footWidth = t.width - 2 * pad;
+    std::string status = screen::message();
+    Rgb statusColor = screen::messageColor();
+    if (status.empty()) {
+        statusColor = palette::text;
+        status = enchant_chooser::status(v, hover);
+        if (status.empty()) status = enchant_steps::status(info, last.side, pointer.x, pointer.y);
+        if (status.empty()) status = translated("enchantOrder.fresh");
+    }
+    label(context, textLeft, t.footerTop + 3, footWidth, status, statusColor);
+    label(context, textLeft, t.footerTop + 16, footWidth, translated("help.enchantOrderList"), palette::dim);
+    label(context, textLeft, t.footerTop + 30, footWidth, translated(v.creative ? "enchantOrder.limit.creative" : "enchantOrder.limit"), palette::faint);
+    context.flushText(0, std::nullopt);
+    if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+    icons.clear();
+    enchant_steps::drawTip(context, tip);
+}
+}

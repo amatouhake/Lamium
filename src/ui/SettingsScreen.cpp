@@ -11,9 +11,13 @@
 #include "ui/WaypointsView.h"
 #include "ui/SchematicsView.h"
 #include "ui/SettingsTableView.h"
+#include "ui/HighlightView.h"
+#include "ui/EnchantView.h"
 #include "ui/LanguageView.h"
+#include "ui/SavedDataView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/RowPages.h"
 #include "ui/WaypointPromptLayout.h"
 #include "ui/SavePromptLayout.h"
 #include "ui/RadialLayout.h"
@@ -97,12 +101,18 @@ bool seen = false;
 std::chrono::steady_clock::time_point openedAt;
 bool closing = false;
 std::string error;
+bool errorWarns = true;
 
 // Navigation items (SettingsNavigation.h).
 constexpr int navCount = nav::count, hotkeysNav = nav::hotkeys, shapesNav = nav::shapes, waypointsNav = nav::waypoints,
     schematicsNav = nav::schematics, worldMapNav = nav::worldMap, hudNav = nav::hud;
 // Leaving the HUD layout editor returns to editorReturn.
 int editorReturn = 0;
+// A tool page (HUD layout, the block highlight list, Enchantment order) opened
+// by its key or from the anvil, not from the settings: Esc there returns to
+// the game or the anvil, as the calculator and the world map do (L-338).
+// Going anywhere else in the settings ends it.
+bool directTool = false;
 bool pendingRelease = false;
 SettingsNavigation navigation;
 float displayedInverseScale = 0;
@@ -136,7 +146,8 @@ bool numberDirty = false;
 
 using ShapeZone = ShapesLayout::Zone; // the list-and-detail layout's zones (Schematics view)
 bool numericEditing() {
-    return table_view::editingNumber() || shapes_view::editingNumber() || waypoints_view::editingNumber() || schematics_view::editingNumber();
+    return table_view::editingNumber() || shapes_view::editingNumber() || waypoints_view::editingNumber() || schematics_view::editingNumber()
+        || hud_editor::editingNumber();
 }
 // Waypoint add prompt (L-60 step 5): replaces the whole panel while open.
 struct WaypointPrompt { map::Waypoint draft; SearchQuery name; };
@@ -150,8 +161,27 @@ struct SavePrompt {
     bool entities = false;
     bool overwrite = false; // armed after "exists"; the next Save replaces the file
     std::string problem;
+    int editCorner = -1, editAxis = -1; // a corner value being typed
+    NumberInput value;
 };
 std::optional<SavePrompt> savePrompt;
+// What the keyboard types into: a corner value while one is open, else the name.
+TextEdit& saveField(SavePrompt& p) { return p.editAxis >= 0 ? static_cast<TextEdit&>(p.value) : p.name; }
+int& cornerValue(SavePrompt& p, int corner, int axis) {
+    auto& c = corner == 0 ? p.area.a : p.area.b;
+    return axis == 0 ? c.x : axis == 1 ? c.y : c.z;
+}
+// Enter, Tab or a click elsewhere keeps the typed value; Esc drops it.
+void endCornerEdit(SavePrompt& p, bool keep) {
+    if (p.editAxis < 0) return;
+    if (keep)
+        if (auto typed = p.value.committedPrecise(-30000000, 30000000, true)) {
+            cornerValue(p, p.editCorner, p.editAxis) = static_cast<int>(*typed);
+            schematic::selection::setArea(p.area, p.dimension);
+            p.problem.clear();
+        }
+    p.editCorner = p.editAxis = -1;
+}
 // The schematic menu (L-93): a ring of categories, then of their items, over
 // the world. Replaces the whole panel while open, like the prompts.
 struct SchematicMenu {
@@ -172,11 +202,13 @@ void enterCalculator(bool fromSettings);
 // (L-172), in the order text events are routed.
 struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
 FocusedText focusedText() {
+    if (highlight_view::opened()) return {&highlight_view::field(), highlight_view::edited};
     if (language_view::opened()) return {};
+    if (saved_data_view::opened()) return {};
     if (table_view::capturing()) return {};
     if (calculatorOpen) return {&calculator_view::field(), calculator_view::edited};
     if (prompt) return {&prompt->name, [] {}};
-    if (savePrompt) return {&savePrompt->name, [] { savePrompt->overwrite = false; }};
+    if (savePrompt) return {&saveField(*savePrompt), [] { if (savePrompt->editAxis < 0) savePrompt->overwrite = false; }};
     if (worldMapOpen)
         if (auto* field = map::world::nameField()) return {field, [] {}};
     if (auto* field = waypoints_view::nameField()) return {field, waypoints_view::nameEdited};
@@ -216,6 +248,7 @@ bool waypointsView() { return navigation.current == waypointsNav; }
 bool schematicsView() { return navigation.current == schematicsNav; }
 bool hudEditorView() { return navigation.current == hudNav; }
 void selectNav(int index, bool temporary = false) {
+    directTool = false;
     // Choosing a category ends a search, which otherwise spans every category.
     table_view::endSearch();
     if (navigation.current == shapesNav && index != shapesNav) shapes_view::leave();
@@ -297,7 +330,7 @@ bool scaledView() {
 float layoutScale() { return scaledView() ? screenScale : 1; }
 void syncTextKeyboard(float x, float y) {
     x *= layoutScale(); y *= layoutScale();
-    bool wanted = !closing && !table_view::capturing() && (calculatorOpen || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
+    bool wanted = !closing && !table_view::capturing() && (calculatorOpen || highlight_view::opened() || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
         || savePrompt
         || (worldMapOpen && map::world::editingName()));
     bool number = numericEditing();
@@ -385,8 +418,9 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
         // Never flush the world sidecar from inside a text callback.
         logControlText(text);
         if (calculatorOpen) { calculator_view::type(text); return; }
+        if (highlight_view::opened()) { highlight_view::type(text); return; }
         if (prompt) { prompt->name.type(text); return; }
-        if (savePrompt) { if (savePrompt->name.type(text)) savePrompt->overwrite = false; return; }
+        if (savePrompt) { if (saveField(*savePrompt).type(text) && savePrompt->editAxis < 0) savePrompt->overwrite = false; return; }
         if (worldMapOpen && map::world::editingName()) { map::world::typeText(text); return; }
         if (waypoints_view::editingName()) { waypoints_view::type(text); return; }
         if (shapes_view::editingName()) { shapes_view::type(text); return; }
@@ -397,7 +431,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     origin(text, impact);
 }
 void clear() {
-    language_view::reset();
+    row_pages::resetAll();
     releaseTextKeyboard();
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
@@ -413,6 +447,7 @@ void clear() {
     worldMapOpen = false; promptOnMap = false; pendingWheels.clear();
     calculatorOpen = false;
     mapFromSettings = false;
+    directTool = false;
     waypoints_view::reset();
     schematics_view::reset();
 }
@@ -438,13 +473,16 @@ void dropMovedWarning() {
 void applyNumber() {
     if (!numericEditing() || !numberDirty) return;
     numberDirty = false;
+    if (hud_editor::editingNumber()) { hud_editor::applyNumber(); return; }
     if (waypoints_view::editingNumber()) { waypoints_view::applyNumber(); return; }
     if (schematics_view::editingNumber()) { schematics_view::applyNumber(); return; }
     if (shapes_view::editingNumber()) { shapes_view::applyNumber(); return; }
     table_view::applyNumber();
 }
 void finishNumber() {
-    applyNumber();
+    // Keeping the edit: a value past either end becomes that end (it was not applied while typed).
+    if (numericEditing()) { numberInput.clampOut = true; numberDirty = true; applyNumber(); numberInput.clampOut = false; }
+    else applyNumber();
     shapes_view::applyName();
     waypoints_view::applyName();
     releaseTextKeyboard();
@@ -453,9 +491,10 @@ void finishNumber() {
     shapes_view::endEditing();
     waypoints_view::endEditing();
     schematics_view::endEditing();
+    hud_editor::endEditing();
 }
 void close() {
-    language_view::reset();
+    row_pages::resetAll();
     releaseTextKeyboard();
     table_view::disarm();
     if (ownsTop()) {
@@ -530,32 +569,28 @@ void handlePromptClick(float x, float y, glm::vec2 size) {
 void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
     auto l = WaypointPromptLayout::at(size.x, size.y);
     using L = WaypointPromptLayout;
-    panel(context, l.left, l.top, L::width, L::height, .86f);
+    panel(context, l.left, l.top, L::width, L::height, opacity::screen);
     frame(context, l.left, l.top, L::width, L::height, palette::white, .14f);
     float x = l.left + L::pad;
     label(context, x, l.titleY(), l.inner(), translated("waypoint.add"));
     auto const& d = prompt->draft;
     std::string_view dimension = d.dimension == 1 ? "dimension.nether" : d.dimension == 2 ? "dimension.end" : "dimension.overworld";
     label(context, x, l.whereY(), l.inner(), std::format("{}, {}, {}  {}", d.x, d.y, d.z, translated(dimension)), palette::dim);
-    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, Rgb{0, 0, 0}, .4f);
-    frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
-    drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, prompt->name);
+    drawTextField(context, x, l.fieldY(), l.inner(), L::fieldHeight, true, &prompt->name, {});
     for (int i = 0; i < L::swatches; ++i) {
         auto c = map::waypointColors[static_cast<size_t>(i)];
         float sx = l.swatchX(i), sy = l.swatchY();
         if (i == map::clampColor(d.color)) frame(context, sx - 2, sy - 2, L::swatch + 4, L::swatch + 4, palette::white);
         fill(context, sx, sy, L::swatch, L::swatch, Rgb{map::channel(c, 0) / 255.f, map::channel(c, 1) / 255.f, map::channel(c, 2) / 255.f});
-        frame(context, sx, sy, L::swatch, L::swatch, Rgb{0, 0, 0}, .6f);
+        frame(context, sx, sy, L::swatch, L::swatch, palette::shade, .6f);
     }
     auto hover = l.hit(pointer.x, pointer.y).part;
     label(context, x, l.temporaryY() + boxTextInset(), l.inner() - L::switchWidth - 4, translated("waypoint.temporary"),
         hover == L::Part::Temporary ? palette::text : palette::dim);
     toggleSwitch(context, l.switchX(), l.temporaryY() + (L::rowHeight - switchHeight) / 2, d.temporary);
     auto button = [&](float bx, std::string text, bool primary, bool over) {
-        fill(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight,
-             primary ? palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : palette::keyFill);
-        frame(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight, primary ? palette::accent : palette::keyEdge);
-        label(context, bx, l.buttonY() + boxTextInset(), L::buttonWidth, std::move(text), palette::text, Align::Center);
+        drawButton(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight, std::move(text), over,
+            primary ? ButtonKind::Primary : ButtonKind::Plain);
     };
     button(l.addX(), translated("waypoint.addButton"), true, hover == WaypointPromptLayout::Part::Add);
     button(l.cancelX(), translated("waypoint.cancelButton"), false, hover == WaypointPromptLayout::Part::Cancel);
@@ -640,14 +675,15 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
     default: schematic::actions::run(*client, command); return;
     }
 }
-void handleMenuClick(bool right) {
+// `hit` is the item under the click itself: the pointer may have moved since.
+void handleMenuClick(bool right, int hit) {
     if (!schematicMenu) return;
     if (right) {
         if (schematicMenu->category >= 0) schematicMenu->show(-1);
         else close();
         return;
     }
-    int hover = schematicMenu->hover;
+    int hover = hit;
     if (hover < 0) return;
     if (schematicMenu->category < 0) { schematicMenu->show(hover); return; }
     auto items = schematic::menu::categories[static_cast<size_t>(schematicMenu->category)].items;
@@ -687,7 +723,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     auto const preferences = Runtime::instance().preferences();
     static constexpr std::array<float, 3> dims{0.f, .12f, .35f};
     float dim = dims[static_cast<size_t>(std::clamp(preferences.schematic.menuBackground, 0, 2))];
-    if (dim > 0) fill(context, 0, 0, size.x, size.y, Rgb{0, 0, 0}, dim);
+    if (dim > 0) fill(context, 0, 0, size.x, size.y, palette::shade, dim);
     float s = preferences.schematic.menuSmall ? menuSmallScale : 1.f;
     auto width = [&](std::string const& text) { return textWidthScaled(context, text, s); };
     static constexpr std::array<char const*, 5> targets{"schematic.target.placement", "schematic.target.corner1",
@@ -737,7 +773,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
         }
         float h = value.empty() ? 16 * s : menuSizes.itemHeight;
         float x = std::round(l.itemX(i, opened) - widest / 2), y = std::round(l.itemY(i, opened) - h / 2);
-        panel(context, x, y, widest, h, .86f * opened);
+        panel(context, x, y, widest, h, opacity::screen * opened);
         frame(context, x, y, widest, h, palette::white, .14f * opened);
         rowBackground(context, x, y, widest, h, i == hover && opened >= 1, false);
         // Text once the plates are mostly in: it cannot fade with them.
@@ -748,8 +784,8 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     // The center: where the menu is, what Move moves, and what each button does.
     std::vector<std::pair<std::string, Rgb>> lines;
     if (!list && schematicMenu->category == menu::moveCategory) {
-        static constexpr std::array<Rgb, 5> colors{palette::accent, Rgb{1.f, .4f, .35f}, Rgb{.45f, .65f, 1.f}, palette::white,
-            Rgb{.55f, .55f, .58f}};
+        static constexpr std::array<Rgb, 5> colors{palette::accent, palette::cornerOne, palette::cornerTwo, palette::white,
+            palette::faint};
         auto t = static_cast<size_t>(schematic::actions::target());
         lines.push_back({translated("schematic.menu.target", translated(targets[t])), colors[t]});
     }
@@ -762,7 +798,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     }
     float cw = menuSizes.centerWidth, ch = menuSizes.centerHeight;
     float cx = std::round(l.cx - cw / 2), cy = std::round(l.cy - ch / 2);
-    panel(context, cx, cy, cw, ch, .9f);
+    panel(context, cx, cy, cw, ch, opacity::screen);
     frame(context, cx, cy, cw, ch, palette::white, .14f);
     labelScaled(context, cx + 4, cy + 4 * s + textInset, cw - 8, translated(list ? "schematic.menu.title" : category.label), s,
         palette::text, Align::Center);
@@ -788,7 +824,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
         float tx = std::round(std::clamp(l.cx - tw / 2, 4.f, size.x - tw - 4));
         float ty = top ? above - th : below;
         if (!top && ty + th > size.y) ty = above - th;
-        if (card) panel(context, tx, ty, tw, th, .86f);
+        if (card) panel(context, tx, ty, tw, th, opacity::screen);
         for (size_t i = 0; i < parts.size(); ++i)
             labelScaled(context, tx + 5, ty + 1 + textInset + line * static_cast<float>(i), tw - 10, parts[i], s, color, Align::Center);
     };
@@ -829,6 +865,11 @@ void commitSave() {
 }
 void handleSavePromptKey(int key) {
     if (!savePrompt) return;
+    if (savePrompt->editAxis >= 0) {
+        if (key == 0x0d || key == 0x09) endCornerEdit(*savePrompt, true);
+        else if (key == 0x1b) endCornerEdit(*savePrompt, false);
+        return;
+    }
     if (key == 0x0d) commitSave();
     else if (key == 0x1b) close();
 }
@@ -837,11 +878,18 @@ void handleSavePromptClick(float x, float y, glm::vec2 size) {
     auto& p = *savePrompt;
     auto hit = SavePromptLayout::at(size.x, size.y).hit(x, y);
     using Part = SavePromptLayout::Part;
+    bool sameValue = hit.part == Part::Value && hit.corner == p.editCorner && hit.axis == p.editAxis;
+    if (!sameValue) endCornerEdit(p, true);
     switch (hit.part) {
+    case Part::Value:
+        if (!sameValue) {
+            p.editCorner = hit.corner; p.editAxis = hit.axis;
+            p.value.beginPrecise(cornerValue(p, hit.corner, hit.axis));
+        }
+        break;
     case Part::Minus: case Part::Plus: {
         int step = (hit.part == Part::Plus ? 1 : -1) * (heldShift() ? 10 : 1);
-        auto& corner = hit.corner == 0 ? p.area.a : p.area.b;
-        (hit.axis == 0 ? corner.x : hit.axis == 1 ? corner.y : corner.z) += step;
+        cornerValue(p, hit.corner, hit.axis) += step;
         // The frame in the world follows at once.
         schematic::selection::setArea(p.area, p.dimension);
         p.problem.clear();
@@ -861,7 +909,7 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
     auto& p = *savePrompt;
     auto l = SavePromptLayout::at(size.x, size.y);
     using L = SavePromptLayout;
-    panel(context, l.left, l.top, L::width, L::height(), .86f);
+    panel(context, l.left, l.top, L::width, L::height(), opacity::screen);
     frame(context, l.left, l.top, L::width, L::height(), palette::white, .14f);
     float x = l.left + L::pad;
     auto hover = l.hit(pointer.x, pointer.y);
@@ -871,25 +919,21 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
         auto const& c = corner == 0 ? p.area.a : p.area.b;
         // In the colors of the corner blocks in the world.
         label(context, x, y + boxTextInset(), L::labelWidth - 4, translated(corner == 0 ? "schematic.save.corner1" : "schematic.save.corner2"),
-            corner == 0 ? Rgb{1.f, .4f, .35f} : Rgb{.45f, .65f, 1.f});
+            corner == 0 ? palette::cornerOne : palette::cornerTwo);
         for (int axis = 0; axis < 3; ++axis) {
             float cx = l.cellX(axis), w = l.cellWidth();
             int value = axis == 0 ? c.x : axis == 1 ? c.y : c.z;
             bool overMinus = hover.part == L::Part::Minus && hover.corner == corner && hover.axis == axis;
             bool overPlus = hover.part == L::Part::Plus && hover.corner == corner && hover.axis == axis;
-            fill(context, cx, y, w, L::rowHeight, Rgb{0, 0, 0}, .3f);
-            drawSmallButton(context, cx, y, L::step, L::rowHeight, "-", overMinus);
-            drawSmallButton(context, cx + w - L::step, y, L::step, L::rowHeight, "+", overPlus);
             static constexpr std::array<char const*, 3> axes{"X", "Y", "Z"};
-            label(context, cx + L::step, y + boxTextInset(), w - 2 * L::step, std::format("{} {}", axes[static_cast<size_t>(axis)], value),
-                palette::text, Align::Center);
+            bool typing = p.editCorner == corner && p.editAxis == axis;
+            drawStepper(context, cx, y, w, L::rowHeight, true, std::format("{} {}", axes[static_cast<size_t>(axis)], value),
+                {.editing = typing ? &p.value : nullptr, .hot = overMinus ? -1 : overPlus ? 1 : 0, .cell = L::step});
         }
     }
     auto s = p.area.size();
     label(context, x, l.sizeY(), l.inner(), translated("schematic.save.size", s.x, s.y, s.z, p.area.cells()), palette::dim);
-    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, Rgb{0, 0, 0}, .4f);
-    frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
-    drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, p.name);
+    drawTextField(context, x, l.fieldY(), l.inner(), L::fieldHeight, p.editAxis < 0, &p.name, p.name.value());
     auto file = schematic::schematicFileName(p.name.value());
     label(context, x, l.whereY(), l.inner(), translated("schematic.save.where", file.empty() ? std::string("-") : file), palette::faint);
     label(context, x, l.entitiesY() + boxTextInset(), l.inner() - L::switchWidth - 4, translated("schematic.save.entities"),
@@ -901,13 +945,15 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
         label(context, x, l.statusY(), l.inner(), translated(running->waiting ? "schematic.save.progressWaiting" : "schematic.save.progress",
             running->file, percent), running->waiting ? palette::warning : palette::dim);
     } else if (!p.problem.empty()) label(context, x, l.statusY(), l.inner(), p.problem, palette::warning);
-    drawSmallButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight,
-        translated(running ? "schematic.save.stop" : p.overwrite ? "schematic.save.overwrite" : "schematic.save.button"),
-        hover.part == L::Part::Save, p.overwrite || running ? Rgb{.54f, .18f, .16f} : palette::accentDeep,
-        p.overwrite || running ? Rgb{.54f, .23f, .2f} : palette::accent);
-    drawSmallButton(context, l.clearX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.clear"),
+    // Save onto an existing file is press twice: the first press finds it and arms Overwrite.
+    auto saveText = translated(running ? "schematic.save.stop" : p.overwrite ? "schematic.save.overwrite" : "schematic.save.button");
+    if (p.overwrite && !running)
+        drawDangerButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight, saveText, hover.part == L::Part::Save, true);
+    else drawButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight, saveText, hover.part == L::Part::Save,
+        running ? ButtonKind::Plain : ButtonKind::Primary);
+    drawButton(context, l.clearX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.clear"),
         hover.part == L::Part::Clear);
-    drawSmallButton(context, l.cancelX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.cancel"),
+    drawButton(context, l.cancelX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.cancel"),
         hover.part == L::Part::Cancel);
     paragraph(context, x, l.hintY(), l.inner(), translated("schematic.save.hint"), 3, palette::faint);
     label(context, x, l.keysY(), l.inner(), translated("schematic.save.keys"), palette::faint);
@@ -974,6 +1020,12 @@ void handleMapRequest(map::world::Request const& request) {
         if (request.mark) schematics_view::showPlacement(request.mark->id);
         break;
     }
+    case Kind::OpenSavedData:
+        map::world::close();
+        worldMapOpen = false;
+        mapFromSettings = false;
+        screen::showSavedData();
+        break;
     case Kind::OpenShape: {
         bool fromSettings = mapFromSettings;
         map::world::close();
@@ -1031,7 +1083,7 @@ void render(ll::event::UIRenderEvent& event) {
             glm::vec2 pointer = view.mPointerLocationPrevious;
             bool over = pointer.x >= titleEntry.x && pointer.x < titleEntry.x + w && pointer.y >= titleEntry.y
                 && pointer.y < titleEntry.y + h;
-            fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .7f : .53f);
+            fill(context, titleEntry.x, titleEntry.y, w, h, palette::shade, over ? .7f : .53f);
             // Plain white without Lamium's shadow, as LeviLamina's line.
             labelScaled(context, titleEntry.x + 1.75f, titleEntry.y + 2.5f, w, text, 1.f, palette::white, Align::Left, false);
             if (over) fill(context, titleEntry.x + 1.75f, titleEntry.y + 10.5f, w - 3.5f, textStroke(), palette::white);
@@ -1052,20 +1104,22 @@ void render(ll::event::UIRenderEvent& event) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
             pendingClick.reset();
     } else forgetEditField();
-    if (language_view::opened()) {
-        releaseTextKeyboard();
+    if (auto const* page = row_pages::open()) {
+        if (!page->typing) releaseTextKeyboard();
         if (!closing) {
-            // Outside the list the sidebar, Close and the rest work as usual.
-            if (auto click = std::exchange(pendingClick, std::nullopt); click && !language_view::click(click->x, click->y, click->right)) {
-                language_view::reset();
+            // Outside the page the sidebar, Close and the rest work as usual.
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !page->click(click->x, click->y, click->right)) {
+                page->reset();
+                directTool = false;
                 table_view::click(click->x, click->y, click->right);
             }
-            for (auto wheel : std::exchange(pendingWheels, {})) if (language_view::opened()) language_view::wheel(wheel.direction);
-            if (std::exchange(pendingRelease, false)) language_view::release();
-            for (int key : std::exchange(pendingKeys, {})) if (language_view::opened()) language_view::key(key);
+            for (auto wheel : std::exchange(pendingWheels, {})) if (page->opened()) page->wheel(wheel.direction);
+            if (std::exchange(pendingRelease, false)) page->release();
+            for (int key : std::exchange(pendingKeys, {})) if (page->opened()) page->key(key);
         }
         pendingSearch = false;
         if (!scene) return;
+        if (page->typing && page->opened()) syncTextKeyboard(lastPointer.x, lastPointer.y);
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         DrawScale scale{screenScale};
         table_view::render(context, current, size / screenScale, lastPointer);
@@ -1133,7 +1187,8 @@ void render(ll::event::UIRenderEvent& event) {
         glm::vec2 pointer = view.mPointerLocationPrevious;
         if (!closing) {
             schematicMenu->hover = menuLayout(size).hit(pointer.x, pointer.y);
-            if (auto click = std::exchange(pendingClick, std::nullopt)) handleMenuClick(click->right);
+            if (auto click = std::exchange(pendingClick, std::nullopt))
+                handleMenuClick(click->right, menuLayout(size).hit(click->x, click->y));
             for (auto wheel : std::exchange(pendingWheels, {})) if (schematicMenu && !closing) handleMenuWheel(wheel.direction);
             for (int key : std::exchange(pendingKeys, {})) if (schematicMenu && !closing) handleMenuKey(key);
         }
@@ -1166,7 +1221,11 @@ void render(ll::event::UIRenderEvent& event) {
             exit = hud_editor::press(click->x, click->y) == hud_editor::Result::Exit;
         for (int key : std::exchange(pendingKeys, {}))
             if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
-        if (exit) { hud_editor::reset(); selectNav(editorReturn); }
+        if (exit) {
+            hud_editor::reset();
+            if (directTool) close();
+            else selectNav(editorReturn);
+        }
     } else if (!closing && std::exchange(pendingClose, false)) {
         close();
     } else if (!closing) {
@@ -1193,7 +1252,7 @@ void render(ll::event::UIRenderEvent& event) {
             if (std::exchange(pendingSearch, false)) { finishNumber(); table_view::focusSearch(); }
             if (auto click = std::exchange(pendingClick, std::nullopt)) table_view::click(click->x, click->y, click->right);
             for (int key : std::exchange(pendingKeys, {})) {
-                if (language_view::opened()) break;
+                if (row_pages::any()) break;
                 table_view::key(key);
             }
         }
@@ -1204,7 +1263,9 @@ void render(ll::event::UIRenderEvent& event) {
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
     if (hudEditorView()) {
         glm::vec2 pointer = view.mPointerLocationPrevious;
-        releaseTextKeyboard();
+        // Only the toolbar's scale is typed here.
+        if (auto caret = hud_editor::caret()) syncTextKeyboard(caret->x, caret->y);
+        else releaseTextKeyboard();
         hud_editor::render(context, size.x, size.y, pointer.x, pointer.y);
         return;
     }
@@ -1239,15 +1300,35 @@ void render(ll::event::UIRenderEvent& event) {
 namespace screen {
 IClientInstance* client() { return ui::client; }
 std::string const& message() { return error; }
-void setMessage(std::string text) { error = std::move(text); }
+void setMessage(std::string text) { error = std::move(text); errorWarns = true; }
+void setInfo(std::string text) { error = std::move(text); errorWarns = false; }
+Rgb messageColor() { return errorWarns ? palette::warning : palette::text; }
 void clearMessage() { error.clear(); }
 void warnRange(std::string text) { ui::warnRange(std::move(text)); }
 NumberInput& number() { return numberInput; }
 void numberTyped() { numberDirty = true; }
 void finishEditing() { finishNumber(); }
+void cancelEditing() {
+    // Numbers and shape names apply as they are typed (each frame): put the starting value back through the same path.
+    if (numericEditing()) { numberInput.restore(); numberDirty = true; applyNumber(); }
+    shapes_view::revertName();
+    numberDirty = false;
+    releaseTextKeyboard();
+    table_view::endEditing();
+    shapes_view::endEditing();
+    waypoints_view::endEditing();
+    schematics_view::endEditing();
+    hud_editor::endEditing();
+}
 bool heldCtrl() { return ui::heldCtrl(); }
 bool heldShift() { return ui::heldShift(); }
 void close() { ui::close(); }
+bool leaveDirectTool() {
+    if (!directTool) return false;
+    ui::close();
+    return true;
+}
+void endDirectTool() { directTool = false; }
 void nextNav(bool back) {
     bool world = ui::client && ui::client->getLocalPlayer();
     int index = navigation.current;
@@ -1261,6 +1342,7 @@ bool navClick(float x, float y) {
     return false;
 }
 bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y) { return ui::pressScrollbar(layout, first, x, y); }
+bool scrollDragging() { return scrollDragFirst != nullptr; }
 void toggleOption(std::string_view id) { table_view::adjustOption(id, 1); }
 void showFeatureKeys(std::string_view featureId) {
     int category = 0;
@@ -1281,11 +1363,22 @@ int playerDimension() { return ui::playerDimension(); }
 std::string dimensionName(int dimension) { return ui::dimensionName(dimension); }
 int distanceTo(int x, int z) { return ui::distanceTo(x, z); }
 void returnToMap() { enterWorldMap(mapFromSettings, true); }
+void showSavedData() {
+    finishNumber();
+    int category = 0;
+    for (size_t i = 0; i < sections.size(); ++i) if (sections[i] == featureSection("savedData")) category = static_cast<int>(i) + 1;
+    ui::selectNav(category);
+    if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true);
 }
+}
+// Set while the enchantment order opens from the anvil list: the one case where the scene goes over a
+// container screen (L-170 trial; whether the anvil is still there afterwards is checked in game).
+bool overAnvilScreen = false;
 void open(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene || !(gameplayScreen(current.getScreenName())
-        || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr))) return;
+        || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr)
+        || (overAnvilScreen && current.getScreenName() == "anvil_screen"))) return;
     CameraSessions::instance().suspendInput();
     error.clear(); rangeWarning.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
     pendingClose = false;
@@ -1406,6 +1499,54 @@ void openCalculator(IClientInstance& current) {
     seedOpener(input::Action::OpenCalculator);
     enterCalculator(false);
 }
+void openBlockHighlight(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) open(current);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenBlockHighlight);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    if (row_pages::begin(row_pages::highlight())) table_view::rebuild(true);
+    directTool = openedNow && highlight_view::opened();
+}
+void openEnchantOrder(IClientInstance& current, bool overAnvil) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) {
+        overAnvilScreen = overAnvil;
+        open(current);
+        overAnvilScreen = false;
+    }
+    if (!scene) return;
+    if (openedNow && !overAnvil) seedOpener(input::Action::OpenEnchantOrder);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    if (row_pages::begin(row_pages::enchant())) table_view::rebuild(true);
+    directTool = openedNow && enchant_view::opened();
+}
+void openSavedData(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) open(current);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenSavedData);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true);
+    directTool = openedNow && saved_data_view::opened();
+}
+void openGameLanguage(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) open(current);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenGameLanguage);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    if (row_pages::begin(row_pages::language())) table_view::rebuild(true);
+    directTool = openedNow && language_view::opened();
+}
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene) return;
@@ -1429,6 +1570,7 @@ void openHudLayout(IClientInstance& current) {
     if (openedNow) seedOpener(input::Action::OpenHudLayout);
     selectNav(hudNav, true);
     hud_editor::select(std::nullopt);
+    directTool = openedNow && hudEditorView();
 }
 namespace screen {
 // The Open button on a tool's settings row (L-231). The screen is already
@@ -1448,6 +1590,10 @@ void openTool(input::Action action) {
     case input::Action::OpenWorldMap: selectNav(worldMapNav); return;
     case input::Action::OpenCalculator: enterCalculator(true); return;
     case input::Action::SchematicMenu: enterSchematicMenu(); return;
+    case input::Action::OpenBlockHighlight: if (row_pages::begin(row_pages::highlight())) table_view::rebuild(true); return;
+    case input::Action::OpenEnchantOrder: if (row_pages::begin(row_pages::enchant())) table_view::rebuild(true); return;
+    case input::Action::OpenSavedData: if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true); return;
+    case input::Action::OpenGameLanguage: if (row_pages::begin(row_pages::language())) table_view::rebuild(true); return;
     default: return;
     }
 }
@@ -1458,7 +1604,10 @@ bool ownsInput() {
 }
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
-    language_view::reset();
+    // Pages that replace the rows stay where they are: looking at another window to compare, then coming back (L-343).
+    row_pages::calmAll();
+    if (savePrompt && savePrompt->overwrite) { savePrompt->overwrite = false; savePrompt->problem.clear(); } // an armed Overwrite disarms
+    if (savePrompt) endCornerEdit(*savePrompt, true);
     releaseTextKeyboard();
     if (table_view::capturing()) table_view::cancelCapture();
     finishNumber();
@@ -1538,7 +1687,7 @@ void start() {
             pendingMapClose = true;
             return;
         }
-        if (language_view::opened() && wheel) {
+        if (row_pages::any() && wheel) {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
             return;
         }
@@ -1605,8 +1754,27 @@ void start() {
             event.cancel();
             return;
         }
-        if (language_view::opened()) {
+        if (row_pages::any() && !row_pages::highlight().opened()) {
             event.cancel(); pendingKeys.push_back(event.keyCode()); return;
+        }
+        // The highlight list's search is always focused: editing keys act at
+        // once, text comes through the native keyboard, the rest run next frame.
+        if (highlight_view::opened()) {
+            auto key = event.keyCode();
+            if (textEditKey(key, heldCtrl())) {
+                event.cancel();
+                if (editText(highlight_view::field(), key, heldCtrl())) highlight_view::edited();
+                return;
+            }
+            bool selectAll = key == 0x41 && heldCtrl();
+            bool command = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x26 || key == 0x28 || key == 0x21 || key == 0x22
+                || key == 0x09 || selectAll;
+            if (textKeyboardOwned && !command) return;
+            event.cancel();
+            if (key == 0x08) { if (highlight_view::field().backspace()) highlight_view::edited(); }
+            else if (selectAll) highlight_view::field().selectAll();
+            else if (key != 0x09) pendingKeys.push_back(key);
+            return;
         }
         // The calculator copies its result (Ctrl+C) or "expression = value"
         // (Ctrl+Shift+C), not the field's text (L-171).
@@ -1648,11 +1816,11 @@ void start() {
         if (savePrompt) {
             auto key = event.keyCode();
             bool selectAll = key == 0x41 && heldCtrl();
-            bool command = key == 0x08 || key == 0x1b || key == 0x0d || selectAll;
+            bool command = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x09 || selectAll;
             if (textKeyboardOwned && !command) return;
             event.cancel();
-            if (key == 0x08) { if (savePrompt->name.backspace()) savePrompt->overwrite = false; }
-            else if (selectAll) savePrompt->name.selectAll();
+            if (key == 0x08) { if (saveField(*savePrompt).backspace() && savePrompt->editAxis < 0) savePrompt->overwrite = false; }
+            else if (selectAll) saveField(*savePrompt).selectAll();
             else pendingKeys.push_back(key);
             return;
         }
@@ -1696,13 +1864,15 @@ void start() {
         // input event.
         auto key = event.keyCode();
         bool tool = shapesView() || waypointsView() || schematicsView();
-        bool editing = shapesView() ? (shapes_view::editingName() || shapes_view::editingNumber())
+        bool editing = hudEditorView() ? hud_editor::editingNumber()
+            : shapesView() ? (shapes_view::editingName() || shapes_view::editingNumber())
             : waypointsView() ? (waypoints_view::editingName() || waypoints_view::editingNumber())
             : schematicsView() ? schematics_view::editingNumber()
             : (table_view::searchFocused() || table_view::editingNumber());
-        bool finishes = (key == 0x1b || key == 0x0d || key == 0x09) && (tool || !table_view::searchFocused());
+        bool finishes = (key == 0x1b || key == 0x0d || key == 0x09) && (tool || hudEditorView() || !table_view::searchFocused());
         if (editing && !finishes) {
-            if (shapesView()) shapes_view::key(key);
+            if (hudEditorView()) hud_editor::editKey(key);
+            else if (shapesView()) shapes_view::key(key);
             else if (waypointsView()) waypoints_view::key(key);
             else if (schematicsView()) schematics_view::key(key);
             else table_view::key(key);

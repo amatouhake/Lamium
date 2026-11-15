@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <optional>
@@ -17,36 +18,58 @@ class NumberInput : public TextEdit {
         auto dot = next.find('.');
         return dot == std::string::npos || next.find('.', dot + 1) == std::string::npos;
     }
+    std::string origin;
 public:
     NumberInput() : TextEdit(24, true) {}
     void beginPrecise(double value) {
         char buffer[64];
         auto result = std::to_chars(buffer, buffer + sizeof(buffer), value, std::chars_format::fixed);
-        set(std::string(buffer, result.ptr));
+        origin.assign(buffer, result.ptr);
+        set(origin);
         replace = true;
     }
     void begin(float value) {
         char buffer[32];
         auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
-        set(std::string(buffer, result.ptr));
+        origin.assign(buffer, result.ptr);
+        set(origin);
         replace = true;
     }
+    // Typed numbers apply as they are typed; Esc puts the starting text back
+    // so the next apply writes the value from before (exact: shortest round trip).
+    void restore() { set(origin); }
+    // While typing, a value out of range is not a value. When the edit is
+    // kept (`clampOut`, set around the commit), it becomes the nearest end.
+    bool clampOut = false;
     std::optional<float> parsed(float minimum, float maximum) const {
         if (text.empty() || text.back() == '.') return {};
         float result = 0;
         auto conversion = std::from_chars(text.data(), text.data()+text.size(), result);
-        if (conversion.ec != std::errc{} || conversion.ptr != text.data()+text.size()
-            || !std::isfinite(result) || result < minimum || result > maximum) return {};
+        if (conversion.ec != std::errc{} || conversion.ptr != text.data()+text.size() || !std::isfinite(result)) return {};
+        if (result < minimum || result > maximum) {
+            if (!clampOut) return {};
+            result = std::clamp(result, minimum, maximum);
+        }
         return result;
     }
     std::optional<double> parsedPrecise(double minimum, double maximum, bool integer = false) const {
         if (text.empty() || text.back() == '.') return {};
         double result = 0;
         auto conversion = std::from_chars(text.data(), text.data()+text.size(), result);
-        if (conversion.ec != std::errc{} || conversion.ptr != text.data()+text.size()
-            || !std::isfinite(result) || result < minimum || result > maximum
+        if (conversion.ec != std::errc{} || conversion.ptr != text.data()+text.size() || !std::isfinite(result)
             || (integer && std::trunc(result) != result)) return {};
+        if (result < minimum || result > maximum) {
+            if (!clampOut) return {};
+            result = std::clamp(result, minimum, maximum);
+        }
         return result;
+    }
+    // The value as kept: out of range becomes the nearest end.
+    std::optional<double> committedPrecise(double minimum, double maximum, bool integer = false) {
+        clampOut = true;
+        auto value = parsedPrecise(minimum, maximum, integer);
+        clampOut = false;
+        return value;
     }
 };
 }

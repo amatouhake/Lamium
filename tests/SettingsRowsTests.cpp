@@ -1,4 +1,5 @@
 #include "app/PausedFeatures.h"
+#include "features/map/MapCave.h"
 #include "ui/SettingsRows.h"
 #include "ui/HudEditorLayout.h"
 #include "ui/SettingsNavigation.h"
@@ -123,8 +124,9 @@ void settingsRowsTests() {
             check(input::actions[static_cast<size_t>(*primary)].feature == feature.id
                 && (!feature.toggle.empty() || sessions.contains(feature.id) || feature.id == "settings"
                     || feature.id == "schematicMenu" || feature.id == "schematicRepeat"
-                    || feature.id == "playerList"
-                    || feature.id == "calculator"), // Named commands: a key without a switch.
+                    || feature.id == "playerList" || feature.id == "worldMap"
+                    || feature.id == "calculator" || feature.id == "enchantOrder" || feature.id == "savedData"
+                    || feature.id == "gameLanguage"), // Named commands: a key without a switch.
                 "a parent key belongs to the feature's own state or screen opener");
     for (auto id : {"restrictions", "mapText"}) {
         auto found = std::find_if(ui::features.begin(), ui::features.end(),
@@ -148,17 +150,29 @@ void settingsRowsTests() {
         return row.heading() && row.feature->id == "hideEffects";
     });
     check(effectGroup != rows.end() && effectGroup->feature->toggle == "visuals.hideEffects"
-          && effectGroup->feature->primary == input::Action::ToggleHideEffects && effectGroup->children == 9,
-          "Hide effects has a master switch with its toggle key and nine independent child switches");
+          && effectGroup->feature->primary == input::Action::ToggleHideEffects && effectGroup->children == 8,
+          "Hide effects has a master switch with its toggle key and eight independent child switches (boss bars moved to Game HUD placement, L-334)");
     Settings effectSettings;
     check(ui::effectsPaused("hideEffects",effectSettings), "the master effect switch defaults off");
+    {
+        Settings off;
+        off.information.hud = false; off.inspection.containerPreviews = false; off.map.waypoints = false;
+        check(ui::effectsPaused("infoHud",off) && ui::effectsPaused("previews",off) && !ui::effectsPaused("previews",Settings{})
+              && ui::effectsPaused("waypoints",off) && !ui::effectsPaused("mapText",off),
+              "every switched-off feature dims its child settings, a heading without a switch none (L-319)");
+    }
     effectSettings.visuals.hideEffects = true;
     check(!ui::effectsPaused("hideEffects",effectSettings) && !ui::effectsPaused("freecamera",effectSettings),
           "children show no paused state once the master is on");
     effectSettings.visuals.hideEffects = false;
     check(ui::effectsPaused("hideEffects",effectSettings) && !ui::effectsPaused("freecamera",effectSettings),
           "only Hide effects children display the paused state when their master is off");
-    for (auto id : {"visuals.hideWeather", "visuals.hideParticles", "visuals.hideBossBars", "visuals.hideNausea",
+    check(ui::dimsWhenPaused(RowKind::Option) && !ui::dimsWhenPaused(RowKind::Layout) && !ui::dimsWhenPaused(RowKind::Action)
+              && !ui::dimsWhenPaused(RowKind::SavedData) && !ui::dimsWhenPaused(RowKind::MapCache)
+              && !ui::dimsWhenPaused(RowKind::Feature) && !ui::dimsWhenPaused(RowKind::Section)
+              && ui::pausedRowOpacity > 0 && ui::pausedRowOpacity < 1,
+          "a switched-off feature dims its setting rows whole; command rows, the HUD layout link included, stay (L-335)");
+    for (auto id : {"visuals.hideWeather", "visuals.hideParticles", "visuals.hideNausea",
                     "visuals.hideWater", "visuals.hideLava", "visuals.hidePowderSnow", "visuals.hideDistanceFog",
                     "visuals.hidePortal"}) {
         auto child = std::find_if(rows.begin(), rows.end(), [=](auto const& row) {
@@ -214,14 +228,26 @@ void settingsRowsTests() {
     check(features.size() == ui::features.size(), "every feature is listed");
     // HUD look options are edited in the layout editor, reached through the links.
     size_t listed = 0;
-    for (auto const& option : settings::options) if (!option.id.starts_with("hud.")) ++listed;
+    // Placement mode is saved but left out until something reads it (L-338).
+    for (auto const& option : settings::options)
+        if (!option.id.starts_with("hud.") && option.id != "interaction.placementMode") ++listed;
+    check(!options.contains("interaction.placementMode"), "a setting nothing reads is not shown");
     size_t live = 0;
     for (size_t i = 0; i < input::actions.size(); ++i) if (!input::retired(static_cast<input::Action>(i))) ++live;
     check(options.size() == listed && actions.size() == live, "all settings and actions are reachable");
     check(input::retired(input::Action::CaptureBreaking) && input::retired(input::Action::ResetBreaking)
           && !input::retired(input::Action::CycleBreakingMode), "only the L-15 capture and reset actions are retired");
-    check(layouts == std::set<ui::HudElementId>(ui::hud_editor::drawOrder.begin(), ui::hud_editor::drawOrder.end()),
-          "every HUD element is reachable from the settings list");
+    bool openersOpen = input::opensMenu(input::Action::AddWaypoint) && input::opensMenu(input::Action::Settings);
+    for (size_t i = 0; i < input::actions.size(); ++i)
+        if (input::actions[i].id.starts_with("open") && !input::opensMenu(static_cast<input::Action>(i))) openersOpen = false;
+    check(openersOpen && !input::opensMenu(input::Action::Zoom), "every screen-opening action takes the input from held keys (L-339)");
+    // Game HUD placement has one link, which opens the editor at the chat; the
+    // paper doll and the scoreboard are placed from there too (L-321).
+    std::set<ui::HudElementId> linked(ui::hud_editor::drawOrder.begin(), ui::hud_editor::drawOrder.end());
+    linked.erase(ui::HudElementId::PaperDoll);
+    linked.erase(ui::HudElementId::Scoreboard);
+    linked.erase(ui::HudElementId::BossBars);
+    check(layouts == linked, "every HUD element is reachable from the settings list");
     {
         auto sort = std::find_if(rows.begin(), rows.end(), [](auto const& row) {
             return row.heading() && row.feature->id == "sorting";
@@ -245,8 +271,22 @@ void settingsRowsTests() {
         auto optionAt = [&](std::string_view id) { return std::ranges::find(minimapOptions, id) - minimapOptions.begin(); };
         check(minimap != rows.end() && ui::optionAction("map.caveView") == input::Action::MinimapView
               && optionAt("map.caveView") == optionAt("map.round") + 1
-              && optionAt("map.debugHide") == optionAt("map.caveView") + 1,
-              "the cave view choice follows Round, precedes Debug View hiding and carries the view key");
+              && optionAt("map.netherView") == optionAt("map.caveView") + 1
+              && optionAt("map.debugHide") == optionAt("map.netherView") + 1,
+              "the cave and Nether view choices follow Round, precede Debug View hiding, and the first carries the view key");
+        // L-317: the Nether view row has its own key, stepping the row as its stepper does.
+        Settings keyed;
+        auto const* netherRow = settings::find("map.netherView");
+        for (int i = 0; i < 4; ++i) {
+            int before = keyed.map.netherView;
+            netherRow->adjust(keyed, 1);
+            check(keyed.map.netherView == map::nextNetherView(before), "the Nether view key and the row's stepper agree");
+        }
+        check(ui::optionAction("map.netherView") == input::Action::MinimapNetherView
+              && input::defaultChord(input::Action::MinimapNetherView).empty()
+              && input::actions[static_cast<size_t>(input::Action::MinimapNetherView)].behavior == input::Behavior::Press
+              && ui::shownOnOption(input::Action::MinimapNetherView),
+              "the Nether view row shows its own unbound press key; the Cave view row keeps the view key");
     }
     for (auto id : {"inventory.transferWheelOne", "inventory.transferWheelStack",
                     "inventory.transferDragStack", "inventory.transferDragOne", "inventory.transferWheelMatching",
@@ -274,6 +314,16 @@ void settingsRowsTests() {
             "a category reset restores its switches, numbers, choices and HUD placement");
         check(changed.inventory.sorting != defaults.inventory.sorting && changed.bindings[static_cast<size_t>(input::Action::Zoom)].has_value(),
             "a category reset leaves other categories and key bindings alone");
+    }
+    {
+        Settings changed, defaults;
+        for (auto id : {ui::HudElementId::Chat, ui::HudElementId::PaperDoll, ui::HudElementId::Scoreboard, ui::HudElementId::BossBars})
+            settings::hudElement(changed, id).dy += 30;
+        ui::resetSection(changed, ui::featureSection("gameHud"));
+        bool restored = true;
+        for (auto id : {ui::HudElementId::Chat, ui::HudElementId::PaperDoll, ui::HudElementId::Scoreboard, ui::HudElementId::BossBars})
+            restored = restored && settings::hudElement(changed, id).dy == settings::hudElement(defaults, id).dy;
+        check(restored, "a category reset restores every game part's placement, not only the chat's");
     }
 
     // Collapsed: only headings and features; child counts remain visible.
@@ -418,7 +468,9 @@ void settingsRowsTests() {
         }
     }
     check(ui::splitLabel("Magnification: {}x").name == "Magnification" && ui::splitLabel("Magnification: {}x").value == "{}x",
-        "label splits at the first separator");
+        "label splits at the separator before the value");
+    check(ui::splitLabel("Wheel: one item: {}").name == "Wheel: one item" && ui::splitLabel("Wheel: one item: {}").value == "{}",
+        "a name with a colon of its own stays whole (L-339)");
     check(ui::actionName("Lamium: Hold to zoom") == "Hold to zoom" && ui::actionName("Toggle Periodic Use") == "Toggle Periodic Use",
         "action names drop the controls-screen prefix only");
     // Open buttons (L-231): the main opener of each tool, not its tab

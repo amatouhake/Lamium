@@ -59,7 +59,7 @@ Keep one change per pull request. CI builds every pull request and runs
 steps are in the [README](README.md#build).
 
 Code follows the rules in
-[AGENTS.md](AGENTS.md#architecture-in-one-page): pure logic in headers with
+[AGENTS.md](AGENTS.md#architecture-and-rules): pure logic in headers with
 tests, game glue in `.cpp`, no game pointers kept across frames, and every
 feature restores vanilla behavior when it is turned off. Its "Code style"
 section applies too; the rest of that file (deploying, committing, when to

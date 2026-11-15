@@ -1,0 +1,153 @@
+#include "features/visuals/BlockHighlight.h"
+#include "ui/HighlightLayout.h"
+#include "ui/SavedDataLayout.h"
+#include <array>
+#include <cmath>
+#include <string>
+#include <vector>
+void check(bool, char const*);
+void blockHighlightTests() {
+    using namespace lamium::visuals::highlight;
+    std::vector<Entry> list;
+    check(toggle(list, "minecraft:diamond_ore") == Change::Added && list.size() == 1 && list[0].color == 0,
+          "the first designated type takes the first color");
+    check(toggle(list, "minecraft:ancient_debris") == Change::Added && list[1].color == 1,
+          "the next type takes the color after the last one");
+    check(toggle(list, "minecraft:diamond_ore") == Change::Removed && list.size() == 1
+              && list[0].name == "minecraft:ancient_debris",
+          "designating a listed type again removes it");
+    check(toggle(list, "") == Change::Invalid && list.size() == 1, "an empty name is refused");
+    {
+        auto length = [](lamium::overlay::Point p) { return std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z); };
+        lamium::overlay::Point far{300, -40, 400}, near{.5, 1, -2};
+        auto f = throughWall(far), n = throughWall(near);
+        check(length(f) < 2.5 && length(n) < 2.5 && length(n) > .25, "through-wall vertices land within a few blocks of the eye");
+        check(std::abs(f.x / far.x - f.y / far.y) < 1e-12 && std::abs(f.x / far.x - f.z / far.z) < 1e-12 && f.x / far.x > 0,
+              "a through-wall vertex stays on its own ray");
+        check(length(n) < length(f), "a nearer face stays nearer through walls");
+        check(throughWall({0, 0, 0}) == lamium::overlay::Point{}, "the eye itself does not move");
+    }
+    {
+        float base = .13f;
+        check(std::abs(glowAlpha(base, 50, Look::Rainbow, 0) - base * 1.5f) < 1e-6f
+                  && std::abs(glowAlpha(base, 50, Look::Rainbow, 1) - base * 2.4f) < 1e-6f,
+              "50 % keeps the original rainbow pulse");
+        check(glowAlpha(base, 50, Look::Cyan, 0) == glowAlpha(base, 50, Look::Cyan, 1),
+              "a still color does not pulse");
+        check(std::abs(glowAlpha(base, 100, Look::Cyan, 0) - 2 * glowAlpha(base, 50, Look::Cyan, 0)) < 1e-6f,
+              "100 % doubles the faces");
+        check(glowAlpha(base, 0, Look::Rainbow, 1) == 0 && glowAlpha(.28f, 100, Look::Rainbow, 1) <= .85f,
+              "0 % hides the faces and the alpha stays capped");
+        check(animated(Look::Rainbow) && !animated(Look::White) && lookNames.size() == lookLabels.size(),
+              "only the rainbow moves, and every look has a name and a label");
+    }
+    {
+        double owed = 0;
+        size_t total = 0;
+        for (int frame = 0; frame < 165; ++frame) total += refreshCount(owed, 16, 1.0 / 165);
+        check(total >= 16 * 20 - 1 && total <= 16 * 20, "at 165 FPS every batch is rebuilt about 20 times a second");
+        owed = 0;
+        check(refreshCount(owed, 16, 1.0 / 15) == 16 && owed == 0, "at low FPS every batch is rebuilt each frame, no backlog");
+        owed = 0;
+        check(refreshCount(owed, 16, 5.0) == 16 && refreshCount(owed, 16, 0) == 0 && refreshCount(owed, 16, -1) == 0,
+              "a long pause or a clock step back adds no extra work");
+    }
+    list.back().color = paletteSize - 1;
+    toggle(list, "minecraft:emerald_ore");
+    check(list.back().color == 0, "colors wrap around the palette");
+    std::vector<Entry> full;
+    for (size_t i = 0; i < maxEntries; ++i) toggle(full, "minecraft:block_" + std::to_string(i));
+    check(toggle(full, "minecraft:one_more") == Change::Full && full.size() == maxEntries, "the list is bounded");
+    check(toggle(full, "minecraft:block_0") == Change::Removed, "a full list still removes");
+
+    std::vector<Entry> loaded{{"minecraft:a", 40}, {"", 1}, {"minecraft:a", 2}, {"minecraft:b", -3}};
+    normalize(loaded);
+    check(loaded.size() == 2 && loaded[0] == Entry{"minecraft:a", paletteSize - 1} && loaded[1] == Entry{"minecraft:b", 0},
+          "loading drops empty and repeated names and clamps colors");
+
+    std::vector<lamium::overlay::CellFace> faces;
+    appendFaces(faces, Mark{{1, 2, 3}, 0b000011});
+    check(faces.size() == 2 && faces[0].face == lamium::overlay::Face::Down && faces[1].face == lamium::overlay::Face::Up,
+          "facing bits 0 and 1 are the bottom and top faces");
+    faces.clear();
+    appendFaces(faces, Mark{{0, 0, 0}, 0b110100});
+    check(faces.size() == 3 && faces[0].face == lamium::overlay::Face::West && faces[1].face == lamium::overlay::Face::East
+              && faces[2].face == lamium::overlay::Face::North,
+          "facing bits 2, 4 and 5 are north, west and east");
+    check(pulse(0) < .01f && pulse(pulsePeriod / 2) > .99f && pulse(pulsePeriod) < .01f && pulse(-pulsePeriod / 2) > .99f,
+          "the pulse rises from nothing to full and back each period");
+    auto hueRed = hueColor(0, 1), green = hueColor(1.f / 3, 1), blue = hueColor(2.f / 3, 1);
+    check(hueRed == std::array<float, 3>{1, 0, 0} && green == std::array<float, 3>{0, 1, 0} && blue == std::array<float, 3>{0, 0, 1},
+          "hues 0, 1/3 and 2/3 are red, green and blue");
+    check(hueColor(1, 1) == hueRed && hueColor(.5f, .5f)[0] == .5f, "the hue wraps and saturation lifts the low channel");
+    std::vector<Mark> many{{{10, 0, 0}, 0b111111}, {{1, 0, 0}, 0b000011}, {{5, 0, 0}, 0b000001}, {{-2, 0, 0}, 0b000111}};
+    auto all = chooseNearest(many, {0, 0, 0}, 12);
+    check(all.count == 4 && !all.capped && many[0].cell.x == 10, "marks that fit are all drawn, order untouched");
+    auto near = chooseNearest(many, {0, 0, 0}, 6);
+    check(near.capped && near.count == 3 && many[0].cell.x == 1 && many[1].cell.x == -2 && many[2].cell.x == 5,
+          "over the limit the nearest marks are kept until their faces reach it");
+    lamium::overlay::Cell origin{0, 0, 0};
+    float h0 = rainbowHue(0, origin), h1 = rainbowHue(rainbowPeriod / 4, origin);
+    check(h0 == 0 && std::abs(h1 - .25f) < 1e-5f, "the hue turns once per period");
+    check(rainbowHue(0, {1, 0, 0}) != rainbowHue(0, origin) && rainbowHue(0, {1, 0, 0}) == rainbowHue(0, {0, 0, 1}),
+          "neighbouring blocks differ, along x + y + z");
+    check(rainbowHue(0, {-1000, 5, 7}) >= 0 && rainbowHue(0, {-1000, 5, 7}) < 1, "the hue stays in 0..1 far from the origin");
+
+    check(shortName("minecraft:diamond_ore") == "diamond_ore" && shortName("mod:ruby_ore") == "mod:ruby_ore",
+          "only the vanilla namespace is left out of the shown name");
+    check(queryMatches("diamond ore", "minecraft:deepslate_diamond_ore", "Deepslate Diamond Ore")
+              && queryMatches("DIAMOND_ORE", "minecraft:diamond_ore", "x"),
+          "words match the name in any case, with spaces or underscores");
+    check(queryMatches("ãã¤ã¤", "minecraft:diamond_ore",
+                       "ãã¤ã¤ã¢ã³ãé±ç³"),
+          "the display name in the current language matches");
+    check(!queryMatches("diamond emerald", "minecraft:diamond_ore", "Diamond Ore") && !queryMatches("  ", "minecraft:a", "A")
+              && !queryMatches("minecraft", "minecraft:stone", "Stone"),
+          "every word must match, a blank query matches nothing, and the namespace is not searched");
+
+    using lamium::ui::HighlightLayout;
+    using lamium::ui::SettingsTable;
+    using lamium::ui::ShapesLayout;
+    auto table = SettingsTable::fit(640, 360, 60, 0, 13);
+    {
+        // General > Saved data (L-343): the list left, the details with their switch and buttons right.
+        using lamium::ui::SavedDataLayout;
+        using Zone = SavedDataLayout::Zone;
+        auto l = SavedDataLayout::fit(table, 40, 0, true, true, true, 80, 40);
+        check(l.usable() && l.dividerX > l.left && l.detailLeft + l.detailWidth <= l.left + l.width + 1
+              && l.list.listVisible > 5 && l.list.listCount == 40, "the saved data list sits left of the details and scrolls");
+        check(l.hit(l.list.listLeft + 10, l.list.listRowY(2) + 2).zone == Zone::Row
+              && l.hit(l.list.listLeft + 10, l.list.listRowY(2) + 2).index == 2
+              && l.hit(l.backX + 2, l.headTop + 2).zone == Zone::Back, "rows and Back answer where they are drawn");
+        check(l.hit(l.useX + 2, l.useY() + 2).zone == Zone::Use && l.hit(l.deleteX + 2, l.deleteY + 2).zone == Zone::Delete
+              && l.hit(l.detailLeft + 4, l.anyPortY + 2).zone == Zone::AnyPort
+              && l.deleteY + SavedDataLayout::buttonHeight <= l.useY() && l.anyPortY + SavedDataLayout::lineHeight <= l.deleteY
+              && l.noteY < l.anyPortY, "Use at the bottom, Delete above it, the switch above both, the note above that");
+        auto wide = SavedDataLayout::fit(table, 1, 0, true, true, true, 80, 400);
+        check(wide.useX == l.useX && wide.useY() == l.useY() && wide.useWidth == l.useWidth && wide.deleteX == l.deleteX
+              && wide.deleteY == l.deleteY && wide.anyPortY == l.anyPortY && wide.deleteWidth <= wide.detailWidth
+              && wide.hit(l.useX + 2, l.useY() + 2).zone == Zone::Use, "arming Delete widens it and moves nothing");
+        auto plain = SavedDataLayout::fit(table, 1, 0, false, false, true, 80, 40);
+        check(plain.hit(plain.deleteX + 2, plain.deleteY + 2).zone == Zone::Delete && plain.deleteY == plain.actionsY
+              && plain.hit(plain.detailLeft + 4, plain.anyPortY + 2).zone == Zone::None, "a world's own data offers Delete alone");
+        check(lamium::ui::sizeText(0) == "0.0 MB" && lamium::ui::sizeText(3565158) == "3.4 MB"
+              && lamium::ui::sizeText(250 * 1024 * 1024, true) == "250 MB+", "sizes read in megabytes");
+    }
+    auto layout = HighlightLayout::fit(table, 3, 0, 100, 0);
+    check(layout.usable() && layout.dividerX > layout.left && layout.dividerX < layout.left + layout.width,
+          "the listed column sits left of the search");
+    check(layout.results.listVisible > 5 && layout.results.listVisible < 100 && layout.results.listCount == 100,
+          "results scroll inside the space under the search");
+    float rowY = layout.listed.listRowY(1) + 2;
+    check(layout.hit(layout.listed.listLeft + 20, rowY).zone == HighlightLayout::Zone::Listed
+              && layout.hit(layout.listed.listLeft + 20, rowY).index == 1, "a listed row is hit by its index");
+    check(layout.hit(layout.removeX() + 1, rowY).zone == HighlightLayout::Zone::Remove, "the remove button sits on the row");
+    check(layout.hit(layout.listed.listLeft + 20, layout.listed.listRowY(3) + 2).zone == HighlightLayout::Zone::None,
+          "below the last listed row nothing is hit");
+    check(layout.hit(layout.searchX() + 4, layout.searchY + 4).zone == HighlightLayout::Zone::Search, "the field takes clicks");
+    check(layout.hit(layout.backX + 2, layout.headTop + 2).zone == HighlightLayout::Zone::Back, "Back is in the heading row");
+    check(HighlightLayout::fit(table, 3, 0, 100, 1000).results.listFirst
+              == 100 - layout.results.listVisible, "the first result row is clamped");
+    check(!HighlightLayout::fit(SettingsTable::fit(100, 100, 29, 0), 0, 0, 0, 0).usable(),
+          "too-small windows draw nothing");
+}

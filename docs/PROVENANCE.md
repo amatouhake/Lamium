@@ -25,7 +25,7 @@ static code end up inside `Lamium.dll`, so their notices ship with it.
 | SDK libraries | Header-only and support libraries the SDK depends on | Headers compiled in where used | See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
 | LeviLauncher | Installs and launches instances | Not at all (separate program) | GPL-3.0 |
 | LeviBuildScript 0.6.1 | Build rules: runs prelink before linking, writes `manifest.json` | Build time only | No license file found (checked 2026-10-20) |
-| prelink v0.8.8 and [bedrock-runtime-data](https://github.com/LiteLDev/bedrock-runtime-data) v26.60.5-client.5 | Generate `bedrock_runtime_api.lib`, the import library for the delay-loaded `bedrock_runtime.dll` | Build time; only import records reach the DLL | prelink: closed-source binary release, no license file found; a LiteLDev member stated that anyone can use it ([prelink-release#2](https://github.com/LiteLDev/prelink-release/issues/2), 2026-11-06); bedrock-runtime-data: MIT |
+| prelink v0.8.8 and [bedrock-runtime-data](https://github.com/LiteLDev/bedrock-runtime-data) v26.60.5-client.9 | Generate `bedrock_runtime_api.lib`, the import library for the delay-loaded `bedrock_runtime.dll` | Build time; only import records reach the DLL | prelink: closed-source binary release, no license file found; a LiteLDev member stated that anyone can use it ([prelink-release#2](https://github.com/LiteLDev/prelink-release/issues/2), 2026-11-06); bedrock-runtime-data: MIT |
 
 ## 2. Incorporated or derived source
 
@@ -37,6 +37,7 @@ Code in this repository that did not start in this repository.
 | [LaminaView](https://github.com/amatouhake/LaminaView) | Camera integration lessons | Earlier mod by Lamium's author; MIT |
 | [LaminaPeek](https://github.com/amatouhake/LaminaPeek) | Item-content readers, hover integration, preview rendering | Earlier mod by Lamium's author; MIT |
 | [LaminaSort](https://github.com/amatouhake/LaminaSort) | Inventory planning, item classification, container transfers | Earlier mod by Lamium's author; MIT |
+| [Issue #70](https://github.com/amatouhake/Lamium/issues/70) attachment, by MatchaMustard | `tests/Issue70Structure.h`: the bytes of a 5x5x5 structure the game saved, and the same bytes inflated. Test data only, not in `Lamium.dll` | No license stated; game output, kept as a test of the file format |
 
 Earlier mods, checked once on 2026-10-20 (BACKLOG L-196 P3) at LaminaPeek
 `9d1f5f8`, LaminaSort `6112b79` and LaminaView `7a4f0f4`: each repository's
@@ -61,6 +62,35 @@ A future subsystem may incorporate compatible upstream source only after the
 maintainer chooses that path and the exact source/license scope is reviewed.
 Until then, candidate upstream implementations remain reference-only research.
 
+### Chosen, nothing incorporated yet
+
+- [BarelyEnoughItems (BEI)](https://github.com/MiracleForest/BarelyEnoughItems)
+  (README and COPYING.LESSER: LGPL-3.0-or-later, © LeviMC; used under
+  LGPL-3.0). Decided by the maintainer 2026-11-14: its source may be opened
+  for item rendering and recipe work, starting from upstream commit
+  `2d4facf`. It was reference-only before; on 2026-11-13 it was named as a
+  comparison for Lamium's item-icon rendering (L-91), and its source was
+  read only in the maintainer's external research. Lamium's ItemIcon, up to
+  and including Lamium commit `34c55be2`, predates BEI's first release
+  (2026-11-01) and was written independently from the game's own slot
+  rendering. Code written after reading BEI source counts as derived: the
+  change that first brings any in adds a row to the table above (upstream
+  commit, files used, what was changed), keeps BEI's copyright notice in the
+  affected files and adds BEI to THIRD_PARTY_NOTICES.md. Before using a
+  file, check its own copyright/SPDX lines and BEI's docs for code BEI took
+  from elsewhere; the repository-level license does not cover that.
+  History: the L-91 glint trial (`8e00a4b1`, 2026-11-14) brought in, from
+  BEI's `src/ui/gfx/Painter.cpp` (no copyright or SPDX header in the file),
+  the three ways its draw context differs around the same two
+  `renderGuiItemNew` calls (an off-screen white quad flushed with
+  `ui_flush`, zOrder 0, the foil at the icon's alpha). None fixed the
+  shield glint, and the next commit removed that code; nothing from BEI is
+  in the tree. BEI's AGENTS.md says its authors read Lamium for ideas, and
+  its item-icon path (`7ed0718`, 2026-10-20) has the same structure as
+  Lamium's earlier `ItemIcon` (L-119, L-142); the enchanted shield,
+  enchanted leather armor, recovery compass and not-yet-loaded heads fail
+  the same way in BEI (maintainer, 2026-11-14).
+
 ## 3. Reference only
 
 Behavior, UX and feasibility research. Do not copy, translate or closely
@@ -74,6 +104,14 @@ Comparisons, feature surveys and license analyses stay in the maintainer's
 external research notes. Whoever writes Lamium code works from the specs in
 `docs/` and does not open reference-only source (or source recovered from
 it) while doing so.
+
+Specs describe Lamium's behavior in Lamium's terms, not "like mod X". Name
+another mod or prior-art project only here, as a one-line source for a
+Research hypothesis, in a clean-room boundary ("do not open X"), or in a
+dated decision record of what the maintainer referred to. Tools and
+platforms Lamium depends on (LeviLamina, LIP, Bedrinth) are named freely.
+Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION-LOG.md).
+(Moved from AGENTS.md on 2026-11-14.)
 
 - ChiyanMap (GPL-3.0; repository no longer available). Recovered source and
   notes are kept outside this repository.
@@ -106,8 +144,10 @@ it) while doing so.
   named by the maintainer 2026-10-12, is the source of the L-168 idea.
   Its source is not opened.
 - enchant-order (a web tool, MIT): the problem it solves, named by the
-  maintainer 2026-10-12, is the source of the L-170 idea. Its source is not
-  opened; Lamium's anvil rules are checked against the game.
+  maintainer 2026-10-12, is the source of the L-170 idea, and its two
+  publicly offered goals (fewest levels, least prior work), named by the
+  maintainer 2026-11-12, of L-170's two goals. Its source is not opened;
+  Lamium's anvil rules are checked against the game.
 - Quick Container (a Bedrock resource pack on CurseForge; its terms forbid
   using its code without permission): named by the maintainer 2026-10-15 as
   evidence that Bedrock can move everything or every matching item at once.

@@ -9,5 +9,15 @@ void englishSearchTests() {
     check(!matches("birch", "Oak Planks", "minecraft:oak_planks") && !matches("  ", "Oak Planks", "x"),
           "missing words and empty queries do not match");
     check(!matches("minecraft", "Stone", "minecraft:stone"), "the namespace is not searched");
+    check(matches("protection", "Enchanted Book", "minecraft:enchanted_book", "Protection\nprotection")
+              && matches("bane arthropods", "Enchanted Book", "enchanted_book", "Bane of Arthropods\nbane_of_arthropods"),
+          "an enchanted book matches by its stored enchantments' names");
+    check(matches("enchanted protection", "Enchanted Book", "enchanted_book", "Protection")
+              && !matches("knockback", "Enchanted Book", "enchanted_book", "Protection\nprotection"),
+          "book and enchantment words combine; other enchantments do not match");
+    using lamium::inspection::englishSearch::enchantNameKey;
+    check(enchantNameKey("protect.all") == "enchantment.protect.all" && enchantNameKey("enchantment.knockback") == "enchantment.knockback"
+              && enchantNameKey("").empty(),
+          "enchantment name keys get the strings' prefix once");
     check(!matches("\xe6\x9c\xa8", "Oak Planks", "minecraft:oak_planks"), "Japanese text never matches English");
 }

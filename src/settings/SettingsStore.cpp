@@ -43,6 +43,11 @@ void preserveBroken(std::filesystem::path const& path) {
     std::filesystem::rename(path, broken);
 #endif
 }
+Json highlightJson(std::vector<visuals::highlight::Entry> const& entries) {
+    Json out = Json::array();
+    for (auto const& e : entries) out.push_back({{"name", e.name}, {"color", e.color}});
+    return out;
+}
 Json encodeHudElement(ui::HudElement const& element) {
     return {{"anchor", static_cast<int>(element.anchor)}, {"dx", element.dx},
             {"dy", element.dy}, {"scale", element.scale},
@@ -94,8 +99,8 @@ Json encode(Settings const& settings) {
                          {"debug", settings.information.debug}, {"debugLabels", settings.information.debugLabels},
                          {"debugHideHud", settings.information.debugHideHud},
                          {"debugHideTarget", settings.information.debugHideTarget},
-                         {"debugHideVanilla", settings.information.debugHideVanilla},
-                         {"hudHidePaperDoll", settings.information.hudHidePaperDoll},
+                         // L-348: always hidden now; removed by the merge.
+                         {"debugHideVanilla", nullptr}, {"hudHidePaperDoll", nullptr},
                          {"debugShadow", settings.information.debugShadow},
                          {"debugBackground", settings.information.debugBackground},
                          {"debugEntityKinds", settings.information.debugEntityKinds},
@@ -106,6 +111,7 @@ Json encode(Settings const& settings) {
                          {"targetArmor", settings.information.targetArmor},
                          {"targetGrowth", settings.information.targetGrowth},
                          {"targetDistance", settings.information.targetDistance},
+                         {"targetFullRange", settings.information.targetFullRange},
                          {"targetStates", settings.information.targetStates},
                          {"targetCoordinates", settings.information.targetCoordinates},
                          {"targetMeasure", settings.information.targetMeasure},
@@ -113,6 +119,7 @@ Json encode(Settings const& settings) {
                          {"targetLiquids", settings.information.targetLiquids},
                          {"durabilityHud", settings.information.durabilityHud},
                          {"durabilityLook", settings.information.durabilityLook},
+                         {"durabilityMainHand", settings.information.durabilityMainHand},
                          {"durabilityOffhand", settings.information.durabilityOffhand},
                          {"durabilityArmor", settings.information.durabilityArmor},
                          {"durabilityAmmo", settings.information.durabilityAmmo},
@@ -128,7 +135,17 @@ Json encode(Settings const& settings) {
                          {"inventoryHotbar", settings.information.inventoryHotbar},
                          {"usedSlotsHotbar", settings.information.usedSlotsHotbar},
                          {"effectsHud", settings.information.effectsHud},
+                         {"gameHud", settings.information.gameHud},
                          {"chatPosition", settings.information.chatPosition},
+                         {"paperDollPosition", settings.information.paperDollPosition},
+                         {"scoreboardPosition", settings.information.scoreboardPosition},
+                         {"bossBarPosition", settings.information.bossBarPosition},
+                         {"showChat", settings.information.showChat},
+                         {"showPaperDoll", settings.information.showPaperDoll},
+                         {"showScoreboard", settings.information.showScoreboard},
+                         {"showBossBars", settings.information.showBossBars},
+                         {"hideGamePosition", settings.information.hideGamePosition},
+                         {"hideGameDays", settings.information.hideGameDays},
                          {"effectsNames", settings.information.effectsNames},
                          {"effectsWarning", settings.information.effectsWarning},
                          {"effectsHideVanilla", settings.information.effectsHideVanilla},
@@ -159,8 +176,13 @@ Json encode(Settings const& settings) {
                      {"connectedTextures", settings.visuals.connectedTextures},
                      {"connectedCorners", settings.visuals.connectedCorners},
                      {"connectedPaneCorners", settings.visuals.connectedPaneCorners},
+                     {"blockHighlight", settings.visuals.blockHighlight},
+                     {"highlightBlocks", highlightJson(settings.visuals.highlightBlocks)},
+                     {"highlightThroughWalls", settings.visuals.highlightThroughWalls},
+                     {"highlightColor", visuals::highlight::lookNames[static_cast<size_t>(settings.visuals.highlightColor)]},
+                     {"highlightStrength", settings.visuals.highlightStrength},
                      {"hideWeather", settings.visuals.hideWeather}, {"hideParticles", settings.visuals.hideParticles},
-                     {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
+                     {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
                      {"hidePowderSnow", settings.visuals.hidePowderSnow},
                      {"hideDistanceFog", settings.visuals.hideDistanceFog},
@@ -182,6 +204,7 @@ Json encode(Settings const& settings) {
                     {"freeCameraUndergroundHold", settings.camera.freeCameraUndergroundHold},
                     {"magnification", settings.camera.magnification},
                     {"zoomWideAngle", settings.camera.zoomWideAngle},
+                    {"zoomResetOnRelease", settings.camera.zoomResetOnRelease},
                     {"showMagnification", settings.camera.showMagnification}}},
         {"lighting", {{"nightVision", settings.lighting.nightVision}, {"nightVisionEven", settings.lighting.nightVisionEven}}},
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
@@ -190,8 +213,15 @@ Json encode(Settings const& settings) {
                         {"hideShulkerContents", settings.inspection.hideShulkerContents},
                         {"bundlePreviews", settings.inspection.bundlePreviews},
                         {"emptyBundlePreviews", settings.inspection.emptyBundlePreviews},
+                        {"itemTooltip", settings.inspection.itemTooltip},
                         {"durability", settings.inspection.durability},
                         {"foodValues", settings.inspection.foodValues},
+                        {"workPenalty", settings.inspection.workPenalty},
+                        {"itemDetails", settings.inspection.itemDetails},
+                        {"itemDetailsStew", settings.inspection.itemDetailsStew},
+                        {"itemDetailsId", settings.inspection.itemDetailsId},
+                        {"itemDetailsTags", settings.inspection.itemDetailsTags},
+                        {"itemDetailsNbt", settings.inspection.itemDetailsNbt},
                         {"lockedTrades", settings.inspection.lockedTrades},
                         {"englishSearch", settings.inspection.englishSearch}}},
         {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers},
@@ -199,6 +229,9 @@ Json encode(Settings const& settings) {
                        {"offhandSwap", settings.inventory.offhandSwap},
                        {"deathRestore", settings.inventory.deathRestore},
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
+                       {"enchantOrderAnvil", settings.inventory.enchantOrderAnvil},
+                       {"enchantOrderAnvilChoose", settings.inventory.enchantOrderAnvilChoose},
+                       {"enchantOrderAnvilMarks", settings.inventory.enchantOrderAnvilMarks},
                        {"offhandSwapFireworks", settings.inventory.offhandSwapFireworks},
                        {"transfer", settings.inventory.transfer},
                        {"transferWheelOne", settings.inventory.transferWheelOne},
@@ -223,6 +256,7 @@ Json encode(Settings const& settings) {
                        {"restockThreshold", settings.inventory.restockThreshold},
                        {"restockOrder", settings.inventory.restockOrder},
                        {"toolSwitchInventory", settings.inventory.toolSwitchInventory},
+                       {"toolSwitchDrop", settings.inventory.toolSwitchDrop},
                        {"weaponSwitch", settings.inventory.weaponSwitch},
                        {"weaponSwitchInventory", settings.inventory.weaponSwitchInventory},
                        {"toolSwitchSlot", settings.inventory.toolSwitchSlot},
@@ -242,10 +276,15 @@ Json encode(Settings const& settings) {
                    {"inventory", encodeHudElement(settings.hud.inventory)},
                    {"usedSlots", encodeHudElement(settings.hud.usedSlots)},
                    {"statusEffects", encodeHudElement(settings.hud.statusEffects)},
-                   {"chat", encodeHudElement(settings.hud.chat)}}},
-        {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
+                   {"chat", encodeHudElement(settings.hud.chat)},
+                   {"paperDoll", encodeHudElement(settings.hud.paperDoll)},
+                   {"scoreboard", encodeHudElement(settings.hud.scoreboard)},
+                   {"bossBars", encodeHudElement(settings.hud.bossBars)}}},
+        {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)},
+                 {"size", nullptr}, // L-337: removed by the merge, see scaleFromLegacySize.
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"caveView", settings.map.caveView},
+                 {"netherView", settings.map.netherView},
                  {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
                  {"debugHide", settings.map.debugHide}, {"radar", settings.map.radar},
@@ -254,6 +293,7 @@ Json encode(Settings const& settings) {
                  {"radarInvisible", settings.map.radarInvisible}, {"waypoints", settings.map.waypoints},
                  {"waypointsWorld", settings.map.waypointsWorld}, {"waypointDistance", settings.map.waypointDistance},
                  {"waypointsDeath", settings.map.waypointsDeath},
+                 {"waypointsDeathTemporary", settings.map.waypointsDeathTemporary},
                  {"waypointsCrossScale", settings.map.waypointsCrossScale}, {"waypointArrival", settings.map.waypointArrival},
                  {"worldMap", settings.map.worldMap},
                  {"worldMapNetherAuto", settings.map.worldMapNetherAuto}, {"worldMapPanel", settings.map.worldMapPanel},
@@ -336,8 +376,6 @@ Settings decodeSettings(std::string_view text) {
         value.information.debugLabels = settingsValue(info, "debugLabels", value.information.debugLabels);
         value.information.debugHideHud = settingsValue(info, "debugHideHud", value.information.debugHideHud);
         value.information.debugHideTarget = settingsValue(info, "debugHideTarget", value.information.debugHideTarget);
-        value.information.debugHideVanilla = settingsValue(info, "debugHideVanilla", value.information.debugHideVanilla);
-        value.information.hudHidePaperDoll = settingsValue(info, "hudHidePaperDoll", value.information.hudHidePaperDoll);
         value.information.debugShadow = settingsValue(info, "debugShadow", value.information.debugShadow);
         value.information.debugBackground = settingsValue(info, "debugBackground", value.information.debugBackground);
         value.information.debugEntityKinds = settingsValue(info, "debugEntityKinds", value.information.debugEntityKinds);
@@ -350,6 +388,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetArmor = settingsValue(info, "targetArmor", value.information.targetArmor);
         value.information.targetGrowth = settingsValue(info, "targetGrowth", value.information.targetGrowth);
         value.information.targetDistance = settingsValue(info, "targetDistance", value.information.targetDistance);
+        value.information.targetFullRange = settingsValue(info, "targetFullRange", value.information.targetFullRange);
         value.information.targetCoordinates = settingsValue(info, "targetCoordinates", value.information.targetCoordinates);
         value.information.targetMeasure = settingsValue(info, "targetMeasure", value.information.targetMeasure);
         // Test builds of 2026-10-15 saved a number here (0 meant hidden).
@@ -359,6 +398,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetLiquids = settingsValue(info, "targetLiquids", value.information.targetLiquids);
         value.information.durabilityHud = settingsValue(info, "durabilityHud", value.information.durabilityHud);
         value.information.durabilityLook = settingsValue(info, "durabilityLook", value.information.durabilityLook);
+        value.information.durabilityMainHand = settingsValue(info, "durabilityMainHand", value.information.durabilityMainHand);
         value.information.durabilityOffhand = settingsValue(info, "durabilityOffhand", value.information.durabilityOffhand);
         value.information.durabilityArmor = settingsValue(info, "durabilityArmor", value.information.durabilityArmor);
         value.information.durabilityAmmo = settingsValue(info, "durabilityAmmo", value.information.durabilityAmmo);
@@ -373,7 +413,32 @@ Settings decodeSettings(std::string_view text) {
         value.information.usedSlots = settingsValue(info, "usedSlots", value.information.usedSlots);
         value.information.inventoryHotbar = settingsValue(info, "inventoryHotbar", value.information.inventoryHotbar);
         value.information.usedSlotsHotbar = settingsValue(info, "usedSlotsHotbar", value.information.usedSlotsHotbar);
-        value.information.chatPosition = settingsValue(info, "chatPosition", value.information.chatPosition);
+        // Game HUD placement (L-321) put one switch over what were separate
+        // ones. A file from before has no "gameHud": any of them on turns the
+        // group on and keeps each choice; none on leaves the group off with
+        // the new defaults (the chat Standard, the other parts selected).
+        if (info.contains("gameHud")) {
+            value.information.gameHud = settingsValue(info, "gameHud", value.information.gameHud);
+            value.information.chatPosition = settingsValue(info, "chatPosition", value.information.chatPosition);
+            value.information.paperDollPosition = settingsValue(info, "paperDollPosition", value.information.paperDollPosition);
+            value.information.scoreboardPosition = settingsValue(info, "scoreboardPosition", value.information.scoreboardPosition);
+            value.information.bossBarPosition = settingsValue(info, "bossBarPosition", value.information.bossBarPosition);
+        } else {
+            bool chat = settingsValue(info, "chatPosition", false), doll = settingsValue(info, "paperDollPosition", false),
+                 board = settingsValue(info, "scoreboardPosition", false);
+            value.information.gameHud = chat || doll || board;
+            if (value.information.gameHud) {
+                value.information.chatPosition = chat;
+                value.information.paperDollPosition = doll;
+                value.information.scoreboardPosition = board;
+            }
+        }
+        value.information.showChat = settingsValue(info, "showChat", value.information.showChat);
+        value.information.showPaperDoll = settingsValue(info, "showPaperDoll", value.information.showPaperDoll);
+        value.information.showScoreboard = settingsValue(info, "showScoreboard", value.information.showScoreboard);
+        value.information.showBossBars = settingsValue(info, "showBossBars", value.information.showBossBars);
+        value.information.hideGamePosition = settingsValue(info, "hideGamePosition", value.information.hideGamePosition);
+        value.information.hideGameDays = settingsValue(info, "hideGameDays", value.information.hideGameDays);
         value.information.effectsHud = settingsValue(info, "effectsHud", value.information.effectsHud);
         value.information.effectsNames = settingsValue(info, "effectsNames", value.information.effectsNames);
         value.information.effectsWarning = settingsValue(info, "effectsWarning", value.information.effectsWarning);
@@ -422,10 +487,22 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.connectedTextures = settingsValue(visuals, "connectedTextures", value.visuals.connectedTextures);
         value.visuals.connectedCorners = settingsValue(visuals, "connectedCorners", value.visuals.connectedCorners);
         value.visuals.connectedPaneCorners = settingsValue(visuals, "connectedPaneCorners", value.visuals.connectedPaneCorners);
+        value.visuals.blockHighlight = settingsValue(visuals, "blockHighlight", value.visuals.blockHighlight);
+        value.visuals.highlightThroughWalls = settingsValue(visuals, "highlightThroughWalls", value.visuals.highlightThroughWalls);
+        auto highlightColor = settingsValue(visuals, "highlightColor", std::string("rainbow"));
+        for (size_t i = 0; i < visuals::highlight::lookNames.size(); ++i)
+            if (visuals::highlight::lookNames[i] == highlightColor) value.visuals.highlightColor = static_cast<visuals::highlight::Look>(i);
+        value.visuals.highlightStrength = settingsValue(visuals, "highlightStrength", value.visuals.highlightStrength);
+        if (visuals.contains("highlightBlocks") && visuals.at("highlightBlocks").is_array()) {
+            value.visuals.highlightBlocks.clear();
+            for (auto const& item : visuals.at("highlightBlocks"))
+                if (item.is_object() && item.contains("name") && item.at("name").is_string())
+                    value.visuals.highlightBlocks.push_back({item.at("name").get<std::string>(), settingsValue(item, "color", 0)});
+            visuals::highlight::normalize(value.visuals.highlightBlocks);
+        }
         value.visuals.skipServerPacks = settingsValue(visuals, "skipServerPacks", value.visuals.skipServerPacks);
         value.visuals.hideWeather = settingsValue(visuals, "hideWeather", value.visuals.hideWeather);
         value.visuals.hideParticles = settingsValue(visuals, "hideParticles", value.visuals.hideParticles);
-        value.visuals.hideBossBars = settingsValue(visuals, "hideBossBars", value.visuals.hideBossBars);
         value.visuals.hideNausea = settingsValue(visuals, "hideNausea", value.visuals.hideNausea);
         value.visuals.hideWater = settingsValue(visuals, "hideWater", value.visuals.hideWater);
         value.visuals.hideLava = settingsValue(visuals, "hideLava", value.visuals.hideLava);
@@ -493,6 +570,7 @@ Settings decodeSettings(std::string_view text) {
         value.camera.zoomToggle = settingsValue(camera, "zoomToggle", value.camera.zoomToggle);
         value.camera.magnification = settingsValue(camera, "magnification", value.camera.magnification);
         value.camera.zoomWideAngle = settingsValue(camera, "zoomWideAngle", value.camera.zoomWideAngle);
+        value.camera.zoomResetOnRelease = settingsValue(camera, "zoomResetOnRelease", value.camera.zoomResetOnRelease);
         value.camera.showMagnification = settingsValue(camera, "showMagnification", value.camera.showMagnification);
     }
     if (data.contains("map") && data.at("map").is_object()) {
@@ -502,10 +580,10 @@ Settings decodeSettings(std::string_view text) {
         if (map.contains("range")) value.map.zoom = map::zoomIndexFor(settingsValue(map, "range", 128));
         else if (map.contains("zoom"))
             value.map.zoom = map::zoomIndexFor(32 << std::clamp(settingsValue(map, "zoom", 2), 0, 4));
-        value.map.size = settingsValue(map, "size", value.map.size);
         value.map.rotate = settingsValue(map, "rotate", value.map.rotate);
         value.map.round = settingsValue(map, "round", value.map.round);
         value.map.caveView = std::clamp(settingsValue(map, "caveView", value.map.caveView), 0, 2);
+        value.map.netherView = std::clamp(settingsValue(map, "netherView", value.map.netherView), 0, 3);
         value.map.coordinates = settingsValue(map, "coordinates", value.map.coordinates);
         value.map.biome = settingsValue(map, "biome", value.map.biome);
         value.map.compass = settingsValue(map, "compass", value.map.compass);
@@ -532,6 +610,7 @@ Settings decodeSettings(std::string_view text) {
         }
         value.map.waypointDistance = settingsValue(map, "waypointDistance", value.map.waypointDistance);
         value.map.waypointsDeath = settingsValue(map, "waypointsDeath", value.map.waypointsDeath);
+        value.map.waypointsDeathTemporary = settingsValue(map, "waypointsDeathTemporary", value.map.waypointsDeathTemporary);
         value.map.waypointsCrossScale = settingsValue(map, "waypointsCrossScale", value.map.waypointsCrossScale);
         value.map.waypointArrival = settingsValue(map, "waypointArrival", value.map.waypointArrival);
         value.map.worldMap = settingsValue(map, "worldMap", value.map.worldMap);
@@ -575,8 +654,16 @@ Settings decodeSettings(std::string_view text) {
     }
     if (data.contains("inspection") && data.at("inspection").is_object()) {
         value.inspection.containerPreviews = settingsValue(data.at("inspection"), "containerPreviews", value.inspection.containerPreviews);
+        value.inspection.itemTooltip = settingsValue(data.at("inspection"), "itemTooltip", value.inspection.itemTooltip);
         value.inspection.durability = settingsValue(data.at("inspection"), "durability", value.inspection.durability);
         value.inspection.foodValues = settingsValue(data.at("inspection"), "foodValues", value.inspection.foodValues);
+        value.inspection.workPenalty = settingsValue(data.at("inspection"), "workPenalty", value.inspection.workPenalty);
+        value.inspection.itemDetails = settingsValue(data.at("inspection"), "itemDetails", value.inspection.itemDetails);
+        // Both were part of Item details until the split (L-319): a file from before it keeps what it showed.
+        value.inspection.itemDetailsStew = settingsValue(data.at("inspection"), "itemDetailsStew", value.inspection.itemDetails);
+        value.inspection.itemDetailsId = settingsValue(data.at("inspection"), "itemDetailsId", value.inspection.itemDetails);
+        value.inspection.itemDetailsTags = settingsValue(data.at("inspection"), "itemDetailsTags", value.inspection.itemDetailsTags);
+        value.inspection.itemDetailsNbt = settingsValue(data.at("inspection"), "itemDetailsNbt", value.inspection.itemDetailsNbt);
         value.inspection.lockedTrades = settingsValue(data.at("inspection"), "lockedTrades", value.inspection.lockedTrades);
         value.inspection.englishSearch = settingsValue(data.at("inspection"), "englishSearch", value.inspection.englishSearch);
         value.inspection.shulkerPreviews = settingsValue(data.at("inspection"), "shulkerPreviews", value.inspection.shulkerPreviews);
@@ -591,6 +678,11 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.offhandSwap = settingsValue(data.at("inventory"), "offhandSwap", value.inventory.offhandSwap);
         value.inventory.deathRestore = settingsValue(data.at("inventory"), "deathRestore", value.inventory.deathRestore);
         value.inventory.deathRestoreAll = settingsValue(data.at("inventory"), "deathRestoreAll", value.inventory.deathRestoreAll);
+        value.inventory.enchantOrderAnvil = settingsValue(data.at("inventory"), "enchantOrderAnvil", value.inventory.enchantOrderAnvil);
+        value.inventory.enchantOrderAnvilChoose =
+            settingsValue(data.at("inventory"), "enchantOrderAnvilChoose", value.inventory.enchantOrderAnvilChoose);
+        value.inventory.enchantOrderAnvilMarks =
+            settingsValue(data.at("inventory"), "enchantOrderAnvilMarks", value.inventory.enchantOrderAnvilMarks);
         value.inventory.offhandSwapFireworks = settingsValue(data.at("inventory"), "offhandSwapFireworks", value.inventory.offhandSwapFireworks);
         value.inventory.sortContainers = settingsValue(data.at("inventory"), "sortContainers", value.inventory.sortContainers);
         value.inventory.transfer = settingsValue(data.at("inventory"), "transfer", value.inventory.transfer);
@@ -617,6 +709,9 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.restockThreshold = settingsValue(data.at("inventory"), "restockThreshold", value.inventory.restockThreshold);
         value.inventory.restockOrder = settingsValue(data.at("inventory"), "restockOrder", value.inventory.restockOrder);
         value.inventory.toolSwitchInventory = settingsValue(data.at("inventory"), "toolSwitchInventory", value.inventory.toolSwitchInventory);
+        // The on/off option before the drop priority (L-318, never released) meant Silk Touch.
+        if (settingsValue(data.at("inventory"), "toolSwitchSilkDrop", false)) value.inventory.toolSwitchDrop = 2;
+        value.inventory.toolSwitchDrop = settingsValue(data.at("inventory"), "toolSwitchDrop", value.inventory.toolSwitchDrop);
         value.inventory.weaponSwitch = settingsValue(data.at("inventory"), "weaponSwitch", value.inventory.weaponSwitch);
         value.inventory.weaponSwitchInventory = settingsValue(data.at("inventory"), "weaponSwitchInventory", value.inventory.weaponSwitchInventory);
         value.inventory.toolSwitchSlot = settingsValue(data.at("inventory"), "toolSwitchSlot", value.inventory.toolSwitchSlot);
@@ -651,8 +746,25 @@ Settings decodeSettings(std::string_view text) {
         element("inventory", value.hud.inventory, ui::HudElementId::Inventory);
         element("usedSlots", value.hud.usedSlots, ui::HudElementId::UsedSlots);
         element("chat", value.hud.chat, ui::HudElementId::Chat);
+        element("paperDoll", value.hud.paperDoll, ui::HudElementId::PaperDoll);
+        element("scoreboard", value.hud.scoreboard, ui::HudElementId::Scoreboard);
+        element("bossBars", value.hud.bossBars, ui::HudElementId::BossBars);
         element("statusEffects", value.hud.statusEffects, ui::HudElementId::StatusEffects);
     }
+    // Hide boss bars was a Hide effects choice (on by default inside it)
+    // until L-334 made it the boss bars' show value under Game HUD placement.
+    // A file from before keeps what it showed: bars hidden only where both
+    // were on, with the group on for the boss bars alone if it was off.
+    bool noShow = !(data.contains("information") && data.at("information").is_object()
+                    && data.at("information").contains("showBossBars"));
+    if (noShow && data.contains("visuals") && data.at("visuals").is_object()) {
+        auto const& visuals = data.at("visuals");
+        if (settingsValue(visuals, "hideEffects", false) && settingsValue(visuals, "hideBossBars", true))
+            value.information.hideBossBarsAlone();
+    }
+    if (data.contains("map") && data.at("map").is_object() && data.at("map").contains("size"))
+        value.hud.minimap.scale = Settings::Map::scaleFromLegacySize(value.hud.minimap.scale,
+                                                                      settingsValue(data.at("map"), "size", 20.f));
     value.normalize();
     return value;
 }

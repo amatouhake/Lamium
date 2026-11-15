@@ -1,3 +1,4 @@
+#include "ui/DataNotice.h"
 #include "ui/SchematicsView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
@@ -156,6 +157,17 @@ constexpr auto schematicFields = std::to_array<SchematicField>({SchematicField::
     SchematicField::Entities});
 int verifyFilter = 0; // 0 mistakes, 1 wrong or extra, 2 wrong state, 3 not placed
 int verifySelected = -1;
+// L-183: the Check pane's ignore controls. The list of ignored differences
+// replaces the counts while open; the buttons are placed while drawing and
+// hit by the next click.
+bool verifyIgnoredOpen = false, verifyUndoAllArmed = false;
+enum class IgnoreControlKind { Ignore, Undo, UndoAll };
+struct IgnoreControl {
+    float x, y, w, h;
+    IgnoreControlKind kind;
+    schematic::IgnoredDifference entry;
+};
+std::vector<IgnoreControl> ignoreControls;
 bool materialsShownOnly = false;
 std::shared_ptr<schematic::Verification const> verification;
 std::vector<schematic::Mismatch const*> verifyRows;
@@ -189,6 +201,12 @@ void refreshSchematics(bool files) {
     int placements = static_cast<int>(schematicSet.placements.size()), fileCount = static_cast<int>(schematicFiles.size());
     if ((schematicPick == SchematicPick::Placement && schematicIndex >= placements)
         || (schematicPick == SchematicPick::File && schematicIndex >= fileCount)) schematicPick = SchematicPick::None;
+    // The selected row follows its cell when the rows change (a new pass, an
+    // ignored difference): the same index would be another cell. Read before
+    // the rows' result is replaced: they point into it.
+    std::optional<std::pair<schematic::Point, bool>> chosen;
+    if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size()))
+        chosen = std::pair{verifyRows[static_cast<size_t>(verifySelected)]->position, verifyRows[static_cast<size_t>(verifySelected)]->entity};
     verification = schematic::ghosts::verification();
     verifyRows.clear();
     materialRows.clear();
@@ -207,7 +225,48 @@ void refreshSchematics(bool files) {
         materialListRows.push_back(i);
     }
     if (materialSelected >= static_cast<int>(materialRows.size())) materialSelected = -1;
+    if (chosen) {
+        verifySelected = -1;
+        for (size_t i = 0; i < verifyRows.size(); ++i)
+            if (verifyRows[i]->position == chosen->first && verifyRows[i]->entity == chosen->second) { verifySelected = static_cast<int>(i); break; }
+    }
     if (verifySelected >= static_cast<int>(verifyRows.size())) verifySelected = -1;
+}
+// Changes the selected placement's ignored differences (L-183).
+void changeIgnores(std::function<bool(schematic::IgnoreList&)> const& apply) {
+    if (!schematic::session::change([&](schematic::PlacementSet& set) {
+            if (set.selected < 0 || set.selected >= static_cast<int>(set.placements.size())) return false;
+            return apply(set.placements[static_cast<size_t>(set.selected)].ignored);
+        }))
+        return;
+    refreshSchematics(false);
+}
+bool pressIgnoreControl(float x, float y) {
+    for (auto const& c : ignoreControls) {
+        if (x < c.x || x >= c.x + c.w || y < c.y || y >= c.y + c.h) continue;
+        switch (c.kind) {
+        case IgnoreControlKind::Ignore: {
+            bool full = false;
+            changeIgnores([&](schematic::IgnoreList& list) {
+                auto added = list.add(c.entry);
+                full = added == schematic::IgnoreList::Added::Full;
+                return added == schematic::IgnoreList::Added::Added;
+            });
+            if (full) screen::setMessage(translated("schematic.ignore.full", schematic::maxIgnored));
+            break;
+        }
+        case IgnoreControlKind::Undo:
+            changeIgnores([&](schematic::IgnoreList& list) { return list.remove(c.entry); });
+            break;
+        case IgnoreControlKind::UndoAll:
+            if (!std::exchange(verifyUndoAllArmed, true)) return true;
+            changeIgnores([](schematic::IgnoreList& list) { if (list.empty()) return false; list.clear(); return true; });
+            break;
+        }
+        verifyUndoAllArmed = false;
+        return true;
+    }
+    return false;
 }
 int schematicRowCount() {
     switch (schematicTab) {
@@ -244,7 +303,7 @@ void selectSchematicTab(SchematicTab tab) {
     schematicTab = tab;
     schematicListFirst = schematicFieldFirst = 0;
     schematicFieldSelected = -1;
-    schematicDeleteArmed = false;
+    schematicDeleteArmed = verifyUndoAllArmed = false;
     verifySelected = -1;
     if (tab == SchematicTab::Placements) {
         schematicPick = schematicSet.selected >= 0 ? SchematicPick::Placement : SchematicPick::None;
@@ -364,7 +423,7 @@ void activateSchematicField(int index, int part) {
         int value = index == 0 ? p->placement.origin.x : index == 1 ? p->placement.origin.y : p->placement.origin.z;
         if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(value); screen::clearMessage(); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
-            (index == 0 ? t.placement.origin.x : index == 1 ? t.placement.origin.y : t.placement.origin.z) += direction;
+            (index == 0 ? t.placement.origin.x : index == 1 ? t.placement.origin.y : t.placement.origin.z) += direction * (screen::heldShift() ? 10 : 1);
         });
         return;
     }
@@ -426,7 +485,7 @@ void activateSchematicField(int index, int part) {
         if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(view.cut + 1); screen::clearMessage(); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
-            if (!schematic::leaveAll(t.layers)) t.layers.cut = std::clamp(t.layers.cut + direction, 0, count - 1);
+            if (!schematic::leaveAll(t.layers)) t.layers.cut = std::clamp(t.layers.cut + direction * (screen::heldShift() ? 10 : 1), 0, count - 1);
             schematic::noteLayerEdit(t.layers);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
@@ -526,6 +585,18 @@ void pickInPreview(glm::vec2 at) {
 }
 void handleSchematicClick(float x, float y, bool right) {
     screen::finishEditing();
+    // A right click steps a stepper down and presses nothing else (L-346).
+    if (right) {
+        if (schematicsDisplayed.usable() && schematicTabAt(schematicsDisplayed, x, y) < 0)
+            if (auto hit = schematicsDisplayed.hit(x, y); hit.zone == ShapeZone::Field) activateSchematicField(hit.index, -1);
+        return;
+    }
+    if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
+        if (pressed == data_notice::Pressed::Open) screen::showSavedData();
+        else refresh(true);
+        if (auto done = data_notice::takeResult()) done->warns ? screen::setMessage(done->text) : screen::setInfo(done->text);
+        return;
+    }
     // Too short for the body: only the sidebar, or docked Close and Expand, are drawn.
     if (!schematicsDisplayed.usable()) {
         if (!schematicsDocked && screen::navClick(x, y)) return;
@@ -555,6 +626,8 @@ void handleSchematicClick(float x, float y, bool right) {
         refreshSchematics(false);
         return;
     }
+    if (schematicTab == SchematicTab::Verify && pressIgnoreControl(x, y)) return;
+    verifyUndoAllArmed = false;
     auto hit = schematicsDisplayed.hit(x, y);
     if (!(hit.zone == ShapeZone::Action && hit.index == 1)) schematicDeleteArmed = false;
     switch (hit.zone) {
@@ -600,7 +673,11 @@ void handleSchematicClick(float x, float y, bool right) {
             else if (!schematic::session::openFolder()) screen::setMessage(translated("schematic.openFolderError"));
             return;
         }
-        if (schematicTab == SchematicTab::Verify) { if (hit.index == 0) showSelectedMismatch(); return; }
+        if (schematicTab == SchematicTab::Verify) {
+            if (hit.index == 0) showSelectedMismatch();
+            else if (checkedPlacement()) verifyIgnoredOpen = !verifyIgnoredOpen;
+            return;
+        }
         if (schematicTab == SchematicTab::Materials) {
             if (hit.index != 0) return;
             auto items = missingMaterials();
@@ -622,7 +699,8 @@ void handleSchematicKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -746,18 +824,15 @@ Rgb mismatchColor(schematic::CellState state) {
     }
 }
 void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer) {
+    if (l.noticeHeight > 0)
+        data_notice::draw(context, l.listLeft + ShapesLayout::pad, l.noticeTop + 2, l.listWidth - 2 * ShapesLayout::pad,
+            data_notice::Kind::Placements, pointer);
     auto const preferences = Runtime::instance().preferences();
+    ignoreControls.clear();
     auto hover = l.hit(pointer.x, pointer.y);
     int tabHover = schematicTabAt(l, pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return tabHover < 0 && hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("waypoint.showAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.schematic.enabled);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(schematicsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawToolHeader(context,l,translated("waypoint.showAll"),preferences.schematic.enabled,schematicsDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // Tabs.
     static constexpr std::array<std::string_view, schematicTabCount> tabNames{"schematic.tab.files", "schematic.tab.placements",
@@ -765,9 +840,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     for (int i = 0; i < schematicTabCount; ++i) {
         bool active = static_cast<int>(schematicTab) == i;
         float x = schematicTabX(l, i), w = schematicTabWidth(l);
-        drawSmallButton(context,x,l.toolbarTop+2,w,12,translated(tabNames[static_cast<size_t>(i)]),tabHover == i,
-            active ? palette::accentDeep : palette::keyFill, active ? palette::accent : palette::keyEdge,
-            active ? palette::text : palette::dim);
+        drawButton(context,x,l.toolbarTop+2,w,12,translated(tabNames[static_cast<size_t>(i)]),tabHover == i, active ? ButtonKind::Primary : ButtonKind::Plain);
     }
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
 
@@ -950,12 +1023,12 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 // Same columns as a wrong block: air where the schematic's block would be.
                 float half = (bw - 10) / 2;
                 label(context,bx+14,y+3,half-14,translated("schematic.air"),palette::faint);
-                label(context,bx+half,y+3,10,">",palette::faint,Align::Center);
+                changeArrow(context,bx+half+(10-changeArrowWidth)/2,y+3+1.5f+shapeTextDrop(),1,palette::faint);
                 block(bx + half + 10, half, m.actual, m.actualName, palette::dim);
             } else {
                 float half = (bw - 10) / 2;
                 block(bx, half, m.expected, m.expectedName, palette::text);
-                label(context,bx+half,y+3,10,">",palette::faint,Align::Center);
+                changeArrow(context,bx+half+(10-changeArrowWidth)/2,y+3+1.5f+shapeTextDrop(),1,palette::faint);
                 block(bx + half + 10, half, m.actual, m.actualName, palette::dim);
             }
             double dx = m.position.x + .5 - feet.x, dy = m.position.y + .5 - feet.y, dz = m.position.z + .5 - feet.z;
@@ -999,7 +1072,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         }
     }
-    drawListScrollbar(context,l);
+    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
@@ -1021,7 +1094,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,schematicFieldSelected == i,over(ShapeZone::Field,i));
         label(context,dx,y+3,l.stepperX()-dx-4,translated(key),palette::dim);
         if (isSwitch) toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,on);
-        else drawShapeStepper(context,l,y,false,std::move(value),nullptr);
+        else drawShapeStepper(context,l,y,false,std::move(value),nullptr,pointer.x,pointer.y);
     };
     previewTurn.w = 0; // set again where the preview is drawn this frame
     switch (schematicTab) {
@@ -1047,23 +1120,21 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                         field == SchematicField::Visible ? p->visible : p->entities);
                     break;
                 case SchematicField::MoveHere: case SchematicField::MatchLayer:
-                    drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,
+                    drawButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,
                         translated(field == SchematicField::MoveHere ? "schematic.moveHere" : "schematic.matchLayerButton"),
                         over(ShapeZone::Field,i));
                     break;
                 default: {
                     bool numeric = field == SchematicField::X || field == SchematicField::Y || field == SchematicField::Z
                         || field == SchematicField::Layer;
-                    drawShapeStepper(context,l,y,numeric,fieldValue(*p, field),editingSchematicField == i ? &screen::number() : nullptr);
+                    drawShapeStepper(context,l,y,numeric,fieldValue(*p, field),editingSchematicField == i ? &screen::number() : nullptr,pointer.x,pointer.y);
                     break;
                 }
                 }
             }
             fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-            drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                translated(schematicDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-                schematicDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-                schematicDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
+            drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
+                translated(schematicDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), schematicDeleteArmed);
         } else paragraph(context,dx,l.detailTop+6,dw,translated(schematicSet.placements.empty() ? "schematic.noPlacements"
             : "schematic.selectHint"),4,palette::faint);
         break;
@@ -1082,7 +1153,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 // The 3D preview below the facts, turning slowly (L-114).
                 float top = l.previewY + 48, bottom = l.actionsY - 6;
                 if (bottom - top >= 24) {
-                    fill(context,dx,top,dw,bottom-top,Rgb{0,0,0},.25f);
+                    fill(context,dx,top,dw,bottom-top,palette::shade,.25f);
                     frame(context,dx,top,dw,bottom-top,palette::white,.1f);
                     auto& t = previewTurn;
                     t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
@@ -1116,12 +1187,12 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     }
                 }
             }
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
-                over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
+            drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
+                over(ShapeZone::Action,0),ButtonKind::Primary);
         } else paragraph(context,dx,l.detailTop+6,dw,translated(schematicFiles.empty() ? "schematic.empty" : "schematic.fileSelectHint"),
             4,palette::faint);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,translated("schematic.openFolder"),over(ShapeZone::Action,1));
+        drawButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,translated("schematic.openFolder"),over(ShapeZone::Action,1));
         break;
     case SchematicTab::Verify: {
         if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); break; }
@@ -1136,7 +1207,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
         else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
         else {
-            fill(context,dx,pvTop,dw,pvHeight,Rgb{0,0,0},.25f);
+            fill(context,dx,pvTop,dw,pvHeight,palette::shade,.25f);
             frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
             if (counting) label(context,dx+4,pvTop+3,dw-8,translated("schematic.counting"),palette::dim);
             else if (auto structure = schematic::session::structure(checked->file)) {
@@ -1185,89 +1256,149 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 else drawPreviewLabel(context, dx, pvTop, dw);
             }
         }
+        auto pointed = [&](float x, float top, float w, float h) {
+            return pointer.x >= x && pointer.x < x + w && pointer.y >= top && pointer.y < top + h;
+        };
+        auto ignoreStructure = schematic::session::loaded(checked->file);
+        auto const& ignored = checked->ignored;
+        if (verifyIgnoredOpen) {
+            // L-183: what is ignored here, each with Undo, and Undo all.
+            float y = textTop;
+            std::string undoAll = translated(verifyUndoAllArmed ? "schematic.ignore.undoAllConfirm" : "schematic.ignore.undoAll");
+            float allW = ignored.empty() ? 0 : textWidth(context, undoAll) + 10;
+            label(context,dx,y,dw-allW-4,translated("schematic.ignore.title"),palette::faint);
+            if (!ignored.empty()) {
+                float ax = dx + dw - allW;
+                drawDangerButton(context,ax,y-1,allW,10,undoAll,pointed(ax,y-1,allW,10),verifyUndoAllArmed);
+                ignoreControls.push_back({ax, y - 1, allW, 10, IgnoreControlKind::UndoAll, {}});
+            }
+            y += 13;
+            if (ignored.empty() && fits(y)) paragraph(context,dx,y,dw,translated("schematic.ignore.none"),4,palette::faint);
+            std::string undo = translated("schematic.ignore.undo");
+            float undoW = textWidth(context, undo) + 10;
+            auto const& entries = ignored.entries();
+            for (size_t i = 0; i < entries.size(); ++i) {
+                auto const& e = entries[i];
+                if (!fits(y + 12) && i + 1 < entries.size()) {
+                    label(context,dx,y,dw,translated("schematic.ignore.more", entries.size() - i),palette::faint);
+                    break;
+                }
+                auto named = information::stateName(e.state, "0", e.block, [](std::string_view key) { return translated(key); });
+                std::string state = named.labelIsKey ? translated(named.label) : named.label;
+                bool applies = ignoreStructure && schematic::ignoreApplies(e, *ignoreStructure);
+                std::string text;
+                if (applies) {
+                    auto w = schematic::ignoredWorldCell(e, ignoreStructure->size, checked->placement);
+                    text = std::format("{}, {}, {}  {}", w.x, w.y, w.z, state);
+                } else text = state + " · " + translated("schematic.ignore.stale");
+                label(context,dx,y,dw-undoW-4,text,applies ? palette::dim : palette::faint);
+                float ux = dx + dw - undoW;
+                drawButton(context,ux,y-1,undoW,10,undo,pointed(ux,y-1,undoW,10));
+                ignoreControls.push_back({ux, y - 1, undoW, 10, IgnoreControlKind::Undo, e});
+                y += 12;
+            }
+        }
         // Counts on the left, the selected mistake on the right.
         float half = std::floor(dw * .42f), rx = dx + half + 8, rw = dw - half - 8;
         float y = textTop;
-        label(context,dx,y,half,translated("schematic.check.whole", layersText(*checked)),palette::faint);
-        if (!counting && !unloadable) {
-            if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
-            if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
-            if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),Rgb{1.f,.45f,.4f});
-            if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),Rgb{1.f,.8f,.3f});
-        }
-        float bottom = y + 57;
-        // The list keeps the nearest of each kind; say so when it is cut.
-        std::uint64_t kindTotal = verifyFilter == 1 ? t.wrong + t.extra : verifyFilter == 2 ? t.state : verifyFilter == 3 ? t.missing
-            : t.wrong + t.extra + t.state;
-        if (!counting && !unloadable && verifyRows.size() < kindTotal && fits(y + 57)) {
-            paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
-            bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
-        }
-        if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
-            auto const& m = *verifyRows[static_cast<size_t>(verifySelected)];
-            fill(context,rx-5,y,1,52,palette::white,.1f);
-            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z)),mismatchColor(m.state));
-            if (fits(y + 11)) label(context,rx,y+11,rw,mismatchKind(m.state),mismatchColor(m.state));
-            // What was confused with what: the expected block above the one in the world.
-            if (!m.expectedName.empty() && fits(y + 24)) {
-                drawItemIcon(context, m.expected, rx, y + 23, 12);
-                label(context,rx+14,y+25,rw-14,translated("schematic.expected", m.expectedName),palette::dim);
+        if (!verifyIgnoredOpen) {
+            label(context,dx,y,half,translated("schematic.check.whole", layersText(*checked)),palette::faint);
+            if (!counting && !unloadable) {
+                if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
+                if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
+                if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
+                if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),palette::warning);
             }
-            if (!m.actualName.empty() && fits(y + 38)) {
-                drawItemIcon(context, m.actual, rx, y + 37, 12);
-                label(context,rx+14,y+39,rw-14,translated("schematic.actual", m.actualName),palette::dim);
+            float bottom = y + 57;
+            // The list keeps the nearest of each kind; say so when it is cut.
+            std::uint64_t kindTotal = verifyFilter == 1 ? t.wrong + t.extra : verifyFilter == 2 ? t.state : verifyFilter == 3 ? t.missing
+                : t.wrong + t.extra + t.state;
+            if (!counting && !unloadable && verifyRows.size() < kindTotal && fits(y + 57)) {
+                paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
+                bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
             }
-            // Every differing state: "<state>  <now> -> <should be>", full width below.
-            float sy = bottom;
-            if (!m.states.empty() && fits(sy)) { fill(context,dx,sy-3,dw,1,palette::white,.1f); label(context,dx,sy,dw,translated("schematic.check.states"),palette::faint); sy += 11; }
-            Rgb stateColor{1.f, .8f, .25f};
-            auto const& identifier = m.identifier;
-            for (auto const& d : m.states) {
-                if (!fits(sy)) break;
-                auto translate = [](std::string_view key) { return translated(key); };
-                auto now = information::stateName(d.key, d.actual, identifier, translate);
-                auto want = information::stateName(d.key, d.expected, identifier, translate);
-                auto const& named = now.labelIsKey ? now : want;
-                std::string name = named.labelIsKey ? translated(named.label) : named.label;
-                float nameW = dw * .45f;
-                label(context,dx,sy,nameW-4,name,palette::dim);
-                float vx = dx + nameW, nowW = textWidth(context, now.value);
-                label(context,vx,sy,nowW+2,now.value,stateColor);
-                vx += nowW + 3;
-                changeArrow(context,vx,sy+1.5f+shapeTextDrop(),1,stateColor);
-                vx += changeArrowWidth + 3;
-                label(context,vx,sy,dx+dw-vx,want.value,stateColor);
-                sy += 11;
+            if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
+                auto const& m = *verifyRows[static_cast<size_t>(verifySelected)];
+                fill(context,rx-5,y,1,52,palette::white,.1f);
+                label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z)),mismatchColor(m.state));
+                if (fits(y + 11)) label(context,rx,y+11,rw,mismatchKind(m.state),mismatchColor(m.state));
+                // What was confused with what: the expected block above the one in the world.
+                if (!m.expectedName.empty() && fits(y + 24)) {
+                    drawItemIcon(context, m.expected, rx, y + 23, 12);
+                    label(context,rx+14,y+25,rw-14,translated("schematic.expected", m.expectedName),palette::dim);
+                }
+                if (!m.actualName.empty() && fits(y + 38)) {
+                    drawItemIcon(context, m.actual, rx, y + 37, 12);
+                    label(context,rx+14,y+39,rw-14,translated("schematic.actual", m.actualName),palette::dim);
+                }
+                // Every differing state: "<state>  <now> -> <should be>", full width below.
+                float sy = bottom;
+                if (!m.states.empty() && fits(sy)) { fill(context,dx,sy-3,dw,1,palette::white,.1f); label(context,dx,sy,dw,translated("schematic.check.states"),palette::faint); sy += 11; }
+                auto stateColor = palette::warning;
+                auto const& identifier = m.identifier;
+                // L-183: a block state of a block cell can be ignored from here.
+                bool ignorable = !m.entity && m.local.x >= 0 && !m.fileBlock.empty() && !verification->stale;
+                std::string ignoreText = translated("schematic.ignore.button");
+                float ignoreW = textWidth(context, ignoreText) + 10;
+                for (auto const& d : m.states) {
+                    // Ignored since this pass began: gone at once, not after the next pass.
+                    if (!d.fixed && ignored.ignored(m.local, m.fileBlock, d.key)) continue;
+                    if (!fits(sy)) break;
+                    bool button = ignorable && !d.fixed;
+                    float lineW = button ? dw - ignoreW - 4 : dw;
+                    if (button) {
+                        float bx = dx + dw - ignoreW;
+                        drawButton(context,bx,sy-1,ignoreW,10,ignoreText,pointed(bx,sy-1,ignoreW,10));
+                        ignoreControls.push_back({bx, sy - 1, ignoreW, 10, IgnoreControlKind::Ignore, {m.local, m.fileBlock, d.key}});
+                    }
+                    auto translate = [](std::string_view key) { return translated(key); };
+                    auto now = information::stateName(d.key, d.actual, identifier, translate);
+                    auto want = information::stateName(d.key, d.expected, identifier, translate);
+                    auto const& named = now.labelIsKey ? now : want;
+                    std::string name = named.labelIsKey ? translated(named.label) : named.label;
+                    float nameW = lineW * .45f;
+                    label(context,dx,sy,nameW-4,name,palette::dim);
+                    float vx = dx + nameW, nowW = textWidth(context, now.value);
+                    label(context,vx,sy,nowW+2,now.value,stateColor);
+                    vx += nowW + 3;
+                    changeArrow(context,vx,sy+1.5f+shapeTextDrop(),1,stateColor);
+                    vx += changeArrowWidth + 3;
+                    label(context,vx,sy,dx+lineW-vx,want.value,stateColor);
+                    sy += button ? 12 : 11;
+                }
             }
-        }
-        else if (auto structure = schematic::session::structure(checked->file);
-                 structure && previewTurn.picked && previewTurn.pickedFile == checked->file) {
-            // A clicked block without a row (correct, filtered out, or past
-            // the list's limit): checked again right now.
-            auto const& c = *previewTurn.picked;
-            auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
-            auto* region = context.mClient.getRegion();
-            auto now = region ? schematic::ghosts::mismatchAt(*region, world) : std::nullopt;
-            fill(context,rx-5,y,1,52,palette::white,.1f);
-            bool correct = !now || now->state == schematic::CellState::Correct;
-            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", world.x, world.y, world.z)),
-                correct ? palette::text : mismatchColor(now->state));
-            if (fits(y + 11)) label(context,rx,y+11,rw,correct ? translated("schematic.pick.correct") : mismatchKind(now->state),
-                correct ? palette::accent : mismatchColor(now->state));
-            if (now && !now->expectedName.empty() && fits(y + 24)) {
-                drawItemIcon(context, now->expected, rx, y + 23, 12);
-                label(context,rx+14,y+25,rw-14,translated("schematic.expected", now->expectedName),palette::dim);
-            }
-            if (now && !correct && !now->actualName.empty() && fits(y + 38)) {
-                drawItemIcon(context, now->actual, rx, y + 37, 12);
-                label(context,rx+14,y+39,rw-14,translated("schematic.actual", now->actualName),palette::dim);
+            else if (auto structure = schematic::session::structure(checked->file);
+                     structure && previewTurn.picked && previewTurn.pickedFile == checked->file) {
+                // A clicked block without a row (correct, filtered out, or past
+                // the list's limit): checked again right now.
+                auto const& c = *previewTurn.picked;
+                auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
+                auto* region = context.mClient.getRegion();
+                auto now = region ? schematic::ghosts::mismatchAt(*region, world) : std::nullopt;
+                fill(context,rx-5,y,1,52,palette::white,.1f);
+                bool correct = !now || now->state == schematic::CellState::Correct;
+                label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", world.x, world.y, world.z)),
+                    correct ? palette::text : mismatchColor(now->state));
+                if (fits(y + 11)) label(context,rx,y+11,rw,correct ? translated("schematic.pick.correct") : mismatchKind(now->state),
+                    correct ? palette::accent : mismatchColor(now->state));
+                if (now && !now->expectedName.empty() && fits(y + 24)) {
+                    drawItemIcon(context, now->expected, rx, y + 23, 12);
+                    label(context,rx+14,y+25,rw-14,translated("schematic.expected", now->expectedName),palette::dim);
+                }
+                if (now && !correct && !now->actualName.empty() && fits(y + 38)) {
+                    drawItemIcon(context, now->actual, rx, y + 37, 12);
+                    label(context,rx+14,y+39,rw-14,translated("schematic.actual", now->actualName),palette::dim);
+                }
             }
         }
         bool canShow = verifySelected >= 0 || (previewTurn.picked && previewTurn.pickedFile == checked->file);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.showInWorld"),
-            over(ShapeZone::Action,0),canShow ? palette::accentDeep : palette::keyFill,
-            canShow ? palette::accent : palette::keyEdge, canShow ? palette::text : palette::faint);
+        drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.showInWorld"),
+            over(ShapeZone::Action,0), ButtonKind::Primary, canShow);
+        // The count of what applies; stale entries are only in the list.
+        size_t applied = ignoreStructure ? schematic::appliedIgnores(ignored, *ignoreStructure) : ignored.size();
+        drawButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,translated("schematic.ignore.count", applied),
+            over(ShapeZone::Action,1), verifyIgnoredOpen ? ButtonKind::Primary : ButtonKind::Plain);
         break;
     }
     case SchematicTab::Materials: {
@@ -1306,9 +1437,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         // The rest of the pane is kept for raw materials from the game's recipes (L-116).
         bool missing = !missingMaterials().empty();
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.openCalculator"),
-            over(ShapeZone::Action,0),missing ? palette::accentDeep : palette::keyFill,
-            missing ? palette::accent : palette::keyEdge, missing ? palette::text : palette::faint);
+        drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.openCalculator"),
+            over(ShapeZone::Action,0), ButtonKind::Primary, missing);
         break;
     }
     }
@@ -1326,9 +1456,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
     bool shortFooter = l.docked;
     std::string text = !screen::message().empty() ? screen::message() : schematicDescription();
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : palette::warning);
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : screen::messageColor());
     else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : palette::warning);
+        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());
         bool menuUnbound = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::SchematicMenu).empty();
         label(context,textLeft,l.footerTop+30,available,translated(editingSchematicField >= 0 ? "shape.numberHint"
             : menuUnbound ? "schematic.menuKeyHint" : "schematic.screenHint"),palette::faint);
@@ -1337,7 +1467,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
 ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) {
     // The tabs fill the toolbar, so docked, the "Show all" switch takes the row below.
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, schematicRowCount(), schematicListFirst, schematicFieldCount(),
-        schematicFieldFirst, false, false, true);
+        schematicFieldFirst, false, false, true,
+        // Placements, and Verify and Materials, which show what is placed; Files are not a world's.
+        schematicTab != SchematicTab::Files ? data_notice::height(data_notice::Kind::Placements) : 0);
     // The first action never runs into the one at the right edge.
     l.firstActionWidth = std::clamp(l.detailWidth - 2 * ShapesLayout::pad - ShapesLayout::deleteWidth - 4, 40.f, 96.f);
     // Materials has one action: the calculator link, readable across the pane.
@@ -1365,13 +1497,7 @@ void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, g
         context.flushText(0, std::nullopt);
         return;
     }
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.schematics"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),
-        closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+    drawDockedFrame(context,l,translated("nav.schematics"),translated("closeButton"),l.hit(pointer.x, pointer.y).zone == ShapeZone::Close);
     if (l.usable()) drawSchematicsBody(context, l, pointer);
     else {
         previewTurn.w = 0;
@@ -1471,6 +1597,6 @@ void renderContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 
 }
 void reset() {
     editingSchematicField = -1;
-    schematicDeleteArmed = false;
+    schematicDeleteArmed = verifyUndoAllArmed = false;
 }
 }

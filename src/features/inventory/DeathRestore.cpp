@@ -16,6 +16,7 @@
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/enchanting/ItemEnchants.h"
 #include "mc/world/item/enchanting/EnchantmentInstance.h"
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <format>
@@ -29,13 +30,13 @@ using namespace std::chrono_literals;
 // at a time, reading the inventory again before each move.
 constexpr std::chrono::milliseconds quietAfterPickup = 1s, betweenMoves = 250ms, whenBusy = 100ms;
 constexpr int movesPerRun = 100, sameMoveLimit = 3;
+constexpr int saveAgeEvery = 200; // Ticks: a rejoin loses at most 10 s of the count.
 ll::event::ListenerPtr tickListener;
 // Client thread only.
 struct State {
     unsigned world = 0;
     std::optional<std::filesystem::path> file;
     std::optional<Layout> layout;
-    bool deathPointSeen = false; // The waypoints' death point matched this layout once.
     Slots lastAlive{}, previous{};
     LifeWatch life;
     bool haveAlive = false, havePrevious = false;
@@ -110,26 +111,11 @@ void follow() {
     try { state.layout = readLayout(*state.file); }
     catch (std::exception const& error) { log(std::string("could not load: ") + error.what()); }
 }
-// The layout ends when the player removes or replaces the death point it
-// belongs to; a death point never recorded (switched off) does not end it.
-// It is looked for every tick until seen, so removing it before any pickup
-// counts too.
-bool deathPointMatches() {
-    auto death = map::waypoints::current().death;
-    return death && death->x == state.layout->x && death->y == state.layout->y && death->z == state.layout->z
-        && death->dimension == state.layout->dimension;
-}
-bool deathPointRemoved(bool recording) {
-    if (!recording) return false;
-    if (deathPointMatches()) { state.deathPointSeen = true; return false; }
-    return state.deathPointSeen;
-}
 Scope scopeOf(Settings const& prefs) {
     return prefs.inventory.deathRestoreAll ? Scope::All : Scope::HotbarEquipment;
 }
 void step(LocalPlayer& player, Slots const& now, Settings const& prefs) {
     auto scope = scopeOf(prefs);
-    if (deathPointRemoved(prefs.map.waypointsDeath)) { log("death point removed"); forget(); return; }
     auto before = state.layout->done;
     bool all = markDone(*state.layout, now, scope);
     if (all) {
@@ -163,10 +149,24 @@ void tick() noexcept {
         auto& runtime = Runtime::instance();
         auto prefs = runtime.snapshot();
         follow();
-        if (!runtime.enabled() || !prefs->inventory.deathRestore) { state.armed = false; state.haveAlive = false; return; }
+        bool const on = runtime.enabled() && prefs->inventory.deathRestore;
+        if (!on) { state.armed = false; state.haveAlive = false; }
+        if (!runtime.enabled()) return;
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (!player || !player->mInventory) return;
+        // The dropped items age whether or not the feature is on (L-338); a
+        // run in progress finishes first.
+        if (state.layout && !state.armed) {
+            auto at = player->getFeetPos();
+            int const before = state.layout->loadedTicks;
+            if (age(*state.layout, loadedAround(*state.layout, static_cast<int>(player->getDimensionId()), at.x, at.z))) {
+                log("the dropped items' five minutes are over");
+                forget();
+                if (on) try { ui::showMessageToast(ui::translated("deathRestore.expired")); } catch (...) {}
+            } else if (state.layout->loadedTicks != before && state.layout->loadedTicks % saveAgeEvery == 0) save();
+        }
+        if (!on) return;
         bool alive = player->isAlive();
         auto event = state.life.update(alive);
         if (event == LifeWatch::Event::Died) {
@@ -181,7 +181,6 @@ void tick() noexcept {
                 layout.dimension = static_cast<int>(player->getDimensionId());
                 layout.slots = state.lastAlive;
                 state.layout = layout;
-                state.deathPointSeen = false;
                 state.armed = false;
                 save();
             } else if (state.layout) {
@@ -197,9 +196,21 @@ void tick() noexcept {
             if (state.layout && anyItem(now)) { log("inventory kept at respawn"); forget(); }
         }
         if (!state.layout) { state.previous = now; state.havePrevious = true; return; }
-        if (!state.deathPointSeen && prefs->map.waypointsDeath && deathPointMatches()) state.deathPointSeen = true;
-        if (state.havePrevious && !game::moving() && pickedUp(*state.layout, state.previous, now, scopeOf(*prefs))) {
+        // The layout belongs to the place of the death (L-332): pickups count
+        // there only, and leaving it after the first one ends the layout.
+        auto feet = player->getFeetPos();
+        bool here = atPlace(*state.layout, static_cast<int>(player->getDimensionId()), feet.x, feet.z);
+        if (state.layout->started && !here) {
+            log("left the place of the death");
+            forget();
+            try { ui::showMessageToast(ui::translated("deathRestore.left")); } catch (...) {}
+            state.previous = now;
+            state.havePrevious = true;
+            return;
+        }
+        if (state.havePrevious && !game::moving() && here && pickedUp(*state.layout, state.previous, now)) {
             state.armed = true;
+            if (!state.layout->started) { state.layout->started = true; save(); }
             state.lastPickup = Clock::now();
             state.moves = state.repeats = state.busy = 0;
             state.lastMove.reset();

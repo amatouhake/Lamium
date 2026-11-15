@@ -36,5 +36,24 @@ void toastTests() {
     toast.show("Unreadable file", false, 41, true, 6, true);
     toast.show("Zoom", true, 42);
     check(!toast.current(42)->warning && !toast.current(42)->plain, "a toggle resets the warning and message flags");
+    {
+        Toast stack;
+        stack.showToggle("A", true, 50, 7);
+        stack.showToggle("B", false, 50, 7);
+        auto both = stack.current(50.5);
+        check(both && both->text == "A" && both->on && both->more.size() == 1 && both->more[0].text == "B" && !both->more[0].on,
+              "toggles of one key press share the toast, a row each");
+        for (auto name : {"C", "D", "E", "F"}) stack.showToggle(name, true, 50, 7);
+        both = stack.current(50.5);
+        check(both && both->more.size() == Toast::maxRows - 1 && both->dropped == 2, "rows past the limit are counted, not shown");
+        stack.showToggle("G", true, 51, 8);
+        auto next = stack.current(51);
+        check(next && next->text == "G" && next->more.empty() && !next->dropped, "another key press replaces the toast");
+        stack.showToggle("H", true, 51, 0);
+        check(stack.current(51)->text == "H" && stack.current(51)->more.empty(), "a toggle outside a key press never joins");
+        stack.show("Message", false, 52, true);
+        stack.showToggle("I", true, 52, 0);
+        check(stack.current(52)->text == "I" && !stack.current(52)->plain, "a toggle replaces a message");
+    }
     check(toastNow() > 0, "toast clock advances");
 }

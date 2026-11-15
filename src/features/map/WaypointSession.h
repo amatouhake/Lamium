@@ -25,7 +25,9 @@ bool change(std::function<bool(WaypointSet&)> const& mutation);
 // death and remembers where. Saved later from frame(), never here.
 void watchDeath(IClientInstance&);
 // Called every HUD frame on the client thread: saves a pending death point.
-void frame(bool recordDeath);
+// A death becomes a waypoint named `name`, temporary or normal (L-328); a
+// death point from an older file is turned into one the same way.
+void frame(bool recordDeath, bool temporary, std::string const& name);
 // Called every HUD frame with the player's body (not FreeCamera's view):
 // removes the temporary waypoints reached (L-261) and returns their names.
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance);

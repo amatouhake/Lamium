@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -32,20 +33,22 @@ struct GlyphRun {
     int line = 0; // Line index from the top of the text
     int count = 0;
 };
-// The last run of glyphs that fills the rest of the text: only Lamium's own
-// line counts, never a glyph a name or lore happens to contain.
+// The last line made of glyphs alone, below the first: only Lamium's own
+// line counts, never a glyph a name or lore happens to contain. Lamium's
+// other lines may follow it.
 inline std::optional<GlyphRun> findGlyphRun(std::string_view text) {
-    size_t end = text.size();
-    int count = 0;
-    while (end >= glyph.size() && text.substr(end - glyph.size(), glyph.size()) == glyph) {
-        end -= glyph.size();
-        ++count;
+    std::optional<GlyphRun> found;
+    int line = 0;
+    for (size_t start = 0; start <= text.size(); ++line) {
+        auto const stop = std::min(text.find('\n', start), text.size());
+        auto const row = text.substr(start, stop - start);
+        if (line > 0 && !row.empty() && row.size() % glyph.size() == 0) {
+            bool only = true;
+            for (size_t i = 0; i < row.size() && only; i += glyph.size()) only = row.substr(i, glyph.size()) == glyph;
+            if (only) found = GlyphRun{line, static_cast<int>(row.size() / glyph.size())};
+        }
+        start = stop + 1;
     }
-    if (count == 0 || end == 0 || text[end - 1] != '\n') return std::nullopt;
-    GlyphRun run;
-    run.count = count;
-    for (size_t i = 0; i < end; ++i)
-        if (text[i] == '\n') ++run.line;
-    return run;
+    return found;
 }
 }

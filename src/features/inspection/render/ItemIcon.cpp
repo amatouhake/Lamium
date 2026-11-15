@@ -1,4 +1,5 @@
 #include "features/inspection/render/ItemIcon.h"
+#include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/controls/UIMaterialType.h"
@@ -6,12 +7,15 @@
 #include "mc/client/gui/screens/BatchClippingState.h"
 #include "mc/client/gui/screens/BatchKey.h"
 #include "mc/client/gui/screens/ComponentRenderBatch.h"
+#include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/gui/screens/UIBatchType.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/file/PathView.h"
+#include "mc/deps/core/math/Color.h"
 #include "mc/deps/core/resource/ResourceLocation.h"
+#include "mc/deps/renderer/ShaderColor.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/Item.h"
 #include <algorithm>
@@ -63,35 +67,50 @@ bool drawable(IconAt const& icon) { return icon.stack && !icon.stack->isNull() &
 // Glinting items keep the direct path, with the foil call right after their
 // icon as in 0.1.8; an enchanted leather piece loses its undyeable layer
 // that way, as before 0.1.9.
-// renderGuiItemNew(foil = true) draws the additive glint overlay on its own,
-// outside the UI's InventoryItemGlint material pass, and comes out weaker than
-// vanilla's slot glint. Its `transparency` argument scales the overlay
-// linearly, so one pass at this value reproduces vanilla: frame-averaged
-// blue-minus-green over the item pixels of an enchanted book, measured in the
-// same frames as a vanilla inventory slot, was +4 at 1.0, +23 at 1.3, +38 at
-// 1.5 and +27.6 at 1.35 against vanilla's +27.7. Drawing the overlay several
-// times instead over-tints: +30 for two passes, +58 for three.
-constexpr float glintOverlayAlpha = 1.35f;
+// renderGuiItemNew(foil = true) draws the glint overlay scaled by the current
+// shader colour, i.e. whatever was filled last (L-170: on a near-black fill it
+// does not show). With the colour set to white and the icon's own alpha it
+// matches a vanilla hotbar slot exactly: frame-averaged colour over an
+// enchanted book's pixels, same frames, no difference (2026-11-14). The earlier
+// purple x 1.35 had been fitted against the container preview's border fill.
+constexpr mce::Color glintTint{1.0f, 1.0f, 1.0f, 1.0f};
 int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;
     return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
 }
 }
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder) {
+    // Measured but not drawn (HUD layout's hidden elements, L-334); a faint
+    // element's icons are as faint as its text.
+    float const opacity = ui::drawOpacity();
+    if (opacity <= 0) return;
+    std::vector<IconAt> faded;
+    if (opacity < 1) {
+        faded.assign(icons.begin(), icons.end());
+        for (auto& icon : faded) icon.alpha *= opacity;
+        icons = faded;
+    }
     auto& client = context.mClient;
     auto* renderer = client.getItemRenderer();
     if (!renderer) return;
     BaseActorRenderContext renderContext(context.mScreenContext, client, client.getMinecraftGame_DEPRECATED());
     std::vector<int> chunks;
     chunks.reserve(icons.size());
-    for (auto const& icon : icons) chunks.push_back(drawable(icon) ? chunkOf(*icon.stack) : -1);
+    for (auto const& icon : icons) chunks.push_back(!drawable(icon) ? -1 : icon.direct ? glinting : chunkOf(*icon.stack));
     auto direct = [&](size_t i) {
         auto const& icon = icons[i];
         renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
             zOrder);
-        if (icon.glint && chunks[i] == glinting)
-            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
+        if (icon.glint && icon.stack->mItem->isGlint(*icon.stack)) {
+            auto& shaderColor = static_cast<ShaderColor&>(context.mScreenContext.currentShaderColor);
+            mce::Color const was = shaderColor.color;
+            shaderColor.color = glintTint;
+            shaderColor.dirty = true;
+            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, icon.alpha,
                 1.0f, icon.scale, zOrder);
+            shaderColor.color = was;
+            shaderColor.dirty = true;
+        }
     };
     // Glinting items before any shared-mesh batch: after one, the foil call
     // drew nothing even right after its icon (L-142 round 2); 0.1.8 drew no

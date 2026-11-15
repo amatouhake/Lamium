@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace lamium::information {
-// Debug View line model (BACKLOG L-54, DESIGN "HUD"). Pure: the caller collects
+// Debug View line model (BACKLOG L-54, docs/HUD.md). Pure: the caller collects
 // owned values and supplies the game-standard text (translations); this decides
 // the two columns, the Java-F3 literals, omission and the look-at truncation.
 enum class DebugLabel { GameStandard, JavaF3 };

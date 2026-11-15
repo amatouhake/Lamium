@@ -12,6 +12,2214 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Night run of 2026-11-15: settings, HUD, map and schematic items
+
+Build `10325a18`, DLL SHA-256
+`9108b6300fb90ef36b335d38d59e2c68af9507264b624f68f48962ec8b1356c7`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: with Game HUD placement on, the two new switches hide
+the game's position and days played lines (L-348); the Map size row is gone and an existing
+file's minimap looks about the same size (not measured, L-337); Nether view = Cave gives the
+cave view in the Nether and the Surface view above ground (L-317); Zoom's Reset on release
+starts every press at the set magnification (L-325); the HUD editor's Contents switches
+resize the Durability HUD (L-336); English Search finds enchanted books by "protection"
+(L-344); stepping the Up to cut on a large schematic looks right (L-236; blocks acting
+across a section border not checked); "Offhand slot" reads fine beside the renamed HUDs.
+Not working as meant (L-183): ignored rows are hard to tell apart, the button reads
+"Ignored: 0", and ignored differences still show in the Check tab, the Schematic HUD and
+the nearest-mistake key. Not seen: add-on map colors (L-324, no add-on at hand); the
+L-339 fixes; L-319's small fixes; other Contents popovers than Durability's.
+
+## Binding capture cell (2026-11-15)
+
+Build `9c6f504d`, DLL SHA-256
+`f49f266ea14e1d01f8e4f2151833af20adfbb3ca9822c179d7e2aba790c41e81`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. While a binding is captured the cell has no green
+fill; "Press keys..." lines up with "Unbound" in the row above with a blinking caret, held
+keys draw as caps followed by the caret, and the caps do not move when the chord is kept.
+
+## Calculator notice opacity; L-347 done (2026-11-15)
+
+Build `cb90d3f5`, DLL SHA-256
+`a9d45ec6f632ef6b9a930cb6da7e31f96431b4990b2ee236c6d6cdccfaa1e16b`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The calculator's copy notice now has the settings
+screen's background shade.
+
+## Notices, map list scroll bar, last tokens (L-347, 2026-11-15)
+
+Build `b671639f`, DLL SHA-256
+`8f127a3077b2c61df95387a864040508c00c66262a067ac80356c5a52b2d65c0`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Copying the version shows "copied" in white in the
+footer, not as a toast; the world map's waypoint list (right side) shows a scroll bar that
+drags; the waypoint distance text in the world stays readable. Raised: the calculator's
+copy notice sits below the panel over the world but used the near-opaque floating shade
+(now the screen's .8, not yet seen).
+
+## Shared tips, panel opacities and control input (L-345, L-346, 2026-11-15)
+
+Builds `e43634c4` and `88e12ce8` (DLL SHA-256
+`c805f29e039989e94f4cfdea75d4686330e552ccb0156fb09a31aab0b57b944e`), 1.26.60.05 Dev
+instance, the maintainer: confirmed, nothing looked off. Tips (version, binding conflicts,
+cut values, calculator keys, enchantment steps) share one look with white text; panels over
+the world (schematic radial, waypoint and save prompts, HUD editor toolbar) match the
+settings screen's opacity and the ones over Lamium panels stay nearly opaque (the radial and
+HUD editor at .97 looked too dark, hence the split); a right click no longer presses Delete
+and steps a stepper down; Shift + an end steps ten; a typed value past the end becomes the
+end on Enter.
+
+## Enchantment level text level when off (2026-11-15)
+
+Build `cc1bee4b`, DLL SHA-256
+`55cbab1b0aa049151e5712f5feb3f1ff27892ff6eb04cae11d9028ca9f1573d9`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Beside the anvil, turning a row on or off keeps its
+level text at the same height.
+
+## L-341 last changes confirmed; item done (2026-11-15)
+
+Build `e973be78`, DLL SHA-256
+`50da76e341df2eb51614376bca92fd64f78a727dfb4b7e0129ff8d748ddbc33b`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The Game language row opens only from its Open button
+(and Enter/Space) and takes the new hotkey; the scroll bar thumb only lightens; beside the
+anvil the level centre no longer toggles the row. Raised: an off row's level sat a little
+higher than the stepper's when on (aligned in the next build, not yet seen).
+
+## L-341 shared controls in game (2026-11-15)
+
+Build `5fac844a`, DLL SHA-256
+`5ee55cf4662971ff7224ec9199f5d1cdfb171beeefdd8858deff0abb7cc0b14c`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Esc drops typed names and numbers (Enter or a click
+keeps them); text fields look alike and do not move on click; every stepper is one box that
+lights its ends, save corners and enchantment levels on the planner page take typed values;
+the four pages share the heading, close on a click outside and stay open on focus loss; the
+tool view headers and docked frames are unchanged; "Add here" takes the last temporary
+choice; Overwrite arms red and Stop is plain. Raised: beside the anvil the level centre
+toggled the row; the scroll bar's hover was too loud; the Game language row still differs
+from the other Open rows (row click, no hotkey). All three changed in the next build, not
+yet seen.
+
+## Anvil chooser rows whole while sliding (2026-11-15)
+
+Build `5fac844a`, DLL SHA-256
+`5ee55cf4662971ff7224ec9199f5d1cdfb171beeefdd8858deff0abb7cc0b14c`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Opening the anvil, the chooser panel rises with no
+scroll bar and keeps its Curse of Vanishing row.
+
+## Anvil panel flicker traced; capture warning stays (2026-11-15)
+
+Build `7e6e6993`, DLL SHA-256
+`96ed1924f337acfc900c17bf65d6d0e6b4851acb1f5bd1053f78f361a5df88f3`, 1.26.60.05 Dev
+instance, the maintainer: the capture footer's bare-click warning stays after the button is
+released (confirmed). The flicker did not change; screenshots showed what it was: while the
+window rose, the chooser's list hid its last row (Curse of Vanishing) and showed a scroll
+bar, though everything fits at rest. The row area is exactly nine rows tall and fractional
+positions made the count come out 8.999 (fixed in the next build, not yet seen; the paint
+path change in this build was not the cause and is undone).
+
+## A bare left-click binding no longer stops breaking (2026-11-15)
+
+Build `9ddb6409`, the maintainer: confirmed. With Sneak placement still bound to left click
+alone, left click breaks blocks again.
+
+## Bindings on a bare mouse click (2026-11-15)
+
+Build `9ddb6409`, DLL SHA-256
+`305e2aba1df48ec7ca578e085f338b3bb45dbdcc9e3bc58ac16ad061b14a84dc`, 1.26.60.05 Dev
+instance, the maintainer. Cause found first: Sneak placement had been bound to left click
+alone, so every left click went to it and nothing broke blocks or hit mobs (the same with
+the pre-session build `92570077`); toggle toasts were hidden, so nothing showed it. Seen
+with this build: Sneak placement's caps are warning-outlined in Hotkeys and the tip names
+the game's attack and destroy; while capturing, the footer warning showed only while the
+button was held (kept after release in the next build, not yet seen). The anvil planner
+panels still flicker as they rise (the alpha change in `f3559d84` did not help and is
+undone; the next build paints them only after the screen while the window slides, not
+yet seen).
+
+## Plain and primary buttons through one widget (L-341, 2026-11-15)
+
+Build `8f386dbf`, DLL SHA-256
+`cade9d631176c0c3ab0afe4885fc35a8afe52f1d258c57aa3fb5a4e5742e78fa`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. World map, calculator, HUD editor, tool view Close,
+binding editor and waypoint prompt buttons look right: white text, lighter on hover, open/on
+ones green. Raised: while capturing a key, the selected row's frame and the key cell's own
+frame doubled up (removed in the next build, not yet seen).
+
+## Destructive buttons plain until pointed at (L-341, 2026-11-15)
+
+Build `5dab2d6b`, DLL SHA-256
+`5d6b404080811ca16b89f77e5f5d1907b295155bdb7cef6e5fa04e3e3f58a53b`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The settings section Reset is plain at rest, turns red
+under the pointer and fills red when armed; Shapes Delete, Block highlight Remove and the
+world map's waypoint delete behave the same. Not itemized: the map cache Clear button.
+
+## Palette tokens and the destructive button (L-341, 2026-11-15)
+
+Build `5e8c8c87`, DLL SHA-256
+`aba405acfc0640be146ba57b05ac785a6c174e93a33783d27a67614ee19c19f8`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Delete in Shapes, Waypoints and Schematics, Remove in
+Block highlight and the settings section Reset show a clear red edge unarmed and armed; HUD
+layout draws the game's own HUD frames and legend swatch in light blue, Reset arms red on the
+first press, Done is green; draft shapes, map waypoint names and the schematic missing/ghost
+text in the one light blue look right. Raised: the always visible red section Reset in the
+settings header draws the eye, so the next build keeps unarmed destructive buttons plain
+until pointed at (not yet seen in game). Not checked: the map cache Clear button, the world
+map's delete button and menu.
+
+## Rows of a switched-off feature dimmed whole (L-335, 2026-11-14)
+
+Build `74983a71`, DLL SHA-256
+`092a068a6ee92ed506f23350c45e49b54ac486f44d36ddc5f9a0cefe7beb5faf`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. With Durability HUD switched off, its child setting row
+dims whole (guide, name, value and key); "Edit in HUD layout >" stays at full strength;
+switching back on restores everything. Raised before the fix: the band started right of the
+guide and the text, drawn last, stayed at full strength.
+
+## Saved data row's name in full (L-343, 2026-11-14)
+
+Build `21de850c`, DLL SHA-256
+`555e8afb0dd8abcd1e99f5a80a7cee8e1f6b1d82baa0c722983dbfdd51d6d249`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The "This server's data" row and the "Saved data" rows
+under Waypoints, World map and Schematics show the name uncut, and the footer starts with the
+name in full while the row is hovered. Raised before the fix: the name was cut to the value
+column's width and nothing showed the rest.
+
+## Saved data: names, the any-port switch kept reversible, Used by (L-343, 2026-11-14)
+
+Build `03c2248d`, DLL SHA-256
+`91079ae4f26ee6fc246ba452f7df2c7a4d50330c5bb2253768f61f2f1e64fa69`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. The list's first row is the data in use; each row
+reads as its own address and port; choosing the earlier data again brings its waypoints and
+map back; with the any-port switch turned on and off again, each port's server uses the data
+it used before; the details list the servers using the data; the page stays open after going
+to another window and back. A friend's world is not available for some time and is left.
+
+## Saved data: docked notices, and the data in use missing (L-343, 2026-11-14)
+
+Build `58d3fda2`, DLL SHA-256
+`39b3ad84528ff12575c7199abf02fa7e630b091f8176729e1a834e535bdc219b`, 1.26.60.05 Dev
+instance, the maintainer: the notice shows in the docked panels of the Waypoints screen and of
+the Schematics screen's Placements, Verify and Materials tabs. Found, and the rest of the check
+stopped: the Saved data list had no row marked as in use, while the footer named the joined
+server's data; several rows read as one port. The "Used by" lines and the page staying open on
+focus loss were not looked at.
+
+## Map picture on the Saved data page (L-343, 2026-11-14)
+
+Build `5970a399`, DLL SHA-256
+`68369f4707e2460fb6a6ef93f4a05b5a10f5b56e00517b61f5c67b49c839aaa4`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. Selecting a row shows a picture of its map with a
+place the maintainer knows; the waypoint dots are where they belong; a data without a map says
+"No map"; changing the selection quickly never leaves another data's picture; the picture
+shows again after closing and reopening the page. Raised: choosing another window returns the
+page to the settings table; whether the any-port switch with its exceptions is easy to follow.
+
+## Notice of fuller saved data at its own height (L-343, 2026-11-14)
+
+Build `9b709e81`, DLL SHA-256
+`3d6e4139e2e1edaa13050fe2d3b56af9f6995394c36d7f351840a6a0e4dfec3e`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. On the Waypoints and Schematics screens the notice's
+words are whole and all three buttons show; it shows on the Verify and Materials tabs and not
+on Files; the world map's notice is as before; "Do not show again" removes it and it stays
+away after a rejoin.
+
+## Notice of fuller saved data (L-343, 2026-11-14)
+
+Build `f5f0dc78`, DLL SHA-256
+`338c97d790feef4244da3f14e4344f69e9f63345bcb3ddc01049fa8f2a3b8088`, 1.26.60.05 Dev
+instance, the maintainer: the notice shows on the Waypoints screen and the Schematics screen's
+Placements tab with the list usable under it, and at the world map's upper left with the map
+still dragged and zoomed; "Use this data" switches at once and the notice goes; "Saved data"
+opens General > Saved data. Not pressed: "Do not show again", kept for later looks. Found: on
+the two list screens the words are cut ("...") and the third button is missing, the column
+being narrower than the map's notice; the Verify and Materials tabs depend on the placements
+too and show no notice.
+
+## Saved data: Open button, any-port switch, marks (L-343, 2026-11-14)
+
+Build `16330f1f`, DLL SHA-256
+`77e3fdbef9432d33f2639b73bdd8cbaa3532e4cd4a6acee324208c07d1c295ce`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. General > Saved data has the Open button and a child
+row naming the data, and the same row sits under Waypoints, World map and Schematics; turning
+the any-port switch on switches the joined server to that data and another port's server uses
+it too; another data chosen on one port afterwards stays that port's; a candidate's mark says
+what is alike and the note is not cut off; rows of one name carry a date or a folder name.
+
+## Saved data page (L-343 part 3, 2026-11-14)
+
+Build `e3c240b2`, DLL SHA-256
+`618428a19e51557d9c4c52749dcf5bc05db4d38d36383a9961cf613c90744626`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Servers and local worlds joined before show their data
+(the join code was restructured); General > Saved data lists each data and shows the selected
+one's contents; "Use this data" on a candidate switches waypoints and map at once, and choosing
+the first data again goes back; after walking under the other data and going back, the first
+data's map is unchanged; the choice holds over a rejoin; the any-port switch turns on and off;
+Delete pressed twice removes a throwaway entry and the data in use offers none.
+Raised: the row should use the shared Open button; with the any-port switch on, a port that
+had its own record kept using its own data; the mark "Maybe this" does not say what is alike
+and the note is cut off; the switch sits left of its words, unlike the settings rows. Seen in
+the screenshot: two rows reading the same for one address under an older and a newer name, and
+local worlds of one name.
+
+## A server's data under one name (L-343, 2026-11-14)
+
+Build of the code in `c8585424` (tested from a commit that was rewritten before it was pushed), DLL SHA-256
+`8f8485b511499cc561b1e51d6cd930834efeeb45ba0f3c1c4db47725cb9c6de9`, 1.26.60.05 Dev
+instance, the maintainer: the servers joined before the change show their maps and waypoints
+as before. From the log and files (the agent; the IP, ports and level ids here are stand-ins
+for a private server's): three joins by transfer logged "this server's
+data is under 'http___198.51.100.20_<port>_<port>'" for ports 19135, 19134 and 19133, the
+names in use before, and `config/servers.json` holds one record each (no host name, the IP,
+the port, level ids `lobby`, `farm`, `local_world`). Not checked: a friend's world
+(none available), a join by host name linking to a record made by IP.
+
+## An unused crossbow keeps its look (2026-11-14)
+
+Build `761b612e`, DLL SHA-256
+`cb4da9873dd63cee5c6942e3f6cac29ec91b13fe44ce38ae63ee877fcc9afb16`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. While the crossbow in the main hand is drawn, a crossbow
+in the inventory does not change in Inventory HUD; the held one changes by stage in
+Durability HUD and shows loaded afterwards.
+
+## HUD item icons use the slot's frame (2026-11-14)
+
+Build `df963770`, DLL SHA-256
+`470285386e3c37850ae73d25ac763970f3cac2bce29f6d90cbba6ec306ea7fbd`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. A crossbow loaded with an arrow or a firework shows that
+texture in Durability HUD; its icon changes by stage while it is drawn; a loaded crossbow in
+the offhand or the inventory shows loaded in Durability HUD and Inventory HUD; glints as
+before. Found: while a crossbow in the main hand is drawn, another crossbow in the inventory
+(loaded or not) shows the same pull in Inventory HUD.
+
+## Durability HUD glint (2026-11-14)
+
+Build `fc83b806`, DLL SHA-256
+`ecfbf7ca4b54925fc604e6c326658d054963edbe73d657283a9b1a2f68d27c98`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Enchanted tools and armor glint in Durability HUD; a
+loaded crossbow still showed its small arrow; with the element hidden and selected in HUD
+layout the glint is as faint as the rest. Raised: the crossbow should look as it does in a
+slot (its drawing stages, loaded with an arrow, loaded with a firework).
+
+## Four review decisions (L-338, 2026-11-14)
+
+Build `e92d2398`, DLL SHA-256
+`45825074a2089003e335e7f51a0732ab415ae1018be18c9c572b0a3fe1875694`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. With Toggle toasts off a key toggle shows no toast and
+"waypoint added" still shows. Esc: HUD layout, the block highlight list and Enchantment order
+opened by key return to the game, HUD layout opened from the settings returns to the settings
+table, the planner opened from the anvil's Change button returns to the anvil; the Back
+button of a page opened by key goes to the settings table. The steps beside the anvil still
+show with the saved setting on and go with it off; Restrictions has no Placement mode row;
+item tooltips show their ID and property values as before. Not done: the death layout's time
+limit (takes long). Raised: Durability HUD shows no glint on an enchanted item.
+
+## Status element switch hides the restriction lines (2026-11-14)
+
+Build `5fa24a6b`, DLL SHA-256
+`2b562507f98272dd8b8bd13f87efd8092f03a46d701fe89405181c8f8862a485`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. With Block Restrictions on and the Status element
+hidden in HUD layout, the restriction lines are not drawn; shown again, they are.
+
+## Code review fixes (2026-11-14)
+
+Build `5359af0c`, DLL SHA-256
+`79b9bc84da9631da9ac35f12364db80ba59a45cac0e96ad141c9ae2b4a1f334d`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. A category reset returns a moved scoreboard (and the
+other game parts) to the default place; a hidden Durability or Inventory element's icons and
+counts are as faint as its frame; Map size 50 is larger than 40; the schematic menu runs the
+item under the click while the pointer moves. Not looked at: the older death point's
+conversion and hidden parts under a clipping panel. Raised: Durability HUD's items cannot be
+chosen in HUD layout (L-336); Map size and the HUD scale both size the minimap (L-337); rows
+under a switched-off feature dim only in the middle (L-335).
+
+## Hidden veil and Standard game parts (L-334, 2026-11-14)
+
+Build `66958838`, DLL SHA-256
+`de7c5009a392e8ba2d6ed4e891a12e3658567cde62480e0b2255fd6be81c3c7b`, 1.26.60.05 Dev
+instance, the maintainer: all passed. A hidden scoreboard reads as switched off (dark veil,
+quieter frame); game parts left Standard are not in the editor (none with the main switch
+off); the Game HUD layout link selects the first part in the editor, or none.
+
+## HUD layout frame colors (L-334, 2026-11-14)
+
+Build `f49d0a2b`, DLL SHA-256
+`c6fc5adcddcef0b534488b79e61e93b9cdd90f8d5a3a95bc1e03a17555a40230`, 1.26.60.05 Dev
+instance, the maintainer: all passed (a situational scoreboard has a yellow dashed frame;
+hidden game parts a yellow frame over the hatching, hidden Lamium elements a white one; the
+legend's "game's HUD" row). Raised: a hidden game part (the scoreboard) does not read as
+hidden enough; and how game parts left Standard should appear in the editor.
+
+## Showing and hiding HUD elements, eighth build (L-334, 2026-11-14)
+
+Build `baff6efc`, DLL SHA-256
+`fb357e316b33e45b16f5b43db37c7e6833fc55b8517927ba64c9532c34f55f9e`, 1.26.60.05 Dev
+instance, the maintainer: the checklist passed as a whole (situational elements carry no
+name until pointed at, hidden ones keep theirs, crowded places read better). Raised: a
+situational game part (the scoreboard) has a white dashed frame, so it no longer reads as
+the game's (yellow) element, and the legend does not explain white and yellow.
+
+## Showing and hiding HUD elements, seventh build (L-334, 2026-11-14)
+
+Build `3c1af87a`, DLL SHA-256
+`0d3fa58d339325d786cac805a74f667479fa7fcde7214843ac1acd8199af635d`, 1.26.60.05 Dev
+instance, the maintainer, with a screenshot of HUD layout.
+
+- The paper doll's switch sits right of its name and the name stays on the left; the chat
+  and right-anchored elements keep their switch sides.
+- Many situational elements showed both faint contents and a name tag repeating them
+  (Schematic HUD, target card, scoreboard); the maintainer chose names only for hidden
+  elements and on pointing or selecting.
+
+## Showing and hiding HUD elements, sixth build (L-334, 2026-11-14)
+
+Build `d02e6002`, DLL SHA-256
+`b061c95803b9630dc7eed53a2054d4890cf937c8bee4d3a1bbc2c43c0bdeb313`, 1.26.60.05 Dev
+instance, the maintainer, with two screenshots.
+
+- With the target card selected the player list's name no longer lies on it; a chat
+  flush with the left edge keeps its tag on the left.
+- Still wrong: selecting the paper doll put the switch on the left and moved its name to
+  the right (the tag is wider than the element, so its middle lay right of the element's).
+
+## Showing and hiding HUD elements, fifth build (L-334, 2026-11-14)
+
+Build `9f80c23a`, DLL SHA-256
+`cdf2951a67fc02219666cd8e94a9ae1ea3d02fe9dba8106f5226b950c86cb9d0`, 1.26.60.05 Dev
+instance, the maintainer, with four screenshots of HUD layout.
+
+- The target card's and the player list's tags no longer overlap while neither is selected.
+- The chat's switch stays over the element; the Durability HUD's toolbar clears its tag;
+  the legend has room.
+- Still wrong: with the target card selected, the player list's name (the pointed-at
+  element below it) was drawn on the selected card; the chat's tag jumped to the right
+  corner when the chat sat flush with the left edge.
+
+## Showing and hiding HUD elements, fourth build (L-334, 2026-11-14)
+
+Build `0f95144b`, DLL SHA-256
+`c43dd834a769284bf8e264d722998ca703e40c34d2f3675381c04fa260c5f753`, 1.26.60.05 Dev
+instance, the maintainer, with four screenshots of HUD layout.
+
+- Situational elements (faint, dashed) and hidden ones (hatched, named) read apart.
+- The selected tag's switch toggles show/hide and the name does not move.
+- The idle panel shows the legend; its spacing could be roomier.
+- Still wrong: the Durability HUD's toolbar covered its tag (tag above, toolbar above);
+  the chat's switch sat outside the element, beyond the tag at its right corner; the target
+  card's and the player list's tags (same place, top center) were drawn on each other,
+  also with the target card selected.
+
+## Showing and hiding HUD elements, third build (L-334, 2026-11-14)
+
+Build `772e1876`, DLL SHA-256
+`741e58b21b9c680a1dc66740a8ef59fb55ade5358cf5313e069deac8534d064d`, 1.26.60.05 Dev
+instance, the maintainer, with five screenshots of HUD layout.
+
+- The editor is light again: pointing and dragging do not lag.
+- A right-anchored tag no longer flips sides, but the "(hidden)" suffix still moved the
+  name; with the check drawn inside the tag the name shifted too.
+- The check appearing on a pointed-at tag looked usable but vanished when reached.
+- Hidden elements said least, but nothing could be told any more; two tags (Schematic HUD
+  and boss bars) were drawn on top of each other.
+- The maintainer then chose, on hud-hide-v2.html: situational elements faint (A), hidden
+  ones hatched and named, the common switch joined to the selected tag, and a legend.
+
+## Showing and hiding HUD elements, second build (L-334, 2026-11-14)
+
+Build `d8412701`, DLL SHA-256
+`e7d79f1f389e8a4986c74738177cb9d7bbe8d50422bba5d60a8bb7c9cf43f089`, 1.26.60.05 Dev
+instance, the maintainer, with three screenshots of HUD layout.
+
+- Each part's row switches Standard / Placed / Hidden and the game follows it.
+- The boss bars' key steps Standard, Placed, Hidden and its toast names the state.
+- Hidden elements are gray hatched boxes whose contents show faint when pointed at, and
+  they read apart from conditional frames.
+- Still wrong: a hidden element says more than a conditional one; the editor is slow
+  (pointing reacts late, dragging lags); an element's name tag moves between three
+  places as its state changes (the automation status, anchored on the right).
+
+## Showing and hiding HUD elements, first build (L-334, 2026-11-14)
+
+Build `4a3979d3`, DLL SHA-256
+`8c57c097234fc9cff47e3f5e530a072dc6d16ee35972a11dc272030ca1487946`, 1.26.60.05 Dev
+instance, the maintainer, with a screenshot of the settings rows.
+
+- Each game part can be hidden and shown again from its switch.
+- The Game HUD placement main switch off returns every part to vanilla.
+- The editor's hidden look read wrong: hidden elements drew more (faint contents and
+  hatching) than conditional ones (a dashed frame), and a yellow-only frame was unclear.
+- The settings rows (part switch and "show" switch alternating) were hard to read.
+- Not done: the old-settings-file check (covered by unit tests instead).
+
+## Boss bar sample in HUD layout (L-323, 2026-11-14)
+
+Build `f96794ea`, DLL SHA-256
+`f673a1a5832fb7e9ccb403fdb66544050da303e9b11eebdef92498de44b8deef`, 1.26.60.05 Dev
+instance, the maintainer, with screenshots. On `44aea6d9` the sample (bar textures
+stretched whole) looked unlike the game's bars; on `f96794ea` (13x5 nine-slices with
+4-pixel caps) the maintainer judged it nearly the same as vanilla.
+
+## Boss bar position (L-323, 2026-11-14)
+
+Build `348f83a8`, DLL SHA-256
+`4c3cc2a120dfd29584eee7a121fe5fb5cd5ce3754f2596d912f5b2240235e69b`, 1.26.60.05 Dev
+instance, desktop UI, the maintainer, with the Ender Dragon and the Wither; the log read
+by the agent: the game's bars measured at 229,2, 182 x 20 on a 640 x 360 screen.
+
+- Game HUD placement on with the layout untouched: the bars stay where the game puts them.
+- Moved to the bottom in HUD layout with two bosses: the bars stack upward, names follow.
+- At 150 % with a damaged boss: the fill is right and nothing is cut off.
+- Hide boss bars on while moved: the bars are hidden.
+- Not seen: Pocket UI (touch padding), other GUI scales, servers. The editor's sample was
+  plain rectangles; the maintainer asked for it to look like the game's bars.
+
+## Bundle preview attached to the bundle tooltip (2026-11-14)
+
+Uncommitted build, DLL SHA-256
+`bcfde18cfefbb4f39268ee4495968d88f25bdacc014602e5ef8cc8e5407e2d20` (the committed
+version only drops its log lines), 1.26.60.05 Dev instance, the maintainer; the log read
+by the agent. The game's bundle tooltip is the UI panel `bundle_cursor_tooltip`, logged
+at the pointer + (10, 10), 90 x 58-63 units.
+
+- The bundle preview sits right above the bundle tooltip and does not shake.
+- With the pointer on the left part of the bundle's slot, the preview slightly covers
+  the bundle's own icon.
+
+## Container preview beside the hover text (2026-11-14)
+
+`48a880ca` (with `2c33914a` and `c754b059`), DLL SHA-256
+`37a979eb224a9adc1e9387c0ac9c8b94f4531f19d557f25db3f2d70099063ef3`, 1.26.60.05 Dev
+instance, the maintainer; the log read by the agent.
+
+- A shulker box preview no longer overlaps the game's hover text, with Item details on
+  and off, including in the top row. The logged box (`HoverRenderer` cursor + offset,
+  size) matches the drawn text: offset (10, -10), text 5 units inside.
+- Small pointer moves no longer shift the frame's border against its fills.
+- A bundle preview has no pickup squash and no longer shakes. Over a bundle the game
+  draws an empty 9x18 hover text box on some frames only; it is now ignored.
+- Not changed: a bundle preview sits well above the game's bundle tooltip, which is an
+  OreUI panel drawn lower than the text hover box; its rectangle is not read.
+
+## Glint on white seen in game (2026-11-14)
+
+`679aad22`, DLL SHA-256 `5963c4dfd3941d95d1328f651fa36a284066ede1a6b1e20d8baba5d5d7f431a2`,
+1.26.60.05 Dev instance, the maintainer: an enchanted book's glint in a shulker box
+preview and in the enchantment order's anvil list looks the same as in vanilla slots.
+Also seen: with Item details on or off, the game's hover text slightly overlaps the
+bottom of a shulker box preview (followed up the same day).
+
+## Glint overlay calibrated on white (2026-11-14)
+
+Uncommitted `glint_measure` build (the overlay's shader colour and strength changed every
+6 s of wall-clock time), DLL SHA-256
+`0210977558510be0bed488038243e84b86e4d5919bc6c1d3e9ec08592fa3892b`, 1.26.60.05 Dev
+instance, a Creative world set up by the maintainer: an enchanted book in hotbar slot 1,
+slot 9 selected, the Inventory HUD with the hotbar row and no background. The agent
+recorded 150 s with ffmpeg `ddagrab` (GDI screen grabs of the game came back frozen) and
+compared, per setting, the frame-averaged colour of the book's pixels in the HUD (Lamium)
+and in the hotbar (vanilla), aligned and masked to pixels the two share.
+
+- White at 1.0: Lamium [129.2 75.7 98.6], vanilla [129.2 75.7 98.6], no difference.
+- The release setting (purple 0.55/0.35/0.70 at 1.35): weaker, difference -9.4 -4.0 -5.4.
+- White 0.5 to 1.1 scaled the overlay linearly (blue -40 at 0.5, +10.5 at 1.1).
+
+The release build now sets white at the icon's own alpha. Not yet looked at in game.
+
+## L-91 glint trial: BEI's draw context does not bring the shield glint (2026-11-14)
+
+`8e00a4b1` built with `--glint_trial=y`, DLL SHA-256
+`fa52444cce035f983b51dc5619a91cdbc5dd6bf9d09ad42cc990d4895f2436af`, 1.26.60.05 Dev
+instance, run by the maintainer. An enchanted shield in a shulker box preview and in the
+offhand slot, with hotbar slots 1-5 selecting: as before; an off-screen white quad
+flushed with `ui_flush` before the glinting icons; zOrder 0; the foil at the icon's
+alpha with the shader colour untouched; all three.
+
+- No variant drew the shield's glint.
+- Flat items' glint (enchanted books and the like) looked normal in every variant; not
+  measured.
+- The maintainer also saw BarelyEnoughItems fail the same way for an enchanted shield,
+  enchanted leather armor, a recovery compass and heads not yet loaded.
+
+## Issue #32: the client holds no structure spawn areas (2026-11-13)
+
+`a163e4fa` built with `--spawn_area_trace=y`, DLL SHA-256
+`9aeb72e032ed9d26cc2f5488b31187d96e243edc73bef2a2722cc63222e247aa`, 1.26.60.05 Dev
+instance, a local world, run by the maintainer; the log read by the agent. The trace
+counts, for the 17 x 17 chunks around the player, what the client's own chunks hold and
+what the chunks of the game's built-in server hold (same process, its own level).
+
+- At a pillager outpost (around chunk 97, 353). Server: registry 9 structure types, 20
+  boxes, 20 static spawn areas, 9 spawn overrides, name `minecraft:pillager_outpost`.
+  Client: 0 of each, no name.
+- At an ocean monument beside a trial chamber (around chunk -56, 395). Server: 41 types,
+  177 boxes, 50 static and 127 dynamic spawn areas, 41 overrides, names
+  `minecraft:monument` and `minecraft:trial_chambers`. Client: 0 of each.
+- The older list `LevelChunk::mSpawningAreas` was empty on both sides at both places
+  (two earlier trace builds the same evening, `9d873103` and `d3970cdb`, read only it).
+
+So on 26.60 the spawn areas live in the chunk's structure registry
+(`LevelChunkVolumeData::mDataRegistry`), the server side of a local world has them, and
+the client's chunks do not receive them even there. The other mod the reporter named
+works in local worlds only, which fits reading the built-in server.
+Not checked: a dedicated server. The client's chunks arrive from a local world's server
+and from a remote one by the same path, so the same is expected, not observed. The
+Nether (fortresses) was not visited.
+
+## Connected Textures without the Experimental badge (2026-11-13)
+
+`17d41635`, local build, DLL SHA-256
+`5dd4f18e059c164f2c4e9f639bdd0f787e9fc5bd8f9726bb4f9f4942a23e4eca`, 1.26.60.05 Dev instance.
+Confirmed by the maintainer: Connected Textures shows no Experimental badge in the settings.
+
+## Glass panes of different shapes above each other (2026-11-13)
+
+`e64c3386`, local build, DLL SHA-256
+`b6f31bc85c8655b421b5b2051d525673fa4e4556151fd9f3fff4411e54838e05`, no trace options,
+1.26.60.05 Dev instance; Connected Textures on, inward edges off, pane corner edges on.
+Confirmed by the maintainer (L-331):
+
+- An L (panes at 0,0,0, 1,0,0 and 0,0,1) under a lone post at 0,1,0: the L's top border
+  is unbroken at the corner and the post has its own bottom border; it reads more
+  natural than before.
+- Stacked panes of one shape (a flat wall, a straight run two high, an L two high) join
+  as before.
+- With a pane added at 1,1,0 (the upper pane gains an east arm): the outlines are
+  closed, no border breaks off.
+
+The maintainer's remark on the last case: the join between 0,0,0 and 0,1,0 still reads
+slightly odd; accepted as a rare arrangement.
+Not checked: stained panes, resource packs with other pane textures, Vibrant Visuals.
+
+## A death's waypoint named with its date and time (2026-11-13)
+
+`b7cb3d25`, local build, DLL SHA-256
+`32797eb9257d442f0c5aa48be0e9bc3eb6b72a1fecdcb691279c3c9541dbcc6d`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-333): dying adds "Death point
+MM-DD HH:MM" with the PC's time, and two deaths more than a minute apart are told apart
+by name.
+
+## A death's waypoint left alone; the layout restore tied to the place of the death (2026-11-13)
+
+`179ef3c0`, local build, DLL SHA-256
+`2416abc9ffc51d3d2fcfb4211d930fe0755ee69005a61e8a4cb1e804ed00a402`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-332):
+
+- Two deaths leave two "Death point" waypoints.
+- Moving or renaming one keeps its cross.
+- With the death's waypoint deleted beforehand, and with Waypoints off, coming back and
+  picking the items up restores the layout.
+- 32 blocks away after the first pickup, the "restore ended" toast shows.
+- A like item picked up far away before returning rearranges nothing.
+
+Not checked: servers.
+The maintainer's remark: with several death waypoints all named "Death point" (normal
+ones, or temporary ones never reached), nothing says which is the latest (BACKLOG L-333).
+
+## A death's waypoint, the restore's end by leaving, seven badges off (2026-11-13)
+
+`786424c4`, local build, DLL SHA-256
+`2577f878b76f6c3885749112fa16df930540467464343574c1879d35a28a651f`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer, as specified:
+
+- L-328: an existing death point shows as a waypoint with a red cross after joining;
+  dying adds "Death point" and replaces the untouched one before; with "Temporary death
+  point" on, arrival removes it with the temporary waypoint toast and picking the items
+  up restores the layout; a renamed one survives the next death and a new one is added;
+  moving it turns the cross into a diamond; the cross shows in its chosen color on the
+  minimap, the world map, in the world and in both lists.
+- L-327: 32 blocks away after arrival, the "restore ended" toast shows.
+- The seven features that lost the Experimental badge show none in the settings.
+
+Not checked: servers.
+The maintainer's remarks the same day: the death point only follows the latest death
+and does not suit a lasting record of deaths; a moved one changing its mark while still
+named "Death point" reads wrong; whether death points should grow as their own feature
+or become simpler is open (BACKLOG L-332). Connected Textures: glass pane edges look
+wrong in less simple arrangements (BACKLOG L-331), so its badge is back.
+
+## Fake Offhand on its own slot, anvil marks, shulker box previews, the death point as a temporary mark (2026-11-13)
+
+`26ebab3a`, local build, DLL SHA-256
+`6a479e03b1e6c098f95fc3b3c4833e3d188de610e206fc613a9195f4edb205eb`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer:
+
+- L-322: with a key of its own and the Fake Offhand slot selected, the key places a
+  block, throws and opens a chest; with another slot selected it borrows as before.
+- L-170: the right side's book in the anvil's left slot keeps the red, and the left
+  side's stack in the inventory and the empty right slot keep their tints.
+- L-319: the rows read "shulker box"; with no saved choice the game's contents text
+  is hidden.
+- L-326: the death point goes at the arrival distance with its toast, and picking the
+  items up afterwards restores the layout; more than 32 blocks away with items left,
+  later pickups no longer rearrange (log "left the death point"); with "Temporary
+  death point" off the death point stays when reached.
+
+Not checked: servers; respawning beside the death point; rejoining after arrival;
+food and held use on the Fake Offhand key.
+The maintainer's remarks the same day: nothing in the game says how far the restore
+lasts or that it ended; the death point still reads as a third kind beside normal and
+temporary waypoints ("Make a waypoint" in the Waypoints screen and the world map).
+
+## Latin runs raised 1 unit in Japanese; the toast's text beside its switch (2026-11-13)
+
+`fab713d8`, local build, DLL SHA-256
+`44cca1a2a4883a835ce9f1849a1bdd0445dfee3bd25202f68f8a51b10c57625c`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- General > HUD text has no "Latin text raise".
+- Japanese: Latin runs ("ID", ">") line up with the text around them in the settings
+  screen and the toast.
+- Japanese and Chinese: the toast's text and its switch share a middle.
+
+Not checked: Traditional Chinese apart from Simplified, if only one was looked at; the
+toast at other HUD scales.
+
+## The toast's text centered; the Latin text raise setting (2026-11-13)
+
+`dba113dd`, local build, DLL SHA-256
+`5699b3730cd9004314ff2feb21c44eb3859a04a9ded188aa92afd98c2c0aff58`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- The toast's text beside its switch: right in English, now too low in Japanese and in
+  both Chinese languages (about one unit in the Japanese screenshot; it was one unit high
+  before the change).
+- "Latin text raise" is under General > HUD text, reads "Auto 1.5" in Japanese, and moving
+  it changes the settings screen and the toast at once.
+- Japanese looks right at 1.
+- Chinese: at any value above 0 the Latin runs change font and width, not only height
+  ("HUD" beside the hanzi at 0 and at 0.25). The game draws a line that has hanzi in it
+  with one font throughout; a Latin run drawn on its own gets the pixel font.
+
+## The toast's ">" between feature and child (2026-11-13)
+
+`5220a3db`, local build, DLL SHA-256
+`e80fe7b3e960b8b50a72f1c0a6827d522f2e02eb2ec3a566b44160f8549d0a46`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319), English, Japanese and
+Simplified Chinese:
+
+- "Item details > Show ID": the sign is in the line's font and at its height.
+- Seen beside it: the toast's text sits about two units higher than its switch (measured
+  on the English screenshot). In Japanese the Latin runs ("ID", ">") look raised too far;
+  in Chinese, where nothing is raised, Latin runs sit lower than the Chinese glyphs.
+
+## Toasts named under their feature and stacked; Waypoints as a full switch (2026-11-13)
+
+`b8ddb003`, local build, DLL SHA-256
+`5717ef2ec2b152265b7a5fc7fa45b80a83fe73f2386288cb136fe04cd3c30796`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- A child's key ("Show ID") toasts as "Item details › Show ID"; the sign draws.
+- Two or more toggles on one key: the toast lists them, each switch the right way.
+- Waypoints off: its child rows are dimmed and dying does not move the death point.
+- Not liked: "›" is drawn in another font in English and sits low in Japanese.
+
+Not checked: more toggles than the toast's four rows; other languages than English and
+Japanese.
+
+## Child settings dimmed under a switched-off feature (2026-11-13)
+
+`d80c18ca`, local build, DLL SHA-256
+`d1ac567ab2405f942f27748ab22e592d7631f566885f842b8da5038a371d5952`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- Info HUD or Container previews off: their child rows are dimmed, the names unchanged.
+- A dimmed child selected: the footer has the main-switch line, then the setting's own help.
+- Item details off and the key of "Show ID" pressed: the toast's switch follows the child,
+  and the name ends in "(Main switch off)".
+
+Not checked: every other feature's children one by one; other languages.
+
+## Item details' main switch and the keys on its rows (2026-11-13)
+
+`988806af`, local build, DLL SHA-256
+`c87d58d26c60116bb9ad58e4ebfcc3c1e59a7ad669cfbb4087f769b00f95e038`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- The Item details row has a switch and a key cell; off, the tooltip is the game's own.
+- While it is off the child rows read "Main switch off"; on again, their values act as before.
+- A key bound to a child that had none ("Show ID") shows a toast in play and the next
+  tooltip follows it.
+- Wrong: the toast of a child's key draws the main switch's state, not the child's, so it
+  looks as if nothing changed.
+
+Not checked: a settings file from before the split; other languages; servers.
+
+## Item details as one heading with a switch per line (2026-11-13)
+
+`e6562d2e`, local build, DLL SHA-256
+`1e996a77336d6d601178eb6fddcfe59fc591261e1852e4dfdef0e4a8090f52a9`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- Inventory has "Item details" as a heading; opened, it lists eight child switches.
+- "Show ID" off removes only the ID line, enchantability and fuel stay; "Property values"
+  off does the reverse.
+- "Suspicious stew effect" off: no effect on a stew in Survival.
+- "Property values" off and "Show tags" on: only the tags.
+
+Not checked: the toggle keys on the child rows and their toasts; a settings file from
+before the split; other languages; servers.
+
+## Item tags and NBT as detail toggles (2026-11-13)
+
+`a3a8dcca`, local build, DLL SHA-256
+`b2e934a0bdd5a2a491bd505d10a7025afd4d8e1849f24d3a15dd546861de869a`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- By default a tooltip has no tags and no NBT; the value lines and the ID are there.
+- "Show tags" and "Show NBT" each add their lines when on; the frame and its place fit.
+- Alt changes nothing in the tooltip, and Alt + click moves items as before.
+
+Not checked: Item details off; its toggle key; other languages; servers.
+
+## Item details, the frame on the key (2026-11-13)
+
+`ff043a26`, local build, DLL SHA-256
+`afb1ac627baeed5f0d5f3892517cebf2bba9693b20387a6f854210e43f9f783f`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Pressing Alt over an item gives the frame the long form's size; releasing it gives
+  the size back. (`d9db34bb` before it: no change of the frame at all.)
+- The place does not follow. Near the bottom or right edge the long form runs off the
+  screen; the text can leave the frame; released after a long form, the frame can be
+  smaller than where the text is, or the tooltip sits away from the item as if it were
+  still wide.
+- With Alt held, or not held, from before the pointer reaches the item, the frame and
+  its place fit the form shown.
+
+## Item details, the form swapped while drawn (2026-11-13)
+
+`bde4219b`, local build, DLL SHA-256
+`10118dbbf9183be399f607121c534e684b7f1e23b34f257323f24c5c220c9027`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Without moving the pointer, pressing Alt brings the long form at once and releasing
+  it brings back "NBT: N entries".
+- The box does not follow: it keeps the size made for the text the game had, so the
+  long form's text runs out of it to the right and below, near the screen's edges too.
+- A named bread (food with NBT) keeps its food icons in place in the long form.
+
+## Item details, the long form (2026-11-13)
+
+`f3b0e62f`, local build, DLL SHA-256
+`73d2ec4d7f751da8d3172fdbe576b9549b087d4af40845b54111f411f246b8c6`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- With Alt held the NBT shows one entry per line, but only after the pointer moves to
+  another item; releasing the key likewise changes nothing until the pointer moves.
+- A shulker box's long form fits the screen (its `Items` is one cut line). A picked
+  piston shows its nine entries. Enough to look into a structure, not to read long
+  contents.
+- The game's own list of contained item names is still in the shulker box's tooltip
+  beside the preview ("Hide Shulker contents text" was off).
+
+## Item details, the held key again (2026-11-13)
+
+`28d12745`, local build, DLL SHA-256
+`93eccfd538094b61f8d38718bf8128f84fc840d972f57f5ffa1642ffe0b9a390`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Tags over more than one line start at the same column.
+- The NBT key still does nothing in the inventory, with Alt or another key, pressed
+  while over an item or before moving onto it: the line stays "NBT: N entries".
+
+## Item details, short form and the held key (2026-11-13)
+
+`83bddd4c`, local build, DLL SHA-256
+`6824580d9abb9c2fa6fa9717302584c9e83efe0061d203097c16c68ea8359ebc`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Enchanted armour and a shulker box with items show one line, "Stored data: N
+  entries", in place of the data.
+- Holding Alt does not bring the data: the count stays. The same with the action
+  bound to another key.
+- Alt + click (every item of a kind) moves items as before.
+- Tags over more than one line are not aligned: the first row follows the label, the
+  others start two spaces in.
+
+## Suspicious stew effect lines (2026-11-13)
+
+`becfac62`, local build, DLL SHA-256
+`99da4ef46abd63cf016803272ab90968ae3261edb704946e937355592c736cb6`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- In Survival a Weakness stew shows its effect line and "-0.5 Attack Damage" above
+  the food icons, the same as the game's own tooltip in Creative.
+- A stew whose effect changes no attribute (Darkness and others) shows no extra line.
+- In Creative nothing is shown twice.
+
+Not checked: other languages; an effect with a share rather than an amount; servers.
+
+## Item details in tooltips, third look (2026-11-13)
+
+`70de5f54`, local build, DLL SHA-256
+`c0139e59734adc125677bae63d3bd6d5c8f948faea2bc5be3c539e838f0594db`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- A suspicious stew's effect in Survival is red for a bad effect and blue for a good
+  one, like the game's line in Creative. In Creative the line shows once.
+- In Creative the game's effect line is above the food icons; Lamium's in Survival is
+  under them. For Weakness the game adds "-0.5 Attack Damage" in Creative; Survival
+  shows no such line.
+- "Use time: 1.6 s" on bread and a milk bucket, 0.8 s on dried kelp, 1.25 s on a
+  crossbow, none on a bow.
+
+## Item details in tooltips, second look (2026-11-13)
+
+`6f70bdb2`, local build, DLL SHA-256
+`a2d1e30b91a191ada60431377b221c5cad526fc9893bad8eaa353f4343edad9a`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Coal and charcoal show "Fuel: smelts 8 items".
+- A piston picked with Ctrl + middle click shows all its stored data, no count.
+- A suspicious stew shows its effect line in Survival. It is white, where the game's
+  own line in Creative is red for a bad effect; in Creative both lines show.
+- The food icons sit above the detail lines, in place.
+- No use time on a bow, bread or a milk bucket.
+- Enchanted armour and a shulker box with items: the stored data makes the tooltip
+  taller than the screen ("... 82 more" at the bottom of a shulker box's).
+
+Also seen (L-91): a head inside a shulker box opened once since entering the world is
+drawn in the preview; a head lying in a never-opened shulker box from before is not,
+whatever else has been drawn; the same for dragon and creeper heads.
+
+## Item details in tooltips, first look (2026-11-13)
+
+`63c672ca`, local build, DLL SHA-256
+`6b26e210015cd11277999c2205657c340bc8f5e8ba7f3bd1268e72f6936a98d0`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- A netherite chestplate shows armor 8, toughness 3 and knockback resistance 10%.
+  The game's own tooltip prints the same three values (+8 Armor, +3 Toughness, +1
+  Knockback Resistance; other armor compared in Creative, some in Survival), so the
+  lines repeat it.
+- "Max stack: 16" on an ender pearl, a snowball, an egg and a bed. "Cooldown" 1 s on an
+  ender pearl, 7 s on a goat horn, 0.5 s on a wind charge.
+- Fuel: "1.5" on oak logs and slabs, "100" on a lava bucket. Coal and charcoal show
+  no fuel line, though coal smelted eight logs in a furnace.
+- A piston picked with Ctrl + middle click shows "... 1 more": an entry of its stored
+  data is hidden behind the count.
+- A suspicious stew shows its ID with "#2" and the `minecraft:is_food` tag. Its effect
+  line is the game's and is there in Creative only.
+- The food icons come last, under the detail lines.
+
+Not checked: enchanted tools and shulker boxes for length; the setting off; the toggle
+key; servers.
+
+## Work penalty in tooltips; the tints' setting (2026-11-13)
+
+`8a3f8cca`, local build, DLL SHA-256
+`fec5c212f64e74e01636b6e1f9a39bc7c59794f46096253787be2e702bfa781c`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer:
+
+- L-319: items that went through an anvil once, twice and three times show "+1 (1
+  anvil use)", "+3 (2 anvil uses)" and "+7 (3 anvil uses)", agreeing with the surcharge
+  in the anvil's cost. A fresh item shows no line; a merged enchanted book shows one.
+  With the "Work penalty" setting off the line is gone.
+- L-170: while one stack is carried at the anvil, the other stack to place keeps its
+  tint in the inventory; with "Tint the slots to use next" off the tints are gone.
+
+Not checked: a cost that is not 2^n - 1; an unverified game version; the toggle key.
+
+## Enchantment order, thirtieth pass: the slots' tints (2026-11-13)
+
+`41179be1`, local build, DLL SHA-256
+`f6cae88c7857e8fcf9a2c89561d9727f66d380af86858660da779bdecd698634`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the inventory's marks
+are half-strength tints in cyan and pink; the anvil's left and right slot carry the
+same tint while empty, get a frame with the right stack and turn red with a wrong
+one; the result slot is green for a planned pair and red for a pair that is no step;
+a held item itself carries no mark while the slot it goes to keeps its own.
+
+Not seen: the result slot's yellow (the game's cost differing from the plan) could not
+be brought about. Missing: while one stack is held, the mark of the other stack still
+to be placed disappears too; it should stay.
+
+## Enchantment order, twenty-ninth pass: the marks' looks, round 2 (2026-11-13)
+
+`aa5c70a8` built with `enchant_mark_test`, DLL SHA-256
+`53092ecd4b58f7bc25b3e306ebb02ebb783b2d66cc6b5f68eeec31144bd48fb1`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer: the tint alone at 45% is the look; cyan and
+pink are easy to see. The mark on a carried stack follows it, but flickers (now in
+front of the item, now behind) and does not fit the larger size an item has while
+held.
+
+## Enchantment order, twenty-eighth pass: the marks' looks, round 1 (2026-11-13)
+
+`c4c910dd` built with `enchant_mark_test`, DLL SHA-256
+`5bed05c30cd593a4b0363353dc5b320ecd665bcb4e645ed78b7c97c5fd830323`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer: looks 2 (thin frame and a faint tint) and 3
+(tint alone) are the ones that show; both should be tried with a stronger tint. Yellow
+for the right side could read as a warning, so purple by elimination. What the anvil's
+slots say is understood by colour, the result slot included; the slot a carried stack
+goes to keeps its mark.
+
+Noticed by the maintainer: the game itself tints a slot's background green under the
+pointer. And green for "goes left" is also the colour of success here.
+
+## Enchantment order, twenty-seventh pass: the highlight trial (2026-11-13)
+
+`8774eedf`, local build, DLL SHA-256
+`102db174ede3557fc7b1baacb6962c2846a97f6f555f5a93f80521c69ae59c08`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the outlines sit on the
+right slots in the inventory and the hotbar; the anvil's left slot gets the green one
+and the right slot the white one, and each goes when its stack is placed; the outlines
+are above the items and under the tooltip, and nothing of the items or slots is
+broken; holding an item hides them, and after a step they move to the next two.
+
+From `lamium.log`: the anvil's three slots under `recipe_grid` are `input_item_slot`,
+`material_item_slot` and `result_item_slot`, each 18x18 (at 252.8, 306.6 and 360.3 by
+144.0 in that window).
+
+Drawing works; using it feels wrong:
+
+- The outline is thick and hides part of the item's picture.
+- Whether the right things were placed cannot be told on the anvil itself: nothing on
+  the two slots or the result slot changes with the match, only the last line of the
+  steps on the right.
+- White is hard to see on the vanilla inventory, which is light.
+
+
+
+`6362a66a`, local build, DLL SHA-256
+`c007fa19e442dc578b1cdb79d408e2053ecd612c0972382e0fbe6d53ed96e951`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the player's level and
+the materials count follow the total on one line; a step's prior work reads "incl. N"
+with the names longer than before and its breakdown in the status line on hover; with
+nothing chosen the anvil's right panel has the goal and its arrows switch it. The
+maintainer closes the steps' side here: small things could still be polished, but it
+need not be perfect at once.
+
+## Enchantment order, twenty-fifth pass (2026-11-13)
+
+`582fb68f`, local build, DLL SHA-256
+`35293294168877c7e6a0efd9736037b9b47f98c3698f02f32f828a044f06ab91`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the line under the goal
+and the goal as the box stepper, in the planner and at the anvil; a long last line
+wrapping so it is read whole; the right panel level with the left one; two and three
+lines of status inside the left panel; a cut name shown whole in a box on hover.
+
+Still rough:
+
+- In the totals the materials count alone sits at the right, unlike the mockup, and
+  looks out of place.
+- "Prior work N" is large in the steps and crowds the enchantment names, which matter
+  most.
+- With nothing chosen the right panel is too bare and sits oddly high, and the goal
+  cannot be changed there although it can in Lamium's screen.
+
+## Enchantment order, twenty-fourth pass: the shared steps' side (2026-11-13)
+
+`12092660`, local build, DLL SHA-256
+`7c848ced130d19d80430c5b5be71439c54d995545ae878955b3a8d60ea2ab876`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the planner screen's
+right side and the anvil's right panel have one order and look; with some books only,
+the names not at hand and the materials count are yellow and the last line lists what
+is missing; taking steps greys them and moves the white bar; the two details are on
+one line in the planner and on a line each at the anvil, with their help on hover; at
+the anvil the goal's arrows switch it and the wheel scrolls a long plan.
+
+Not right:
+
+- The top of the right side (the total, the details) lost the dividing lines the
+  mockup had and is harder to read.
+- "Not in your inventory: ..." is often cut, and there is no way to read it whole.
+- The right panel sits lower than in the mockup: it starts at the window's top as the
+  old list did, and with more above the steps it looks pushed down.
+- The left panel's status text runs out of the panel when it takes two lines or more.
+- The goal's arrows were chosen for being like Lamium's settings, yet they are not the
+  shared part.
+
+The maintainer notes the settings screen already has a way to show what does not fit.
+
+## Enchantment order, twenty-third pass; a plain book at the anvil (2026-11-12)
+
+`e85009f7`, local build, DLL SHA-256
+`da8f766e94426e69914142e326cd44c4b431db8e6d15d8d340192b263432469a`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer: of two like items in the main
+hand and the left slot only the pressed cell is shown chosen; the choosing panel keeps
+its height when the kind changes; a plain book in the hand is not offered as a cell.
+
+A game reading against the last point, by the maintainer in Survival and in Creative:
+the anvil does take a plain book (`minecraft:book`) in the left slot with an enchanted
+book in the right one and offers an enchanted book as the result (in the screenshot at
+a cost of 3 levels). So "an anvil puts nothing on a plain book" in `e85009f7` is wrong
+as a statement about the game; whether the planner should offer a plain book is open.
+Not read: what the cost is made of, the result's anvil uses.
+
+## Enchantment order, twenty-second pass (2026-11-12)
+
+`088f8120`, local build, DLL SHA-256
+`3cceba9cbaf40dfc2b418770aef2bf4c0dd50e7fb72c5d11f015833446621066`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: with an item finished
+earlier at hand a new plan for the same kind starts at step 1; the main-hand cell
+follows the main hand while the anvil is open; the panels have their border and the
+choosing panel is as tall as its rows.
+
+Not wanted: the panel changing its height with the rows is restless; the fixed height
+before was better. Odd: the same item in the main hand and in the left slot shows both
+cells as chosen. Seen in the maintainer's screenshot: a plain book in the hand and the
+slot was offered as an item and planned as an enchanted book.
+
+## Enchantment order, twenty-first pass: choosing beside the anvil (2026-11-12)
+
+`47dfc78e`, local build, DLL SHA-256
+`5636da70bfe480293d09c08dfa6cc86e09ab2f013f30c263c95aa7a6c8006680`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer, at UI sizes 50%, 75%
+and 100% (at the largest some text is cut, everything works):
+
+- The choosing panel left of the anvil and the steps (or "no plan") right of it; rows,
+  level buttons, switches, set buttons and kind cells look as in the planner screen and
+  take presses.
+- An item put in the left slot gets its cell after the main hand's; pressing it fixes
+  the rows the item carries. The cell's place is the same without a main-hand item.
+- A step taken at the anvil leaves the plan as it was and moves the list on.
+- The goal's name switches the goal; the wheel scrolls the rows; an item on the pointer
+  is drawn above the panel and a press with it drops it as the game does.
+- With the setting off: the steps and the Change button only; the planner screen works
+  as before.
+
+Wrong or odd:
+
+- After a plan was finished, choosing enchantments again showed the new plan as partly
+  done (step 5 of 6 next, "not in your inventory" for a later book) with the earlier
+  finished sword in the hotbar.
+- The main-hand item is sometimes not offered in the panel, and changing what the main
+  hand holds while the anvil is open is not followed.
+- The right panel differs from the planner screen's right column, and neither is
+  clearly better: the anvil's is simple with little on it, the planner's has more but
+  its goal row is not obvious.
+- The right panel does not show at a glance what is missing: only what the next step
+  lacks.
+- The anvil's panels have no outer border as Lamium's screen has.
+
+## Enchantment order, twentieth pass: the Change button (2026-11-12)
+
+`998e845e`, local build, DLL SHA-256
+`2205c40ad94e2ab62651dfeb5167df4e3ee8b89ab7918127d27cf5278cba139c`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer:
+
+- The anvil list has "Change" at its bottom right and it brightens under the pointer.
+- A press opens the planner; the anvil's window is not seen while it is open.
+- After changing the plan, Esc returns to the anvil: the items left in its slots are
+  still there and the list shows the new plan. The anvil's window comes up from below
+  with its opening animation, as when first opened.
+- With the item in an anvil slot, the planner chose whatever was in the main hand at
+  that moment; with nothing enchantable in the main hand it opened the previous plan.
+
+Also noticed: opening the planner with an enchantable item in the main hand replaces
+the previous plan without a word (Last choice on the same kind brings it back). And
+with no plan there is no list, so no button: the planner cannot be reached from the
+anvil then.
+
+## Enchantment order, nineteenth pass: the item icon's glint (2026-11-12)
+
+`02a8f09f`, local build, DLL SHA-256
+`1ac48de4e7efa66bb1e2735ee520c6fb94f7010c4fdb6dc8b4c92440343c13bc`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer, in the planner's steps
+and in the anvil list: with a plain item the item's icon has no glint at the step where
+it first appears and glints at the later ones; with an enchanted held item it glints
+from the first step.
+
+## Enchantment order, eighteenth pass: glints and the held count (2026-11-12)
+
+`d96f2cbe`, local build, DLL SHA-256
+`62010ed4e3204598c8508d03ad90d394c7ca37fabf44b825af3ed96e2ffbcb62`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer:
+
+- With a plan of two or more steps the anvil list's books glint, and an enchanted held
+  item keeps its glint over the list.
+- In the planner screen the enchanted books and the main-hand cell glint.
+- A shulker box preview's glints look as before.
+- A held stack of two or more shows its count on top of the item, at the game's own
+  place.
+
+Also seen: the list's item icon (a sword, say) has no glint even where the item would
+be enchanted at that step; it is drawn from a plain stack. Icons the direct path does
+not draw, rechecked the same day: a piglin head and the other heads are drawn in a
+container preview; a recovery compass is not (a compass is); leather armour's undyeable
+parts are missing as before, in the enchantment order's icons too.
+
+## Enchantment order glint test, round 3 (2026-11-12)
+
+`a3c756d1` built with `enchant_glint_test`, DLL SHA-256
+`f65cc9405ec4b8ed87493cae0b184d7ddd82330308bc76dae26ffcfdfbf641c9`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer: only 2 (a white fill under the four icons)
+looks glinting; 1 and 3 to 8 (a 0.23 grey fill, grey squares on or without a panel, the
+preview's frame colour alone, at 8 units, with text) do not.
+
+## Enchantment order glint test, round 2 (2026-11-12)
+
+`f3ee9086` built with `enchant_glint_test`, DLL SHA-256
+`151704f6fa5a5ca72d3ae84e733ac03bedbe3088c9d40384d90cdcdb47f11ea5`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer:
+
+- 1, the container preview's own code with 27 enchanted books: glints, close to a real
+  enchanted book.
+- 2, four enchanted books with nothing drawn before them: something like the glint's
+  animation is seen, but less pink than a real enchanted book.
+- 3 to 8, the same icons on one opaque or translucent fill of the panel colour (with
+  text, at 8 units, bare books, one stack four times): no glint.
+
+The maintainer notes the glint is an animation moving left to right, so a glint that
+stood still might look like none. Not examined.
+
+## Enchantment order glint test, round 1 (2026-11-12)
+
+`47b2a8ca` built with `enchant_glint_test`, DLL SHA-256
+`c655de96e3de7240e57a7665ce01870c6f478104071e8ed29dcb79ede7305a51`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer, watched for two rounds: none of the ten
+arrangements glints at the anvil (bare or really enchanted stacks, 16 or 8 units, one
+call or one per icon). In the same build a shulker box preview with 27 enchanted books
+glints on every one. All ten drew a translucent fill and flushed text before the icons;
+the preview draws opaque fills and no text before its icons.
+
+From `lamium.log`, holding a stack of 64 outside the window: the held stack's count is
+the control `selected_stack_size_text`, 12x10 units, under an unnamed (`default`) child
+of `inventory_selected_icon_button`, at the button's position plus (3, 6). Beside it:
+`selected_item_icon` 21x21, `durability_bar_grabbed` and `storage_bar_grabbed` 16x1.
+
+## Enchantment order, seventeenth pass (2026-11-12)
+
+`8396fafb`, local build, DLL SHA-256
+`cf73e8fa218464d2c90338d019224d64a529e89f613343bcf0088a072e126dbe`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer: no count is seen on top of a
+held stack over the list; the game's own number shows behind the list. `lamium.log`
+has no "held count control" line, so no shown control with "count" in its name was
+found under `inventory_selected_icon_button`: Lamium drew no count.
+
+## Enchantment order, sixteenth pass (2026-11-12)
+
+`8d5083f4`, local build, DLL SHA-256
+`d32f57a18f6d565a636700169849e72914df00bae9f398a9a81941c78ee258cc`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer:
+
+- Glints: unchanged. With two or more steps the list's books do not glint and an
+  enchanted held item loses its glint over the list. The planner screen's enchanted
+  books and its main-hand cell do not glint either. So a stack of its own per icon
+  was not the cause.
+- A held carved pumpkin or enchanted book is now above the list's swords.
+- A held stack's count is on top of the item across the list's edge and is not
+  doubled, but it sits a little to the right of and below the game's own number, on
+  the list as well; the change is visible as the item crosses the edge.
+
+## Enchantment order, fifteenth pass (2026-11-12)
+
+`0855cb5b`, local build, DLL SHA-256
+`535080a4a929d8c90417fac0124cfa5de8d1a4a77241aa387fc9fab26d59ba5a`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer:
+
+- With one step the list's book icon and an enchanted held item over the list both
+  glint. With two or more steps neither does. (A shulker box preview with about 30
+  enchanted books shows every glint.)
+- A held stack of two or more shows its count at the bottom right while wholly over
+  the list, not far from where the game puts it; while it straddles the list's edge
+  the count is under the held item.
+- A held carved pumpkin or enchanted book over the list is above the list's books but
+  under its swords; a held plain book or anvil is above both.
+- The planner screen's enchanted book icons have no glint.
+
+## Enchantment order, fourteenth pass (2026-11-12)
+
+`6fa5445b`, local build, DLL SHA-256
+`05e9a65132a7774d09bad05f79187186d018b12fe1612de5a23ff83fff5b2cc7`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer: a damaged held item's
+durability bar is on top of it over the list, same place and thickness as outside;
+the list's own book and sword icons look as before (the books have no glint, noticed
+now). Wrong: an enchanted held item keeps its glint over a short list and loses it
+over a long one.
+
+## Enchantment order, thirteenth pass (2026-11-12)
+
+`8d62d240`, local build, DLL SHA-256
+`15ba57c5de1d75c8db63166011d413629a7eb4bdde82ca5db78e030c551ea58c`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer: a held item moved over the
+list is seen on top of it while the list stays; crossing the list's edge the item is
+neither doubled nor shifted; without a held item the tooltip and the closing fade are
+as before. Wrong: an enchanted item's glint is missing while it overlaps the list and
+returns when it leaves; the item's durability bar is drawn under the list.
+
+## The item held on the pointer at the anvil (2026-11-12)
+
+`31d6b5ef`, DLL SHA-256 `de6a1ab526233735736c33ebb59ee04e4cd27eccecb1feccc2d5ec01b938f296`,
+1.26.60.05 Dev instance. The maintainer held an item and moved it outside the anvil's
+window; `lamium.log` listed the controls near the pointer three times:
+
+- `inventory_selected_icon_button`, 16x16, its corner 8 left of and 8 above the
+  pointer; its child `selected_item_icon`, 21x21, corner 11.5 left of and 12.5 above
+  the pointer (pointer 465.3,190.3: at 453.8,177.8); `durability_bar_grabbed` and
+  `storage_bar_grabbed`, 16x1, under it.
+- A slot is `grid_item_for_inventory` / `grid_item_for_hotbar`, 18x18, with
+  `common.item_renderer`, 16x16, one unit inside.
+
+The first log of `ebe7b849` (pointer still over the slots) showed only slot controls;
+the earlier `ebe7b849` run with no plan logged nothing, as the log sits in the list's
+code. Seen with `ebe7b849`, per the maintainer: the list no longer vanishes under a
+held item.
+
+## Enchantment order, twelfth pass (2026-11-12)
+
+`9ff54047`, local build, DLL SHA-256
+`c8c6cea8ccd60e490f96a4a126575bfed832f6dd20dd40da93fa06402bcde77a`, no trace options,
+1.26.60.05 Dev instance, Creative. Passed, per the maintainer: the list and enchanted
+items and books draw normally again; the list goes while a held item is over it and
+comes back; closing the anvil the list slides with the window and fades, and opens
+normally; the tooltip is over a bright list as before.
+
+Not wanted after all: the list vanishing under a held item makes the screen flicker.
+Both should be drawn, ideally the item on top, otherwise the item under the list.
+
+## Enchantment order, eleventh pass: painting before the slots breaks the screen (2026-11-12)
+
+`768db9be`, local build, DLL SHA-256
+`08fffeec440746a808f8c55cbcd0a7709acb3eaf56902cb7f3a63cd7cf2dae77`, no trace options,
+1.26.60.05 Dev instance, Creative. Failed, per the maintainer (two screenshots):
+with the list painted from a hook on `InventoryItemRenderer::$render`, before the
+first slot of the frame,
+
+- the list is a plain white box, and so are the slots holding enchanted tools;
+- enchanted books lose their picture and show only the glint on a black square;
+- an item held on the pointer draws normally.
+
+So Lamium's fills and text must not be drawn while the game is in the middle of its
+slot items: the hook was removed. Also seen while the anvil closes: the game's own
+window does not only slide down, it becomes transparent as it goes (the hammer of
+the window is faintly visible over the hotbar in the first screenshot).
+
+## Enchantment order, tenth pass (2026-11-12)
+
+`e8d1d318`, local build, DLL SHA-256
+`b5a864b5727c004edcb25bc9f79053c95c10b61a156280a7b1f188530adfbf2c`, no trace options,
+1.26.60.05 Dev instance, English, Creative. Passed, per the maintainer (two
+screenshots): with the pointer on an item the list stays, at full brightness, under
+the game's tooltip; it does not flicker as the pointer crosses items; its item icons
+do not show through the tooltip.
+
+Seen: while the anvil screen closes, the game's window slides down and partly off the
+screen and fades, but the list slides only as far as the screen's edge, does not
+fade, and vanishes a moment later. An item held on the pointer and dragged over the
+list is drawn under it, with only the pointer above.
+
+## Enchantment order, ninth pass (2026-11-12)
+
+`4800022a`, local build, DLL SHA-256
+`f2cdbe8d2898a36e9bd22799d98247edbfd5bc5426748ebca6301a49e43b2bd5`, no trace options,
+1.26.60.05 Dev instance, Creative. Passed, per the maintainer ("all OK"): the list
+beside the anvil is as bright as before; it goes while the game's item tooltip
+reaches into it and comes back when the pointer leaves; it stays for a tooltip that
+does not reach it.
+
+From `lamium.log` of that run (the build logged the first three boxes): tooltip
+boxes 352,204 88x28, 407,177 86x18 and 402,181 86x18 against a list at x 412 to 612,
+each reaching into it. So `HoverRenderer::mCursorPosition + mOffset` with
+`mBoxDimensions` behaves as the tooltip's corner and size here.
+
+Not checked: a tooltip taller or wider than the screen edge allows (where the game
+moves it), another GUI scale.
+
+## Enchantment order, eighth pass (2026-11-12)
+
+`c884f267`, local build, DLL SHA-256
+`1d9149656c19d3e842ae49507c3159b71c675b9ee481b1fec77ac0147ff1435e`, no trace options,
+1.26.60.05 Dev instance, English and Japanese, Creative. Passed, per the maintainer
+(two screenshots):
+
+- With Sharpness III on the held sword, `+` on its row raises it to V and the steps
+  and costs appear; the anvil's shown cost agrees.
+- A row on the item shows a dimmed switch and its level in the level column, without
+  shifting in Japanese or English.
+- The game's item tooltip is drawn over the list beside the anvil.
+- One plan with other enchantments beside the raised one (six steps, 35 levels: the
+  last step's 12 matched the anvil's "Enchantment Cost: 12"). More involved cases
+  were not tried.
+
+Wrong: drawn before the screen, the list sits under the screen's translucent dark
+layer and is darker than before.
+
+## Anvil cost of raising a level; seventh pass (2026-11-12)
+
+Read by the maintainer from the vanilla anvil's cost line, 1.26.60.05 Dev instance,
+each a sword carrying the lower level and a book of the higher one:
+
+| On the sword | Book | Cost |
+|---|---|---|
+| Sharpness III | Sharpness V | 2 |
+| Knockback I | Knockback II | 1 |
+| Looting I | Looting III | 4 |
+
+So a level the kept side already has is not charged again: the step costs the
+difference in levels times the book's rate (1, 1 and 2 here). Not tried: other
+enchantments on the sword at the same time, an item as the sacrificed side, a book
+as the kept side.
+
+`9d1ae487`, DLL SHA-256 `952bd1751e12e30a426ee7381c3550bed7eae2c09fa791a259afb75d002da34a`,
+Japanese and English: a row on the item writes its level in the level column, but
+the "on the item" tag is wider than the switch and pushes the level left of the
+column. Also seen (screenshot, English): the list beside the anvil is drawn over the
+game's item tooltip and hides it.
+
+## Enchantment order, sixth pass (2026-11-12)
+
+`2af7b12e`, local build, DLL SHA-256
+`849cb06be452e26ad21520362171609bd7ae0b71de00ba866947d3ce2193cd19`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer ("all OK",
+with a screenshot): rows read name, `-` level `+`, switch; rows that are off show
+their level faintly with the switch at the right edge; rows on the item and
+conflicting rows are intact.
+
+Seen: a row on the item still writes its level beside the name, not in the level
+column. Missing: with Sharpness III on the held item, Sharpness V cannot be chosen.
+
+## Enchantment order, fifth pass (2026-11-12)
+
+`06a753ef`, local build, DLL SHA-256
+`5de2081094558230e5c7ab51b08ff0624349d383f46f996bc815b717fceb5750`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot):
+
+- The main-hand cell follows the enchanted book's; opening with nothing held moves
+  neither the grid nor the buttons.
+- A press on an enchantment the item carries does not change the plan.
+- An enchanted book in the main hand gets the cell, its enchantments are on the item,
+  and adding one gives steps.
+- "All highest" on a mace takes Density.
+
+Awkward: the level is written at the left with the name while `-` `+` stand far to
+the right, and rows without level buttons leave an empty stretch right of the switch.
+
+## Enchantment order, fourth pass (2026-11-12)
+
+`b87a65eb`, local build, DLL SHA-256
+`4dba981f4b732b6e8159e327085734cb10016ac5d883feb7ceeca985178a6377`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot):
+
+- Holding an enchanted item the screen opens on the main-hand cell at the left; the
+  kind's own cell switches to a fresh plan.
+- An enchantment row reads name, switch, then `-` `+`.
+- "List the steps beside the anvil" off shows nothing beside the anvil; on shows it.
+
+Seen: a pickaxe, a carved pumpkin and a plain book in the main hand get the cell; an
+enchanted book does not. Wanted: a press on an enchantment the item carries should
+no longer switch to a fresh plan now that the two are chosen apart; the main-hand
+cell after the enchanted book's instead of in its own column, so the grid does not
+move.
+
+## Enchantment order, third pass (2026-11-12)
+
+`cfd22b5e`, local build, DLL SHA-256
+`c7e556623a598ac5086e508a0c27160e915e77ffd828e100a3b381b7348c7752`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot):
+
+- After a finished item is made, closing and reopening the anvil shows no list; the
+  planner brings it back.
+- With a finished item and a fresh one of the kind both carried, the anvil guides from
+  step 1 instead of saying finished.
+- The held-state row is under the list and switching it keeps the row order; the
+  main-hand kind has a white line under its cell.
+
+The "finished" that would not go away in the second pass: a stone pickaxe with the
+same enchantments was still carried; only the diamond one had been looked at.
+
+Awkward: the white line reads as belonging to either the cell above or the one
+below; the switches of the enchantment rows and of the held-state row are on the
+left while Lamium's settings put them right of the name; the held-state row's hover
+background leaves a gap on the left only; an experimental feature without a way to
+turn it off (the world map is the same).
+
+## Enchantment order after the rework (2026-11-12)
+
+`9a1bec30`, local build, DLL SHA-256
+`ec3cafdcbe2e75a6a9e9804b5157b8dfc3e4b32df80e63b9f36ab34c22bd1e82`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot of the screen):
+
+- Kinds are named by the game's group words ("剣") with larger icons; the enchanted
+  book and the carved pumpkin can be chosen.
+- "All highest" on a sword takes Sharpness and no curse; `-` at level 1 turns an
+  enchantment off; curses are red; the conflict reason is the name alone.
+- Pressing an enchantment a held enchanted sword carries switches to planning it
+  from fresh.
+- Beside the anvil the total and the level are on top, done steps are grey, the next
+  one is marked, and a pair outside the plan says which side.
+
+Seen as wrong: the anvil list kept saying the plan was finished after the finished
+item was thrown away, also after opening the anvil with another kind and choosing
+the first kind in the planner again; nothing showed how to get out of that. Whether
+another item with the same enchantments was still carried is not known. Awkward: the
+white main-hand mark covers part of the icon; turning the held state on or off
+reorders the enchantments; the held-state row sits at the top though it means
+nothing for most kinds; no space between the last totals line and the line under it.
+
+Not checked: Survival (the level line and its warning), the mace's "All highest",
+the book kind's plan at the anvil, other GUI scales, servers.
+
+## Enchantment order, first use (2026-11-12)
+
+`0d2b5ecd`, local build, DLL SHA-256
+`1f13c7becc972179eb448be455291793612fa350255572f69a5e670556539db6`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative (the screen's footer said so). Passed, per
+the maintainer:
+
+- The Open button under Inventory opens the screen; holding a sword it opens on the
+  sword's kind.
+- Turning enchantments on lists the steps; the goal switch changes the result.
+- After closing it, the anvil shows the same steps beside its window; the pair of a
+  step in the slots marks that row and the anvil's shown cost agrees.
+- Conflicting enchantments are grey with a reason; an enchanted item in hand shows
+  its enchantments as on the item, and the held-state switch changes that.
+- A sword made by following the six steps carried Looting III, Sharpness V,
+  Unbreaking III, Fire Aspect II, Mending and Knockback II (screenshot of its tooltip).
+
+Seen as wrong or awkward (BACKLOG L-170 has the list): the conflict reason names the
+enchantment with a level ("ダメージ増加 I と競合"); "All highest" also turns curses on and
+enables "Last choice" when nothing changed; the set buttons move when the held-state
+row appears; Feather Falling sits between the four protections on boots; a book and a
+carved pumpkin are not offered as items.
+
+Not checked: Survival and the 40-level refusal on this build, the unbound key,
+another GUI scale, a narrow window, servers, the unverified-version fallback, the
+warning when the game's cost differs.
+
+## World probe: the anvil screen (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Builds: `911c00b0` plus the then-uncommitted anvil-screen lines of the
+`world_probe` option, DLL SHA-256 `540e3076...5673` (slots and cost) and
+`a3b3e78a94cb0a3a64b4aca65f8d9e26fe7da0422879c8602fe2c9cbf9008dbf` (laid-out boxes),
+1.26.60.05 Dev instance, title screen showing LeviLamina 26.60.5, the local world
+"Lamium anvil test", Creative, windowed. Read from `lamium.log` inside the
+`AfterUIRenderEvent` of the focused container screen; nothing was written to the game.
+
+- `ScreenView::getScreenName()` is `anvil_screen`; the manager's container type is 5.
+- The manager's collections: `anvil_input_items[1]`, `anvil_material_items[1]`,
+  `anvil_result_items[1]`, `cursor_items[1]`, `creative_output_items[1]`,
+  `hotbar_items[9]`, `inventory_items[27]`, `combined_hotbar_and_inventory_items[36]`.
+  `getItemStack` followed the sword from the hotbar to the cursor to the input slot.
+- `ItemStackBase::getBaseRepairCost()` gave 31 for the sword with five anvil uses
+  and 0 for the fresh one.
+- `AnvilContainerManagerController::mCost` was 0 with empty slots, 31 with only the
+  five-use sword in the input, and 39 with the fresh Vanishing sword as material;
+  the screen showed "エンチャントのコスト: 39" at that moment.
+- Boxes one second after opening, in a 644x348 view: `root_panel` at 234,91 size
+  176x166 (the window), `recipe_grid` at 255,138 size 134x17, `inventory_grid` at
+  241,177 size 162x54, `hotbar_grid` at 241,234 size 162x18. The first frame's
+  boxes are not laid out (everything 644x348).
+
+Not checked: drawing anything there, another GUI scale or window size, Survival,
+a server, whether a Lamium key reaches Lamium while this screen is open. The Dev
+instance has the published 0.6.0 again (`bb6691f9...`).
+
+## World probe: the enchantment registry (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Build: `6a16c197` plus the then-uncommitted L-170 lines of the
+`world_probe` option, built with `xmake f --world_probe=y`, DLL SHA-256
+`f411e608ee554bcfe2d2c4ae6d2ede03b2922fc6363443014c5fcfb47df645bc`, 1.26.60.05 Dev
+instance, title screen showing LeviLamina 26.60.5, the local world "Lamium anvil
+test". Read from `lamium.log`; nothing was written to the game.
+
+- `Enchant::mEnchants()` on the client held 42 entries, ids 0 to 41, none
+  disabled, each with a string id, `mFrequency`, `getMaxLevel()`, primary and
+  secondary slot masks and a compatibility group.
+- Frequency 30: protection, sharpness, efficiency, power, loyalty, piercing.
+  10: fire_protection, feather_falling, projectile_protection, smite,
+  bane_of_arthropods, knockback, unbreaking, impaling, quick_charge, density, lunge.
+  3: blast_protection, respiration, depth_strider, aqua_affinity, fire_aspect,
+  looting, fortune, punch, flame, luck_of_the_sea, lure, frost_walker, mending,
+  riptide, multishot, wind_burst, breach. 1: thorns, silk_touch, infinity, binding,
+  vanishing, channeling, soul_speed, swift_sneak.
+- With the anvil costs read the same day (entry below), frequency 30, 10, 3, 1
+  matches a per-level cost of 1, 2, 4, 8 for a sacrificed item and 1, 1, 2, 4
+  for a book, in all nine cases read (sharpness, unbreaking, looting,
+  fire_aspect, mending, knockback and vanishing as books; knockback and
+  vanishing as items).
+- `isCompatibleWith` between every pair: the four protections exclude each other;
+  sharpness, smite, bane_of_arthropods, density and breach exclude each other;
+  silk_touch/fortune, depth_strider/frost_walker, infinity/mending,
+  multishot/piercing, riptide/loyalty and riptide/channeling exclude each other.
+- `EnchantUtils::canEnchant(held, {type, max level}, false)` with a diamond sword
+  carrying Curse of Vanishing in hand (`getEnchantSlot()` 0x10): `Enchant` for
+  sharpness, smite, bane_of_arthropods, knockback, fire_aspect, looting,
+  unbreaking and mending; `Conflict` for vanishing, which it already has; `Fail`
+  for the other 33.
+
+Not checked: `combineEnchantedItems`, an item that already carries a conflicting
+enchantment, other item types, a server, a world with experiments. The Dev
+instance has the published 0.6.0 again (`bb6691f9...`).
+
+## Anvil costs behind the enchantment planner (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Vanilla anvil behavior, read from the cost line of the anvil screen;
+Lamium was the published 0.6.0 (`bb6691f9...`) and took no part. 1.26.60.05 Dev
+instance, title screen showing LeviLamina 26.60.5, a new local world
+"Lamium anvil test" (Creative, cheats). Books and swords were made with `/give`
+and `/enchant` (it works on an enchanted book), so every input started with no
+earlier anvil use. All items at full durability, no rename.
+
+Fresh diamond sword as the kept side, fresh sacrifice:
+
+| Sacrifice | Cost | Per level |
+|---|---|---|
+| Book, Sharpness V | 5 | 1 |
+| Book, Unbreaking III | 3 | 1 |
+| Book, Looting III | 6 | 2 |
+| Book, Fire Aspect II | 4 | 2 |
+| Book, Mending | 2 | 2 |
+| Book, Knockback II | 2 | 1 |
+| Book, Curse of Vanishing | 4 | 4 |
+| Sword, Knockback II | 4 | 2 |
+| Sword, Curse of Vanishing | 8 | 8 |
+
+Book onto book: Sharpness V kept, Unbreaking III sacrificed, 3; Fire Aspect II
+kept, Knockback II sacrificed, 2; Looting III kept, Mending sacrificed, 2.
+
+One sword through five steps (kept uses, sacrifice uses -> cost):
+
+- 0 uses + the Sharpness/Unbreaking book (1 use, value 8): 9 = 8 + 0 + 1.
+- 2 uses + the Looting/Mending book (1 use, value 8): 12 = 8 + 3 + 1.
+- 3 uses + Fire Aspect II book: 11 = 4 + 7.
+- 4 uses + Knockback II book: 17 = 2 + 15.
+- 5 uses + Curse of Vanishing book: 35 = 4 + 31 (read, not taken).
+
+So the surcharge is 2^uses - 1 on each side and the result has max(uses) + 1
+(0 and 1 gave 2; 2 and 1 gave 3). A plain sword + a Vanishing sword with one
+use: 9 = 8 + 1.
+
+The limit, with the 5-use sword: + a fresh Vanishing sword costs 39, + the
+one-use Vanishing sword costs 40. Creative shows both with a result. Survival
+(100 levels): 39 has a result; 40 shows "コストが高すぎます!" and no result.
+
+Also seen: the 5-use sword (Knockback II on it) + a fresh Knockback II sword
+gives no result in Creative (nothing to add or repair).
+
+Not checked: a damaged item or a rename in the same step, a book whose
+enchantment is already on the item or conflicts with it, two equal books
+merging into a higher level, other item types and enchantments, servers.
+The world "Lamium anvil test" is left in the Dev instance. In "マイ ワールド" one
+`/give enchanted_book` was run with a full inventory before the test moved to
+the new world; nothing else was changed there.
+
+## 0.6.0 published ZIP, block highlight keys and Through walls (2026-11-12)
+
+The published `Lamium-0.6.0-client-windows-x64.zip`
+(`25b7b445d13605d35a9fbf2c2f869d41a59c47244c190b5bf1fb9c0fd65b66dd`, matching
+the release digest) copied by hand into the 1.26.60.05 Dev instance, DLL SHA-256
+`bb6691f9efabec5f2f4137015317006ad96fe2bdfd18b48ebf98269379b5aaa5`, LeviLamina
+Client 26.60.4. Passed, per the maintainer, as one "all OK" to this list:
+
+- The ZIP: a world loads, settings show 0.6.0, listed blocks glow, a clean exit.
+- Block highlight (L-320): the opener key opens the list; the toggle removes
+  the glow and brings it back; the add key in Freelook adds the aimed block's
+  type; Through walls shows ores behind water faintly, also under Simple
+  graphics and Vibrant Visuals; the glow is readable under Night Vision.
+
+Not checked: an install through LeviLauncher or LIP (the files were copied),
+servers, the Nether and End, Vibrant Visuals beyond Through walls (edge colors).
+
+## 0.6.0 listings (2026-11-12)
+
+Per the maintainer: Bedrinth and LeviLauncher list 0.6.0. Both read the LIP
+registry (DISTRIBUTION.md); the registry itself was not opened.
+
+Not checked: the published ZIP in game.
+
+## World probe: chunk tick range, mob timers, dragon part boxes (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Build: `1479ee90` plus the uncommitted `world_probe` option, built with
+`xmake f --world_probe=y`, DLL SHA-256
+`c69dc0935bdb06b4e414e4c0fa1f152be5feda81cc48df0e5b33ea974535f5e6`, LeviLamina Client
+26.60.4, 1.26.60.05 Dev instance, the local creative world "マイ ワールド", Overworld.
+The first probe build (`cebdccf2...`) listed too few actors and gave only the first
+two results. Read from `lamium.log`; nothing was written to the game.
+
+- L-249: `ILevel::getChunkTickRange()` on the client level returned 4 on every sample.
+  The world's simulation distance setting was not read from the settings screen, so
+  "4 is this world's setting" is likely (4 is the default) but not confirmed.
+- L-33: client actors carry neither `AgeableComponent` nor `BreedableComponent`. A
+  baby cow summoned with `minecraft:entity_born` and a baby squid both logged
+  `baby=true ageable=false breedable=false`; no actor in the session had either
+  component. `tryGetComponent` links for both types.
+- L-30: a dragon summoned 60 blocks up with `/summon ender_dragon` had all eight part
+  pointers non-null on the client, each a world-space box that moved with it over four
+  samples: head 1x1x1, neck 3x3x3, body 5x3x5, tail parts 2x2x2, wings 4x3x4, inside
+  or just outside the 13x4x13 actor box. The dragon was removed with `/kill`.
+
+Not checked: a server (local or remote) for any of the three; a naturally spawned
+dragon in the End (L-30 asks for one); a world with another simulation distance; an
+adult animal after breeding. The Dev instance has the plain build again
+(`29b21312549aab9f9a5425fa41516e290f0a7244dd68d05847555a7e74c7e42e`).
+
+## 0.6.0 release smoke and tag (2026-11-12)
+
+Smoke of the commit's CI package: `bb1cc4be`, run 43044152485, DLL SHA-256
+`a3869b39ff196b0cc2fc56152c14483f961aaf73a1976472476710000f655187`, LeviLamina
+Client 26.60.4, 1.26.60.05 Dev instance, Japanese. Passed, per the
+maintainer: load, settings showing 0.6.0, the block highlight list ("10 件"
+not overlapping, a chest and a cactus glowing), the HUD layout and Tool
+Switch as in the first smoke, a clean exit.
+
+Tag `v0.6.0` on that commit; its CI run 43047219826 made the draft release
+with `Lamium-0.6.0-client-windows-x64.zip`
+(`25b7b445d13605d35a9fbf2c2f869d41a59c47244c190b5bf1fb9c0fd65b66dd`) and
+`Lamium-0.6.0-client-windows-x64.pdb.zip`
+(`23b56eada82203368710c06868357936e84732b44449e7d9196ddb75224cf10e`).
+
+Not checked: the published ZIP itself in game, the listings (LIP registry,
+Bedrinth, LeviLauncher), servers.
+
+## Zero-wide characters in labels, wet sponge order (2026-11-11)
+
+`2a75b760`, local build, DLL SHA-256
+`aad20aba0f17a8463d8078925f9ea4a8b7fb27cc743b75e009147fda33b21c63`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, Japanese. Passed,
+per the maintainer: "10 件" in the block highlight list's result count no
+longer overlaps and has no odd gap; "渡" in the Item Transfer help no longer
+sits on the character before it; the wet sponge is listed after deepslate
+iron ore and before the monster spawner.
+
+Not checked: right-aligned and centered labels with such a character, other
+sizes, Chinese, text drawn outside the label widgets.
+
+## 0.6.0 smoke, block highlight shapes and a zero-wide character (2026-11-11)
+
+Smoke of the 0.6.0 CI package: `8bfe82e2`, run 43027018041, DLL SHA-256
+`37947bf32db676ee9df8d1dbc307ff7e3e3053827c909f93b723af8ed87ebfea`,
+LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, Japanese. Passed, per the
+maintainer (load, settings showing 0.6.0, the changed features), with these
+reports: the deepslate sibling offer moves the results; cactus, glass panes
+and chests do not glow; "10 件" in the list's result count is drawn with the
+kanji over the digits, seen in other places too.
+
+Local builds on the same instance, each with an uncommitted diagnostic log
+(not release builds):
+1. `21443900` plus the log, DLL SHA-256
+   `d30f4f12064ef0b8c5c4173bef353849c7fcdb4eec0bdcd32d20d942b7d4c0e6`: cactus
+   and glass panes glow, walls and ores as before; no sibling offer row and
+   the results stay in place. Log: the font measures "件" 0 wide ("10 " 11,
+   "10 件" 11).
+2. The same plus the mark rule for shapes that add no vertices and the wet
+   sponge, DLL SHA-256
+   `75e391d8eacb15470c0cc3db624a84534080eed796e6b7e91cd64494633440a2`: chests
+   and shulker boxes glow; cactus, panes and ores as before. Log: of the 772
+   distinct non-ASCII characters in the Japanese strings, "件" and "渡"
+   measure 0 ("条件" 10, "件数" 10, "中" 10).
+
+Not checked: the label fix for those two characters (written after these
+builds), the wet sponge's place after the ores, servers, Vibrant Visuals.
+
+## Game HUD placement as one feature (L-321, 2026-11-11)
+
+`5372d087`, DLL SHA-256
+`8632890aea0bd8bcdf825f242eb0999289bb7b2c926024a51083a0d16e895fec`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI, the
+maintainer's existing settings file (the three old switches on). Passed, per
+the maintainer:
+1. The Information category has one "Game HUD placement" row in place of the
+   three; expanded, it shows three detail switches.
+2. The earlier places and scales of the chat, the doll and the scoreboard
+   still apply (the settings migration).
+3. The main switch off restores all three; on again moves them again.
+4. One detail switch off returns only that part to the game's place.
+Not itemized: a file with only Chat position on or off, fresh settings, the
+keys and their toasts, the paused notices, other languages.
+
+## Chat and scoreboard scale (L-321, 2026-11-11)
+
+`94f8299a`, DLL SHA-256
+`df71b0bc4dcf57805afd6e0064915a009c88db6d0b8a181918592cf769227cbe`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI. The
+maintainer answered "no problems" to the supplied checklist, without
+itemizing:
+1. Chat at 150 % and 50 %: wrapped messages intact, backgrounds and text
+   matching.
+2. Scoreboard at 200 % and 50 %: background, title, names and scores scale
+   together.
+3. Both back at 100 % have the game's size.
+4. With a scale set, switching the feature off restores the game's place and
+   size.
+Not itemized: handles and typed scale for these elements, fading and many
+messages at a scale, Pocket UI, other GUI scales, servers.
+
+## Chat scale draw experiment (L-321, 2026-11-11)
+
+`075b60e0`, DLL SHA-256
+`bb59c4269ce0fa9cdbedf69369663311cbd8d0d9d1bb54314c2dc034e206e80f`,
+`chat_scale_trace=y`, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance,
+desktop UI, Chat position on, two 1920x1080 screenshots from the maintainer.
+The trace draws each chat text and background two more times per frame with
+the control's position and size, and the text's font scale and line height,
+multiplied for the call (1.4 to the right of the chat, 0.7 above it). Seen:
+1. Three chats: the game's, a larger and a smaller one. With one short
+   message and with a short message plus one wrapped over three lines, both
+   copies break the lines at the same words as the original, the lines keep
+   their spacing (no overlap, no gap) and each background spans its scaled
+   width and height.
+2. The scaled text looks sharp at both sizes.
+3. Per the maintainer: no flicker of the scaled copies while messages fade.
+4. Per the maintainer: enlarged, the text shadow's offset is a little more
+   noticeable.
+5. Log: `fontScale=1 lineHeight=14.668 linePadding=1.001 fontSize=1`, text
+   control 249 wide in a 256-wide panel, for a one-line message.
+Not seen: scales beyond 0.7-1.4, messages with formatting codes or emoji,
+many messages (the chat's maximum height), Pocket UI, other GUI scales,
+servers, the cost of the extra draws.
+
+## Scoreboard position (L-321, 2026-11-11)
+
+`f90e1f61`, DLL SHA-256
+`d05da587fd0431b71d8affcb043ccfbb4ae85efa2593ae5f20653885b58b51b0`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI, a
+local world with a sidebar objective. Passed, per the maintainer:
+1. Switched on, the scoreboard stays at its usual place.
+2. Dragged in HUD layout: in play the background, title, names and scores are
+   drawn together at that place.
+3. At the left side and the top edge nothing is cut off; a long name added
+   afterwards still fits on the screen.
+4. Switched off, the scoreboard is back at the game's place.
+Not itemized: Pocket UI, other GUI scales, servers and their custom sidebars,
+long lists, the editor's sample and frame.
+
+## Paper doll scale (L-309, 2026-11-11)
+
+`789eaa13`, DLL SHA-256
+`5426ffdaedb473c44a2feca9e46a184c75b0ef3a571bd04d00d39e8d9c4c799f`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI.
+Passed, per the maintainer:
+1. At 200 % the doll in play fills about the range the editor's frame shows,
+   armor and held item with it.
+2. At 50 % it is drawn small and correctly.
+3. Enlarged and placed at the screen edge it is not cut off.
+4. Back at 100 % it has the game's size again.
+Not itemized: sizes between, Pocket UI, other GUI scales, servers.
+
+## Paper doll position (L-309, 2026-11-11)
+
+`94543d8e`, DLL SHA-256
+`5943b666164e5010bb663e2bda7d1c1b90bdc2e7f9502be16d2c0693353de737`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI.
+Passed, per the maintainer:
+1. Switched on, the doll stays at its usual place.
+2. The stand-in figure dragged in HUD layout: in play the doll is drawn
+   there, armor and held item with it.
+3. At the screen edges and near the middle the doll is not cut off and does
+   not go behind other HUD parts.
+4. Switched off, the doll is back at the game's place.
+Noted by the maintainer as a known limit: where the doll overlaps another
+element it may not be shown, or is not drawn behind it. Not itemized: which
+elements, Pocket UI, other GUI scales, servers, the stand-in figure and the
+frame color in the editor.
+
+## Paper doll draw experiment (L-309, 2026-11-11)
+
+`4855df8e` plus the uncommitted `doll_trace` change (committed after this
+run), DLL SHA-256
+`d723aec3c5bb0da65099f87236ab19d4c2d85a31dc4b16d57af1fb9ed3b72509`,
+`doll_trace=y`, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop
+UI, 1920x1080 screenshot from the maintainer. The trace calls the game's
+`HudPlayerRenderer::$render` three more times per frame. Seen:
+1. Four dolls, none looking wrong to the maintainer: the game's, one 70 units
+   below it at the same size (cached position moved), one to the right at
+   twice the size (cached position moved and the control's size doubled) and
+   one further right at twice the size (scale and offset on the world matrix).
+2. Each doll wears the diamond armor, holds the item and has the head piece;
+   all scale with it.
+3. The doubled-size doll's center sits where a control of twice the size
+   would have its center, so the doll is centered in and sized by its control.
+4. Log: `pass=0` only. The one logged frame had the control at 22.5, 22.5 with
+   size 0, 0, which is the center of its 15x15 place; the line is written once,
+   on the first draw, so this is read as the screen's entrance size animation,
+   not checked further.
+Not seen: Pocket UI, other GUI scales, sizes below 1, a doll near a screen
+edge or over other HUD parts (clipping, draw order), servers, other skins or
+persona pieces, whether the extra calls sped up the doll's animation.
+
+## HUD layout editor selected element on top (L-321, 2026-11-11)
+
+`e4bf3ef1`, DLL SHA-256
+`919ffe6a140df14e64ccb7339a391b9f32e414c810cf713cf65d681366780927`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. The chat, selected over the Info HUD, is drawn in front and reads.
+2. The inventory HUD, selected over the Info HUD, is in front, icons included.
+3. Deselecting returns the usual order.
+Not itemized: other elements as the selected one, Pocket UI, other GUI scales,
+servers.
+
+## HUD layout editor tags off the watched element (L-321, 2026-11-11)
+
+`f1877315`, DLL SHA-256
+`d846adddde6d43321cc51f62cc0e446ccb7cc555e0843905d904c1db8d735c59`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer (with a 1920x1080 screenshot):
+1. No other tag sits on the target card while it is selected or pointed at.
+2. The schematic HUD's tag no longer covers an info line.
+3. With an element at the top edge selected, its tag and the toolbar both show.
+Reported: a selected element that overlaps the Info HUD looks as if it were
+behind it (the chat, with the info lines drawn over the chat sample; the same
+with the inventory HUD).
+
+## HUD layout editor frame names on corner tags (L-321, 2026-11-11)
+
+`b0e25376`, DLL SHA-256
+`ac90946efa8b9d48e0fa477a486a2e1ea02084a87d129990c50da5697e55269e`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Per the
+maintainer (two 1920x1080 screenshots): the corner tags read well and the
+toast and zoom tags no longer share a place. Reported: the tags stand out too
+much; with the target card selected or pointed at, the player list's tag sits
+on the card, so the element being looked at cannot be read. Seen in the
+screenshots, not reported: the schematic HUD's tag covers an info line, and
+the selected element's own tag, below the element at the top of the screen, is
+covered by the toolbar.
+
+## HUD layout editor frame names on plates (L-321, 2026-11-11)
+
+`ac48a6bb`, DLL SHA-256
+`e88504db978b51d9592cf5ca5479cf6cf117a4a78c118495449f29b783123101`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Per the
+maintainer (with a 1920x1080 screenshot):
+1. Passed: a name on its plate reads over the info lines.
+2. Passed: the target and player list plates at the top center do not overlap.
+3. Passed: pointing at a frame shows its content; moving away frames it again.
+Reported: two framed elements on each other (toast and zoom magnification)
+put their plates on each other and neither reads; the plate behind the text
+looks out of place.
+
+## HUD layout editor rework (L-321, 2026-11-11)
+
+`d3babde2`, DLL SHA-256
+`60e86ba539b4ae301302484e9e50cc23ee5db397966724243c9a808e7cdfeefc`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer (with a 1920x1080 screenshot of the idle editor):
+1. The idle panel shows in the middle and conditional elements are dashed
+   frames; clicking a frame shows its content.
+2. Corner handles scale in 5 % steps and the result is saved; 50 % and 200 %
+   reported as fine.
+3. The typed scale applies on Enter and the arrow keys nudge again afterwards.
+4. A second click at the top center selects the element below.
+Reported: the frames' names, drawn at the top left of each frame, run into
+other elements' text and each other (schematic HUD over the info lines, target
+over player list, the zoom name wider than its frame), so a frame is hard to
+identify. Not itemized: which elements were scaled, Pocket UI, other GUI
+scales, servers.
+
+## Block highlight rainbow refresh at 20 Hz (L-320, 2026-11-09)
+
+`e7728dba`, DLL SHA-256
+`c1dd8db0da36919b715f975e00e9c5c4efaa780bbf6fa8dfa3b67f9be1fa3b24`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. With deepslate listed and the rainbow: about 100 FPS (about 90 at 30 Hz;
+   rough figures).
+2. No visible steps in the flow or the pulse. The maintainer keeps 20 Hz,
+   close to the frame rate of the game's own block animations.
+
+## Block highlight rainbow refresh in batches (L-320, 2026-11-09)
+
+`c5c477e1` (DLL built from the same source before the docs-only commit),
+DLL SHA-256 `ad325a56d25f9f39179c10ac6d1fb63d53b3c9450ce519a439e6701189bdd20d`,
+no trace options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance.
+Passed, per the maintainer:
+1. With deepslate listed and the rainbow: about 90 FPS (about 70 on
+   `03034955`; rough figures).
+2. The flow and pulse stay smooth: no visible steps and no color seams
+   between batches.
+3. Marks come and go correctly while walking and mining.
+Not checked: Through walls with the rainbow, Simple graphics, Vibrant
+Visuals, servers.
+
+## Block highlight Color and Strength (L-320, 2026-11-09)
+
+`03034955`, DLL SHA-256
+`431950090ecc1e0ad90605ccdbcfc2079ae1e8dd81f86a02dffc61db22c0af82`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. The Color (Rainbow) and Strength (50 %) rows are under Block highlight;
+   the rainbow looks as before.
+2. Cyan and the other colors show still, without flow or pulse; marks come
+   and go correctly while walking and mining.
+3. 0 % leaves only the edges, 100 % clearly darker faces; with Through walls
+   on, the faint faces follow the strength.
+4. With deepslate listed: about 70 FPS with the rainbow, about 165 FPS with a
+   still color (rough figures; other apps were running and settings vary).
+Not checked: Simple graphics, Vibrant Visuals, servers.
+
+## Block highlight Through walls (L-320, 2026-11-09)
+
+`81b20747`, DLL SHA-256
+`1acb6974eb50b27f55c830b54f96da8a92c0d07b1c37f1006fe5906d2106644e`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. Through walls on: ores on cave walls show faint rainbow faces from the
+   surface and from outside the wall.
+2. Ores in sight keep the full glow and their edges.
+3. An ore enclosed in stone on every side does not show.
+4. Beside a glowing block and one or two blocks away, the faint faces keep
+   their shape and do not flicker.
+Not checked: Simple graphics, Vibrant Visuals, faces behind water, servers.
+
+## Review fixes: block highlight, Hide Offhand map, Tool Switch (L-320, L-305, L-318, 2026-11-08)
+
+`15f4aefe`, DLL SHA-256
+`9208252463560c0464d1271653a064f6dcd47a3c977c3eff5c74d8ef09fbaab1`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. This build was
+deployed when the result was reported; checks 1-4 were first listed for
+`5e6dc0f9` (DLL `779d93b6...c424`, deployed earlier the same day), whose code
+`15f4aefe` contains unchanged apart from the Fortune fetch. Passed, per the
+maintainer:
+1. With the block highlight list open and a common type (stone) listed,
+   walking shows no stutter; the nearby count updates a little later.
+2. Mining a listed block, and going to the Nether and back: the glow goes and
+   returns correctly, and other types keep their glow.
+3. Hide Offhand on, a map in the off hand: hidden in first person, shown in
+   third person.
+4. Silk Touch priority on glass: switches to the Silk Touch tool as before.
+5. Fortune priority with fetching on, Fortune I held and Fortune III in the
+   inventory, on iron ore: Fortune III is fetched.
+6. With Fortune III on the hotbar: no fetch, the hotbar Fortune III is
+   selected.
+Not checked: the inventory paper doll with an offhand map; the drop cache
+across worlds; Vibrant Visuals.
+
+## Block highlight key with FreeCamera (L-320, 2026-11-08)
+
+`8c49d25c`, DLL SHA-256
+`50d3fa5ec1e015fcc1f670669234f61146fc580ed3bb36567ee29f04e2f998ca`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: in FreeCamera, away from the body, the key adds the type the
+camera aims at and a second press removes it; with FreeCamera off the key
+takes the outlined block as before. Not checked: Freelook.
+
+## Block highlight list (L-320, 2026-11-08)
+
+`983bf80f`, DLL SHA-256
+`a3d6a3d2257215db5a18f7cc6d8e4780465d8d6a6ecf99d7e84ba70be60480d8`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: the Open button under Block highlight opens the list with the
+listed types on the left and suggestions on the right, both with icons;
+searching "ダイヤ" and "debris" narrows the results, a click adds the type and
+the deepslate sibling is offered; a type not yet found in the world, added
+from the list, glows underground and its nearby count rises; the target card
+shows the listed row; two presses of Remove take a type off and its glow
+stops. Not checked: the opener key, Night Vision, other dimensions, Vibrant
+Visuals, servers, the unverified-version fallback.
+
+## Block highlight with many blocks (L-320, 2026-11-08)
+
+`62123753`, DLL SHA-256
+`eb98c6bd698c859da81ca92a8d3633dbfb640432004f3bca57cb950b2bb771e8`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: with tuff and gravel highlighted the nearby glow stays while
+walking around, the limit toast shows once, and ore-only highlighting glows
+as before. Not checked: Night Vision, other dimensions, Vibrant Visuals,
+servers, the unverified-version fallback.
+
+## Block highlight rainbow (L-320, 2026-11-08)
+
+`9dab5639`, DLL SHA-256
+`07f4c49c0d46281239c0501e7c9773c9ec050edaa6764f412f3a20b99ac1f216`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: highlighted ore glows in a flowing rainbow with matching edges,
+the ore texture shows under the glow, and mining the ore removes its glow.
+Found: with very common blocks listed (tuff, gravel, plus two deepslate ores)
+or many types, the glow sometimes vanished without any notice. Suspected: the
+whole glow was one mesh of up to 24576 faces (196608 vertices on Fancy),
+past what one mesh may hold, and the face limit kept marks in section order,
+not nearest first. Fixed in the next build, untested.
+
+## Block highlight glow (L-320, 2026-11-08)
+
+`3614d9da`, DLL SHA-256
+`654a58d1d70dced4527d7ede23f18585c761a5855f0194ca890310da35143328`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: highlighted iron ore keeps glowing and pulsing (on `4af43289` it
+showed for a moment and vanished), and ore about 110 blocks away glows the
+same way. Not checked: mining a highlighted block, through-wall leaks at
+distance, Night Vision, other dimensions, Vibrant Visuals.
+
+## Block highlight first look (L-320, 2026-11-08)
+
+`2d14c846`, DLL SHA-256
+`026dc50abb1ce4ab25a7e6ab7e26b074a82808f97a3828165c9f74949815b89b`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Iron ore
+designated with the key, in a dark cave at night. Seen (maintainer's
+screenshots): the iron ore is tinted red from the chunk mesh; the tint is weak
+with Night Vision on; with it off the block is darker than vanilla, not
+brighter (UV1 was raised to .9375; the log read UV1 0 to 0.000198 on the
+first three highlighted blocks). The list survived rejoining the world. Not
+checked: removing a type, the toggle key, other dimensions, Vibrant Visuals.
+The glow overlay that replaces the UV1 raise (`4af43289`) is untested.
+
+## SDK 26.60.4 build smoke (2026-11-07)
+
+`ffb71ef2` (SDK 26.60.4, bedrock-runtime-data v26.60.5-client.11, minimum
+LeviLamina 26.60.4), DLL SHA-256
+`45c562b8f09c76d3bc8623c35c9ee7c2ed6bc12c71c1710ecd3c6e44cb336d94`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: no paused-features toast on joining a world, `L` opens settings,
+Hide Offhand hides a totem, a version-gated feature (Night Vision) works, and
+the process ends at once after closing the game. The exit before it, on
+`34b455a2`, left the process running until it was ended by hand; no crash
+folder was written and `latest.log` stops mid-session, so the cause is unknown.
+
+## Everyday-use confirmations (L-02, L-62, L-68, L-69, 2026-11-07)
+
+No dedicated check and no build recorded. Per the maintainer: the dedicated
+Hotkeys, Shapes and HUD layout openers (L-02 follow-up) are used in everyday
+play, and Tool Switch's inventory fetch (L-69), offhand totems (L-68) and Tool
+Protection (L-62) work on the trace-disabled release builds used since 0.1.8.
+VALIDATION.md no longer lists these as unchecked.
+
+## Maintainer closures from everyday use (L-177, L-192, L-193, 2026-11-07)
+
+No dedicated check and no build recorded. Per the maintainer: the reporter of
+L-177 has used the schematic features since the 2026-10-14 fix and did not
+report the stale mismatch highlight again; the maintainer uses glass ghosts
+regularly and sees neither the brightness change by section (L-192) nor the
+border flicker (L-193). All three are closed on that basis.
+
+## Hide Offhand with a map in the off hand (L-305, 2026-11-07)
+
+1.26.60.05 Dev instance, LeviLamina Client 26.60.4 (updated the same day), no
+trace options except where named. Per the maintainer:
+
+- `c89e2fb2` (DLL `d289c330...cf366`), skipping `_renderMiniMapHand` with
+  `inOffhand` true: the offhand map stayed drawn with Hide Offhand on and off;
+  a totem in the off hand was hidden, so Hide Offhand itself worked.
+- Trace build on `c89e2fb2` (DLL `e74d4305...2c80e`, uncommitted
+  `offhand_map_trace`): in the first-person pass `_renderPhotoMapItem
+  isMainHand false` ran first, then `_renderMiniMapHand inOffhand true`.
+- `a1c43cc2` (DLL `88455a38...cfa8b`), skipping `_renderPhotoMapItem` with
+  `isMainHand` false: the offhand map is hidden and returns with Hide Offhand
+  off; a map in the main hand stays drawn. The arm that held the offhand map
+  stays.
+- `34b455a2` (DLL `0cb8281a...84b19`), skipping both calls: the arm still
+  stays, the main-hand map is unchanged. The `_renderMiniMapHand` hook was
+  removed again in `f37dbc4e` (same code as `a1c43cc2`; that build was not
+  deployed because the game was running).
+
+The leftover arm is accepted as a known limitation.
+
+## Tool Switch drop priority (L-318, 2026-11-07)
+
+Branch `l318-silk-tool-switch`, PR #73, built from `118bb42e`; DLL SHA-256
+`EC4500E38D332E2FA7DCFDA01E6D69F8F1B581136B282B6DE7FA0AC5412E1039`, no trace
+options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+
+- Fortune priority on iron ore takes the Fortune pickaxe and drops more raw
+  iron; stone keeps the fastest tool. So the Fortune drop query answers on the
+  client.
+- Silk Touch priority on stone takes a wooden Silk Touch pickaxe over a faster
+  plain one, and stone drops.
+- Of two pickaxes of the same material, the one that broke a block last is
+  chosen.
+- The cycle key shows the toast and changes the settings row.
+
+Not covered: owning no Fortune or Silk Touch tool, other Fortune blocks (gravel,
+crops), servers.
+
+## Silk Touch tool switching (L-318, 2026-11-07)
+
+Branch `l318-silk-tool-switch`, PR #73, built from `4eaa35ea`; DLL SHA-256
+`04A513CE7C455177F611BD51422D641584E9BA8C47DCEC57477DE1D4A0223810`, no trace
+options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Seen, per the
+maintainer, with a Silk Touch pickaxe and a plain one:
+
+- Glass and ice break into the block after the switch to the Silk Touch tool.
+- Tinted glass and dirt are not switched (tinted glass drops itself).
+- With the option off, stone is not switched; with it on, a Silk Touch tool of
+  the same grade as the best plain one is taken and stone drops.
+- A diamond pickaxe is kept over a wooden Silk Touch one.
+- The new label and help read in all four languages.
+
+The drop data behind the boundary came from a probe build (reverted, not
+deployed): `getResourceDrops` gave glass, panes, stained glass and panes, ice,
+packed ice and blue ice as nothing without Silk Touch and the block with it;
+tinted glass drops itself; leaves, iron ore, stone and grass block change; dirt
+does not. Not covered: owning no Silk Touch tool at all, servers, and blocks
+whose drop depends on the tool class (the query answers with a synthetic stack).
+## One-sided glass pane joins (L-306, 2026-11-07)
+
+Branch `l306-pane-frame`, PR #72, built from `29842d80` (`floor(min + 0.01f)`); DLL SHA-256
+`F6D38B66D8311D9201E165666E463DD2971088B6AE3AA58FB8BCC092F93EF4CF`, no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev
+instance. Seen, per the maintainer: two glass panes joined at a block border
+(x = -1 and x = 0, and z = -1 and z = 0) show no edge, and a four-pane run
+(x = -1 to 2) stays joined with no edge inside or outside. The x join and the
+four-pane run had also passed on `4d3b86e6` (`floor(min + 0.5f)`, DLL
+`1DA8D7D07E24A3E24BBE140EA7A4BCBBE15B54C06B1F4FF419D2D33AB3AB5441`). Before the fix
+the same spot kept the edge on the pane at x = 0 while the four-pane run looked
+right, which is how the defect stayed hidden. Also confirmed on 1.26.51.01 that it
+is not 26.60's. Not covered: stained panes beyond the same-type case, servers.
+
+## 0.5.1 published (2026-11-07)
+
+Tag `v0.5.1` on `bc195c2e`, built by CI run
+[42255023010](https://github.com/amatouhake/Lamium/actions/runs/42255023010), published
+2026-11-06 16:53 UTC. Assets:
+`Lamium-0.5.1-client-windows-x64.zip`
+`7fcb9206883782208b55789e712ae5ff2a87431fa403354d88bb1a71f0f1f127`,
+`Lamium-0.5.1-client-windows-x64.pdb.zip`
+`5f7990115c062db20ab50e33a589c4b0734f44957ba31a63a1cbb8ae0e54c992`. The downloaded ZIP
+matches its hash. Not seen: the published ZIP installed in game, the LIP registry and
+Bedrinth listing, LeviLauncher offering it.
+
+## 0.5.1 smoke on the CI package (2026-11-07)
+
+CI development package of `bc195c2e` (run
+[42252128248](https://github.com/amatouhake/Lamium/actions/runs/42252128248)), DLL
+`2b2cbaa8386606f6c1da21b03f6824ab1e482668ec7999005165ca04785d29a4`, LeviLamina Client
+26.60.3, 1.26.60.05 Dev instance. The log names both versions. Passed, per the maintainer:
+Lamium loads and settings open; a long book paste continues on new pages and stays after
+reopening the book; a `.mcstructure` saved by the 1.26.60 structure block loads from
+Schematics; the target card's distance and "Up to the render distance" work; the world
+map opens by key. Not covered: servers, a replaced selection, the 50-page refusal's toast,
+frame times.
+
+## L-259 typing into a full page (2026-11-07)
+
+Build `27adec72`, DLL `aef14d409dc1aee9c04ed39289175f95ead03cb1acfc57a25cc0152d54a979af`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer: on a book and quill page at 256 characters, typing one character and
+confirming Japanese through the IME change nothing and add no page. So these inputs do not
+split as a paste would, though the trace was off and did not show which path they took.
+Not covered: servers.
+
+## L-314 exits without Lamium (2026-11-06)
+
+1.26.60.05 Dev instance, LeviLamina Client 26.60.3, Lamium disabled through LeviLauncher
+(`manifest.json.close`), per the maintainer: two runs, each entering a world, playing a
+little, leaving and closing the game normally. The first left
+`trace_2026-11-06_23-58-33.log`, whose log says 0 mods loaded and whose trace names no
+Lamium module. Its stack has the same return addresses as the traces with Lamium: +9BC101,
++39298E, the destructor near +2C858C0 and the TLS callback near +E942650, under ExitProcess.
+The second run left no trace. So Lamium is not needed for this crash. Not tested: without
+LeviLamina, where the crash logger would not record it anyway.
+
+## World map row, Range 64 and the ray's limits (2026-11-06)
+
+Build `406707d4`, DLL `0d3348c696633e0c18071db741aa4fc5e0a46b1b70343e4e569b29ce17164b9b`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer: the World map parent row opens the map with no switch and Record follows
+the map's switch; the Record key's toast; Range's slider at 64, easy to adjust near 6;
+far blocks, the sky and the feet with "Up to the render distance". Not measured with a
+tool. Not covered: servers.
+
+## L-311 across dimensions and the render distance range (2026-11-06)
+
+Build `70700b1d`, DLL `740def9410e2792eb42d22a704223bbb8eb76ef74d8b943eaf184e8a1ab6b61d`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer: a following shape stays where the player left its dimension, on the map
+too; "Up to the render distance" finds far targets. The load at the largest render
+distance is accepted as the player's choice: improve it where possible, do not forbid
+it. Not measured with a tool.
+
+## L-311 off and Range among entities (2026-11-06)
+
+Build `2025d622`, DLL `c49a1b528fa104e939821b76010b7ccc41cfaccac86cd43f9d7a6ddd07a66b79`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed as built,
+per the maintainer: off keeps the shape at the feet block, also in FreeCamera; off
+after a portal keeps the saved place (then judged wrong and changed); no load problem
+at Range 256 among many mobs. Frame times were not measured with a tool.
+
 ## L-311, the Record switch, card keys, Range and L-190 (2026-11-06)
 
 Build `a8783490` (branch `l-190-waypoint-selection`), DLL

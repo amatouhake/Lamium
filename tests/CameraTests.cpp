@@ -37,6 +37,18 @@ int main() try {
     debugLinesTests();
     extern void lockedTradesTests();
     lockedTradesTests();
+    extern void enchantPlanTests();
+    enchantPlanTests();
+    extern void frameProfileTests();
+    frameProfileTests();
+    extern void opposingKeysTests();
+    opposingKeysTests();
+    extern void rawMaterialsTests();
+    rawMaterialsTests();
+    extern void sectionLayersTests();
+    sectionLayersTests();
+    extern void checkIgnoresTests();
+    checkIgnoresTests();
     extern void repeatTradeTests();
     repeatTradeTests();
     extern void englishSearchTests();
@@ -47,6 +59,8 @@ int main() try {
     inventoryHudTests();
     extern void connectedTexturesTests();
     connectedTexturesTests();
+    extern void blockHighlightTests();
+    blockHighlightTests();
     extern void textEditTests();
     textEditTests();
     extern void calculatorTests();
@@ -101,6 +115,8 @@ int main() try {
     saturationTests();
     extern void tooltipGlyphsTests();
     tooltipGlyphsTests();
+    extern void itemDetailsTests();
+    itemDetailsTests();
     extern void settingsRowsTests();
     settingsRowsTests();
     extern void bindingTests();
@@ -131,6 +147,8 @@ int main() try {
     hudElementTests();
     extern void hudEditorLayoutTests();
     hudEditorLayoutTests();
+    extern void hudContentsTests();
+    hudContentsTests();
     extern void chatPositionTests();
     chatPositionTests();
     extern void infoLinesTests();
@@ -226,6 +244,25 @@ int main() try {
           "saving unrelated camera settings keeps the held zoom and its wheel level");
     zoom.release();
     check(zoom.level() == kept && zoom.fov(90) == 90, "release settles on the target and restores the projection");
+    {
+        // L-325: Reset on release returns the wheel level to the setting.
+        lamium::ZoomState reset;
+        reset.configure(4);
+        reset.resetEachRelease(true);
+        reset.press();
+        reset.wheel(1); reset.wheel(1);
+        check(reset.targetLevel() > 4, "the wheel still changes the level while held");
+        reset.release();
+        check(reset.targetLevel() == 4 && reset.level() == 4, "with Reset on release a release returns to the setting");
+        reset.press();
+        check(reset.fov(90) == 22.5f, "the next press starts from the setting");
+        reset.resetEachRelease(false);
+        reset.wheel(1);
+        float wheeled = reset.targetLevel();
+        reset.release();
+        reset.press();
+        check(reset.targetLevel() == wheeled, "without it the wheel level is kept for the next press");
+    }
     zoom.press();
     check(zoom.targetLevel() == kept, "the next press reopens the kept wheel level, below 2x too");
     zoom.release();

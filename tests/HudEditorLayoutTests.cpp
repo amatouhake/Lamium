@@ -56,4 +56,60 @@ void hudEditorLayoutTests() {
     check(scrollFirstAt(90, 100, 120, 24, 10) == 0 && scrollFirstAt(400, 100, 120, 24, 10) == 14
           && scrollFirstAt(160, 100, 120, 24, 10) == 7, "the pointer maps the track to every first row, clamped");
     check(scrollFirstAt(160, 100, 120, 8, 10) == 0, "a list that fits does not scroll");
+
+    // L-321: covered elements, scale handles and the idle panel.
+    Boxes stacked;
+    stacked[static_cast<size_t>(HudElementId::Target)] = Box{100, 0, 80, 30};
+    stacked[static_cast<size_t>(HudElementId::PlayerList)] = Box{110, 0, 60, 60};
+    stacked[static_cast<size_t>(HudElementId::Info)] = Box{0, 0, 50, 40};
+    auto hits = stackAt(stacked, 120, 10);
+    check(hits.size() == 2 && hits[0] == HudElementId::PlayerList && hits[1] == HudElementId::Target,
+          "the stack under the pointer lists the topmost element first");
+    check(nextBelow(hits, HudElementId::PlayerList) == HudElementId::Target
+          && nextBelow(hits, HudElementId::Target) == HudElementId::PlayerList,
+          "a second click reaches the element below and wraps back to the top");
+    check(nextBelow(hits, HudElementId::Info) == HudElementId::PlayerList && !nextBelow({}, HudElementId::Info),
+          "an element not under the pointer starts from the top");
+
+    Box scaled{10, 10, 100, 40};
+    auto cornerHandles = scaleHandles(Anchor::TopLeft, scaled, 640, 360);
+    check(cornerHandles.size() == 1 && cornerHandles[0].corner.x == 110 && cornerHandles[0].corner.y == 50,
+          "a corner anchor gets one handle, on the opposite corner");
+    check(scaleHandles(Anchor::TopCenter, scaled, 640, 360).size() == 2
+          && scaleHandles(Anchor::Center, scaled, 640, 360).size() == 4,
+          "an edge anchor gets two handles and the center four");
+    auto atEdge = scaleHandles(Anchor::TopLeft, Box{600, 330, 40, 30}, 640, 360);
+    check(atEdge.size() == 1 && atEdge[0].box.x == 640 - handleSize && atEdge[0].box.y == 360 - handleSize,
+          "a handle at the screen edge stays on the screen");
+    check(grabs(cornerHandles[0], 106, 46) && !grabs(cornerHandles[0], 100, 40), "a handle is grabbed a little outside its square");
+    Point anchorAt{10, 10}, handleAt{110, 50};
+    check(dragScale(100, anchorAt, handleAt, {160, 50}) == 150, "dragging a handle away from the anchor enlarges");
+    check(dragScale(100, anchorAt, handleAt, {62, 30}) == 50, "dragging toward the anchor shrinks, in steps");
+    check(dragScale(100, anchorAt, handleAt, {1000, 50}) == hudScaleMax && dragScale(100, anchorAt, handleAt, {10, 10}) == 100,
+          "a handle drag stays within the scale bounds and ignores a pointer on the anchor");
+    check(dragScale(100, anchorAt, handleAt, {113, 51}) == 105, "the axis that moved more decides, rounded to the step");
+
+    auto idle = idlePanel(100, 40, 640, 360);
+    check(idle.x == 270 && idle.y == 128 && idle.w == 100, "the idle panel is centered above the crosshair");
+    check(idlePanel(100, 40, 80, 30).x == 0 && idlePanel(100, 40, 80, 30).y == 0, "a tiny screen keeps the panel on it");
+    Box tagged{100, 40, 200, 30};
+    auto tag = nameTag(tagged, 40, 640, 360);
+    check(tag.x == 99 && tag.y == 27 && tag.w == 40 && tag.h == nameTagHeight, "a name tag hangs above the left corner");
+    check(nameTag(Box{100, 4, 60, 30}, 40, 640, 360).y == 36, "at the top of the screen the tag goes below");
+    auto second = nameTag(tagged, 40, 640, 360, {tag});
+    check(second.x == 99 && second.y == 72, "a taken place sends the next tag below the box");
+    auto third = nameTag(tagged, 40, 640, 360, {tag, second});
+    check(third.x == 261 && third.y == 27, "then to the right corner");
+    check(nameTag(Box{0, 100, 20, 10}, 40, 640, 360).x == 0, "a tag at the left edge stays on the screen");
+    check(nameTag(Box{0, 100, 200, 30}, 40, 640, 360).x == 0, "an element flush with the left edge keeps its tag on the left");
+    auto crowded = nameTag(tagged, 40, 640, 360, {tag, second, third, Box{261, 72, 40, 11}});
+    check(crowded.x == 100 && crowded.y == 40, "with every place outside taken the tag goes inside the top edge, not on a tag (L-334)");
+    auto full = nameTag(tagged, 40, 640, 360, {tag, second, third, Box{261, 72, 40, 11}, crowded, Box{100, 59, 40, 11}});
+    check(full.x == 99 && full.y == 84, "with the inside taken too the tag stacks below the one already there");
+    auto rightTag = nameTag(tagged, 40, 640, 360, {}, true);
+    check(rightTag.x == 261 && rightTag.y == 27, "an element anchored on the right hangs its tag from the right corner");
+    auto dashed = dashedFrame(Box{0, 0, 10, 5});
+    check(dashed.size() == 6 && dashed[0].horizontal && dashed[0].length == 3 && !dashed[4].horizontal,
+          "a dashed frame runs along all four edges");
+    check(dashedFrame(Box{0, 0, 0, 5}).empty(), "an empty box has no frame");
 }

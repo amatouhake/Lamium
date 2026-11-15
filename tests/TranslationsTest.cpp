@@ -71,6 +71,8 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(key, key, remaining, remaining));
             else if (entry.key == "schematic.toast.cut" || entry.key == "schematic.toast.cutHere")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, key));
+            else if (entry.key == "savedData.notice") rendered = std::vformat(pattern, std::make_format_args(key, key));
+            else if (entry.key == "savedData.deleteArmed" || entry.key == "savedData.anyPortOn") rendered = std::vformat(pattern, std::make_format_args(remaining, key));
             else if (entry.key == "schematic.previewLayers") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, key));
             else if (entry.key == "schematic.toast.rotated" || entry.key == "schematic.toast.mirror" || entry.key == "schematic.toast.nearest")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining));
@@ -84,6 +86,10 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, key, remaining));
             else if (entry.key == "schematic.save.progress" || entry.key == "schematic.save.progressWaiting")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining));
+            else if (entry.key == "highlight.listed" || entry.key == "enchantOrder.wanted" || entry.key == "enchantOrder.otherWork"
+                || entry.key == "enchantOrder.otherLevels" || entry.key == "enchantOrder.materials" || entry.key == "workPenaltyValue")
+                rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
+            else if (entry.key == "enchantOrder.penalty.help") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
             else if (entry.key == "schematic.save.tooLarge") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.withDetail") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "paused.notice") rendered = std::vformat(pattern, std::make_format_args(key, key));
@@ -99,7 +105,7 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
                 || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed" || entry.key == "edgeMargin"
-                || entry.key == "mapSize" || entry.key == "mapWaypointDistance" || entry.key == "mapWaypointArrival" || entry.key == "schematicOutlineDistance")
+                || entry.key == "mapWaypointDistance" || entry.key == "mapWaypointArrival" || entry.key == "schematicOutlineDistance")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)
                 rendered = std::vformat(pattern, std::make_format_args(on));

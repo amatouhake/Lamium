@@ -8,6 +8,9 @@ void targetCardTests() {
     mob.details.push_back({"target.health", "16 / 20", false, .8f, DetailKind::Health, 16, 20});
     mob.details.push_back({"target.age", "target.adult", true});
     CardOptions options;
+    check(targetReach(64, false, 32) == 64, "the range stands while full range is off");
+    check(targetReach(64, true, 32) == 725 && targetReach(64, true, 0) == 64,
+          "full range reaches the corner of the render distance, or the range when it is unknown");
     {
         TargetInfo measured{"Stone", "minecraft:stone"};
         measured.distance = 12.345;
@@ -19,6 +22,13 @@ void targetCardTests() {
               "the distance shows one decimal");
         measured.distance.reset();
         check(cardRows(measured, shown).empty(), "a target with no measured distance has no row");
+    }
+    {
+        TargetInfo ore{"Diamond Ore", "minecraft:diamond_ore"};
+        ore.details.push_back({"target.highlight", "target.highlight.listed", true, {}, DetailKind::Highlight});
+        auto row = cardRows(ore, CardOptions{});
+        check(row.size() == 1 && row[0].label == "target.highlight" && row[0].valueIsKey,
+              "a listed highlight type shows without the details key");
     }
     auto rows = cardRows(mob, options);
     check(rows.size() == 1 && rows[0].label == "target.health" && rows[0].meter == Meter::Hearts,

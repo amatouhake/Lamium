@@ -123,6 +123,10 @@ void deathLayoutTests() {
         unrelated[3] = item("dirt", 4);
         check(pickedUp(layout, before, after) && !pickedUp(layout, before, unrelated),
               "only picking up a layout item triggers a restore");
+        Layout mainOnly;
+        mainOnly.slots[20] = item("bread", 10);
+        check(!inScope(20, Scope::HotbarEquipment) && pickedUp(mainOnly, before, after),
+              "picking up an item for the main inventory starts the layout with the default scope too (L-339)");
         check(!anyItem(Slots{}) && anyItem(after), "an empty snapshot is not a layout");
     }
     {
@@ -163,6 +167,24 @@ void deathLayoutTests() {
         layout.slots[40] = item("shield", 1, "", 1);
         layout.done[0] = true;
         check(decodeLayout(encodeLayout(layout)) == layout, "the death layout survives saving");
+        layout.started = true;
+        check(decodeLayout(encodeLayout(layout)).started, "that pickups began at the place is saved");
+        check(atPlace(layout, 1, -11.5, 330) && !atPlace(layout, 1, -11.5, 340) && !atPlace(layout, 0, -11.5, 300.5),
+              "the place of the death is 32 blocks around it, in its dimension (L-332)");
+        check(atPlace(layout, 1, -11.5 + 20, 300.5 + 20) && !atPlace(layout, 1, -11.5 + 23, 300.5 + 23),
+              "the place is measured across, so the items fallen far below a death high up still count (L-339)");
+        // L-338: the layout ends with the dropped items, five minutes of the place being loaded.
+        Layout aging = layout;
+        check(loadedAround(aging, 1, -11.5, 348) && !loadedAround(aging, 1, -11.5, 349) && !loadedAround(aging, 0, -11.5, 300.5)
+              && loadedAround(aging, 1, -11.5, 300.5), "the place counts as loaded within 48 blocks across, at any height, in its dimension");
+        bool early = false;
+        for (int t = 0; t < despawnTicks - 1; ++t) early = early || age(aging, true);
+        for (int t = 0; t < 100000; ++t) early = early || age(aging, false);
+        check(!early && aging.loadedTicks == despawnTicks - 1, "time away from the place does not count");
+        check(decodeLayout(encodeLayout(aging)).loadedTicks == despawnTicks - 1, "the count survives saving");
+        check(age(aging, true) && age(aging, false), "after five minutes loaded the layout is over, and stays over");
+        check(decodeLayout(R"({"version":1,"loadedTicks":-5})").loadedTicks == 0
+              && decodeLayout(R"({"version":1})").loadedTicks == 0, "a missing or broken count starts from zero");
         bool rejected = false;
         try { (void)decodeLayout(R"({"version":2})"); } catch (...) { rejected = true; }
         check(rejected, "another version is rejected");

@@ -94,7 +94,11 @@ BundlePreviewProvider::extract(ItemStackBase const& item, ContainerScreenControl
             if (stack.isNull()) {
                 continue;
             }
-            decoded.push_back(DecodedEntry{index, ItemStack(stack)});
+            // The live stack may carry the pickup squash the game's own bundle tooltip plays; the copy must not.
+            ItemStack copy(stack);
+            copy.mShowPickUp  = false;
+            copy.mWasPickedUp = false;
+            decoded.push_back(DecodedEntry{index, std::move(copy)});
         }
     }
 

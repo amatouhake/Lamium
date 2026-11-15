@@ -1,6 +1,8 @@
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "features/information/ChatPosition.h"
+#include "features/information/ScoreboardPosition.h"
+#include "features/information/BossBarPosition.h"
 #include "app/ClientTasks.h"
 #ifdef LAMIUM_FEATURE_SKIP
 #include <filesystem>
@@ -9,18 +11,22 @@
 #endif
 #include "features/interaction/PermanentSneak.h"
 #include "features/research/ResearchTrace.h"
+#include "features/research/WorldProbe.h"
 #include "features/schematic/GhostProbe.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostPick.h"
 #include "features/schematic/SchematicActions.h"
 #include "features/map/PlayerLocationTrace.h"
 #include "features/information/SlimeTrace.h"
+#include "features/information/SpawnAreaTrace.h"
 #include "features/inspection/render/IconTrace.h"
 #include "features/research/TradeTrace.h"
 #include "features/research/RepeatTradeTrace.h"
 #include "features/research/LanguageTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesHooks.h"
+#include "features/visuals/BlockHighlightHooks.h"
+#include "features/inventory/EnchantOrderGame.h"
 #include "features/visuals/PortalTrace.h"
 #include "features/visuals/ServerPacks.h"
 #include "features/inspection/LockedTrades.h"
@@ -141,12 +147,14 @@ Feature const features[] = {
     {"English search", inspection::englishSearch::start, inspection::englishSearch::stop},
     {"Inventory", inventory::start, inventory::stop},
     {"Repeated trading", inventory::repeatTrades::start, inventory::repeatTrades::stop, capabilities::Id::RepeatedTrades},
+    {"Enchantment order", inventory::enchantOrder::game::start, inventory::enchantOrder::game::stop},
     {"Settings screen", started<ui::start>, ui::stop},
     {"Custom input", started<input::startCustomInput>, input::stopCustomInput},
     {"World overlay", started<overlay::start>, overlay::stop},
     {"Offhand visibility", started<visuals::start>, visuals::stop},
     {"FreeCamera hiding", started<camera::freeCameraHide::start>, camera::freeCameraHide::stop},
     {"Connected Textures", visuals::connected::start, visuals::connected::stop, capabilities::Id::ConnectedTextures},
+    {"Block highlight", visuals::highlight::start, visuals::highlight::stop, capabilities::Id::BlockHighlight},
     {"Server resource packs", visuals::serverPacks::start, visuals::serverPacks::stop, capabilities::Id::SkipServerPacks},
     {"Tool Switch", started<inventory::tools::start>, inventory::tools::stop},
     {"Weapon Switch", started<inventory::weapons::start>, inventory::weapons::stop},
@@ -172,10 +180,12 @@ Feature const features[] = {
     {"Auto Elytra", started<interaction::elytraSwap::start>, interaction::elytraSwap::stop},
     {"Placement diagnostics", started<interaction::placementTrace::start>, interaction::placementTrace::stop},
     {"Research diagnostics", started<researchTrace::start>, researchTrace::stop},
+    {"World probe", started<researchTrace::worldProbe::start>, researchTrace::worldProbe::stop},
     {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},
     {"Ghost probe", started<schematic::ghostProbe::start>, schematic::ghostProbe::stop},
     {"Player location diagnostics", started<map::locationTrace::start>, map::locationTrace::stop},
     {"Slime chunk diagnostics", started<information::slimeTrace::start>, information::slimeTrace::stop},
+    {"Spawn area diagnostics", started<information::spawnAreaTrace::start>, information::spawnAreaTrace::stop},
     {"Icon diagnostics", started<inspection::iconTrace::start>, inspection::iconTrace::stop},
     {"Trade diagnostics", started<researchTrace::trade::start>, researchTrace::trade::stop},
     {"Inventory move diagnostics", started<interaction::inventoryMoveTrace::start>, interaction::inventoryMoveTrace::stop},
@@ -185,6 +195,8 @@ Feature const features[] = {
     {"Effect visibility", started<visuals::effects::start>, visuals::effects::stop},
     {"Debug View vanilla HUD", started<information::debugVanilla::start>, information::debugVanilla::stop},
     {"Chat position", started<information::chatPosition::start>, information::chatPosition::stop},
+    {"Scoreboard position", started<information::scoreboardPosition::start>, information::scoreboardPosition::stop},
+    {"Boss bar position", started<information::bossBarPosition::start>, information::bossBarPosition::stop},
     {"Status effects vanilla icons", started<information::statusEffects::start>, information::statusEffects::stop},
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
     {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},

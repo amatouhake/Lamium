@@ -538,7 +538,7 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
 // `entered` reports how far along the ray it lies, for L-304.
 std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, ViewRay const& ray, bool nether,
                                        double& entered) {
-    for (auto const& cell : schematic::cellsAlong(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach)) {
+    for (auto const& cell : schematic::CellWalk(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!source.getChunkAt(pos)) return std::nullopt;
         Block const& block = source.getBlock(pos);
@@ -723,6 +723,14 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         for (auto& row : blockEntityDetails(source, hit.mBlock, block, static_cast<int>(player->getDimensionId())))
             if (!fixedStates.contains(row.labelIsKey ? ui::translated(row.label) : row.label))
                 result.details.push_back(std::move(row));
+    // A listed highlight type says so (L-320), shown like the schematic rows
+    // whether or not other details are.
+    try {
+        auto settings = Runtime::instance().snapshot();
+        auto const& listed = settings->visuals.highlightBlocks;
+        if (std::any_of(listed.begin(), listed.end(), [&](auto const& e) { return e.name == result.identifier; }))
+            result.details.push_back({"target.highlight", "target.highlight.listed", true, {}, DetailKind::Highlight});
+    } catch (...) {}
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     result.distance = hitDistance;
     return result;

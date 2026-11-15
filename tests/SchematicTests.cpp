@@ -265,7 +265,7 @@ void structureRejects() {
     check(reason.find("second block layer has") != std::string::npos, "a second layer shorter than the volume is rejected by name");
 }
 
-// The shape a save writes (SCHEMATIC.md A): version 2; the second layer only
+// The shape a save writes (SCHEMATIC.md "Area save"): version 2; the second layer only
 // when some cell holds a liquid, -1 elsewhere.
 void structureWrittenShape() {
     auto wet = sample();
@@ -638,6 +638,8 @@ void savePromptHits() {
     auto minus = l.hit(l.cellX(2) + 2, l.cornerY(1) + 2), plus = l.hit(l.cellX(0) + l.cellWidth() - 2, l.cornerY(0) + 2);
     check(minus.part == Part::Minus && minus.corner == 1 && minus.axis == 2 && plus.part == Part::Plus && plus.corner == 0
           && plus.axis == 0, "the save prompt's steppers name their corner and axis");
+    auto value = l.hit(l.cellX(1) + l.cellWidth() / 2, l.cornerY(1) + 2);
+    check(value.part == Part::Value && value.corner == 1 && value.axis == 1, "a click between a corner's ends types its value");
     check(l.hit(l.saveX() + 1, l.buttonY() + 1).part == Part::Save && l.hit(l.cancelX() + 1, l.buttonY() + 1).part == Part::Cancel
           && l.hit(l.left + 20, l.fieldY() + 2).part == Part::Field && l.hit(l.clearX() + 1, l.buttonY() + 1).part == Part::Clear
           && l.clearX() + lamium::ui::SavePromptLayout::buttonWidth < l.saveX() && l.keysY() + 10 <= l.top + l.height(),
@@ -1421,6 +1423,11 @@ void liquidChecks() {
 }
 // L-184: the cells a ray passes, nearest first.
 void rayCells() {
+    check(reachInHeight(70, 0, 500, -64, 320) == 500, "a level ray keeps its reach");
+    check(reachInHeight(70, 1, 500, -64, 320) == 266, "a ray at the sky ends past the top with a margin");
+    check(reachInHeight(70, -1, 500, -64, 320) == 150, "a ray down ends past the bottom with a margin");
+    check(reachInHeight(70, 1, 6, -64, 320) == 6, "a short reach is unaffected");
+    check(reachInHeight(400, 1, 500, -64, 320) == 1, "above the world looking up keeps a short ray");
     auto cells = cellsAlong(.5, .5, .5, 1, 0, 0, 3.2);
     check(cells.size() == 4 && cells.front() == Point{0, 0, 0} && cells.back() == Point{3, 0, 0}, "a ray along x steps cell by cell");
     auto diagonal = cellsAlong(.5, .5, .5, 1, 1, 0, 2);

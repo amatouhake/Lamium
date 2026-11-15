@@ -21,6 +21,7 @@ struct ShapesLayout {
     float left{}, top{}, width{}, height{};
     float closeX{}, dockX{}, keysX{}, drawAllX{}, drawAllY{};
     float listLeft{}, listWidth{}, toolbarTop{}, theadTop{}, rowsTop{};
+    float noticeTop{}, noticeHeight{};
     int listVisible{}, listFirst{}, listCount{};
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
@@ -29,7 +30,7 @@ struct ShapesLayout {
     // so a docked draw-all switch gets a row of its own below it.
     static ShapesLayout fit(SettingsTable const& table, float screenWidth, float screenHeight, bool docked,
                             int listCount, int listFirst, int fieldCount, int fieldFirst, bool draft, bool picking,
-                            bool fullToolbar = false) {
+                            bool fullToolbar = false, float notice = 0) {
         ShapesLayout l;
         l.docked = docked; l.draft = draft; l.picking = picking;
         l.listCount = std::max(0, listCount); l.fieldCount = std::max(0, fieldCount);
@@ -62,7 +63,10 @@ struct ShapesLayout {
         l.drawAllX = docked ? l.listLeft + l.listWidth - pad - drawAllWidth : l.keysX - 4 - drawAllWidth;
         bool ownRow = docked && fullToolbar;
         l.drawAllY = !docked ? l.top + 4 : ownRow ? l.toolbarTop + toolbarHeight + 2 : l.toolbarTop + 2;
-        l.theadTop = bodyTop + (ownRow ? 2 : 1) * toolbarHeight;
+        // A notice above the list (L-343) takes its height from the list's rows.
+        l.noticeTop = bodyTop + (ownRow ? 2 : 1) * toolbarHeight;
+        l.noticeHeight = std::max(0.0f, notice);
+        l.theadTop = l.noticeTop + l.noticeHeight;
         l.rowsTop = l.theadTop + theadHeight;
         l.actionsY = bodyBottom - actionsHeight - 2;
         float pitch = picking ? pickHeight : rowHeight;

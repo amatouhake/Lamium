@@ -231,6 +231,7 @@ void CameraSessions::configure(Settings const& settings) {
     zoomToggle = settings.camera.zoomToggle;
     state.configure(settings.camera.magnification);
     state.allowWide(settings.camera.zoomWideAngle);
+    state.resetEachRelease(settings.camera.zoomResetOnRelease);
 }
 bool CameraSessions::wanted(Session session) const {
     switch (session) {

@@ -20,10 +20,12 @@
 #include "features/information/SlimeChunk.h"
 #include <tuple>
 #include "app/Runtime.h"
+#include "ui/DataNotice.h"
 #include "ui/Localization.h"
 #include "ui/NumberInput.h"
 #include "ui/SearchQuery.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/ScreenParts.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/gui/GuiData.h"
@@ -60,7 +62,7 @@ namespace lamium::map::world {
 namespace {
 using ui::Rgb;
 constexpr float rowHeight = 15, bottomHeight = 13, buttonHeight = 11;
-constexpr Rgb ground{11 / 255.f, 12 / 255.f, 13 / 255.f};
+constexpr Rgb ground = ui::palette::mapGround;
 
 double now() {
     using namespace std::chrono;
@@ -128,7 +130,7 @@ enum class Target {
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     InfoButton, InfoPanel, InfoSlime, InfoRadar, // The Information button and its panel (L-297).
     // The side panel: its background, header buttons, list and editor.
-    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Keep, Delete, OpenScreen,
+    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Delete, OpenScreen,
     PanelKind, PanelKindItem // The list's layer menu (L-204) and its items.
 };
 struct Hit {
@@ -137,7 +139,7 @@ struct Hit {
     int item = -1;
     MarkKey mark{}; // List rows and their switches: the entry they stand for.
 };
-enum class MenuKind { Ground, Waypoint, Death, Placement, Shape };
+enum class MenuKind { Ground, Waypoint, Placement, Shape };
 struct Menu {
     MenuKind kind;
     float x, y;    // Screen, where it was opened.
@@ -148,7 +150,6 @@ struct Menu {
 };
 MenuKind menuKind(MarkKey mark) {
     switch (mark.layer) {
-    case MarkLayer::Death: return MenuKind::Death;
     case MarkLayer::Placement: return MenuKind::Placement;
     case MarkLayer::Shape: return MenuKind::Shape;
     default: return MenuKind::Waypoint;
@@ -209,6 +210,10 @@ struct State {
     ui::NumberInput coordinate;
     glm::vec2 namePosition{};
     float listTop = 0, listBottom = 0;
+    // The side list's scroll bar (L-347): rows and visible rows as last drawn, its column, held.
+    int listRows = 0, listVisible = 0;
+    float listBarX = 0;
+    bool listDragging = false;
     float arrowAngle = NAN;
     bool arrowUploaded = false;
     float cameraArrowAngle = NAN;
@@ -318,6 +323,8 @@ void toggleCave() {
     state.broad = state.dimension == 1;
     syncFollowing();
 }
+// Shift + a stepper's end steps ten (DESIGN "Controls").
+int stepSize() { return ui::screen::heldShift() ? 10 : 1; }
 void adjustHeight(int delta) {
     if (!state.cave) return;
     state.height = clampHeight(state.dimension, state.height + delta);
@@ -364,6 +371,17 @@ void showDimension(int dimension) {
     state.broad = dimension == 1;
     center();
 }
+bool onListBar(float x, float y) {
+    return state.listRows > state.listVisible && x >= state.listBarX - 5 && x < state.listBarX + 3
+        && y >= state.listTop && y < state.listBottom;
+}
+// Pressing or dragging the bar puts the first row under the pointer, as the other lists do.
+int listFirstAt(float y) {
+    float track = state.listBottom - state.listTop;
+    if (state.listRows <= state.listVisible || !(track > 0)) return 0;
+    float t = std::clamp((y - state.listTop) / track, 0.0f, 1.0f);
+    return static_cast<int>(std::lround(t * static_cast<float>(state.listRows - state.listVisible)));
+}
 void say(std::string text) {
     state.notice = std::move(text);
     state.noticeAt = now();
@@ -392,8 +410,8 @@ void act(Target target) {
     case Target::BroadToggle:
         if (state.cave) state.broad = !state.broad;
         break;
-    case Target::HeightDown: adjustHeight(-1); break;
-    case Target::HeightUp: adjustHeight(1); break;
+    case Target::HeightDown: adjustHeight(-stepSize()); break;
+    case Target::HeightUp: adjustHeight(stepSize()); break;
     case Target::HeightField:
         state.editingHeight = true;
         state.editingName = false;
@@ -469,17 +487,17 @@ void setPanelOpen(bool open) {
 bool changeSelected(std::function<void(Waypoint&)> const& apply);
 void commitHeight() {
     if (!std::exchange(state.editingHeight, false)) return;
-    auto value = state.heightInput.parsedPrecise(static_cast<float>(heightMin(state.dimension)),
-                                                 static_cast<float>(heightMax(state.dimension)), true);
-    if (!value) return; // Incomplete or out of range: the height stays.
+    auto value = state.heightInput.committedPrecise(static_cast<float>(heightMin(state.dimension)),
+                                                    static_cast<float>(heightMax(state.dimension)), true);
+    if (!value) return; // Incomplete: the height stays (out of range becomes the nearest end).
     state.height = static_cast<int>(*value);
     syncFollowing();
 }
 void commitCoordinate() {
     int axis = std::exchange(state.editingAxis, -1);
     if (axis < 0) return;
-    auto value = state.coordinate.parsedPrecise(-coordinateLimit, coordinateLimit, true);
-    if (!value) return; // Incomplete or out of range: the waypoint keeps its place.
+    auto value = state.coordinate.committedPrecise(-coordinateLimit, coordinateLimit, true);
+    if (!value) return; // Incomplete: the waypoint keeps its place (out of range becomes the nearest end).
     changeSelected([&](Waypoint& w) { (axis == 0 ? w.x : axis == 1 ? w.y : w.z) = static_cast<int>(*value); });
 }
 // Ends whatever is being typed in the side panel, keeping it.
@@ -509,8 +527,7 @@ void select(std::optional<MarkKey> mark, bool move) {
     if (mark) setShownList(listKind(mark->layer));
     if (!move || !mark) return;
     auto set = waypoints::current();
-    if (mark->layer == MarkLayer::Death && set.death) focus(set.death->x + .5, set.death->z + .5);
-    else if (auto const* w = waypointOf(set, *mark)) {
+    if (auto const* w = waypointOf(set, *mark)) {
         if (auto at = shownPosition(w->x, w->y, w->z, w->dimension, state.dimension, true)) focus(at->x, at->z);
     } else if (auto const* area = areaOf(*mark))
         focus((area->area.x0 + area->area.x1) / 2.0, (area->area.z0 + area->area.z1) / 2.0);
@@ -534,25 +551,9 @@ bool changeWaypoint(MarkKey mark, std::function<void(Waypoint&)> const& apply) {
 bool changeSelected(std::function<void(Waypoint&)> const& apply) {
     return state.selected && changeWaypoint(*state.selected, apply);
 }
-// Keeps the death point as an ordinary waypoint; its new key, if saved.
-std::optional<MarkKey> keepDeath(WaypointSet const& set) {
-    if (!set.death) return std::nullopt;
-    auto death = *set.death;
-    Waypoint w{ui::translated("waypoint.deathName"), nextColor(set.lastColor), death.x, death.y, death.z, death.dimension, true};
-    bool saved = waypoints::change([&](WaypointSet& s) {
-        s.waypoints.push_back(w);
-        s.lastColor = w.color;
-        s.death.reset();
-        return true;
-    });
-    if (!saved) { say(ui::translated("waypoint.saveError")); return std::nullopt; }
-    auto now = waypoints::current();
-    return now.waypoints.empty() ? std::nullopt : std::optional(waypointKey(now.waypoints.back().id));
-}
-// Deletes the death point or a waypoint by its key.
+// Deletes a waypoint by its key.
 bool deleteMark(MarkKey mark) {
     return waypoints::change([&](WaypointSet& s) {
-        if (mark.layer == MarkLayer::Death) { s.death.reset(); return true; }
         int index = indexOfId(s.waypoints, mark.id);
         if (mark.layer != MarkLayer::Waypoint || index < 0) return false;
         s.waypoints.erase(s.waypoints.begin() + index);
@@ -605,7 +606,7 @@ Request panelAction(Hit const& hit) {
         }
         break;
     case Target::Step: {
-        int axis = hit.item / 2, step = hit.item % 2 ? 1 : -1;
+        int axis = hit.item / 2, step = (hit.item % 2 ? 1 : -1) * stepSize();
         changeSelected([&](Waypoint& w) {
             int& value = axis == 0 ? w.x : axis == 1 ? w.y : w.z;
             value = std::clamp(value + step, -coordinateLimit, coordinateLimit);
@@ -621,9 +622,6 @@ Request panelAction(Hit const& hit) {
         break;
     case Target::Temporary: changeSelected([](Waypoint& w) { w.temporary = !w.temporary; }); break;
     case Target::Swatch: changeSelected([&](Waypoint& w) { w.color = clampColor(hit.item); }); break;
-    case Target::Keep:
-        if (auto kept = keepDeath(set)) select(kept, false);
-        break;
     case Target::Delete: {
         auto const* chosen = state.selected ? waypointOf(set, *state.selected) : nullptr;
         if (!state.deleteArmed && !(chosen && chosen->temporary)) { state.deleteArmed = true; break; }
@@ -672,10 +670,7 @@ std::optional<TeleportTarget> teleportTarget(Menu const& menu, WaypointSet const
     auto* player = state.client ? state.client->getLocalPlayer() : nullptr;
     if (!player || menu.kind == MenuKind::Placement || menu.kind == MenuKind::Shape) return std::nullopt;
     int dimension = state.dimension, x = menu.worldX, y = menu.worldY, z = menu.worldZ;
-    if (menu.kind == MenuKind::Death) {
-        if (!set.death) return std::nullopt;
-        dimension = set.death->dimension; x = set.death->x; y = set.death->y; z = set.death->z;
-    } else if (menu.kind == MenuKind::Waypoint) {
+    if (menu.kind == MenuKind::Waypoint) {
         auto const* w = waypointOf(set, menu.mark);
         if (!w) return std::nullopt;
         dimension = w->dimension; x = w->x; y = w->y; z = w->z;
@@ -720,8 +715,6 @@ std::vector<std::string> menuItems(Menu const& menu, WaypointSet const& set) {
             items.push_back(ui::translated("worldMap.openSeedMap"));
             items.push_back(ui::translated("worldMap.copySeed"));
         }
-    } else if (menu.kind == MenuKind::Death) {
-        items = {ui::translated("waypoint.keep"), ui::translated(menu.armed ? "worldMap.deleteArmed" : "worldMap.delete")};
     } else if (menu.kind == MenuKind::Placement || menu.kind == MenuKind::Shape) {
         auto const* area = areaOf(menu.mark);
         auto visibility = ui::translated(area && area->visible ? "worldMap.hide" : "worldMap.show");
@@ -779,18 +772,6 @@ Request chooseMenu(int item) {
         }
         return request;
     }
-    if (menu.kind == MenuKind::Death) {
-        if (item == 0 && set.death) {
-            state.menu.reset();
-            if (keepDeath(set)) say(ui::translated("waypoint.added", ui::translated("waypoint.deathName")));
-        } else if (item == 1) {
-            if (!menu.armed) { state.menu->armed = true; return request; }
-            state.menu.reset();
-            if (!waypoints::change([](WaypointSet& s) { s.death.reset(); return true; }))
-                say(ui::translated("waypoint.saveError"));
-        }
-        return request;
-    }
     auto const* w = waypointOf(set, menu.mark);
     if (!w) { state.menu.reset(); return request; }
     auto name = w->name;
@@ -840,7 +821,7 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rg
     float top = cy - static_cast<float>(rows.size()) / 2;
     for (size_t i = 0; i < rows.size(); ++i) {
         float half = static_cast<float>(rows[i]) + .5f;
-        ui::fill(context, cx - half, top + i, 2 * half, 1, Rgb{0, 0, 0}, .85f * opacity);
+        ui::fill(context, cx - half, top + i, 2 * half, 1, ui::palette::shade, .85f * opacity);
     }
     auto inner = diamondRows(size - 2);
     top = cy - static_cast<float>(inner.size()) / 2;
@@ -853,30 +834,28 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rg
     top = cy - static_cast<float>(hole.size()) / 2;
     for (size_t i = 0; i < hole.size(); ++i) {
         float half = static_cast<float>(hole[i]) + .5f;
-        ui::fill(context, cx - half, top + i, 2 * half, 1, Rgb{0, 0, 0}, .85f * opacity);
+        ui::fill(context, cx - half, top + i, 2 * half, 1, ui::palette::shade, .85f * opacity);
     }
 }
-void cross(MinecraftUIRenderContext& context, float cx, float cy) {
+void cross(MinecraftUIRenderContext& context, float cx, float cy, Rgb color, float opacity = 1) {
     for (int pass = 0; pass < 2; ++pass)
         for (int i = -2; i <= 2; ++i)
             for (int sign : {1, -1}) {
                 float x = cx + i - .5f, y = cy + sign * i - .5f;
-                if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, Rgb{0, 0, 0}, .85f);
-                else ui::fill(context, x, y, 1, 1, rgb(deathColor));
+                if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, ui::palette::shade, .85f * opacity);
+                else ui::fill(context, x, y, 1, 1, color, opacity);
             }
 }
 void smallLabel(MinecraftUIRenderContext& context, float cx, float y, std::string const& text, Rgb color) {
     float scale = .75f, w = ui::textWidthScaled(context, text, scale);
     // A dark plate keeps small names readable on bright terrain (sand, snow).
-    if (!text.empty()) ui::fill(context, std::round(cx - w / 2) - 2, y - 1, std::round(w) + 4, 10 * scale + 2, Rgb{0, 0, 0}, .5f);
+    if (!text.empty()) ui::fill(context, std::round(cx - w / 2) - 2, y - 1, std::round(w) + 4, 10 * scale + 2, ui::palette::shade, .5f);
     ui::labelScaled(context, cx - w / 2, y, w + 2, text, scale, color, ui::Align::Left, true);
 }
 float button(MinecraftUIRenderContext& context, float x, float y, std::string const& text, Target target, bool on,
              bool hover, int item = -1) {
     float w = ui::textWidth(context, text) + 8;
-    ui::fill(context, x, y, w, buttonHeight, on ? ui::palette::accentDeep : hover ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
-    ui::frame(context, x, y, w, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge);
-    ui::label(context, x, y + ui::boxTextInset(), w, text, on || hover ? ui::palette::text : ui::palette::dim, ui::Align::Center);
+    ui::drawButton(context, x, y, w, buttonHeight, text, hover, on ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
     state.hits.push_back({x, y, w, buttonHeight, target, item});
     return w;
 }
@@ -1172,19 +1151,19 @@ void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) 
             // Placements keep the fill and gain corner marks; shapes are a
             // plain line in their own shape from above (L-296).
             ui::fill(context, x0, y0, w, h, color, .16f * opacity);
-            ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, Rgb{0, 0, 0}, .6f * opacity);
+            ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, ui::palette::shade, .6f * opacity);
             ui::frame(context, x0, y0, w, h, line, opacity);
             footprintCorners(context, x0, y0, w, h, line, opacity);
         } else if (mark.round) {
             int ix0 = static_cast<int>(x0), iy0 = static_cast<int>(y0), ix1 = static_cast<int>(x0 + w), iy1 = static_cast<int>(y0 + h);
             for (auto const& r : ellipseOutline(ix0 - 1, iy0 - 1, ix1 + 1, iy1 + 1))
                 ui::fill(context, static_cast<float>(r.x), static_cast<float>(r.y), static_cast<float>(r.w), static_cast<float>(r.h),
-                         Rgb{0, 0, 0}, .5f * opacity);
+                         ui::palette::shade, .5f * opacity);
             for (auto const& r : ellipseOutline(ix0, iy0, ix1, iy1))
                 ui::fill(context, static_cast<float>(r.x), static_cast<float>(r.y), static_cast<float>(r.w), static_cast<float>(r.h),
                          line, opacity);
         } else {
-            ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, Rgb{0, 0, 0}, .5f * opacity);
+            ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, ui::palette::shade, .5f * opacity);
             ui::frame(context, x0, y0, w, h, line, opacity);
         }
         auto name = mark.visible ? mark.name : mark.name + " " + ui::translated("worldMap.hidden");
@@ -1234,11 +1213,11 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             float alpha = dot.distant ? distantAlpha : !player && std::abs(dot.dy) >= 8 ? .5f : 1.f;
             bool head = dot.face >= 0 && faces::draw(context, dot.face, x, y, 8, alpha);
             if (!head) {
-                ui::fill(context, x - 2, y - 2, 4, 4, Rgb{0, 0, 0}, .85f * alpha);
+                ui::fill(context, x - 2, y - 2, 4, 4, ui::palette::shade, .85f * alpha);
                 ui::fill(context, x - 1.5f, y - 1.5f, 3, 3, rgb(dotColor(dot.kind)), alpha);
             }
             if (!dot.name.empty())
-                smallLabel(context, x, y + (head ? 6 : 3), dot.name, dot.distant ? ui::palette::dim : Rgb{.59f, .88f, 1.f});
+                smallLabel(context, x, y + (head ? 6 : 3), dot.name, dot.distant ? ui::palette::dim : ui::palette::info);
         }
     }
     if (settings.waypoints && layers().waypoints) {
@@ -1251,19 +1230,19 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             if (x < -20 || y < -20 || x > view.width + 20 || y > view.height + 20) continue;
             // Hidden ones stay faint here so they can be shown again.
             float opacity = w.visible ? 1.f : .35f;
-            if (state.panelWidth > 0 && state.selected == waypointKey(w.id)) diamond(context, x, y, 13, ui::palette::white, 1);
-            diamond(context, x, y, 9, rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]), opacity, w.temporary);
+            Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]);
+            bool const chosen = state.panelWidth > 0 && state.selected == waypointKey(w.id);
+            if (w.death) {
+                // A death's waypoint keeps the cross for its mark (L-328).
+                if (chosen) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
+                cross(context, x, y, color, opacity);
+            } else {
+                if (chosen) diamond(context, x, y, 13, ui::palette::white, 1);
+                diamond(context, x, y, 9, color, opacity, w.temporary);
+            }
             auto name = w.visible ? w.name : w.name + " " + ui::translated("worldMap.hidden");
             names.push_back({waypointKey(w.id), x, y + 6, std::move(name), w.visible ? ui::palette::text : ui::palette::faint});
             state.markers.push_back({waypointKey(w.id), x, y, x, y});
-        }
-        if (set.death && set.death->dimension == state.dimension) {
-            float x = std::round(static_cast<float>(view.screenX(set.death->x + .5)));
-            float y = std::round(static_cast<float>(view.screenY(set.death->z + .5)));
-            if (state.panelWidth > 0 && state.selected == deathKey) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
-            cross(context, x, y);
-            names.push_back({deathKey, x, y + 5, ui::translated("waypoint.death"), ui::palette::text});
-            state.markers.push_back({deathKey, x, y, x, y});
         }
     }
     drawNames(context, names, settings.worldMapNames);
@@ -1431,9 +1410,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
         // The one terrain control: its panel opens directly under it.
         float w = widthOf(terrainText);
         bool over = hovering(x, y, w, buttonHeight);
-        ui::fill(context, x, y, w, buttonHeight, state.cavePanel ? ui::palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
-        ui::frame(context, x, y, w, buttonHeight, state.cavePanel ? ui::palette::accent : ui::palette::keyEdge);
-        ui::label(context, x, y + inset, w, terrainText, ui::palette::text, ui::Align::Center);
+        ui::drawButton(context, x, y, w, buttonHeight, terrainText, over, state.cavePanel ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
         state.hits.push_back({x, y, w, buttonHeight, Target::CaveButton});
         state.caveButton = {x, y, w, buttonHeight};
     } else {
@@ -1442,11 +1419,10 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     float right = size.x - 4 - closeW;
     {
         bool over = hovering(right, 2, closeW, buttonHeight);
-        ui::fill(context, right, 2, closeW, buttonHeight, over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
-        ui::frame(context, right, 2, closeW, buttonHeight, ui::palette::keyEdge);
+        Rgb cross = ui::drawButtonBox(context, right, 2, closeW, buttonHeight, over);
         for (int i = 0; i < 5; ++i) {
-            ui::fill(context, right + 4 + i, 5 + i, 1, 1, over ? ui::palette::text : ui::palette::dim);
-            ui::fill(context, right + 8 - i, 5 + i, 1, 1, over ? ui::palette::text : ui::palette::dim);
+            ui::fill(context, right + 4 + i, 5 + i, 1, 1, cross);
+            ui::fill(context, right + 8 - i, 5 + i, 1, 1, cross);
         }
         state.hits.push_back({right, 2, closeW, buttonHeight, Target::Close});
     }
@@ -1473,24 +1449,20 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
             bool over = hovering(bx, y, bw, buttonHeight);
             if (over) overSwitch = i;
             bool live = blocked == Blocked::No;
-            ui::fill(context, bx, y, bw, buttonHeight, on ? ui::palette::accentDeep : over && live ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill,
-                     live ? .9f : .5f);
-            ui::frame(context, bx, y, bw, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge, live ? 1.f : .5f);
+            Rgb textColor = ui::drawButtonBox(context, bx, y, bw, buttonHeight, over, on ? ui::ButtonKind::Primary : ui::ButtonKind::Plain, live);
             float alpha = on ? 1.f : live ? .4f : .2f, iy = y + buttonHeight / 2;
             layerSymbol(context, static_cast<int>(i), bx + 4, iy, alpha);
-            if (!compact)
-                ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], on || (over && live) ? ui::palette::text : ui::palette::faint,
-                          ui::Align::Center);
+            if (!compact) ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], textColor, ui::Align::Center);
             state.hits.push_back({bx, y, bw, buttonHeight, switches[i].first});
         }
     {
         float bx = x + 4, bw = compact ? infoIconW : infoNamedW;
         bool over = hovering(bx, y, bw, buttonHeight);
-        ui::fill(context, bx, y, bw, buttonHeight, state.infoPanel ? ui::palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
-        ui::frame(context, bx, y, bw, buttonHeight, state.infoPanel ? ui::palette::accent : ui::palette::keyEdge);
+        Rgb textColor = ui::drawButtonBox(context, bx, y, bw, buttonHeight, over,
+            state.infoPanel ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
         layerSymbol(context, 3, bx + 4, y + buttonHeight / 2, 1.f);
-        if (!compact) ui::label(context, bx + 12, y + inset, bw - 19, infoText, ui::palette::text, ui::Align::Center);
-        ui::chevron(context, bx + bw - 8, y + 3, true, over || state.infoPanel ? ui::palette::text : ui::palette::dim);
+        if (!compact) ui::label(context, bx + 12, y + inset, bw - 19, infoText, textColor, ui::Align::Center);
+        ui::chevron(context, bx + bw - 8, y + 3, true, textColor);
         state.hits.push_back({bx, y, bw, buttonHeight, Target::InfoButton});
         state.infoButton = {bx, y, bw, buttonHeight};
     }
@@ -1569,7 +1541,7 @@ void drawInfoPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     float available = size.x - state.panelWidth - 3;
     float left = std::clamp(state.infoButton.x, 3.f, std::max(3.f, available - w));
     float top = std::max(state.infoButton.y + state.infoButton.h + 1, state.top + 1);
-    ui::fill(context, left, top, w, h, ui::palette::panel, .92f);
+    ui::fill(context, left, top, w, h, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, left, top, w, h, ui::palette::white, .14f);
     state.hits.push_back({left, top, w, h, Target::InfoPanel});
     auto const& map = Runtime::instance().preferences().map;
@@ -1605,7 +1577,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     float left = std::clamp(state.caveButton.x, 3.f, std::max(3.f, available - w));
     float top = std::max(state.caveButton.y + state.caveButton.h + 1, state.top + 1);
     if (top + h > size.y - bottomHeight) top = std::max(state.top + 1.f, size.y - bottomHeight - h);
-    ui::fill(context, left, top, w, h, ui::palette::panel, .92f);
+    ui::fill(context, left, top, w, h, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, left, top, w, h, ui::palette::white, .14f);
     // The panel background swallows clicks between its rows.
     state.hits.push_back({left, top, w, h, Target::CavePanel});
@@ -1642,26 +1614,16 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         ui::fill(context, x, y, w - 10, 1, ui::palette::white, .14f);
         y += 4;
         labelAt(y, ui::translated("worldMap.height"));
-        float bx = x + 54, by = y + 1;
-        auto tiny = [&](float tx, char const* text, Target target) {
-            bool over = hovering(tx, by, 14, buttonHeight);
-            ui::fill(context, tx, by, 14, buttonHeight, over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
-            ui::frame(context, tx, by, 14, buttonHeight, ui::palette::keyEdge);
-            ui::label(context, tx, by + inset, 14, text, ui::palette::text, ui::Align::Center);
-            state.hits.push_back({tx, by, 14, buttonHeight, target});
-        };
-        tiny(bx, "-", Target::HeightDown);
-        float fx = bx + 16, fw = 44, fh = 13, fy = y;
-        ui::fill(context, fx, fy, fw, fh, ui::palette::keyFill);
-        ui::frame(context, fx, fy, fw, fh, state.editingHeight ? ui::palette::accent : ui::palette::keyEdge);
-        if (state.editingHeight) {
-            ui::drawEditField(context, fx, fy, fh, fw, state.heightInput, ui::Align::Center);
-            state.namePosition = {fx + 3, fy + 2};
-        } else {
-            ui::label(context, fx, fy + 1 + inset, fw, std::to_string(state.height), ui::palette::text, ui::Align::Center);
-            state.hits.push_back({fx, fy, fw, fh, Target::HeightField});
-        }
-        tiny(bx + 62, "+", Target::HeightUp);
+        // One stepper: the ends step, a click on the value types it.
+        constexpr float cell = 14, sw = 76, sh = 13;
+        float bx = x + 54, fy = y;
+        int hot = hovering(bx, fy, cell, sh) ? -1 : hovering(bx + sw - cell, fy, cell, sh) ? 1 : 0;
+        ui::drawStepper(context, bx, fy, sw, sh, true, std::to_string(state.height),
+            {.editing = state.editingHeight ? &state.heightInput : nullptr, .hot = hot, .cell = cell});
+        state.hits.push_back({bx, fy, cell, sh, Target::HeightDown});
+        state.hits.push_back({bx + sw - cell, fy, cell, sh, Target::HeightUp});
+        if (state.editingHeight) state.namePosition = {bx + cell + 3, fy + 2};
+        else state.hits.push_back({bx + cell, fy, sw - 2 * cell, sh, Target::HeightField});
         auto tracking = ui::translated(state.following
                 ? (state.cameraReference && camera ? "worldMap.cameraY" : "worldMap.followingY")
                 : "worldMap.fixedY", state.height);
@@ -1675,9 +1637,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
                                              : ui::translated("worldMap.matchingHeight", state.height))
                               : (cameraMatch ? ui::translated("worldMap.matchCameraHeight")
                                              : ui::translated("worldMap.matchHeight"));
-        ui::fill(context, x, y, w - 10, 15, enabled ? (over ? ui::palette::accent : ui::palette::accentDeep) : ui::palette::keyFill, .9f);
-        ui::frame(context, x, y, w - 10, 15, enabled ? ui::palette::accent : ui::palette::keyEdge);
-        ui::label(context, x, y + 2 + inset, w - 10, text, enabled ? ui::palette::text : ui::palette::faint, ui::Align::Center);
+        ui::drawButton(context, x, y, w - 10, 15, text, over, ui::ButtonKind::Primary, enabled);
         if (enabled) state.hits.push_back({x, y, w - 10, 15, Target::MatchHeight});
     } else {
         ui::label(context, x, y + 2, w - 10, ui::translated("worldMap.caveOffHint"), ui::palette::faint);
@@ -1690,15 +1650,14 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     auto spot = playerSpot();
     float w = std::clamp(size.x * .3f, 124.f, 160.f), x0 = size.x - w, top = state.top, bottom = size.y - bottomHeight;
     state.panelWidth = w;
-    ui::fill(context, x0, top, w, bottom - top, ui::palette::panel, .92f);
+    ui::fill(context, x0, top, w, bottom - top, ui::palette::panel, ui::opacity::floating);
     ui::fill(context, x0, top, 1, bottom - top, ui::palette::white, .14f);
     state.hits.push_back({x0, top, w, bottom - top, Target::Panel});
     constexpr float pad = 4, rowH = 11;
     float inset = ui::boxTextInset(), inner = w - 2 * pad, x = x0 + pad, y = top + 2;
 
-    // Rows: the death point here, then this dimension's waypoints, nearest first.
-    std::vector<int> entries; // -1 the death point, else into the set
-    if (set.death && set.death->dimension == state.dimension) entries.push_back(-1);
+    // Rows: this dimension's waypoints, nearest first.
+    std::vector<int> entries; // into the set
     std::vector<int> listed;
     for (size_t i = 0; i < set.waypoints.size(); ++i)
         if (set.waypoints[i].dimension == state.dimension) listed.push_back(static_cast<int>(i));
@@ -1709,7 +1668,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());
     if (state.selected && pointLayer(state.selected->layer)
-        && (state.selected->layer == MarkLayer::Death ? !set.death : !waypointOf(set, *state.selected)))
+        && !waypointOf(set, *state.selected))
         state.selected.reset();
     // Or this dimension's placements or shapes (L-204), nearest first.
     int const kind = shownList();
@@ -1734,13 +1693,13 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     auto count = std::to_string(state.kindCounts[static_cast<size_t>(kind)]);
     float headW = std::min(ui::textWidth(context, title) + 4 + ui::textWidth(context, count) + 14, inner - 30);
     bool headOver = hovering(x - 2, y, headW, buttonHeight);
-    if (headOver || state.kindMenu) ui::fill(context, x - 2, y, headW, buttonHeight, Rgb{.23f, .23f, .24f}, .9f);
-    ui::frame(context, x - 2, y, headW, buttonHeight, state.kindMenu ? ui::palette::accent : ui::palette::keyEdge);
-    ui::label(context, x, y + inset, headW - 12, title);
+    Rgb headColor = ui::drawButtonBox(context, x - 2, y, headW, buttonHeight, headOver,
+        state.kindMenu ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
+    ui::label(context, x, y + inset, headW - 12, title, headColor);
     float countX = x + ui::textWidth(context, title) + 4;
     if (countX < x - 2 + headW - 12) ui::label(context, countX, y + inset, x - 2 + headW - 12 - countX, count, ui::palette::faint);
     for (int i = 0; i < 3; ++i) // A small triangle pointing down.
-        ui::fill(context, x - 2 + headW - 9 + i, y + 4 + i, 5 - 2 * i, 1, headOver || state.kindMenu ? ui::palette::text : ui::palette::dim);
+        ui::fill(context, x - 2 + headW - 9 + i, y + 4 + i, 5 - 2 * i, 1, headColor);
     state.hits.push_back({x - 2, y, headW, buttonHeight, Target::PanelKind});
     state.kindX = x - 2; state.kindY = y + buttonHeight; state.kindW = inner + 4;
     float bx = x0 + w - pad - 11;
@@ -1761,6 +1720,16 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     state.listFirst = std::clamp(state.listFirst, 0, std::max(0, rows - maxRows));
     state.listTop = y;
     state.listBottom = y + maxRows * rowH;
+    state.listRows = rows;
+    state.listVisible = maxRows;
+    state.listBarX = x0 + w - 3;
+    if (state.listDragging) state.listFirst = listFirstAt(static_cast<float>(state.pointer.y));
+    if (rows > maxRows) {
+        float track = maxRows * rowH, thumb = std::max(8.0f, track * maxRows / rows);
+        float thumbY = y + (track - thumb) * state.listFirst / (rows - maxRows);
+        ui::drawScrollbar(context, state.listBarX, y, track, thumbY, thumb,
+            state.listDragging || onListBar(static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y)));
+    }
     if (!rows) {
         constexpr std::array<std::string_view, 3> emptyTexts{"worldMap.noWaypoints", "worldMap.noPlacements", "worldMap.noShapes"};
         ui::label(context, x, y + 2, inner, ui::translated(emptyTexts[static_cast<size_t>(kind)]), ui::palette::faint);
@@ -1790,7 +1759,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     }
     for (int r = 0; kind == 0 && r < maxRows && state.listFirst + r < rows; ++r) {
         int index = entries[static_cast<size_t>(state.listFirst + r)];
-        auto mark = index == -1 ? deathKey : waypointKey(set.waypoints[static_cast<size_t>(index)].id);
+        auto mark = waypointKey(set.waypoints[static_cast<size_t>(index)].id);
         float ry = y + r * rowH;
         bool selected = mark == state.selected, over = hovering(x0, ry, w, rowH);
         if (selected) {
@@ -1798,14 +1767,10 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
         } else if (over) ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::white, .07f);
         state.hits.push_back({x0, ry, w, rowH, Target::Row, index, mark});
-        if (index == -1) {
-            cross(context, x + 4, ry + rowH / 2);
-            ui::label(context, x + 11, ry + inset, inner - 11, ui::translated("waypoint.death"), ui::palette::text);
-            continue;
-        }
         auto const& p = set.waypoints[static_cast<size_t>(index)];
-        diamond(context, x + 4, ry + rowH / 2, 7, rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]), p.visible ? 1.f : .4f,
-                p.temporary);
+        if (Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]); p.death)
+            cross(context, x + 4, ry + rowH / 2, color, p.visible ? 1.f : .4f);
+        else diamond(context, x + 4, ry + rowH / 2, 7, color, p.visible ? 1.f : .4f, p.temporary);
         float switchX = x0 + w - pad - ui::switchWidth;
         std::string far;
         if (spot && spot->dimension == state.dimension) far = ui::translated("waypoint.meters", static_cast<int>(std::lround(distance(index))));
@@ -1822,23 +1787,12 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     auto small = [&](float sx, float sy, float width, std::string text, Target target, int item, bool danger = false) {
         float bw = std::min(width, ui::textWidth(context, text) + 8);
         bool over = hovering(sx, sy, bw, buttonHeight);
-        Rgb fill = danger && state.deleteArmed ? Rgb{.54f, .18f, .16f} : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill;
-        ui::fill(context, sx, sy, bw, buttonHeight, fill);
-        ui::frame(context, sx, sy, bw, buttonHeight, danger ? Rgb{.54f, .23f, .2f} : ui::palette::keyEdge);
-        ui::label(context, sx, sy + inset, bw, std::move(text), danger && !state.deleteArmed ? Rgb{1.f, .7f, .68f} : ui::palette::text,
-                  ui::Align::Center);
+        if (danger) ui::drawDangerButton(context, sx, sy, bw, buttonHeight, std::move(text), over, state.deleteArmed);
+        else ui::drawButton(context, sx, sy, bw, buttonHeight, std::move(text), over);
         state.hits.push_back({sx, sy, bw, buttonHeight, target, item});
         return bw;
     };
     auto deleteText = ui::translated(state.deleteArmed ? "worldMap.deleteArmed" : "worldMap.delete");
-    if (state.selected == deathKey && set.death) {
-        auto const& d = *set.death;
-        ui::labelScaled(context, x, y, inner, std::format("{}, {}, {}", d.x, d.y, d.z), .75f, ui::palette::dim);
-        y += 10;
-        float used = small(x, y, inner, ui::translated("waypoint.keep"), Target::Keep, 0);
-        small(x + used + 3, y, inner - used - 3, deleteText, Target::Delete, 0, true);
-        return;
-    }
     if (auto const* area = state.selected ? areaOf(*state.selected) : nullptr) {
         // A placement or a shape: what it covers, shown or not, and its own screen.
         ui::label(context, x, y + inset, inner, area->name);
@@ -1867,12 +1821,9 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     }
     auto const& p = *selectedWaypoint;
     // Name: click to type; Enter or a click elsewhere keeps it, Esc drops it.
-    ui::fill(context, x, y, inner, 12, Rgb{0, 0, 0}, .4f);
-    ui::frame(context, x, y, inner, 12, state.editingName ? ui::palette::accent : ui::palette::keyEdge);
-    if (state.editingName) ui::drawEditField(context, x + 3, y, 12, inner - 6, state.name);
-    else ui::label(context, x + 3, y + 1 + inset, inner - 6, p.name);
+    ui::drawTextField(context, x, y, inner, 12, state.editingName, &state.name, p.name);
     state.hits.push_back({x, y, inner, 12, Target::Name});
-    state.namePosition = {x + 3, y};
+    state.namePosition = {x + 4, y};
     y += 14;
     std::string info = std::format("{}, {}, {}", p.x, p.y, p.z);
     if (p.dimension != state.dimension) info += "  " + ui::translated(p.dimension == 1 ? "worldMap.nether" : p.dimension == 2 ? "worldMap.end" : "worldMap.overworld");
@@ -1882,21 +1833,15 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (int axis = 0; axis < 3 && y + 12 < bottom; ++axis) {
         int value = axis == 0 ? p.x : axis == 1 ? p.y : p.z;
         ui::label(context, x, y + inset, 12, std::string(axes[static_cast<size_t>(axis)]), ui::palette::dim);
-        float sx = x0 + w - pad - 70;
-        for (int side = 0; side < 2; ++side) {
-            float bx2 = side ? sx + 61 : sx;
-            bool over = hovering(bx2, y, 9, buttonHeight);
-            ui::fill(context, bx2, y, 9, buttonHeight, over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill);
-            ui::frame(context, bx2, y, 9, buttonHeight, ui::palette::keyEdge);
-            ui::label(context, bx2, y + inset, 9, side ? "+" : "-", ui::palette::text, ui::Align::Center);
-            state.hits.push_back({bx2, y, 9, buttonHeight, Target::Step, axis * 2 + side});
-        }
-        // The value: click to type it (L-172 follow-up, 2026-10-13).
-        if (state.editingAxis == axis) {
-            ui::frame(context, sx + 9, y, 52, buttonHeight, ui::palette::accent);
-            ui::drawEditField(context, sx + 10, y, buttonHeight, 50, state.coordinate, ui::Align::Center);
-        } else ui::label(context, sx + 9, y + inset, 52, std::to_string(value), ui::palette::text, ui::Align::Center);
-        state.hits.push_back({sx + 9, y, 52, buttonHeight, Target::Coordinate, axis});
+        // One stepper per axis; a click on the value types it (L-172 follow-up, 2026-10-13).
+        constexpr float cell = 10, sw = 70;
+        float sx = x0 + w - pad - sw;
+        int hot = hovering(sx, y, cell, buttonHeight) ? -1 : hovering(sx + sw - cell, y, cell, buttonHeight) ? 1 : 0;
+        ui::drawStepper(context, sx, y, sw, buttonHeight, true, std::to_string(value),
+            {.editing = state.editingAxis == axis ? &state.coordinate : nullptr, .hot = hot, .cell = cell});
+        state.hits.push_back({sx, y, cell, buttonHeight, Target::Step, axis * 2});
+        state.hits.push_back({sx + sw - cell, y, cell, buttonHeight, Target::Step, axis * 2 + 1});
+        state.hits.push_back({sx + cell, y, sw - 2 * cell, buttonHeight, Target::Coordinate, axis});
         y += 12;
     }
     if (y + 12 < bottom) { small(x, y, inner, ui::translated("waypoint.moveHere"), Target::MoveHere, 0); y += 13; }
@@ -1936,7 +1881,7 @@ void drawKindMenu(MinecraftUIRenderContext& context) {
     constexpr float rowH = 12;
     constexpr std::array<std::string_view, 3> names{"nav.waypoints", "nav.schematics", "nav.shapes"};
     float x = state.kindX, y = state.kindY + 1, w = state.kindW;
-    ui::fill(context, x, y, w, 3 * rowH + 2, ui::palette::panel, .98f);
+    ui::fill(context, x, y, w, 3 * rowH + 2, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, x, y, w, 3 * rowH + 2, ui::palette::keyEdge);
     for (int i = 0; i < 3; ++i) {
         float ry = y + 1 + i * rowH;
@@ -1965,9 +1910,6 @@ void drawMenu(MinecraftUIRenderContext& context, glm::vec2 size) {
         auto const* area = areaOf(m.mark);
         if (!area) { state.menu.reset(); return; }
         head = area->name + "  " + ui::translated("worldMap.areaSize", area->area.x1 - area->area.x0, area->area.z1 - area->area.z0);
-    } else if (m.kind == MenuKind::Death) {
-        if (!set.death) { state.menu.reset(); return; }
-        head = ui::translated("waypoint.death") + std::format("  {}, {}, {}", set.death->x, set.death->y, set.death->z);
     } else {
         auto const* w = waypointOf(set, m.mark);
         if (!w) { state.menu.reset(); return; }
@@ -1978,17 +1920,18 @@ void drawMenu(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (auto const& item : items) width = std::max(width, ui::textWidth(context, item) + 2 * pad);
     float height = 10 + items.size() * itemHeight + 3;
     float x = std::min(m.x, size.x - width - 2), y = std::min(m.y, size.y - bottomHeight - height - 2);
-    ui::fill(context, x, y, width, height, ui::palette::panel, .94f);
+    ui::fill(context, x, y, width, height, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, x, y, width, height, ui::palette::white, .14f);
     ui::labelScaled(context, x + pad, y + 2, width - 2 * pad, head, .75f, ui::palette::faint);
     ui::fill(context, x + 1, y + 9, width - 2, 1, ui::palette::white, .14f);
     for (size_t i = 0; i < items.size(); ++i) {
         float iy = y + 11 + i * itemHeight;
-        bool danger = (m.kind == MenuKind::Waypoint && i == 2) || (m.kind == MenuKind::Death && i == 1);
-        if (danger && m.armed) ui::fill(context, x + 1, iy, width - 2, itemHeight, Rgb{.54f, .18f, .16f});
-        else if (hovering(x, iy, width, itemHeight)) ui::fill(context, x + 1, iy, width - 2, itemHeight, ui::palette::white, .07f);
+        bool danger = (m.kind == MenuKind::Waypoint && i == 2);
+        bool over = hovering(x, iy, width, itemHeight);
+        if (danger && m.armed) ui::fill(context, x + 1, iy, width - 2, itemHeight, ui::palette::danger);
+        else if (over) ui::fill(context, x + 1, iy, width - 2, itemHeight, ui::palette::white, .07f);
         ui::label(context, x + pad, iy + 1, width - 2 * pad, items[i],
-                  danger && !m.armed ? Rgb{1.f, .7f, .68f} : ui::palette::text);
+                  danger && over && !m.armed ? ui::palette::dangerText : ui::palette::text);
         state.hits.push_back({x, iy, width, itemHeight, Target::Menu, static_cast<int>(i)});
     }
     // The menu swallows clicks on its padding too.
@@ -2067,6 +2010,18 @@ bool cavePanelTarget(Target target) {
 }
 Request press(float x, float y, bool right) {
     Request request;
+    // The notice of fuller saved data lies over the map's corner and takes its presses (L-343).
+    if (auto pressed = right ? ui::data_notice::Pressed::Outside : ui::data_notice::press(x, y);
+        pressed != ui::data_notice::Pressed::Outside) {
+        if (pressed == ui::data_notice::Pressed::Open) request.kind = Request::Kind::OpenSavedData;
+        if (auto done = ui::data_notice::takeResult()) say(done->text);
+        return request;
+    }
+    if (!right && onListBar(x, y)) {
+        state.listDragging = true;
+        state.listFirst = listFirstAt(y);
+        return request;
+    }
     auto const* hit = hitAt(x, y);
     // Leaving a field for the cave panel or another control keeps its value;
     // only a press on the field being edited keeps it in edit mode.
@@ -2076,7 +2031,10 @@ Request press(float x, float y, bool right) {
     if ((state.editingHeight || state.editingName || state.editingAxis >= 0) && !heightField && !sameSideField) commitName();
     // The cave panel sits above the map; its controls consume the press.
     if (hit && (hit->target == Target::CaveButton || cavePanelTarget(hit->target) || infoPanelTarget(hit->target))) {
+        // A right click steps the height down and presses nothing else.
         if (!right) act(hit->target);
+        else if (hit->target == Target::HeightDown || hit->target == Target::HeightUp || hit->target == Target::HeightField)
+            act(Target::HeightDown);
         return request;
     }
     if (state.cavePanel || state.infoPanel) {
@@ -2106,7 +2064,16 @@ Request press(float x, float y, bool right) {
     bool menuWasOpen = state.menu.has_value();
     if (!(hit && hit->target == Target::None)) state.menu.reset();
     if (hit && hit->target >= Target::Panel) {
-        if (right) return request;
+        if (right) {
+            // On a coordinate stepper a right click steps it down; nothing else is pressed.
+            if (hit->target == Target::Step || hit->target == Target::Coordinate) {
+                Hit down = *hit;
+                down.target = Target::Step;
+                down.item = (hit->target == Target::Step ? hit->item / 2 : hit->item) * 2;
+                return panelAction(down);
+            }
+            return request;
+        }
         return panelAction(*hit);
     }
     commitName();
@@ -2129,6 +2096,7 @@ Request press(float x, float y, bool right) {
     return request;
 }
 void release() {
+    state.listDragging = false;
     // A click on a marker (no drag) selects it in the side panel.
     if (state.drag && !state.drag->moved && state.drag->marker) {
         setPanelOpen(true);
@@ -2226,7 +2194,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     if (!shown && !pending && empty) {
         auto text = ui::translated("worldMap.empty");
         float w = ui::textWidth(context, text) + 12;
-        ui::fill(context, (size.x - w) / 2, size.y / 2 - 7, w, 14, ui::palette::panel, .8f);
+        ui::fill(context, (size.x - w) / 2, size.y / 2 - 7, w, 14, ui::palette::panel, ui::opacity::floating);
         ui::label(context, (size.x - w) / 2, size.y / 2 - 4, w, text, ui::palette::dim, ui::Align::Center);
     }
     drawBars(context, size, pending, settings.worldMap);
@@ -2240,11 +2208,12 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     drawKindMenu(context);
     context.flushText(0, std::nullopt);
     drawMenu(context, size);
-    if (!state.notice.empty() && now() - state.noticeAt < 2.6) {
-        float w = ui::textWidth(context, state.notice) + 12, y = size.y - bottomHeight - 16;
-        ui::fill(context, (size.x - w) / 2, y, w, 12, ui::palette::panel, .85f);
-        ui::label(context, (size.x - w) / 2, y + 2, w, state.notice, ui::palette::text, ui::Align::Center);
-    }
+    // Under the top bar, at the left: over the map without taking a drag or the wheel from the rest of it.
+    if (!state.cavePanel && !state.infoPanel && ui::data_notice::height(ui::data_notice::Kind::Map) > 0)
+        ui::data_notice::draw(context, 6, state.top + 6, std::min(300.0f, size.x - state.panelWidth - 12),
+            ui::data_notice::Kind::Map, pointer, true);
+    if (!state.notice.empty() && now() - state.noticeAt < ui::noticeSeconds)
+        ui::drawNotice(context, size.x / 2, size.y - bottomHeight - 16, size.x - 8, state.notice);
     context.flushText(0, std::nullopt);
 }
 }

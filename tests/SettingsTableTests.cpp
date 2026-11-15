@@ -143,13 +143,18 @@ void settingsTableTests() {
         && !footer.onDescriptionScrollbar(barX, footer.footerTop + 5, SettingsTable::descriptionLines),
         "an overflowing description's scrollbar reaches its first and last lines");
 
-    // Stepper parts are right-aligned in the value columns.
+    // Stepper parts: one state column on every row, ending before the key column (L-349).
     check(t.stepperPart(t.stepperX() + 2) == -1 && t.stepperPart(t.stepperX() + t.stepperWidth() - 2) == 1
         && t.stepperPart(t.stepperX() + t.stepperWidth() / 2) == 0 && t.stepperPart(t.nameX) == 2, "stepper parts");
-    check(t.stepperX() >= t.stateX, "stepper stays in the value columns");
-    check(t.stepperX(true) + t.stepperWidth(true) <= t.keyX - SettingsTable::gap && t.stepperX(true) > t.nameX
-        && t.stepperPart(t.keyX + 2, true) == 2 && t.stepperPart(t.stepperX(true) + 2, true) == -1,
-        "a keyed stepper ends before the key column, which stays the key cell");
+    for (float screenWidth : {456.0f, 640.0f, 1280.0f}) {
+        auto table = SettingsTable::fit(screenWidth, 360, 20, 0);
+        check(table.usable() && table.stepperX() + table.stepperWidth() == table.keyX - SettingsTable::gap
+            && table.stepperWidth() == SettingsTable::stepperColumnWidth && table.stepperX() > table.nameX
+            && table.stepperPart(table.keyX + 2) == 2 && table.stepperPart(table.keyX - SettingsTable::gap - 1) == 1,
+            "every stepper has the same width and ends before the key column, so a choice never reaches a key cell");
+    }
+    check(SettingsTable::fit(456, 360, 20, 0).keyWidth < SettingsTable::fit(640, 360, 20, 0).keyWidth,
+          "the column test covers both key widths");
     {
         auto slider = SettingsTable::fit(640, 360, 20, 0);
         check(slider.sliderFraction(slider.sliderX() + 3) == 0 && slider.sliderFraction(slider.sliderX() + slider.sliderWidth() - 3) == 1,

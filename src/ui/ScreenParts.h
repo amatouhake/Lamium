@@ -9,6 +9,7 @@
 #include "ui/NumberInput.h"
 #include "ui/SettingsTable.h"
 #include "ui/ShapesLayout.h"
+#include "ui/Widgets.h"
 #include <optional>
 #include <string>
 #include <string_view>
@@ -20,7 +21,11 @@ IClientInstance* client();
 // The footer message every view shows instead of its description: a failed
 // save, a refused value. Empty when there is none.
 std::string const& message();
-void setMessage(std::string text);
+void setMessage(std::string text); // a problem: drawn in warning color
+// A passing result (copied, cleared, switched): drawn in text color where
+// setMessage's would be (DESIGN "Screens": notices inside a screen).
+void setInfo(std::string text);
+Rgb messageColor();
 void clearMessage();
 // A range warning goes again once the user moves to another tab, row or
 // field (L-81).
@@ -34,14 +39,22 @@ void numberTyped();
 void numberReset();
 // Applies and ends any typing (a number or a name) in every view.
 void finishEditing();
+// Esc while typing: drop the edit, keep the stored value (DESIGN "Controls").
+void cancelEditing();
 
 bool heldCtrl();
 bool heldShift();
 // The keys and buttons held now (a binding being captured starts from them).
 input::Chord const& heldKeys();
 void close();
+// Esc on a tool page opened by its key or from the anvil: closes the screen and
+// returns true; false when the page was reached from the settings.
+bool leaveDirectTool();
+void endDirectTool(); // The page's Back button: on to the settings table.
 // Back to the world map the view was opened from.
 void returnToMap();
+// General > Saved data, from a tool page's notice (L-343).
+void showSavedData();
 // The navigation item shown (SettingsNavigation.h nav::), and choosing one.
 int currentNav();
 void selectNav(int index);
@@ -56,6 +69,8 @@ void nextNav(bool back);
 bool navClick(float x, float y);
 // A press on a list's scrollbar moves the list there and starts a drag.
 bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y);
+// A tool view's list scroll bar is held (its thumb stays lit while dragged).
+bool scrollDragging();
 // Flips a boolean option by id ("overlays.shapes").
 void toggleOption(std::string_view id);
 // Shows a feature's row, expanded, in its settings category.

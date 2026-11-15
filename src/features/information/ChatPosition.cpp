@@ -15,6 +15,7 @@
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include <Windows.h>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -25,7 +26,7 @@ bool installed = false, installedText = false, installedSprite = false;
 struct Seen { float width, height, screenW, screenH; };
 std::optional<Seen> seen;
 std::mutex seenMutex;
-struct Frame { float width, height; ui::HudElement element; };
+struct Frame { float width, height; ui::HudElement element; bool hidden = false; };
 thread_local Frame const* active = nullptr;
 // No game references or control changes: layout stays entirely vanilla.
 struct RenderScope {
@@ -36,7 +37,7 @@ struct RenderScope {
         if (!installedText || !installedSprite) return;
         auto& runtime = Runtime::instance();
         auto settings = runtime.snapshot();
-        if (!runtime.enabled() || !settings->information.chatPosition) return;
+        if (!runtime.enabled() || !settings->information.placesChat()) return;
         auto* tree = view.mVisualTree.get();
         if (!tree || !std::string_view(*tree->mRootControlName).ends_with(".hud_screen")) return;
         auto client = ll::service::getClientInstance();
@@ -48,7 +49,7 @@ struct RenderScope {
         if (foregroundProcess != GetCurrentProcessId()) return;
         if (!versionSensitiveAllowed(capabilities::Id::ChatPosition)) return;
         glm::vec2 size = *view.mSize;
-        frame = Frame{size.x, size.y, settings->hud.chat};
+        frame = Frame{size.x, size.y, settings->hud.chat, !settings->information.showChat};
         active = &*frame;
     }
 };
@@ -56,34 +57,52 @@ struct RenderScope {
 // without invalidating the tree or overwriting positions computed by re-layout.
 struct Translation {
     UIControl* owner = nullptr;
-    glm::vec2 position{};
-    ~Translation() { if (owner) owner->mCachedPosition = position; }
+    glm::vec2 position{}, size{};
+    float scale = 1;
+    bool skip = false; // A part of a hidden chat: not drawn (L-334).
+    ~Translation() {
+        if (!owner) return;
+        owner->mCachedPosition = position;
+        owner->mSize = size;
+    }
     void prepare(UIControl& control) {
         if (!active) return;
         std::string const& name = *control.mName;
         if (name != "chat_text" && name != "chat_background") return;
+        // A clipping panel on the way would cut a moved part, so that leaves
+        // the chat where it is; hiding moves nothing and works either way.
+        bool clipped = false;
         auto panel = control.mParent.lock();
         for (int depth = 0; panel && depth < 16; ++depth) {
             if (*panel->mName == "chat_panel") break;
-            if (panel->mClipsChildren) return;
+            clipped = clipped || panel->mClipsChildren;
             panel = panel->mParent.lock();
         }
-        if (!panel || *panel->mName != "chat_panel" || panel->mClipsChildren) return;
+        if (!panel || *panel->mName != "chat_panel") return;
         auto parent = panel->mParent.lock();
-        if (!parent || *parent->mName != "chat_stack" || parent->mClipsChildren) return;
+        if (!parent || *parent->mName != "chat_stack") return;
+        if (active->hidden) { skip = true; return; }
+        if (clipped || panel->mClipsChildren || parent->mClipsChildren) return;
         if (panel->mCachedPositionDirty) panel->_setCachedPosition();
         if (control.mCachedPositionDirty) control._setCachedPosition();
         glm::vec2 at = *panel->mCachedPosition, size = *panel->mSize;
         position = *control.mCachedPosition;
-        auto next = translated(active->width, active->height, {at.x, at.y, size.x, size.y},
+        auto next = chatPosition::translated(active->width, active->height, {at.x, at.y, size.x, size.y},
                                {position.x, position.y}, active->element);
         if (!next) return;
         {
             std::lock_guard lock(seenMutex);
             seen = Seen{size.x, size.y, active->width, active->height};
         }
+        // The element's scale: the control's size for this draw, and for a
+        // text its font scale and line height (the hook), which keeps the
+        // layout's line breaks and spacing (checked in game, L-321).
+        scale = chatPosition::zoom(active->element);
+        // The part's own size, not the panel's (`size` above).
+        this->size = *control.mSize;
         owner = &control;
         control.mCachedPosition = glm::vec2{next->x, next->y};
+        if (scale != 1) control.mSize = this->size * scale;
     }
 };
 }
@@ -97,12 +116,24 @@ LL_TYPE_INSTANCE_HOOK(ChatTextRender, ll::memory::HookPriority::Normal, TextComp
     &TextComponent::$render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
+    float const font = mFontScaleFactor, line = mLineHeight;
+    bool const scaled = translation.owner && translation.scale != 1;
+    if (scaled) {
+        mFontScaleFactor = font * translation.scale;
+        mLineHeight = line * translation.scale;
+    }
     origin(context);
+    if (scaled) {
+        mFontScaleFactor = font;
+        mLineHeight = line;
+    }
 }
 LL_TYPE_INSTANCE_HOOK(ChatBackgroundRender, ll::memory::HookPriority::Normal, SpriteComponent,
     &SpriteComponent::render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
     origin(context);
 }
 std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, float width, float height,
@@ -118,12 +149,13 @@ std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, fl
     auto box = placed(width, height, w, h, element);
     if (!box) return {};
     // Sample only; the gameplay chat is still rendered by vanilla.
-    int lines = std::min(3, static_cast<int>(box->h / 9));
+    float z = zoom(element), row = 9 * z;
+    int lines = std::min(3, static_cast<int>(box->h / row));
     for (int i = 0; i < lines; ++i) {
-        float y = box->y + box->h - (lines - i) * 9;
-        ui::fill(context, box->x, y, box->w, 9, ui::palette::panel, .5f);
-        ui::labelScaled(context, box->x + 2, y, std::max(0.f, box->w - 5), ui::translated("chatPosition.sample"),
-                        1.f, ui::palette::text, ui::Align::Left, true);
+        float y = box->y + box->h - static_cast<float>(lines - i) * row;
+        ui::fill(context, box->x, y, box->w, row, ui::palette::panel, .5f);
+        ui::labelScaled(context, box->x + 2 * z, y, std::max(0.f, box->w - 5 * z), ui::translated("chatPosition.sample"),
+                        z, ui::palette::text, ui::Align::Left, true);
     }
     context.flushText(0, std::nullopt);
     return box;

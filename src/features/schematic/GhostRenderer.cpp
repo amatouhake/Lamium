@@ -76,7 +76,7 @@
 namespace lamium::schematic::ghosts {
 namespace {
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-// Measurement for the update plan (SCHEMATIC.md C): where the ghost pass
+// Measurement for the update plan (SCHEMATIC.md, ghost rendering): where the ghost pass
 // spends its time and why sections are rebuilt, logged every 5 s.
 struct Perf {
     std::chrono::steady_clock::time_point since = std::chrono::steady_clock::now();
@@ -208,9 +208,11 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     for (size_t i = 0; !replaced && i < resolved.size(); ++i)
         replaced = resolved[i].structure != snapshot.placements[i].structure.get();
     if (replaced || snapshot.revision != builtRevision || dimension != builtDimension) {
-        // Placements whose draw key is unchanged keep their resolved blocks
+        // Placements whose mesh key is unchanged keep their resolved blocks
         // and built sections (moved to their new index); only changed ones
-        // are rebuilt, so the others do not blink.
+        // are rebuilt, so the others do not blink. A changed layer view keeps
+        // the placement too, but drops each section whose shown layers
+        // (with the mesh's halo) differ, to be built again (L-236).
         if (dimension != builtDimension) release();
         std::vector<Resolved> nextResolved;
         std::vector<std::string> nextKeys;
@@ -219,8 +221,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         for (int i = 0; i < static_cast<int>(snapshot.placements.size()); ++i) {
             auto const& shown = snapshot.placements[static_cast<size_t>(i)];
             // Overlapping earlier placements are part of the key: they decide
-            // which cells this one leaves out (L-141).
-            auto key = drawKey(shown.placement) + overlap::touchingKey(snapshot.placements, static_cast<size_t>(i));
+            // which cells this one leaves out (L-141). Their whole draw keys,
+            // layers included: a neighbour's cut moving rebuilds this one.
+            auto key = meshKey(shown.placement) + overlap::touchingKey(snapshot.placements, static_cast<size_t>(i));
             int old = -1;
             for (int j = 0; j < static_cast<int>(builtKeys.size()); ++j)
                 if (!taken[static_cast<size_t>(j)] && builtKeys[static_cast<size_t>(j)] == key
@@ -228,10 +231,13 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (old >= 0) {
                 taken[static_cast<size_t>(old)] = true;
                 nextResolved.push_back(std::move(resolved[static_cast<size_t>(old)]));
+                auto const slab = shown.structure ? placedSlab(shown.placement.layers, shown.structure->size, shown.placement.placement)
+                                                  : PlacedSlab{};
                 for (auto it = sections.begin(); it != sections.end();) {
                     if (std::get<0>(it->first) != old) { ++it; continue; }
                     auto node = sections.extract(it++);
                     std::get<0>(node.key()) = i;
+                    if (!shown.structure || node.mapped().layers != sectionLayersOf(slab, shown, node.key())) continue;
                     nextSections.insert(std::move(node));
                 }
             } else {
@@ -909,7 +915,7 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return std::nullopt;
     auto snapshot = session::snapshot();
-    for (auto const& cell : cellsAlong(x, y, z, dx, dy, dz, reach)) {
+    for (auto const& cell : CellWalk(x, y, z, dx, dy, dz, reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!region.getChunkAt(pos)) return std::nullopt;
         // A real block hides the ghosts behind it; one standing in its own
