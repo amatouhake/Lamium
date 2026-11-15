@@ -475,7 +475,8 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     auto drawn = drawKey(snapshot.placements[static_cast<size_t>(index)].placement) + structureKey;
     if (scan.key != key) {
         // Only the ignore entries changed (L-183): the rows' cells are still
-        // where the ghosts are, so they stay usable until the next pass.
+        // where the ghosts are, so the Check tab keeps them; their verdicts
+        // wait for the next pass (outdated).
         bool moved = scan.drawn != drawn;
         scan = {};
         scan.key = key;
@@ -483,9 +484,9 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         std::lock_guard lock(resultMutex);
         // Another placement's block entity mistakes are not this one's.
         if (moved) publishedEntityMistakes = std::make_shared<EntityMistakes const>();
-        if (moved && published->complete && !published->stale) {
+        if (published->complete && !published->stale && (moved || !published->outdated)) {
             auto kept = std::make_shared<Verification>(*published);
-            kept->stale = true;
+            (moved ? kept->stale : kept->outdated) = true;
             published = std::move(kept);
         }
     }

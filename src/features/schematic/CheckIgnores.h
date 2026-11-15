@@ -316,6 +316,18 @@ inline std::vector<IgnoreEntry> listOrder(IgnoreList const& list, Structure cons
 // entries when it names a block cell of the file: not an entity, an extra or
 // another cell expecting air.
 inline bool takesIgnores(Mismatch const& m) { return !m.entity && m.local.x >= 0 && !m.fileBlock.empty(); }
+// A row's mark under the entries as they are now, before the next pass has
+// judged it again: the Check tab dims and tags rows by it, so a press shows
+// at once. A wrong state passes when every difference listed is covered.
+inline IgnoreMark liveMark(Mismatch const& m, IgnoreList const& list) {
+    if (!takesIgnores(m)) return m.ignore;
+    if (list.wholeBlock(m.local, m.fileBlock)) return IgnoreMark::Block;
+    if (m.state != CellState::State || m.states.empty()) return IgnoreMark::None;
+    bool all = std::all_of(m.states.begin(), m.states.end(), [&](auto const& d) {
+        return !d.fixed && list.covers(m.local, m.fileBlock, d.key) != Covered::None;
+    });
+    return all ? IgnoreMark::States : IgnoreMark::None;
+}
 // "Ignore whole blocks": the rows not yet ignored as a whole block.
 inline std::vector<IgnoreEntry> wholeBlocksToAdd(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
     std::vector<IgnoreEntry> out;

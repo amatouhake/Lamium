@@ -331,7 +331,7 @@ void nearestMistake(LocalPlayer& player) {
     auto set = session::current();
     auto result = ghosts::verification();
     if (set.selected < 0) { ui::showMessageToast(ui::translated("schematic.toast.noPlacement")); return; }
-    if (result->placement != set.selected || !result->complete || result->stale) { ui::showMessageToast(ui::translated("schematic.toast.counting")); return; }
+    if (!result->ready(set.selected)) { ui::showMessageToast(ui::translated("schematic.toast.counting")); return; }
     auto p = player.getFeetPos();
     // Ignored rows (L-183) are skipped there.
     double best = 0;

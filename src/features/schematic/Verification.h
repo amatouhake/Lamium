@@ -64,10 +64,14 @@ struct Verification {
     // pass's, kept on screen while the next counts, but no longer where the
     // ghosts are, so nothing points into the world from them (L-177).
     bool stale = false;
+    // L-183: the ignore entries changed since. The rows' cells are still where
+    // the ghosts are, but their verdicts and the counts are the last pass's:
+    // the counts, the HUD and the nearest-mistake key wait for the next one.
+    bool outdated = false;
     Tally visible;              // counts within the shown layers
     std::vector<Mismatch> mismatches; // within the shown layers, nearest first, capped
     std::vector<MaterialLine> materials, visibleMaterials;
-    bool ready(int selected) const { return selected >= 0 && placement == selected && complete && !stale; }
+    bool ready(int selected) const { return selected >= 0 && placement == selected && complete && !stale && !outdated; }
 };
 inline constexpr size_t maxMismatches = 2000;
 

@@ -80,6 +80,8 @@
 #include "mc/world/phys/HitResult.h"
 #include <array>
 #include <mutex>
+#include <set>
+#include <tuple>
 #include <stdexcept>
 #include <vector>
 
@@ -241,8 +243,11 @@ std::vector<CheckKey> checkOrder() {
 }
 // The selected rows in list order.
 std::vector<schematic::Mismatch const*> selectedCheckRows() {
+    std::set<std::tuple<int, int, int, bool>> chosen;
+    for (auto const& key : checkRows.keys) chosen.insert({key.position.x, key.position.y, key.position.z, key.entity});
     std::vector<schematic::Mismatch const*> out;
-    for (auto const* m : verifyRows) if (checkRows.contains({m->position, m->entity})) out.push_back(m);
+    for (auto const* m : verifyRows)
+        if (chosen.contains({m->position.x, m->position.y, m->position.z, m->entity})) out.push_back(m);
     return out;
 }
 // verifySelected names the row the detail pane shows: the one selected row.
@@ -300,9 +305,11 @@ void refreshSchematics(bool files) {
     if (materialSelected >= static_cast<int>(materialRows.size())) materialSelected = -1;
     // The selected rows follow their cells when the rows change (a new pass,
     // a filter): the same index would be another cell.
-    checkRows.retain([](CheckKey const& key) {
-        return std::any_of(verifyRows.begin(), verifyRows.end(), [&](auto const* m) { return CheckKey{m->position, m->entity} == key; });
-    });
+    if (!checkRows.keys.empty()) {
+        std::set<std::tuple<int, int, int, bool>> listed;
+        for (auto const* m : verifyRows) listed.insert({m->position.x, m->position.y, m->position.z, m->entity});
+        checkRows.retain([&](CheckKey const& key) { return listed.contains({key.position.x, key.position.y, key.position.z, key.entity}); });
+    }
     followCheckRows();
 }
 // Changes the selected placement's ignored differences (L-183).
@@ -1105,7 +1112,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         static constexpr std::array<std::string_view, 4> chips{"schematic.filter.mistakes", "schematic.filter.wrong",
             "schematic.filter.state", "schematic.filter.missing"};
         auto const& t = verification->visible;
-        bool counted = checked && !counting;
+        bool counted = checked && !counting && !verification->outdated;
         std::array<std::uint64_t, 4> counts{t.wrong + t.state + t.extra, t.wrong + t.extra, t.state, t.missing};
         float cx = left;
         for (int i = 0; i < 4; ++i) {
@@ -1216,14 +1223,15 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         case SchematicTab::Verify: {
             auto const& m = *verifyRows[static_cast<size_t>(i)];
             // L-183: an ignored row stays in its kind, dimmed, with a tag.
-            bool const dimmed = m.ignore != schematic::IgnoreMark::None;
+            auto const mark = checked ? schematic::liveMark(m, checked->ignored) : m.ignore;
+            bool const dimmed = mark != schematic::IgnoreMark::None;
             Rgb const ink = dimmed ? palette::faint : palette::text, inkDim = dimmed ? palette::faint : palette::dim;
             fill(context,left,y+4,6,6,mismatchColor(m.state),dimmed ? .35f : 1.f);
             label(context,left+9,y+3,kindW-10,mismatchKind(m.state),inkDim);
             if (posW > 0) label(context,left+kindW,y+3,posW-2,std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z),inkDim);
             float bx = left + kindW + posW, bw = listRight - bx - distW - ShapesLayout::pad - 4;
             if (dimmed) {
-                std::string tag = translated(m.ignore == schematic::IgnoreMark::Block ? "schematic.ignore.tagBlock" : "schematic.ignore.tagStates");
+                std::string tag = translated(mark == schematic::IgnoreMark::Block ? "schematic.ignore.tagBlock" : "schematic.ignore.tagStates");
                 float tagW = std::min(textWidth(context, tag), bw / 2);
                 label(context,bx+bw-tagW,y+3,tagW,tag,palette::faint);
                 bw -= tagW + 4;
@@ -1467,7 +1475,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     statesKey = key;
                     states.clear();
                     for (auto const& m : verification->mismatches)
-                        if (!m.entity && verifyMatches(m) && m.ignore == schematic::IgnoreMark::None)
+                        if (!m.entity && verifyMatches(m) && schematic::liveMark(m, checked->ignored) == schematic::IgnoreMark::None)
                             states[{m.position.x, m.position.y, m.position.z}] = m.state;
                 }
                 bool focus = here.x != INT_MIN;
@@ -1544,14 +1552,14 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 double ddx = m->position.x + .5 - feet.x, ddy = m->position.y + .5 - feet.y, ddz = m->position.z + .5 - feet.z;
                 std::string name = m->state == schematic::CellState::Extra ? m->actualName : m->expectedName;
                 names.push_back({std::format("{}, {}, {}  {}", m->position.x, m->position.y, m->position.z, name),
-                                 m->ignore != schematic::IgnoreMark::None,
+                                 schematic::liveMark(*m, ignored) != schematic::IgnoreMark::None,
                                  translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(ddx * ddx + ddy * ddy + ddz * ddz)))), {}});
             }
             // A button that would change nothing is disabled.
             std::vector<bool> enabled{editable, editable && !schematic::wholeBlocksToAdd(chosenRows, ignored).empty(),
                                       editable && !schematic::ownEntries(chosenRows, ignored).empty()};
             drawSelectionPane(context,pane,chosenRows.size(),names,[&](size_t i, float gx, float gy) {
-                fill(context,gx-3,gy-3,6,6,mismatchColor(chosenRows[i]->state),chosenRows[i]->ignore != schematic::IgnoreMark::None ? .35f : 1.f);
+                fill(context,gx-3,gy-3,6,6,mismatchColor(chosenRows[i]->state),schematic::liveMark(*chosenRows[i], ignored) != schematic::IgnoreMark::None ? .35f : 1.f);
             },l.selecting,checkBulk,pointer.x,pointer.y,0,0,enabled);
             size_t lines = names.size() + (pane.fit.more > 0 ? 1 : 0);
             listTop = pane.linesTop + static_cast<float>(lines) * pane.lineHeight + 6;
@@ -1621,7 +1629,10 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             ? verifyRows[static_cast<size_t>(verifySelected)] : nullptr;
         if (!verifyIgnoredOpen && !several) {
             label(context,dx,y,half,translated("schematic.check.whole", layersText(*checked)),palette::faint);
-            if (!counting && !unloadable) {
+            // After an entries change the counts wait for the next pass (L-183).
+            if (!counting && !unloadable && verification->outdated) {
+                if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.counting"),palette::dim);
+            } else if (!counting && !unloadable) {
                 if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
                 if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
                 if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
@@ -1633,14 +1644,15 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             std::uint64_t kindTotal = verifyFilter == 1 ? t.wrong + t.extra : verifyFilter == 2 ? t.state : verifyFilter == 3 ? t.missing
                 : t.wrong + t.extra + t.state;
             auto countedRows = static_cast<std::uint64_t>(std::count_if(verifyRows.begin(), verifyRows.end(),
-                [](auto const* m) { return m->ignore == schematic::IgnoreMark::None; }));
-            if (!counting && !unloadable && countedRows < kindTotal && fits(y + 57)) {
+                [&](auto const* m) { return schematic::liveMark(*m, ignored) == schematic::IgnoreMark::None; }));
+            if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 57)) {
                 paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
                 bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
             }
             if (selected) {
                 auto const& m = *selected;
-                bool const wholeIgnored = m.ignore == schematic::IgnoreMark::Block, statesIgnored = m.ignore == schematic::IgnoreMark::States;
+                auto const mark = schematic::liveMark(m, ignored);
+                bool const wholeIgnored = mark == schematic::IgnoreMark::Block, statesIgnored = mark == schematic::IgnoreMark::States;
                 Rgb const kindColor = wholeIgnored || statesIgnored ? palette::dim : mismatchColor(m.state);
                 fill(context,rx-5,y,1,52,palette::white,.1f);
                 label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z)),kindColor);

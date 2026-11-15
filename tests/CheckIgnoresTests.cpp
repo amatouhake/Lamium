@@ -228,6 +228,22 @@ void checkIgnoresTests() {
               && states[0].own.size() == 1 && states[0].every && states[1].key == "lever_direction" && states[1].rows == 1,
           "each state key lists how many rows differ in it, what to add and what to take back; block entity rows take no part");
 
+    // Right after an entries change the rows carry the last pass's verdicts;
+    // the Check tab marks them by the live entries, and the counts, the HUD
+    // and the nearest-mistake key wait for the next pass.
+    auto lastPass = checkRow({0, 0, 0}, "minecraft:lever", {{"open_bit", "0", "1"}});
+    check(liveMark(lastPass, IgnoreList({lever})) == IgnoreMark::None
+              && liveMark(lastPass, IgnoreList({stateEntry({0, 0, 0}, "minecraft:lever", "open_bit")})) == IgnoreMark::States
+              && liveMark(lastPass, IgnoreList({blockEntry({0, 0, 0}, "minecraft:lever")})) == IgnoreMark::Block
+              && liveMark(lastPass, IgnoreList({everyLever})) == IgnoreMark::States,
+          "a row is dimmed by the entries as they are now, before the next pass");
+    Verification outdated;
+    outdated.placement = 0;
+    outdated.complete = true;
+    check(outdated.ready(0), "a finished pass is ready");
+    outdated.outdated = true;
+    check(!outdated.ready(0), "after an entries change the last pass is not ready: its counts still hold the ignored cells");
+
     // The entry follows the placement: turned and mirrored, the world cell
     // holding it maps back to the same structure cell.
     Size size{2, 1, 3};
