@@ -82,8 +82,9 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   clamped to 50-200 %; the next save removes `map.size`, so a converted file
   cannot convert again. Hold-to-enlarge: twice the
   side at the same scale, at most 85 % of the screen height, arrow/dots/names
-  at normal size. Hidden while Debug View shows (switch), not while zooming
-  or in FreeCamera.
+  at normal size. Hidden while Lamium's Debug View shows (switch "Hide the
+  minimap while Debug View is open", with help text; L-349), not while
+  zooming or in FreeCamera.
 - While FreeCamera owns the view the center and heading follow the camera;
   the player's arrow is drawn where the player is (hidden off the map); no
   setting. Freelook keeps following the player. The camera's heading is a
