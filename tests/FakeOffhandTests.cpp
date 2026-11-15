@@ -245,6 +245,10 @@ void fakeOffhandTests() {
     check(queuedHoldEdge(false, true, false, false) == HoldEdge::None
         && queuedHoldEdge(true, true, true, false) == HoldEdge::None,
         "L-288: right-click and instant holds keep their own edge lifecycle");
+    check(queuedHoldEdge(true, true, false, false, true) == HoldEdge::None
+        && queuedHoldEdge(true, false, false, false, true) == HoldEdge::None
+        && queuedHoldEdge(true, true, false, false, false) == HoldEdge::Up,
+        "L-322: a plain use stays held on the Fake Offhand slot and is released once another slot is selected");
     using lamium::inventory::fakeOffhand::primaryYields;
     using lamium::inventory::fakeOffhand::interactSlot;
     using lamium::inventory::fakeOffhand::placementSlot;

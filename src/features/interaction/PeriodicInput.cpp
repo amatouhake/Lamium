@@ -117,10 +117,23 @@ LL_TYPE_INSTANCE_HOOK(DestroyOwner, ll::memory::HookPriority::Normal, InputHandl
     owners.erase(this);
     origin();
 }
+void interruptNow() {
+    for (auto const& [_, owner] : owners)
+        for (auto& button : owner->buttons) { button.click.forgetHeld(); suspend(button); }
+    attackEdge(false);
+}
+// interrupt() arrives from key and mouse events, outside the client tick: the
+// game's callbacks and `owners` wait for the next input update or client tick.
+std::atomic<bool> interruptOwed{false};
+void settleInterrupt() {
+    if (interruptOwed.exchange(false)) interruptNow();
+}
 // Edges go out on the native input update; timing comes from client ticks.
 LL_TYPE_INSTANCE_HOOK(Update, ll::memory::HookPriority::Normal, InputHandler,
     &InputHandler::tick, void, IMinecraftGame* game, IClientInstance& primary,
     Bedrock::NotNullNonOwnerPtr<ControllerIDtoClientMap> const& map, bool multiple) {
+    // Before this update's own presses, which the owed forget must not erase.
+    settleInterrupt();
     origin(game, primary, map, multiple);
     auto found = owners.find(this);
     if (found == owners.end()) return;
@@ -145,7 +158,7 @@ LL_TYPE_INSTANCE_HOOK(Update, ll::memory::HookPriority::Normal, InputHandler,
 }
 LL_TYPE_INSTANCE_HOOK(ChangeDimension, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$onWillChangeDimension, void, Player& player) {
-    interrupt();
+    interruptNow();
     origin(player);
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
@@ -154,6 +167,7 @@ Hook hooks[] = {{RegisterDown::hook, RegisterDown::unhook}, {RegisterUp::hook, R
     {ChangeDimension::hook, ChangeDimension::unhook}};
 // Follow the settings once per client tick, then advance timing.
 void followSettings() {
+    settleInterrupt();
     auto preferences = Runtime::instance().preferences();
     preferences.normalize();
     auto const& value = preferences.interaction;
@@ -174,12 +188,11 @@ void followSettings() {
 }
 }
 void interrupt() {
-    for (auto const& [_, owner] : owners)
-        for (auto& button : owner->buttons) { button.click.forgetHeld(); suspend(button); }
+    interruptOwed.store(true);
     attackEdge(false);
 }
 void endSession() {
-    interrupt();
+    interruptNow();
     auto& runtime = Runtime::instance();
     auto value = runtime.preferences();
     if (!value.interaction.autoAttack && !value.interaction.autoUse) return;
@@ -212,7 +225,8 @@ void start() {
 }
 void stop() {
     enabled = false;
-    interrupt();
+    interruptOwed.store(false);
+    interruptNow();
     if (tickListener) ll::event::EventBus::getInstance().removeListener(tickListener);
     tickListener.reset();
     owners.clear();

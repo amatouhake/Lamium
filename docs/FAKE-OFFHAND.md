@@ -120,7 +120,9 @@ uses stay available.
   priority, and an interactive block aimed without sneaking is opened with
   the borrowed slot selected. With the target slot itself selected, a press
   borrows nothing and sends the vanilla use edge, held until the key is
-  released, so the selected item acts as a right click would (L-322).
+  released or another slot is selected with nothing to borrow, so the
+  selected item acts as a right click would and no other item is used
+  (L-322).
 - With Sneak Placement on (L-293), the slot's item is what acts, so the
   interactive-block choice takes Sneak Placement's sneak state instead of
   the player's, for every binding: the slot's block is placed on a chest

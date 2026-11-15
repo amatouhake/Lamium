@@ -14,7 +14,8 @@ enum class Action { Attack, Use };
 void start();
 void stop();
 // Focus loss, screen and dimension changes: forget the physical held state
-// and release any synthetic press. The switches stay on.
+// and release any synthetic press. The switches stay on. Callable from input
+// events: it acts on the next input update or client tick.
 void interrupt();
 // World exit: switch both off.
 void endSession();

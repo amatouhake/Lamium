@@ -479,7 +479,8 @@ LL_TYPE_INSTANCE_HOOK(BuildAction, ll::memory::HookPriority::Normal, ClientInsta
                 slot.reset();
             }
         }
-        edge = queuedHoldEdge(queuedHold.load(), synthetic.load(), instantPrimary.load() >= 0, slot.has_value());
+        edge = queuedHoldEdge(queuedHold.load(), synthetic.load(), instantPrimary.load() >= 0, slot.has_value(),
+            plainUse(!rightChordHeld.load(), selected, targetSlot.load()));
         if (edge == HoldEdge::Up) {
             traceChoice("hold-up", *this, selected, slot, false, &solid);
             if (synthetic.exchange(false)) interaction::periodic::sendUseEdge(*this, false);
@@ -644,6 +645,8 @@ void press(IClientInstance& client) {
         auto slot = chooseSlot(client, client.getLatestHitResult(), selected, instant, !rightClick);
         traceChoice("press-choice", client, selected, slot, instant);
         if (plainUse(!rightClick, selected, targetSlot.load())) {
+            // Held like the queued hold below: build ticks release the edge once another slot is selected.
+            queuedHold.store(true);
             syntheticThread.store(std::this_thread::get_id());
             synthetic.store(interaction::periodic::sendUseEdge(client, true));
             return;

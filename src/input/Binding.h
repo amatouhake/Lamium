@@ -465,6 +465,14 @@ class ChordDispatch {
     }
 public:
     bool isActive(Action action) const { return phases[static_cast<size_t>(action)] == Phase::Active; }
+    // A chord of several inputs that fired or waits for its release owns each of them; an input bound alone
+    // does not (a mouse button alone stays the game's click). Ask before reset().
+    bool takes(ChordSet const& chords, Token token) const {
+        for (size_t i = 0; i < chords.size(); ++i)
+            if ((phases[i] == Phase::Active || phases[i] == Phase::Pending) && chords[i].size() > 1
+                && contains(chords[i], token)) return true;
+        return false;
+    }
     // chords[i] is empty when the action is unbound or not allowed here.
     // down is a key/button press (repeats included) or a wheel impulse; fresh
     // says it newly entered the held set. Pass nothing for a release or for an

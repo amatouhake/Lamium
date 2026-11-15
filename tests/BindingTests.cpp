@@ -365,6 +365,22 @@ void bindingTests() {
         check(gameClick({side}) == GameClick::None && gameClick({Token{Device::Key, 0x12}, left}) == GameClick::None
               && gameClick({b}) == GameClick::None && gameClick({}) == GameClick::None,
               "side buttons, chords with a modifier and keys are not the game's click");
+        Keys keys;
+        keys.bind(shortA, {right});
+        keys.bind(Action::DebugView, {alt, right});
+        check(only(keys.press(right), {on(shortA)}) && !keys.dispatch.takes(keys.chords, right),
+              "a mouse button bound alone leaves its click to the game");
+        keys.release(right);
+        keys.press(alt);
+        check(only(keys.press(right), {on(Action::DebugView)}) && keys.dispatch.takes(keys.chords, right)
+              && !keys.dispatch.takes(keys.chords, left), "a chord with a modifier takes its click");
+        keys.release(right);
+        keys.bind(longA, {alt, right, b});
+        auto waiting = keys.press(right);
+        check(only(waiting, {}) && waiting.consumed && keys.dispatch.takes(keys.chords, right),
+              "a chord waiting for its release takes its click too");
+        keys.dispatch.reset();
+        check(!keys.dispatch.takes(keys.chords, right), "a reset dispatcher owns nothing");
     }
     {
         Bindings bindings;

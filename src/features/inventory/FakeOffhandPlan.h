@@ -207,9 +207,11 @@ inline QueuedPress queuedPressAction(bool rightClickBinding, std::optional<int> 
 // a placement slot. A hold that starts off a block face sends it once the aim
 // reaches one; a hold that loses the slot releases it, so vanilla's repeat
 // never acts on the primary item. Instant holds keep their own lifecycle.
+// L-322: `plain` (plainUse on this tick) keeps the edge as it is; scrolling
+// off the slot ends it, so the held use never moves on to another item.
 enum class HoldEdge { None, Down, Up };
-inline HoldEdge queuedHoldEdge(bool held, bool sent, bool instantHold, bool placement) {
-    if (!held || instantHold) return HoldEdge::None;
+inline HoldEdge queuedHoldEdge(bool held, bool sent, bool instantHold, bool placement, bool plain = false) {
+    if (!held || instantHold || plain) return HoldEdge::None;
     if (placement && !sent) return HoldEdge::Down;
     if (!placement && sent) return HoldEdge::Up;
     return HoldEdge::None;
