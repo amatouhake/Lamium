@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Lamium map_color test BP",
+    "description": "Two test blocks for Lamium's map colors",
+    "uuid": "5ee17278-e916-4cd8-abf8-bc538f45fec1",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      60
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "6196f5f5-ee79-47c5-b360-86b27278ae2f",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "126ef8ec-bc4d-4e8b-8544-9d4d8e5e0877",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

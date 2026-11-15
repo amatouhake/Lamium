@@ -1,0 +1,14 @@
+{
+  "resource_pack_name": "lamiumtest",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "lamiumtest_map_magenta": {
+      "textures": "textures/blocks/lamiumtest_map_magenta"
+    },
+    "lamiumtest_map_none": {
+      "textures": "textures/blocks/lamiumtest_map_none"
+    }
+  }
+}
