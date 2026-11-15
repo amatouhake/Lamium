@@ -86,6 +86,8 @@ struct Place { int x, y, z, dimension; };
 std::optional<Place> standingPlace();
 int playerDimension();
 std::string dimensionName(int dimension);
-// Blocks from the player to (x, z), horizontally.
-int distanceTo(int x, int z);
+// Whether waypoint distances leave height out (the Waypoints setting, L-350).
+bool waypointsHorizontal();
+// Blocks from the player to the waypoint at (x, y, z), measured as that setting says.
+int distanceTo(int x, int y, int z);
 }

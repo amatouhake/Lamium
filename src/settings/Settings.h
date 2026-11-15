@@ -196,6 +196,7 @@ struct Settings {
         bool radarFaces = false; // Mobs as their faces, players as their skins' heads (L-85, L-87); dots by default.
         bool waypoints = true; // All waypoint markers.
         int waypointsWorld = 0; // map::WorldMarkers: always, while the key is held, off.
+        int waypointMeasure = 0; // L-350: waypoint distances in 3D (0) or horizontally (1).
         float waypointDistance = 0; // World markers up to this many blocks away; 0 shows all.
         bool waypointsDeath = true; // Record the last death point.
         bool waypointsDeathTemporary = true; // It goes on arrival like a temporary waypoint (L-326).
@@ -474,6 +475,7 @@ struct Settings {
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         map.waypointsWorld = std::clamp(map.waypointsWorld, 0, 2);
+        map.waypointMeasure = std::clamp(map.waypointMeasure, 0, 1);
         map.caveView = std::clamp(map.caveView, 0, 2);
         map.netherView = std::clamp(map.netherView, 0, 3);
         map.textSize = ui::clampHudScale(std::round(ui::clampHudScale(map.textSize) / ui::hudScaleStep) * ui::hudScaleStep);

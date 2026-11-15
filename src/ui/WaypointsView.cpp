@@ -42,13 +42,14 @@ bool fromMapFlag = false; // opened from the world map: Close goes back to it
 // ---- Waypoints view ----
 void refreshWaypoints() {
     waypointSet = map::waypoints::current();
-    double x = 0, z = 0;
+    double x = 0, y = 0, z = 0;
     if (auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr) {
         auto feet = player->getFeetPos();
         x = feet.x;
+        y = feet.y;
         z = feet.z;
     }
-    waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, z);
+    waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, z, y, screen::waypointsHorizontal());
     if (waypointSelected && indexOfId(waypointSet.waypoints, waypointSelected->id) < 0) waypointSelected.reset();
 }
 int waypointRowCount() { return static_cast<int>(waypointList.size()); }
@@ -348,7 +349,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), palette::shade, .85f); // hollow: temporary (L-261)
         }
         label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
-        label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.z)) : screen::dimensionName(w.dimension),
+        label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.y, w.z)) : screen::dimensionName(w.dimension),
             palette::dim,Align::Right);
         toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
@@ -386,7 +387,7 @@ if (!w) {
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
         if (w->dimension == screen::playerDimension()) {
-            int const away = screen::distanceTo(w->x, w->z);
+            int const away = screen::distanceTo(w->x, w->y, w->z);
             label(context,ix,l.previewY+23,iw,away == 0 ? translated("distance.here") : translated("waypoint.distance", away),palette::dim);
         }
         if (w->temporary) paragraph(context,ix,l.previewY+36,iw,translated("waypoint.temporaryNote"),2,palette::faint);

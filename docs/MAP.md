@@ -16,7 +16,7 @@ Settings (category "Map", `Settings::Map`): "Minimap" (switch, key; range,
 heading up, round, Cave view, Nether view, Debug View hiding, zoom/enlarge keys,
 layout link); "Map text" heading (compass letters, coordinates, biome, Text size);
 "Radar" (switch, one row per kind, invisible ones, faces); "Waypoints"
-(switch, add key, Show in the world with its key, Show up to, Show on the
+(switch, add key, Show in the world with its key, Distance, Show up to, Show on the
 minimap, Record the death point, Temporary death point, cross-dimension
 scale, arrival distance, open-screen key); "World map" (switch = Record, open
 key `M`, seed link, saved map size with a two-press clear); "Map marks" and
@@ -125,7 +125,9 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   pixels. "Show in the world": Always (key hides while held) / While the key
   is held / Off (key does nothing). "Show up to": 0 = any, 100-10000 by 100.
   Distance, range and order use the rendered FreeCamera eye, else the
-  player's horizontal feet distance (L-199).
+  player's feet (L-199), measured as "Distance: 3D / Horizontal" says
+  (L-350, default 3D; also the lists and the world map panel; arrival is
+  always 3D, placement and shape distances horizontal).
 - Optional (off): Overworld waypoints in the Nether at 1/8 coordinates and
   Nether ones in the Overworld at 8x.
 - Waypoints screen, built like Shapes (list and detail, dock button, "Show

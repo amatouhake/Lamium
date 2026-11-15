@@ -133,13 +133,14 @@ void draw(MinecraftUIRenderContext& context, float width, float height, Settings
     if (!view) return;
     auto feet = player->getFeetPos();
     bool free = CameraSessions::instance().blocksPerspective();
-    double distanceX = free ? view->x : feet.x, distanceZ = free ? view->z : feet.z;
+    double distanceX = free ? view->x : feet.x, distanceY = free ? view->y : feet.y, distanceZ = free ? view->z : feet.z;
+    bool const horizontal = settings.waypointMeasure == 1;
     int dimension = static_cast<int>(player->getDimensionId());
     auto set = waypoints::current();
     struct Marker { double sx, sy, distance; std::string name; int color; bool temporary, cross; };
     std::vector<Marker> shownMarkers;
     auto consider = [&](double x, double y, double z, std::string name, int color, bool temporary, bool cross) {
-        double distance = std::hypot(x - distanceX, z - distanceZ);
+        double distance = waypointDistance(x - distanceX, y - distanceY, z - distanceZ, horizontal);
         if (settings.waypointDistance > 0 && distance > settings.waypointDistance) return;
         // Aim at the middle of the block above the marked one, at eye level.
         if (auto p = project(*view, x, y + 1.5, z, width, height, 12))

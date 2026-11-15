@@ -1648,6 +1648,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     if (!panelOpen()) { state.panelWidth = 0; return; }
     auto set = waypoints::current();
     auto spot = playerSpot();
+    bool const horizontal = Runtime::instance().snapshot()->map.waypointMeasure == 1; // L-350
     float w = std::clamp(size.x * .3f, 124.f, 160.f), x0 = size.x - w, top = state.top, bottom = size.y - bottomHeight;
     state.panelWidth = w;
     ui::fill(context, x0, top, w, bottom - top, ui::palette::panel, ui::opacity::floating);
@@ -1663,7 +1664,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         if (set.waypoints[i].dimension == state.dimension) listed.push_back(static_cast<int>(i));
     auto distance = [&](int i) {
         auto const& p = set.waypoints[static_cast<size_t>(i)];
-        return spot && spot->dimension == state.dimension ? std::hypot(p.x + .5 - spot->x, p.z + .5 - spot->z) : 0.0;
+        return spot && spot->dimension == state.dimension ? waypointDistance(p, spot->x, spot->y, spot->z, horizontal) : 0.0;
     };
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());

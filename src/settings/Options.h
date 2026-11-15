@@ -71,6 +71,8 @@ inline constexpr std::array<std::string_view,11> mapZoomLabels{
 static_assert(mapZoomLabels.size() == map::zoomSteps.size());
 inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
+inline constexpr std::array<std::string_view,2> waypointMeasureLabels{
+    "waypointMeasure.3d", "waypointMeasure.horizontal"};
 inline constexpr std::array<std::string_view,3> shownOnLabels{
     "shownOn.both", "shownOn.worldMap", "shownOn.minimap"};
 // L-253: the minimap's chosen view, in map::ViewForce order.
@@ -583,6 +585,7 @@ inline constexpr auto options = std::to_array<Option>({
     choice<&Settings::map, &Settings::Map::slimeShownOn, shownOnLabels>("map.slimeShownOn", "slimeChunks", "mapShownOn"),
     toggle<&Settings::map, &Settings::Map::waypoints>("map.waypoints", "waypoints", "mapWaypoints"),
     choice<&Settings::map, &Settings::Map::waypointsWorld, worldMarkerLabels>("map.waypointsWorld", "waypoints", "mapWaypointsWorld"),
+    choice<&Settings::map, &Settings::Map::waypointMeasure, waypointMeasureLabels>("map.waypointMeasure", "waypoints", "mapWaypointMeasure"),
     {"map.waypointDistance", "waypoints", "mapWaypointDistance",
         [](Settings const& s) -> OptionValue { return s.map.waypointDistance; },
         [](Settings& s, int direction) { s.map.waypointDistance += direction * 100.f; s.normalize(); },

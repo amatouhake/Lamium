@@ -43,6 +43,15 @@ struct Waypoint {
     bool death = false;
     bool operator==(Waypoint const&) const = default;
 };
+// How far a waypoint reads (L-350): 3D by default, or ignoring height. The
+// offsets run from the player's feet to the marked block's middle and floor,
+// so a waypoint added where the player stands reads 0 either way.
+inline double waypointDistance(double dx, double dy, double dz, bool horizontal) {
+    return horizontal ? std::hypot(dx, dz) : std::hypot(dx, dy, dz);
+}
+inline double waypointDistance(Waypoint const& w, double x, double y, double z, bool horizontal) {
+    return waypointDistance(w.x + .5 - x, w.y - y, w.z + .5 - z, horizontal);
+}
 struct DeathPoint {
     int x = 0, y = 0, z = 0, dimension = 0;
     bool operator==(DeathPoint const&) const = default;
@@ -78,7 +87,7 @@ public:
             if (!w.temporary || !w.id) continue;
             bool was = armed.contains(w.id);
             if (w.dimension != dimension || !(distance > 0)) { if (was) result.armed.insert(w.id); continue; }
-            double d = std::hypot(w.x + .5 - x, w.y - y, w.z + .5 - z);
+            double d = waypointDistance(w, x, y, z, false); // always 3D, whatever the setting (L-350)
             if (d > distance) result.armed.insert(w.id);
             else if (was) result.reached.push_back(w.id);
         }
@@ -261,10 +270,11 @@ inline std::vector<int> diamondRows(int size) {
 
 // The Waypoints screen lists this dimension's waypoints nearest first, then
 // the others by name. Returns indices into `waypoints`.
-inline std::vector<size_t> waypointOrder(std::vector<Waypoint> const& waypoints, int dimension, double x, double z) {
+inline std::vector<size_t> waypointOrder(std::vector<Waypoint> const& waypoints, int dimension, double x, double z,
+                                         double y = 0, bool horizontal = true) {
     std::vector<size_t> order(waypoints.size());
     for (size_t i = 0; i < order.size(); ++i) order[i] = i;
-    auto distance = [&](Waypoint const& w) { return std::hypot(w.x + .5 - x, w.z + .5 - z); };
+    auto distance = [&](Waypoint const& w) { return waypointDistance(w, x, y, z, horizontal); };
     std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) {
         auto const& wa = waypoints[a];
         auto const& wb = waypoints[b];
