@@ -226,6 +226,8 @@ choices. The hotbar is not part of it.
 
 - Hiding skips the part's draw; the game's layout and state stay. The chat
   hides only the HUD messages; the chat screen stays vanilla.
+- Placement and hiding are decided per draw and are the same for every part
+  while the window is unfocused: nothing jumps back on Alt+Tab.
 - A part left Standard (or every part with the feature off) is not in the
   editor: moving it would change nothing. The feature's "Placement and look"
   link opens the editor at its first part in the editor, or with nothing

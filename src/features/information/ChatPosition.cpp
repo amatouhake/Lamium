@@ -14,7 +14,6 @@
 #include "mc/client/gui/screens/ScreenView.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "ll/api/service/TargetedBedrock.h"
-#include <Windows.h>
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -38,15 +37,12 @@ struct RenderScope {
         auto& runtime = Runtime::instance();
         auto settings = runtime.snapshot();
         if (!runtime.enabled() || !settings->information.placesChat()) return;
+        // The rendered HUD is authoritative; the screen stack can still name
+        // chat or a menu during its first returning HUD draw.
         auto* tree = view.mVisualTree.get();
         if (!tree || !std::string_view(*tree->mRootControlName).ends_with(".hud_screen")) return;
         auto client = ll::service::getClientInstance();
         if (!client || !client->getLocalPlayer()) return;
-        // The rendered HUD is authoritative; the screen stack can still name
-        // chat or a menu during its first returning HUD draw.
-        DWORD foregroundProcess = 0;
-        GetWindowThreadProcessId(GetForegroundWindow(), &foregroundProcess);
-        if (foregroundProcess != GetCurrentProcessId()) return;
         if (!versionSensitiveAllowed(capabilities::Id::ChatPosition)) return;
         glm::vec2 size = *view.mSize;
         frame = Frame{size.x, size.y, settings->hud.chat, !settings->information.showChat};

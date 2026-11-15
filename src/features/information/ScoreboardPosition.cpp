@@ -15,7 +15,6 @@
 #include "mc/client/gui/screens/ScreenView.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "ll/api/service/TargetedBedrock.h"
-#include <Windows.h>
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -44,9 +43,6 @@ struct RenderScope {
         if (!tree || !std::string_view(*tree->mRootControlName).ends_with(".hud_screen")) return;
         auto client = ll::service::getClientInstance();
         if (!client || !client->getLocalPlayer()) return;
-        DWORD foregroundProcess = 0;
-        GetWindowThreadProcessId(GetForegroundWindow(), &foregroundProcess);
-        if (foregroundProcess != GetCurrentProcessId()) return;
         if (!versionSensitiveAllowed(capabilities::Id::ScoreboardPosition)) return;
         glm::vec2 size = *view.mSize;
         frame = Frame{size.x, size.y, settings->hud.scoreboard, !settings->information.showScoreboard};

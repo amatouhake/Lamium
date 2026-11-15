@@ -34,9 +34,10 @@ the chat selected.
 - The game's message contents, font, shadow, background, order and fading
   stay vanilla. The chat input/history screen is never moved. No width,
   line-count or appearance settings.
-- Only the gameplay HUD is affected, while a player exists and Minecraft has
-  foreground focus. Switched off, in menus, on world exit and on an
-  unverified game executable the chat stays where the game puts it.
+- Only the gameplay HUD is affected, while a player exists; the placement
+  and hiding are decided per draw and stay while the window is unfocused.
+  Switched off, in menus, on world exit and on an unverified game executable
+  the chat stays where the game puts it.
 
 ## Code
 

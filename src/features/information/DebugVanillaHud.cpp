@@ -87,7 +87,8 @@ bool lineHidden(UIControl& owner) noexcept {
     try {
         auto& runtime = Runtime::instance();
         if (!runtime.enabled()) return false;
-        auto const& info = runtime.snapshot()->information;
+        auto settings = runtime.snapshot();
+        auto const& info = settings->information;
         if (line == VanillaLine::Days) return info.hidesGameDays();
         return info.hidesGamePosition() || hidingCovered(positionCovered);
     } catch (...) { return false; }

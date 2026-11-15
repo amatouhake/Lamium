@@ -31,8 +31,11 @@ stop and ask the maintainer (AGENTS.md "When to stop").
 - New actions ship unbound unless the maintainer picks a key.
 - Large or uncertain features grow on main default-off with the Experimental
   badge and never hold back a release (BACKLOG "Release policy").
-- Every feature restores vanilla behavior when switched off, on world exit,
-  dimension change and focus loss.
+- Every feature restores vanilla behavior when switched off, on world exit
+  and dimension change. A feature that holds input or changes game state
+  also does on focus loss, so no key or state stays stuck. Draw-only changes
+  (HUD placement and hiding) are decided per draw and are kept while the
+  window is unfocused.
 - The map draws only what the client has seen; nothing predicted from the
   seed (it would need a generator per game version and look as real as
   recorded terrain).
@@ -277,8 +280,8 @@ the same commit. A screen never draws its own variant.
   fitting, and at a small GUI scale.
 - Usable by keyboard as well as mouse; Esc does what the header says.
 - Uses only shared controls and palette tokens.
-- Says what happens when the feature is off, on world exit, dimension
-  change and focus loss.
+- Says what happens when the feature is off, on world exit and dimension
+  change, and on focus loss if it holds input or changes game state.
 - New strings, settings and keys follow AGENTS.md rules 4 to 6.
 
 ## Feature decisions
