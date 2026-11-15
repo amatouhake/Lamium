@@ -83,6 +83,17 @@ Do not infer game success from a build or unit-test result.
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
   toasts, Fake Offhand's own key (L-322), Connected Textures panes (L-331),
   and the features that lost the Experimental badge.
+- Fixes from the 2026-11-16 pre-release review (`b8cd9142`..`e5a66e88`):
+  none seen in game yet. Worth a look: the Layer field left untouched
+  keeps All layers; Alt + right click on a menu key places nothing; Alt+Tab
+  with chat, scoreboard and boss bars placed or hidden moves nothing; a
+  page opened by its key closes without the settings table showing; Fake
+  Offhand's own key held while scrolling to another slot; a finished
+  enchantment plan after Change; the world map's right edge after closing
+  the waypoint list; deleting data right after switching away from it.
+  Only on an unverified game build: the paused notice naming Item details
+  and Enchantment order, English Search without enchanted books, Saved
+  data's Delete off.
 
 ## Left from 0.6.0
 
