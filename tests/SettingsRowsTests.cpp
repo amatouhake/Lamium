@@ -1,4 +1,5 @@
 #include "app/PausedFeatures.h"
+#include "features/map/MapCave.h"
 #include "ui/SettingsRows.h"
 #include "ui/HudEditorLayout.h"
 #include "ui/SettingsNavigation.h"
@@ -273,6 +274,19 @@ void settingsRowsTests() {
               && optionAt("map.netherView") == optionAt("map.caveView") + 1
               && optionAt("map.debugHide") == optionAt("map.netherView") + 1,
               "the cave and Nether view choices follow Round, precede Debug View hiding, and the first carries the view key");
+        // L-317: the Nether view row has its own key, stepping the row as its stepper does.
+        Settings keyed;
+        auto const* netherRow = settings::find("map.netherView");
+        for (int i = 0; i < 4; ++i) {
+            int before = keyed.map.netherView;
+            netherRow->adjust(keyed, 1);
+            check(keyed.map.netherView == map::nextNetherView(before), "the Nether view key and the row's stepper agree");
+        }
+        check(ui::optionAction("map.netherView") == input::Action::MinimapNetherView
+              && input::defaultChord(input::Action::MinimapNetherView).empty()
+              && input::actions[static_cast<size_t>(input::Action::MinimapNetherView)].behavior == input::Behavior::Press
+              && ui::shownOnOption(input::Action::MinimapNetherView),
+              "the Nether view row shows its own unbound press key; the Cave view row keeps the view key");
     }
     for (auto id : {"inventory.transferWheelOne", "inventory.transferWheelStack",
                     "inventory.transferDragStack", "inventory.transferDragOne", "inventory.transferWheelMatching",

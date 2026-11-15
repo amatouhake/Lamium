@@ -322,15 +322,19 @@ void executeAction(IClientInstance& client, input::Action action) {
     }
     if (action == input::Action::MinimapView) {
         if (!value.map.minimap) return;
-        auto* player = client.getLocalPlayer();
-        bool nether = player && static_cast<int>(player->getDimensionId()) == 1;
-        auto cycled = map::cycleViewKey(value.map.caveView, value.map.netherView, nether);
-        value.map.caveView = cycled.caveView;
-        value.map.netherView = cycled.netherView;
-        auto next = cycled.shown;
+        value.map.caveView = map::nextCaveView(value.map.caveView);
+        auto next = map::viewForceOf(value.map.caveView);
         if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save minimap view"); return; }
         ui::showMessageToast(ui::translated(next == map::ViewForce::Cave ? "mapView.cave"
             : next == map::ViewForce::Surface ? "mapView.surface" : "mapView.auto"));
+        return;
+    }
+    if (action == input::Action::MinimapNetherView) {
+        if (!value.map.minimap) return;
+        value.map.netherView = map::nextNetherView(value.map.netherView);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save minimap Nether view"); return; }
+        static constexpr char const* toasts[] = {"mapNetherView.same", "mapNetherView.auto", "mapNetherView.surface", "mapNetherView.cave"};
+        ui::showMessageToast(ui::translated(toasts[value.map.netherView]));
         return;
     }
     if (action == input::Action::HighlightAimedBlock) {

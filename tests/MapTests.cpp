@@ -458,15 +458,11 @@ void cave() {
           && resolveForce(1, 3, false) == ViewForce::Surface, "a Nether override applies only in the Nether");
     check(resolveForce(2, 9, true) == ViewForce::Cave && resolveForce(2, -1, true) == ViewForce::Cave,
           "a corrupt Nether choice reads as the same as others");
-    auto key = cycleViewKey(1, 3, true);
-    check(key.caveView == 1 && key.netherView == 1 && key.shown == ViewForce::Auto,
-          "in the Nether the key cycles the override, Cave back to Automatic");
-    key = cycleViewKey(1, 3, false);
-    check(key.caveView == 2 && key.netherView == 3 && key.shown == ViewForce::Cave,
-          "elsewhere the key cycles the Cave view row");
-    key = cycleViewKey(0, 0, true);
-    check(key.caveView == 1 && key.netherView == 0 && key.shown == ViewForce::Surface,
-          "without an override the key cycles the Cave view row in the Nether too");
+    check(nextCaveView(0) == 1 && nextCaveView(1) == 2 && nextCaveView(2) == 0 && nextCaveView(7) == 1,
+          "the Cave view key steps only its own row: automatic, surface, cave");
+    check(nextNetherView(0) == 1 && nextNetherView(1) == 2 && nextNetherView(2) == 3 && nextNetherView(3) == 0
+          && nextNetherView(9) == 1 && nextNetherView(-1) == 1,
+          "the Nether view key steps its row as the stepper does, back to Same as others (L-317)");
     ViewSwitch view;
     check(view.update(ViewMode::Cave, 10) == ViewMode::Cave, "the first switch is immediate");
     check(view.update(ViewMode::Surface, 10.5) == ViewMode::Cave && view.update(ViewMode::Surface, 11) == ViewMode::Surface,

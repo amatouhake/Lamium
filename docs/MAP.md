@@ -70,8 +70,11 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
 - Cave view: under a ceiling it switches on its own; the Cave view setting or
   MinimapView key forces surface or cave, or returns to automatic (L-253).
   "Nether view" (Same as others default, Automatic, Surface, Cave) replaces
-  it in the Nether; while it is not Same as others, the key in the Nether
-  cycles it instead (L-317). No End row.
+  it in the Nether (L-317). No End row. Each row has its own key, shown on
+  the row: the MinimapView key steps only the Cave view row and the
+  MinimapNetherView key (unbound) only the Nether view row, as their
+  steppers do (Same as others included), wherever the player is; each says
+  the new choice in a toast.
   Automatic switches wait 1 s after the previous one. The minimap stays broad
   and follows the player; its held height moves only when the player is more
   than 3 blocks away; the roof check uses most of the 3x3 columns around.
