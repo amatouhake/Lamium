@@ -788,6 +788,16 @@ bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
     return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
+void setVisible(std::vector<ShapeId> const& ids, bool visible) {
+    std::lock_guard lock(shapeMutex);
+    shapeWorkspace.change([&](auto& values) {
+        for (auto id : ids) if (values.find(id)) values.setVisible(id, visible);
+    });
+}
+void remove(std::vector<ShapeId> const& ids) {
+    std::lock_guard lock(shapeMutex);
+    shapeWorkspace.change([&](auto& values) { for (auto id : ids) values.remove(id); });
+}
 std::optional<Cell> lastFeet(int dimension) {
     std::lock_guard lock(shapeMutex);
     auto found = followFeet.find(dimension);
