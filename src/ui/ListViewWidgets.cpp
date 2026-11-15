@@ -66,6 +66,21 @@ void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rg
     for (float dx : {-1.f, 6.f})
         for (float dy : {-4.f, 2.f}) fill(context, x + dx, cy + dy, 2, 2, color, alpha);
 }
+void drawKindSquare(MinecraftUIRenderContext& context, float x, float cy, Rgb color, bool hollow, float size) {
+    if (hollow) frame(context, x, cy - size / 2, size, size, color);
+    else fill(context, x, cy - size / 2, size, size, color);
+}
+namespace {
+constexpr float tagText = .8f;
+}
+float tagWidth(MinecraftUIRenderContext& context, std::string_view text) { return textWidthScaled(context, text, tagText) + 6; }
+float drawTag(MinecraftUIRenderContext& context, float x, float y, std::string text, float maxWidth) {
+    float w = std::min(tagWidth(context, text), maxWidth);
+    if (w <= 6) return 0;
+    frame(context, x, y, w, 10, palette::dim, .8f);
+    labelScaled(context, x + 3, y + (10 - 8 * tagText) / 2 - 1 + boxTextInset(), w - 4, std::move(text), tagText, palette::dim);
+    return w;
+}
 void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,

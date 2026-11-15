@@ -41,6 +41,14 @@ std::string listDistanceText(int x, int y, int z, int dimension);
 // A footprint's small mark (a placement in the lists and the map, L-296):
 // a faint fill and a frame with corner dots, 7 wide from `x`, centered on `cy`.
 void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha = 1);
+// A kind's small square (the Schematics Check rows and filters, L-183):
+// filled, or only its edge while the row is ignored; `size` wide from `x`,
+// centered on `cy`.
+void drawKindSquare(MinecraftUIRenderContext& context, float x, float cy, Rgb color, bool hollow = false, float size = 6);
+// A framed tag after a row's name ("Place ignored"): small dim text in a
+// thin dim frame, `tagWidth` wide; returns that width. Drawn cut to `maxWidth`.
+float tagWidth(MinecraftUIRenderContext& context, std::string_view text);
+float drawTag(MinecraftUIRenderContext& context, float x, float y, std::string text, float maxWidth);
 // The selection pane while several rows are selected (L-190), laid out by
 // `pane`: "N selected", "Shown N / Hidden M" (`shown` of `count`), then the
 // first pane.fit.names of `names` (the selected rows in list order; faded

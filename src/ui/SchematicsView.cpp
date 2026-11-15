@@ -187,7 +187,8 @@ constexpr auto schematicFields = std::to_array<SchematicField>({SchematicField::
     SchematicField::Rotation, SchematicField::Mirror, SchematicField::MoveHere, SchematicField::Visible, SchematicField::LayerAxis,
     SchematicField::LayerMode, SchematicField::Layer, SchematicField::Keep, SchematicField::MatchLayer, SchematicField::Extras,
     SchematicField::Entities});
-int verifyFilter = 0; // 0 mistakes, 1 wrong or extra, 2 wrong state, 3 not placed
+// The Check list's filter: kept while the game runs, not saved (L-183).
+schematic::CheckFilter checkFilter = schematic::CheckFilter::All;
 int verifySelected = -1; // the one selected Check row, -1 with none or several
 // The Check list's rows by cell (L-183 with L-190): a row keeps its place in
 // the selection across passes and filters while it is listed.
@@ -223,15 +224,7 @@ std::vector<schematic::MaterialLine const*> materialRows; // blocks first, then 
 std::vector<int> materialListRows;
 int materialSelected = -1; // index into materialRows
 
-bool verifyMatches(schematic::Mismatch const& m) {
-    using schematic::CellState;
-    switch (verifyFilter) {
-    case 1: return m.state == CellState::Wrong || m.state == CellState::Extra;
-    case 2: return m.state == CellState::State;
-    case 3: return m.state == CellState::Missing;
-    default: return m.state != CellState::Missing;
-    }
-}
+bool verifyMatches(schematic::Mismatch const& m) { return schematic::listedIn(checkFilter, m.state); }
 CheckKey checkKeyOf(int row) {
     auto const* m = verifyRows[static_cast<size_t>(row)];
     return {m->position, m->entity};
@@ -802,7 +795,7 @@ void handleSchematicClick(float x, float y, bool right) {
     if (!schematicsDocked && screen::navClick(x, y)) return;
     if (int tab = schematicTabAt(schematicsDisplayed, x, y); tab >= 0) { selectSchematicTab(static_cast<SchematicTab>(tab)); return; }
     if (int chip = verifyChipAt(schematicsDisplayed, x, y); chip >= 0) {
-        verifyFilter = chip;
+        checkFilter = static_cast<schematic::CheckFilter>(chip);
         checkRows.clear();
         followCheckRows();
         schematicListFirst = 0;
@@ -1020,12 +1013,19 @@ std::map<std::string, std::uint64_t> carriedItems() {
     auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
     return player ? schematic::items::carried(*player) : std::map<std::string, std::uint64_t>{};
 }
+Rgb mismatchColor(schematic::CellState state) {
+    switch (state) {
+    case schematic::CellState::Wrong: case schematic::CellState::Extra: return {1.f, .35f, .3f};
+    case schematic::CellState::State: return {1.f, .8f, .25f};
+    default: return {.75f, .85f, .9f};
+    }
+}
+// A row's kind as the filters name it: an extra is a wrong block (L-183).
 std::string mismatchKind(schematic::CellState state) {
     switch (state) {
-    case schematic::CellState::Wrong: return translated("schematic.kind.wrong");
-    case schematic::CellState::Extra: return translated("schematic.kind.extra");
-    case schematic::CellState::State: return translated("schematic.kind.state");
-    default: return translated("schematic.kind.missing");
+    case schematic::CellState::Wrong: case schematic::CellState::Extra: return translated("schematic.filter.wrong");
+    case schematic::CellState::State: return translated("schematic.filter.state");
+    default: return translated("schematic.filter.missing");
     }
 }
 // The map's placement color, for the Placed list's footprint marks (L-190).
@@ -1041,13 +1041,6 @@ std::pair<int, int> placementCenter(schematic::SavedPlacement const& p) {
     if (!structure) return {origin.x, origin.z};
     auto area = schematic::footprint(structure->size, p.placement);
     return {static_cast<int>(std::floor((area.x0 + area.x1) / 2.0)), static_cast<int>(std::floor((area.z0 + area.z1) / 2.0))};
-}
-Rgb mismatchColor(schematic::CellState state) {
-    switch (state) {
-    case schematic::CellState::Wrong: case schematic::CellState::Extra: return {1.f, .35f, .3f};
-    case schematic::CellState::State: return {1.f, .8f, .25f};
-    default: return {.75f, .85f, .9f};
-    }
 }
 void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer) {
     if (l.noticeHeight > 0)
@@ -1094,7 +1087,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     // shows the position).
     auto const placed = listColumns(l.listLeft, l.listWidth, progressColumn, switchWidth);
     if (schematicTab == SchematicTab::Placements) schematic::ghosts::wantProgress();
-    float kindW = 38, distW = 28, posW = listRight - left - kindW - distW - ShapesLayout::pad - 78 >= 90 ? 78.f : 0.f;
+    float distW = 28;
     float numW = 34, carriedX = listRight - ShapesLayout::pad - numW, leftX = carriedX - numW - 2;
     bool showPlaced = leftX - 2 * (numW + 2) - left - 16 >= 70;
     float placedX = leftX - numW - 2, neededX = (showPlaced ? placedX : leftX) - numW - 2;
@@ -1108,25 +1101,26 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         heading(blocksX, blocksW, "schematic.column.blockCount", Align::Right);
         break;
     case SchematicTab::Verify: {
-        // The filters replace the column headings; each shows how many rows it has.
-        static constexpr std::array<std::string_view, 4> chips{"schematic.filter.mistakes", "schematic.filter.wrong",
+        // The filters replace the column headings (L-183): one of four, the
+        // kind's square as the rows' legend, no counts.
+        static constexpr std::array<std::string_view, 4> chips{"schematic.filter.all", "schematic.filter.wrong",
             "schematic.filter.state", "schematic.filter.missing"};
-        auto const& t = verification->visible;
-        bool counted = checked && !counting && !verification->outdated;
-        std::array<std::uint64_t, 4> counts{t.wrong + t.state + t.extra, t.wrong + t.extra, t.state, t.missing};
+        static constexpr std::array<schematic::CellState, 4> chipKinds{schematic::CellState::Correct, schematic::CellState::Wrong,
+            schematic::CellState::State, schematic::CellState::Missing};
         float cx = left;
         for (int i = 0; i < 4; ++i) {
-            bool on = verifyFilter == i, hovered = verifyChipAt(l,pointer.x,pointer.y) == i;
+            bool on = static_cast<int>(checkFilter) == i, hovered = verifyChipAt(l,pointer.x,pointer.y) == i;
             std::string text = translated(chips[static_cast<size_t>(i)]);
-            if (counted) text += std::format(" {}", counts[static_cast<size_t>(i)]);
             constexpr float chipText = .8f;
-            float w = std::min(textWidthScaled(context, text, chipText) + 8, listRight - ShapesLayout::pad - cx);
-            if (w <= 8) break;
+            float square = i > 0 ? 8.f : 0.f;
+            float w = std::min(textWidthScaled(context, text, chipText) + 8 + square, listRight - ShapesLayout::pad - cx);
+            if (w <= 8) { verifyChipSpans[static_cast<size_t>(i)] = {}; continue; }
             float top = l.theadTop + 1, h = ShapesLayout::theadHeight - 2;
             if (on) fill(context,cx,top,w,h,palette::accent,.15f);
             if (hovered) fill(context,cx,top,w,h,palette::white,.08f);
             frame(context,cx,top,w,h,on ? palette::accent : palette::keyEdge);
-            labelScaled(context,cx+4,top+(h-8*chipText)/2-1+boxTextInset(),w-6,std::move(text),chipText,on ? palette::accent : palette::dim);
+            if (square > 0) drawKindSquare(context,cx+4,top+h/2,mismatchColor(chipKinds[static_cast<size_t>(i)]),false,5);
+            labelScaled(context,cx+4+square,top+(h-8*chipText)/2-1+boxTextInset(),w-6-square,std::move(text),chipText,on ? palette::accent : palette::dim);
             verifyChipSpans[static_cast<size_t>(i)] = {cx, cx + w};
             cx += w + 4;
         }
@@ -1155,8 +1149,10 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
     Vec3 feet = player ? player->getFeetPos() : Vec3{0, 0, 0};
     auto carried = schematicTab == SchematicTab::Materials ? carriedItems() : std::map<std::string, std::uint64_t>{};
+    // A tip under the pointer: a Materials count in chests and stacks, or a
+    // Check row's name that was cut.
     struct Tip { std::string text; float x = 0, y = 0; };
-    std::optional<Tip> materialTip;
+    std::optional<Tip> listTip;
     for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
         float y = l.listRowY(i);
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
@@ -1222,43 +1218,40 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         case SchematicTab::Verify: {
             auto const& m = *verifyRows[static_cast<size_t>(i)];
-            // L-183: an ignored row stays in its kind, dimmed, with a tag.
+            // L-183: the kind's square (hollow while ignored), the file's block
+            // (-> what is there for a wrong block), a framed tag, the distance.
+            // No kind word (the filters are the legend) and no position.
             auto const mark = checked ? schematic::liveMark(m, checked->ignored) : m.ignore;
-            bool const dimmed = mark != schematic::IgnoreMark::None;
-            Rgb const ink = dimmed ? palette::faint : palette::text, inkDim = dimmed ? palette::faint : palette::dim;
-            fill(context,left,y+4,6,6,mismatchColor(m.state),dimmed ? .35f : 1.f);
-            label(context,left+9,y+3,kindW-10,mismatchKind(m.state),inkDim);
-            if (posW > 0) label(context,left+kindW,y+3,posW-2,std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z),inkDim);
-            float bx = left + kindW + posW, bw = listRight - bx - distW - ShapesLayout::pad - 4;
-            if (dimmed) {
-                std::string tag = translated(mark == schematic::IgnoreMark::Place ? "schematic.ignore.tagBlock" : "schematic.ignore.tagStates");
-                float tagW = std::min(textWidth(context, tag), bw / 2);
-                label(context,bx+bw-tagW,y+3,tagW,tag,palette::faint);
+            bool const rowHovered = tabHover < 0 && hover.zone == ShapeZone::ListRow && hover.index == i;
+            drawKindSquare(context,left,y+ShapesLayout::rowHeight/2,mismatchColor(m.state),mark != schematic::IgnoreMark::None);
+            float bx = left + 9, bw = listRight - bx - distW - ShapesLayout::pad - 4;
+            if (mark != schematic::IgnoreMark::None) {
+                std::string tag = translated(mark == schematic::IgnoreMark::Place ? "schematic.ignore.tagPlace" : "schematic.ignore.tagItems");
+                float tagW = std::min(tagWidth(context, tag), bw / 2);
+                drawTag(context,bx+bw-tagW,y+2,std::move(tag),tagW);
                 bw -= tagW + 4;
             }
-            // The schematic's block, then what is there, each with its icon.
+            // A name and its icon; a cut name shows whole under the pointer.
             auto block = [&](float x, float w, std::string const& icon, std::string const& name, Rgb color) {
                 if (!icon.empty()) drawItemIcon(context, icon, x, y + 1, 12);
                 label(context,x+14,y+3,w-14,name,color);
+                if (rowHovered && pointer.x >= x && pointer.x < x + w && textWidth(context, name) > w - 14)
+                    listTip = {name, pointer.x, pointer.y};
             };
+            bool const changed = m.state == schematic::CellState::Wrong || m.state == schematic::CellState::Extra;
             if (m.entity) block(bx, bw, m.expected, translated("schematic.withDetail", m.expectedName, translated("schematic.entityTag")), palette::text);
-            else if (m.state == schematic::CellState::Missing || m.state == schematic::CellState::State)
-                block(bx, bw, m.expected, m.expectedName, ink); // A wrong state: which states, in the right pane.
-            else if (m.state == schematic::CellState::Extra) {
-                // Same columns as a wrong block: air where the schematic's block would be.
+            else if (!changed) block(bx, bw, m.expected, m.expectedName, palette::text);
+            else {
                 float half = (bw - 10) / 2;
-                label(context,bx+14,y+3,half-14,translated("schematic.air"),palette::faint);
+                // An extra: air where the file's block would be.
+                if (m.state == schematic::CellState::Extra) block(bx, half, {}, translated("schematic.air"), palette::faint);
+                else block(bx, half, m.expected, m.expectedName, palette::text);
                 changeArrow(context,bx+half+(10-changeArrowWidth)/2,y+3+1.5f+shapeTextDrop(),1,palette::faint);
                 block(bx + half + 10, half, m.actual, m.actualName, palette::dim);
-            } else {
-                float half = (bw - 10) / 2;
-                block(bx, half, m.expected, m.expectedName, ink);
-                changeArrow(context,bx+half+(10-changeArrowWidth)/2,y+3+1.5f+shapeTextDrop(),1,palette::faint);
-                block(bx + half + 10, half, m.actual, m.actualName, inkDim);
             }
             double dx = m.position.x + .5 - feet.x, dy = m.position.y + .5 - feet.y, dz = m.position.z + .5 - feet.z;
             label(context,listRight-ShapesLayout::pad-distW,y+3,distW,
-                translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(dx*dx + dy*dy + dz*dz)))),inkDim,Align::Right);
+                translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(dx*dx + dy*dy + dz*dz)))),palette::dim,Align::Right);
             break;
         }
         case SchematicTab::Materials: {
@@ -1277,7 +1270,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 else if (pointer.x >= leftX) column = {{"schematic.column.left", line.remaining()}};
                 else if (showPlaced && pointer.x >= placedX) column = {{"schematic.column.placed", line.placed}};
                 else if (pointer.x >= neededX) column = {{"schematic.column.needed", line.needed}};
-                if (column) materialTip = {translated(column->first) + ": " + amountText(column->second, stackSizeOf(line)),
+                if (column) listTip = {translated(column->first) + ": " + amountText(column->second, stackSizeOf(line)),
                     pointer.x, pointer.y};
             }
             // Entities: an icon and a carried count only when an item places them.
@@ -1470,7 +1463,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 static std::map<std::tuple<int, int, int>, schematic::CellState> states;
                 static std::uint64_t statesKey = 0;
                 std::uint64_t key = reinterpret_cast<std::uintptr_t>(verification.get()) * 31 + static_cast<std::uint64_t>(here.x) * 7
-                    + static_cast<std::uint64_t>(here.y) * 13 + static_cast<std::uint64_t>(here.z) + static_cast<std::uint64_t>(verifyFilter) * 1000003 + 1;
+                    + static_cast<std::uint64_t>(here.y) * 13 + static_cast<std::uint64_t>(here.z) + static_cast<std::uint64_t>(checkFilter) * 1000003 + 1;
                 if (key != statesKey) {
                     statesKey = key;
                     states.clear();
@@ -1616,8 +1609,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             float bottom = y + 57;
             // The list keeps the nearest of each kind; say so when it is cut.
             // Ignored rows are listed but not counted.
-            std::uint64_t kindTotal = verifyFilter == 1 ? t.wrong + t.extra : verifyFilter == 2 ? t.state : verifyFilter == 3 ? t.missing
-                : t.wrong + t.extra + t.state;
+            using F = schematic::CheckFilter;
+            std::uint64_t kindTotal = checkFilter == F::WrongBlock ? t.wrong + t.extra : checkFilter == F::WrongState ? t.state
+                : checkFilter == F::NotPlaced ? t.missing : t.wrong + t.extra + t.state + t.missing;
             auto countedRows = static_cast<std::uint64_t>(std::count_if(verifyRows.begin(), verifyRows.end(),
                 [&](auto const* m) { return schematic::liveMark(*m, ignored) == schematic::IgnoreMark::None; }));
             if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 57)) {
@@ -1787,13 +1781,13 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     }
     }
 
-    if (materialTip) {
+    if (listTip) {
         // Text is batched: draw what is under the tip first, or it lands on top.
         context.flushText(0, std::nullopt);
-        float w = textWidth(context, materialTip->text) + 8, x = std::min(materialTip->x + 8, l.left + l.width - w - 2);
-        fill(context,x,materialTip->y+10,w,13,palette::panel);
-        frame(context,x,materialTip->y+10,w,13,palette::keyEdge);
-        label(context,x+4,materialTip->y+12,w-6,materialTip->text,palette::text);
+        float w = textWidth(context, listTip->text) + 8, x = std::min(listTip->x + 8, l.left + l.width - w - 2);
+        fill(context,x,listTip->y+10,w,13,palette::panel);
+        frame(context,x,listTip->y+10,w,13,palette::keyEdge);
+        label(context,x+4,listTip->y+12,w-6,listTip->text,palette::text);
     }
     // Footer.
     fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
