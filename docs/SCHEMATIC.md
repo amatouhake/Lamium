@@ -165,7 +165,7 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   (no counts, kept while the game runs): kind square, file block (-> world
   block), tag, distance; cut names and tags whole on hover. The pane names
   the kind and each item (as the target card) with "Ignore on every <block>"
-  or Undo, scrolling under the wheel, then Show in world and the place
+  or Undo, scrolling (wheel or bar), then Show in world and the place
   toggle; several rows (L-190): Show in world, Ignore places, Stop ignoring.
   "Ignore settings" ends its top line: ignored places and block types instead.
 

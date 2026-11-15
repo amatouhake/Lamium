@@ -170,8 +170,10 @@ the same commit. A screen never draws its own variant.
   outside keeps the edit; Esc drops it and shows the stored value again.
 - **Scrollbars** (`drawScrollbar`) on any list or text that overflows: a
   faint track and a 2-unit thumb that turns lighter (`dim`) under the
-  pointer or while dragged, without widening; pressing or dragging puts the first line under
-  the pointer.
+  pointer or while dragged, without widening. One bar (`ui/ScrollBar.h`) and
+  one drag (`screen::pressScrollbar`): a press on the thumb keeps its grip,
+  on the track the thumb's middle goes to the pointer, and the bar follows
+  the pointer until release.
 - **List columns** (L-190, `ui/ListColumns.h`, `drawListHeadings`): the
   Waypoints, Shapes and Placed lists, docked or not, share one shape: the
   mark (kind and color; a shape's mark is its type glyph, a placement's a

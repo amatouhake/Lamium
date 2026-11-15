@@ -3,6 +3,7 @@
 #include "ui/Calculator.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
+#include "ui/ScreenParts.h"
 #include "ui/SearchQuery.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
@@ -99,7 +100,6 @@ std::string note;                      // "Copied: ..."
 std::chrono::steady_clock::time_point noteUntil;
 Layout last;                           // as last drawn, for the wheel
 glm::vec2 lastPointer{-1, -1};
-bool dragging = false;                 // the history scrollbar is held
 
 void recalculate() {
     variables.ans = history.empty() ? std::nullopt : std::optional(history.back().value);
@@ -176,25 +176,17 @@ void reveal(Layout const& l, int index) {
 bool inside(float x, float y, float left, float top, float w, float h) { return x >= left && x < left + w && y >= top && y < top + h; }
 // A card's copy button, beside its expression line.
 float cardCopyX(Layout const& l) { return l.rightX() + l.rightWidth() - 5 - 4 - Layout::copyWidth - Layout::arrowWidth - 1; }
-// The history scrollbar's track, at the column's right edge.
-bool onScrollbar(Layout const& l, float x, float y) {
-    return x >= l.rightX() + l.rightWidth() - 6 && x <= l.rightX() + l.rightWidth() + 1 && y >= l.cardsTop() && y <= l.bottom();
-}
-// The scrollbar thumb follows the pointer smoothly (whole cards jumped, 2026-10-13).
-float thumbLength(Layout const& l) {
+// The history's scroll bar, the shared one (ScrollBar.h), at the column's
+// right edge. The thumb follows the pointer smoothly (whole cards jumped,
+// 2026-10-13). `scrolled` counts up from the newest card at the bottom, so
+// the bar's position from the top is the range minus it.
+bool historyHeld = false;
+ScrollBar historyBar(Layout const& l) {
     float track = l.bottom() - l.cardsTop(), range = scrollRange(l);
-    return std::max(10.f, track * track / (track + range));
-}
-float grabOffset = 0; // where in the thumb it was taken
-void scrollTo(Layout const& l, float y) {
-    float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), range = scrollRange(l);
-    if (range <= 0 || track <= thumb) { scrolled = 0; return; }
-    float thumbTop = y - grabOffset;
-    scrolled = std::clamp((l.bottom() - thumb - thumbTop) / (track - thumb), 0.f, 1.f) * range;
-}
-float thumbTop(Layout const& l) {
-    float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), range = scrollRange(l);
-    return l.bottom() - thumb - (range > 0 ? (track - thumb) * scrolled / range : 0);
+    ScrollBar b{l.rightX() + l.rightWidth() - 3, l.cardsTop(), track, std::min(track, std::max(10.f, track * track / (track + range)))};
+    b.range = range;
+    b.pos = range - scrolled;
+    return b;
 }
 // A small triangle pointing down, for the copy menu's button.
 void downArrow(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
@@ -299,12 +291,8 @@ Result click(float x, float y, glm::vec2 size) {
     }
     if (inside(x, y, l.helpX(), l.top + 4, 12, 12)) { helpOpen = !helpOpen; return Result::None; }
     if (helpOpen) { helpOpen = false; return Result::None; }
-    if (scrollRange(l) > 0 && onScrollbar(l, x, y)) {
-        dragging = true;
-        // Taken on the thumb it keeps its grip; on the track the thumb centers there.
-        float top = thumbTop(l), thumb = thumbLength(l);
-        grabOffset = y >= top && y <= top + thumb ? y - top : thumb / 2;
-        scrollTo(l, y);
+    if (screen::pressScrollbar(historyBar(l), x, y, [range = scrollRange(l)](float pos) { scrolled = range - pos; })) {
+        historyHeld = true;
         return Result::None;
     }
     // The result's copy button: the value, or the menu.
@@ -330,7 +318,7 @@ void wheel(int direction) {
     scrolled += direction > 0 ? step : -step; // wheel up shows older cards
     clampScroll(last);
 }
-void release() { dragging = false; }
+void release() { historyHeld = false; }
 glm::vec2 fieldPosition(glm::vec2 size) {
     auto l = Layout::at(size);
     return {l.leftX() + 4, l.fieldY()};
@@ -349,7 +337,6 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     auto l = Layout::at(size);
     last = l;
     lastPointer = pointer;
-    if (dragging) scrollTo(l, pointer.y);
     clampScroll(l);
     float x = l.leftX(), lw = Layout::leftWidth;
     panel(context, l.left, l.top, l.width, l.height, opacity::screen);
@@ -400,7 +387,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         if (!top) continue;
         auto const& entry = history[static_cast<size_t>(index)];
         bool current = recalled >= 0 && index == static_cast<int>(history.size()) - 1 - recalled;
-        bool over = !dragging && pointer.y >= l.cardsTop() && pointer.y < l.bottom() && inside(pointer.x, pointer.y, rx, *top, rw - 5, Layout::cardHeight);
+        bool over = !historyHeld && pointer.y >= l.cardsTop() && pointer.y < l.bottom() && inside(pointer.x, pointer.y, rx, *top, rw - 5, Layout::cardHeight);
         fill(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accentDeep : palette::white, current ? .35f : over ? .08f : .04f);
         frame(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accent : palette::white, current ? 1.f : .08f);
         bool buttons = over || menuFor == index;
@@ -417,11 +404,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     }
     context.flushText(0, std::nullopt);
     context.restoreSavedClippingRectangle();
-    if (scrollRange(l) > 0) {
-        float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), from = thumbTop(l);
-        bool overBar = dragging || onScrollbar(l, pointer.x, pointer.y);
-        drawScrollbar(context, rx + rw - 3, l.cardsTop(), track, from, thumb, overBar);
-    }
+    if (auto bar = historyBar(l); bar.scrolls())
+        drawScrollbar(context, bar.x, bar.top, bar.track, bar.thumbTop(), bar.thumb, historyHeld || bar.hit(pointer.x, pointer.y));
     // Text is drawn when flushed: flush what lies under the overlays first, so
     // their backgrounds cover it (help showed the history through it).
     context.flushText(0, std::nullopt);

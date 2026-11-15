@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/HudElement.h"
+#include "ui/ScrollBar.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -210,18 +211,14 @@ struct PopoverFit { float x = 0, y = 0, h = 0; };
 // track of `track` units from `top`. The thumb, and the first row a pointer
 // at `y` asks for (the thumb's middle follows the pointer).
 struct ScrollThumb { float top = 0, h = 0; };
+// Both from the shared bar (ScrollBar.h), with a 6-unit minimum thumb.
 inline ScrollThumb scrollThumb(float top, float track, int count, int visible, int first) {
-    if (count <= visible || visible <= 0) return {top, track};
-    float h = std::max(6.f, track * visible / count);
-    return {top + (track - h) * first / (count - visible), h};
+    auto bar = rowScrollBar(0, top, track, count, visible, first, 6);
+    return {bar.thumbTop(), bar.thumb};
 }
 inline int scrollFirstAt(float y, float top, float track, int count, int visible) {
-    if (count <= visible || visible <= 0) return 0;
-    float h = scrollThumb(top, track, count, visible, 0).h;
-    float room = track - h;
-    if (!(room > 0)) return 0;
-    float t = std::clamp((y - top - h / 2) / room, 0.f, 1.f);
-    return static_cast<int>(std::lround(t * (count - visible)));
+    auto bar = rowScrollBar(0, top, track, count, visible, 0, 6);
+    return static_cast<int>(std::lround(bar.posAt(y, bar.thumb / 2)));
 }
 inline PopoverFit popoverSpot(Spot toolbar, float toolbarH, float w, float h, float screenW, float screenH) {
     float x = std::clamp(toolbar.x, 2.f, std::max(2.f, screenW - w - 2));

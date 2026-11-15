@@ -179,6 +179,8 @@ int main() try {
     listColumnsTests();
     extern void paneScrollTests();
     paneScrollTests();
+    extern void scrollBarTests();
+    scrollBarTests();
     extern void worldMapTests();
     worldMapTests();
     extern void mapRegionFormatTests();

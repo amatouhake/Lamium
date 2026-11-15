@@ -124,16 +124,22 @@ std::chrono::steady_clock::time_point titleViewSeen;
 // Where the pointer was at the last frame, in GUI units. Wheel events carry
 // no position, so the pane under the pointer is found from this.
 glm::vec2 lastPointer{-1, -1};
-// A list scrollbar being dragged: the list's first row and its layout.
-int* scrollDragFirst = nullptr;
-ShapesLayout const* scrollDragLayout = nullptr;
-// A press on a list's scrollbar moves the list there and starts a drag.
-bool pressScrollbar(ShapesLayout const& l, int& first, float x, float y) {
-    if (!l.onScrollbar(x, y)) return false;
-    first = l.firstAt(y);
-    scrollDragFirst = &first;
-    scrollDragLayout = &l;
+// The scroll bar being dragged, where it was gripped, and what it moves.
+struct HeldScrollbar { ScrollBar bar; float grab = 0; std::function<void(float)> set; };
+std::optional<HeldScrollbar> heldScrollbar;
+bool pressScrollbar(ScrollBar const& bar, float x, float y, std::function<void(float)> set) {
+    if (!bar.hit(x, y)) return false;
+    float grab = bar.grabAt(y);
+    set(bar.posAt(y, grab));
+    heldScrollbar = HeldScrollbar{bar, grab, std::move(set)};
     return true;
+}
+bool pressScrollbar(ShapesLayout const& l, int& first, float x, float y) {
+    auto bar = rowScrollBar(l.listLeft + l.listWidth - 3, l.rowsTop, l.listVisible * ShapesLayout::rowHeight, l.listCount, l.listVisible, l.listFirst);
+    return pressScrollbar(bar, x, y, [&first](float pos) { first = static_cast<int>(std::lround(pos)); });
+}
+void followScrollbar(float y) {
+    if (heldScrollbar) heldScrollbar->set(heldScrollbar->bar.posAt(y, heldScrollbar->grab));
 }
 // GUI coordinates; resolved against the layout drawn in the next frame.
 struct Click { float x, y; bool right; };
@@ -1134,7 +1140,7 @@ void render(ll::event::UIRenderEvent& event) {
         return;
     }
     if (calculatorOpen) {
-        if (std::exchange(pendingRelease, false)) calculator_view::release();
+        if (std::exchange(pendingRelease, false)) { calculator_view::release(); heldScrollbar.reset(); }
         if (!closing) {
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right
                 && calculator_view::click(click->x, click->y, size) == calculator_view::Result::Close) {
@@ -1151,6 +1157,7 @@ void render(ll::event::UIRenderEvent& event) {
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         auto at = calculator_view::fieldPosition(size);
         syncTextKeyboard(at.x, at.y);
+        followScrollbar(view.mPointerLocationPrevious->y);
         calculator_view::render(context, size, view.mPointerLocationPrevious);
         return;
     }
@@ -1239,11 +1246,11 @@ void render(ll::event::UIRenderEvent& event) {
     } else if (!closing) {
         if (std::exchange(pendingRelease, false)) {
             table_view::release();
-            scrollDragFirst = nullptr;
+            heldScrollbar.reset();
             schematics_view::release();
         }
         schematics_view::drag(lastPointer);
-        if (scrollDragFirst && scrollDragLayout) *scrollDragFirst = scrollDragLayout->firstAt(lastPointer.y);
+        followScrollbar(lastPointer.y);
         if (shapesView()) {
             shapes_view::refresh();
             if (auto click = std::exchange(pendingClick, std::nullopt)) shapes_view::click(click->x, click->y, click->right);
@@ -1349,8 +1356,9 @@ bool navClick(float x, float y) {
     if (hit.zone == Zone::Version) { table_view::copyVersion(); return true; }
     return false;
 }
+bool pressScrollbar(ScrollBar const& bar, float x, float y, std::function<void(float)> set) { return ui::pressScrollbar(bar, x, y, std::move(set)); }
 bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y) { return ui::pressScrollbar(layout, first, x, y); }
-bool scrollDragging() { return scrollDragFirst != nullptr; }
+bool scrollDragging() { return heldScrollbar.has_value(); }
 void toggleOption(std::string_view id) { table_view::adjustOption(id, 1); }
 void showFeatureKeys(std::string_view featureId) {
     int category = 0;

@@ -319,10 +319,7 @@ void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::Contents
 }
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot) {
     if (l.listCount <= l.listVisible) return;
-    float listRight = l.listLeft + l.listWidth;
-    float track = l.listVisible * ShapesLayout::rowHeight;
-    float thumb = std::max(8.0f, track * l.listVisible / l.listCount);
-    float thumbY = l.rowsTop + (track - thumb) * l.listFirst / (l.listCount - l.listVisible);
-    drawScrollbar(context,listRight-3,l.rowsTop,track,thumbY,thumb,hot);
+    auto bar = rowScrollBar(l.listLeft + l.listWidth - 3, l.rowsTop, l.listVisible * ShapesLayout::rowHeight, l.listCount, l.listVisible, l.listFirst);
+    drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,hot);
 }
 }

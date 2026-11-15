@@ -7,9 +7,11 @@
 // thread under the screen's lock.
 #include "input/Binding.h"
 #include "ui/NumberInput.h"
+#include "ui/ScrollBar.h"
 #include "ui/SettingsTable.h"
 #include "ui/ShapesLayout.h"
 #include "ui/Widgets.h"
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -67,9 +69,14 @@ void nextNav(bool back);
 // A click on the sidebar or the version in an undocked view; true if it
 // was one of them.
 bool navClick(float x, float y);
-// A press on a list's scrollbar moves the list there and starts a drag.
+// A press on a scroll bar moves its position there and holds the bar: until
+// the button is released, the screen hands `set` the position the pointer
+// asks for each frame. One bar is held at a time; `set` must stay valid
+// until release (it writes the view's own scroll state).
+bool pressScrollbar(ScrollBar const& bar, float x, float y, std::function<void(float)> set);
+// The same for a list-and-detail layout's list, whose first row is `first`.
 bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y);
-// A tool view's list scroll bar is held (its thumb stays lit while dragged).
+// A scroll bar is held (its thumb stays lit while dragged).
 bool scrollDragging();
 // Flips a boolean option by id ("overlays.shapes").
 void toggleOption(std::string_view id);
