@@ -57,8 +57,8 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   Placed list, with next/previous placement, or with the looked-at selection;
   never by walking near another. No placement switcher on the Check and
   Materials tabs: it does not scale; the Placed list is where to pick. Its
-  several rows ([L-190](backlog/L-190.md), branch only) show, hide and
-  delete together, no bulk move or turn; the row clicked last is selected.
+  several rows ([L-190](backlog/L-190.md), branch only) show, hide, delete
+  (no bulk move or turn) and pick none: the selected placement stays.
 - Per placement: position, rotation, mirror, visibility, layer view, extra
   blocks (shown red and counted by default, or ignored), entities (default
   on). Structure void means "place nothing here".
