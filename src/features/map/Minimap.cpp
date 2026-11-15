@@ -54,7 +54,8 @@
 #include "mc/client/world/level/biome/biome_color_sampling/TessellationPolicy.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/world/level/block/TintMethod.h"
-#include "mc/world/level/block/components/BlockMapColorComponent.h"
+#include "mc/world/level/block/components/BlockMaterialInstance.h"
+#include "mc/world/level/block/components/BlockMaterialInstancesComponent.h"
 #include "mc/world/level/material/Material.h"
 #include "mc/world/phys/AABB.h"
 #include "mc/world/level/BlockPos.h"
@@ -74,6 +75,13 @@
 #include <format>
 #include <string>
 #include <unordered_map>
+
+// The game's component id of block material instances (L-324).
+// `Block::tryGetComponent<BlockMaterialInstancesComponent>` is not in the
+// symbol data, but the id behind it is; zero until the game assigned it.
+extern "C" __declspec(dllimport) unsigned short const lamiumMaterialInstancesId asm(
+    "?id@?1???$type_id@XUBlockMaterialInstancesComponent@@@Bedrock@@YA?AV?$typeid_t@X@1@XZ@4V21@A");
+static_assert(sizeof(Bedrock::typeid_t<void>) == sizeof(unsigned short));
 
 namespace lamium::map {
 namespace {
@@ -273,7 +281,7 @@ void forget() {
 // How a block shows on the map, by block state. Texture averages are cached
 // by path, since many states share a texture.
 struct BlockLook {
-    std::uint32_t color = 0; // Untinted top texture average or defined map color; 0: use the map color.
+    std::uint32_t color = 0; // Untinted top texture average; 0: use the map color.
     TintMethod tint = TintMethod::None;
     bool skip = false;    // Not drawn; the map looks through it.
     bool pending = false; // The client's stand-in for blocks not received yet.
@@ -312,6 +320,34 @@ std::uint32_t textureAverage(IClientInstance& client, ResourceLocation const& lo
         state.diagnostics.log(std::format("texture {} {}x{} -> {:08x}", location.mPath->value, image->width, image->height, color));
     return color;
 }
+// A texture's color, cached by path; 0 for the missing texture or an image
+// that cannot be read. Empty while the frame's texture loads are used up.
+std::optional<std::uint32_t> textureColor(IClientInstance& client, ResourceLocation const& location) {
+    auto const& path = location.mPath->value;
+    if (!knownTexture(path)) return 0u;
+    if (auto cached = textureColors.find(path); cached != textureColors.end()) return cached->second;
+    if (textureLoadsLeft <= 0) return std::nullopt;
+    --textureLoadsLeft;
+    return textureColors[path] = textureAverage(client, location);
+}
+// The material instance an add-on block shows on top ("up", else "*"),
+// null when it names no texture there (L-324).
+BlockMaterialInstance const* topMaterial(Block const& block) {
+    if (!lamiumMaterialInstancesId) return nullptr;
+    // What tryGetComponent does: the payload follows the stored base.
+    auto* base = block.mComponents->_findComponentBase(Bedrock::typeid_t<void>(lamiumMaterialInstancesId));
+    if (!base) return nullptr;
+    auto const* component = reinterpret_cast<BlockMaterialInstancesComponent const*>(&base[1]);
+    BlockMaterialInstance const* top = nullptr;
+    int best = 0;
+    for (auto const& [face, instance] : *component->mMaterials) {
+        int rank = topFaceRank(face.getString());
+        if (rank < 0 || instance.mTextureName->mValue.empty() || (top && rank >= best)) continue;
+        top = &instance;
+        best = rank;
+    }
+    return top;
+}
 // Null while the frame's texture loads are used up; the chunk waits.
 BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     std::uint64_t key = block.mSerializationIdHash;
@@ -324,21 +360,10 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     if (material == Material::Air || material == Material::Glass || material == Material::StructureVoid
         || material == Material::Barrier || material == Material::Portal) look.skip = true;
     else if (material == Material::ClientRequestPlaceholder) look.pending = true;
-    // An add-on block's own map color (L-324), read once per state like the texture.
-    bool const addOn = !look.skip && !look.pending && addOnBlock(block.getTypeName());
-    bool defined = false;
-    if (addOn && versionSensitiveAllowed(capabilities::Id::MapColorComponent)) {
-        if (auto const* component = block.tryGetComponent<BlockMapColorComponent>()) {
-            mce::Color const& color = component->mMapColor;
-            defined = true;
-            if (usesDefinedMapColor(block.getTypeName(), defined, color.a)) {
-                look.color = definedMapColor(color.r, color.g, color.b);
-                look.tint = component->mTintMethod;
-            }
-        }
-    }
-    std::string texturePath;
-    if (look.skip || look.pending) {}
+    bool const drawn = !look.skip && !look.pending;
+    std::string graphicsPath;
+    std::uint32_t graphicsColor = 0;
+    if (!drawn) {}
     else if (auto const* graphics = BlockGraphics::getForBlock(block)) {
         auto const& shape = *graphics->mVisualShape;
         AABB buffer{};
@@ -351,20 +376,40 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
         look.cover = covers(shape.min.x, shape.max.x, shape.min.z, shape.max.z)
                      || covers(visual.min.x, visual.max.x, visual.min.z, visual.max.z);
         auto const& uv = graphics->getTexture(static_cast<std::uint64_t>(FacingID::Up), type.getVariant(block));
-        auto const& path = uv.sourceFileLocation->mPath->value;
-        texturePath = path;
-        if (look.color) {}
-        else if (auto cached = textureColors.find(path); cached != textureColors.end()) look.color = cached->second;
-        else {
-            if (textureLoadsLeft <= 0) return nullptr;
-            --textureLoadsLeft;
-            look.color = textureColors[path] = textureAverage(client, *uv.sourceFileLocation);
+        graphicsPath = uv.sourceFileLocation->mPath->value;
+        auto color = textureColor(client, *uv.sourceFileLocation);
+        if (!color) return nullptr;
+        graphicsColor = *color;
+    }
+    // No look from BlockGraphics (none, the missing texture, or unreadable):
+    // an add-on block's own texture from its material instances (L-324).
+    bool const addOn = drawn && addOnBlock(block.getTypeName());
+    std::string materialName, materialPath;
+    std::uint32_t materialColor = 0;
+    TintMethod materialTint = TintMethod::None;
+    if (addOn && !graphicsColor && versionSensitiveAllowed(capabilities::Id::MapMaterialInstances)) {
+        if (auto const* top = topMaterial(block)) {
+            materialName = top->mTextureName->mValue;
+            materialTint = top->mTintMethod;
+            auto uv = BlockGraphics::getTextureUVCoordinateSet(materialName, 0, 0);
+            materialPath = uv.sourceFileLocation->mPath->value;
+            auto color = textureColor(client, *uv.sourceFileLocation);
+            if (!color) return nullptr;
+            materialColor = *color;
         }
     }
-    // What add-on blocks get, to tell a defined color from a stand-in texture.
+    auto const source = lookSource(graphicsColor, materialColor);
+    if (source == LookSource::Graphics) look.color = graphicsColor;
+    else if (source == LookSource::MaterialInstance) {
+        look.color = materialColor;
+        if (materialTint != TintMethod::None) look.tint = materialTint;
+    }
+    // Where the first add-on blocks' colors come from.
     if (addOn && ++state.addOnsLogged <= 8)
-        state.diagnostics.log(std::format("add-on block {} map_color {} color {:08x} texture '{}'", block.getTypeName(),
-                                          defined ? "yes" : "no", look.color, texturePath));
+        state.diagnostics.log(std::format("add-on block {} texture '{}' material instance '{}' -> '{}' image {} color {:08x} "
+                                          "from {}",
+                                          block.getTypeName(), graphicsPath, materialName, materialPath,
+                                          source == LookSource::MapColor ? "no" : "yes", look.color, lookSourceName(source)));
     // Which blocks fall back or stand in, for the first runs of the feature.
     if ((look.pending || (!look.skip && !look.color)) && ++state.fallbacksLogged <= 8)
         state.diagnostics.log(std::format("{} {}", look.pending ? "stand-in block" : "no texture color for",

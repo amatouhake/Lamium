@@ -136,7 +136,7 @@ the package/SDK loader-policy alignment in CI.
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
 | Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | everything else |
 | Item details (item data reads) | `Inspection.cpp` (`Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`, burn and use times in the item's components, `getCooldownDuration`, the suspicious stew's effect) | the tooltip has no stew effect, property values, ID, tags or NBT lines | the game's tooltip, durability numbers, food values; the work penalty follows Enchantment order's capability |
-| Map colors of add-on blocks (block map color component) | `Minimap.cpp` `blockLook` (`Block::tryGetComponent<BlockMapColorComponent>`, its `mMapColor` and `mTintMethod`) | add-on blocks are drawn in their top texture's color | every other map color |
+| Map colors of add-on blocks (block material instances) | `Minimap.cpp` `topMaterial` (the game's `type_id<void, BlockMaterialInstancesComponent>` id from the symbol data, `BlockComponentStorage::_findComponentBase`, `mMaterials` "up"/"*" and their `mTextureName` and `mTintMethod`, resolved with `BlockGraphics::getTextureUVCoordinateSet`) | an add-on block whose `BlockGraphics` texture is missing is drawn in the game's map color | every other map color, vanilla blocks |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -665,9 +665,13 @@ Meaning: `BaseLightData`'s night vision fields. Gated (Night Vision).
 ### `src/features/map/Minimap.cpp`
 Hooks: `FrameAlphaHook`, `CommandListHook`
 Meaning: the available commands packet lists `tp` or `teleport` when the
-player may use it (world map teleport). Block colors (L-324): a block's
-`BlockMapColorComponent`, found with `Block::tryGetComponent`, holds the
-`minecraft:map_color` an add-on defined. Re-check with the test packs in
+player may use it (world map teleport). Block colors (L-324): the top
+texture `BlockGraphics` names is `textures/blocks/missing_tile` when it has
+none (add-on blocks); an add-on block's `BlockMaterialInstancesComponent`
+(found by the game's own component id, as `Block::tryGetComponent` would;
+that template is not in the symbol data) maps a face ("up", "*") to a
+`BlockMaterialInstance` whose `mTextureName` is a `terrain_texture.json`
+key. Re-check with the test packs in
 [tests/packs/map-color](../tests/packs/map-color/README.md).
 
 ### `src/features/map/PlayerLocationTrace.cpp`

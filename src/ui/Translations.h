@@ -36,7 +36,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.BossBarPosition", "Boss bar placement", "ボスバーの配置"},
     {"capability.EnchantOrder", "Enchantment order (costs and the anvil list)", "エンチャント順序（コストと金床の手順）"},
     {"capability.ItemDetails", "Item details (stew effect, property values, ID, tags and NBT)", "アイテムの詳細（シチューの効果、性質の値、ID、タグ、NBT）"},
-    {"capability.MapColorComponent", "Map colors of add-on blocks", "アドオンブロックの地図の色"},
+    {"capability.MapMaterialInstances", "Map colors of add-on blocks", "アドオンブロックの地図の色"},
     {"capability.FreeCameraHand", "Hide the hand", "手の非表示"},
     {"capability.FreeCameraHud", "Hide the whole HUD", "HUD全体の非表示"},
     {"capability.HideParticles", "Particle visibility", "パーティクルの非表示"},
