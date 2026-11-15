@@ -49,6 +49,7 @@
 #include "ui/Widgets.h"
 #include "overlay/ShapeSession.h"
 #include "ui/Localization.h"
+#include "ui/GameLanguage.h"
 #include "app/Runtime.h"
 #include "app/Desktop.h"
 #include "app/Versions.h"
@@ -157,9 +158,15 @@ schematic::BlockCounts const& nameCounts(schematic::Structure const& structure) 
 }
 // A block's display name and icon as the file names it (the first palette
 // entry of that name), for the ignore view; remembered per structure and
-// name. A name the file lacks reads without "minecraft:".
+// name until the language changes. A name the file lacks reads without
+// "minecraft:".
 schematic::ghosts::BlockLabel const& fileBlockLabel(schematic::Structure const* structure, std::string const& name) {
     static std::map<std::pair<schematic::Structure const*, std::string>, schematic::ghosts::BlockLabel> labels;
+    static std::string labelsLanguage;
+    if (auto code = game_language::currentCode(); code != labelsLanguage) {
+        labels.clear();
+        labelsLanguage = std::move(code);
+    }
     auto key = std::pair{structure, name};
     if (auto found = labels.find(key); found != labels.end()) return found->second;
     if (labels.size() > 512) labels.clear();
