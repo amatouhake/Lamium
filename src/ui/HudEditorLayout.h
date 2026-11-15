@@ -157,15 +157,16 @@ inline Box nameTag(Box element, float w, float screenW, float screenH, std::vect
     for (auto const& place : places) if (onScreen(place)) return place;
     return {std::clamp(left, 0.f, std::max(0.f, screenW - w)), std::clamp(above, 0.f, std::max(0.f, screenH - h)), w, h};
 }
-// Diagonal hatching over an element hidden from HUD layout (L-334): one-unit
-// squares on lines `spacing` apart, clipped to the box, at most `limit`.
-// Dots fall every `step` units along a line, the step growing with the box
-// so one element never costs more than about `limit` rectangles a frame.
-inline std::vector<Box> hatch(Box box, int spacing = 8, size_t limit = 300) {
+// Diagonal hatching over an element hidden from HUD layout (L-334): lines of
+// one-unit squares two units apart, clipped to the box, at most `limit`.
+// The dot step stays fixed so every element reads as the same lines; a large
+// box spaces its lines wider than `spacing` instead of thinning them to dots.
+inline std::vector<Box> hatch(Box box, int spacing = 8, size_t limit = 800) {
     std::vector<Box> out;
     if (!(box.w >= 1) || !(box.h >= 1) || spacing < 1 || limit < 1 || !std::isfinite(box.x) || !std::isfinite(box.y)) return out;
     int w = static_cast<int>(std::min(box.w, 4000.f)), h = static_cast<int>(std::min(box.h, 4000.f));
-    int step = std::max(2, static_cast<int>(std::ceil(static_cast<double>(w) * h / (static_cast<double>(spacing) * static_cast<double>(limit)))));
+    constexpr int step = 2;
+    spacing = std::max(spacing, static_cast<int>(std::ceil(static_cast<double>(w) * h / (static_cast<double>(step) * static_cast<double>(limit)))));
     for (int k = 0; k < w + h - 1; k += spacing)
         for (int y = std::max(0, k - w + 1) + (k / spacing) % step; y <= std::min(h - 1, k); y += step) {
             out.push_back({box.x + static_cast<float>(k - y), box.y + static_cast<float>(y), 1, 1});

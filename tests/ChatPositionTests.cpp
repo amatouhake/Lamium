@@ -244,8 +244,17 @@ void chatPositionTests() {
         check(!lines.empty() && std::all_of(lines.begin(), lines.end(), [](auto const& b) {
                   return b.x >= 10 && b.x + b.w <= 22 && b.y >= 20 && b.y + b.h <= 26;
               }), "the hatching stays inside the element");
-        check(hatch({0, 0, 2000, 2000}).size() <= 400 && hatch({0, 0, 400, 200}).size() <= 400 && hatch({0, 0, 0, 5}).empty(),
+        check(hatch({0, 0, 2000, 2000}).size() <= 800 && hatch({0, 0, 400, 200}).size() <= 800 && hatch({0, 0, 0, 5}).empty(),
               "the hatching costs about the same whatever the element's size");
+        auto dotStep = [](std::vector<hud_editor::Box> const& squares) {
+            float least = 1e9f;
+            for (size_t i = 1; i < squares.size(); ++i)
+                if (squares[i].x + squares[i].y == squares[i - 1].x + squares[i - 1].y)
+                    least = std::min(least, squares[i].y - squares[i - 1].y);
+            return least;
+        };
+        check(dotStep(hatch({0, 0, 110, 18})) == 2 && dotStep(hatch({0, 0, 170, 58})) == 2 && dotStep(hatch({0, 0, 400, 200})) == 2,
+              "small and large hidden elements draw the same dotted lines");
     }
     check(paused::onUnverified("gameHud") == paused::Level::Partly
           && std::ranges::find(active, "gameHud") != active.end(),
