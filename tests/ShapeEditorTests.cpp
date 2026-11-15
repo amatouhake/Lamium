@@ -105,6 +105,11 @@ void shapeEditorTests() {
         auto dockedNoted = ui::ShapesLayout::fit(table, 640, 360, true, 8, 0, 16, 0, false, false, false, 46);
         check(dockedNoted.usable() && dockedNoted.rowsTop == ui::ShapesLayout::fit(table, 640, 360, true, 8, 0, 16, 0, false, false).rowsTop + 46,
               "docked, the list and the editor move down by the notice");
+        auto shortTable = ui::SettingsTable::fit(480, 262, 20, 0);
+        auto shortPlain = ui::ShapesLayout::fit(shortTable, 480, 262, true, 8, 0, 16, 0, false, false);
+        auto shortNoted = ui::ShapesLayout::fit(shortTable, 480, 262, true, 8, 0, 16, 0, false, false, false, 46);
+        check(shortPlain.usable() && shortNoted.usable() && shortNoted.noticeHeight == 0 && shortNoted.rowsTop == shortPlain.rowsTop,
+              "docked and too short for both, the editor stays and the notice is left out");
     }
     auto many = ui::ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false);
     for (bool docked : {false, true}) {

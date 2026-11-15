@@ -556,14 +556,25 @@ void finish(std::unique_lock<std::mutex>& lock) {
 }
 void detach() {
     std::unique_lock lock(mutex);
+    if (finishing) return; // Another thread is ending it (release); joining twice is not allowed.
     finish(lock);
 }
+}
+
+bool release(std::filesystem::path const& folder) {
+    std::unique_lock lock(mutex);
+    if (finishing) return false;
+    if (!root || *root != folder) return true;
+    finish(lock);
+    log("let go of " + folder.string());
+    return true;
 }
 
 void frame(unsigned world, std::optional<std::filesystem::path> const& folder, MapLayer layer, double x, double z,
            double now) {
     std::unique_lock lock(mutex);
     clock = now;
+    if (finishing) return; // The lock is open while the worker ends; attach on a later frame.
     if (attachedWorld != world) {
         if (attachedWorld) finish(lock);
         attachedWorld = world;

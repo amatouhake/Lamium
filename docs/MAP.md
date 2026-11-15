@@ -127,8 +127,8 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   Distance, range and order (also the lists and the map panel) use the rendered
   FreeCamera eye, else the feet (L-199), as "Distance: 3D / Horizontal" says
   (L-350, default 3D; arrival always 3D; placements and shapes horizontal).
-- Optional (off): Overworld waypoints in the Nether at 1/8 coordinates and
-  Nether ones in the Overworld at 8x.
+- Optional (off): Overworld waypoints in the Nether at 1/8 X and Z, Nether
+  ones in the Overworld at 8x; Y is kept and counts in a 3D distance.
 - Waypoints screen, built like Shapes (list and detail, dock button, "Show
   all", "+ Add here"), pinned in the sidebar: this dimension's waypoints
   nearest first, then others by name with a dimension tag; editor with name,

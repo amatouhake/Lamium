@@ -1,6 +1,7 @@
 #include "features/map/WaypointSession.h"
 #include <algorithm>
 #include "features/map/WaypointStore.h"
+#include "features/map/MapStore.h"
 #include "features/map/SavedData.h"
 #include "features/schematic/PlacementStore.h"
 #include "overlay/LocalShapePath.h"
@@ -537,26 +538,50 @@ bool useData(std::string const& key) {
 }
 bool removeData(SavedData const& item) {
     std::lock_guard lock(mutex);
-    std::error_code ignored;
+    // The map store may still hold the folder (the server was given other data and no frame has followed):
+    // it saves and lets go first, or its worker would write the folder back; while it cannot, nothing is
+    // deleted. A missing file is no error; what could not be deleted is, and the data stays listed.
+    auto remove = [](std::vector<std::filesystem::path> const& files, std::optional<std::filesystem::path> const& map) {
+        if (map && !store::release(*map)) { log("the map under " + map->string() + " is still being saved"); return false; }
+        bool done = true;
+        auto check = [&](std::filesystem::path const& what, std::error_code const& error) {
+            if (!error) return;
+            done = false;
+            log("could not delete " + what.string() + ": " + error.message());
+        };
+        std::error_code error;
+        for (auto const& file : files) { std::filesystem::remove(file, error); check(file, error); }
+        if (map) { std::filesystem::remove_all(*map, error); check(*map, error); }
+        return done;
+    };
     if (item.kind == SavedData::Kind::Local) {
         if (identity.local && identity.levelId == item.key) return false;
         try {
             // localWorldFile checks that the folder is a world of the game's own worlds folder.
+            std::vector<std::filesystem::path> files;
             for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json"})
-                if (auto file = overlay::localWorldFile(identity.worlds, item.key, name)) std::filesystem::remove(*file, ignored);
-            if (auto map = overlay::localWorldFile(identity.worlds, item.key, "map")) std::filesystem::remove_all(*map, ignored);
+                if (auto file = overlay::localWorldFile(identity.worlds, item.key, name)) files.push_back(*file);
+            if (!remove(files, overlay::localWorldFile(identity.worlds, item.key, "map"))) return false;
         } catch (std::exception const& error) { log(std::string("could not delete a world's data: ") + error.what()); return false; }
         log("deleted the saved data of the local world '" + item.key + "'");
         return true;
     }
     if (!safeKey(item.key) || (!identity.local && identity.key && *identity.key == item.key)) return false;
-    auto config = configFolder();
-    for (auto folder : {waypointFolder, schematicFolder, deathFolder}) std::filesystem::remove(config / folder / (item.key + ".json"), ignored);
-    std::filesystem::remove_all(config / mapFolder / item.key, ignored);
-    withList([&](servers::List& list) { servers::forget(list, item.key); });
-    log("deleted the saved data under '" + item.key + "'");
+    bool removed = false;
+    try {
+        auto config = configFolder();
+        std::vector<std::filesystem::path> files;
+        for (auto folder : {waypointFolder, schematicFolder, deathFolder}) files.push_back(config / folder / (item.key + ".json"));
+        // The same path as resolve() gives the store.
+        removed = remove(files, config / std::filesystem::u8path(mapFolder) / std::filesystem::path(item.key));
+    } catch (std::exception const& error) { log(std::string("could not delete saved data: ") + error.what()); }
+    if (removed) {
+        withList([&](servers::List& list) { servers::forget(list, item.key); });
+        log("deleted the saved data under '" + item.key + "'");
+    }
+    // Also after a part of it went: the notice of fuller data counts what is left.
     try { suggest(); } catch (...) { fullerFound = {}; }
-    return true;
+    return removed;
 }
 int setDataAnyPort(std::string const& key, bool on) {
     std::lock_guard lock(mutex);

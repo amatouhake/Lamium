@@ -22,6 +22,10 @@ void stop();
 // keeps nearby regions loaded, saves changed ones, forgets far ones.
 void frame(unsigned world, std::optional<std::filesystem::path> const& folder, MapLayer layer, double x, double z,
            double now);
+// Before `folder` is deleted: when it is the folder in use (the joined server was given other data and no
+// frame has followed), saves and lets go of it as a world exit does; the next frame attaches again. May wait
+// for the worker. False when the store is busy ending and the folder may still be written.
+bool release(std::filesystem::path const& folder);
 void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& columns,
             ColumnMask const& produced, ColumnMask const& scanned);
 bool needsRevision(MapLayer layer, ChunkKey chunk);

@@ -382,6 +382,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     if (l.noticeHeight > 0)
         data_notice::draw(context, l.listLeft + ShapesLayout::pad, l.noticeTop + 2, l.listWidth - 2 * ShapesLayout::pad,
             data_notice::Kind::Waypoints, pointer);
+    else data_notice::hide();
     auto const preferences = Runtime::instance().preferences();
     auto hover = l.hit(pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };

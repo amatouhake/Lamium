@@ -379,6 +379,13 @@ void showDimension(int dimension) {
     state.broad = dimension == 1;
     center();
 }
+// The terrain and info panels open where the notice of fuller data lies, and cover it.
+bool noticeShown() { return !state.cavePanel && !state.infoPanel; }
+// The side list is not drawn: its bar takes no press and a drag of it ends.
+void dropList() {
+    state.listRows = state.listVisible = 0;
+    if (ui::scroll_drag::holding(&state.listFirst)) ui::scroll_drag::release();
+}
 bool onListBar(float x, float y) {
     return state.listRows > state.listVisible && x >= state.listBarX - 5 && x < state.listBarX + 3
         && y >= state.listTop && y < state.listBottom;
@@ -1669,7 +1676,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
 }
 
 void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
-    if (!panelOpen()) { state.panelWidth = 0; return; }
+    if (!panelOpen()) { state.panelWidth = 0; dropList(); return; }
     auto set = waypoints::current();
     auto spot = playerSpot();
     bool const horizontal = Runtime::instance().snapshot()->map.waypointMeasure == 1; // L-350
@@ -2037,6 +2044,8 @@ void open(IClientInstance& client, bool resume) {
     state.cavePanel = false;
     state.infoPanel = false;
     state.openedAt = now();
+    dropList(); // Until the panel is drawn again.
+    ui::data_notice::hide();
     if (resume) return;
     state.selected.reset();
     state.rows.clear();
@@ -2077,6 +2086,8 @@ void close() {
     state.client = nullptr;
     state.drag.reset();
     state.menu.reset();
+    dropList();
+    ui::data_notice::hide();
     commitName();
 }
 bool infoPanelTarget(Target target) {
@@ -2097,7 +2108,7 @@ bool cavePanelTarget(Target target) {
 Request press(float x, float y, bool right) {
     Request request;
     // The notice of fuller saved data lies over the map's corner and takes its presses (L-343).
-    if (auto pressed = right ? ui::data_notice::Pressed::Outside : ui::data_notice::press(x, y);
+    if (auto pressed = right || !noticeShown() ? ui::data_notice::Pressed::Outside : ui::data_notice::press(x, y);
         pressed != ui::data_notice::Pressed::Outside) {
         if (pressed == ui::data_notice::Pressed::Open) request.kind = Request::Kind::OpenSavedData;
         if (auto done = ui::data_notice::takeResult()) say(done->text);
@@ -2319,9 +2330,10 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     context.flushText(0, std::nullopt);
     drawMenu(context, size);
     // Under the top bar, at the left: over the map without taking a drag or the wheel from the rest of it.
-    if (!state.cavePanel && !state.infoPanel && ui::data_notice::height(ui::data_notice::Kind::Map) > 0)
+    if (noticeShown() && ui::data_notice::height(ui::data_notice::Kind::Map) > 0)
         ui::data_notice::draw(context, 6, state.top + 6, std::min(300.0f, size.x - state.panelWidth - 12),
             ui::data_notice::Kind::Map, pointer, true);
+    else ui::data_notice::hide();
     if (!state.notice.empty() && now() - state.noticeAt < ui::noticeSeconds)
         ui::drawNotice(context, size.x / 2, size.y - bottomHeight - 16, size.x - 8, state.notice);
     context.flushText(0, std::nullopt);

@@ -25,10 +25,11 @@ std::array<float, 3> needed{bandHeight, bandHeight, bandHeight};
 double now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 bool over(Button const& b, float x, float y) { return b.w > 0 && x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + buttonHeight; }
 }
+void hide() { drawn.at = -1; }
 float height(Kind kind) { return map::waypoints::fullerData(kind) ? needed[static_cast<size_t>(kind)] : 0; }
 void draw(MinecraftUIRenderContext& context, float x, float y, float width, Kind kind, glm::vec2 pointer, bool solid) {
     auto data = map::waypoints::fullerData(kind);
-    if (!data || width < 120) return;
+    if (!data || width < 120) { hide(); return; }
     std::string const what = kind == Kind::Waypoints ? translated("savedData.waypoints", data->waypoints)
         : kind == Kind::Placements ? translated("savedData.placements", data->placements)
         : translated("savedData.map", sizeText(data->mapBytes, data->mapMore));
@@ -64,7 +65,8 @@ void draw(MinecraftUIRenderContext& context, float x, float y, float width, Kind
 std::optional<Result> result;
 std::optional<Result> takeResult() { return std::exchange(result, std::nullopt); }
 Pressed press(float x, float y) {
-    // Only the notice of this frame or the last: a screen that stopped drawing it takes its clicks back.
+    // Only the notice of this frame or the last (a press comes between frames): a screen that stopped drawing
+    // it takes its clicks back, at once when it says so with hide().
     if (drawn.at < 0 || now() - drawn.at > .5 || x < drawn.x || x >= drawn.x + drawn.w || y < drawn.y || y >= drawn.y + drawn.h)
         return Pressed::Outside;
     if (over(drawn.use, x, y)) {

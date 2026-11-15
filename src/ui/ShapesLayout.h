@@ -87,9 +87,20 @@ struct ShapesLayout {
             l.detailLeft = l.left; l.detailWidth = l.width;
             // On a short screen the list gives up rows (down to two) so the
             // editor below keeps at least two of its own.
-            for (l.listVisible = dockedListRows; ; --l.listVisible) {
-                placeDetail(l.rowsTop + l.listVisible * rowHeight + 2);
-                if (l.fieldVisible >= 2 || l.listVisible <= 2) break;
+            auto giveRows = [&] {
+                for (l.listVisible = dockedListRows; ; --l.listVisible) {
+                    placeDetail(l.rowsTop + l.listVisible * rowHeight + 2);
+                    if (l.fieldVisible >= 2 || l.listVisible <= 2) break;
+                }
+            };
+            giveRows();
+            // Too short for the notice as well: the editor stays and the notice
+            // is left to the expanded screen.
+            if (l.fieldVisible < 2 && l.noticeHeight > 0) {
+                l.noticeHeight = 0;
+                l.theadTop = l.noticeTop;
+                l.rowsTop = l.theadTop + theadHeight;
+                giveRows();
             }
         } else {
             l.listVisible = std::max(0, static_cast<int>((bodyBottom - l.rowsTop - 2) / rowHeight));

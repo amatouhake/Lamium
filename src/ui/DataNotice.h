@@ -13,6 +13,9 @@ inline constexpr float bandHeight = 46; // Before it was first drawn.
 float height(Kind kind);
 // `solid`: over the world map, where nothing else is behind it.
 void draw(MinecraftUIRenderContext&, float x, float y, float width, Kind kind, glm::vec2 pointer, bool solid = false);
+// The screen does not draw it now (a panel covers its place, the screen closed): presses are Outside until
+// it is drawn again.
+void hide();
 // A press at (x, y): Outside when not on the notice drawn last. "Use this data" and "Do not show again" are
 // done here; opening the Saved data page is the caller's, which knows how to leave its own screen.
 enum class Pressed { Outside, Inside, Open };
