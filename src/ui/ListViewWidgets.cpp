@@ -226,7 +226,7 @@ void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::Contents
         if (i >= names.size() || i >= on.size() || names[i].empty()) continue;
         if (row.row.contains(pointerX, pointerY)) fill(context, row.row.x, row.row.y, row.row.w, row.row.h, palette::white, .06f);
         toggleSwitch(context, row.switchAt.x, row.switchAt.y, on[i]);
-        label(context, row.labelAt.x, row.labelAt.y, row.labelWidth, names[i], on[i] ? palette::text : palette::faint);
+        label(context, row.labelAt.x, row.labelAt.y, row.labelWidth, names[i], palette::text);
         if (row.up) triangle(row.upAt, true, row.canUp ? palette::dim : palette::off);
         if (row.down) triangle(row.downAt, false, row.canDown ? palette::dim : palette::off);
     }

@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Add-on block looks on the map; list selection trial (L-324, L-190, 2026-11-15)
+
+Build `f164c145` (branch `l-190-waypoint-selection` with main at `2cc9db54`), DLL SHA-256
+`2fc2d22142b6a5198dc9da7a77ebf976ba6736a46ab413ccd03db5df07b3c018`, 1.26.60.05 Dev
+instance, the maintainer. L-324 with tests/packs/map-color: in the world A is cyan and B
+yellow, C and D show the magenta-and-black missing-material checker; on the minimap A is
+cyan, B yellow, and C and D the same purple whatever their map_color: every block as it
+looks in the world. L-190: Ctrl/Shift + click, Ctrl + A, Esc (first back to the last
+clicked row, then close), the bar's Show/Hide and two-press Delete ("Delete N?"), the map
+panel with Show/Hide only, Japanese labels in a docked screen and the map panel, and the
+Placed tab's last clicked row as the selected placement all work. Raised: the bar's buttons
+do not line up with the detail pane's; the bar sits inside the list everywhere but below an
+extended list in the map panel; every selected row has the same highlight while the detail
+pane follows the last clicked one; two Delete buttons (bar and detail pane).
+
 ## Minimap text size; add-on map color test packs (L-337, L-324, 2026-11-15)
 
 Build `156daadf`, DLL SHA-256
