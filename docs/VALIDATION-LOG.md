@@ -21,7 +21,8 @@ instance, the maintainer: confirmed. Deletes arm as 「削除を確定」, HUD l
 changing width; Highlight's Remove arms as 「確定」; bulk delete reads 「N 件の削除を確定」 in
 the map panel and in full in the Waypoints, Shapes and Placed panes; every selected map mark
 has the white ring; Saved data shows no count beside Delete; a distance of 0 reads "0 m".
-Not seen: the settings table's reset buttons (「この分類を初期化」 and the like) armed.
+The settings table's 「この分類を初期化」, 「すべて初期化」 and 「キーを初期化」 fit and arm as
+「初期化を確定」 (seen afterwards on the same build).
 
 ## List columns, selection follow-ups, Again labels, 3D waypoint distance (L-190, L-351, L-350, 2026-11-15)
 

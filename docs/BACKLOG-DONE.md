@@ -92,6 +92,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-351](backlog/done/L-351.md) One wording for press-again confirmations
 - [L-350](backlog/done/L-350.md) Waypoint distance: 3D by default, horizontal as an option
 - [L-337](backlog/done/L-337.md) Minimap: one size setting instead of two
 - [L-317](backlog/done/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether
