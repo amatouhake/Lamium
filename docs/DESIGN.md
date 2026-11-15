@@ -195,8 +195,8 @@ the same commit. A screen never draws its own variant.
   then closes. The map's side panel has the same pane with its buttons on
   its last row (`compactSelectionPane`). The Schematics Check list (L-183)
   has no shown switch, so no summary line and no Delete: Show in world,
-  Ignore whole blocks and Un-ignore share the row left of its Ignored
-  button, and a button that would change nothing is disabled.
+  Ignore places and Stop ignoring share the row, its names sit under the
+  preview it keeps, and a button that would change nothing is disabled.
 - **Tips** open below their anchor (above when there is no room) and look
   the same everywhere (`drawTipBox`): the floating panel, a `keyEdge` edge
   (`warning` when the tip warns), 4 units of padding, white text. The
