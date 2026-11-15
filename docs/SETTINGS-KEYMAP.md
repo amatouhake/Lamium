@@ -33,6 +33,10 @@ append-only action ids and default keys in `src/input/Binding.h`.
 - Hotkeys lists every action, unbound commands included.
 - Moving an action to another row changes only presentation; ids and
   existing bindings stay.
+- (Decided 2026-11-15, L-349) Steppers have one width on every row and end
+  before the key column, keyed row or not, so a choice never runs into a key
+  cell; a long name or value is cut with "...". Sliders and links still span
+  the state and key columns of a keyless row.
 
 ### Resetting settings
 

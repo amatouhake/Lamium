@@ -413,7 +413,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
             setSlider(*entry.option, fraction);
             return;
         }
-        int part = displayed.stepperPart(hit.x, linked.has_value());
+        int part = displayed.stepperPart(hit.x);
         if (part == -1 || part == 1) adjustOption_(*entry.option, part);
         else if (part == 0) {
             if (entry.option->numeric) beginNumber(*entry.option);
@@ -608,8 +608,7 @@ void drawName(MinecraftUIRenderContext& context, float x, float y, float right, 
 }
 void drawOptionStepper(MinecraftUIRenderContext& context, float y, settings::Option const& option, std::string const& value,
                  bool editing, glm::vec2 pointer, bool warn = false) {
-    bool keyed = optionAction(option.id).has_value();
-    float x = displayed.stepperX(keyed), w = displayed.stepperWidth(keyed), aw = SettingsTable::arrowWidth;
+    float x = displayed.stepperX(), w = displayed.stepperWidth(), aw = SettingsTable::arrowWidth;
     drawStepper(context,x,y+1,w,SettingsTable::rowHeight-2,option.numeric.has_value(),value,
         {.editing = editing ? &screen::number() : nullptr, .warn = warn, .cell = aw, .pointerX = pointer.x, .pointerY = pointer.y});
 }
@@ -836,14 +835,13 @@ void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, Set
     if (editingNumber_) return;
     int row = -1;
     if (hover.zone == Zone::Row && valid(hover.index) && rows[hover.index].kind == RowKind::Option
-        && t.stepperPart(hover.x, optionAction(rows[hover.index].option->id).has_value()) != 2) row = hover.index;
+        && t.stepperPart(hover.x) != 2) row = hover.index;
     else if (keyboardTip && valid(selected)) row = selected;
     if (row == taken || row < t.first || row >= t.first + t.visible || rows[row].kind != RowKind::Option) return;
     auto const& option = *rows[row].option;
     auto value = option.read(Runtime::instance().preferences());
     if (std::holds_alternative<bool>(value) || (option.numeric && option.numeric->step > 0)) return;
-    bool keyed = optionAction(option.id).has_value();
-    float sx = t.stepperX(keyed), sw = t.stepperWidth(keyed);
+    float sx = t.stepperX(), sw = t.stepperWidth();
     auto text = optionValueText(option, value);
     if (textWidth(context, text) <= sw - 2*SettingsTable::arrowWidth - 2) return;
     constexpr float pad = 4, lineHeight = 12;
@@ -1043,7 +1041,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,*flag);
             } else {
                 bool asSlider = entry.option->numeric && entry.option->numeric->step > 0 && editingNumber_ != entry.option;
-                float nameEnd = asSlider ? t.sliderX() : t.stepperX(optionAction(entry.option->id).has_value());
+                float nameEnd = asSlider ? t.sliderX() : t.stepperX();
                 label(context,t.nameX+12,y+3,nameEnd-SettingsTable::gap-t.nameX-12,std::move(name),palette::dim);
                 if (asSlider) {
                     auto const& range = *entry.option->numeric;
