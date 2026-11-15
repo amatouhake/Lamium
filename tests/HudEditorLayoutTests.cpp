@@ -53,9 +53,6 @@ void hudEditorLayoutTests() {
     check(thumb.top == 100 && std::abs(thumb.h - 50) < .01f, "the thumb is as tall as the shown share of the list");
     auto last = scrollThumb(100, 120, 24, 10, 14);
     check(std::abs(last.top + last.h - 220) < .01f, "at the last page the thumb reaches the track's end");
-    check(scrollFirstAt(90, 100, 120, 24, 10) == 0 && scrollFirstAt(400, 100, 120, 24, 10) == 14
-          && scrollFirstAt(160, 100, 120, 24, 10) == 7, "the pointer maps the track to every first row, clamped");
-    check(scrollFirstAt(160, 100, 120, 8, 10) == 0, "a list that fits does not scroll");
 
     // L-321: covered elements, scale handles and the idle panel.
     Boxes stacked;

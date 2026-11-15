@@ -68,7 +68,5 @@ void hudContentsTests() {
     check(onContentsTrack(scrolled, scrolled.track->x, scrolled.track->top + 1), "the bar takes a press");
     check(scrolled.rows[0].toggle.x + scrolled.rows[0].toggle.w <= scrolled.track->x - 2,
           "a row's switch stops short of the scroll bar");
-    auto dragged = layoutContents(low, 15, 40, true, 0, 640, 360, 18, 9, scrolled.track->top + scrolled.track->track);
-    check(dragged.first == 40 - dragged.visible, "dragging the bar to its end shows the last rows");
     check(layoutContents(below, 15, 0, false, 0, 640, 360, 18, 9).rows.empty(), "an empty list has no rows");
 }

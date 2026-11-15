@@ -180,7 +180,6 @@ float cardCopyX(Layout const& l) { return l.rightX() + l.rightWidth() - 5 - 4 - 
 // right edge. The thumb follows the pointer smoothly (whole cards jumped,
 // 2026-10-13). `scrolled` counts up from the newest card at the bottom, so
 // the bar's position from the top is the range minus it.
-bool historyHeld = false;
 ScrollBar historyBar(Layout const& l) {
     float track = l.bottom() - l.cardsTop(), range = scrollRange(l);
     ScrollBar b{l.rightX() + l.rightWidth() - 3, l.cardsTop(), track, std::min(track, std::max(10.f, track * track / (track + range)))};
@@ -291,10 +290,8 @@ Result click(float x, float y, glm::vec2 size) {
     }
     if (inside(x, y, l.helpX(), l.top + 4, 12, 12)) { helpOpen = !helpOpen; return Result::None; }
     if (helpOpen) { helpOpen = false; return Result::None; }
-    if (screen::pressScrollbar(historyBar(l), x, y, [range = scrollRange(l)](float pos) { scrolled = range - pos; })) {
-        historyHeld = true;
+    if (screen::pressScrollbar(historyBar(l), x, y, [range = scrollRange(l)](float pos) { scrolled = range - pos; }, &scrolled))
         return Result::None;
-    }
     // The result's copy button: the value, or the menu.
     if (result.value && inside(x, y, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12)) { copyValue(); return Result::None; }
     if (result.value && inside(x, y, l.copyX() + Layout::copyWidth + 1, l.resultY() + 1, Layout::arrowWidth, 12)) { menuFor = -1; return Result::None; }
@@ -318,7 +315,7 @@ void wheel(int direction) {
     scrolled += direction > 0 ? step : -step; // wheel up shows older cards
     clampScroll(last);
 }
-void release() { historyHeld = false; }
+void release() {}
 glm::vec2 fieldPosition(glm::vec2 size) {
     auto l = Layout::at(size);
     return {l.leftX() + 4, l.fieldY()};
@@ -387,7 +384,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         if (!top) continue;
         auto const& entry = history[static_cast<size_t>(index)];
         bool current = recalled >= 0 && index == static_cast<int>(history.size()) - 1 - recalled;
-        bool over = !historyHeld && pointer.y >= l.cardsTop() && pointer.y < l.bottom() && inside(pointer.x, pointer.y, rx, *top, rw - 5, Layout::cardHeight);
+        bool over = !screen::scrollHeld(&scrolled) && pointer.y >= l.cardsTop() && pointer.y < l.bottom() && inside(pointer.x, pointer.y, rx, *top, rw - 5, Layout::cardHeight);
         fill(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accentDeep : palette::white, current ? .35f : over ? .08f : .04f);
         frame(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accent : palette::white, current ? 1.f : .08f);
         bool buttons = over || menuFor == index;
@@ -405,7 +402,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     context.flushText(0, std::nullopt);
     context.restoreSavedClippingRectangle();
     if (auto bar = historyBar(l); bar.scrolls())
-        drawScrollbar(context, bar.x, bar.top, bar.track, bar.thumbTop(), bar.thumb, historyHeld || bar.hit(pointer.x, pointer.y));
+        drawScrollbar(context, bar.x, bar.top, bar.track, bar.thumbTop(), bar.thumb, screen::scrollHeld(&scrolled) || bar.hit(pointer.x, pointer.y));
     // Text is drawn when flushed: flush what lies under the overlays first, so
     // their backgrounds cover it (help showed the history through it).
     context.flushText(0, std::nullopt);

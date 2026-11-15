@@ -260,7 +260,6 @@ struct {
     bool drawn = false; // this frame, else `of` is forgotten
     float x = 0, y = 0, w = 0, h = 0;
     ScrollBar bar;      // as drawn; a press holds it (screen::pressScrollbar)
-    bool held = false;
 } itemScroll;
 schematic::IgnoreRow const* pickedIgnoreRow() {
     if (!ignorePick) return nullptr;
@@ -899,10 +898,8 @@ void handleSchematicClick(float x, float y, bool right) {
     if (!right && screen::pressScrollbar(schematicsDisplayed, schematicListFirst, x, y)) return;
     // The Check pane's item lines have their own bar (L-183).
     if (!right && itemScroll.w > 0 && screen::pressScrollbar(itemScroll.bar, x, y,
-            [](float pos) { itemScroll.first = static_cast<int>(std::lround(pos)); })) {
-        itemScroll.held = true;
+            [](float pos) { itemScroll.first = static_cast<int>(std::lround(pos)); }, &itemScroll.first))
         return;
-    }
     auto& t = previewTurn;
     // The peel line across the top of the preview resets the cut.
     if (!right && t.w > 0 && t.peel > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + 16) { t.peel = 0; return; }
@@ -1815,7 +1812,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 float track = s.visible * pitch, barX = dx + dw - 2;
                 itemScroll.x = dx; itemScroll.y = top - 1; itemScroll.w = dw; itemScroll.h = track;
                 auto const& bar = itemScroll.bar = rowScrollBar(barX, top - 1, track, s.count, s.visible, s.first, 6);
-                drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,itemScroll.held || bar.hit(pointer.x,pointer.y));
+                drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,screen::scrollHeld(&itemScroll.first) || bar.hit(pointer.x,pointer.y));
             }
             return s;
         };
@@ -2236,7 +2233,6 @@ void wheel(int step, glm::vec2 pointer, bool shift) {
     else schematicFieldFirst = std::max(0, schematicFieldFirst + step);
 }
 void release() {
-    itemScroll.held = false;
     // A press that did not move is a click on a block (inspect).
     if (std::exchange(previewTurn.dragging, false) && !previewTurn.turning) {
         previewTurn.yaw = previewTurn.fromYaw;

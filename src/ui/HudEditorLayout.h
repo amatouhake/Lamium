@@ -208,17 +208,12 @@ inline Spot toolbarSpot(Box element, float w, float h, float screenW, float scre
 // shrink to the room they get (the caller scrolls what does not fit).
 struct PopoverFit { float x = 0, y = 0, h = 0; };
 // A scrolled list's bar: `count` rows, `visible` of them from `first`, on a
-// track of `track` units from `top`. The thumb, and the first row a pointer
-// at `y` asks for (the thumb's middle follows the pointer).
+// track of `track` units from `top` (dragged through ScrollDrag.h).
 struct ScrollThumb { float top = 0, h = 0; };
-// Both from the shared bar (ScrollBar.h), with a 6-unit minimum thumb.
+// From the shared bar (ScrollBar.h), with a 6-unit minimum thumb.
 inline ScrollThumb scrollThumb(float top, float track, int count, int visible, int first) {
     auto bar = rowScrollBar(0, top, track, count, visible, first, 6);
     return {bar.thumbTop(), bar.thumb};
-}
-inline int scrollFirstAt(float y, float top, float track, int count, int visible) {
-    auto bar = rowScrollBar(0, top, track, count, visible, 0, 6);
-    return static_cast<int>(std::lround(bar.posAt(y, bar.thumb / 2)));
 }
 inline PopoverFit popoverSpot(Spot toolbar, float toolbarH, float w, float h, float screenW, float screenH) {
     float x = std::clamp(toolbar.x, 2.f, std::max(2.f, screenW - w - 2));
