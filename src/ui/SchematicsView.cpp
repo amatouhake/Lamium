@@ -1497,7 +1497,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         }
     }
-    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
+    drawListScrollbar(context,l,screen::scrollHeld(&schematicListFirst) || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 

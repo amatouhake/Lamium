@@ -25,7 +25,6 @@ namespace order = inventory::enchantOrder;
 namespace game = inventory::enchantOrder::game;
 bool open = false;
 int rowFirst = 0, stepFirst = 0;
-enum class Drag { None, Rows, Steps } dragging = Drag::None;
 int typingRow = -1;  // a level being typed (digits), -1 when none
 NumberInput typed;
 // Enter, Tab or a click elsewhere keeps it; Esc drops it.
@@ -56,20 +55,18 @@ bool begin() {
     return true;
 }
 bool opened() { return open; }
-void calm() { dragging = Drag::None; endTyping(true); }
+void calm() { endTyping(true); }
 void reset() {
     typingRow = -1;
     if (open) game::close();
     open = false;
     rowFirst = stepFirst = 0;
-    dragging = Drag::None;
     last = {};
 }
 bool click(float x, float y, bool right) {
     if (!last.usable() || x < last.left || x >= last.left + last.width || y < last.headTop || y >= last.footerTop) return false;
     if (right) return true;
-    if (last.rows.onScrollbar(x, y)) { rowFirst = last.rows.firstAt(y); dragging = Drag::Rows; return true; }
-    if (last.side.rows.onScrollbar(x, y)) { stepFirst = last.side.rows.firstAt(y); dragging = Drag::Steps; return true; }
+    if (screen::pressScrollbar(last.rows, rowFirst, x, y) || screen::pressScrollbar(last.side.rows, stepFirst, x, y)) return true;
     auto hit = last.hit(x, y);
     screen::clearMessage();
     if (hit.zone == Zone::Row && last.onLevel(x) && enchant_chooser::levelStepper(game::view(), hit.index)) {
@@ -110,7 +107,7 @@ void wheel(int amount) {
     if (lastPointer.x < last.dividerX) rowFirst = SettingsTable::clampFirst(rowFirst + amount, last.rows.listCount, last.rows.listVisible);
     else stepFirst = SettingsTable::clampFirst(stepFirst + amount, last.side.rows.listCount, last.side.rows.listVisible);
 }
-void release() { dragging = Drag::None; }
+void release() {}
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     lastPointer = pointer;
     icons.clear();
@@ -132,8 +129,6 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (lines != 1 || foot != 1) last = fit(lines, foot);
     }
     if (!last.usable()) return;
-    if (dragging == Drag::Rows) last.rows.listFirst = last.rows.firstAt(pointer.y);
-    if (dragging == Drag::Steps) last.side.rows.listFirst = last.side.rows.firstAt(pointer.y);
     rowFirst = last.rows.listFirst = SettingsTable::clampFirst(last.rows.listFirst, last.rows.listCount, last.rows.listVisible);
     stepFirst = last.side.rows.listFirst = SettingsTable::clampFirst(last.side.rows.listFirst, last.side.rows.listCount, last.side.rows.listVisible);
     auto hover = last.hit(pointer.x, pointer.y);
@@ -145,7 +140,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
 
     // Left: the item, the kinds and the main hand's cell, the sets, the rows.
     enchant_chooser::draw(context, last, v, hover, icons, itemsDrawn,
-        dragging == Drag::Rows || last.rows.onScrollbar(pointer.x, pointer.y), typingRow, &typed);
+        screen::scrollHeld(&rowFirst) || last.rows.onScrollbar(pointer.x, pointer.y), typingRow, &typed);
 
     // Right: the goal, the totals, the steps. The same drawing as right of the anvil screen.
     auto const tip = enchant_steps::draw(context, last.side, info, pointer.x, pointer.y, true, icons);

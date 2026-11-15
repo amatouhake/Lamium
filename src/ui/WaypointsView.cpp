@@ -416,7 +416,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             label(context,columns.distanceX,y+3,columns.distanceWidth,listDistanceText(w.x, w.y, w.z, w.dimension),palette::dim,Align::Right);
         toggleSwitch(context,columns.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
-    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
+    drawListScrollbar(context,l,screen::scrollHeld(&waypointListFirst) || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 

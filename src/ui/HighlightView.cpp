@@ -41,7 +41,6 @@ std::vector<size_t> results; // indices into `catalog`
 bool open = false;
 SearchQuery query;
 int listedFirst = 0, resultFirst = 0, selected = -1;
-enum class Drag { None, Listed, Results } dragging = Drag::None;
 std::string armed;   // a listed name whose Remove was pressed once
 HighlightLayout last;
 glm::vec2 lastPointer{};
@@ -199,13 +198,12 @@ bool begin() {
     return true;
 }
 bool opened() { return open; }
-void calm() { dragging = Drag::None; armed.clear(); }
+void calm() { armed.clear(); }
 void reset() {
     open = false;
     catalog.clear(); catalogIndex.clear(); results.clear(); stacks.clear(); nearby.clear(); marks.clear();
     query.clear();
     listedFirst = resultFirst = 0; selected = -1;
-    dragging = Drag::None;
     armed.clear();
     last = {};
     forceRecount();
@@ -216,8 +214,7 @@ void type(std::string const& text) { if (query.type(text)) edited(); }
 bool click(float x, float y, bool right) {
     if (!last.usable() || x < last.left || x >= last.left + last.width || y < last.headTop || y >= last.footerTop) return false;
     if (right) return true;
-    if (last.listed.onScrollbar(x, y)) { listedFirst = last.listed.firstAt(y); dragging = Drag::Listed; return true; }
-    if (last.results.onScrollbar(x, y)) { resultFirst = last.results.firstAt(y); dragging = Drag::Results; return true; }
+    if (screen::pressScrollbar(last.listed, listedFirst, x, y) || screen::pressScrollbar(last.results, resultFirst, x, y)) return true;
     auto hit = last.hit(x, y);
     auto list = listed();
     switch (hit.zone) {
@@ -257,7 +254,7 @@ void wheel(int amount) {
     if (lastPointer.x < last.dividerX) listedFirst = SettingsTable::clampFirst(listedFirst + amount, last.listed.listCount, last.listed.listVisible);
     else resultFirst = SettingsTable::clampFirst(resultFirst + amount, static_cast<int>(results.size()), last.results.listVisible);
 }
-void release() { dragging = Drag::None; }
+void release() {}
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     lastPointer = pointer;
     refreshCounts();
@@ -265,8 +262,6 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     if (!armed.empty() && !isListed(list, armed)) armed.clear();
     last = HighlightLayout::fit(t, static_cast<int>(list.size()), listedFirst, static_cast<int>(results.size()), resultFirst);
     if (!last.usable()) return;
-    if (dragging == Drag::Listed) last.listed.listFirst = last.listed.firstAt(pointer.y);
-    if (dragging == Drag::Results) last.results.listFirst = last.results.firstAt(pointer.y);
     listedFirst = last.listed.listFirst = SettingsTable::clampFirst(last.listed.listFirst, last.listed.listCount, last.listed.listVisible);
     resultFirst = last.results.listFirst = SettingsTable::clampFirst(last.results.listFirst, last.results.listCount, last.results.listVisible);
     auto hover = last.hit(pointer.x, pointer.y);
@@ -304,7 +299,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
                 armedLabel(context, translated("highlight.remove"), translated("confirm.short"), isArmed, HighlightLayout::removeWidth), hover.zone == Zone::Remove && hover.index == i, isArmed);
         }
     }
-    drawListScrollbar(context, lc, dragging == Drag::Listed || lc.onScrollbar(pointer.x, pointer.y));
+    drawListScrollbar(context, lc, screen::scrollHeld(&listedFirst) || lc.onScrollbar(pointer.x, pointer.y));
 
     // Right: the search field, then the results.
     float fx = last.searchX(), fw = last.searchWidth();
@@ -333,7 +328,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (listedNow) label(context, tagLeft, y + 3, HighlightLayout::addWidth, translated("highlight.tagListed"), palette::accent, Align::Center);
         else if (rowHover) label(context, tagLeft, y + 3, HighlightLayout::addWidth, translated("highlight.add"), palette::dim, Align::Center);
     }
-    drawListScrollbar(context, rc, dragging == Drag::Results || rc.onScrollbar(pointer.x, pointer.y));
+    drawListScrollbar(context, rc, screen::scrollHeld(&resultFirst) || rc.onScrollbar(pointer.x, pointer.y));
 
     // Footer, as in the table: status first, then what the list is, then keys.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);

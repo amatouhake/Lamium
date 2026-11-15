@@ -69,15 +69,19 @@ void nextNav(bool back);
 // A click on the sidebar or the version in an undocked view; true if it
 // was one of them.
 bool navClick(float x, float y);
-// A press on a scroll bar moves its position there and holds the bar: until
-// the button is released, the screen hands `set` the position the pointer
-// asks for each frame. One bar is held at a time; `set` must stay valid
-// until release (it writes the view's own scroll state).
-bool pressScrollbar(ScrollBar const& bar, float x, float y, std::function<void(float)> set);
-// The same for a list-and-detail layout's list, whose first row is `first`.
+// Every scroll bar's drag (DESIGN "Scrollbars"). Holding a bar moves its
+// position to the pointer now and, until the button is released, the screen
+// hands `set` the position the pointer asks for each frame. One bar is held
+// at a time; `set` must stay valid until release (it writes the view's own
+// scroll state). `owner` names that state for scrollHeld.
+void holdScrollbar(ScrollBar const& bar, float y, std::function<void(float)> set, void const* owner = nullptr);
+// Holds the bar when the press is on it (its own hit zone).
+bool pressScrollbar(ScrollBar const& bar, float x, float y, std::function<void(float)> set, void const* owner = nullptr);
+// The same for a list layout's list (its onScrollbar zone), whose first row
+// is `first`.
 bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y);
-// A scroll bar is held (its thumb stays lit while dragged).
-bool scrollDragging();
+// The held bar is the one whose state is `owner` (its thumb stays lit).
+bool scrollHeld(void const* owner);
 // Flips a boolean option by id ("overlays.shapes").
 void toggleOption(std::string_view id);
 // Shows a feature's row, expanded, in its settings category.
