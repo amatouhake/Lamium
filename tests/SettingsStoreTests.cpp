@@ -705,6 +705,17 @@ void settingsStoreTests() {
         check(readSettings(path).hud.minimap.scale == 180, "a converted file does not convert again");
     }
     {
+        // L-337: the minimap's text size.
+        check(decodeSettings(R"({"map":{"minimap":true}})").map.textSize == 100, "a file without map.textSize reads 100 %");
+        check(decodeSettings(R"({"map":{"textSize":500}})").map.textSize == 200
+                  && decodeSettings(R"({"map":{"textSize":72}})").map.textSize == 70,
+              "a saved text size is clamped to 50-200 % and rounded to the 5 % step");
+        Settings sized;
+        sized.map.textSize = 65;
+        writeSettings(path, sized);
+        check(readSettings(path).map.textSize == 65, "the minimap text size survives a save");
+    }
+    {
         Settings target;
         target.information.targetSchematic = false;
         writeSettings(path, target);

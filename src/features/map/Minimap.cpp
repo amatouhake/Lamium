@@ -1,4 +1,5 @@
 #include "features/map/Minimap.h"
+#include "features/map/MinimapLayout.h"
 #include "features/map/MapCave.h"
 #include "features/map/MapColors.h"
 #include "features/map/MapImage.h"
@@ -946,18 +947,18 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         if (settings.coordinates)
             lines.push_back(std::format("{}, {}, {}", blockFloor(view->x), blockFloor(view->y), blockFloor(view->z)));
         if (settings.biome && !view->biome.empty()) lines.push_back(view->biome);
-        float textScale = zoomScale, lineHeight = 10 * textScale;
+        float textScale = minimapTextScale(element.scale, settings.textSize);
         std::vector<float> lineWidths;
         float linesWidth = 0;
         for (auto const& line : lines) {
             lineWidths.push_back(ui::textWidthScaled(context, line, textScale));
             linesWidth = std::max(linesWidth, lineWidths.back());
         }
-        float margin = settings.compass ? 5 * textScale : 0; // Half a letter outside the frame.
+        auto layout = minimapLayout(size, textScale, settings.compass, lines.size(), linesWidth);
+        float margin = layout.margin, lineHeight = layout.lineHeight;
         bool card = element.background == ui::ElementBackground::Card;
         float pad = card ? 3 : 0;
-        float contentW = std::max(size + 2 * margin, linesWidth + 2);
-        float contentH = size + 2 * margin + (lines.empty() ? 0 : 2 + lines.size() * lineHeight);
+        float contentW = layout.contentW, contentH = layout.contentH;
         float boxW = contentW + 2 * pad, boxH = contentH + 2 * pad;
         auto placement = ui::placeElement(width, height, boxW, boxH, element);
         if (card) ui::card(context, placement.x, placement.y, boxW, boxH, cardOpacity);
@@ -973,7 +974,8 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             for (size_t i = 0; i < 4; ++i) {
                 float cx = mapX + static_cast<float>(points[i].x) * size / pixels;
                 float cy = mapY + static_cast<float>(points[i].y) * size / pixels;
-                ui::labelScaled(context, cx - 10, cy - 4.5f * textScale, 20, std::string(letters[i]), textScale,
+                ui::labelScaled(context, cx - layout.compassWidth / 2, cy - 4.5f * textScale, layout.compassWidth,
+                                std::string(letters[i]), textScale,
                                 ui::palette::text, ui::Align::Center, true);
             }
         }
@@ -988,7 +990,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         // Player names beside their dots, inside the map where they fit.
         for (auto const& dot : state.shown.dots) {
             if (dot.name.empty()) continue;
-            float scale = textScale * .75f;
+            float scale = layout.nameScale;
             float w = ui::textWidthScaled(context, dot.name, scale);
             float dx = mapX + static_cast<float>(dot.px + .5) * size / pixels, dy = mapY + static_cast<float>(dot.py + .5) * size / pixels;
             float gap = static_cast<float>(6 * dotScale(blocksAcross(zoom))) * baseSize / 216;

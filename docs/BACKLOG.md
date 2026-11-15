@@ -190,7 +190,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) open; a Realm and a changing port not seen
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): In progress; fixed entries leave this list, none seen in game
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Ready): Built (first clause of the rule), not checked: the maintainer has no add-on to test with
+- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Ready): Built (first clause); seen with the test packs 2026-11-15; the rule is being reconsidered
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
 - [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
@@ -205,15 +205,11 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-349](backlog/L-349.md) Settings and HUD follow-ups from the 2026-11-15 check (Ready): Built, not checked in game
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
-- [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Ready): Built and checked in game (`10325a18`); a minimap text size agreed 2026-11-15, not built
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
-- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Ready): Built, not checked in game (the option checked in game at `10325a18`; on by default built since)
 - [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices and unchecked cases remain
-- [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Ready): Built, not checked in game (the Nether view row checked in game at `10325a18`; its own key built since)
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target

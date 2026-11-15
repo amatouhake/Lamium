@@ -287,6 +287,7 @@ Json encode(Settings const& settings) {
                  {"netherView", settings.map.netherView},
                  {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
+                 {"textSize", settings.map.textSize},
                  {"debugHide", settings.map.debugHide}, {"radar", settings.map.radar},
                  {"radarPlayers", settings.map.radarPlayers}, {"radarHostile", settings.map.radarHostile},
                  {"radarPassive", settings.map.radarPassive}, {"radarItems", settings.map.radarItems},
@@ -587,6 +588,7 @@ Settings decodeSettings(std::string_view text) {
         value.map.coordinates = settingsValue(map, "coordinates", value.map.coordinates);
         value.map.biome = settingsValue(map, "biome", value.map.biome);
         value.map.compass = settingsValue(map, "compass", value.map.compass);
+        value.map.textSize = settingsValue(map, "textSize", value.map.textSize);
         value.map.debugHide = settingsValue(map, "debugHide", value.map.debugHide);
         // Before L-297 one switch hid the marks on the minimap ("minimapLayers",
         // before L-295 the waypoints' "waypointsMinimap"); off means the world

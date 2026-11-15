@@ -5,6 +5,7 @@
 #include "features/map/MapRadar.h"
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
+#include "features/map/MinimapLayout.h"
 #include "features/map/Teleport.h"
 #include <cmath>
 #include <array>
@@ -607,7 +608,22 @@ void shownOn() {
               && worldMapBlocked(true, 1) == Blocked::No && worldMapBlocked(false, 2) == Blocked::HeadingOff,
           "the world map's switches say why they cannot be pressed");
 }
+void minimapText() {
+    // L-337: the text size multiplies the element's HUD scale.
+    check(near(minimapTextScale(100, 100), 1) && near(minimapTextScale(150, 50), .75) && near(minimapTextScale(200, 200), 4),
+          "the minimap's text scale is HUD scale times text size");
+    check(near(minimapTextScale(10, 1000), .5 * 2), "both factors are clamped to 50-200 %");
+    auto plain = minimapLayout(100, 1, false, 0, 0);
+    check(near(plain.contentW, 100) && near(plain.contentH, 100) && near(plain.margin, 0), "a bare map is its side");
+    auto base = minimapLayout(100, 1, true, 2, 50), big = minimapLayout(100, 2, true, 2, 50);
+    check(near(base.contentH, 100 + 10 + 2 + 20) && near(big.contentH, 100 + 20 + 2 + 40),
+          "the compass margin and the lines below grow with the text");
+    check(near(big.compassWidth, 40) && near(big.nameScale, 1.5) && near(big.contentW, 120),
+          "letters get room to their scale and names stay three quarters of it");
+    check(near(minimapLayout(100, 1, false, 1, 180).contentW, 182), "a line wider than the map widens the box");
+}
 void mapTests() {
+    minimapText();
     shownOn();
     teleport();
     colors();
