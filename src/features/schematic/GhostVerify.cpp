@@ -87,7 +87,8 @@ struct Cell {
 };
 struct Scan {
     std::uint64_t revision = 0;
-    std::string key; // drawKey of the placement being checked
+    std::string key; // checkKey of the placement being checked
+    std::string drawn; // its drawKey: what the rows' cells depend on
     int placement = -1;
     std::uint64_t next = 0;
     Tally tally;
@@ -469,15 +470,20 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     }
     // A change to another placement, or to this one's name or visibility,
     // keeps the pass going.
-    auto key = checkKey(snapshot.placements[static_cast<size_t>(index)].placement)
-        + std::format("|{}", static_cast<void const*>(snapshot.placements[static_cast<size_t>(index)].structure.get()));
+    auto structureKey = std::format("|{}", static_cast<void const*>(snapshot.placements[static_cast<size_t>(index)].structure.get()));
+    auto key = checkKey(snapshot.placements[static_cast<size_t>(index)].placement) + structureKey;
+    auto drawn = drawKey(snapshot.placements[static_cast<size_t>(index)].placement) + structureKey;
     if (scan.key != key) {
+        // Only the ignore entries changed (L-183): the rows' cells are still
+        // where the ghosts are, so they stay usable until the next pass.
+        bool moved = scan.drawn != drawn;
         scan = {};
         scan.key = key;
+        scan.drawn = drawn;
         std::lock_guard lock(resultMutex);
         // Another placement's block entity mistakes are not this one's.
-        publishedEntityMistakes = std::make_shared<EntityMistakes const>();
-        if (published->complete && !published->stale) {
+        if (moved) publishedEntityMistakes = std::make_shared<EntityMistakes const>();
+        if (moved && published->complete && !published->stale) {
             auto kept = std::make_shared<Verification>(*published);
             kept->stale = true;
             published = std::move(kept);
