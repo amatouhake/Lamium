@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Schematic ignore rebuild and Check list selection (L-183, 2026-11-15)
+
+Build `41ace47e` (branch `l-190-waypoint-selection`), DLL SHA-256
+`bba2f69c8b3a23df9dbdb5b7ec395fed1c26a8727d7864deeb978e7729e75426`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: "Ignore here" and "Ignore on all N" dim and tag the
+state row and Undo restores it; "Ignore whole block" dims and tags the row and the cell leaves
+the totals after the next pass; the HUD and the nearest-mistake key show "counting" and then
+skip ignored blocks (the earlier build's still-counted difference did not recur); Ctrl/Shift +
+click selects several Check rows with "Powered · 3 / 5 rows", ignoring several rows works, Esc
+clears; no Ignored button without entries and a two-press Undo all; the key and the radial
+menu item on a ghost show a toast, keep the ghost and add "Schematic: whole block ignored" to
+the target card; "Show placement" sits in Placement. Raised in use, design reopened: one state
+on one cell is too narrow (a placement-wide state is the useful case); nothing can be ignored
+before a difference appears; block entity fields can only be ignored for every placement and
+players cannot tell them from states; "Ignored: 1" uses a colon and a count; the ignore list
+does not say clearly what it ignores; the Check list's tabs have no way to see everything.
+
 ## List columns, selection follow-ups, Again labels, 3D waypoint distance (L-190, L-351, L-350, 2026-11-15)
 
 Build `3a470553` (branch `l-190-waypoint-selection` with main at `12eb4df4`), DLL SHA-256
