@@ -1653,6 +1653,26 @@ void placementSteps() {
           "menu placement steps keep the key start rule for multiple steps");
     check(steppedPlacement(-1, 0, -1) == -1 && steppedPlacement(-1, 1, -1) == 0,
           "placement steps handle an empty list or a single placement");
+    auto set = [](int selected) {
+        PlacementSet s;
+        for (std::uint64_t id = 1; id <= 4; ++id) s.placements.push_back(SavedPlacement{.name = std::to_string(id), .id = id});
+        s.selected = selected;
+        return s;
+    };
+    auto ids = [](PlacementSet const& s) {
+        std::vector<std::uint64_t> out;
+        for (auto const& p : s.placements) out.push_back(p.id);
+        return out;
+    };
+    auto kept = set(3);
+    removePlacements(kept, {1, 2});
+    check(ids(kept) == std::vector<std::uint64_t>{3, 4} && kept.selected == 1, "removing several placements keeps the selected one where it moved");
+    auto gone = set(1);
+    removePlacements(gone, {2, 4});
+    check(ids(gone) == std::vector<std::uint64_t>{1, 3} && gone.selected == -1, "removing the selected placement leaves none selected");
+    auto none = set(-1);
+    removePlacements(none, {9});
+    check(ids(none).size() == 4 && none.selected == -1, "an id that is gone removes nothing");
 }
 void verificationReadiness() {
     using namespace lamium::schematic;
