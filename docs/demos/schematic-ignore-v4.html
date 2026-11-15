@@ -111,6 +111,7 @@ table.mx td.now{background:rgba(108,195,73,.08)} table.mx td.today{background:rg
 .qa ol,.qa ul{margin:6px 0 0;padding-left:20px;color:var(--ink-2)} .qa li{margin:4px 0}
 .qa b{color:var(--ink)}
 code{font-size:12.5px;color:var(--ink)}
+.fit{width:100%}
 .row .k{width:84px;white-space:nowrap}
 .row .p{width:72px}
 .row .nm{display:flex;gap:4px;align-items:center;min-width:0}
@@ -326,7 +327,8 @@ function renderActs(){
   $('foot').innerHTML= st.view==='ignore'?`<span>Esc：照合に戻る</span>`: sel.length>1?`<span>${sel.length} 件を選択中 · Esc で解除</span>`:`<span>Esc：閉じる</span>`;
 }
 function render(){ renderChips(); renderRows(); renderDetail(); renderActs(); fit(); }
-function fit(){ const f=$('fit'),s=$('stage'); const k=Math.min(1,f.clientWidth/960); s.style.transform=`scale(${k})`; f.style.height=540*k+'px'; }
+function fit(){ const f=$('fit'),s=$('stage'); const w=f.clientWidth||f.getBoundingClientRect().width||960; const k=Math.min(1,w/960); s.style.transform=`scale(${k})`; f.style.height=540*k+'px'; }
+if(window.ResizeObserver)new ResizeObserver(fit).observe(document.body);
 
 document.addEventListener('click',e=>{
   const g=e.target.closest('.grp[data-k] button'); if(g){ const k=g.parentNode.dataset.k; st[k]=g.dataset.v; g.parentNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===g)); render(); return; }
