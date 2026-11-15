@@ -64,6 +64,8 @@ toolbar). Editing keeps both scroll positions.
 - "New shape" first asks for a type, then opens a draft previewed in the
   world as light-blue lines and not saved. Create adds it; Cancel or leaving
   the view discards it. Delete needs a second press.
+- Several shapes (DESIGN "Several rows", L-190, branch only): show, hide and
+  delete together, each in one save; the draft row never takes part.
 - The center reference is the standing block (snapped to its center), the
   exact position (no snapping) or the targeted block; "Move here" uses the
   same reference. Standing and exact follow the drawn view (L-248): while

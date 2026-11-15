@@ -130,6 +130,8 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   nearest first, then others by name with a dimension tag; editor with name,
   X/Y/Z (typed or stepped), Move here, Show, Color; delete takes two presses.
   Opened from the map it shows "< Map"; that and Esc return with the view kept.
+  Several rows (DESIGN "Several rows"; branch only until all lists have it,
+  L-190): show, hide and delete together.
 
 ### Waypoints and death records
 
@@ -223,6 +225,10 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   name, distance in the player's dimension, nearest first, show/hide switch;
   a click centers and selects (a placement also becomes the schematic's
   selected one), with details and "Open" below.
+- Several rows of the listed layer (DESIGN "Several rows", L-190, branch
+  only): Ctrl/Shift + click selects without moving the map; the bar shows and
+  hides them (deleting stays in each list's own screen); a layer or dimension
+  change drops them; Ctrl + A while the panel is open.
 - Only the dimension shown. A layer switched off keeps its list
   (`State::allAreas`) with a faint "Hidden on the map" line on top.
 

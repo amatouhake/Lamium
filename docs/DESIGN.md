@@ -162,6 +162,13 @@ the same commit. A screen never draws its own variant.
   faint track and a 2-unit thumb that turns lighter (`dim`) under the
   pointer or while dragged, without widening; pressing or dragging puts the first line under
   the pointer.
+- **Several rows** (L-190, `ui/RowSelection.h`): in a list that offers
+  it, Ctrl + click toggles a row and Shift + click takes a range (no drag
+  selection); Ctrl + A takes all. The detail pane shows the row clicked
+  last. While two or more rows are selected, a bar (`drawBulkBar`) in the
+  list's last row says how many and offers the list's bulk actions; Delete
+  there is destructive with its own arming. Esc returns several rows to the
+  shown one before it closes anything.
 - **Tips** open below their anchor (above when there is no room) and look
   the same everywhere (`drawTipBox`): the floating panel, a `keyEdge` edge
   (`warning` when the tip warns), 4 units of padding, white text. The
