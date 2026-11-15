@@ -85,7 +85,7 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
                        size_t shown, float ownWidth, std::vector<bool> const& enabled) {
-    label(context,pane.x,pane.y+3,pane.w,translated("list.selectedCount", count));
+    label(context,pane.x,pane.y+3,pane.countW > 0 ? pane.countW : pane.w,translated("list.selectedCount", count));
     shown = std::min(shown, count);
     if (pane.summary) label(context,pane.x,pane.summaryY+2,pane.w,translated("list.shownHidden", shown, count - shown),palette::dim);
     auto const c = listColumns(pane.x - ListColumns::pad, pane.w + 2 * ListColumns::pad, ownWidth, 0);

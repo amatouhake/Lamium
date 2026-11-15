@@ -177,6 +177,8 @@ int main() try {
     rowSelectionTests();
     extern void listColumnsTests();
     listColumnsTests();
+    extern void paneScrollTests();
+    paneScrollTests();
     extern void worldMapTests();
     worldMapTests();
     extern void mapRegionFormatTests();

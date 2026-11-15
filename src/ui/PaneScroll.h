@@ -1,0 +1,25 @@
+#pragma once
+#include <algorithm>
+#include <cmath>
+
+namespace lamium::ui {
+// Lines in a detail pane that scroll under the wheel when they do not all
+// fit (the Check tab's item lines, L-183): `count` lines `pitch` apart from
+// `top`, each `lineHeight` tall, kept above `bottom`; `first` is clamped so
+// the last line ends the view.
+struct LineScroll {
+    int count = 0, visible = 0, first = 0;
+    bool overflows() const { return count > visible; }
+};
+inline int linesFitting(float top, float bottom, float pitch, float lineHeight) {
+    if (!(pitch > 0) || !(bottom - top >= lineHeight)) return 0;
+    return static_cast<int>(std::floor((bottom - top - lineHeight) / pitch + 1e-4f)) + 1;
+}
+inline LineScroll lineScroll(int count, int first, float top, float bottom, float pitch, float lineHeight) {
+    LineScroll s;
+    s.count = std::max(0, count);
+    s.visible = std::min(s.count, linesFitting(top, bottom, pitch, lineHeight));
+    s.first = std::clamp(first, 0, std::max(0, s.count - s.visible));
+    return s;
+}
+}

@@ -121,6 +121,7 @@ inline NamesFit namesFit(int count, float room, float lineHeight) {
 // panel), drawn by drawSelectionPane, hit by the next click.
 struct SelectionPaneLayout {
     float x = 0, y = 0, w = 0; // the count's line
+    float countW = 0;          // the count's own width, 0: w (a view keeps a button at the line's end)
     float summaryY = 0;        // "Shown N / Hidden M"
     bool summary = true;       // false: a list without a shown switch has no summary line
     float linesTop = 0, lineHeight = 12;

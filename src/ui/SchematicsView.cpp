@@ -50,6 +50,8 @@
 #include "overlay/ShapeSession.h"
 #include "ui/Localization.h"
 #include "ui/GameLanguage.h"
+#include "ui/HudEditorLayout.h"
+#include "ui/PaneScroll.h"
 #include "app/Runtime.h"
 #include "app/Desktop.h"
 #include "app/Versions.h"
@@ -245,7 +247,18 @@ struct IgnorePick {
     }
 };
 std::optional<IgnorePick> ignorePick;
-std::pair<float, float> ignoreSettingsSpan{}; // "Ignore settings" as last drawn
+// "Ignore settings" as last drawn, at the end of the Check pane's top line;
+// 0 wide when not drawn.
+struct { float x = 0, y = 0, w = 0, h = 0; } ignoreSettingsBox;
+// The Check pane's item lines (a row's differing items, a block's compared
+// items) scroll under the wheel when they do not fit; the offset starts
+// over when what they list changes. The area is as last drawn, 0 wide
+// when the lines fit.
+struct {
+    int first = 0, count = 0, visible = 0;
+    std::string of;
+    float x = 0, y = 0, w = 0, h = 0;
+} itemScroll;
 schematic::IgnoreRow const* pickedIgnoreRow() {
     if (!ignorePick) return nullptr;
     for (auto const& row : ignoreList) if (ignorePick->names(row)) return &row;
@@ -894,8 +907,8 @@ void handleSchematicClick(float x, float y, bool right) {
     }
     if (!schematicsDocked && screen::navClick(x, y)) return;
     if (int tab = schematicTabAt(schematicsDisplayed, x, y); tab >= 0) { selectSchematicTab(static_cast<SchematicTab>(tab)); return; }
-    if (schematicTab == SchematicTab::Verify && checkedPlacement() && y >= schematicsDisplayed.theadTop && y < schematicsDisplayed.rowsTop
-        && x >= ignoreSettingsSpan.first && x < ignoreSettingsSpan.second) {
+    if (auto const& b = ignoreSettingsBox; schematicTab == SchematicTab::Verify && checkedPlacement() && b.w > 0
+        && x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) {
         toggleIgnoreView();
         return;
     }
@@ -1167,6 +1180,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             data_notice::Kind::Placements, pointer);
     auto const preferences = Runtime::instance().preferences();
     ignoreControls.clear();
+    ignoreSettingsBox = {};
+    itemScroll.w = 0;
     auto hover = l.hit(pointer.x, pointer.y);
     int tabHover = schematicTabAt(l, pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return tabHover < 0 && hover.zone == zone && (index < 0 || hover.index == index); };
@@ -1226,17 +1241,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             "schematic.filter.state", "schematic.filter.missing"};
         static constexpr std::array<schematic::CellState, 4> chipKinds{schematic::CellState::Correct, schematic::CellState::Wrong,
             schematic::CellState::State, schematic::CellState::Missing};
-        ignoreSettingsSpan = {};
-        float chipsEnd = listRight - ShapesLayout::pad;
-        if (checked) {
-            std::string text = translated("schematic.ignore.settings");
-            float w = std::min(textWidthScaled(context, text, .8f) + 10, l.listWidth / 2), x = listRight - ShapesLayout::pad - w;
-            float top = l.theadTop + 1, h = ShapesLayout::theadHeight - 2;
-            bool hovered = pointer.x >= x && pointer.x < x + w && pointer.y >= top && pointer.y < top + h;
-            drawButton(context,x,top,w,h,std::move(text),hovered,ignoreView ? ButtonKind::Primary : ButtonKind::Plain);
-            ignoreSettingsSpan = {x, x + w};
-            chipsEnd = x - 4;
-        }
+        float const chipsEnd = listRight - ShapesLayout::pad;
         verifyChipSpans = {};
         float cx = left;
         for (int i = 0; i < 4 && !ignoreView; ++i) {
@@ -1328,7 +1333,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             if (row.stale) tag += (tag.empty() ? "" : " · ") + translated("schematic.ignore.stale");
         }
         if (!tag.empty()) {
-            float tagW = std::min(tagWidth(context, tag), (right - nameX) / 2);
+            float full = tagWidth(context, tag), tagW = std::min(full, (right - nameX) / 2);
+            if (hovered && full > tagW && pointer.x >= right - tagW && pointer.x < right) listTip = {tag, pointer.x, pointer.y};
             drawTag(context,right-tagW,y+2,tag,tagW);
             right -= tagW + 4;
         }
@@ -1417,7 +1423,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             float bx = left + 9, bw = listRight - bx - distW - ShapesLayout::pad - 4;
             if (mark != schematic::IgnoreMark::None) {
                 std::string tag = translated(mark == schematic::IgnoreMark::Place ? "schematic.ignore.tagPlace" : "schematic.ignore.tagItems");
-                float tagW = std::min(tagWidth(context, tag), bw / 2);
+                float full = tagWidth(context, tag), tagW = std::min(full, bw / 2);
+                if (rowHovered && full > tagW && pointer.x >= bx + bw - tagW && pointer.x < bx + bw) listTip = {tag, pointer.x, pointer.y};
                 drawTag(context,bx+bw-tagW,y+2,std::move(tag),tagW);
                 bw -= tagW + 4;
             }
@@ -1642,10 +1649,22 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             title = label.name;
             if (!picked->stale) titleIcon = label.icon;
         }
+        // "Ignore settings" ends the top line in every state of the pane (one
+        // row, several, the ignore view), so it never moves; pressed while
+        // the view is open. The name is cut before it.
+        float titleEnd = dx + dw;
+        {
+            std::string text = translated("schematic.ignore.settings");
+            float w = std::min(textWidth(context, text) + 10, dw * .55f), x = dx + dw - w, top = l.nameY + 1, h = 12;
+            bool hovered = pointer.x >= x && pointer.x < x + w && pointer.y >= top && pointer.y < top + h;
+            drawButton(context,x,top,w,h,std::move(text),hovered,ignoreView ? ButtonKind::Primary : ButtonKind::Plain);
+            ignoreSettingsBox = {x, top, w, h};
+            titleEnd = x - 4;
+        }
         if (!several) {
             float tx = dx;
             if (!titleIcon.empty()) { drawItemIcon(context, titleIcon, dx, l.nameY + 1, 12); tx += 14; }
-            label(context,tx,l.nameY+1+boxTextInset(),dx+dw-tx,title);
+            label(context,tx,l.nameY+1+boxTextInset(),titleEnd-tx,title);
         }
         auto const& t = verification->visible;
         auto const& ignored = checked->ignored;
@@ -1772,6 +1791,23 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             double ddx = p.x + .5 - feet.x, ddy = p.y + .5 - feet.y, ddz = p.z + .5 - feet.z;
             return translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(ddx * ddx + ddy * ddy + ddz * ddz))));
         };
+        // Item lines that do not fit scroll under the wheel (the heading and
+        // the preview stay); `of` names what they list, and a new one starts
+        // at the top. The bar is the lists' own, at the pane's right edge.
+        auto scrollItems = [&](std::string of, size_t count, float top, float bottom, float pitch) {
+            if (of != itemScroll.of) { itemScroll.of = std::move(of); itemScroll.first = 0; }
+            auto s = lineScroll(static_cast<int>(count), itemScroll.first, top, bottom, pitch, 10);
+            itemScroll.first = s.first;
+            itemScroll.count = s.count;
+            itemScroll.visible = s.visible;
+            if (s.overflows() && s.visible > 0) {
+                float track = s.visible * pitch, barX = dx + dw - 2;
+                itemScroll.x = dx; itemScroll.y = top - 1; itemScroll.w = dw; itemScroll.h = track;
+                auto thumb = hud_editor::scrollThumb(top - 1, track, s.count, s.visible, s.first);
+                drawScrollbar(context,barX,top-1,track,thumb.top,thumb.h,pointed(barX-4,top-1,6,track));
+            }
+            return s;
+        };
         if (ignoreView) {
             // A place's facts, or a block's items each ruled on every such
             // block or given back; "pick one" with nothing picked.
@@ -1827,11 +1863,13 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                         for (auto const& d : m.states) addItem(schematic::itemId(d));
                 label(context,dx,y,dw,translated("schematic.ignore.compared"),palette::faint);
                 y += 12;
-                for (auto const& item : items) {
-                    if (!fits(y)) break;
+                auto const scroll = scrollItems("b" + picked->block, items.size(), y, textEnd, 12);
+                float const edge = scroll.overflows() ? dx + dw - 5 : dx + dw;
+                for (int i = scroll.first; i < scroll.first + scroll.visible; ++i) {
+                    auto const& item = items[static_cast<size_t>(i)];
                     bool const ruled = ignored.ruled(picked->block, item);
                     auto rule = schematic::ruleEntry(picked->block, item);
-                    float right = dx + dw;
+                    float right = edge;
                     if (ruled) right = lineButton(right, y - 1, translated("schematic.ignore.undo"), IgnoreControlKind::Remove, {rule});
                     else {
                         std::string full = translated("schematic.ignore.onAll", title), brief = translated("schematic.ignore.onAllShort");
@@ -1870,6 +1908,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             // The names below the preview; Show in world, Ignore places, Stop
             // ignoring. No item is ignored from several rows.
             auto pane = l.selectionPane(static_cast<int>(chosenRows.size()), 0, textTop);
+            pane.countW = titleEnd - pane.x;
             std::vector<SelectedName> names;
             for (auto const* m : chosenRows) {
                 if (names.size() >= static_cast<size_t>(pane.fit.names)) break;
@@ -1887,18 +1926,19 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         // Counts on the left, the selected row on the right.
         float half = std::floor(dw * .42f), rx = dx + half + 8, rw = dw - half - 8;
-        float y = textTop;
-        label(context,dx,y,half,translated("schematic.check.whole", layersText(*checked)),palette::faint);
+        // What the counts cover spans the pane above both columns.
+        label(context,dx,textTop,dw,translated("schematic.check.whole", layersText(*checked)),palette::faint);
+        float y = textTop + 12;
         // After an entries change the counts wait for the next pass (L-183).
         if (!counting && !unloadable && verification->outdated) {
-            if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.counting"),palette::dim);
+            if (fits(y)) label(context,dx,y,half,translated("schematic.counting"),palette::dim);
         } else if (!counting && !unloadable) {
-            if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
-            if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
-            if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
-            if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),palette::warning);
+            if (fits(y)) label(context,dx,y,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
+            if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.missing", t.missing),palette::dim);
+            if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
+            if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.state", t.state),palette::warning);
         }
-        float bottom = y + 57;
+        float bottom = y + 53;
         // The list keeps the nearest of each kind; say so when it is cut.
         // Ignored rows are listed but not counted.
         using F = schematic::CheckFilter;
@@ -1906,9 +1946,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             : checkFilter == F::NotPlaced ? t.missing : t.wrong + t.extra + t.state + t.missing;
         auto countedRows = static_cast<std::uint64_t>(std::count_if(verifyRows.begin(), verifyRows.end(),
             [&](auto const* m) { return schematic::liveMark(*m, ignored) == schematic::IgnoreMark::None; }));
-        if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 57)) {
-            paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
-            bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
+        if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 53)) {
+            paragraph(context,dx,y+53,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
+            bottom = y + 53 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
         }
         if (selected) {
             auto const& m = *selected;
@@ -1944,13 +1984,18 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             bool const canIgnore = editable && schematic::takesIgnores(m) && !placeIgnored;
             auto translate = [](std::string_view key) { return translated(key); };
             auto measure = [&](std::string_view text) { return textWidth(context, text) + 10; };
-            for (auto const& d : m.states) {
-                if (!fits(sy)) break;
+            float const pitch = canIgnore ? 12 : 11;
+            // A place ignored keeps its note under the lines.
+            auto const scroll = scrollItems(std::format("c{},{},{},{}", m.position.x, m.position.y, m.position.z, m.entity),
+                m.states.size(), sy, placeIgnored ? textEnd - 24 : textEnd, pitch);
+            float const edge = scroll.overflows() ? dx + dw - 5 : dx + dw;
+            for (int i = scroll.first; i < scroll.first + scroll.visible; ++i) {
+                auto const& d = m.states[static_cast<size_t>(i)];
                 auto const& item = schematic::itemId(d);
                 // The live entries, so a press shows at once, before the next pass.
                 bool const ruled = schematic::takesIgnores(m) && ignored.ruled(m.fileBlock, item);
                 bool const dimmed = placeIgnored || ruled;
-                float right = dx + dw;
+                float right = edge;
                 if (canIgnore) {
                     auto rule = schematic::ruleEntry(m.fileBlock, item);
                     if (ruled) right = lineButton(right, sy - 1, translated("schematic.ignore.undo"), IgnoreControlKind::Remove, {rule});
@@ -1975,7 +2020,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 label(context,vx,sy,wantW,want.value,valueColor);
                 vx += wantW + 6;
                 if (ruled && vx < right) label(context,vx,sy,right-vx,translated("schematic.ignore.onAllActive", m.expectedName),palette::dim);
-                sy += canIgnore ? 12 : 11;
+                sy += pitch;
             }
             if (placeIgnored && fits(sy)) paragraph(context,dx,sy,dw,translated("schematic.ignore.placeNotCounted"),2,palette::faint);
         }
@@ -2072,7 +2117,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     if (listTip) {
         // Text is batched: draw what is under the tip first, or it lands on top.
         context.flushText(0, std::nullopt);
-        float w = textWidth(context, listTip->text) + 8, x = std::min(listTip->x + 8, l.left + l.width - w - 2);
+        float w = std::min(textWidth(context, listTip->text) + 8, l.width - 4);
+        float x = std::max(l.left + 2, std::min(listTip->x + 8, l.left + l.width - w - 2));
         fill(context,x,listTip->y+10,w,13,palette::panel);
         frame(context,x,listTip->y+10,w,13,palette::keyEdge);
         label(context,x+4,listTip->y+12,w-6,listTip->text,palette::text);
@@ -2165,6 +2211,11 @@ void wheel(int step, glm::vec2 pointer, bool shift) {
             int layers = std::max(1, last.layers ? last.layers : 256);
             t.peel = std::clamp(t.peel + (step < 0 ? 1 : -1), 0, layers - 1);
         } else t.zoom = std::clamp(t.zoom * (step < 0 ? 1.2f : 1 / 1.2f), .5f, schematic::preview::last().maxZoom);
+        return;
+    }
+    // Over the Check pane's item lines when they do not fit (L-183).
+    if (auto& s = itemScroll; s.w > 0 && px >= s.x && px < s.x + s.w && py >= s.y && py < s.y + s.h) {
+        s.first = std::clamp(s.first + step, 0, std::max(0, s.count - s.visible));
         return;
     }
     bool overList = px >= l.listLeft && px < l.listLeft + l.listWidth && (!l.docked || py < l.detailTop);
