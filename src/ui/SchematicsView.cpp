@@ -43,6 +43,7 @@
 #include "features/map/MapStore.h"
 #include "features/map/WorldMap.h"
 #include "ui/SearchQuery.h"
+#include "ui/TextFit.h"
 #include "ui/NumberInput.h"
 #include "ui/Widgets.h"
 #include "overlay/ShapeSession.h"
@@ -199,14 +200,11 @@ struct CheckKey {
 };
 RowSelection<CheckKey> checkRows;
 BulkArm checkBulk;
-// L-183: the Check pane's ignore controls. The list of ignored differences
-// replaces the counts while open; the buttons are placed while drawing and
-// hit by the next click.
-bool verifyIgnoredOpen = false, verifyUndoAllArmed = false;
-float verifyIgnoredWidth = 0; // the Ignored button as last drawn (0: hidden)
-// Add and Remove change the entries named; Show and Open are the action
-// row's "Show in world" and "Ignored: N".
-enum class IgnoreControlKind { Add, Remove, UndoAll, Show, Open };
+// L-183: the Check pane's ignore controls, placed while drawing and hit by
+// the next click.
+bool verifyUndoAllArmed = false;
+// Add and Remove change the entries named; Show is "Show in world".
+enum class IgnoreControlKind { Add, Remove, UndoAll, Show };
 struct IgnoreControl {
     float x, y, w, h;
     IgnoreControlKind kind;
@@ -345,10 +343,7 @@ bool pressIgnoreControl(float x, float y) {
             changeIgnores([](schematic::IgnoreList& list) { if (list.empty()) return false; list.clear(); return true; });
             break;
         case IgnoreControlKind::Show: showSelectedMismatch(); break;
-        case IgnoreControlKind::Open: verifyIgnoredOpen = !verifyIgnoredOpen; break;
         }
-        // The list closes with its last entry, as its button goes.
-        if (auto const* p = checkedPlacement(); !p || p->ignored.empty()) verifyIgnoredOpen = false;
         return true;
     }
     return false;
@@ -722,8 +717,8 @@ void pickInPreview(glm::vec2 at) {
     if (verifySelected >= 0) scrollToSelected = true;
 }
 // The Check list's selection pane (L-183 with L-190): Show in world marks
-// every selected cell; Ignore whole blocks adds what is not ignored yet, all
-// or nothing under the cap; Un-ignore takes back the rows' own entries.
+// every selected cell; Ignore places adds the rows not ignored yet, all or
+// nothing under the cap; Stop ignoring takes back the rows' places.
 void bulkCheck(int at) {
     auto const actions = bulkActions(SelectionList::Check);
     auto const* checked = checkedPlacement();
@@ -732,7 +727,7 @@ void bulkCheck(int at) {
     auto rows = selectedCheckRows();
     switch (actions[static_cast<size_t>(at)]) {
     case BulkAction::ShowInWorld: showSelectedMismatch(); return;
-    case BulkAction::IgnoreBlocks: {
+    case BulkAction::IgnorePlaces: {
         auto wanted = schematic::placesToAdd(rows, checked->ignored);
         if (wanted.empty()) return;
         bool full = false;
@@ -1435,85 +1430,107 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         break;
     case SchematicTab::Verify: {
         if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); break; }
-        // Several rows (L-190): the selection pane stands in for the name,
-        // the preview and the counts.
+        // Several rows (L-190): the selection pane's count stands in for the
+        // name; the preview stays (L-183) and the names go below it.
         bool const several = checkRows.several();
         if (!several) label(context,dx,l.nameY+1+boxTextInset(),dw,checked->name);
         auto const& t = verification->visible;
+        auto const& ignored = checked->ignored;
+        // Rows from before a move point elsewhere (L-177): nothing is changed from them.
+        bool const editable = !verification->stale;
+        schematic::Mismatch const* selected = !several && verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())
+            ? verifyRows[static_cast<size_t>(verifySelected)] : nullptr;
+        auto const chosenRows = several ? selectedCheckRows() : std::vector<schematic::Mismatch const*>{};
         // Layout A (Check tab review): the preview at a fixed size on top,
-        // then the counts beside the selected mistake, then its states.
-        // Lines that do not fit above the buttons are left out.
+        // then the counts beside the selected row, then its items. Lines that
+        // do not fit above the buttons are left out.
         float pvTop = l.previewY - 2, pvHeight = std::clamp((l.actionsY - pvTop) * .55f, 60.f, 240.f);
         float textTop = pvTop + pvHeight + 5, textEnd = l.actionsY - 6;
         auto fits = [&](float y) { return y + 10 <= textEnd; };
-        if (several) {}
-        else if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
-        else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
-        else {
-            fill(context,dx,pvTop,dw,pvHeight,palette::shade,.25f);
-            frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
-            if (counting) label(context,dx+4,pvTop+3,dw-8,translated("schematic.counting"),palette::dim);
-            else if (auto structure = schematic::session::structure(checked->file)) {
-                schematic::Point here{INT_MIN, INT_MIN, INT_MIN};
-                if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size()) && !verifyRows[static_cast<size_t>(verifySelected)]->entity)
-                    here = verifyRows[static_cast<size_t>(verifySelected)]->position;
-                else if (previewTurn.picked && previewTurn.pickedFile == checked->file)
-                    here = schematic::toWorld(structure->size, checked->placement, {previewTurn.picked->x, previewTurn.picked->y, previewTurn.picked->z});
-                // Only the kinds the chips show are marked.
-                static std::map<std::tuple<int, int, int>, schematic::CellState> states;
-                static std::uint64_t statesKey = 0;
-                std::uint64_t key = reinterpret_cast<std::uintptr_t>(verification.get()) * 31 + static_cast<std::uint64_t>(here.x) * 7
-                    + static_cast<std::uint64_t>(here.y) * 13 + static_cast<std::uint64_t>(here.z) + static_cast<std::uint64_t>(checkFilter) * 1000003 + 1;
-                if (key != statesKey) {
-                    statesKey = key;
-                    states.clear();
-                    for (auto const& m : verification->mismatches)
-                        if (!m.entity && verifyMatches(m) && schematic::liveMark(m, checked->ignored) == schematic::IgnoreMark::None)
-                            states[{m.position.x, m.position.y, m.position.z}] = m.state;
-                }
-                bool focus = here.x != INT_MIN;
-                auto placement = checked->placement;
-                auto size = structure->size;
-                schematic::preview::Tint tint{key, [placement, size, here, focus](int x, int y, int z) -> std::uint32_t {
-                    auto world = schematic::toWorld(size, placement, {x, y, z});
-                    if (focus && world == here) return 0xffffffffu;
-                    auto found = states.find({world.x, world.y, world.z});
-                    std::uint32_t color = 0xffffffffu;
-                    if (found != states.end()) switch (found->second) {
-                    case schematic::CellState::Missing: color = 0xffffcc8cu; break; // light blue
-                    case schematic::CellState::Wrong: case schematic::CellState::Extra: color = 0xff5a64ffu; break; // red
-                    case schematic::CellState::State: color = 0xff5ad7ffu; break; // yellow
-                    default: break;
-                    }
-                    if (!focus) return color;
-                    // Dim the rest to 45%.
-                    auto dim = [&](int shift) { return ((((color >> shift) & 255) * 115 / 255) << shift); };
-                    return dim(0) | dim(8) | dim(16) | 0xff000000u;
-                }};
-                auto& turn = previewTurn;
-                turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
-                if (turn.file != checked->file) { turn.file = checked->file; turn.peel = 0; turn.zoom = 1; turn.picked.reset(); }
-                float s = drawScale();
-                if (!schematic::preview::draw(context, structure, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
-                        schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint))
-                    turn.w = 0;
-                else drawPreviewLabel(context, dx, pvTop, dw);
-            }
-        }
         auto pointed = [&](float x, float top, float w, float h) {
             return pointer.x >= x && pointer.x < x + w && pointer.y >= top && pointer.y < top + h;
         };
-        auto ignoreStructure = schematic::session::loaded(checked->file);
-        auto const& ignored = checked->ignored;
-        static schematic::BlockCounts const noCounts;
-        auto const& counts = ignoreStructure ? nameCounts(*ignoreStructure) : noCounts;
-        // Rows from before a move point elsewhere (L-177): nothing is changed from them.
-        bool const editable = !verification->stale;
-        auto translate = [](std::string_view key) { return translated(key); };
-        auto stateLabel = [&](std::string const& key, std::string const& raw, std::string_view block) {
-            auto named = information::stateName(key, raw, block, translate);
-            return named.labelIsKey ? translated(named.label) : named.label;
+        // The preview marks a set of cells (white, the rest dimmed): the
+        // selected rows, or the block clicked in it; the other rows of the
+        // shown kinds keep their kind's tint.
+        std::vector<schematic::Point> focus;
+        if (several) {
+            for (auto const* m : chosenRows) if (!m->entity) focus.push_back(m->position);
+        } else if (selected && !selected->entity) focus.push_back(selected->position);
+        auto drawPreview = [&](std::vector<schematic::Point> const& cells, std::string const& block, bool kinds) {
+            fill(context,dx,pvTop,dw,pvHeight,palette::shade,.25f);
+            frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
+            if (counting) { label(context,dx+4,pvTop+3,dw-8,translated("schematic.counting"),palette::dim); return; }
+            auto structure = schematic::session::structure(checked->file);
+            if (!structure) return;
+            auto marked = std::make_shared<std::set<std::tuple<int, int, int>>>();
+            std::uint64_t key = reinterpret_cast<std::uintptr_t>(verification.get()) * 31 + static_cast<std::uint64_t>(checkFilter) * 1000003
+                + (kinds ? 17 : 5);
+            auto mix = [&](std::uint64_t v) { key = (key ^ v) * 1099511628211ull; };
+            for (auto const& c : cells) {
+                marked->insert({c.x, c.y, c.z});
+                mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(c.x)) << 32 ^ static_cast<std::uint32_t>(c.z));
+                mix(static_cast<std::uint32_t>(c.y));
+            }
+            if (!cells.empty() || !block.empty()) {}
+            else if (previewTurn.picked && previewTurn.pickedFile == checked->file) {
+                auto w = schematic::toWorld(structure->size, checked->placement, {previewTurn.picked->x, previewTurn.picked->y, previewTurn.picked->z});
+                marked->insert({w.x, w.y, w.z});
+                mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(w.x)) << 32 ^ static_cast<std::uint32_t>(w.z));
+                mix(static_cast<std::uint32_t>(w.y));
+            }
+            // A picked block type marks every cell holding it.
+            std::vector<bool> blockCells;
+            if (!block.empty()) {
+                blockCells.resize(structure->palette.size());
+                for (size_t i = 0; i < structure->palette.size(); ++i) blockCells[i] = structure->palette[i].name == block;
+                for (char ch : block) mix(static_cast<unsigned char>(ch));
+            }
+            static std::map<std::tuple<int, int, int>, schematic::CellState> states;
+            static std::uint64_t statesKey = 0;
+            if (key != statesKey) {
+                statesKey = key;
+                states.clear();
+                if (kinds)
+                    for (auto const& m : verification->mismatches)
+                        if (!m.entity && verifyMatches(m) && schematic::liveMark(m, ignored) == schematic::IgnoreMark::None)
+                            states[{m.position.x, m.position.y, m.position.z}] = m.state;
+            }
+            bool const any = !marked->empty() || std::find(blockCells.begin(), blockCells.end(), true) != blockCells.end();
+            auto placement = checked->placement;
+            schematic::preview::Tint tint{key, [placement, structure, marked, blockCells, any](int x, int y, int z) -> std::uint32_t {
+                auto world = schematic::toWorld(structure->size, placement, {x, y, z});
+                bool hit = marked->contains({world.x, world.y, world.z});
+                if (!hit && !blockCells.empty()) {
+                    auto index = structure->blocks[static_cast<size_t>(structure->cell(x, y, z))];
+                    hit = index != schematic::voidCell && static_cast<size_t>(index) < blockCells.size() && blockCells[static_cast<size_t>(index)];
+                }
+                if (any && hit) return 0xffffffffu;
+                auto found = states.find({world.x, world.y, world.z});
+                std::uint32_t color = 0xffffffffu;
+                if (found != states.end()) switch (found->second) {
+                case schematic::CellState::Missing: color = 0xffffcc8cu; break; // light blue
+                case schematic::CellState::Wrong: case schematic::CellState::Extra: color = 0xff5a64ffu; break; // red
+                case schematic::CellState::State: color = 0xff5ad7ffu; break; // yellow
+                default: break;
+                }
+                if (!any) return color;
+                // Dim the rest to 45%.
+                auto dim = [&](int shift) { return ((((color >> shift) & 255) * 115 / 255) << shift); };
+                return dim(0) | dim(8) | dim(16) | 0xff000000u;
+            }};
+            auto& turn = previewTurn;
+            turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
+            if (turn.file != checked->file) { turn.file = checked->file; turn.peel = 0; turn.zoom = 1; turn.picked.reset(); }
+            float s = drawScale();
+            if (!schematic::preview::draw(context, structure, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
+                    schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint))
+                turn.w = 0;
+            else drawPreviewLabel(context, dx, pvTop, dw);
         };
+        if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
+        else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
+        else drawPreview(focus, {}, true);
         // A line's button sized by its text, ending at `right`; returns its left edge.
         auto lineButton = [&](float right, float top, std::string text, IgnoreControlKind kind,
                               std::vector<schematic::IgnoreEntry> entries) {
@@ -1522,219 +1539,164 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             ignoreControls.push_back({x, top, w, 10, kind, std::move(entries)});
             return x;
         };
-        // The Ignored button's look: hidden with no entries (L-183).
-        if (ignored.empty()) verifyIgnoredOpen = false;
-        // Several rows: the count and names, the bulk buttons, then the states
-        // the rows differ in, each with how many rows have it (L-183), or the
-        // Ignored list when open.
-        float listTop = textTop;
+        auto distanceTo = [&](schematic::Point p) {
+            double ddx = p.x + .5 - feet.x, ddy = p.y + .5 - feet.y, ddz = p.z + .5 - feet.z;
+            return translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(ddx * ddx + ddy * ddy + ddz * ddz))));
+        };
         if (several) {
-            auto chosenRows = selectedCheckRows();
-            float room = l.actionsY - 6 - (l.nameY + ShapesLayout::rowHeight);
-            float below = verifyIgnoredOpen ? room * .6f : 0.f;
-            auto pane = l.selectionPane(static_cast<int>(chosenRows.size()), below);
+            // The names below the preview; Show in world, Ignore places, Stop
+            // ignoring. No item is ignored from several rows.
+            auto pane = l.selectionPane(static_cast<int>(chosenRows.size()), 0, textTop);
             std::vector<SelectedName> names;
             for (auto const* m : chosenRows) {
                 if (names.size() >= static_cast<size_t>(pane.fit.names)) break;
-                double ddx = m->position.x + .5 - feet.x, ddy = m->position.y + .5 - feet.y, ddz = m->position.z + .5 - feet.z;
                 std::string name = m->state == schematic::CellState::Extra ? m->actualName : m->expectedName;
-                names.push_back({std::format("{}, {}, {}  {}", m->position.x, m->position.y, m->position.z, name),
-                                 schematic::liveMark(*m, ignored) != schematic::IgnoreMark::None,
-                                 translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(ddx * ddx + ddy * ddy + ddz * ddz)))), {}});
+                names.push_back({std::move(name), false, distanceTo(m->position), {}});
             }
             // A button that would change nothing is disabled.
-            std::vector<bool> enabled{editable, editable && !schematic::placesToAdd(chosenRows, ignored).empty(),
+            std::vector<bool> enabled{true, editable && !schematic::placesToAdd(chosenRows, ignored).empty(),
                                       editable && !schematic::placesToRemove(chosenRows, ignored).empty()};
             drawSelectionPane(context,pane,chosenRows.size(),names,[&](size_t i, float gx, float gy) {
-                fill(context,gx-3,gy-3,6,6,mismatchColor(chosenRows[i]->state),schematic::liveMark(*chosenRows[i], ignored) != schematic::IgnoreMark::None ? .35f : 1.f);
+                drawKindSquare(context,gx-3,gy,mismatchColor(chosenRows[i]->state),schematic::liveMark(*chosenRows[i], ignored) != schematic::IgnoreMark::None);
             },l.selecting,checkBulk,pointer.x,pointer.y,0,0,enabled);
-            size_t lines = names.size() + (pane.fit.more > 0 ? 1 : 0);
-            listTop = pane.linesTop + static_cast<float>(lines) * pane.lineHeight + 6;
+            fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
+            break;
         }
-        if (verifyIgnoredOpen) {
-            // L-183: every entry with Undo, and Undo all (two presses).
-            float y = listTop;
-            std::string const undoLabel = translated("schematic.ignore.undoAll"), undoConfirm = translated("confirm.undoAll");
-            // Undo all holds both its labels, so arming moves nothing.
-            float allW = armedWidth(context, undoLabel, undoConfirm, 10);
-            std::string undoAll = armedLabel(context, undoLabel, undoConfirm, verifyUndoAllArmed, allW);
-            label(context,dx,y,dw-allW-4,translated("schematic.ignore.title"),palette::faint);
-            float ax = dx + dw - allW;
-            drawDangerButton(context,ax,y-1,allW,10,undoAll,pointed(ax,y-1,allW,10),verifyUndoAllArmed);
-            ignoreControls.push_back({ax, y - 1, allW, 10, IgnoreControlKind::UndoAll, {}});
-            y += 13;
-            schematic::Point from{static_cast<int>(std::floor(feet.x)), static_cast<int>(std::floor(feet.y)), static_cast<int>(std::floor(feet.z))};
-            auto const& order = ignored.entries();
-            std::string undo = translated("schematic.ignore.undo");
-            for (size_t i = 0; i < order.size(); ++i) {
-                auto const& e = order[i];
-                // The last line that fits says how many more there are; no scrolling.
-                if (!fits(y + 12) && i + 1 < order.size()) {
-                    label(context,dx,y,dw,translated("schematic.ignore.more", order.size() - i),palette::faint);
-                    break;
-                }
-                bool applies = ignoreStructure && schematic::ignoreApplies(e, *ignoreStructure, counts);
-                std::string name = ignoreStructure ? entryBlockName(*ignoreStructure, e.block) : e.block;
-                std::string text;
-                if (e.kind == schematic::IgnoreKind::Rule)
-                    text = translated("schematic.ignore.entryEvery", schematic::sameBlocks(counts, e.block), name, schematic::ghosts::itemName(e.item, e.block));
-                else {
-                    auto w = ignoreStructure ? schematic::ignoredWorldCell(e, ignoreStructure->size, checked->placement) : e.cell;
-                    text = std::format("{}, {}, {}  ", w.x, w.y, w.z)
-                        + (e.kind == schematic::IgnoreKind::Place ? translated("schematic.ignore.entryBlock", name)
-                                                                  : name + " · " + schematic::ghosts::itemName(e.item, e.block));
-                }
-                if (!applies) text += " · " + translated("schematic.ignore.stale");
-                float ux = lineButton(dx + dw, y - 1, undo, IgnoreControlKind::Remove, {e});
-                label(context,dx,y,ux-dx-4,text,applies ? palette::dim : palette::faint);
-                y += 12;
-            }
-        }
-        // Counts on the left, the selected mistake on the right.
+        // Counts on the left, the selected row on the right.
         float half = std::floor(dw * .42f), rx = dx + half + 8, rw = dw - half - 8;
         float y = textTop;
-        schematic::Mismatch const* selected = verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())
-            ? verifyRows[static_cast<size_t>(verifySelected)] : nullptr;
-        if (!verifyIgnoredOpen && !several) {
-            label(context,dx,y,half,translated("schematic.check.whole", layersText(*checked)),palette::faint);
-            // After an entries change the counts wait for the next pass (L-183).
-            if (!counting && !unloadable && verification->outdated) {
-                if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.counting"),palette::dim);
-            } else if (!counting && !unloadable) {
-                if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
-                if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
-                if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
-                if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),palette::warning);
+        label(context,dx,y,half,translated("schematic.check.whole", layersText(*checked)),palette::faint);
+        // After an entries change the counts wait for the next pass (L-183).
+        if (!counting && !unloadable && verification->outdated) {
+            if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.counting"),palette::dim);
+        } else if (!counting && !unloadable) {
+            if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
+            if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
+            if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
+            if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),palette::warning);
+        }
+        float bottom = y + 57;
+        // The list keeps the nearest of each kind; say so when it is cut.
+        // Ignored rows are listed but not counted.
+        using F = schematic::CheckFilter;
+        std::uint64_t kindTotal = checkFilter == F::WrongBlock ? t.wrong + t.extra : checkFilter == F::WrongState ? t.state
+            : checkFilter == F::NotPlaced ? t.missing : t.wrong + t.extra + t.state + t.missing;
+        auto countedRows = static_cast<std::uint64_t>(std::count_if(verifyRows.begin(), verifyRows.end(),
+            [&](auto const* m) { return schematic::liveMark(*m, ignored) == schematic::IgnoreMark::None; }));
+        if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 57)) {
+            paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
+            bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
+        }
+        if (selected) {
+            auto const& m = *selected;
+            auto const mark = schematic::liveMark(m, ignored);
+            bool const placeIgnored = mark == schematic::IgnoreMark::Place;
+            Rgb const kindColor = mark != schematic::IgnoreMark::None ? palette::dim : mismatchColor(m.state);
+            fill(context,rx-5,y,1,52,palette::white,.1f);
+            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z)),kindColor);
+            // The kind is named here (the rows only show its square), with the
+            // ignore beside it.
+            std::string kind = mismatchKind(m.state);
+            if (mark != schematic::IgnoreMark::None)
+                kind += " · " + translated(placeIgnored ? "schematic.ignore.tagPlace" : "schematic.ignore.tagItems");
+            if (fits(y + 11)) label(context,rx,y+11,rw,kind,kindColor);
+            // What was confused with what: the expected block above the one in the world.
+            if (!m.expectedName.empty() && fits(y + 24)) {
+                drawItemIcon(context, m.expected, rx, y + 23, 12);
+                label(context,rx+14,y+25,rw-14,translated("schematic.expected", m.expectedName),palette::dim);
             }
-            float bottom = y + 57;
-            // The list keeps the nearest of each kind; say so when it is cut.
-            // Ignored rows are listed but not counted.
-            using F = schematic::CheckFilter;
-            std::uint64_t kindTotal = checkFilter == F::WrongBlock ? t.wrong + t.extra : checkFilter == F::WrongState ? t.state
-                : checkFilter == F::NotPlaced ? t.missing : t.wrong + t.extra + t.state + t.missing;
-            auto countedRows = static_cast<std::uint64_t>(std::count_if(verifyRows.begin(), verifyRows.end(),
-                [&](auto const* m) { return schematic::liveMark(*m, ignored) == schematic::IgnoreMark::None; }));
-            if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 57)) {
-                paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
-                bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
+            if (!m.actualName.empty() && fits(y + 38)) {
+                drawItemIcon(context, m.actual, rx, y + 37, 12);
+                label(context,rx+14,y+39,rw-14,translated("schematic.actual", m.actualName),palette::dim);
             }
-            if (selected) {
-                auto const& m = *selected;
-                auto const mark = schematic::liveMark(m, ignored);
-                bool const wholeIgnored = mark == schematic::IgnoreMark::Place, statesIgnored = mark == schematic::IgnoreMark::Items;
-                Rgb const kindColor = wholeIgnored || statesIgnored ? palette::dim : mismatchColor(m.state);
-                fill(context,rx-5,y,1,52,palette::white,.1f);
-                label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z)),kindColor);
-                if (fits(y + 11))
-                    label(context,rx,y+11,rw,wholeIgnored ? translated("schematic.ignore.kindBlock")
-                        : statesIgnored ? translated("schematic.ignore.kindStates") : mismatchKind(m.state),kindColor);
-                // What was confused with what: the expected block above the one in the world.
-                if (!m.expectedName.empty() && fits(y + 24)) {
-                    drawItemIcon(context, m.expected, rx, y + 23, 12);
-                    label(context,rx+14,y+25,rw-14,translated("schematic.expected", m.expectedName),palette::dim);
-                }
-                if (!m.actualName.empty() && fits(y + 38)) {
-                    drawItemIcon(context, m.actual, rx, y + 37, 12);
-                    label(context,rx+14,y+39,rw-14,translated("schematic.actual", m.actualName),palette::dim);
-                }
-                // Every differing state: "<state>  <now> -> <should be>", full
-                // width below. L-183: a block state can be ignored here or on
-                // every same block of the placement; an ignored one stays,
-                // dimmed, with a tag naming what covers it and Undo.
-                float sy = bottom;
-                if (!m.states.empty() && fits(sy)) { fill(context,dx,sy-3,dw,1,palette::white,.1f); label(context,dx,sy,dw,translated("schematic.check.states"),palette::faint); sy += 11; }
-                bool const canIgnore = editable && schematic::takesIgnores(m) && !wholeIgnored;
-                auto const same = schematic::sameBlocks(counts, m.fileBlock);
-                for (auto const& d : m.states) {
-                    if (!fits(sy)) break;
-                    // The live entries, so a press shows at once, before the next pass.
-                    bool const covered = schematic::takesIgnores(m) && ignored.ruled(m.fileBlock, schematic::itemId(d));
-                    bool const dimmed = wholeIgnored || covered;
-                    float right = dx + dw;
-                    bool button = canIgnore;
-                    if (button) {
-                        auto every = schematic::ruleEntry(m.fileBlock, schematic::itemId(d));
-                        if (covered)
-                            right = lineButton(right, sy - 1, translated("schematic.ignore.undoEvery", same), IgnoreControlKind::Remove, {every});
-                        else
-                            right = lineButton(right, sy - 1, translated("schematic.ignore.every", same), IgnoreControlKind::Add, {every});
-                        right -= 4;
+            // Every differing item: "<item>  <now> -> <should be>", full width
+            // below, each ignored on every such block of the placement or
+            // given back. A place ignored keeps its items without buttons.
+            float sy = bottom;
+            if (!m.states.empty() && fits(sy)) {
+                fill(context,dx,sy-3,dw,1,palette::white,.1f);
+                label(context,dx,sy,dw,translated("schematic.check.items", m.expectedName),palette::faint);
+                sy += 11;
+            }
+            bool const canIgnore = editable && schematic::takesIgnores(m) && !placeIgnored;
+            auto translate = [](std::string_view key) { return translated(key); };
+            auto measure = [&](std::string_view text) { return textWidth(context, text) + 10; };
+            for (auto const& d : m.states) {
+                if (!fits(sy)) break;
+                auto const& item = schematic::itemId(d);
+                // The live entries, so a press shows at once, before the next pass.
+                bool const ruled = schematic::takesIgnores(m) && ignored.ruled(m.fileBlock, item);
+                bool const dimmed = placeIgnored || ruled;
+                float right = dx + dw;
+                if (canIgnore) {
+                    auto rule = schematic::ruleEntry(m.fileBlock, item);
+                    if (ruled) right = lineButton(right, sy - 1, translated("schematic.ignore.undo"), IgnoreControlKind::Remove, {rule});
+                    else {
+                        std::string full = translated("schematic.ignore.onAll", m.expectedName), brief = translated("schematic.ignore.onAllShort");
+                        right = lineButton(right, sy - 1, fittingText(full, brief, dw * .45f, measure), IgnoreControlKind::Add, {rule});
                     }
-                    auto now = information::stateName(d.key, d.actual, m.identifier, translate);
-                    auto want = information::stateName(d.key, d.expected, m.identifier, translate);
-                    auto const& named = now.labelIsKey ? now : want;
-                    std::string name = named.labelIsKey ? translated(named.label) : named.label;
-                    Rgb const stateColor = dimmed ? palette::faint : palette::warning;
-                    float lineW = right - dx, nameW = std::min(lineW * .4f, textWidth(context, name) + 6);
-                    label(context,dx,sy,nameW-4,name,dimmed ? palette::faint : palette::dim);
-                    float vx = dx + nameW, nowW = textWidth(context, now.value);
-                    label(context,vx,sy,std::max(0.f,std::min(nowW+2,right-vx)),now.value,stateColor);
-                    vx += nowW + 3;
-                    if (vx + changeArrowWidth < right) changeArrow(context,vx,sy+1.5f+shapeTextDrop(),1,stateColor);
-                    vx += changeArrowWidth + 3;
-                    float wantW = std::min(textWidth(context, want.value) + 2, std::max(0.f, right - vx));
-                    label(context,vx,sy,wantW,want.value,stateColor);
-                    vx += wantW + 4;
-                    if (covered && vx < right) label(context,vx,sy,right-vx,translated("schematic.ignore.tagEvery", same),palette::faint);
-                    sy += button ? 12 : 11;
+                    right -= 4;
                 }
-                if (wholeIgnored && fits(sy)) paragraph(context,dx,sy,dw,translated("schematic.ignore.notCounted"),2,palette::faint);
+                auto now = information::stateName(d.key, d.actual, m.identifier, translate);
+                auto want = information::stateName(d.key, d.expected, m.identifier, translate);
+                std::string name = schematic::ghosts::itemName(item, m.identifier);
+                Rgb const valueColor = dimmed ? palette::faint : palette::warning;
+                float lineW = right - dx, nameW = std::min(lineW * .4f, textWidth(context, name) + 6);
+                label(context,dx,sy,nameW-4,name,dimmed ? palette::faint : palette::dim);
+                float vx = dx + nameW, nowW = textWidth(context, now.value);
+                label(context,vx,sy,std::max(0.f,std::min(nowW+2,right-vx)),now.value,valueColor);
+                vx += nowW + 3;
+                if (vx + changeArrowWidth < right) changeArrow(context,vx,sy+1.5f+shapeTextDrop(),1,valueColor);
+                vx += changeArrowWidth + 3;
+                float wantW = std::min(textWidth(context, want.value) + 2, std::max(0.f, right - vx));
+                label(context,vx,sy,wantW,want.value,valueColor);
+                vx += wantW + 6;
+                if (ruled && vx < right) label(context,vx,sy,right-vx,translated("schematic.ignore.onAllActive", m.expectedName),palette::dim);
+                sy += canIgnore ? 12 : 11;
             }
-            else if (auto structure = schematic::session::structure(checked->file);
-                     structure && previewTurn.picked && previewTurn.pickedFile == checked->file) {
-                // A clicked block without a row (correct, filtered out, or past
-                // the list's limit): checked again right now.
-                auto const& c = *previewTurn.picked;
-                auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
-                auto* region = context.mClient.getRegion();
-                auto now = region ? schematic::ghosts::mismatchAt(*region, world) : std::nullopt;
-                fill(context,rx-5,y,1,52,palette::white,.1f);
-                bool correct = !now || now->state == schematic::CellState::Correct || now->ignore == schematic::IgnoreMark::Items;
-                bool wholeIgnored = now && now->ignore == schematic::IgnoreMark::Place;
-                Rgb color = correct || wholeIgnored ? palette::text : mismatchColor(now->state);
-                label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", world.x, world.y, world.z)),color);
-                if (fits(y + 11))
-                    label(context,rx,y+11,rw,wholeIgnored ? translated("schematic.ignore.kindBlock") : correct ? translated("schematic.pick.correct")
-                        : mismatchKind(now->state),wholeIgnored ? palette::dim : correct ? palette::accent : mismatchColor(now->state));
-                if (now && !now->expectedName.empty() && fits(y + 24)) {
-                    drawItemIcon(context, now->expected, rx, y + 23, 12);
-                    label(context,rx+14,y+25,rw-14,translated("schematic.expected", now->expectedName),palette::dim);
-                }
-                if (now && !correct && !now->actualName.empty() && fits(y + 38)) {
-                    drawItemIcon(context, now->actual, rx, y + 37, 12);
-                    label(context,rx+14,y+39,rw-14,translated("schematic.actual", now->actualName),palette::dim);
-                }
+            if (placeIgnored && fits(sy)) paragraph(context,dx,sy,dw,translated("schematic.ignore.placeNotCounted"),2,palette::faint);
+        }
+        else if (auto structure = schematic::session::structure(checked->file);
+                 structure && previewTurn.picked && previewTurn.pickedFile == checked->file) {
+            // A clicked block without a row (correct, filtered out, or past
+            // the list's limit): checked again right now.
+            auto const& c = *previewTurn.picked;
+            auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
+            auto* region = context.mClient.getRegion();
+            auto now = region ? schematic::ghosts::mismatchAt(*region, world) : std::nullopt;
+            fill(context,rx-5,y,1,52,palette::white,.1f);
+            bool correct = !now || now->state == schematic::CellState::Correct || now->ignore == schematic::IgnoreMark::Items;
+            bool placeIgnored = now && now->ignore == schematic::IgnoreMark::Place;
+            Rgb color = correct || placeIgnored ? palette::text : mismatchColor(now->state);
+            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", world.x, world.y, world.z)),color);
+            if (fits(y + 11))
+                label(context,rx,y+11,rw,placeIgnored ? translated("schematic.ignore.tagPlace") : correct ? translated("schematic.pick.correct")
+                    : mismatchKind(now->state),placeIgnored ? palette::dim : correct ? palette::accent : mismatchColor(now->state));
+            if (now && !now->expectedName.empty() && fits(y + 24)) {
+                drawItemIcon(context, now->expected, rx, y + 23, 12);
+                label(context,rx+14,y+25,rw-14,translated("schematic.expected", now->expectedName),palette::dim);
+            }
+            if (now && !correct && !now->actualName.empty() && fits(y + 38)) {
+                drawItemIcon(context, now->actual, rx, y + 37, 12);
+                label(context,rx+14,y+39,rw-14,translated("schematic.actual", now->actualName),palette::dim);
             }
         }
-        // The action row: Show in world, the selected row's whole-block
-        // toggle, and "Ignored: N" at the right edge, sized by its text.
+        // The action row's two places: Show in world, and the selected row's
+        // place ignored or given back (extras too).
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         float const ay = l.actionsY + 2;
-        float ignoredW = 0;
-        if (!ignored.empty()) {
-            std::string text = translated("schematic.ignore.count", ignored.size());
-            ignoredW = std::min(textWidth(context, text) + 10, dw / 2);
-            float ix = dx + dw - ignoredW;
-            drawButton(context,ix,ay,ignoredW,12,std::move(text),pointed(ix,ay,ignoredW,12),verifyIgnoredOpen ? ButtonKind::Primary : ButtonKind::Plain);
-            ignoreControls.push_back({ix, ay, ignoredW, 12, IgnoreControlKind::Open, {}});
-        }
-        verifyIgnoredWidth = ignoredW;
-        if (several) break; // the selection pane drew its own buttons
-        float room = dw - (ignoredW > 0 ? ignoredW + 6 : 0);
-        // Extras (air in the file) have "do not count" instead (L-183).
-        bool const wholeButton = selected && schematic::takesIgnores(*selected);
-        float bw = std::max(0.f, std::min(96.f, wholeButton ? (room - 4) / 2 : room));
         bool canShow = selected || (previewTurn.picked && previewTurn.pickedFile == checked->file);
-        drawButton(context,dx,ay,bw,12,translated("schematic.showInWorld"),canShow && pointed(dx,ay,bw,12),ButtonKind::Primary,canShow);
-        if (canShow) ignoreControls.push_back({dx, ay, bw, 12, IgnoreControlKind::Show, {}});
-        if (wholeButton) {
+        float sx = l.actionX(0), sw = l.firstActionWidth;
+        drawButton(context,sx,ay,sw,12,translated("schematic.showInWorld"),canShow && pointed(sx,ay,sw,12),ButtonKind::Primary,canShow);
+        if (canShow) ignoreControls.push_back({sx, ay, sw, 12, IgnoreControlKind::Show, {}});
+        if (selected && schematic::takesIgnores(*selected)) {
             auto const& m = *selected;
             bool on = ignored.place(m.local, m.fileBlock);
-            float wx = dx + bw + 4;
-            drawButton(context,wx,ay,bw,12,translated(on ? "schematic.ignore.unblock" : "schematic.ignore.block"),
-                editable && pointed(wx,ay,bw,12),ButtonKind::Plain,editable);
+            float px = l.deleteX(), pw = ShapesLayout::deleteWidth;
+            drawButton(context,px,ay,pw,12,translated(on ? "schematic.ignore.unplace" : "schematic.ignore.place"),
+                editable && pointed(px,ay,pw,12),ButtonKind::Plain,editable);
             if (editable)
-                ignoreControls.push_back({wx, ay, bw, 12, on ? IgnoreControlKind::Remove : IgnoreControlKind::Add,
+                ignoreControls.push_back({px, ay, pw, 12, on ? IgnoreControlKind::Remove : IgnoreControlKind::Add,
                                           {schematic::placeEntry(m.local, m.fileBlock)}});
         }
         break;
@@ -1815,7 +1777,6 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
     if (schematicTab == SchematicTab::Placements && placementRows.several()) l.selecting = bulkActions(SelectionList::Placements);
     if (schematicTab == SchematicTab::Verify && checkRows.several() && checkedPlacement()) {
         l.selecting = bulkActions(SelectionList::Check);
-        l.selectingReserve = verifyIgnoredWidth;
     }
     if (std::exchange(scrollToSelected, false) && schematicTab == SchematicTab::Verify && verifySelected >= 0
         && (verifySelected < l.listFirst || verifySelected >= l.listFirst + l.listVisible)) {

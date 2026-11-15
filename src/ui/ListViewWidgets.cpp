@@ -104,8 +104,8 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
         case BulkAction::Show: return translated("list.showSelected");
         case BulkAction::Hide: return translated("list.hideSelected");
         case BulkAction::ShowInWorld: return translated("schematic.showInWorld");
-        case BulkAction::IgnoreBlocks: return translated("schematic.ignore.block");
-        case BulkAction::Unignore: return translated("schematic.ignore.unblock");
+        case BulkAction::IgnorePlaces: return translated("schematic.ignore.placeShort");
+        case BulkAction::Unignore: return translated("schematic.ignore.stopShort");
         default: return std::string{};
         }
     };

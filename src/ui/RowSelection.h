@@ -76,12 +76,12 @@ struct RowSelection {
 // What the selection pane offers while several rows are selected, in its
 // order. Not saved. The Schematics Check list (L-183) marks its cells in the
 // world, ignores their whole blocks, or takes their own entries back.
-enum class BulkAction { Show, Hide, Delete, ShowInWorld, IgnoreBlocks, Unignore };
+enum class BulkAction { Show, Hide, Delete, ShowInWorld, IgnorePlaces, Unignore };
 enum class SelectionList { Waypoints, Shapes, Placements, MapPanel, Check };
 // Maintainer 2026-11-15: no bulk move or turn; the map's side panel matches
 // the screens' lists (after the check).
 inline std::vector<BulkAction> bulkActions(SelectionList list) {
-    if (list == SelectionList::Check) return {BulkAction::ShowInWorld, BulkAction::IgnoreBlocks, BulkAction::Unignore};
+    if (list == SelectionList::Check) return {BulkAction::ShowInWorld, BulkAction::IgnorePlaces, BulkAction::Unignore};
     return {BulkAction::Show, BulkAction::Hide, BulkAction::Delete};
 }
 inline bool irreversible(BulkAction action) { return action == BulkAction::Delete; }
@@ -138,7 +138,7 @@ struct SelectionPaneLayout {
 // with `gap` between, the irreversible one at `deleteX` instead (one Delete
 // place for one and several rows). On a narrow pane the others narrow, down
 // to `minWidth`, so they stay clear of it. Without an irreversible action a
-// `deleteX` past `left` still bounds them (the Check list's Ignored button).
+// `deleteX` past `left` still bounds them (the pane's right edge).
 inline void placeSelectionButtons(SelectionPaneLayout& pane, std::vector<BulkAction> const& actions, float left, float width,
                                   float gap, float deleteX, float deleteWidth, float minWidth = 24) {
     int plain = 0;
