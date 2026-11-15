@@ -186,6 +186,7 @@ struct State {
         double centerX, centerZ;
         bool moved = false;
         std::optional<MarkKey> marker; // Pressed on a mark: a click selects it.
+        bool ctrl = false;             // ... or, with Ctrl, adds it to the side panel's rows or drops it (L-190).
     };
     std::optional<Drag> drag;
     std::optional<Menu> menu;
@@ -2178,7 +2179,7 @@ Request press(float x, float y, bool right) {
         default: act(hit->target); return request;
         }
     }
-    if (onMap && !menuWasOpen) state.drag = State::Drag{x, y, state.view.centerX, state.view.centerZ, false, markerAt(x, y)};
+    if (onMap && !menuWasOpen) state.drag = State::Drag{x, y, state.view.centerX, state.view.centerZ, false, markerAt(x, y), ui::screen::heldCtrl()};
     return request;
 }
 void release() {
@@ -2187,8 +2188,20 @@ void release() {
     if (state.drag && !state.drag->moved && state.drag->marker) {
         setPanelOpen(true);
         auto mark = *state.drag->marker;
-        if (mark.layer == MarkLayer::Placement) selectPlacement(mark);
-        select(mark, false);
+        if (state.drag->ctrl) {
+            // No range and no box; the map stays and no placement is picked,
+            // as for Ctrl + click in the list.
+            commitName();
+            bool listed = std::ranges::find(state.listOrder, mark) != state.listOrder.end();
+            state.rows.toggleListed(mark, state.listOrder);
+            if (!listed) setShownList(listKind(mark.layer));
+            state.selected = state.rows.single();
+            state.bulk.disarm();
+            state.deleteArmed = false;
+        } else {
+            if (mark.layer == MarkLayer::Placement) selectPlacement(mark);
+            select(mark, false);
+        }
     }
     state.drag.reset();
 }

@@ -111,4 +111,17 @@ void rowSelectionTests() {
     check(few.fit.names == 3 && few.fit.more == 0, "a few names are all listed");
     auto cramped = compactSelectionPane(1000, 116, 200, 220, 11, 3, bulkActions(SelectionList::MapPanel), 35, 53);
     check(cramped.buttonX.empty() && cramped.fit.names == 0, "a panel without room keeps the count and drops the buttons");
+
+    // Ctrl + click on the map.
+    std::vector<int> listed{1, 2, 3};
+    Rows onMap;
+    onMap.only(1);
+    onMap.toggleListed(2, listed);
+    check(onMap.keys == std::vector<int>{1, 2}, "Ctrl + click on a listed mark adds it");
+    onMap.toggleListed(1, listed);
+    check(onMap.keys == std::vector<int>{2} && onMap.single() == 2, "Ctrl + click on a selected mark drops it");
+    onMap.toggleListed(9, listed);
+    check(onMap.keys == std::vector<int>{9}, "a mark the list does not show starts again from it alone");
+    onMap.toggleListed(3, listed);
+    check(onMap.keys == std::vector<int>{3}, "rows the list does not show are let go when a listed mark is added");
 }

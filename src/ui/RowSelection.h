@@ -39,6 +39,14 @@ struct RowSelection {
         else if (ctrl) toggle(key);
         else only(key);
     }
+    // Ctrl + click on a mark on the world map: no range. A row the list
+    // shows (`order`, the listed layer and dimension) is added or dropped; any
+    // other starts again from it alone, as the list then switches to its layer.
+    void toggleListed(Key const& key, std::vector<Key> const& order) {
+        if (std::find(order.begin(), order.end(), key) == order.end()) { only(key); return; }
+        retain([&](Key const& k) { return std::find(order.begin(), order.end(), k) != order.end(); });
+        toggle(key);
+    }
     // Ctrl + A: every row.
     void selectAll(std::vector<Key> const& order) {
         if (order.empty()) return;
