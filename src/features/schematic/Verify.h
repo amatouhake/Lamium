@@ -75,6 +75,12 @@ inline CellState classifyReading(CellReading const& r, bool countExtras) {
     return r.expectsAir ? state : withLiquid(state, r.liquidsMatch);
 }
 
+// L-183: which ignore entry covers a difference (CheckIgnores.h), and what
+// the entries make of a cell: left out as a whole block, or a wrong state
+// whose every difference is ignored, counted as correct.
+enum class Covered : std::uint8_t { None, Here, Every };
+enum class IgnoreMark : std::uint8_t { None, Block, States };
+
 // For a block of the right kind in the wrong state: which states differ, in
 // key order, at most `limit` of them. A state only one side has shows "-".
 struct StateDifference {
@@ -82,6 +88,7 @@ struct StateDifference {
     // Not a block state (block entity data, a shulker box's opening): an
     // ignore entry (L-183) cannot name it.
     bool fixed = false;
+    Covered covered = Covered::None;
     bool operator==(StateDifference const&) const = default;
 };
 inline std::vector<StateDifference> stateDifferences(std::map<std::string, std::string> const& expected,
@@ -115,6 +122,14 @@ inline StateDifference faceDifference(int expected, int actual) {
     return {"facing", name(expected), name(actual), true};
 }
 
+// What a cell adds to the counts once ignore entries apply (L-183): nothing
+// for a whole block (like extras' "do not count"); a correct block for a
+// wrong state whose differences are all ignored.
+inline std::optional<CellState> countedState(CellState state, IgnoreMark mark) {
+    if (mark == IgnoreMark::Block) return std::nullopt;
+    if (mark == IgnoreMark::States) return CellState::Correct;
+    return state;
+}
 struct Tally {
     std::uint64_t correct = 0, missing = 0, wrong = 0, state = 0, extra = 0, unknown = 0;
     // Blocks the schematic asks for (air excluded): what "correct / total" counts.
@@ -130,6 +145,9 @@ struct Tally {
         case CellState::Unknown: if (expectsBlock) ++unknown; break;
         case CellState::Ignored: break;
         }
+    }
+    void add(CellState state, bool expectsBlock, IgnoreMark mark) {
+        if (auto counted = countedState(state, mark)) add(*counted, expectsBlock);
     }
 };
 

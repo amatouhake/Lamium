@@ -22,7 +22,32 @@ struct Mismatch {
     // block there; local.x is -1 for an entity or an expected air cell.
     Point local{-1, -1, -1};
     std::string fileBlock;
+    // L-183: ignored rows stay listed in their own kind, dimmed, and count
+    // as the entries say (countedState); `states` then holds every
+    // difference, each with what covers it.
+    IgnoreMark ignore = IgnoreMark::None;
 };
+// A row the counts, the HUD's nearest mistake and the nearest-mistake key
+// treat as a mistake: wrong, extra or wrong state, not ignored. Every reader
+// of the rows asks this, so an ignored difference is never one of them.
+inline bool countsAsMistake(Mismatch const& m) {
+    return m.ignore == IgnoreMark::None
+        && (m.state == CellState::Wrong || m.state == CellState::Extra || m.state == CellState::State);
+}
+// The mistake nearest to (x, y, z), with its squared distance; null when none.
+inline Mismatch const* nearestMistake(std::vector<Mismatch> const& rows, double x, double y, double z,
+                                      double* distanceSquared = nullptr) {
+    Mismatch const* nearest = nullptr;
+    double best = 0;
+    for (auto const& m : rows) {
+        if (!countsAsMistake(m)) continue;
+        double dx = m.position.x + .5 - x, dy = m.position.y + .5 - y, dz = m.position.z + .5 - z;
+        double d = dx * dx + dy * dy + dz * dz;
+        if (!nearest || d < best) { best = d; nearest = &m; }
+    }
+    if (distanceSquared) *distanceSquared = best;
+    return nearest;
+}
 struct MaterialLine {
     std::string item;      // item name, e.g. minecraft:oak_stairs; empty when the block has no item
     std::string name;      // display name

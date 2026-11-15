@@ -328,14 +328,9 @@ void nearestMistake(LocalPlayer& player) {
     if (set.selected < 0) { ui::showMessageToast(ui::translated("schematic.toast.noPlacement")); return; }
     if (result->placement != set.selected || !result->complete || result->stale) { ui::showMessageToast(ui::translated("schematic.toast.counting")); return; }
     auto p = player.getFeetPos();
-    Mismatch const* nearest = nullptr;
-    double best = std::numeric_limits<double>::max();
-    for (auto const& m : result->mismatches) {
-        if (m.state == CellState::Missing) continue;
-        double dx = m.position.x + .5 - p.x, dy = m.position.y + .5 - p.y, dz = m.position.z + .5 - p.z;
-        double d = dx * dx + dy * dy + dz * dz;
-        if (d < best) { best = d; nearest = &m; }
-    }
+    // Ignored rows (L-183) are skipped there.
+    double best = 0;
+    Mismatch const* nearest = schematic::nearestMistake(result->mismatches, p.x, p.y, p.z, &best);
     if (!nearest) { ui::showMessageToast(ui::translated("schematic.toast.noMistakes")); return; }
     ghosts::point(nearest->position);
     char const* kind = nearest->state == CellState::Wrong ? "schematic.kind.wrong"

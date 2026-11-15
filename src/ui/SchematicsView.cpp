@@ -142,6 +142,15 @@ std::uint64_t blockCount(schematic::Structure const& structure) {
     }
     return found->second;
 }
+// Cells per block name, counted once per loaded structure (L-183: "every
+// same block" and whether such an entry applies).
+std::map<schematic::Structure const*, schematic::BlockCounts> schematicNameCounts;
+schematic::BlockCounts const& nameCounts(schematic::Structure const& structure) {
+    auto found = schematicNameCounts.find(&structure);
+    if (found != schematicNameCounts.end()) return found->second;
+    if (schematicNameCounts.size() > 64) schematicNameCounts.clear();
+    return schematicNameCounts.emplace(&structure, schematic::blockCounts(structure)).first->second;
+}
 std::chrono::steady_clock::time_point schematicFilesScanned{};
 std::string largeSchematicConfirmed; // a large file the player chose to load
 ShapesLayout schematicsDisplayed;
@@ -174,7 +183,7 @@ enum class IgnoreControlKind { Ignore, Undo, UndoAll };
 struct IgnoreControl {
     float x, y, w, h;
     IgnoreControlKind kind;
-    schematic::IgnoredDifference entry;
+    schematic::IgnoreEntry entry;
 };
 std::vector<IgnoreControl> ignoreControls;
 bool materialsShownOnly = false;
@@ -1388,7 +1397,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 }
                 auto named = information::stateName(e.state, "0", e.block, [](std::string_view key) { return translated(key); });
                 std::string state = named.labelIsKey ? translated(named.label) : named.label;
-                bool applies = ignoreStructure && schematic::ignoreApplies(e, *ignoreStructure);
+                bool applies = ignoreStructure && schematic::ignoreApplies(e, *ignoreStructure, nameCounts(*ignoreStructure));
                 std::string text;
                 if (applies) {
                     auto w = schematic::ignoredWorldCell(e, ignoreStructure->size, checked->placement);
@@ -1445,14 +1454,14 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 float ignoreW = textWidth(context, ignoreText) + 10;
                 for (auto const& d : m.states) {
                     // Ignored since this pass began: gone at once, not after the next pass.
-                    if (!d.fixed && ignored.ignored(m.local, m.fileBlock, d.key)) continue;
+                    if (!d.fixed && ignored.covers(m.local, m.fileBlock, d.key) != schematic::Covered::None) continue;
                     if (!fits(sy)) break;
                     bool button = ignorable && !d.fixed;
                     float lineW = button ? dw - ignoreW - 4 : dw;
                     if (button) {
                         float bx = dx + dw - ignoreW;
                         drawButton(context,bx,sy-1,ignoreW,10,ignoreText,pointed(bx,sy-1,ignoreW,10));
-                        ignoreControls.push_back({bx, sy - 1, ignoreW, 10, IgnoreControlKind::Ignore, {m.local, m.fileBlock, d.key}});
+                        ignoreControls.push_back({bx, sy - 1, ignoreW, 10, IgnoreControlKind::Ignore, schematic::stateEntry(m.local, m.fileBlock, d.key)});
                     }
                     auto translate = [](std::string_view key) { return translated(key); };
                     auto now = information::stateName(d.key, d.actual, identifier, translate);
@@ -1499,7 +1508,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.showInWorld"),
             over(ShapeZone::Action,0), ButtonKind::Primary, canShow);
         // The count of what applies; stale entries are only in the list.
-        size_t applied = ignoreStructure ? schematic::appliedIgnores(ignored, *ignoreStructure) : ignored.size();
+        size_t applied = ignoreStructure ? schematic::countIgnores(ignored, *ignoreStructure, nameCounts(*ignoreStructure)).applied : ignored.size();
         drawButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,translated("schematic.ignore.count", applied),
             over(ShapeZone::Action,1), verifyIgnoredOpen ? ButtonKind::Primary : ButtonKind::Plain);
         break;
