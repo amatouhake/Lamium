@@ -60,6 +60,21 @@ Do not infer game success from a build or unit-test result.
   2026-11-14). The notice in docked panels passed too. Left for when one
   is available (maintainer 2026-11-14): a friend's world keeping its data
   over a rejoin; a Realm.
+- Work of 2026-11-15 and 16 passed in game (VALIDATION-LOG 2026-11-15/16):
+  Game HUD placement's position and days played switches (L-348), the
+  minimap's Text size and Nether view rows and the Map size row's removal
+  (L-337, L-317), Zoom's Reset on release (L-325), Durability HUD's Main
+  hand and Contents switches (L-336), English Search for enchanted books
+  (L-344), list selection panes and Ctrl + click map marks (L-190), the
+  hidden HUD elements' hatching. Not seen: add-on map colors (L-324), the
+  L-339 fixes, L-319's small fixes, other Contents popovers than
+  Durability's, sliders' typed value box, a hidden element larger than the
+  four HUDs.
+- Schematic check ignores (L-183): old schematic files whose state names
+  differ from the game's (a rule made in advance may only apply once the
+  item differs); servers.
+- Shared scroll bar drag (DESIGN "Scrollbars"): the panels beside the anvil
+  (no tried item overflowed them) and a long Saved data list.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -143,7 +158,5 @@ validation checkpoints" (snapshot 2026-10-20).
 | Effects/ammo HUD, L-147/L-150 | Beacon effects, server updates/counts, Pocket UI, layout sample, F1/inventory interplay. |
 | In-world language/server packs, L-167 | English Search and schematic ghosts after a change, broader servers/packs, rapid switching/hang risk and the 5 s interval (L-310). Cosmetic BDS evidence does not establish all pack types. See LANGUAGE.md. |
 | Camera and visual effects | FreeCamera world-exit/death/controller/body-view and hold-input cases, speed restart persistence; Hide effects restart/keys/master, ambient layers, packs, graphics modes and lifecycle. Detailed coverage is in VALIDATION.md, CAMERA.md and VISUAL-EFFECTS.md. |
-| Schematic check ignores, L-183 | Old schematic files whose state names differ from the game's: a rule made in advance may only apply once the item differs; servers. |
-| Shared scroll bar drag, DESIGN "Scrollbars" | The panels beside the anvil (no tried item overflowed them) and a long Saved data list. |
 | Schematic ghost pick in creative, L-263 | A block not carried is given into the hotbar (empty selected slot, another empty slot, full hotbar), unlisted items (water, lava, structure block) do nothing, carried and survival picks unchanged; also on a server. |
 | Distribution listings | 0.1.4–0.1.8 registry pickup is recorded; LeviLauncher 0.2.0 was seen; 0.5.1 is offered by the LIP registry, Bedrinth and LeviLauncher (VALIDATION-LOG 2026-11-07). Verify the version being released using DISTRIBUTION.md rather than reopening old release gates. |

@@ -552,6 +552,16 @@ enough, nothing is pasted and the pages needed are shown when the book closes.
 
 Changes Minecraft's display language without leaving the world.
 
+### Saved data
+
+A page under General listing what Lamium keeps for each world and server:
+waypoints, schematic placements, the map (with a picture of it) and the
+death layout, with their sizes. When a server's address changed, the server
+you are in can be given the data saved under another name, for that port or
+any port of the address; choosing deletes nothing. Data not in use can be
+deleted. The tool screens say when other data holds more than the data in
+use.
+
 ### Skip server resource packs
 
 A server's packs are accepted as it asks but not shown: the world looks

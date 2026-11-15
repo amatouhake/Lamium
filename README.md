@@ -194,6 +194,7 @@ Waypoints also show in the world, with both maps off.
 | Calculator | A calculator with stack, chest and shulker box units | — | — |
 | Game language | Change Minecraft's language without leaving the world | — | — |
 | Skip server resource packs | Show a server's world without its resource packs | — | Off |
+| Saved data | See what is kept for each world and server, and give a server whose address changed its earlier data | — | — |
 
 Lamium's keys are its own and do not appear in Minecraft's keyboard
 settings. Change them under each feature or in the Hotkeys view; new
