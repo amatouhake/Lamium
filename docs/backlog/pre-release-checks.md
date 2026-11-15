@@ -75,9 +75,9 @@ Do not infer game success from a build or unit-test result.
   item differs); servers.
 - Shared scroll bar drag (DESIGN "Scrollbars"): the panels beside the anvil
   (no tried item overflowed them) and a long Saved data list.
-- Block highlight lost its Experimental badge (2026-11-16): the settings
-  row and help text without it are not looked at; its open cases are in
-  VALIDATION.md.
+- Block highlight lost its Experimental badge (2026-11-16): the row and the
+  help text without it passed on `c32b623b` (VALIDATION-LOG 2026-11-16);
+  its open cases are in VALIDATION.md.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared

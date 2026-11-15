@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight without the Experimental badge (2026-11-16)
+
+Build `c32b623b` (main), DLL SHA-256
+`ddbea8e1fffb7ee8cff22b39f7118549f0cabb9fb530636272b0ccf41f68ee23`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: the Block highlight row has no Experimental badge and
+its help text no longer ends with the experimental note. Not seen: the Chinese help texts.
+
 ## HUD layout hatching the same on every hidden element (2026-11-16)
 
 Build `05447b92` (main), DLL SHA-256
