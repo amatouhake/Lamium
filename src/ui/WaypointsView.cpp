@@ -49,7 +49,7 @@ void refreshWaypoints() {
         y = feet.y;
         z = feet.z;
     }
-    waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, z, y, screen::waypointsHorizontal());
+    waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, y, z, screen::waypointsHorizontal());
     if (waypointSelected && indexOfId(waypointSet.waypoints, waypointSelected->id) < 0) waypointSelected.reset();
 }
 int waypointRowCount() { return static_cast<int>(waypointList.size()); }

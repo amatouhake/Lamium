@@ -352,13 +352,13 @@ void prompt() {
 void order() {
     std::vector<Waypoint> list{{"far", 0, 100, 64, 0, 0}, {"nether", 0, 1, 64, 1, 1}, {"near", 0, 5, 64, 0, 0},
                                {"end", 0, 0, 64, 0, 2}, {"alpha", 0, 9, 64, 9, 1}};
-    auto order = waypointOrder(list, 0, 0, 0);
+    auto order = waypointOrder(list, 0, 0, 64, 0, true);
     check(order.size() == 5 && order[0] == 2 && order[1] == 0, "this dimension first, nearest first");
     check(order[2] == 4 && order[3] == 3 && order[4] == 1, "then the others by name");
     // L-350: 3D by default, horizontal as an option; a high one is near only horizontally.
     std::vector<Waypoint> stacked{{"above", 0, 0, 100, 0, 0}, {"beside", 0, 20, 64, 0, 0}};
-    auto flat = waypointOrder(stacked, 0, .5, .5, 64, true);
-    auto spatial = waypointOrder(stacked, 0, .5, .5, 64, false);
+    auto flat = waypointOrder(stacked, 0, .5, 64, .5, true);
+    auto spatial = waypointOrder(stacked, 0, .5, 64, .5, false);
     check(flat[0] == 0 && spatial[0] == 1, "the order follows the distance setting");
 }
 void distances() {

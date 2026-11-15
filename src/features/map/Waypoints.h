@@ -270,8 +270,8 @@ inline std::vector<int> diamondRows(int size) {
 
 // The Waypoints screen lists this dimension's waypoints nearest first, then
 // the others by name. Returns indices into `waypoints`.
-inline std::vector<size_t> waypointOrder(std::vector<Waypoint> const& waypoints, int dimension, double x, double z,
-                                         double y = 0, bool horizontal = true) {
+inline std::vector<size_t> waypointOrder(std::vector<Waypoint> const& waypoints, int dimension, double x, double y, double z,
+                                         bool horizontal) {
     std::vector<size_t> order(waypoints.size());
     for (size_t i = 0; i < order.size(); ++i) order[i] = i;
     auto distance = [&](Waypoint const& w) { return waypointDistance(w, x, y, z, horizontal); };
