@@ -131,6 +131,7 @@ ul.cap,.qa ol{margin:0;padding-left:20px} .cap li,.qa li{margin:4px 0}
     <li><b>フィルター</b>：すべて／ブロック違い／状態違い／未設置 から1つ。数なし。右端に「無視の設定」。</li>
     <li><b>無視した行</b>：四角を枠だけにして、札「場所を無視」か「違いを無視」。一部の項目だけ無視した行には札を出しません。</li>
     <li><b>操作行</b>：今の画面と同じ2か所。ワールドで示す／この場所を無視（この場所の無視をやめる）。</li>
+    <li><b>プレビュー</b>：複数行と無視の設定でも同じ大きさで残し、選んだ場所（ブロックを選んだときはそのブロック全部）に印を付けます（モックでは印を文字で示しています）。</li>
     <li><b>無視の設定</b>：照合タブが切り替わり、左に「無視している場所」と「違いを無視できるブロック」。もう一度押すか Esc で戻ります。</li>
   </ul>
 </section>
@@ -214,8 +215,9 @@ const sb=(t,a)=>`<span class="btn sm" data-a="${a}">${esc(t)}</span>`;
 function detail(){
   if(st.view==='ignore'){ $('detail').innerHTML=ignoreDetail(); return; }
   const sel=ROWS.filter(r=>st.sel.has(r.id));
-  if(sel.length>1){ let h=`<div class="title">${sel.length} 件を選択中</div>`;
-    for(const r of sel)h+=`<div class="d" style="display:flex;gap:4px;align-items:center"><i class="sq ${mark(r)?'hollow':''}" style="--c:${COLOR[r.kind]};background:${COLOR[r.kind]}"></i>${esc(r.exp)}${r.kind==='block'?' → '+esc(r.act):''}<span class="f" style="margin-left:auto">${r.dist} m</span></div>`;
+  if(sel.length>1){ let h=`<div class="title">${sel.length} 件を選択中</div>`+`<div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span><span style="top:auto;bottom:3px;color:var(--text)">印: 選んだ ${sel.length} か所</span></div>`;
+    for(const r of sel.slice(0,7))h+=`<div class="d" style="display:flex;gap:4px;align-items:center"><i class="sq ${mark(r)?'hollow':''}" style="--c:${COLOR[r.kind]};background:${COLOR[r.kind]}"></i>${esc(r.exp)}${r.kind==='block'?' → '+esc(r.act):''}<span class="f" style="margin-left:auto">${r.dist} m</span></div>`;
+    if(sel.length>7)h+=`<div class="f">ほか ${sel.length-7} 件</div>`;
     $('detail').innerHTML=h; return; }
   const t=tally(), r=sel[0];
   let h=`<div class="title">armorstand_direction</div><div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span></div>`;
@@ -236,9 +238,10 @@ function ignoreDetail(){
   const s=st.ivSel; if(!s)return `<div class="f">左から場所かブロックを選んでください。</div>`;
   const kind=s[0], key=s.slice(2);
   if(kind==='p'){ const r=ROWS.find(x=>x.id===key);
-    return `<div class="title">${esc(r.extra?r.act:r.exp)}</div><div class="d">この場所 ${r.pos}</div><div class="d">${KIND[r.kind]}：${esc(r.exp)}${r.act?' → '+esc(r.act):''}</div><div class="f">この場所は数えません。</div>`; }
+    return `<div class="title">${esc(r.extra?r.act:r.exp)}</div>`+`<div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span><span style="top:auto;bottom:3px;color:var(--text)">印: この場所</span></div>`+`<div class="d">この場所 ${r.pos}</div><div class="d">${KIND[r.kind]}：${esc(r.exp)}${r.act?' → '+esc(r.act):''}</div><div class="f">この場所は数えません。</div>`; }
   if(kind==='s')return `<div class="title">${esc(key)}</div><div class="f">このブロックは今の設計図にないので、使われていません。</div><div style="margin-top:4px">${sb('戻す','stale')}</div>`;
-  let h=`<div class="title">${ic(key)} ${esc(key)}</div><div class="f">照合で比べる項目</div>`;
+  const cnt={'レバー':4,'リピーター':2,'看板':1,'音符ブロック':1}[key]||1;
+  let h=`<div class="title">${ic(key)} ${esc(key)}</div>`+`<div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span><span style="top:auto;bottom:3px;color:var(--text)">印: この配置の${esc(key)} ${cnt} か所</span></div>`+`<div class="f">照合で比べる項目</div>`;
   for(const [k] of ITEMS[key]){ const on=st.rules.has(rk(key,k)), n=ROWS.filter(r=>r.exp===key&&r.kind==='state'&&r.diff.includes(k)).length;
     h+=`<div class="item"><span class="k">${k}</span><span class="v">${on?`<span class="d">全${esc(key)}で無視中</span>`:n?`<span class="f">${n} か所で違う</span>`:''}</span>${on?sb('戻す','irule-:'+k):sb('全'+key+'で無視','irule+:'+k)}</div>`; }
   return h;
