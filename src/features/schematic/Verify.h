@@ -121,11 +121,12 @@ inline StateDifference liquidDifference(bool expected, bool actual) {
 }
 
 // The row naming a shulker box's opening (block entity data, L-179); faces
-// in the game's order: down, up, north, south, west, east.
+// in the game's order: down, up, north, south, west, east, under the named
+// facing state's key so the card and the Check pane name it (L-112).
 inline StateDifference faceDifference(int expected, int actual) {
     constexpr char const* names[6] = {"down", "up", "north", "south", "west", "east"};
     auto name = [&](int face) { return face >= 0 && face < 6 ? std::string(names[face]) : std::to_string(face); };
-    return {"facing", name(expected), name(actual), true, std::string(openingItem)};
+    return {"minecraft:facing_direction", name(expected), name(actual), true, std::string(openingItem)};
 }
 
 // What a cell adds to the counts once ignore entries apply (L-183): nothing

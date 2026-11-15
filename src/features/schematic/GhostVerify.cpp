@@ -628,7 +628,7 @@ std::string itemName(std::string_view item, std::string_view identifier) {
         return named.labelIsKey ? ui::translated(named.label) : named.label;
     };
     if (item == instrumentItem) return ui::translated("blockEntity.instrument");
-    if (item == openingItem) return state("facing");
+    if (item == openingItem) return state("minecraft:facing_direction");
     if (item.starts_with('#')) {
         for (auto const& f : entitycheck::fields)
             if (entitycheck::itemId(f) == item) return fieldLabel(f);
