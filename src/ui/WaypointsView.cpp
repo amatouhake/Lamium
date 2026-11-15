@@ -425,7 +425,7 @@ if (!w) {
     }
     if (waypointSelected) {
         drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-            translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), waypointDeleteArmed);
+            againLabel(translated("shape.delete"), waypointDeleteArmed),over(ShapeZone::Action,1), waypointDeleteArmed);
     }
 
     // Footer.

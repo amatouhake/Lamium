@@ -35,6 +35,9 @@ void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float
     box(context,x,y,w,h,hovered,armed ? palette::danger : palette::keyFill,red ? palette::dangerEdge : palette::keyEdge);
     centered(context,x,y,w,h,std::move(text),red && !armed ? palette::dangerText : palette::text);
 }
+std::string againLabel(std::string label, bool armed) {
+    return armed ? translated("confirm.again", label) : label;
+}
 void drawPageHeading(MinecraftUIRenderContext& context, SettingsTable const& t, std::string_view section, std::string_view feature,
                      float backX, bool backHovered, std::string const& aside) {
     float asideWidth = aside.empty() ? 0 : textWidth(context, aside) + SettingsTable::gap;

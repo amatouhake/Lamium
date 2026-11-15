@@ -724,7 +724,7 @@ std::vector<std::string> menuItems(Menu const& menu, WaypointSet const& set) {
         auto const* w = waypointOf(set, menu.mark);
         bool visible = w && w->visible;
         items = {ui::translated("worldMap.edit"), ui::translated(visible ? "worldMap.hide" : "worldMap.show"),
-                 ui::translated(menu.armed ? "worldMap.deleteArmed" : "worldMap.delete")};
+                 ui::againLabel(ui::translated("worldMap.delete"), menu.armed)};
     }
     // Last, so the other items keep their positions.
     if (teleportTarget(menu, set)) items.push_back(ui::translated(menu.kind == MenuKind::Ground ? "worldMap.teleportHere" : "worldMap.teleport"));
@@ -1792,7 +1792,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         state.hits.push_back({sx, sy, bw, buttonHeight, target, item});
         return bw;
     };
-    auto deleteText = ui::translated(state.deleteArmed ? "worldMap.deleteArmed" : "worldMap.delete");
+    auto deleteText = ui::againLabel(ui::translated("worldMap.delete"), state.deleteArmed);
     if (auto const* area = state.selected ? areaOf(*state.selected) : nullptr) {
         // A placement or a shape: what it covers, shown or not, and its own screen.
         ui::label(context, x, y + inset, inner, area->name);

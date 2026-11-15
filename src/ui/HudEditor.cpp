@@ -251,7 +251,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
 // is selected: every corner may hold an element (L-321).
 void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     std::string title = translated("nav.hudLayout"), hint = translated("hudEditor.hint");
-    std::string reset = translated(resetArmed ? "hudEditor.resetConfirm" : "hudEditor.resetAll");
+    std::string reset = againLabel(translated("hudEditor.resetAll"), resetArmed);
     std::string done = translated("hudEditor.done");
     float resetW = textWidth(context, reset) + 10, doneW = textWidth(context, done) + 10;
     float buttons = resetW + gap + doneW;

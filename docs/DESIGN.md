@@ -154,7 +154,10 @@ the same commit. A screen never draws its own variant.
   (`drawDangerButton`: looks plain until pointed at, then `dangerEdge` and
   `dangerText`, so an always visible one such as a section's Reset does not
   draw the eye; the first press arms it, `danger` fill with `dangerEdge` and
-  white text; the second press acts; losing focus disarms).
+  white text; the second press acts; losing focus disarms). Armed, it reads
+  "Again: " + its own label ("Again: Delete", 「もう一度: 削除」), built by
+  `againLabel` and never worded by a screen; what the press removes (a
+  count, a size) goes in the text beside the button, not in its label.
 - **Text fields** (`drawTextField`): a shaded back with a `keyEdge` edge,
   `accent` while typing; a placeholder faintly when empty. Enter or a click
   outside keeps the edit; Esc drops it and shows the stored value again.
@@ -226,6 +229,9 @@ the same commit. A screen never draws its own variant.
   beside text). These are fixed, not settings.
 - Lamium draws its own text shadow half a unit away (the engine's reads as
   doubled on Japanese lines).
+- Deleting what the player made or saved (waypoints, shapes, placements,
+  saved data, the map cache) is "Delete" / 削除 / 删除 / 刪除, never 消す;
+  labels use plain forms, not polite ones (no 〜します on a button).
 - A feature's name and its actions' labels may differ (a command says what
   it does; a child label may be shorter than its Hotkeys name).
 
