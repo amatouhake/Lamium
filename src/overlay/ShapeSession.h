@@ -14,6 +14,9 @@ void setVisible(ShapeId, bool);
 void rename(ShapeId, std::string);
 bool remove(ShapeId);
 void clear();
+// Several shapes in one save (L-190); ids that are gone are skipped.
+void setVisible(std::vector<ShapeId> const&, bool);
+void remove(std::vector<ShapeId> const&);
 // The shapes of a dimension seen from above (the maps, L-139), each box
 // computed when its shape changes and kept until then.
 struct Footprint {

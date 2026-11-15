@@ -1,4 +1,5 @@
 #include "features/map/MapLayers.h"
+#include "features/map/WaypointSession.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/SchematicActions.h"
 #include "overlay/ShapeSession.h"
@@ -57,6 +58,52 @@ bool toggleVisible(MarkKey key) {
         } catch (std::exception const&) { return false; }
     }
     return false;
+}
+bool setVisible(std::vector<MarkKey> const& keys, bool visible) {
+    auto has = [&](MarkLayer layer) { return std::ranges::any_of(keys, [&](MarkKey k) { return k.layer == layer; }); };
+    auto listed = [&](MarkLayer layer, std::uint64_t id) { return std::ranges::find(keys, MarkKey{layer, id}) != keys.end(); };
+    bool saved = true;
+    if (has(MarkLayer::Waypoint))
+        saved = waypoints::change([&](WaypointSet& set) {
+            for (auto& w : set.waypoints) if (listed(MarkLayer::Waypoint, w.id)) w.visible = visible;
+            return true;
+        }) && saved;
+    if (has(MarkLayer::Placement))
+        saved = schematic::session::change([&](schematic::PlacementSet& set) {
+            for (auto& p : set.placements) if (listed(MarkLayer::Placement, p.id)) p.visible = visible;
+            return true;
+        }) && saved;
+    if (has(MarkLayer::Shape)) {
+        std::vector<overlay::ShapeId> shapes;
+        for (auto k : keys) if (k.layer == MarkLayer::Shape) shapes.push_back(k.id);
+        try { overlay::shapes::setVisible(shapes, visible); }
+        catch (std::exception const&) { saved = false; }
+    }
+    return saved;
+}
+bool remove(std::vector<MarkKey> const& keys) {
+    auto ids = [&](MarkLayer layer) {
+        std::vector<std::uint64_t> out;
+        for (auto k : keys) if (k.layer == layer) out.push_back(k.id);
+        return out;
+    };
+    bool saved = true;
+    if (auto gone = ids(MarkLayer::Waypoint); !gone.empty())
+        saved = waypoints::change([&](WaypointSet& set) {
+            std::erase_if(set.waypoints, [&](Waypoint const& w) { return std::ranges::find(gone, w.id) != gone.end(); });
+            return true;
+        }) && saved;
+    if (auto gone = ids(MarkLayer::Placement); !gone.empty())
+        saved = schematic::session::change([&](schematic::PlacementSet& set) {
+            schematic::removePlacements(set, gone);
+            return true;
+        }) && saved;
+    if (auto gone = ids(MarkLayer::Shape); !gone.empty()) {
+        std::vector<overlay::ShapeId> shapes(gone.begin(), gone.end());
+        try { overlay::shapes::remove(shapes); }
+        catch (std::exception const&) { saved = false; }
+    }
+    return saved;
 }
 bool selectPlacement(MarkKey key) {
     if (key.layer != MarkLayer::Placement) return false;

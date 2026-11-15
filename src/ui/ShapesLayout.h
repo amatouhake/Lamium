@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/RowSelection.h"
 #include "ui/SettingsTable.h"
 #include <algorithm>
 #include <cmath>
@@ -13,7 +14,7 @@ struct ShapesLayout {
     static constexpr float pad = 6, previewSize = 60, actionsHeight = 16, pickHeight = 22;
     static constexpr float closeWidth = 58, dockWidth = 62, keysWidth = 58, drawAllWidth = 78, newWidth = 86;
     static constexpr int dockedListRows = 5;
-    enum class Zone { None, Close, Dock, Keys, DrawAll, NewShape, ListRow, Name, LayerDown, LayerUp, Field, Action, Pick, Footer };
+    enum class Zone { None, Close, Dock, Keys, DrawAll, NewShape, ListRow, Name, LayerDown, LayerUp, Field, Action, Pick, Footer, Bulk };
     struct Hit { Zone zone = Zone::None; int index = -1; int part = 0; };
 
     bool docked{}, draft{}, picking{};
@@ -25,6 +26,9 @@ struct ShapesLayout {
     int listVisible{}, listFirst{}, listCount{};
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
+    // Several rows selected (L-190): the selection pane's actions replace the
+    // editor, set by the view after fit().
+    std::vector<BulkAction> selecting;
 
     // fullToolbar: the toolbar is taken across its width (the Schematics tabs),
     // so a docked draw-all switch gets a row of its own below it.
@@ -134,6 +138,18 @@ struct ShapesLayout {
     float actionX(int index) const { return detailLeft + pad + index * (actionWidth + 4); }
     // The delete action sits at the right edge.
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
+    // The selection pane in the detail pane: the count where the name sits,
+    // the summary and the names below, the buttons where the editor's actions are.
+    SelectionPaneLayout selectionPane(int count) const {
+        SelectionPaneLayout p;
+        p.x = detailLeft + pad; p.w = detailWidth - 2 * pad; p.y = nameY;
+        p.summaryY = nameY + rowHeight;
+        p.linesTop = p.summaryY + p.lineHeight;
+        p.fit = namesFit(count, actionsY - 4 - p.linesTop, p.lineHeight);
+        p.buttonsY = actionsY + 2; p.buttonH = 12;
+        placeSelectionButtons(p, selecting, actionX(0), actionWidth, 4, deleteX(), deleteWidth);
+        return p;
+    }
 
     // Hits follow what is drawn. A view that is not usable() draws no list or
     // editor; docked, it still draws Close and Expand (drawDockedTooShort), so
@@ -167,6 +183,10 @@ struct ShapesLayout {
             return offset < listVisible && row < listCount ? Hit{Zone::ListRow, row} : Hit{};
         }
         if (x < detailLeft || x >= detailLeft + detailWidth || y < detailTop) return {};
+        if (!selecting.empty()) {
+            int at = selectionPane(0).at(x, y);
+            return at >= 0 ? Hit{Zone::Bulk, at} : Hit{};
+        }
         if (y >= actionsY && y < actionsY + actionsHeight) {
             // Draft: Create, Cancel. Existing shape: Duplicate, then Delete at the right edge.
             if (x >= actionX(0) && x < actionX(0) + firstActionWidth) return {Zone::Action, 0};

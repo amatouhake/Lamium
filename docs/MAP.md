@@ -124,10 +124,9 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   the crosshair is within 20 x 30 units; far ones first; on whole screen
   pixels. "Show in the world": Always (key hides while held) / While the key
   is held / Off (key does nothing). "Show up to": 0 = any, 100-10000 by 100.
-  Distance, range and order use the rendered FreeCamera eye, else the
-  player's feet (L-199), measured as "Distance: 3D / Horizontal" says
-  (L-350, default 3D; also the lists and the world map panel; arrival is
-  always 3D, placement and shape distances horizontal).
+  Distance, range and order (also the lists and the map panel) use the rendered
+  FreeCamera eye, else the feet (L-199), as "Distance: 3D / Horizontal" says
+  (L-350, default 3D; arrival always 3D; placements and shapes horizontal).
 - Optional (off): Overworld waypoints in the Nether at 1/8 coordinates and
   Nether ones in the Overworld at 8x.
 - Waypoints screen, built like Shapes (list and detail, dock button, "Show
@@ -135,13 +134,13 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   nearest first, then others by name with a dimension tag; editor with name,
   X/Y/Z (typed or stepped), Move here, Show, Color; delete takes two presses.
   Opened from the map it shows "< Map"; that and Esc return with the view kept.
+  Several rows (DESIGN "Several rows", L-190): show, hide, delete.
 
 ### Waypoints and death records
 
-- (Decided 2026-11-13, L-319/L-328) Waypoints off also stops recording a
-  death point and removing reached temporary waypoints, a death's waypoint
-  included; hiding only the markers is "Show in the world" and the Map marks
-  layer.
+- (Decided 2026-11-13, L-319/L-328) Waypoints off also stops recording a death
+  point and removing reached temporary waypoints, a death's waypoint included;
+  hiding only the markers is "Show in the world" and the Map marks layer.
 - (Decided 2026-11-13, L-328) There are two kinds of waypoint, normal and
   temporary, and nothing beside them. A death adds a waypoint named "Death
   point": a cross for its mark, red to start with (white read as a passive
@@ -220,14 +219,16 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
 ### World map side panel lists
 
 - The panel lists one layer at a time (`worldMapList`): waypoints, placed
-  schematics or shapes. Its header names the layer with its count and a down
-  arrow; clicking opens a menu of the three with symbols and counts
-  (maintainer: tabs side by side do not fit). Selecting a mark on the map
-  shows its layer; "+" only for waypoints.
-- Placement and shape rows match waypoint rows: symbol in the mark's color,
-  name, distance in the player's dimension, nearest first, show/hide switch;
-  a click centers and selects (a placement also becomes the schematic's
-  selected one), with details and "Open" below.
+  schematics or shapes; its header (layer and count, a down arrow) opens a
+  menu of the three with symbols and counts (maintainer: tabs side by side
+  do not fit). Selecting a mark on the map shows its layer; "+" only for waypoints.
+- Placement and shape rows match waypoint rows (symbol in the mark's color,
+  name, distance, nearest first, switch); a click centers and selects (a
+  placement also becomes the schematic's selected one), details and "Open" below.
+- Several rows (L-190): Ctrl/Shift + click keeps the map still;
+  the selection pane (DESIGN "Several rows") replaces the details, the list
+  keeps its height; selected marks are ringed white; a layer or dimension
+  change drops them; Ctrl + A takes all; Ctrl + click on a mark toggles it.
 - Only the dimension shown. A layer switched off keeps its list
   (`State::allAreas`) with a faint "Hidden on the map" line on top.
 

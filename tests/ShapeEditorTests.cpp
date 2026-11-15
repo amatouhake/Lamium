@@ -107,6 +107,24 @@ void shapeEditorTests() {
               "docked, the list and the editor move down by the notice");
     }
     auto many = ui::ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false);
+    for (bool docked : {false, true}) {
+        auto pane = ui::ShapesLayout::fit(table, 640, 360, docked, 80, 0, 0, 0, false, false);
+        auto plain = pane;
+        pane.selecting = ui::bulkActions(ui::SelectionList::Shapes);
+        auto p = pane.selectionPane(30);
+        using Zone = ui::ShapesLayout::Zone;
+        float buttonY = pane.actionsY + 4;
+        check(pane.listVisible == plain.listVisible && pane.hit(pane.listLeft + 20, pane.rowsTop + 2).zone == Zone::ListRow,
+              "the selection pane leaves the list as it is");
+        check(pane.hit(pane.actionX(0) + 1, buttonY).zone == Zone::Bulk && pane.hit(pane.actionX(0) + 1, buttonY).index == 0
+              && pane.hit(pane.deleteX() + 1, buttonY).index == 2 && plain.hit(plain.deleteX() + 1, buttonY).zone == Zone::Action
+              && p.buttonX[2] == pane.deleteX() && p.buttonW[2] == ui::ShapesLayout::deleteWidth,
+              "the selection pane's Delete is where the editor's Delete is");
+        check(pane.hit(pane.detailLeft + 20, pane.nameY + 2).zone == Zone::None && pane.hit(pane.layerStepperX() + 1, pane.layerY() + 2).zone == Zone::None
+              && pane.hit(pane.stepperX() + 1, pane.fieldsTop + 2).zone == Zone::None, "nothing of the editor takes clicks under the selection pane");
+        check(p.y == pane.nameY && p.summaryY == pane.nameY + ui::ShapesLayout::rowHeight && p.linesTop == p.summaryY + p.lineHeight && p.fit.more > 0
+              && p.linesTop + (p.fit.names + 1) * p.lineHeight <= pane.actionsY - 4, "the names stop above the buttons, the last line saying how many more");
+    }
     float bar = many.listLeft + many.listWidth - 2;
     check(many.onScrollbar(bar, many.rowsTop + 1) && !many.onScrollbar(many.listLeft + 10, many.rowsTop + 1) && !inside.onScrollbar(bar, inside.rowsTop + 1)
           && many.firstAt(many.rowsTop) == 0 && many.firstAt(many.rowsTop + many.listVisible * ui::ShapesLayout::rowHeight) == 80 - many.listVisible,

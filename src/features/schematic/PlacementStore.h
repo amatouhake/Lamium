@@ -1,6 +1,8 @@
 #pragma once
 #include "features/schematic/CheckIgnores.h"
 #include "features/schematic/Placement.h"
+#include <algorithm>
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -32,6 +34,20 @@ inline int steppedPlacement(int selected, int count, int amount) {
     if (count <= 0) return -1;
     int from = selected < 0 && amount < 0 ? 0 : selected;
     return ((from + amount) % count + count) % count;
+}
+// Removes the placements with these session ids at once (L-190); the selected
+// one stays selected where it moved to, or none when it went.
+inline void removePlacements(PlacementSet& set, std::vector<std::uint64_t> const& ids) {
+    std::uint64_t selected = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
+        ? set.placements[static_cast<size_t>(set.selected)].id : 0;
+    auto gone = [&](SavedPlacement const& p) { return std::find(ids.begin(), ids.end(), p.id) != ids.end(); };
+    bool selectedGone = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
+        && gone(set.placements[static_cast<size_t>(set.selected)]);
+    std::erase_if(set.placements, gone);
+    set.selected = -1;
+    if (!selectedGone)
+        for (size_t i = 0; i < set.placements.size(); ++i)
+            if (set.placements[i].id == selected) set.selected = static_cast<int>(i);
 }
 // Keeps the selection valid; clamps rotations, layers and names.
 void normalize(PlacementSet&);

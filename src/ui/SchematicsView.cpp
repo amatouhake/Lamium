@@ -2,6 +2,7 @@
 #include "ui/SchematicsView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/RowSelection.h"
 #include "settings/Options.h"
 #include "ui/SettingsRows.h"
 #include "ui/SettingsNavigation.h"
@@ -17,6 +18,7 @@
 #include "ui/RadialLayout.h"
 #include "ui/Animations.h"
 #include "ui/Toast.h"
+#include "features/map/MapLayers.h"
 #include "features/map/WaypointSession.h"
 #include "app/SessionIds.h"
 #include "features/schematic/SchematicSession.h"
@@ -145,6 +147,13 @@ std::string largeSchematicConfirmed; // a large file the player chose to load
 ShapesLayout schematicsDisplayed;
 int schematicListFirst = 0, schematicFieldFirst = 0, schematicFieldSelected = -1;
 bool schematicDeleteArmed = false;
+// The Placements tab's selection by session id (L-190). One row is the picked
+// placement, which is also the schematic's selected one; while several are
+// selected none is picked and the schematic's selected placement stays.
+RowSelection<std::uint64_t> placementRows;
+BulkArm placementBulk;
+// The Placed list's own column: progress (L-190).
+constexpr float progressColumn = 26;
 int editingSchematicField = -1;
 void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& apply);
 // ---- Schematics view (L-93) ----
@@ -201,6 +210,13 @@ void refreshSchematics(bool files) {
     int placements = static_cast<int>(schematicSet.placements.size()), fileCount = static_cast<int>(schematicFiles.size());
     if ((schematicPick == SchematicPick::Placement && schematicIndex >= placements)
         || (schematicPick == SchematicPick::File && schematicIndex >= fileCount)) schematicPick = SchematicPick::None;
+    // One row follows the picked placement; several stay until a row is picked.
+    placementRows.retain([](std::uint64_t id) { return indexOfId(schematicSet.placements, id) >= 0; });
+    if (placementRows.several()) {}
+    else if (schematicPick == SchematicPick::Placement && schematicIndex >= 0) {
+        auto id = schematicSet.placements[static_cast<size_t>(schematicIndex)].id;
+        if (placementRows.single() != id) placementRows.only(id);
+    } else placementRows.clear();
     // The selected row follows its cell when the rows change (a new pass, an
     // ignored difference): the same index would be another cell. Read before
     // the rows' result is replaced: they point into it.
@@ -277,7 +293,7 @@ int schematicRowCount() {
     }
 }
 schematic::SavedPlacement const* selectedPlacement() {
-    return schematicTab == SchematicTab::Placements && schematicPick == SchematicPick::Placement && schematicIndex >= 0
+    return schematicTab == SchematicTab::Placements && !placementRows.several() && schematicPick == SchematicPick::Placement && schematicIndex >= 0
         && schematicIndex < static_cast<int>(schematicSet.placements.size())
         ? &schematicSet.placements[static_cast<size_t>(schematicIndex)] : nullptr;
 }
@@ -289,6 +305,9 @@ void pickSchematic(SchematicPick pick, int index) {
     screen::finishEditing();
     schematicPick = pick;
     schematicIndex = index;
+    // Picking a placement (a plain click, Page Up/Down, a new one) returns to that one row.
+    if (pick == SchematicPick::Placement && index >= 0 && index < static_cast<int>(schematicSet.placements.size()))
+        placementRows.only(schematicSet.placements[static_cast<size_t>(index)].id);
     schematicFieldFirst = 0;
     schematicFieldSelected = -1;
     schematicDeleteArmed = false;
@@ -305,6 +324,8 @@ void selectSchematicTab(SchematicTab tab) {
     schematicFieldSelected = -1;
     schematicDeleteArmed = verifyUndoAllArmed = false;
     verifySelected = -1;
+    placementRows.clear();
+    placementBulk.disarm();
     if (tab == SchematicTab::Placements) {
         schematicPick = schematicSet.selected >= 0 ? SchematicPick::Placement : SchematicPick::None;
         schematicIndex = schematicSet.selected;
@@ -375,6 +396,45 @@ void deleteSelectedPlacement() {
     int left = static_cast<int>(schematicSet.placements.size());
     if (left) pickSchematic(SchematicPick::Placement, std::min(index, left - 1));
     else pickSchematic(SchematicPick::None, -1);
+}
+std::vector<std::uint64_t> placementOrder() {
+    std::vector<std::uint64_t> order;
+    order.reserve(schematicSet.placements.size());
+    for (auto const& p : schematicSet.placements) order.push_back(p.id);
+    return order;
+}
+// The picked placement follows a row left alone, so keys, the HUD and the
+// Check tab act on it; several rows pick none and leave the schematic's
+// selected placement as it was.
+void followPlacementRows() {
+    placementBulk.disarm();
+    schematicDeleteArmed = false;
+    if (placementRows.several()) {
+        if (schematicPick != SchematicPick::None) pickSchematic(SchematicPick::None, -1);
+        return;
+    }
+    auto one = placementRows.single();
+    int index = one ? indexOfId(schematicSet.placements, *one) : -1;
+    if (index < 0) pickSchematic(SchematicPick::None, -1);
+    else if (schematicPick != SchematicPick::Placement || index != schematicIndex) pickSchematic(SchematicPick::Placement, index);
+}
+// Ctrl + click toggles a row, Shift + click takes a range.
+void pickPlacements(int row) {
+    if (row < 0 || row >= static_cast<int>(schematicSet.placements.size())) return;
+    placementRows.click(schematicSet.placements[static_cast<size_t>(row)].id, screen::heldCtrl(), screen::heldShift(), placementOrder());
+    followPlacementRows();
+}
+void bulkPlacements(BulkAction action) {
+    auto const ids = placementRows.keys;
+    if (!schematic::session::change([&](schematic::PlacementSet& set) {
+            if (action == BulkAction::Delete) schematic::removePlacements(set, ids);
+            else for (auto& p : set.placements)
+                if (std::find(ids.begin(), ids.end(), p.id) != ids.end()) p.visible = action == BulkAction::Show;
+            return true;
+        })) { screen::setMessage(translated("schematic.saveError")); return; }
+    screen::clearMessage();
+    if (action == BulkAction::Delete) placementRows.clear();
+    refreshSchematics(false);
 }
 void showSelectedMismatch() {
     // The rows are from before a move or layer change: their cells are not
@@ -597,6 +657,7 @@ void handleSchematicClick(float x, float y, bool right) {
         if (auto done = data_notice::takeResult()) done->warns ? screen::setMessage(done->text) : screen::setInfo(done->text);
         return;
     }
+    if (schematicsDisplayed.hit(x, y).zone != ShapeZone::Bulk) placementBulk.disarm();
     // Too short for the body: only the sidebar, or docked Close and Expand, are drawn.
     if (!schematicsDisplayed.usable()) {
         if (!schematicsDocked && screen::navClick(x, y)) return;
@@ -642,7 +703,7 @@ void handleSchematicClick(float x, float y, bool right) {
         auto const& l = schematicsDisplayed;
         switch (schematicTab) {
         case SchematicTab::Placements:
-            if (x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
+            if (listColumns(l.listLeft, l.listWidth, progressColumn, switchWidth).onShown(x)) {
                 schematic::session::change([&](schematic::PlacementSet& set) {
                     if (row < 0 || row >= static_cast<int>(set.placements.size())) return false;
                     set.placements[static_cast<size_t>(row)].visible = !set.placements[static_cast<size_t>(row)].visible;
@@ -651,7 +712,8 @@ void handleSchematicClick(float x, float y, bool right) {
                 refreshSchematics(false);
                 return;
             }
-            if (schematicPick != SchematicPick::Placement || row != schematicIndex) pickSchematic(SchematicPick::Placement, row);
+            if (screen::heldCtrl() || screen::heldShift()) { pickPlacements(row); return; }
+            if (placementRows.several() || schematicPick != SchematicPick::Placement || row != schematicIndex) pickSchematic(SchematicPick::Placement, row);
             return;
         case SchematicTab::Files: {
             if (row < 0 || row >= static_cast<int>(schematicFileRows.size())) return;
@@ -667,6 +729,14 @@ void handleSchematicClick(float x, float y, bool right) {
         }
     }
     case ShapeZone::Field: activateSchematicField(hit.index, right ? -1 : hit.part); return;
+    case ShapeZone::Bulk: {
+        auto const actions = bulkActions(SelectionList::Placements);
+        int at = hit.index;
+        if (schematicTab == SchematicTab::Placements && placementRows.several() && at >= 0 && at < static_cast<int>(actions.size())
+            && placementBulk.press(actions[static_cast<size_t>(at)]))
+            bulkPlacements(actions[static_cast<size_t>(at)]);
+        return;
+    }
     case ShapeZone::Action:
         if (schematicTab == SchematicTab::Files) {
             if (hit.index == 0) placeSelectedFile();
@@ -704,6 +774,12 @@ void handleSchematicKey(int key) {
         }
         return;
     }
+    if (schematicTab == SchematicTab::Placements)
+        switch (selectionKey(key, screen::heldCtrl(), placementRows.several())) {
+        case SelectionKey::SelectAll: placementRows.selectAll(placementOrder()); followPlacementRows(); return;
+        case SelectionKey::Clear: placementRows.clear(); followPlacementRows(); return;
+        case SelectionKey::None: break;
+        }
     switch (key) {
     case 0x1b: screen::close(); break;
     case 0x26: moveSchematicField(-1); break;
@@ -747,6 +823,7 @@ std::string fileTitle(std::string const& relative) {
 std::string schematicDescription() {
     switch (schematicTab) {
     case SchematicTab::Placements:
+        if (placementRows.several()) return translated("list.selectedCount", placementRows.keys.size());
         if (auto const* p = selectedPlacement()) {
             if (editingSchematicField >= 0) return translated("integerRange", editingSchematicField == 9 ? 1 : -30'000'000,
                 editingSchematicField == 9 ? 4096 : 30'000'000);
@@ -816,6 +893,20 @@ std::string mismatchKind(schematic::CellState state) {
     default: return translated("schematic.kind.missing");
     }
 }
+// The map's placement color, for the Placed list's footprint marks (L-190).
+Rgb placementRgb() {
+    auto c = map::placementColor;
+    return {map::channel(c, 0) / 255.f, map::channel(c, 1) / 255.f, map::channel(c, 2) / 255.f};
+}
+// Where the distance column measures to: the footprint's center as the map
+// lists it, or the origin while the file is not read yet.
+std::pair<int, int> placementCenter(schematic::SavedPlacement const& p) {
+    auto const& origin = p.placement.origin;
+    auto structure = schematic::session::loaded(p.file);
+    if (!structure) return {origin.x, origin.z};
+    auto area = schematic::footprint(structure->size, p.placement);
+    return {static_cast<int>(std::floor((area.x0 + area.x1) / 2.0)), static_cast<int>(std::floor((area.z0 + area.z1) / 2.0))};
+}
 Rgb mismatchColor(schematic::CellState state) {
     switch (state) {
     case schematic::CellState::Wrong: case schematic::CellState::Extra: return {1.f, .35f, .3f};
@@ -847,7 +938,6 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     // List.
     float listRight = l.listLeft + l.listWidth;
     float left = l.listLeft + ShapesLayout::pad;
-    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
     auto heading = [&](float x, float w, std::string_view key, Align align = Align::Left) {
         label(context,x,l.theadTop+2,w,translated(key),palette::faint,align);
     };
@@ -865,11 +955,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     float blocksW = 40, blocksX = listRight - ShapesLayout::pad - blocksW, sizeW = 54, sizeX = blocksX - 4 - sizeW;
     bool showSize = sizeX - left >= 80;
     bool loadedOne = false; // At most one file is read per frame to fill the columns.
-    // Placed: progress left of the switch; coordinates only while the name
-    // keeps room (the detail pane always shows them).
-    float progressW = 26, progressX = shownX - 6 - progressW;
-    float coordsW = 66, coordsX = progressX - 4 - coordsW;
-    bool showCoords = coordsX - left >= 70;
+    // Placed: the lists' shared columns, progress as its own (the detail pane
+    // shows the position).
+    auto const placed = listColumns(l.listLeft, l.listWidth, progressColumn, switchWidth);
     if (schematicTab == SchematicTab::Placements) schematic::ghosts::wantProgress();
     float kindW = 38, distW = 28, posW = listRight - left - kindW - distW - ShapesLayout::pad - 78 >= 90 ? 78.f : 0.f;
     float numW = 34, carriedX = listRight - ShapesLayout::pad - numW, leftX = carriedX - numW - 2;
@@ -877,18 +965,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     float placedX = leftX - numW - 2, neededX = (showPlaced ? placedX : leftX) - numW - 2;
     switch (schematicTab) {
     case SchematicTab::Placements:
-    {
-        // Measured, with a gap: centered over the switch, an English "Shown"
-        // is wider than its column and ran into "Done" (L-195).
-        float shownW = std::max(switchWidth + 12, textWidth(context, translated("shape.columnShown")));
-        float shownHeadX = std::min(shownX + switchWidth / 2 - shownW / 2, listRight - 2 - shownW);
-        float doneW = textWidth(context, translated("schematic.column.progress"));
-        float doneEnd = std::min(progressX + progressW + 2, shownHeadX - 6);
-        heading(left, shownX - left - 74, "shape.columnName");
-        heading(doneEnd - doneW, doneW, "schematic.column.progress", Align::Right);
-        heading(shownHeadX, shownW, "shape.columnShown", Align::Center);
+        drawListHeadings(context,placed,l.theadTop,"schematic.column.progress");
         break;
-    }
     case SchematicTab::Files:
         heading(left, (showSize ? sizeX : blocksX) - left - 4, "shape.columnName");
         if (showSize) heading(sizeX, sizeW, "schematic.column.size", Align::Right);
@@ -948,7 +1026,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         float y = l.listRowY(i);
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
         bool chosen = schematicTab == SchematicTab::Verify ? i == verifySelected
-            : schematicTab == SchematicTab::Placements ? schematicPick == SchematicPick::Placement && i == schematicIndex
+            : schematicTab == SchematicTab::Placements ? placementRows.contains(schematicSet.placements[static_cast<size_t>(i)].id)
             : schematicTab == SchematicTab::Files ? schematicPick == SchematicPick::File
                 && schematicFileRows[static_cast<size_t>(i)].file == schematicIndex : false;
         bool heading = (schematicTab == SchematicTab::Files && schematicFileRows[static_cast<size_t>(i)].file < 0)
@@ -961,8 +1039,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             bool here = p.dimension == screen::playerDimension();
             // The selected placement: the accent bar, like the sidebar's current entry.
             if (i == schematicSet.selected) fill(context,l.listLeft+1,y,2,ShapesLayout::rowHeight,palette::accent);
-            float nameEnd = showCoords ? coordsX - 4 : progressX - 4;
-            float nameX = left;
+            drawFootprintGlyph(context,placed.markX+1,y+ShapesLayout::rowHeight/2,placementRgb(),p.visible && here ? 1.f : .4f);
+            float nameEnd = placed.nameX + placed.nameWidth;
+            float nameX = placed.nameX;
             bool unreadable = !schematic::session::loadError(p.file).empty();
             if (unreadable) {
                 float markW = textWidth(context,"! ");
@@ -970,17 +1049,18 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 nameX += markW;
             }
             label(context,nameX,y+3,nameEnd-nameX,p.name,unreadable ? palette::warning : here ? palette::text : palette::faint);
-            if (showCoords)
-                label(context,coordsX,y+3,coordsW,here ? std::format("{}, {}, {}", p.placement.origin.x, p.placement.origin.y, p.placement.origin.z)
-                    : screen::dimensionName(p.dimension),palette::dim,Align::Right);
-            if (auto tally = schematic::ghosts::progress(p); tally && tally->total()) {
+            if (placed.hasDistance()) {
+                auto center = placementCenter(p);
+                label(context,placed.distanceX,y+3,placed.distanceWidth,listDistanceText(center.first, center.second, p.dimension),palette::dim,Align::Right);
+            }
+            if (auto tally = placed.hasOwn() ? schematic::ghosts::progress(p) : std::nullopt; tally && tally->total()) {
                 float fraction = static_cast<float>(tally->correct) / static_cast<float>(tally->total());
-                label(context,progressX,y+1,progressW,std::format("{}%", static_cast<int>(fraction * 100)),
+                label(context,placed.ownX,y+1,placed.ownWidth,std::format("{}%", static_cast<int>(fraction * 100)),
                     here ? palette::text : palette::faint,Align::Right);
-                fill(context,progressX,y+11,progressW,1,palette::white,.12f);
-                fill(context,progressX,y+11,progressW*fraction,1,palette::accent,here ? 1.f : .5f);
-            } else label(context,progressX,y+3,progressW,"-",palette::faint,Align::Right);
-            toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,p.visible);
+                fill(context,placed.ownX,y+11,placed.ownWidth,1,palette::white,.12f);
+                fill(context,placed.ownX,y+11,placed.ownWidth*fraction,1,palette::accent,here ? 1.f : .5f);
+            } else if (placed.hasOwn()) label(context,placed.ownX,y+3,placed.ownWidth,"-",palette::faint,Align::Right);
+            toggleSwitch(context,placed.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,p.visible);
             break;
         }
         case SchematicTab::Files: {
@@ -1099,7 +1179,28 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     previewTurn.w = 0; // set again where the preview is drawn this frame
     switch (schematicTab) {
     case SchematicTab::Placements:
-        if (auto const* p = selectedPlacement()) {
+        if (!l.selecting.empty()) {
+            auto const pane = l.selectionPane(static_cast<int>(placementRows.keys.size()));
+            std::vector<SelectedName> names;
+            std::vector<schematic::SavedPlacement const*> marks;
+            size_t shown = 0;
+            for (auto const& p : schematicSet.placements) {
+                if (!placementRows.contains(p.id)) continue;
+                if (p.visible) ++shown;
+                if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
+                auto center = placementCenter(p);
+                std::string progress = "-";
+                if (auto tally = schematic::ghosts::progress(p); tally && tally->total())
+                    progress = std::format("{}%", static_cast<int>(100.0 * static_cast<double>(tally->correct) / static_cast<double>(tally->total())));
+                names.push_back({p.name, p.dimension != screen::playerDimension(), listDistanceText(center.first, center.second, p.dimension), progress});
+                marks.push_back(&p);
+            }
+            drawSelectionPane(context,pane,placementRows.keys.size(),names,[&](size_t i, float gx, float gy) {
+                auto const& m = *marks[i];
+                drawFootprintGlyph(context,gx-3,gy,placementRgb(),m.visible && m.dimension == screen::playerDimension() ? 1.f : .4f);
+            },l.selecting,placementBulk,pointer.x,pointer.y,shown,progressColumn);
+            fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
+        } else if (auto const* p = selectedPlacement()) {
             label(context,dx,l.nameY+1+boxTextInset(),dw,p->name);
             info(p->file, l.previewY);
             if (auto tally = schematic::ghosts::progress(*p); tally && tally->total())
@@ -1476,6 +1577,7 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
     l.firstActionWidth = std::clamp(l.detailWidth - 2 * ShapesLayout::pad - ShapesLayout::deleteWidth - 4, 40.f, 96.f);
     // Materials has one action: the calculator link, readable across the pane.
     if (schematicTab == SchematicTab::Materials) l.firstActionWidth = std::max(40.f, l.detailWidth - 2 * ShapesLayout::pad);
+    if (schematicTab == SchematicTab::Placements && placementRows.several()) l.selecting = bulkActions(SelectionList::Placements);
     if (std::exchange(scrollToSelected, false) && schematicTab == SchematicTab::Verify && verifySelected >= 0
         && (verifySelected < l.listFirst || verifySelected >= l.listFirst + l.listVisible)) {
         schematicListFirst = std::max(0, verifySelected - l.listVisible / 2);
@@ -1600,5 +1702,7 @@ void renderContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 
 void reset() {
     editingSchematicField = -1;
     schematicDeleteArmed = verifyUndoAllArmed = false;
+    placementRows.clearSeveral(); // a closed screen keeps one row, not several; the picked one stays
+    placementBulk.disarm();
 }
 }

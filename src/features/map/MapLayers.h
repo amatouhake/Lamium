@@ -34,6 +34,12 @@ std::vector<AreaMark> shapeMarks(int dimension);
 // Actions the maps share. Each finds its entry by id when it runs: an
 // entry that is gone is left alone (false).
 bool toggleVisible(MarkKey key);
+// Shows or hides several waypoints, placements and shapes, one save per kind
+// (L-190); false when a save failed.
+bool setVisible(std::vector<MarkKey> const& keys, bool visible);
+// Deletes several waypoints, placements and shapes, one save per kind (the
+// side panel's Delete for several rows); false when a save failed.
+bool remove(std::vector<MarkKey> const& keys);
 // Makes a placement the schematic's selected one (keys, HUD, Check tab).
 bool selectPlacement(MarkKey key);
 }

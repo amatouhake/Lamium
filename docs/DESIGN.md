@@ -172,6 +172,28 @@ the same commit. A screen never draws its own variant.
   faint track and a 2-unit thumb that turns lighter (`dim`) under the
   pointer or while dragged, without widening; pressing or dragging puts the first line under
   the pointer.
+- **List columns** (L-190, `ui/ListColumns.h`, `drawListHeadings`): the
+  Waypoints, Shapes and Placed lists, docked or not, share one shape: the
+  mark (kind and color; a shape's mark is its type glyph, a placement's a
+  footprint), the name, the distance from the player (to a waypoint as the
+  Waypoints setting measures it, 3D by default; horizontal to a shape's
+  center or a plane's origin, a footprint's center, since areas have no
+  height; the dimension's name for another dimension), the list's own column
+  (placements: progress) and the shown switch. Positions stay in the detail
+  pane. A narrow list drops the distance first, then its own column.
+- **Several rows** (L-190, `ui/RowSelection.h`): in a list that offers
+  it, Ctrl + click toggles a row and Shift + click takes a range (no drag
+  selection); Ctrl + A takes all; every selected row has the same
+  highlight. One row: the detail pane shows it. Two or more: the detail pane
+  becomes the selection pane (`drawSelectionPane`): "N selected", "Shown N /
+  Hidden M", the names in list order as plain lines in the list's columns
+  without the switch (mark, name, distance, own column; "N more" when they
+  do not fit), and Show, Hide and Delete where the pane's own buttons sit,
+  Delete (destructive; armed "Confirm delete N", the bulk-delete exception
+  under Buttons) in the single pane's Delete place. No
+  bar in or under the list. Esc lets several rows go (nothing selected),
+  then closes. The map's side panel has the same pane with its buttons on
+  its last row (`compactSelectionPane`).
 - **Tips** open below their anchor (above when there is no room) and look
   the same everywhere (`drawTipBox`): the floating panel, a `keyEdge` edge
   (`warning` when the tip warns), 4 units of padding, white text. The

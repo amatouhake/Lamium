@@ -1,6 +1,7 @@
 #include "ui/ShapesView.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
+#include "ui/RowSelection.h"
 #include "ui/ScreenParts.h"
 #include "ui/SearchQuery.h"
 #include "ui/ShapeEditor.h"
@@ -25,7 +26,16 @@ namespace {
 // the editor shows: the selected shape or an unsaved draft, and scroll state.
 using ShapeZone = ShapesLayout::Zone;
 bool shapesDocked = false;
-std::optional<overlay::ShapeId> shapeSelected;
+std::optional<overlay::ShapeId> shapeSelected; // shapeRows' row while it is alone, which the editor works on
+// What the list has selected (L-190); the draft row never takes part.
+RowSelection<overlay::ShapeId> shapeRows;
+BulkArm shapeBulk;
+void chooseShape(std::optional<overlay::ShapeId> id) {
+    if (id) shapeRows.only(*id);
+    else shapeRows.clear();
+    shapeSelected = id;
+    shapeBulk.disarm();
+}
 std::optional<overlay::ShapeDefinition> shapeDraft;
 bool shapePicking = false, shapeDeleteArmed = false;
 int shapeListFirst = 0, shapeFieldFirst = 0, shapeFieldSelected = -1, shapeLayer = 0;
@@ -122,7 +132,7 @@ void beginDraft(int type) {
     definition.dimension = screen::playerDimension();
     shapeDraft = shape::withType(std::move(definition), type, point->first, point->second);
     shapePicking = false;
-    shapeSelected.reset();
+    chooseShape(std::nullopt);
     resetShapeEditor();
     try { overlay::shapes::setDraft(shapeDraft); }
     catch (std::exception const&) { screen::setMessage(translated("shape.editError")); }
@@ -132,7 +142,7 @@ void createDraft() {
     try {
         auto id = overlay::shapes::add(*shapeDraft);
         cancelDraft();
-        shapeSelected = id;
+        chooseShape(id);
         resetShapeEditor();
         screen::clearMessage();
     } catch (overlay::ShapeSaveError const&) { screen::setMessage(translated("shape.saveError")); }
@@ -140,8 +150,35 @@ void createDraft() {
 }
 void selectShape(std::optional<overlay::ShapeId> id) {
     cancelDraft();
-    shapeSelected = id;
+    chooseShape(id);
     resetShapeEditor();
+}
+std::vector<overlay::ShapeId> shapeOrder() {
+    std::vector<overlay::ShapeId> order;
+    order.reserve(shapeList.size());
+    for (auto const& item : shapeList) order.push_back(item.id);
+    return order;
+}
+// Ctrl + click toggles a row, Shift + click takes a range, Ctrl + A takes all.
+// A draft or type choice ends first.
+void pickShapes(overlay::ShapeId id) {
+    cancelDraft();
+    auto before = shapeSelected;
+    shapeRows.click(id, screen::heldCtrl(), screen::heldShift(), shapeOrder());
+    shapeSelected = shapeRows.single();
+    shapeBulk.disarm();
+    if (shapeSelected != before) resetShapeEditor();
+    shapeDeleteArmed = false;
+}
+void bulkShapes(BulkAction action) {
+    try {
+        if (action == BulkAction::Delete) overlay::shapes::remove(shapeRows.keys);
+        else overlay::shapes::setVisible(shapeRows.keys, action == BulkAction::Show);
+        screen::clearMessage();
+    } catch (overlay::ShapeSaveError const&) { screen::setMessage(translated("shape.saveError")); return; }
+    catch (std::exception const&) { screen::setMessage(translated("shape.editError")); return; }
+    if (action == BulkAction::Delete) selectShape(std::nullopt);
+    shapeList = overlay::shapes::list();
 }
 // Click or key activation of an editor row. part: -1/1 step, 0 value, 2 label.
 void activateShapeField(int index, int part) {
@@ -244,6 +281,7 @@ void handleShapeClick(float x, float y, bool right) {
     if (!shapesDocked && screen::navClick(x, y)) return;
     auto hit = shapesDisplayed.hit(x, y);
     if (!(hit.zone == ShapeZone::Action && hit.index == 1 && !shapeDraft)) shapeDeleteArmed = false;
+    if (hit.zone != ShapeZone::Bulk) shapeBulk.disarm();
     switch (hit.zone) {
     case ShapeZone::Close: screen::close(); return;
     case ShapeZone::Dock: shapesDocked = !shapesDocked; return;
@@ -253,7 +291,7 @@ void handleShapeClick(float x, float y, bool right) {
         return;
     case ShapeZone::NewShape:
         cancelDraft();
-        shapeSelected.reset();
+        chooseShape(std::nullopt);
         shapePicking = true;
         resetShapeEditor();
         return;
@@ -262,13 +300,21 @@ void handleShapeClick(float x, float y, bool right) {
         if (index < 0 || index >= static_cast<int>(shapeList.size())) return;
         auto const& item = shapeList[index];
         auto const& l = shapesDisplayed;
-        if (x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
+        if (listColumns(l.listLeft, l.listWidth, 0, switchWidth).onShown(x)) {
             try { overlay::shapes::setVisible(item.id, !item.definition.visible); screen::clearMessage(); }
             catch (overlay::ShapeSaveError const&) { screen::setMessage(translated("shape.saveError")); }
             catch (std::exception const&) { screen::setMessage(translated("shape.editError")); }
             return;
         }
-        if (shapeSelected != item.id || shapeDraft) selectShape(item.id);
+        if (screen::heldCtrl() || screen::heldShift()) { pickShapes(item.id); return; }
+        if (shapeSelected != item.id || shapeDraft || shapeRows.several()) selectShape(item.id);
+        return;
+    }
+    case ShapeZone::Bulk: {
+        auto const actions = bulkActions(SelectionList::Shapes);
+        int at = hit.index;
+        if (shapeRows.several() && at >= 0 && at < static_cast<int>(actions.size()) && shapeBulk.press(actions[static_cast<size_t>(at)]))
+            bulkShapes(actions[static_cast<size_t>(at)]);
         return;
     }
     case ShapeZone::Name:
@@ -345,6 +391,20 @@ void handleShapeKey(int key) {
         }
         return;
     }
+    // Esc ends a draft or type choice first, then several rows, then closes;
+    // Ctrl + A never drops a draft.
+    if (!shapePicking && !shapeDraft)
+        switch (selectionKey(key, screen::heldCtrl(), shapeRows.several())) {
+        case SelectionKey::SelectAll:
+            shapeRows.selectAll(shapeOrder());
+            if (shapeRows.single() != shapeSelected) resetShapeEditor();
+            shapeSelected = shapeRows.single();
+            shapeDeleteArmed = false;
+            shapeBulk.disarm();
+            return;
+        case SelectionKey::Clear: selectShape(std::nullopt); return;
+        case SelectionKey::None: break;
+        }
     switch (key) {
     case 0x1b:
         if (shapePicking || shapeDraft) cancelDraft();
@@ -408,6 +468,16 @@ Rgb shapeRgb(overlay::ShapeColor color) {
     default: return palette::shapeCyan;
     }
 }
+// The distance column (L-190): from the player to the shape's center or a
+// plane's origin, as the Waypoints list measures; a following shape is
+// drawn around the player, so it has none.
+std::string shapeDistanceText(overlay::ShapeDefinition const& definition) {
+    if (definition.follow && definition.dimension == screen::playerDimension()) return "-";
+    if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry))
+        return listDistanceText(static_cast<int>(std::floor(spec->center.x)), static_cast<int>(std::floor(spec->center.z)), definition.dimension);
+    auto const& origin = std::get<overlay::PlaneSpec>(definition.geometry).origin;
+    return listDistanceText(origin.x, origin.z, definition.dimension);
+}
 void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type, Rgb color) {
     auto pattern = shape::typeGlyphs[static_cast<size_t>(std::clamp(type, 0, static_cast<int>(shape::typeGlyphs.size()) - 1))];
     for (int i = 0; i < 25 && i < static_cast<int>(pattern.size()); ++i)
@@ -415,6 +485,7 @@ void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type,
 }
 std::string shapeDescription(std::optional<overlay::ShapeDefinition> const& definition) {
     if (shapePicking) return translated("shape.pickType");
+    if (shapeRows.several()) return translated("list.selectedCount", shapeRows.keys.size());
     if (!definition) return translated(shapeList.empty() ? "shape.empty" : "shape.selectHint");
     if (shapeDraft) return translated("shape.draftNote");
     if (definition->dimension != screen::playerDimension()) return definition->name + ": " + translated("shape.elsewhere");
@@ -436,16 +507,11 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     drawToolHeader(context,l,translated("shape.drawAll"),preferences.overlays.shapes,shapesDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // List pane.
-    float listRight = l.listLeft + l.listWidth;
     drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
         over(ShapeZone::NewShape) || shapePicking,ButtonKind::Primary); // lit while picking a type
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
-    float nameX = l.listLeft + ShapesLayout::pad + 14;
-    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
-    float typeX = shownX - 50;
-    label(context,nameX,l.theadTop+2,typeX-nameX-4,translated("shape.columnName"),palette::faint);
-    label(context,typeX,l.theadTop+2,48,translated("shape.columnType"),palette::faint);
-    label(context,shownX-6,l.theadTop+2,switchWidth+12,translated("shape.columnShown"),palette::faint,Align::Center);
+    auto const columns = listColumns(l.listLeft, l.listWidth, 0, switchWidth);
+    drawListHeadings(context,columns,l.theadTop);
     fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
     int draftOffset = shapeDraft ? 1 : 0;
     if (l.listCount == 0)
@@ -455,7 +521,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         bool isDraft = shapeDraft && i == 0;
         auto const* item = isDraft ? nullptr : &shapeList[i - draftOffset];
         auto const& shown = isDraft ? *shapeDraft : item->definition;
-        bool chosen = isDraft || (!shapeDraft && item && shapeSelected == item->id);
+        bool chosen = isDraft || (!shapeDraft && item && shapeRows.contains(item->id));
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
         rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,chosen && !isDraft,over(ShapeZone::ListRow,i));
         if (isDraft) frame(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::info);
@@ -463,14 +529,14 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         // The same type glyph and color as the opened shape; dimmed when hidden or elsewhere.
         Rgb glyph = isDraft ? palette::info : shapeRgb(shown.color);
         if (!shown.visible || elsewhere) glyph = {glyph.r * .4f, glyph.g * .4f, glyph.b * .4f};
-        drawTypeIcon(context,l.listLeft+ShapesLayout::pad,y+2,shape::typeIndex(shown),glyph);
-        std::string suffix = isDraft ? translated("shape.draftTag") : elsewhere ? translated("shape.otherDimension", shown.dimension) : "";
+        drawTypeIcon(context,columns.markX,y+2,shape::typeIndex(shown),glyph);
+        std::string suffix = isDraft ? translated("shape.draftTag") : "";
         float suffixWidth = suffix.empty() ? 0 : textWidth(context, suffix) + 6;
-        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? palette::info : elsewhere ? palette::faint : palette::text);
-        if (!suffix.empty())
-            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? palette::info : palette::faint);
-        label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
-        if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
+        float nameEnd = columns.nameX + columns.nameWidth;
+        label(context,columns.nameX,y+3,columns.nameWidth-suffixWidth,shown.name,isDraft ? palette::info : elsewhere ? palette::faint : palette::text);
+        if (!suffix.empty()) label(context,nameEnd-suffixWidth+2,y+3,suffixWidth,suffix,palette::info);
+        if (columns.hasDistance()) label(context,columns.distanceX,y+3,columns.distanceWidth,shapeDistanceText(shown),palette::dim,Align::Right);
+        if (!isDraft) toggleSwitch(context,columns.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
     }
     drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     // Divider between list and editor.
@@ -488,6 +554,26 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             label(context,dx+16,y+2,dw-16,translated(shape::types[i].name));
             label(context,dx+16,y+11,dw-16,translated(shape::types[i].description),palette::faint);
         }
+    } else if (!l.selecting.empty()) {
+        auto const chosen = shapeRows.inOrder(shapeOrder());
+        auto const pane = l.selectionPane(static_cast<int>(chosen.size()));
+        std::vector<SelectedName> names;
+        std::vector<overlay::ShapeDefinition const*> marks;
+        size_t shown = 0;
+        for (auto const& item : shapeList) {
+            if (!shapeRows.contains(item.id)) continue;
+            if (item.definition.visible) ++shown;
+            if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
+            names.push_back({item.definition.name, item.definition.dimension != screen::playerDimension(), shapeDistanceText(item.definition)});
+            marks.push_back(&item.definition);
+        }
+        drawSelectionPane(context,pane,chosen.size(),names,[&](size_t i, float gx, float gy) {
+            auto const& d = *marks[i];
+            Rgb glyph = shapeRgb(d.color);
+            if (!d.visible || d.dimension != screen::playerDimension()) glyph = {glyph.r * .4f, glyph.g * .4f, glyph.b * .4f};
+            drawTypeIcon(context,gx-4,gy-5,shape::typeIndex(d),glyph);
+        },l.selecting,shapeBulk,pointer.x,pointer.y,shown);
+        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     } else if (!definition) {
         paragraph(context,dx,l.detailTop+6,dw,translated(shapeList.empty() ? "shape.empty" : "shape.selectHint"),3,palette::faint);
     } else {
@@ -596,7 +682,11 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
 }
 std::optional<overlay::ShapeDefinition> visibleShape() {
     auto definition = currentShape();
-    if (!definition && shapeSelected) shapeSelected.reset(); // Removed elsewhere.
+    if (!definition && shapeSelected) { // Removed elsewhere.
+        shapeRows.retain([](overlay::ShapeId id) { return overlay::shapes::find(id).has_value(); });
+        shapeSelected = shapeRows.single();
+        definition = currentShape();
+    }
     return definition;
 }
 void renderShapesContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer,
@@ -606,6 +696,7 @@ void renderShapesContent(MinecraftUIRenderContext& context, glm::vec2 size, glm:
         : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
     auto l = ShapesLayout::fit(t, size.x, size.y, false, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
         shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
+    if (shapeRows.several() && !shapeDraft && !shapePicking) l.selecting = bulkActions(SelectionList::Shapes);
     shapesDisplayed = l;
     shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
     if (l.usable()) drawShapesBody(context, l, pointer, definition);
@@ -617,6 +708,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
         : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
     auto l = ShapesLayout::fit(screen::table(), size.x, size.y, true, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
         shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
+    if (shapeRows.several() && !shapeDraft && !shapePicking) l.selecting = bulkActions(SelectionList::Shapes);
     shapesDisplayed = l;
     shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
     if (l.width <= 0) {
@@ -633,7 +725,13 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
 
 }
 
-void refresh() { shapeList = overlay::shapes::list(); }
+void refresh() {
+    shapeList = overlay::shapes::list();
+    shapeRows.retain([](overlay::ShapeId id) {
+        return std::any_of(shapeList.begin(), shapeList.end(), [&](auto const& item) { return item.id == id; });
+    });
+    if (!shapeDraft) shapeSelected = shapeRows.single();
+}
 void click(float x, float y, bool right) { handleShapeClick(x, y, right); }
 void key(int key) { handleShapeKey(key); }
 void select(overlay::ShapeId id) {
@@ -687,6 +785,8 @@ void leave() { shapeDraft.reset(); shapePicking = false; overlay::shapes::setDra
 void reset() {
     if (shapeDraft) { shapeDraft.reset(); overlay::shapes::setDraft({}); }
     shapePicking = false; shapeDeleteArmed = false;
+    if (shapeRows.clearSeveral()) shapeSelected.reset(); // a closed screen keeps one row, not several
+    shapeBulk.disarm();
     endEditing();
 }
 int fieldSelected() { return shapeFieldSelected; }

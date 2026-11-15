@@ -1,6 +1,7 @@
 #include "ui/ListViewWidgets.h"
 #include "ui/ItemAmount.h"
 #include "ui/Localization.h"
+#include "ui/ScreenParts.h"
 #include "ui/TextFit.h"
 #include <vector>
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
@@ -35,6 +36,72 @@ void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float
     bool red = armed || hovered;
     box(context,x,y,w,h,hovered,armed ? palette::danger : palette::keyFill,red ? palette::dangerEdge : palette::keyEdge);
     centered(context,x,y,w,h,std::move(text),red && !armed ? palette::dangerText : palette::text);
+}
+void drawListHeadings(MinecraftUIRenderContext& context, ListColumns const& c, float top, std::string_view ownKey) {
+    auto shown = translated("shape.columnShown");
+    float shownW = std::max(c.shownWidth + 12, textWidth(context, shown));
+    float limit = c.headingLimit(shownW);
+    auto right = [&](float columnEnd, std::string const& text) {
+        float end = std::min(columnEnd, limit), w = textWidth(context, text);
+        label(context,end-w,top+2,w,text,palette::faint);
+        return end - w;
+    };
+    float nameEnd = c.nameX + c.nameWidth;
+    if (c.hasOwn() && !ownKey.empty()) nameEnd = std::min(nameEnd, right(c.ownX + c.ownWidth, translated(ownKey)) - ListColumns::gap);
+    if (c.hasDistance()) nameEnd = std::min(nameEnd, right(c.distanceX + c.distanceWidth, translated("waypoint.columnDistance")) - ListColumns::gap);
+    label(context,c.nameX,top+2,nameEnd-c.nameX,translated("shape.columnName"),palette::faint);
+    if (c.shownWidth > 0) label(context,c.shownHeadingX(shownW),top+2,shownW,shown,palette::faint,Align::Center);
+}
+std::string listDistanceText(int x, int z, int dimension) {
+    if (dimension != screen::playerDimension()) return screen::dimensionName(dimension);
+    return translated("waypoint.meters", screen::horizontalDistanceTo(x, z));
+}
+std::string listDistanceText(int x, int y, int z, int dimension) {
+    if (dimension != screen::playerDimension()) return screen::dimensionName(dimension);
+    return translated("waypoint.meters", screen::distanceTo(x, y, z));
+}
+void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
+    fill(context, x, cy - 3, 7, 6, color, .16f * alpha);
+    frame(context, x, cy - 3, 7, 6, color, alpha);
+    for (float dx : {-1.f, 6.f})
+        for (float dy : {-4.f, 2.f}) fill(context, x + dx, cy + dy, 2, 2, color, alpha);
+}
+void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
+                       std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
+                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
+                       size_t shown, float ownWidth) {
+    label(context,pane.x,pane.y+3,pane.w,translated("list.selectedCount", count));
+    shown = std::min(shown, count);
+    label(context,pane.x,pane.summaryY+2,pane.w,translated("list.shownHidden", shown, count - shown),palette::dim);
+    auto const c = listColumns(pane.x - ListColumns::pad, pane.w + 2 * ListColumns::pad, ownWidth, 0);
+    float y = pane.linesTop;
+    for (size_t i = 0; i < names.size() && i < static_cast<size_t>(pane.fit.names); ++i, y += pane.lineHeight) {
+        auto const& line = names[i];
+        Rgb ink = line.faded ? palette::faint : palette::text;
+        if (drawMark) drawMark(i, c.markX + 4, y + pane.lineHeight / 2);
+        label(context,c.nameX,y+2,c.nameWidth,line.name,ink);
+        if (c.hasDistance()) label(context,c.distanceX,y+2,c.distanceWidth,line.distance,palette::dim,Align::Right);
+        if (c.hasOwn()) label(context,c.ownX,y+2,c.ownWidth,line.own,line.faded ? palette::faint : palette::dim,Align::Right);
+    }
+    if (pane.fit.more > 0) label(context,c.nameX,y+2,pane.w-(c.nameX-pane.x),translated("list.moreSelected", pane.fit.more),palette::faint);
+    auto text = [&](BulkAction action) {
+        switch (action) {
+        case BulkAction::Show: return translated("list.showSelected");
+        case BulkAction::Hide: return translated("list.hideSelected");
+        default: return std::string{};
+        }
+    };
+    for (size_t i = 0; i < actions.size() && i < pane.buttonX.size(); ++i) {
+        bool over = pane.at(pointerX, pointerY) == static_cast<int>(i);
+        bool armed = arm.armed == actions[i];
+        if (irreversible(actions[i]))
+            drawDangerButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,
+                armedLabel(context,bulkDeleteLabel(count,false),bulkDeleteLabel(count,true),armed,pane.buttonW[i]),over,armed);
+        else drawButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),over);
+    }
+}
+std::string bulkDeleteLabel(size_t count, bool armed) {
+    return armed ? confirmDelete(static_cast<int>(count)) : translated("list.deleteSelected");
 }
 std::string armedLabel(MinecraftUIRenderContext& context, std::string label, std::string confirm, bool armed, float width) {
     if (!armed) return label;

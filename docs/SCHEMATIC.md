@@ -56,7 +56,10 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   schematic is placed (the new one is selected), when one is picked in the
   Placed list, with next/previous placement, or with the looked-at selection;
   never by walking near another. No placement switcher on the Check and
-  Materials tabs: it does not scale; the Placed list is where to pick.
+  Materials tabs: it does not scale; the Placed list is where to pick. Its
+  several rows ([L-190](backlog/done/L-190.md)) show, hide, delete
+  (no bulk move or turn) and pick none: the selected placement stays. Rows: a
+  footprint, name, distance, progress, shown (DESIGN "List columns").
 - Per placement: position, rotation, mirror, visibility, layer view, extra
   blocks (shown red and counted by default, or ignored), entities (default
   on). Structure void means "place nothing here".
@@ -221,8 +224,7 @@ right-aligned left/have (yellow when short).
   outlined on the block's edges with faintly tinted faces just outside. Only
   the save key opens the prompt: both corners as -/+ steppers (Shift: 10), the
   size, the name, the file it becomes, "Include entities" (default off),
-  "Clear area". The area stays after saving until cleared or the world is
-  left.
+  "Clear area". The area stays after saving until cleared or the world is left.
 - The save reads bounded chunk columns; an unloaded column waits until the
   player comes near (yellow column frames, a toast every 8 s with direction
   and distance); "Stop saving" stops it. An existing file needs a second
@@ -359,9 +361,8 @@ Game and SDK:
 - A translucent ghost look as default: right block by block, unpredictable in
   dense builds; the tinted look is default, translucency is [L-186 Improve schematic ghost legibility and reconsider translucency](backlog/L-186.md).
 - `BlockActor::create` from NBT: null for every id.
-- Hooking `BlockSource::getLightColor`: crashed at start (its `Brightness` is
-  by value in the game, by reference in the SDK); `getBrightnessPair`: no
-  effect.
+- Hooking `BlockSource::getLightColor`: crashed at start (its `Brightness`
+  is by value in the game, by reference in the SDK); `getBrightnessPair`: no effect.
 - A `static` block pointer in `liquidShell`: crashed after a registry reload.
   Look it up each time.
 - `beacon_beam_transparent` in the previews: no depth, so the far-to-near
@@ -394,7 +395,6 @@ Game and SDK:
   [L-117 Schematic entity name tags render badly in Japanese](backlog/L-117.md);
   [L-184 Inspect ghost block data and schematic container contents](backlog/L-184.md);
   [L-185 Instantly load a schematic into the world when cheats allow it](backlog/L-185.md);
-  [L-190 Select several rows at once in list screens](backlog/L-190.md);
   [L-265 Schematic placement assist: place the ghost's block in its state](backlog/L-265.md)
-  (L-116, L-183 and L-186 are linked above). Later, not chosen: area fill,
-  layers by material.
+  (L-116, L-183, L-186 and L-190 are linked above). Later, not chosen: area
+  fill, layers by material.

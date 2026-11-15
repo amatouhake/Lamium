@@ -2,12 +2,15 @@
 // Pieces the list-and-detail views (Shapes, Waypoints, Schematics) and the
 // prompts draw with, on top of Widgets.h.
 #include "ui/HudContents.h"
+#include "ui/ListColumns.h"
 #include "ui/NumberInput.h"
+#include "ui/RowSelection.h"
 #include "ui/SearchQuery.h"
 #include "ui/SettingsTable.h"
 #include "ui/ShapesLayout.h"
 #include "ui/Widgets.h"
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 class MinecraftUIRenderContext;
@@ -28,6 +31,33 @@ Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, 
 // visible one (a section's Reset) does not draw the eye.
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed);
+// The lists' shared columns (ListColumns): the heading row from `top`, with
+// `ownKey` over the list's own column, and the distance cell's text, meters
+// from the player in its dimension, else that dimension's name: horizontal
+// for an area (no height, L-350), as the Waypoints setting says with a y.
+void drawListHeadings(MinecraftUIRenderContext& context, ListColumns const& c, float top, std::string_view ownKey = {});
+std::string listDistanceText(int x, int z, int dimension);
+std::string listDistanceText(int x, int y, int z, int dimension);
+// A footprint's small mark (a placement in the lists and the map, L-296):
+// a faint fill and a frame with corner dots, 7 wide from `x`, centered on `cy`.
+void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha = 1);
+// The selection pane while several rows are selected (L-190), laid out by
+// `pane`: "N selected", "Shown N / Hidden M" (`shown` of `count`), then the
+// first pane.fit.names of `names` (the selected rows in list order; faded
+// ones faint) in the lists' columns without the switch: the mark, which
+// `drawMark(index, x, centerY)` draws in a 9-unit column, the name, the
+// distance and the list's own column (`ownWidth`, 0: none) as its rows show
+// them; "N more" when they do not all fit, and a button per action; Delete
+// is destructive, armed by `arm`. The view draws the rule above the buttons.
+struct SelectedName { std::string name; bool faded = false; std::string distance, own; };
+void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
+                       std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
+                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
+                       size_t shown, float ownWidth = 0);
+// Bulk Delete's label for `count` selected rows: "Delete", armed
+// "Confirm delete N" (the map panel sizes its button for both with armedWidth;
+// the lists' fixed-width Delete falls back to "Confirm" through armedLabel).
+std::string bulkDeleteLabel(size_t count, bool armed);
 // What a press-twice button reads (DESIGN "Controls"): `label`, and once armed
 // `confirm`, what a second press does ("Confirm delete", 「削除を確定」); in a
 // button of `width` too narrow for that, just "Confirm" (`confirm.short`).

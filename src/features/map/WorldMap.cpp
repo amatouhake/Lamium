@@ -25,6 +25,7 @@
 #include "ui/NumberInput.h"
 #include "ui/SearchQuery.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/RowSelection.h"
 #include "ui/ScreenParts.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
@@ -131,7 +132,8 @@ enum class Target {
     InfoButton, InfoPanel, InfoSlime, InfoRadar, // The Information button and its panel (L-297).
     // The side panel: its background, header buttons, list and editor.
     Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Delete, OpenScreen,
-    PanelKind, PanelKindItem // The list's layer menu (L-204) and its items.
+    PanelKind, PanelKindItem, // The list's layer menu (L-204) and its items.
+    Bulk // A button of the selection pane shown while several rows are selected (L-190).
 };
 struct Hit {
     float x, y, w, h;
@@ -184,6 +186,7 @@ struct State {
         double centerX, centerZ;
         bool moved = false;
         std::optional<MarkKey> marker; // Pressed on a mark: a click selects it.
+        bool ctrl = false;             // ... or, with Ctrl, adds it to the side panel's rows or drops it (L-190).
     };
     std::optional<Drag> drag;
     std::optional<Menu> menu;
@@ -200,7 +203,12 @@ struct State {
     float top = rowHeight; // The top bar, one or two rows.
     double pixelsPerUnit = 1; // Screen pixels per GUI unit, as last drawn.
     float panelWidth = 0;  // The side panel as last drawn; 0 when closed.
-    std::optional<MarkKey> selected; // Side panel: the death point, a waypoint, a placement or a shape.
+    std::optional<MarkKey> selected; // Side panel: a waypoint, a placement or a shape; rows' row while it is alone.
+    // What the side list has selected (L-190), in its drawn order; several
+    // rows are always of the listed layer and dimension.
+    ui::RowSelection<MarkKey> rows;
+    std::vector<MarkKey> listOrder;
+    ui::BulkArm bulk;
     int listFirst = 0;
     bool deleteArmed = false;
     bool editingName = false;
@@ -523,6 +531,9 @@ void focus(double x, double z) {
 void select(std::optional<MarkKey> mark, bool move) {
     commitName();
     state.selected = mark;
+    if (mark) state.rows.only(*mark);
+    else state.rows.clear();
+    state.bulk.disarm();
     state.deleteArmed = false;
     if (mark) setShownList(listKind(mark->layer));
     if (!move || !mark) return;
@@ -566,6 +577,7 @@ Request panelAction(Hit const& hit) {
     bool sameField = (hit.target == Target::Name && state.editingName) || (hit.target == Target::Coordinate && hit.item == state.editingAxis);
     if (!sameField) commitName();
     if (hit.target != Target::Delete) state.deleteArmed = false;
+    if (hit.target != Target::Bulk) state.bulk.disarm();
     auto set = waypoints::current();
     switch (hit.target) {
     case Target::PanelClose: setPanelOpen(false); break;
@@ -584,6 +596,13 @@ Request panelAction(Hit const& hit) {
         break;
     }
     case Target::Row:
+        // Ctrl + click toggles a row, Shift + click takes a range; the map
+        // stays where it is and the panel shows the one row or how many.
+        if (ui::screen::heldCtrl() || ui::screen::heldShift()) {
+            state.rows.click(hit.mark, ui::screen::heldCtrl(), ui::screen::heldShift(), state.listOrder);
+            state.selected = state.rows.single();
+            break;
+        }
         if (hit.mark.layer == MarkLayer::Placement) selectPlacement(hit.mark);
         select(hit.mark, true);
         break;
@@ -628,7 +647,17 @@ Request panelAction(Hit const& hit) {
         state.deleteArmed = false;
         if (!state.selected) break;
         if (!deleteMark(*state.selected)) say(ui::translated("waypoint.saveError"));
-        else state.selected.reset();
+        else select(std::nullopt, false);
+        break;
+    }
+    case Target::Bulk: {
+        auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
+        if (!state.rows.several() || hit.item < 0 || hit.item >= static_cast<int>(actions.size())) break;
+        auto action = actions[static_cast<size_t>(hit.item)];
+        if (!state.bulk.press(action)) break;
+        bool saved = action == ui::BulkAction::Delete ? map::remove(state.rows.keys) : setVisible(state.rows.keys, action == ui::BulkAction::Show);
+        if (!saved) say(ui::translated("waypoint.saveError"));
+        if (action == ui::BulkAction::Delete) select(std::nullopt, false);
         break;
     }
     case Target::OpenScreen:
@@ -1124,7 +1153,7 @@ void footprintCorners(MinecraftUIRenderContext& context, float x, float y, float
 }
 // Footprints (L-139): shapes, then schematic placements over them, each a
 // faint fill, a frame and its name, under the other markers. Hidden ones
-// stay faint, like hidden waypoints; the selected one is framed white.
+// stay faint, like hidden waypoints; every selected one is framed white.
 void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) {
     auto& view = state.view;
     auto on = layers();
@@ -1144,7 +1173,7 @@ void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) 
         x0 = cx - w / 2; y0 = cy - h / 2;
         if (x0 + w < -20 || y0 + h < -20 || x0 > view.width + 20 || y0 > view.height + 20) continue;
         auto color = rgb(mark.color);
-        bool chosen = mark.selected || (state.panelWidth > 0 && state.selected == mark.key);
+        bool chosen = mark.selected || (state.panelWidth > 0 && state.rows.contains(mark.key));
         float opacity = mark.visible ? 1.f : .35f;
         auto line = chosen ? ui::palette::white : color;
         if (mark.key.layer == MarkLayer::Placement) {
@@ -1193,7 +1222,8 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
     // A footprint whose provider turned off, or whose entry is gone, takes
     // its selection and menu with it; one only switched off on the map stays
     // selectable from the side panel (L-204).
-    if (state.selected && !pointLayer(state.selected->layer) && !areaOf(*state.selected)) state.selected.reset();
+    state.rows.retain([](MarkKey mark) { return pointLayer(mark.layer) || areaOf(mark); });
+    state.selected = state.rows.single();
     if (state.menu && (state.menu->kind == MenuKind::Placement || state.menu->kind == MenuKind::Shape) && !areaOf(state.menu->mark))
         state.menu.reset();
     auto spot = playerSpot();
@@ -1231,7 +1261,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             // Hidden ones stay faint here so they can be shown again.
             float opacity = w.visible ? 1.f : .35f;
             Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]);
-            bool const chosen = state.panelWidth > 0 && state.selected == waypointKey(w.id);
+            bool const chosen = state.panelWidth > 0 && state.rows.contains(waypointKey(w.id));
             if (w.death) {
                 // A death's waypoint keeps the cross for its mark (L-328).
                 if (chosen) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
@@ -1292,10 +1322,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
 // Footprints as the map draws them, small (L-296): a placement's fill and
 // frame with corner dots, a shape's ring.
 void footprintIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
-    ui::fill(context, x, cy - 3, 7, 6, color, .16f * alpha);
-    ui::frame(context, x, cy - 3, 7, 6, color, alpha);
-    for (float dx : {-1.f, 6.f})
-        for (float dy : {-4.f, 2.f}) ui::fill(context, x + dx, cy + dy, 2, 2, color, alpha);
+    ui::drawFootprintGlyph(context, x, cy, color, alpha);
 }
 void shapeIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
     int ix = static_cast<int>(x), iy = static_cast<int>(cy) - 3;
@@ -1668,9 +1695,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     };
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());
-    if (state.selected && pointLayer(state.selected->layer)
-        && !waypointOf(set, *state.selected))
-        state.selected.reset();
+    state.rows.retain([&](MarkKey mark) { return !pointLayer(mark.layer) || waypointOf(set, mark); });
+    state.selected = state.rows.single();
     // Or this dimension's placements or shapes (L-204), nearest first.
     int const kind = shownList();
     auto areaDistance = [&](AreaMark const& area) {
@@ -1687,6 +1713,14 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     std::stable_sort(areaRows.begin(), areaRows.end(),
                      [&](AreaMark const* a, AreaMark const* b) { return areaDistance(*a) < areaDistance(*b); });
     int const rows = kind == 0 ? static_cast<int>(entries.size()) : static_cast<int>(areaRows.size());
+    state.listOrder.clear();
+    if (kind == 0) for (int index : entries) state.listOrder.push_back(waypointKey(set.waypoints[static_cast<size_t>(index)].id));
+    else for (auto const* area : areaRows) state.listOrder.push_back(area->key);
+    // Several rows stay those the list shows (another layer or dimension drops them).
+    if (state.rows.several()) {
+        state.rows.retain([](MarkKey mark) { return std::ranges::find(state.listOrder, mark) != state.listOrder.end(); });
+        state.selected = state.rows.single();
+    }
 
     // The header names the listed layer and opens the menu of layers.
     constexpr std::array<std::string_view, 3> kindNames{"nav.waypoints", "nav.schematics", "nav.shapes"};
@@ -1738,7 +1772,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (int r = 0; kind != 0 && r < maxRows && state.listFirst + r < rows; ++r) {
         auto const& area = *areaRows[static_cast<size_t>(state.listFirst + r)];
         float ry = y + r * rowH;
-        bool selected = area.key == state.selected, over = hovering(x0, ry, w, rowH);
+        bool selected = state.rows.contains(area.key), over = hovering(x0, ry, w, rowH);
         if (selected) {
             ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::accent, .16f);
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
@@ -1762,7 +1796,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         int index = entries[static_cast<size_t>(state.listFirst + r)];
         auto mark = waypointKey(set.waypoints[static_cast<size_t>(index)].id);
         float ry = y + r * rowH;
-        bool selected = mark == state.selected, over = hovering(x0, ry, w, rowH);
+        bool selected = state.rows.contains(mark), over = hovering(x0, ry, w, rowH);
         if (selected) {
             ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::accent, .16f);
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
@@ -1784,6 +1818,56 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     y = state.listBottom + 2;
     ui::fill(context, x0 + 1, y, w - 1, 1, ui::palette::white, .14f);
     y += 4;
+    if (state.rows.several()) {
+        // Where one row's details go: how many, how many shown, the names as
+        // space allows, then Show, Hide and Delete on the panel's last row.
+        auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
+        auto const count = state.rows.keys.size();
+        float plainW = std::max(ui::textWidth(context, ui::translated("list.showSelected")),
+                                ui::textWidth(context, ui::translated("list.hideSelected"))) + 8;
+        float deleteW = ui::armedWidth(context, ui::bulkDeleteLabel(count, false), ui::bulkDeleteLabel(count, true), 8);
+        auto const pane = ui::compactSelectionPane(x, inner, y + inset - 3, bottom, buttonHeight, static_cast<int>(count), actions,
+                                                   plainW, deleteW);
+        std::vector<ui::SelectedName> names;
+        std::vector<MarkKey> marks;
+        size_t shown = 0;
+        for (auto const& mark : state.rows.inOrder(state.listOrder)) {
+            bool visible = false;
+            std::string name, far;
+            if (auto const* p = waypointOf(set, mark)) {
+                visible = p->visible;
+                name = p->name;
+                if (int index = indexOfId(set.waypoints, mark.id); index >= 0 && spot && spot->dimension == state.dimension)
+                    far = ui::translated("waypoint.meters", static_cast<int>(std::lround(distance(index))));
+            } else if (auto const* area = areaOf(mark)) {
+                visible = area->visible;
+                name = area->name;
+                if (spot && spot->dimension == state.dimension)
+                    far = ui::translated("waypoint.meters", static_cast<int>(std::lround(areaDistance(*area))));
+            } else continue;
+            if (visible) ++shown;
+            if (names.size() >= static_cast<size_t>(pane.fit.names)) continue;
+            names.push_back({name, !visible, far});
+            marks.push_back(mark);
+        }
+        ui::drawSelectionPane(context, pane, count, names, [&](size_t i, float gx, float gy) {
+            auto mark = marks[i];
+            if (auto const* p = waypointOf(set, mark)) {
+                Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(p->color))]);
+                if (p->death) cross(context, gx, gy, color, p->visible ? 1.f : .4f);
+                else diamond(context, gx, gy, 7, color, p->visible ? 1.f : .4f, p->temporary);
+            } else if (auto const* area = areaOf(mark)) {
+                float alpha = area->visible ? 1.f : .4f;
+                if (mark.layer == MarkLayer::Placement) footprintIcon(context, gx - 3, gy, rgb(area->color), alpha);
+                else if (area->round) shapeIcon(context, gx - 3, gy, rgb(area->color), alpha);
+                else ui::frame(context, gx - 3, gy - 3, 7, 6, rgb(area->color), alpha);
+            }
+        }, actions, state.bulk, static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y), shown);
+        if (!pane.buttonX.empty()) ui::fill(context, x0 + 1, pane.buttonsY - 3, w - 1, 1, ui::palette::white, .14f);
+        for (size_t i = 0; i < pane.buttonX.size(); ++i)
+            state.hits.push_back({pane.buttonX[i], pane.buttonsY, pane.buttonW[i], buttonHeight, Target::Bulk, static_cast<int>(i)});
+        return;
+    }
 
     auto small = [&](float sx, float sy, float width, std::string text, Target target, int item, bool danger = false) {
         // Delete holds both its labels, so arming moves nothing.
@@ -1958,6 +2042,8 @@ void open(IClientInstance& client, bool resume) {
     state.openedAt = now();
     if (resume) return;
     state.selected.reset();
+    state.rows.clear();
+    state.bulk.disarm();
     state.deleteArmed = false;
     state.cameraReference = cameraAvailable();
     if (auto spot = sourceSpot()) {
@@ -2095,7 +2181,7 @@ Request press(float x, float y, bool right) {
         default: act(hit->target); return request;
         }
     }
-    if (onMap && !menuWasOpen) state.drag = State::Drag{x, y, state.view.centerX, state.view.centerZ, false, markerAt(x, y)};
+    if (onMap && !menuWasOpen) state.drag = State::Drag{x, y, state.view.centerX, state.view.centerZ, false, markerAt(x, y), ui::screen::heldCtrl()};
     return request;
 }
 void release() {
@@ -2104,8 +2190,20 @@ void release() {
     if (state.drag && !state.drag->moved && state.drag->marker) {
         setPanelOpen(true);
         auto mark = *state.drag->marker;
-        if (mark.layer == MarkLayer::Placement) selectPlacement(mark);
-        select(mark, false);
+        if (state.drag->ctrl) {
+            // No range and no box; the map stays and no placement is picked,
+            // as for Ctrl + click in the list.
+            commitName();
+            bool listed = std::ranges::find(state.listOrder, mark) != state.listOrder.end();
+            state.rows.toggleListed(mark, state.listOrder);
+            if (!listed) setShownList(listKind(mark.layer));
+            state.selected = state.rows.single();
+            state.bulk.disarm();
+            state.deleteArmed = false;
+        } else {
+            if (mark.layer == MarkLayer::Placement) selectPlacement(mark);
+            select(mark, false);
+        }
     }
     state.drag.reset();
 }
@@ -2142,9 +2240,22 @@ Request key(int key, bool openKey) {
         else if (key == 0x1b) { state.editingName = false; state.editingAxis = -1; }
         return request;
     }
+    // Ctrl + A takes the side list's rows; Esc closes panels and menus, then
+    // lets several rows go (none selected), then closes the map.
+    if (key == 0x41 && ui::screen::heldCtrl()) {
+        if (panelOpen() && !state.listOrder.empty()) {
+            commitName();
+            state.rows.selectAll(state.listOrder);
+            state.selected = state.rows.single();
+            state.deleteArmed = false;
+            state.bulk.disarm();
+        }
+        return request;
+    }
     if (key == 0x1b) {
         if (state.cavePanel || state.infoPanel) state.cavePanel = state.infoPanel = false;
         else if (state.menu) state.menu.reset();
+        else if (panelOpen() && state.rows.clearSeveral()) { state.selected.reset(); state.bulk.disarm(); }
         else request.kind = Request::Kind::Close;
     } else if (key == 0x20) {
         returnToPlayer();

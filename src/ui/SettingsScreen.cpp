@@ -528,6 +528,12 @@ int distanceTo(int x, int y, int z) {
     map::Waypoint at; at.x = x; at.y = y; at.z = z;
     return static_cast<int>(std::lround(map::waypointDistance(at, feet.x, feet.y, feet.z, waypointsHorizontal())));
 }
+int horizontalDistanceTo(int x, int z) {
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return 0;
+    auto feet = player->getFeetPos();
+    return static_cast<int>(std::lround(std::hypot(x + .5 - feet.x, z + .5 - feet.z)));
+}
 
 // ---- Waypoint add prompt ----
 // From the world map the prompt returns to it; otherwise the screen closes.
@@ -1365,6 +1371,7 @@ int playerDimension() { return ui::playerDimension(); }
 std::string dimensionName(int dimension) { return ui::dimensionName(dimension); }
 bool waypointsHorizontal() { return ui::waypointsHorizontal(); }
 int distanceTo(int x, int y, int z) { return ui::distanceTo(x, y, z); }
+int horizontalDistanceTo(int x, int z) { return ui::horizontalDistanceTo(x, z); }
 void returnToMap() { enterWorldMap(mapFromSettings, true); }
 void showSavedData() {
     finishNumber();

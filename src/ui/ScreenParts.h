@@ -90,4 +90,6 @@ std::string dimensionName(int dimension);
 bool waypointsHorizontal();
 // Blocks from the player to the waypoint at (x, y, z), measured as that setting says.
 int distanceTo(int x, int y, int z);
+// Blocks from the player to the column (x, z), height left out: areas have none.
+int horizontalDistanceTo(int x, int z);
 }
