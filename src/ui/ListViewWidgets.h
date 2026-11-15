@@ -9,6 +9,7 @@
 #include "ui/ShapesLayout.h"
 #include "ui/Widgets.h"
 #include <cstdint>
+#include <functional>
 #include <string>
 class MinecraftUIRenderContext;
 namespace lamium::ui {
@@ -28,12 +29,16 @@ Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, 
 // visible one (a section's Reset) does not draw the eye.
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed);
-// The bar of bulk actions while several rows are selected (L-190): a rule
-// above, "N selected", then a button per action at the right; Delete is a
-// destructive button armed by `bar`. Buttons are `h` high from `y`; returns
-// where they went, for the click that follows.
-BulkBarLayout drawBulkBar(MinecraftUIRenderContext& context, float x, float y, float w, float h, size_t count,
-                          std::vector<BulkAction> const& actions, BulkBar const& bar, float pointerX, float pointerY);
+// The selection pane while several rows are selected (L-190), laid out by
+// `pane`: "N selected", then the first pane.fit.names of `names` (the
+// selected rows in list order; faded ones faint) each after its mark, which
+// `drawMark(index, x, centerY)` draws in a 9-unit column, "N more" when they
+// do not all fit, and a button per action; Delete is destructive, armed by
+// `arm`. The view draws the rule above the buttons, as for its own.
+struct SelectedName { std::string name; bool faded = false; };
+void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
+                       std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
+                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY);
 // The body of a docked view too short for its editor (!l.usable()): Expand and
 // a hint under the header, which matches what ShapesLayout::hit() answers then.
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);

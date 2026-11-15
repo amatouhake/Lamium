@@ -35,26 +35,28 @@ void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float
     box(context,x,y,w,h,hovered,armed ? palette::danger : palette::keyFill,red ? palette::dangerEdge : palette::keyEdge);
     centered(context,x,y,w,h,std::move(text),red && !armed ? palette::dangerText : palette::text);
 }
-BulkBarLayout drawBulkBar(MinecraftUIRenderContext& context, float x, float y, float w, float h, size_t count,
-                          std::vector<BulkAction> const& actions, BulkBar const& bar, float pointerX, float pointerY) {
+void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
+                       std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
+                       std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY) {
+    label(context,pane.x,pane.y+3,pane.w,translated("list.selectedCount", count));
+    float y = pane.linesTop;
+    for (size_t i = 0; i < names.size() && i < static_cast<size_t>(pane.fit.names); ++i, y += pane.lineHeight) {
+        if (drawMark) drawMark(i, pane.x + 4, y + pane.lineHeight / 2);
+        label(context,pane.x+11,y+2,pane.w-11,names[i].name,names[i].faded ? palette::faint : palette::text);
+    }
+    if (pane.fit.more > 0) label(context,pane.x+11,y+2,pane.w-11,translated("list.moreSelected", pane.fit.more),palette::faint);
     auto text = [&](BulkAction action) {
         switch (action) {
         case BulkAction::Show: return translated("list.showSelected");
         case BulkAction::Hide: return translated("list.hideSelected");
-        default: return bar.armed == action ? translated("list.deleteSelectedArmed", count) : translated("list.deleteSelected");
+        default: return arm.armed == action ? translated("list.deleteSelectedArmed", count) : translated("list.deleteSelected");
         }
     };
-    std::vector<float> widths;
-    for (auto action : actions) widths.push_back(std::max(28.f, textWidth(context, text(action)) + 8));
-    auto l = bulkBarLayout(x, y, w, h, widths);
-    fill(context,x,y-2,w,1,palette::white,.14f);
-    label(context,x,y+(h-10)/2+boxTextInset()-1,l.countWidth(),translated("list.selectedCount", count),palette::dim);
-    for (size_t i = 0; i < actions.size(); ++i) {
-        bool over = l.at(pointerX, pointerY) == static_cast<int>(i);
-        if (irreversible(actions[i])) drawDangerButton(context,l.buttonX[i],y,l.buttonW[i],h,text(actions[i]),over,bar.armed == actions[i]);
-        else drawButton(context,l.buttonX[i],y,l.buttonW[i],h,text(actions[i]),over);
+    for (size_t i = 0; i < actions.size() && i < pane.buttonX.size(); ++i) {
+        bool over = pane.at(pointerX, pointerY) == static_cast<int>(i);
+        if (irreversible(actions[i])) drawDangerButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),over,arm.armed == actions[i]);
+        else drawButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),over);
     }
-    return l;
 }
 void drawPageHeading(MinecraftUIRenderContext& context, SettingsTable const& t, std::string_view section, std::string_view feature,
                      float backX, bool backHovered, std::string const& aside) {

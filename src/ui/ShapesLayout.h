@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/RowSelection.h"
 #include "ui/SettingsTable.h"
 #include <algorithm>
 #include <cmath>
@@ -25,7 +26,9 @@ struct ShapesLayout {
     int listVisible{}, listFirst{}, listCount{};
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
-    float bulkTop = -1; // The bar of bulk actions, when reserveBulkBar() made room for it.
+    // Several rows selected (L-190): the selection pane's actions replace the
+    // editor, set by the view after fit().
+    std::vector<BulkAction> selecting;
 
     // fullToolbar: the toolbar is taken across its width (the Schematics tabs),
     // so a docked draw-all switch gets a row of its own below it.
@@ -95,15 +98,6 @@ struct ShapesLayout {
         return l;
     }
     bool usable() const { return width > 0 && fieldVisible > 0; }
-    // While several rows are selected (L-190) the list's last row holds the
-    // bar of bulk actions; a list of fewer than two rows keeps them. `first`
-    // is the view's own first row, which fit() clamped for the taller list.
-    void reserveBulkBar(int first) {
-        if (listVisible < 2) return;
-        --listVisible;
-        bulkTop = rowsTop + listVisible * rowHeight;
-        listFirst = std::clamp(first, 0, std::max(0, listCount - listVisible));
-    }
     float listRowY(int index) const { return rowsTop + (index - listFirst) * rowHeight; }
     // The list's scrollbar, along its right edge while the rows overflow:
     // a press there or a drag puts the first row where the pointer is.
@@ -144,6 +138,17 @@ struct ShapesLayout {
     float actionX(int index) const { return detailLeft + pad + index * (actionWidth + 4); }
     // The delete action sits at the right edge.
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
+    // The selection pane in the detail pane: the count where the name sits,
+    // the names below, the buttons where the editor's actions are.
+    SelectionPaneLayout selectionPane(int count) const {
+        SelectionPaneLayout p;
+        p.x = detailLeft + pad; p.w = detailWidth - 2 * pad; p.y = nameY;
+        p.linesTop = nameY + rowHeight;
+        p.fit = namesFit(count, actionsY - 4 - p.linesTop, p.lineHeight);
+        p.buttonsY = actionsY + 2; p.buttonH = 12;
+        placeSelectionButtons(p, selecting, actionX(0), actionWidth, 4, deleteX(), deleteWidth);
+        return p;
+    }
 
     // Hits follow what is drawn. A view that is not usable() draws no list or
     // editor; docked, it still draws Close and Expand (drawDockedTooShort), so
@@ -172,12 +177,15 @@ struct ShapesLayout {
             if (y >= toolbarTop && y < toolbarTop + toolbarHeight)
                 return x < listLeft + pad + newWidth ? Hit{Zone::NewShape} : Hit{};
             if (y < rowsTop) return {};
-            if (bulkTop >= 0 && y >= bulkTop && y < bulkTop + rowHeight) return {Zone::Bulk};
             int offset = static_cast<int>((y - rowsTop) / rowHeight);
             int row = listFirst + offset;
             return offset < listVisible && row < listCount ? Hit{Zone::ListRow, row} : Hit{};
         }
         if (x < detailLeft || x >= detailLeft + detailWidth || y < detailTop) return {};
+        if (!selecting.empty()) {
+            int at = selectionPane(0).at(x, y);
+            return at >= 0 ? Hit{Zone::Bulk, at} : Hit{};
+        }
         if (y >= actionsY && y < actionsY + actionsHeight) {
             // Draft: Create, Cancel. Existing shape: Duplicate, then Delete at the right edge.
             if (x >= actionX(0) && x < actionX(0) + firstActionWidth) return {Zone::Action, 0};

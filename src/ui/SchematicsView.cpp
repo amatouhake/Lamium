@@ -146,11 +146,11 @@ std::string largeSchematicConfirmed; // a large file the player chose to load
 ShapesLayout schematicsDisplayed;
 int schematicListFirst = 0, schematicFieldFirst = 0, schematicFieldSelected = -1;
 bool schematicDeleteArmed = false;
-// The Placements tab's selection by session id (L-190); its shown row is the
-// picked placement, which is also the schematic's selected one.
+// The Placements tab's selection by session id (L-190). One row is the picked
+// placement, which is also the schematic's selected one; while several are
+// selected none is picked and the schematic's selected placement stays.
 RowSelection<std::uint64_t> placementRows;
-BulkBar placementBulk;
-BulkBarLayout placementBulkDrawn;
+BulkArm placementBulk;
 int editingSchematicField = -1;
 void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& apply);
 // ---- Schematics view (L-93) ----
@@ -207,12 +207,12 @@ void refreshSchematics(bool files) {
     int placements = static_cast<int>(schematicSet.placements.size()), fileCount = static_cast<int>(schematicFiles.size());
     if ((schematicPick == SchematicPick::Placement && schematicIndex >= placements)
         || (schematicPick == SchematicPick::File && schematicIndex >= fileCount)) schematicPick = SchematicPick::None;
-    // Picking another placement (a plain click, Page Up/Down, a new one)
-    // returns to that one row.
+    // One row follows the picked placement; several stay until a row is picked.
     placementRows.retain([](std::uint64_t id) { return indexOfId(schematicSet.placements, id) >= 0; });
-    if (schematicPick == SchematicPick::Placement && schematicIndex >= 0) {
+    if (placementRows.several()) {}
+    else if (schematicPick == SchematicPick::Placement && schematicIndex >= 0) {
         auto id = schematicSet.placements[static_cast<size_t>(schematicIndex)].id;
-        if (placementRows.shown != id) placementRows.only(id);
+        if (placementRows.single() != id) placementRows.only(id);
     } else placementRows.clear();
     // The selected row follows its cell when the rows change (a new pass, an
     // ignored difference): the same index would be another cell. Read before
@@ -290,7 +290,7 @@ int schematicRowCount() {
     }
 }
 schematic::SavedPlacement const* selectedPlacement() {
-    return schematicTab == SchematicTab::Placements && schematicPick == SchematicPick::Placement && schematicIndex >= 0
+    return schematicTab == SchematicTab::Placements && !placementRows.several() && schematicPick == SchematicPick::Placement && schematicIndex >= 0
         && schematicIndex < static_cast<int>(schematicSet.placements.size())
         ? &schematicSet.placements[static_cast<size_t>(schematicIndex)] : nullptr;
 }
@@ -302,6 +302,9 @@ void pickSchematic(SchematicPick pick, int index) {
     screen::finishEditing();
     schematicPick = pick;
     schematicIndex = index;
+    // Picking a placement (a plain click, Page Up/Down, a new one) returns to that one row.
+    if (pick == SchematicPick::Placement && index >= 0 && index < static_cast<int>(schematicSet.placements.size()))
+        placementRows.only(schematicSet.placements[static_cast<size_t>(index)].id);
     schematicFieldFirst = 0;
     schematicFieldSelected = -1;
     schematicDeleteArmed = false;
@@ -397,20 +400,26 @@ std::vector<std::uint64_t> placementOrder() {
     for (auto const& p : schematicSet.placements) order.push_back(p.id);
     return order;
 }
-// The picked placement follows the shown row, so keys, the HUD and the Check
-// tab act on the row clicked last.
-void pickShownPlacement() {
+// The picked placement follows a row left alone, so keys, the HUD and the
+// Check tab act on it; several rows pick none and leave the schematic's
+// selected placement as it was.
+void followPlacementRows() {
     placementBulk.disarm();
     schematicDeleteArmed = false;
-    int shown = placementRows.shown ? indexOfId(schematicSet.placements, *placementRows.shown) : -1;
-    if (shown < 0) pickSchematic(SchematicPick::None, -1);
-    else if (schematicPick != SchematicPick::Placement || shown != schematicIndex) pickSchematic(SchematicPick::Placement, shown);
+    if (placementRows.several()) {
+        if (schematicPick != SchematicPick::None) pickSchematic(SchematicPick::None, -1);
+        return;
+    }
+    auto one = placementRows.single();
+    int index = one ? indexOfId(schematicSet.placements, *one) : -1;
+    if (index < 0) pickSchematic(SchematicPick::None, -1);
+    else if (schematicPick != SchematicPick::Placement || index != schematicIndex) pickSchematic(SchematicPick::Placement, index);
 }
 // Ctrl + click toggles a row, Shift + click takes a range.
 void pickPlacements(int row) {
     if (row < 0 || row >= static_cast<int>(schematicSet.placements.size())) return;
     placementRows.click(schematicSet.placements[static_cast<size_t>(row)].id, screen::heldCtrl(), screen::heldShift(), placementOrder());
-    pickShownPlacement();
+    followPlacementRows();
 }
 void bulkPlacements(BulkAction action) {
     auto const ids = placementRows.keys;
@@ -421,8 +430,8 @@ void bulkPlacements(BulkAction action) {
             return true;
         })) { screen::setMessage(translated("schematic.saveError")); return; }
     screen::clearMessage();
+    if (action == BulkAction::Delete) placementRows.clear();
     refreshSchematics(false);
-    if (action == BulkAction::Delete) pickSchematic(SchematicPick::None, -1);
 }
 void showSelectedMismatch() {
     // The rows are from before a move or layer change: their cells are not
@@ -701,9 +710,7 @@ void handleSchematicClick(float x, float y, bool right) {
                 return;
             }
             if (screen::heldCtrl() || screen::heldShift()) { pickPlacements(row); return; }
-            if (placementRows.several() && row >= 0 && row < static_cast<int>(schematicSet.placements.size()))
-                placementRows.only(schematicSet.placements[static_cast<size_t>(row)].id);
-            if (schematicPick != SchematicPick::Placement || row != schematicIndex) pickSchematic(SchematicPick::Placement, row);
+            if (placementRows.several() || schematicPick != SchematicPick::Placement || row != schematicIndex) pickSchematic(SchematicPick::Placement, row);
             return;
         case SchematicTab::Files: {
             if (row < 0 || row >= static_cast<int>(schematicFileRows.size())) return;
@@ -721,7 +728,7 @@ void handleSchematicClick(float x, float y, bool right) {
     case ShapeZone::Field: activateSchematicField(hit.index, right ? -1 : hit.part); return;
     case ShapeZone::Bulk: {
         auto const actions = bulkActions(SelectionList::Placements);
-        int at = placementBulkDrawn.at(x, y);
+        int at = hit.index;
         if (schematicTab == SchematicTab::Placements && placementRows.several() && at >= 0 && at < static_cast<int>(actions.size())
             && placementBulk.press(actions[static_cast<size_t>(at)]))
             bulkPlacements(actions[static_cast<size_t>(at)]);
@@ -766,8 +773,8 @@ void handleSchematicKey(int key) {
     }
     if (schematicTab == SchematicTab::Placements)
         switch (selectionKey(key, screen::heldCtrl(), placementRows.several())) {
-        case SelectionKey::SelectAll: placementRows.selectAll(placementOrder()); pickShownPlacement(); return;
-        case SelectionKey::Collapse: placementRows.collapse(); placementBulk.disarm(); return;
+        case SelectionKey::SelectAll: placementRows.selectAll(placementOrder()); followPlacementRows(); return;
+        case SelectionKey::Clear: placementRows.clear(); followPlacementRows(); return;
         case SelectionKey::None: break;
         }
     switch (key) {
@@ -813,6 +820,7 @@ std::string fileTitle(std::string const& relative) {
 std::string schematicDescription() {
     switch (schematicTab) {
     case SchematicTab::Placements:
+        if (placementRows.several()) return translated("list.selectedCount", placementRows.keys.size());
         if (auto const* p = selectedPlacement()) {
             if (editingSchematicField >= 0) return translated("integerRange", editingSchematicField == 9 ? 1 : -30'000'000,
                 editingSchematicField == 9 ? 4096 : 30'000'000);
@@ -1139,8 +1147,6 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
     }
     drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
-    placementBulkDrawn = l.bulkTop < 0 ? BulkBarLayout{} : drawBulkBar(context,l.listLeft+ShapesLayout::pad,l.bulkTop+1,
-        l.listWidth-2*ShapesLayout::pad,12,placementRows.keys.size(),bulkActions(SelectionList::Placements),placementBulk,pointer.x,pointer.y);
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
@@ -1167,7 +1173,16 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     previewTurn.w = 0; // set again where the preview is drawn this frame
     switch (schematicTab) {
     case SchematicTab::Placements:
-        if (auto const* p = selectedPlacement()) {
+        if (!l.selecting.empty()) {
+            auto const pane = l.selectionPane(static_cast<int>(placementRows.keys.size()));
+            std::vector<SelectedName> names;
+            for (auto const& p : schematicSet.placements) {
+                if (names.size() >= static_cast<size_t>(pane.fit.names)) break;
+                if (placementRows.contains(p.id)) names.push_back({p.name, p.dimension != screen::playerDimension()});
+            }
+            drawSelectionPane(context,pane,placementRows.keys.size(),names,nullptr,l.selecting,placementBulk,pointer.x,pointer.y);
+            fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
+        } else if (auto const* p = selectedPlacement()) {
             label(context,dx,l.nameY+1+boxTextInset(),dw,p->name);
             info(p->file, l.previewY);
             if (auto tally = schematic::ghosts::progress(*p); tally && tally->total())
@@ -1542,7 +1557,7 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
     l.firstActionWidth = std::clamp(l.detailWidth - 2 * ShapesLayout::pad - ShapesLayout::deleteWidth - 4, 40.f, 96.f);
     // Materials has one action: the calculator link, readable across the pane.
     if (schematicTab == SchematicTab::Materials) l.firstActionWidth = std::max(40.f, l.detailWidth - 2 * ShapesLayout::pad);
-    if (schematicTab == SchematicTab::Placements && placementRows.several()) l.reserveBulkBar(schematicListFirst);
+    if (schematicTab == SchematicTab::Placements && placementRows.several()) l.selecting = bulkActions(SelectionList::Placements);
     if (std::exchange(scrollToSelected, false) && schematicTab == SchematicTab::Verify && verifySelected >= 0
         && (verifySelected < l.listFirst || verifySelected >= l.listFirst + l.listVisible)) {
         schematicListFirst = std::max(0, verifySelected - l.listVisible / 2);
@@ -1667,7 +1682,7 @@ void renderContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 
 void reset() {
     editingSchematicField = -1;
     schematicDeleteArmed = verifyUndoAllArmed = false;
-    placementRows.collapse(); // a closed screen keeps one row, as before L-190
+    placementRows.clearSeveral(); // a closed screen keeps one row, not several; the picked one stays
     placementBulk.disarm();
 }
 }

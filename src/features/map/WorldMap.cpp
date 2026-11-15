@@ -133,7 +133,7 @@ enum class Target {
     // The side panel: its background, header buttons, list and editor.
     Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Delete, OpenScreen,
     PanelKind, PanelKindItem, // The list's layer menu (L-204) and its items.
-    Bulk // A button of the bar shown while several rows are selected (L-190).
+    Bulk // A button of the selection pane shown while several rows are selected (L-190).
 };
 struct Hit {
     float x, y, w, h;
@@ -207,7 +207,7 @@ struct State {
     // rows are always of the listed layer and dimension.
     ui::RowSelection<MarkKey> rows;
     std::vector<MarkKey> listOrder;
-    ui::BulkBar bulk;
+    ui::BulkArm bulk;
     int listFirst = 0;
     bool deleteArmed = false;
     bool editingName = false;
@@ -596,10 +596,10 @@ Request panelAction(Hit const& hit) {
     }
     case Target::Row:
         // Ctrl + click toggles a row, Shift + click takes a range; the map
-        // stays where it is and the panel shows the row clicked last.
+        // stays where it is and the panel shows the one row or how many.
         if (ui::screen::heldCtrl() || ui::screen::heldShift()) {
             state.rows.click(hit.mark, ui::screen::heldCtrl(), ui::screen::heldShift(), state.listOrder);
-            state.selected = state.rows.shown;
+            state.selected = state.rows.single();
             break;
         }
         if (hit.mark.layer == MarkLayer::Placement) selectPlacement(hit.mark);
@@ -1220,7 +1220,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
     // its selection and menu with it; one only switched off on the map stays
     // selectable from the side panel (L-204).
     state.rows.retain([](MarkKey mark) { return pointLayer(mark.layer) || areaOf(mark); });
-    state.selected = state.rows.shown;
+    state.selected = state.rows.single();
     if (state.menu && (state.menu->kind == MenuKind::Placement || state.menu->kind == MenuKind::Shape) && !areaOf(state.menu->mark))
         state.menu.reset();
     auto spot = playerSpot();
@@ -1695,7 +1695,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());
     state.rows.retain([&](MarkKey mark) { return !pointLayer(mark.layer) || waypointOf(set, mark); });
-    state.selected = state.rows.shown;
+    state.selected = state.rows.single();
     // Or this dimension's placements or shapes (L-204), nearest first.
     int const kind = shownList();
     auto areaDistance = [&](AreaMark const& area) {
@@ -1718,7 +1718,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     // Several rows stay those the list shows (another layer or dimension drops them).
     if (state.rows.several()) {
         state.rows.retain([](MarkKey mark) { return std::ranges::find(state.listOrder, mark) != state.listOrder.end(); });
-        state.selected = state.rows.shown;
+        state.selected = state.rows.single();
     }
 
     // The header names the listed layer and opens the menu of layers.
@@ -1815,16 +1815,30 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         state.hits.push_back({switchX - 1, ry, ui::switchWidth + 2, rowH, Target::RowVisible, index, mark});
     }
     y = state.listBottom + 2;
-    if (state.rows.several()) {
-        auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
-        auto bar = ui::drawBulkBar(context, x, y + 2, inner, buttonHeight, state.rows.keys.size(), actions, state.bulk,
-            static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y));
-        for (size_t i = 0; i < actions.size(); ++i)
-            state.hits.push_back({bar.buttonX[i], bar.y, bar.buttonW[i], bar.h, Target::Bulk, static_cast<int>(i)});
-        y += buttonHeight + 4;
-    }
     ui::fill(context, x0 + 1, y, w - 1, 1, ui::palette::white, .14f);
     y += 4;
+    if (state.rows.several()) {
+        // Where one row's details and buttons go: how many, then Show and Hide
+        // (no names: the panel is narrow).
+        auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
+        ui::SelectionPaneLayout pane{.x = x, .y = y + inset - 3, .w = inner, .linesTop = y + 12};
+        pane.buttonsY = y + 12;
+        pane.buttonH = buttonHeight;
+        float bx = x;
+        for (auto action : actions) {
+            auto text = ui::translated(action == ui::BulkAction::Show ? "list.showSelected" : "list.hideSelected");
+            float bw = std::min(x + inner - bx, ui::textWidth(context, text) + 8);
+            pane.buttonX.push_back(bx);
+            pane.buttonW.push_back(bw);
+            bx += bw + 3;
+        }
+        if (pane.buttonsY + buttonHeight > bottom) { pane.buttonX.clear(); pane.buttonW.clear(); }
+        ui::drawSelectionPane(context, pane, state.rows.keys.size(), {}, nullptr, actions, state.bulk,
+            static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y));
+        for (size_t i = 0; i < pane.buttonX.size(); ++i)
+            state.hits.push_back({pane.buttonX[i], pane.buttonsY, pane.buttonW[i], buttonHeight, Target::Bulk, static_cast<int>(i)});
+        return;
+    }
 
     auto small = [&](float sx, float sy, float width, std::string text, Target target, int item, bool danger = false) {
         float bw = std::min(width, ui::textWidth(context, text) + 8);
@@ -2184,12 +2198,12 @@ Request key(int key, bool openKey) {
         return request;
     }
     // Ctrl + A takes the side list's rows; Esc closes panels and menus, then
-    // returns several rows to one, then closes the map.
+    // lets several rows go (none selected), then closes the map.
     if (key == 0x41 && ui::screen::heldCtrl()) {
         if (panelOpen() && !state.listOrder.empty()) {
             commitName();
             state.rows.selectAll(state.listOrder);
-            state.selected = state.rows.shown;
+            state.selected = state.rows.single();
             state.deleteArmed = false;
             state.bulk.disarm();
         }
@@ -2198,7 +2212,7 @@ Request key(int key, bool openKey) {
     if (key == 0x1b) {
         if (state.cavePanel || state.infoPanel) state.cavePanel = state.infoPanel = false;
         else if (state.menu) state.menu.reset();
-        else if (panelOpen() && state.rows.collapse()) { state.selected = state.rows.shown; state.bulk.disarm(); }
+        else if (panelOpen() && state.rows.clearSeveral()) { state.selected.reset(); state.bulk.disarm(); }
         else request.kind = Request::Kind::Close;
     } else if (key == 0x20) {
         returnToPlayer();
