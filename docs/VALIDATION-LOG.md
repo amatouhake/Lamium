@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## List columns, selection follow-ups, Again labels, 3D waypoint distance (L-190, L-351, L-350, 2026-11-15)
+
+Build `3a470553` (branch `l-190-waypoint-selection` with main at `12eb4df4`), DLL SHA-256
+`bc7feb7ffdd3fba38ec88508b9c681df5f6a05325a4cf3d0a75afc77866ba7f1`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: one column shape (mark, name, distance, progress for
+placements, shown) in Waypoints, Shapes and Placed, docked too; the selection pane's shown
+and hidden counts and each name's distance and progress; the map panel's names, "N more",
+two-press Delete and fixed list height; Ctrl + click on map marks without moving the map;
+every two-press button arms with "Again: ..." (Highlight's Remove is cut to "もう一...", HUD
+layout's reset button and its bar grow when armed); Saved data's count beside Delete without
+moving it; 3D distance keeps a waypoint straight above off 0 and Horizontal ignores height
+everywhere; HUD layout elements stay clickable after deselecting with Contents open
+(`d8a24b7a`). Raised: map marks lose the single selection's white ring when several are
+selected; "Again: Delete" reads unnatural; Saved data's count repeats the details above;
+what "Here" is.
+
 ## List selection pane (L-190, 2026-11-15)
 
 Build `00d4be5f` (branch `l-190-waypoint-selection` with main), DLL SHA-256

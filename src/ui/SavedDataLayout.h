@@ -23,7 +23,7 @@ struct SavedDataLayout {
     ShapesLayout list;
 
     bool usable() const { return width > 0; }
-    // `useWide` and `deleteWide`: the buttons' text widths, Delete's as armed ("Again: Delete").
+    // `useWide` and `deleteWide`: the buttons' text widths, Delete's the longer of its two labels.
     static SavedDataLayout fit(SettingsTable const& t, int count, int first, bool anyPort, bool use, bool remove,
                                float useWide, float deleteWide) {
         SavedDataLayout l;
@@ -37,8 +37,8 @@ struct SavedDataLayout {
         l.list = HighlightLayout::column(l.left, l.dividerX - l.left, l.bodyTop, l.footerTop, count, first);
         l.anyPort = anyPort; l.use = use; l.remove = remove;
         float inner = l.detailWidth - 2 * SettingsTable::pad;
-        // Use on the bottom row, Delete on a row of its own above it (what it takes written beside it), the
-        // switch above both. Delete is as wide as its armed label, so a second click lands where the first did.
+        // Use on the bottom row, Delete on a row of its own above it, the
+        // switch above both. Delete holds both its labels, so a second click lands where the first did.
         l.actionsY = l.footerTop - buttonHeight - 3;
         l.useX = l.deleteX = l.detailLeft + SettingsTable::pad;
         l.useWidth = use ? std::min(inner, useWide) : 0;

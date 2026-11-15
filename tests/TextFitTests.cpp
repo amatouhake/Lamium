@@ -48,4 +48,12 @@ void textFitTests() {
           "text without such a character keeps one run per script");
     check(lamium::ui::zeroGlyphs("条件 3 件", zero) == 2 && lamium::ui::zeroGlyphs("abc", zero) == 0,
           "zero-wide characters are counted for the width they are owed");
+    std::string const del = "Delete", confirm = "Confirm delete", brief = "Confirm";
+    check(&lamium::ui::armedText(del, confirm, brief, false, 3, measure) == &del
+              && &lamium::ui::armedText(del, confirm, brief, true, 14, measure) == &confirm
+              && &lamium::ui::armedText(del, confirm, brief, true, 13, measure) == &brief,
+          "an armed button says what a second press does, or just Confirm where that would be cut");
+    check(lamium::ui::armedTextWidth("Delete", "Confirm delete", measure) == 14
+              && lamium::ui::armedTextWidth("すべて既定に戻す", "Reset", measure) == 16,
+          "a press-twice button sized by its text holds the longer of its two labels");
 }

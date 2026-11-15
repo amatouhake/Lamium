@@ -2,6 +2,7 @@
 #include "ui/ItemAmount.h"
 #include "ui/Localization.h"
 #include "ui/ScreenParts.h"
+#include "ui/TextFit.h"
 #include <vector>
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include <algorithm>
@@ -87,20 +88,33 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
         switch (action) {
         case BulkAction::Show: return translated("list.showSelected");
         case BulkAction::Hide: return translated("list.hideSelected");
-        default: return bulkDeleteLabel(count, arm.armed == action);
+        default: return std::string{};
         }
     };
     for (size_t i = 0; i < actions.size() && i < pane.buttonX.size(); ++i) {
         bool over = pane.at(pointerX, pointerY) == static_cast<int>(i);
-        if (irreversible(actions[i])) drawDangerButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),over,arm.armed == actions[i]);
+        bool armed = arm.armed == actions[i];
+        if (irreversible(actions[i]))
+            drawDangerButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,
+                armedLabel(context,bulkDeleteLabel(count,false),bulkDeleteLabel(count,true),armed,pane.buttonW[i]),over,armed);
         else drawButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),over);
     }
 }
 std::string bulkDeleteLabel(size_t count, bool armed) {
-    return armed ? againLabel(translated("list.deleteCount", count)) : translated("list.deleteSelected");
+    return armed ? confirmDelete(static_cast<int>(count)) : translated("list.deleteSelected");
 }
-std::string againLabel(std::string label, bool armed) {
-    return armed ? translated("confirm.again", label) : label;
+std::string armedLabel(MinecraftUIRenderContext& context, std::string label, std::string confirm, bool armed, float width) {
+    if (!armed) return label;
+    // Inside the button's 1-unit edges.
+    return armedText(label, confirm, translated("confirm.short"), armed, width - 2,
+        [&](std::string_view text) { return textWidth(context, text); });
+}
+std::string armedLabel(std::string label, std::string confirm, bool armed) { return armed ? confirm : label; }
+float armedWidth(MinecraftUIRenderContext& context, std::string_view label, std::string_view confirm, float padding) {
+    return armedTextWidth(label, confirm, [&](std::string_view text) { return textWidth(context, text); }) + padding;
+}
+std::string confirmDelete(std::optional<int> count) {
+    return count ? translated("confirm.deleteCount", *count) : translated("confirm.delete");
 }
 void drawPageHeading(MinecraftUIRenderContext& context, SettingsTable const& t, std::string_view section, std::string_view feature,
                      float backX, bool backHovered, std::string const& aside) {

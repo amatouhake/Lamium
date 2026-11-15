@@ -301,7 +301,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (rowHover || armed == name) {
             bool isArmed = armed == name;
             drawDangerButton(context, last.removeX(), y + 1, HighlightLayout::removeWidth, 12,
-                againLabel(translated("highlight.remove"), isArmed), hover.zone == Zone::Remove && hover.index == i, isArmed);
+                armedLabel(context, translated("highlight.remove"), translated("confirm.short"), isArmed, HighlightLayout::removeWidth), hover.zone == Zone::Remove && hover.index == i, isArmed);
         }
     }
     drawListScrollbar(context, lc, dragging == Drag::Listed || lc.onScrollbar(pointer.x, pointer.y));

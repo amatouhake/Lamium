@@ -154,10 +154,17 @@ the same commit. A screen never draws its own variant.
   (`drawDangerButton`: looks plain until pointed at, then `dangerEdge` and
   `dangerText`, so an always visible one such as a section's Reset does not
   draw the eye; the first press arms it, `danger` fill with `dangerEdge` and
-  white text; the second press acts; losing focus disarms). Armed, it reads
-  "Again: " + its own label ("Again: Delete", 「もう一度: 削除」), built by
-  `againLabel` and never worded by a screen; what the press removes (a
-  count, a size) goes in the text beside the button, not in its label.
+  white text; the second press acts; losing focus disarms). Armed, it says
+  what the second press does: "Confirm " + the action ("Confirm delete",
+  「削除を確定」, 「确认删除」, 「確認刪除」), one whole string per action that
+  reads naturally (a reset is 「初期化を確定」, not its label + を確定); a
+  button too narrow for that reads just "Confirm" / 「確定」 / 「确认」 /
+  「確認」. Built by `armedLabel` in the shared widgets, never worded by a
+  screen. A button sized by its text is as wide as the longer of its two
+  labels from the start (`armedWidth`), so arming moves nothing. What the
+  press removes (a count, a size) goes in the text beside the button, not in
+  its label, with one exception: a bulk delete names how many
+  ("Confirm delete 5", 「5 件の削除を確定」, `confirmDelete(count)`).
 - **Text fields** (`drawTextField`): a shaded back with a `keyEdge` edge,
   `accent` while typing; a placeholder faintly when empty. Enter or a click
   outside keeps the edit; Esc drops it and shows the stored value again.
@@ -182,8 +189,8 @@ the same commit. A screen never draws its own variant.
   Hidden M", the names in list order as plain lines in the list's columns
   without the switch (mark, name, distance, own column; "N more" when they
   do not fit), and Show, Hide and Delete where the pane's own buttons sit,
-  Delete (destructive; armed "Again: Delete N", an exception to the count
-  beside the button) in the single pane's Delete place. No
+  Delete (destructive; armed "Confirm delete N", the bulk-delete exception
+  under Buttons) in the single pane's Delete place. No
   bar in or under the list. Esc lets several rows go (nothing selected),
   then closes. The map's side panel has the same pane with its buttons on
   its last row (`compactSelectionPane`).

@@ -66,6 +66,22 @@ std::string fitLabel(std::string_view source, float width, Measure measure) {
     return std::string(ellipsis);
 }
 
+// What a press-twice button reads (DESIGN "Controls"): its label, once armed
+// `confirm` (what a second press does), or `brief` where `confirm` would be
+// cut in `width`.
+template<class Measure>
+std::string const& armedText(std::string const& label, std::string const& confirm, std::string const& brief, bool armed,
+                             float width, Measure measure) {
+    if (!armed) return label;
+    return measure(confirm) <= width ? confirm : brief;
+}
+// A press-twice button sized by its text holds the longer of its two labels,
+// so arming neither moves nor cuts it.
+template<class Measure>
+float armedTextWidth(std::string_view label, std::string_view confirm, Measure measure) {
+    return std::max(measure(label), measure(confirm));
+}
+
 template<class Measure>
 std::vector<std::string> wrapLabel(std::string_view source, float width, size_t maxLines, Measure measure) {
     std::vector<std::string> lines;

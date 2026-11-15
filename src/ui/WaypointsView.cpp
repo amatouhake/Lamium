@@ -476,7 +476,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
         if (w->dimension == screen::playerDimension()) {
             int const away = screen::distanceTo(w->x, w->y, w->z);
-            label(context,ix,l.previewY+23,iw,away == 0 ? translated("distance.here") : translated("waypoint.distance", away),palette::dim);
+            label(context,ix,l.previewY+23,iw,translated("waypoint.distance", away),palette::dim);
         }
         if (w->temporary) paragraph(context,ix,l.previewY+36,iw,translated("waypoint.temporaryNote"),2,palette::faint);
         // Fields.
@@ -514,7 +514,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     }
     if (waypointSelected) {
         drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-            againLabel(translated("shape.delete"), waypointDeleteArmed),over(ShapeZone::Action,1), waypointDeleteArmed);
+            armedLabel(context,translated("shape.delete"),confirmDelete(),waypointDeleteArmed,ShapesLayout::deleteWidth),over(ShapeZone::Action,1), waypointDeleteArmed);
     }
 
     // Footer.

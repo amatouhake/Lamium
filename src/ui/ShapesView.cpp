@@ -603,7 +603,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             auto feet = player->getFeetPos();
             auto center = centerOf(*definition);
             int distance = static_cast<int>(std::round(std::hypot(center.x - feet.x, center.z - feet.z)));
-            label(context,ix,py+22,iw,distance == 0 ? translated("distance.here") : translated("shape.distance",distance),palette::dim);
+            label(context,ix,py+22,iw,translated("shape.distance",distance),palette::dim);
         }
         if (preview && preview->lowLayer != preview->highLayer) {
             float lx = l.layerStepperX(), ly = l.layerY(), lw = 64, aw = ShapesLayout::arrowWidth;
@@ -659,7 +659,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         } else {
             drawButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
             drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                againLabel(translated("shape.delete"), shapeDeleteArmed),over(ShapeZone::Action,1), shapeDeleteArmed);
+                armedLabel(context,translated("shape.delete"),confirmDelete(),shapeDeleteArmed,ShapesLayout::deleteWidth),over(ShapeZone::Action,1), shapeDeleteArmed);
         }
     }
 

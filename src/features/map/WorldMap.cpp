@@ -753,7 +753,7 @@ std::vector<std::string> menuItems(Menu const& menu, WaypointSet const& set) {
         auto const* w = waypointOf(set, menu.mark);
         bool visible = w && w->visible;
         items = {ui::translated("worldMap.edit"), ui::translated(visible ? "worldMap.hide" : "worldMap.show"),
-                 ui::againLabel(ui::translated("worldMap.delete"), menu.armed)};
+                 ui::armedLabel(ui::translated("worldMap.delete"), ui::confirmDelete(), menu.armed)};
     }
     // Last, so the other items keep their positions.
     if (teleportTarget(menu, set)) items.push_back(ui::translated(menu.kind == MenuKind::Ground ? "worldMap.teleportHere" : "worldMap.teleport"));
@@ -1825,8 +1825,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         auto const count = state.rows.keys.size();
         float plainW = std::max(ui::textWidth(context, ui::translated("list.showSelected")),
                                 ui::textWidth(context, ui::translated("list.hideSelected"))) + 8;
-        float deleteW = std::max(ui::textWidth(context, ui::bulkDeleteLabel(count, false)),
-                                 ui::textWidth(context, ui::bulkDeleteLabel(count, true))) + 8;
+        float deleteW = ui::armedWidth(context, ui::bulkDeleteLabel(count, false), ui::bulkDeleteLabel(count, true), 8);
         auto const pane = ui::compactSelectionPane(x, inner, y + inset - 3, bottom, buttonHeight, static_cast<int>(count), actions,
                                                    plainW, deleteW);
         std::vector<ui::SelectedName> names;
@@ -1871,14 +1870,16 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     }
 
     auto small = [&](float sx, float sy, float width, std::string text, Target target, int item, bool danger = false) {
-        float bw = std::min(width, ui::textWidth(context, text) + 8);
+        // Delete holds both its labels, so arming moves nothing.
+        float bw = std::min(width, danger ? ui::armedWidth(context, text, ui::confirmDelete(), 8) : ui::textWidth(context, text) + 8);
         bool over = hovering(sx, sy, bw, buttonHeight);
-        if (danger) ui::drawDangerButton(context, sx, sy, bw, buttonHeight, std::move(text), over, state.deleteArmed);
+        if (danger)
+            ui::drawDangerButton(context, sx, sy, bw, buttonHeight, ui::armedLabel(context, text, ui::confirmDelete(), state.deleteArmed, bw),
+                over, state.deleteArmed);
         else ui::drawButton(context, sx, sy, bw, buttonHeight, std::move(text), over);
         state.hits.push_back({sx, sy, bw, buttonHeight, target, item});
         return bw;
     };
-    auto deleteText = ui::againLabel(ui::translated("worldMap.delete"), state.deleteArmed);
     if (auto const* area = state.selected ? areaOf(*state.selected) : nullptr) {
         // A placement or a shape: what it covers, shown or not, and its own screen.
         ui::label(context, x, y + inset, inner, area->name);
@@ -1958,7 +1959,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     }
     if (y + 12 < bottom) {
         float used = small(x, y, inner, ui::translated("worldMap.openScreen"), Target::OpenScreen, 0);
-        small(x + used + 3, y, inner - used - 3, deleteText, Target::Delete, 0, true);
+        small(x + used + 3, y, inner - used - 3, ui::translated("worldMap.delete"), Target::Delete, 0, true);
     }
 }
 // The side panel's menu of layers, under its header, with each one's count.

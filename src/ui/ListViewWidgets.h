@@ -11,6 +11,7 @@
 #include "ui/Widgets.h"
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 class MinecraftUIRenderContext;
 namespace lamium::ui {
@@ -53,12 +54,22 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
                        size_t shown, float ownWidth = 0);
-// What a press-twice button reads (DESIGN "Controls"): its own label, and once
-// armed "Again: " + that label, so no screen words the armed state itself.
-std::string againLabel(std::string label, bool armed = true);
 // Bulk Delete's label for `count` selected rows: "Delete", armed
-// "Again: Delete N" (the map panel sizes its button by the armed one).
+// "Confirm delete N" (the map panel sizes its button for both with armedWidth;
+// the lists' fixed-width Delete falls back to "Confirm" through armedLabel).
 std::string bulkDeleteLabel(size_t count, bool armed);
+// What a press-twice button reads (DESIGN "Controls"): `label`, and once armed
+// `confirm`, what a second press does ("Confirm delete", 「削除を確定」); in a
+// button of `width` too narrow for that, just "Confirm" (`confirm.short`).
+std::string armedLabel(MinecraftUIRenderContext& context, std::string label, std::string confirm, bool armed, float width);
+// The same where nothing cuts the text (a context menu sized by its items).
+std::string armedLabel(std::string label, std::string confirm, bool armed);
+// A press-twice button sized by its text: wide enough for both labels plus
+// `padding`, so arming moves nothing.
+float armedWidth(MinecraftUIRenderContext& context, std::string_view label, std::string_view confirm, float padding);
+// A delete's `confirm`: "Confirm delete", with a count "Confirm delete 5" (the
+// one count a button holds, DESIGN "Controls").
+std::string confirmDelete(std::optional<int> count = {});
 // The body of a docked view too short for its editor (!l.usable()): Expand and
 // a hint under the header, which matches what ShapesLayout::hit() answers then.
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);

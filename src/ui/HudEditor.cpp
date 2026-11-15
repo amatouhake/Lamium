@@ -251,9 +251,11 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
 // is selected: every corner may hold an element (L-321).
 void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     std::string title = translated("nav.hudLayout"), hint = translated("hudEditor.hint");
-    std::string reset = againLabel(translated("hudEditor.resetAll"), resetArmed);
+    std::string const resetLabel = translated("hudEditor.resetAll"), resetConfirm = translated("confirm.resetLayout");
     std::string done = translated("hudEditor.done");
-    float resetW = textWidth(context, reset) + 10, doneW = textWidth(context, done) + 10;
+    // Reset holds both its labels, so arming moves nothing.
+    float resetW = armedWidth(context, resetLabel, resetConfirm, 10), doneW = textWidth(context, done) + 10;
+    std::string reset = armedLabel(context, resetLabel, resetConfirm, resetArmed, resetW);
     float buttons = resetW + gap + doneW;
     constexpr float rowH = 11, edge = 6;
     // The legend (L-334): the line is the state (dashed shows by situation,
