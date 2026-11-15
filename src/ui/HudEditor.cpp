@@ -282,7 +282,7 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
         label(context, lx, ly, textWidth(context, situational) + 2, situational, palette::dim, Align::Left);
         lx += textWidth(context, situational) + pairGap;
         std::vector<ImageRect> dots;
-        for (auto const& square : hatch({lx, sy, swatchW, swatchH}, 3, 40)) dots.push_back({square.x, square.y, square.w, square.h});
+        for (auto const& square : hatch({lx, sy, swatchW, swatchH}, 4, 40, 1)) dots.push_back({square.x, square.y, square.w, square.h});
         fills(context, dots, palette::faint, .9f);
         frame(context, lx, sy, swatchW, swatchH, palette::faint, .9f);
         lx += swatchW + swatchGap;
