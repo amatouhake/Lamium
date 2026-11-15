@@ -27,8 +27,11 @@ struct ShapesLayout {
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
     // Several rows selected (L-190): the selection pane's actions replace the
-    // editor, set by the view after fit().
+    // editor, set by the view after fit(). A list without an irreversible
+    // action keeps `selectingReserve` free at the right edge for a button of
+    // its own (the Check list's Ignored), and has no summary line.
     std::vector<BulkAction> selecting;
+    float selectingReserve = 0;
 
     // fullToolbar: the toolbar is taken across its width (the Schematics tabs),
     // so a docked draw-all switch gets a row of its own below it.
@@ -140,14 +143,21 @@ struct ShapesLayout {
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
     // The selection pane in the detail pane: the count where the name sits,
     // the summary and the names below, the buttons where the editor's actions are.
-    SelectionPaneLayout selectionPane(int count) const {
+    // `below`: room kept under the names for the view's own lines.
+    SelectionPaneLayout selectionPane(int count, float below = 0) const {
         SelectionPaneLayout p;
         p.x = detailLeft + pad; p.w = detailWidth - 2 * pad; p.y = nameY;
+        bool destructive = std::any_of(selecting.begin(), selecting.end(), irreversible);
+        p.summary = destructive;
         p.summaryY = nameY + rowHeight;
-        p.linesTop = p.summaryY + p.lineHeight;
-        p.fit = namesFit(count, actionsY - 4 - p.linesTop, p.lineHeight);
+        p.linesTop = destructive ? p.summaryY + p.lineHeight : p.summaryY;
+        p.fit = namesFit(count, actionsY - 4 - below - p.linesTop, p.lineHeight);
         p.buttonsY = actionsY + 2; p.buttonH = 12;
-        placeSelectionButtons(p, selecting, actionX(0), actionWidth, 4, deleteX(), deleteWidth);
+        if (destructive) placeSelectionButtons(p, selecting, actionX(0), actionWidth, 4, deleteX(), deleteWidth);
+        else {
+            float right = detailLeft + detailWidth - pad - (selectingReserve > 0 ? selectingReserve + 6 : 0);
+            placeSelectionButtons(p, selecting, actionX(0), 96, 4, right + 4, 0);
+        }
         return p;
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "features/schematic/Placement.h"
 #include "features/schematic/Structure.h"
+#include "features/schematic/Verification.h"
 #include "features/schematic/Verify.h"
 #include <algorithm>
 #include <charconv>
@@ -308,6 +309,58 @@ inline std::vector<IgnoreEntry> listOrder(IgnoreList const& list, Structure cons
         if (ra != rb) return ra < rb;
         return distance(a) < distance(b);
     });
+    return out;
+}
+
+// Several Check rows at once (L-183 with L-190's selection). A row can take
+// entries when it names a block cell of the file: not an entity, an extra or
+// another cell expecting air.
+inline bool takesIgnores(Mismatch const& m) { return !m.entity && m.local.x >= 0 && !m.fileBlock.empty(); }
+// "Ignore whole blocks": the rows not yet ignored as a whole block.
+inline std::vector<IgnoreEntry> wholeBlocksToAdd(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
+    std::vector<IgnoreEntry> out;
+    for (auto const* m : rows)
+        if (takesIgnores(*m) && !list.wholeBlock(m->local, m->fileBlock)) out.push_back(blockEntry(m->local, m->fileBlock));
+    return out;
+}
+// "Un-ignore": the rows' own entries (whole block and states here); an
+// every-same-block entry stays, it covers other blocks too.
+inline std::vector<IgnoreEntry> ownEntries(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
+    std::vector<IgnoreEntry> out;
+    for (auto const& e : list.entries()) {
+        if (e.kind == IgnoreKind::Every) continue;
+        for (auto const* m : rows)
+            if (takesIgnores(*m) && m->local == e.cell && m->fileBlock == e.block) { out.push_back(e); break; }
+    }
+    return out;
+}
+// Every state key differing on some of the rows, in first-seen order, with
+// how many rows have it: `open` the entries "Ignore on N rows" adds (rows
+// where nothing covers it yet), `own` the rows' entries for it that Undo
+// takes back, `every` whether an every-same-block entry covers it somewhere.
+// Rows ignored as a whole block and block entity rows take no part.
+struct SelectedState {
+    std::string key, identifier;
+    size_t rows = 0;
+    std::vector<IgnoreEntry> open, own;
+    bool every = false;
+};
+inline std::vector<SelectedState> selectedStates(std::vector<Mismatch const*> const& rows, IgnoreList const& list) {
+    std::vector<SelectedState> out;
+    for (auto const* m : rows) {
+        if (!takesIgnores(*m) || list.wholeBlock(m->local, m->fileBlock)) continue;
+        for (auto const& d : m->states) {
+            if (d.fixed) continue;
+            auto found = std::find_if(out.begin(), out.end(), [&](auto const& s) { return s.key == d.key; });
+            if (found == out.end()) { out.push_back({d.key, m->identifier}); found = out.end() - 1; }
+            ++found->rows;
+            switch (list.covers(m->local, m->fileBlock, d.key)) {
+            case Covered::None: found->open.push_back(stateEntry(m->local, m->fileBlock, d.key)); break;
+            case Covered::Here: found->own.push_back(stateEntry(m->local, m->fileBlock, d.key)); break;
+            case Covered::Every: found->every = true; break;
+            }
+        }
+    }
     return out;
 }
 }

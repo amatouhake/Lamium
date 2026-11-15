@@ -1,6 +1,7 @@
 #include "features/schematic/CheckIgnores.h"
 #include "features/schematic/PlacementStore.h"
 #include "features/schematic/Verification.h"
+#include <algorithm>
 #include <string>
 void check(bool, char const*);
 void checkIgnoresTests() {
@@ -195,6 +196,37 @@ void checkIgnoresTests() {
     check(order.size() == 4 && order[0] == everyLever && order[1] == blockEntry({1, 0, 2}, "minecraft:lever")
               && order[3] == blockEntry({1, 0, 1}, "minecraft:stone"),
           "the Ignored list shows every-same-block entries, then the nearest cells, stale ones last");
+
+    // Several selected rows: whole blocks to add, the rows' own entries, and
+    // each state key with how many rows have it ("Powered · 3 / 5 rows").
+    auto checkRow = [](Point local, std::string block, std::vector<StateDifference> states) {
+        Mismatch m;
+        m.state = states.empty() ? CellState::Wrong : CellState::State;
+        m.local = local;
+        m.fileBlock = std::move(block);
+        m.identifier = m.fileBlock;
+        m.states = std::move(states);
+        return m;
+    };
+    auto a = checkRow({0, 0, 0}, "minecraft:lever", {{"open_bit", "0", "1"}});
+    auto b = checkRow({1, 0, 0}, "minecraft:lever", {{"open_bit", "0", "1"}, {"lever_direction", "east", "west"}});
+    auto c = checkRow({2, 0, 0}, "minecraft:repeater", {{"open_bit", "0", "1"}, faceDifference(1, 2)});
+    auto d = checkRow({3, 0, 0}, "minecraft:stone", {});
+    Mismatch extra;
+    extra.state = CellState::Extra;
+    std::vector<Mismatch const*> picked{&a, &b, &c, &d, &extra};
+    IgnoreList chosen({stateEntry({1, 0, 0}, "minecraft:lever", "open_bit"), blockEntry({3, 0, 0}, "minecraft:stone"),
+                       everyEntry("minecraft:repeater", "open_bit")});
+    auto adds = wholeBlocksToAdd(picked, chosen);
+    check(adds.size() == 3 && std::find(adds.begin(), adds.end(), blockEntry({3, 0, 0}, "minecraft:stone")) == adds.end(),
+          "ignoring whole blocks adds the rows not yet ignored, never an extra");
+    auto own = ownEntries(picked, chosen);
+    check(own.size() == 2 && std::none_of(own.begin(), own.end(), [](auto const& e) { return e.kind == IgnoreKind::Every; }),
+          "un-ignoring takes the rows' own entries and leaves every-same-block ones");
+    auto states = selectedStates(picked, chosen);
+    check(states.size() == 2 && states[0].key == "open_bit" && states[0].rows == 3 && states[0].open.size() == 1
+              && states[0].own.size() == 1 && states[0].every && states[1].key == "lever_direction" && states[1].rows == 1,
+          "each state key lists how many rows differ in it, what to add and what to take back; block entity rows take no part");
 
     // The entry follows the placement: turned and mirrored, the world cell
     // holding it maps back to the same structure cell.

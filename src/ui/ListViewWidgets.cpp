@@ -69,10 +69,10 @@ void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rg
 void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
-                       size_t shown, float ownWidth) {
+                       size_t shown, float ownWidth, std::vector<bool> const& enabled) {
     label(context,pane.x,pane.y+3,pane.w,translated("list.selectedCount", count));
     shown = std::min(shown, count);
-    label(context,pane.x,pane.summaryY+2,pane.w,translated("list.shownHidden", shown, count - shown),palette::dim);
+    if (pane.summary) label(context,pane.x,pane.summaryY+2,pane.w,translated("list.shownHidden", shown, count - shown),palette::dim);
     auto const c = listColumns(pane.x - ListColumns::pad, pane.w + 2 * ListColumns::pad, ownWidth, 0);
     float y = pane.linesTop;
     for (size_t i = 0; i < names.size() && i < static_cast<size_t>(pane.fit.names); ++i, y += pane.lineHeight) {
@@ -88,10 +88,18 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
         switch (action) {
         case BulkAction::Show: return translated("list.showSelected");
         case BulkAction::Hide: return translated("list.hideSelected");
+        case BulkAction::ShowInWorld: return translated("schematic.showInWorld");
+        case BulkAction::IgnoreBlocks: return translated("schematic.ignore.block");
+        case BulkAction::Unignore: return translated("schematic.ignore.unblock");
         default: return std::string{};
         }
     };
     for (size_t i = 0; i < actions.size() && i < pane.buttonX.size(); ++i) {
+        bool on = i >= enabled.size() || enabled[i];
+        if (!on) {
+            drawButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),false,ButtonKind::Plain,false);
+            continue;
+        }
         bool over = pane.at(pointerX, pointerY) == static_cast<int>(i);
         bool armed = arm.armed == actions[i];
         if (irreversible(actions[i]))

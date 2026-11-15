@@ -49,11 +49,13 @@ void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rg
 // distance and the list's own column (`ownWidth`, 0: none) as its rows show
 // them; "N more" when they do not all fit, and a button per action; Delete
 // is destructive, armed by `arm`. The view draws the rule above the buttons.
+// Without pane.summary there is no summary line; `enabled` (one per action,
+// empty: all) draws a button that would change nothing disabled.
 struct SelectedName { std::string name; bool faded = false; std::string distance, own; };
 void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
-                       size_t shown, float ownWidth = 0);
+                       size_t shown, float ownWidth = 0, std::vector<bool> const& enabled = {});
 // Bulk Delete's label for `count` selected rows: "Delete", armed
 // "Confirm delete N" (the map panel sizes its button for both with armedWidth;
 // the lists' fixed-width Delete falls back to "Confirm" through armedLabel).

@@ -74,12 +74,14 @@ struct RowSelection {
 };
 
 // What the selection pane offers while several rows are selected, in its
-// order. Not saved.
-enum class BulkAction { Show, Hide, Delete };
-enum class SelectionList { Waypoints, Shapes, Placements, MapPanel };
+// order. Not saved. The Schematics Check list (L-183) marks its cells in the
+// world, ignores their whole blocks, or takes their own entries back.
+enum class BulkAction { Show, Hide, Delete, ShowInWorld, IgnoreBlocks, Unignore };
+enum class SelectionList { Waypoints, Shapes, Placements, MapPanel, Check };
 // Maintainer 2026-11-15: no bulk move or turn; the map's side panel matches
 // the screens' lists (after the check).
-inline std::vector<BulkAction> bulkActions(SelectionList) {
+inline std::vector<BulkAction> bulkActions(SelectionList list) {
+    if (list == SelectionList::Check) return {BulkAction::ShowInWorld, BulkAction::IgnoreBlocks, BulkAction::Unignore};
     return {BulkAction::Show, BulkAction::Hide, BulkAction::Delete};
 }
 inline bool irreversible(BulkAction action) { return action == BulkAction::Delete; }
@@ -120,6 +122,7 @@ inline NamesFit namesFit(int count, float room, float lineHeight) {
 struct SelectionPaneLayout {
     float x = 0, y = 0, w = 0; // the count's line
     float summaryY = 0;        // "Shown N / Hidden M"
+    bool summary = true;       // false: a list without a shown switch has no summary line
     float linesTop = 0, lineHeight = 12;
     NamesFit fit;
     float buttonsY = 0, buttonH = 0;
@@ -134,7 +137,8 @@ struct SelectionPaneLayout {
 // The buttons where a detail pane's own sit: from `left`, `width` wide each
 // with `gap` between, the irreversible one at `deleteX` instead (one Delete
 // place for one and several rows). On a narrow pane the others narrow, down
-// to `minWidth`, so they stay clear of it.
+// to `minWidth`, so they stay clear of it. Without an irreversible action a
+// `deleteX` past `left` still bounds them (the Check list's Ignored button).
 inline void placeSelectionButtons(SelectionPaneLayout& pane, std::vector<BulkAction> const& actions, float left, float width,
                                   float gap, float deleteX, float deleteWidth, float minWidth = 24) {
     int plain = 0;
@@ -144,7 +148,7 @@ inline void placeSelectionButtons(SelectionPaneLayout& pane, std::vector<BulkAct
         else ++plain;
     }
     float w = width;
-    if (hasDelete && plain > 0)
+    if ((hasDelete || deleteX > left) && plain > 0)
         w = std::clamp((deleteX - gap - left - (plain - 1) * gap) / plain, std::min(minWidth, width), width);
     pane.buttonX.clear();
     pane.buttonW.clear();

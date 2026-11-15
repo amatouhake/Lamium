@@ -56,7 +56,7 @@ constexpr float nameTagScale = .025f; // blocks per font pixel
 std::vector<std::pair<Position, std::string>> labels;
 // "Show in world": a marked cell until `pointUntil`.
 std::mutex pointMutex;
-std::optional<Point> pointAt;
+std::vector<Point> pointAt; // several for selected Check rows (L-183)
 Clock::time_point pointUntil{};
 // The placement frames as one mesh, built again only when the placements,
 // the selection or the dimension change: built each frame, the dashed
@@ -390,16 +390,19 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
         ref.stack = nullptr;
     }
 }
-// The cell chosen with "Show in world": a pulsing tinted box with outlines
-// and a tall beam of crossed faces above it, readable from far away.
+void drawPointAt(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided, Point const* at);
+// The cells chosen with "Show in world": each a pulsing tinted box with
+// outlines and a tall beam of crossed faces above it, readable from far away.
 void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided) {
-    std::optional<Point> at;
+    std::vector<Point> cells;
     {
         std::lock_guard lock(pointMutex);
-        if (pointAt && Clock::now() > pointUntil) pointAt.reset();
-        at = pointAt;
+        if (!pointAt.empty() && Clock::now() > pointUntil) pointAt.clear();
+        cells = pointAt;
     }
-    if (!at) return;
+    for (auto const& cell : cells) drawPointAt(screen, camera, faceMaterial, twoSided, &cell);
+}
+void drawPointAt(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided, Point const* at) {
     mce::MaterialPtr lineMaterial = overlay::lines::material();
     float pulse = .5f + .5f * std::sin(std::chrono::duration<float>(Clock::now().time_since_epoch()).count() * 6.f);
     glm::vec3 offset{static_cast<float>(at->x - camera.x), static_cast<float>(at->y - camera.y), static_cast<float>(at->z - camera.z)};
@@ -439,9 +442,11 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
         overlay::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
     });
 }
-void point(Point cell) {
+void point(Point cell) { point(std::vector<Point>{cell}); }
+void point(std::vector<Point> cells) {
+    if (cells.size() > maxPointed) cells.resize(maxPointed);
     std::lock_guard lock(pointMutex);
-    pointAt = cell;
+    pointAt = std::move(cells);
     pointUntil = Clock::now() + std::chrono::seconds(30);
 }
 void resetMarks() {
