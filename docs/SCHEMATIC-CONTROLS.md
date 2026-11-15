@@ -103,7 +103,9 @@ direction); Hold actions cannot.
 - Cut here keeps axis and keep, sets the cut to the view source's layer,
   then leaves All. Menu Cut steps, Layer up/down keys and the screen's Cut
   +/- first leave All without moving the cut; "Layer here" and a typed cut
-  set the cut, then leave All.
+  set the cut, then leave All. The screen's Layer field left with the number
+  it shows changes nothing (All stays), and Esc, or typing the starting
+  number again, returns to All when the edit began there.
 - Leaving All returns to the mode in which the cut, Keep or Axis was last
   changed, Only by default (L-239). Modes only viewed or passed through and
   edits under All do not update that memory. It belongs to each placement

@@ -63,6 +63,10 @@ public:
         list->entries = std::move(entries);
         list->rulesFrom = static_cast<size_t>(std::find_if(list->entries.begin(), list->entries.end(),
             [](auto const& e) { return e.kind == IgnoreKind::Rule; }) - list->entries.begin());
+        for (size_t i = list->rulesFrom; i < list->entries.size(); ++i) {
+            for (unsigned char c : encode(list->entries[i])) list->ruleHash = (list->ruleHash ^ c) * 1099511628211ull;
+            list->ruleHash = (list->ruleHash ^ 0xff) * 1099511628211ull;
+        }
         list_ = std::move(list);
     }
     std::vector<IgnoreEntry> const& entries() const {
@@ -154,6 +158,9 @@ public:
         for (auto const& e : entries()) mix(encode(e));
         return empty() ? std::string{} : std::to_string(size()) + ":" + std::to_string(hash);
     }
+    // The rules alone, hashed once when the list is made: a section's
+    // signature asks for it on every check.
+    std::uint64_t ruleHash() const { return list_ ? list_->ruleHash : Data{}.ruleHash; }
     bool operator==(IgnoreList const& other) const { return entries() == other.entries(); }
 
     // Saved form, one string per entry: "x,y,z block" (a place), "* block
@@ -205,6 +212,7 @@ private:
     struct Data {
         std::vector<IgnoreEntry> entries;
         size_t rulesFrom = 0;
+        std::uint64_t ruleHash = 1469598103934665603ull;
     };
     using Iterator = std::vector<IgnoreEntry>::const_iterator;
     Iterator cellEnd() const { return list_ ? list_->entries.begin() + static_cast<std::ptrdiff_t>(list_->rulesFrom) : entries().end(); }
@@ -289,12 +297,14 @@ inline Point ignoredWorldCell(IgnoreEntry const& e, Size size, Placement const& 
 inline bool takesIgnores(Mismatch const& m) { return !m.entity && m.local.x >= 0 && !m.fileBlock.empty(); }
 // A row's mark under the entries as they are now, before the next pass has
 // judged it again: the Check tab tags rows by it, so a press shows at once.
-// A wrong state passes when every difference listed is ruled.
+// A wrong state passes when every difference listed is ruled; a row whose
+// list was cut passes only if the pass, which judged them all, passed it.
 inline IgnoreMark liveMark(Mismatch const& m, IgnoreList const& list) {
     if (!takesIgnores(m)) return m.ignore;
     if (list.place(m.local, m.fileBlock)) return IgnoreMark::Place;
     if (m.state != CellState::State || m.states.empty()) return IgnoreMark::None;
     bool all = std::all_of(m.states.begin(), m.states.end(), [&](auto const& d) { return list.ruled(m.fileBlock, itemId(d)); });
+    if (all && m.statesCut && m.ignore != IgnoreMark::Items) return IgnoreMark::None;
     return all ? IgnoreMark::Items : IgnoreMark::None;
 }
 // Several rows' "Ignore places": the rows not yet ignored as a place.

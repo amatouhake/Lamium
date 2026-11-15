@@ -404,7 +404,7 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
     std::uint64_t hash = 1469598103934665603ull;
     // L-303: the check's block entity verdicts, so a section rebuilds when
     // one changes (a sign rewritten, a note tuned) with the block unchanged.
-    bool checked = !mistakes->cells.empty() && mistakes->key == drawKey(shown.placement);
+    bool checked = (!mistakes->cells.empty() || !mistakes->ignored.empty()) && mistakes->key == drawKey(shown.placement);
     // One cell around the section too: its border ghosts' faces and
     // enclosure depend on the neighbors there.
     eachCell(shown, key, 1, [&](int x, int y, int z) {
@@ -417,22 +417,27 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
         // A shulker box's opening arrives with its block actor, after the block.
         if (block && block->getBlockType().mBlockEntityType == BlockActorType::ShulkerBox)
             hash = (hash ^ static_cast<std::uint64_t>(actualShulkerFace(region, {x, y, z}) + 2)) * 1099511628211ull;
-        if (checked && block && block->getBlockType().mBlockEntityType != BlockActorType::Undefined && mistakes->has({x, y, z}))
-            hash = (hash ^ 0x9E3779B97F4A7C15ull) * 1099511628211ull;
+        if (checked && block && block->getBlockType().mBlockEntityType != BlockActorType::Undefined) {
+            if (mistakes->has({x, y, z})) hash = (hash ^ 0x9E3779B97F4A7C15ull) * 1099511628211ull;
+            if (mistakes->passed({x, y, z})) hash = (hash ^ 0xC2B2AE3D27D4EB4Full) * 1099511628211ull;
+        }
     });
     // L-183: the places on this section's cells, and every rule (it may
-    // cover any cell), decide its marks.
+    // cover any cell), decide its marks. Asked on every check of every
+    // section: the rules are hashed once in the list, and nothing allocates.
     if (auto const& ignored = shown.placement.ignored; !ignored.empty()) {
         auto [index, sx, sy, sz] = key;
+        auto mix = [&](std::uint64_t value) { hash = (hash ^ value) * 1099511628211ull; };
+        mix(ignored.ruleHash());
         for (auto const& e : ignored.entries()) {
-            std::string text = encodeIgnored(e);
-            if (e.kind != IgnoreKind::Rule) {
-                auto w = toWorld(shown.structure->size, shown.placement.placement, e.cell);
-                auto outside = [](int v, int s) { return v < s * sectionSize || v >= (s + 1) * sectionSize; };
-                if (outside(w.x, sx) || outside(w.y, sy) || outside(w.z, sz)) continue;
-                text += std::format(" {},{},{}", w.x, w.y, w.z);
-            }
-            for (unsigned char c : text) hash = (hash ^ c) * 1099511628211ull;
+            if (e.kind == IgnoreKind::Rule) break; // the rules come last
+            auto w = toWorld(shown.structure->size, shown.placement.placement, e.cell);
+            auto outside = [](int v, int s) { return v < s * sectionSize || v >= (s + 1) * sectionSize; };
+            if (outside(w.x, sx) || outside(w.y, sy) || outside(w.z, sz)) continue;
+            for (int v : {w.x, w.y, w.z, static_cast<int>(e.kind)}) mix(static_cast<std::uint32_t>(v));
+            for (unsigned char c : e.block) mix(c);
+            mix(0xff);
+            for (unsigned char c : e.item) mix(c);
         }
     }
     return hash;
@@ -487,7 +492,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
     bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
     unsigned const relax = checkRules(); // L-262
-    bool const entityChecked = !entityMarks->cells.empty() && entityMarks->key == drawKey(placement);
+    // The pass's verdicts are this placement's: its ignored cells too (L-183).
+    EntityMistakes const* const judged = entityMarks->key == drawKey(placement) ? entityMarks.get() : nullptr;
+    bool const entityChecked = judged && !judged->cells.empty();
 
     prepareShapes(screen, own, blocks);
     Point drawing{};
@@ -551,7 +558,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     bool const differs = fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face)
                         || (entityChecked && entityMarks->has({x, y, z}));
                     // Unless the entries take the cell out (L-183).
-                    if (showMarks && differs && !(placement.ignored.touches(*local, fileName) && ignoredAt(region, shown, blocks, {x, y, z})))
+                    if (showMarks && differs && !(placement.ignored.touches(*local, fileName) && ignoredAt(region, shown, blocks, {x, y, z}, judged)))
                         marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
                     continue;
                 }
@@ -562,7 +569,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     // No mark for a cell the entries take out: an ignored
                     // place, or every difference ruled (L-183).
                     bool const passes = placement.ignored.place(*local, fileName)
-                        || (sameType && placement.ignored.touches(*local, fileName) && ignoredAt(region, shown, blocks, {x, y, z}));
+                        || (sameType && placement.ignored.touches(*local, fileName) && ignoredAt(region, shown, blocks, {x, y, z}, judged));
                     if (showMarks && !passes) marks.push_back(mark);
                     continue;
                 }

@@ -84,6 +84,7 @@ struct Cell {
     // them; and whether the world's block entity was read (it costs a save).
     std::vector<StateDifference> entityStates;
     bool readEntity = false;
+    bool entitySkipped = false; // EntityUse::Skip met a block entity to compare: nothing after it is filled
     IgnoreMark mark = IgnoreMark::None; // what the placement's ignore entries make of it (L-183)
 };
 struct Scan {
@@ -95,19 +96,22 @@ struct Scan {
     Tally tally;
     std::vector<Mismatch> mismatches;
     // The nearest cells of each kind (missing, other mistakes), kept as
-    // max-heaps on distance; turned into rows when the pass ends.
-    std::vector<std::pair<double, Cell>> nearMissing, nearMistakes;
+    // max-heaps on distance; turned into rows when the pass ends. Cells the
+    // entries take out have their own, so they use none of the others' places.
+    std::vector<std::pair<double, Cell>> nearMissing, nearMistakes, nearIgnored;
     std::map<std::string, MaterialLine> all, shown;
-    std::set<std::tuple<int, int, int>> entityMistakes;
+    std::set<std::tuple<int, int, int>> entityMistakes, entityIgnored;
 };
 Scan scan;
 std::mutex resultMutex;
 std::shared_ptr<Verification const> published = std::make_shared<Verification const>();
 std::shared_ptr<EntityMistakes const> publishedEntityMistakes = std::make_shared<EntityMistakes const>();
-void publishEntityMistakes(std::string key, std::set<std::tuple<int, int, int>> cells) {
+void publishEntityMistakes(std::string key, std::set<std::tuple<int, int, int>> cells,
+                           std::set<std::tuple<int, int, int>> ignored) {
     auto value = std::make_shared<EntityMistakes>();
     value->key = std::move(key);
     value->cells = std::move(cells);
+    value->ignored = std::move(ignored);
     std::lock_guard lock(resultMutex);
     publishedEntityMistakes = std::move(value);
 }
@@ -264,11 +268,13 @@ std::vector<StateDifference> cellDifferences(Cell const& c) {
     return out;
 }
 // One cell of a placement, the n-th of its placed box (x, then y, then z
-// fastest), compared with the world. `reuseEntity`: the caller asks every frame
-// about the same cell (the card), so its block entity read may be kept for a
-// short while; a pass over the whole placement always reads fresh.
+// fastest), compared with the world. The world's block entity: a pass over
+// the whole placement always reads fresh; a caller asking every frame about
+// the same cell (the card) may keep its read for a short while; a section
+// build must not read at all (up to a section's cells in one frame).
+enum class EntityUse { Fresh, Reuse, Skip };
 Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Size placed, std::uint64_t n,
-                  bool reuseEntity = false) {
+                  EntityUse entity = EntityUse::Fresh) {
     Cell c;
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
@@ -321,9 +327,10 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
         bool ignoreSign = signTextIgnored();
         if (auto found = structure.blockEntities.find(static_cast<std::int32_t>(cellIndex));
             found != structure.blockEntities.end() && !blockEntitiesIgnored() && entitycheck::compared(found->second, ignoreSign)) {
+            if (entity == EntityUse::Skip) { c.entitySkipped = true; return c; }
             c.readEntity = true;
             if (auto saved = entityRead(region, pos, placement.dimension, static_cast<std::int32_t>(cellIndex),
-                                        shown.structure.get(), reuseEntity)) {
+                                        shown.structure.get(), entity == EntityUse::Reuse)) {
                 // L-301: the stored note is the one the world loaded with.
                 if (auto note = information::playedNote(pos, placement.dimension)) saved->set("note", {std::int32_t{*note}});
                 auto fileStates = blockStates(*against);
@@ -401,7 +408,7 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks, session::Shown const
         if (c.state == CellState::State && c.expected) {
             m.states = cellDifferences(c);
             if (!c.air) markRuled(m.states, shown.placement.ignored, fileBlock);
-            if (m.states.size() > listedDifferences) m.states.resize(listedDifferences);
+            if (m.states.size() > listedDifferences) { m.states.resize(listedDifferences); m.statesCut = true; }
             m.identifier = c.expected->getTypeName();
         }
     }
@@ -471,7 +478,7 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
             auto none = std::make_shared<Verification>();
             none->revision = snapshot.revision;
             publish(std::move(none));
-            publishEntityMistakes({}, {});
+            publishEntityMistakes({}, {}, {});
         }
         return;
     }
@@ -522,6 +529,7 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         read = c.readEntity;
         if (!c.inside) continue;
         if (!c.entityStates.empty()) scan.entityMistakes.insert({c.world.x, c.world.y, c.world.z});
+        if (c.readEntity && c.mark == IgnoreMark::Items) scan.entityIgnored.insert({c.world.x, c.world.y, c.world.z});
         auto paletteIndex = c.palette;
         bool visible = c.visible, air = c.air;
         CellState state = c.state;
@@ -539,8 +547,10 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         bool mistake = state == CellState::Missing || state == CellState::Wrong || state == CellState::State || state == CellState::Extra;
         if (!mistake) continue;
         // Capped per kind and nearest first: in a large build the missing
-        // blocks alone filled the list and the wrong ones never showed.
-        auto& near = state == CellState::Missing ? scan.nearMissing : scan.nearMistakes;
+        // blocks alone filled the list and the wrong ones never showed; nor
+        // may cells the entries take out fill it (L-183).
+        auto& near = c.mark != IgnoreMark::None ? scan.nearIgnored
+            : state == CellState::Missing ? scan.nearMissing : scan.nearMistakes;
         double dx = world.x + .5 - camera.x, dy = world.y + .5 - camera.y, dz = world.z + .5 - camera.z;
         double distance = dx * dx + dy * dy + dz * dz;
         auto farther = [](auto const& a, auto const& b) { return a.first < b.first; };
@@ -564,18 +574,22 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     for (auto& [key, line] : scan.all) result->materials.push_back(std::move(line));
     for (auto& [key, line] : scan.shown) result->visibleMaterials.push_back(std::move(line));
     addEntityResults(*result, shown, blocks);
+    // After the entities, whose rows stop at the cap: ignored rows take none of it.
+    for (auto const& [distance, cell] : scan.nearIgnored) result->mismatches.push_back(mismatchFor(cell, blocks, shown));
     sortMismatches(result->mismatches, camera.x, camera.y, camera.z);
     sortMaterials(result->materials);
     sortMaterials(result->visibleMaterials);
     publish(std::move(result));
-    publishEntityMistakes(drawKey(placement), std::move(scan.entityMistakes));
+    publishEntityMistakes(drawKey(placement), std::move(scan.entityMistakes), std::move(scan.entityIgnored));
     // Start the next pass.
     scan.entityMistakes.clear();
+    scan.entityIgnored.clear();
     scan.next = 0;
     scan.tally = {};
     scan.mismatches.clear();
     scan.nearMissing.clear();
     scan.nearMistakes.clear();
+    scan.nearIgnored.clear();
     scan.all.clear();
     scan.shown.clear();
 }
@@ -607,18 +621,22 @@ std::optional<Mismatch> checkedCell(BlockSource& region, Point world, std::vecto
     int ox = world.x - o.x, oy = world.y - o.y, oz = world.z - o.z;
     if (ox < 0 || oy < 0 || oz < 0 || ox >= placed.x || oy >= placed.y || oz >= placed.z) return std::nullopt;
     auto n = (static_cast<std::uint64_t>(ox) * placed.y + static_cast<std::uint64_t>(oy)) * placed.z + static_cast<std::uint64_t>(oz);
-    auto c = classifyCell(region, shown, resolved[static_cast<size_t>(index)], placed, n, true);
+    auto c = classifyCell(region, shown, resolved[static_cast<size_t>(index)], placed, n, EntityUse::Reuse);
     if (!c.inside) return std::nullopt;
     return mismatchFor(c, resolved[static_cast<size_t>(index)], shown);
 }
-bool ignoredAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point world) {
+bool ignoredAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point world,
+               EntityMistakes const* judged) {
     if (!shown.structure || shown.placement.ignored.empty()) return false;
     Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
     auto const& o = shown.placement.placement.origin;
     int ox = world.x - o.x, oy = world.y - o.y, oz = world.z - o.z;
     if (ox < 0 || oy < 0 || oz < 0 || ox >= placed.x || oy >= placed.y || oz >= placed.z) return false;
     auto n = (static_cast<std::uint64_t>(ox) * placed.y + static_cast<std::uint64_t>(oy)) * placed.z + static_cast<std::uint64_t>(oz);
-    auto c = classifyCell(region, shown, blocks, placed, n);
+    auto c = classifyCell(region, shown, blocks, placed, n, EntityUse::Skip);
+    if (c.entitySkipped)
+        return shown.placement.ignored.place(c.local, shown.structure->palette[static_cast<size_t>(c.palette)].name)
+            || (judged && judged->passed(world));
     return c.inside && c.mark != IgnoreMark::None;
 }
 std::string itemName(std::string_view item, std::string_view identifier) {
@@ -641,7 +659,7 @@ void resetVerification() {
     scan = {};
     lastEntityRead = {};
     publish(std::make_shared<Verification const>());
-    publishEntityMistakes({}, {});
+    publishEntityMistakes({}, {}, {});
 }
 std::shared_ptr<EntityMistakes const> entityMistakes() {
     std::lock_guard lock(resultMutex);

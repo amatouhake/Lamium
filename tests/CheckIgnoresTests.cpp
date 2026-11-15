@@ -257,6 +257,15 @@ void checkIgnoresTests() {
               && liveMark(lastPass, IgnoreList({placeEntry({0, 0, 0}, "minecraft:lever")})) == IgnoreMark::Place
               && liveMark(b, rules) == IgnoreMark::None,
           "a row is tagged by the entries as they are now; partly ruled rows carry no tag");
+    auto cut = lastPass;
+    cut.statesCut = true;
+    check(liveMark(cut, rules) == IgnoreMark::None, "a row whose differences were cut is not ignored on the listed ones alone");
+    cut.ignore = IgnoreMark::Items;
+    check(liveMark(cut, rules) == IgnoreMark::Items && liveMark(cut, IgnoreList({lever})) == IgnoreMark::None,
+          "a cut row keeps the pass's mark while every listed difference is still ruled");
+    check(rules.ruleHash() == IgnoreList(rules.entries()).ruleHash() && rules.ruleHash() != IgnoreList({lever}).ruleHash()
+              && IgnoreList({placeEntry({0, 0, 0}, "minecraft:lever")}).ruleHash() == IgnoreList().ruleHash(),
+          "the rule hash follows the rules alone");
     check(differingRows({a, b, d}, "minecraft:lever", "open_bit") == 2 && differingRows({a, b, d}, "minecraft:lever", "lever_direction") == 1,
           "how many rows of a block differ in an item");
 

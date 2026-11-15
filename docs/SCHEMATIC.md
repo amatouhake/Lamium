@@ -137,7 +137,7 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   cell, extras too; in no count or material, ghost kept) and rules (a state
   or compared block entity field on every such block, counted as matching).
   Ignored rows keep their kind (hollow square, framed tag), no in-world mark
-  or nearest mistake; stale and old one-cell-state entries are kept unused.
+  or nearest mistake, their own nearest 2000; stale and old one-cell-state entries are kept unused.
 - Waterlogging: once a cell's block is right, the second layer must match the
   world's extra block (none on both sides included); a difference is a state
   row `waterlogged: true -> false` (or the reverse) and a yellow mark. A

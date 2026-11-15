@@ -104,11 +104,11 @@ inline std::vector<StateDifference> stateDifferences(std::map<std::string, std::
     auto e = expected.begin(), a = actual.begin();
     while ((e != expected.end() || a != actual.end()) && result.size() < limit) {
         if (a == actual.end() || (e != expected.end() && e->first < a->first)) {
-            result.push_back({e->first, e->second, "-"}); ++e;
+            result.push_back({e->first, e->second, "-", false, {}}); ++e;
         } else if (e == expected.end() || a->first < e->first) {
-            result.push_back({a->first, "-", a->second}); ++a;
+            result.push_back({a->first, "-", a->second, false, {}}); ++a;
         } else {
-            if (e->second != a->second) result.push_back({e->first, e->second, a->second});
+            if (e->second != a->second) result.push_back({e->first, e->second, a->second, false, {}});
             ++e; ++a;
         }
     }
@@ -117,7 +117,7 @@ inline std::vector<StateDifference> stateDifferences(std::map<std::string, std::
 
 // The row naming a waterlogging difference in a mistake's state list.
 inline StateDifference liquidDifference(bool expected, bool actual) {
-    return {"waterlogged", expected ? "true" : "false", actual ? "true" : "false"};
+    return {"waterlogged", expected ? "true" : "false", actual ? "true" : "false", false, {}};
 }
 
 // The row naming a shulker box's opening (block entity data, L-179); faces

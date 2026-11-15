@@ -138,39 +138,52 @@ int schematicIndex = -1; // into the placements or the files
 schematic::PlacementSet schematicSet;
 std::vector<schematic::session::FileEntry> schematicFiles;
 std::vector<schematic_files::Row> schematicFileRows; // the Files list: folder headings and files
+// What is remembered per loaded structure. A reloaded file's structure may
+// stand at a freed one's address, so an entry also holds its structure
+// weakly and is used only while that one lives.
+template <class Value>
+struct OfStructure {
+    std::weak_ptr<schematic::Structure const> structure;
+    Value value{};
+    bool holds(std::shared_ptr<schematic::Structure const> const& asked) const { return !asked || !structure.expired(); }
+};
 // Blocks other than air and structure void, counted once per loaded structure.
-std::map<schematic::Structure const*, std::uint64_t> schematicBlockCounts;
-std::uint64_t blockCount(schematic::Structure const& structure) {
-    auto [found, fresh] = schematicBlockCounts.try_emplace(&structure, 0);
-    if (fresh) {
-        if (schematicBlockCounts.size() > 256) { schematicBlockCounts.clear(); return blockCount(structure); }
-        for (auto index : structure.blocks)
-            if (index != schematic::voidCell && !structure.palette[static_cast<size_t>(index)].isAir()) ++found->second;
-    }
-    return found->second;
+std::map<schematic::Structure const*, OfStructure<std::uint64_t>> schematicBlockCounts;
+std::uint64_t blockCount(std::shared_ptr<schematic::Structure const> const& structure) {
+    if (auto found = schematicBlockCounts.find(structure.get()); found != schematicBlockCounts.end() && found->second.holds(structure))
+        return found->second.value;
+    if (schematicBlockCounts.size() > 256) schematicBlockCounts.clear();
+    std::uint64_t count = 0;
+    for (auto index : structure->blocks)
+        if (index != schematic::voidCell && !structure->palette[static_cast<size_t>(index)].isAir()) ++count;
+    schematicBlockCounts[structure.get()] = {structure, count};
+    return count;
 }
 // Cells per block name, counted once per loaded structure (L-183: whether a
 // rule's block is still in the file).
-std::map<schematic::Structure const*, schematic::BlockCounts> schematicNameCounts;
-schematic::BlockCounts const& nameCounts(schematic::Structure const& structure) {
-    auto found = schematicNameCounts.find(&structure);
-    if (found != schematicNameCounts.end()) return found->second;
+std::map<schematic::Structure const*, OfStructure<schematic::BlockCounts>> schematicNameCounts;
+schematic::BlockCounts const& nameCounts(std::shared_ptr<schematic::Structure const> const& structure) {
+    if (auto found = schematicNameCounts.find(structure.get()); found != schematicNameCounts.end() && found->second.holds(structure))
+        return found->second.value;
     if (schematicNameCounts.size() > 64) schematicNameCounts.clear();
-    return schematicNameCounts.emplace(&structure, schematic::blockCounts(structure)).first->second;
+    auto& entry = schematicNameCounts[structure.get()];
+    entry = {structure, schematic::blockCounts(*structure)};
+    return entry.value;
 }
 // A block's display name and icon as the file names it (the first palette
 // entry of that name), for the ignore view; remembered per structure and
 // name until the language changes. A name the file lacks reads without
 // "minecraft:".
-schematic::ghosts::BlockLabel const& fileBlockLabel(schematic::Structure const* structure, std::string const& name) {
-    static std::map<std::pair<schematic::Structure const*, std::string>, schematic::ghosts::BlockLabel> labels;
+schematic::ghosts::BlockLabel const& fileBlockLabel(std::shared_ptr<schematic::Structure const> const& structure,
+                                                    std::string const& name) {
+    static std::map<std::pair<schematic::Structure const*, std::string>, OfStructure<schematic::ghosts::BlockLabel>> labels;
     static std::string labelsLanguage;
     if (auto code = game_language::currentCode(); code != labelsLanguage) {
         labels.clear();
         labelsLanguage = std::move(code);
     }
-    auto key = std::pair{structure, name};
-    if (auto found = labels.find(key); found != labels.end()) return found->second;
+    auto key = std::pair{structure.get(), name};
+    if (auto found = labels.find(key); found != labels.end() && found->second.holds(structure)) return found->second.value;
     if (labels.size() > 512) labels.clear();
     schematic::ghosts::BlockLabel label{name.starts_with("minecraft:") ? name.substr(10) : name, {}};
     if (structure)
@@ -179,7 +192,9 @@ schematic::ghosts::BlockLabel const& fileBlockLabel(schematic::Structure const* 
                 if (auto found = schematic::ghosts::blockLabel(entry); !found.name.empty()) label = std::move(found);
                 break;
             }
-    return labels.emplace(key, std::move(label)).first->second;
+    auto& entry = labels[key];
+    entry = {structure, std::move(label)};
+    return entry.value;
 }
 // The items a rule can name per block type of the file (L-183), counted
 // again when the file or the block entity switches change.
@@ -209,6 +224,9 @@ BulkArm placementBulk;
 // The Placed list's own column: progress (L-190).
 constexpr float progressColumn = 26;
 int editingSchematicField = -1;
+// The Layer field's cut when its edit began in All: that number again (Esc
+// puts it back) returns to All, which typing another one left.
+std::optional<int> layerEditAllCut;
 void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& apply);
 // ---- Schematics view (L-93) ----
 // Four tabs share the list-and-detail layout: placements, files, the
@@ -429,11 +447,11 @@ void refreshIgnoreList() {
     if (!ignoreView || schematicTab != SchematicTab::Verify || !checked) return;
     auto structure = schematic::session::loaded(checked->file);
     static schematic::BlockCounts const noCounts;
-    auto const& counts = structure ? nameCounts(*structure) : noCounts;
+    auto const& counts = structure ? nameCounts(structure) : noCounts;
     std::vector<std::string> order;
     if (structure) {
         std::vector<std::pair<std::string, std::string>> blocks;
-        for (auto const& [block, items] : comparedItemsOf(structure)) blocks.push_back({block, fileBlockLabel(structure.get(), block).name});
+        for (auto const& [block, items] : comparedItemsOf(structure)) blocks.push_back({block, fileBlockLabel(structure, block).name});
         std::vector<std::string> names;
         if (verification && verification->placement == schematicSet.selected)
             for (auto const& line : verification->materials) names.push_back(line.name);
@@ -734,7 +752,13 @@ void activateSchematicField(int index, int part) {
         auto structure = schematic::session::structure(p->file);
         if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
         auto view = schematic::resolvedLayers(p->layers, structure->size, p->placement);
-        if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(view.cut + 1); screen::clearMessage(); return; }
+        if (part == 0) {
+            editingSchematicField = index;
+            layerEditAllCut = view.mode == schematic::LayerMode::All ? std::optional{view.cut} : std::nullopt;
+            screen::number().beginPrecise(view.cut + 1);
+            screen::clearMessage();
+            return;
+        }
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
             if (!schematic::leaveAll(t.layers)) t.layers.cut = std::clamp(t.layers.cut + direction * (screen::heldShift() ? 10 : 1), 0, count - 1);
@@ -884,6 +908,10 @@ void handleSchematicClick(float x, float y, bool right) {
         if (pressed == data_notice::Pressed::Open) screen::showSavedData();
         else refresh(true);
         if (auto done = data_notice::takeResult()) done->warns ? screen::setMessage(done->text) : screen::setInfo(done->text);
+        // "Use this data" swaps the placements under the rows: nothing armed for the old ones stays armed.
+        schematicDeleteArmed = verifyUndoAllArmed = false;
+        placementBulk.disarm();
+        checkBulk.disarm();
         return;
     }
     if (schematicsDisplayed.hit(x, y).zone != ShapeZone::Bulk) placementBulk.disarm();
@@ -1153,7 +1181,7 @@ std::map<std::string, std::uint64_t> carriedItems() {
 }
 Rgb mismatchColor(schematic::CellState state) {
     switch (state) {
-    case schematic::CellState::Wrong: case schematic::CellState::Extra: return {1.f, .35f, .3f};
+    case schematic::CellState::Wrong: case schematic::CellState::Extra: return palette::mismatch;
     case schematic::CellState::State: return {1.f, .8f, .25f};
     default: return {.75f, .85f, .9f};
     }
@@ -1184,6 +1212,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     if (l.noticeHeight > 0)
         data_notice::draw(context, l.listLeft + ShapesLayout::pad, l.noticeTop + 2, l.listWidth - 2 * ShapesLayout::pad,
             data_notice::Kind::Placements, pointer);
+    else data_notice::hide();
     auto const preferences = Runtime::instance().preferences();
     ignoreControls.clear();
     ignoreSettingsBox = {};
@@ -1318,7 +1347,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             auto const* m = row.stale ? nullptr : rowAt(row.entry);
             drawKindSquare(context,left,y+ShapesLayout::rowHeight/2,m ? mismatchColor(m->state) : palette::faint,true);
             if (row.entry.block == "minecraft:air") name = m && !m->actualName.empty() ? m->actualName : translated("schematic.air");
-            else { auto const& label = fileBlockLabel(ignoreStructure.get(), row.entry.block); name = label.name; icon = label.icon; }
+            else { auto const& label = fileBlockLabel(ignoreStructure, row.entry.block); name = label.name; icon = label.icon; }
             tag = translated(row.entry.kind == schematic::IgnoreKind::CellItem ? "schematic.ignore.oldForm"
                 : row.stale ? "schematic.ignore.stale" : "schematic.ignore.tagPlace");
             if (ignoreStructure) {
@@ -1328,7 +1357,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 right -= distW + 4;
             }
         } else {
-            auto const& label = fileBlockLabel(ignoreStructure.get(), row.block);
+            auto const& label = fileBlockLabel(ignoreStructure, row.block);
             name = label.name;
             if (!row.stale) icon = label.icon;
             if (!row.rules.empty()) {
@@ -1411,7 +1440,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             if (structure) {
                 if (showSize) label(context,sizeX,y+3,sizeW,std::format("{}x{}x{}", structure->size.x, structure->size.y, structure->size.z),
                     palette::dim,Align::Right);
-                label(context,blocksX,y+3,blocksW,std::to_string(blockCount(*structure)),palette::dim,Align::Right);
+                label(context,blocksX,y+3,blocksW,std::to_string(blockCount(structure)),palette::dim,Align::Right);
             } else label(context,blocksX,y+3,blocksW,"-",palette::faint,Align::Right);
             break;
         }
@@ -1504,7 +1533,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         std::string problem;
         auto structure = schematic::session::structure(relative, &problem);
         if (!structure) { paragraph(context,dx,y,dw,translated("schematic.notLoaded", problem),3,palette::warning); return; }
-        std::uint64_t blocks = blockCount(*structure);
+        std::uint64_t blocks = blockCount(structure);
         label(context,dx,y,dw,translated("schematic.size", structure->size.x, structure->size.y, structure->size.z),palette::dim);
         label(context,dx,y+11,dw,translated("schematic.blocks", blocks),palette::dim);
         label(context,dx,y+22,dw,translated("schematic.entities", structure->entities.size()),palette::dim);
@@ -1650,9 +1679,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (picked && picked->kind == IgnoreKind::Place) {
             auto const* m = picked->stale ? nullptr : rowAt(picked->entry);
             if (picked->entry.block == "minecraft:air") title = m && !m->actualName.empty() ? m->actualName : translated("schematic.air");
-            else { auto const& label = fileBlockLabel(fileStructure.get(), picked->entry.block); title = label.name; titleIcon = label.icon; }
+            else { auto const& label = fileBlockLabel(fileStructure, picked->entry.block); title = label.name; titleIcon = label.icon; }
         } else if (picked) {
-            auto const& label = fileBlockLabel(fileStructure.get(), picked->block);
+            auto const& label = fileBlockLabel(fileStructure, picked->block);
             title = label.name;
             if (!picked->stale) titleIcon = label.icon;
         }
@@ -2136,12 +2165,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     // Lines that went away and come back (a place picked between) start at the top.
     if (!itemScroll.drawn) itemScroll.of.clear();
     if (listTip) {
-        // Text is batched: draw what is under the tip first, or it lands on top.
-        context.flushText(0, std::nullopt);
         float w = std::min(textWidth(context, listTip->text) + 8, l.width - 4);
         float x = std::max(l.left + 2, std::min(listTip->x + 8, l.left + l.width - w - 2));
-        fill(context,x,listTip->y+10,w,13,palette::panel);
-        frame(context,x,listTip->y+10,w,13,palette::keyEdge);
+        drawTipBox(context,x,listTip->y+10,w,13);
         label(context,x+4,listTip->y+12,w-6,listTip->text,palette::text);
     }
     // Footer.
@@ -2277,21 +2303,35 @@ void applyNumber() {
     // Fetch the structure before changeSchematic takes the session lock: the
     // structure lookup locks the same mutex.
     auto const* selected = selectedPlacement();
+    if (!selected) return;
     std::shared_ptr<schematic::Structure const> structure;
-    if (field == 9 && selected) structure = schematic::session::structure(selected->file);
+    if (field == 9) structure = schematic::session::structure(selected->file);
     if (field == 9 && !structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
+    // Leaving the field applies it once more as it stands: a number that is
+    // already the value changes nothing, so an untouched Layer stays in All.
+    bool backToAll = false;
+    if (field == 9) {
+        auto view = schematic::resolvedLayers(selected->layers, structure->size, selected->placement);
+        backToAll = layerEditAllCut && value - 1 == *layerEditAllCut && view.mode != schematic::LayerMode::All;
+        bool same = value - 1 == view.cut || (!selected->layers.legacy && value - 1 == selected->layers.cut);
+        if (same && !backToAll) { screen::clearMessage(); return; }
+    } else if (auto const& o = selected->placement.origin; (field == 0 ? o.x : field == 1 ? o.y : o.z) == value) {
+        screen::clearMessage();
+        return;
+    }
     changeSchematic([&](schematic::SavedPlacement& p) {
         if (field == 9) {
             if (p.layers.legacy) p.layers = schematic::fromLegacy(p.layers, structure->size, p.placement);
             p.layers.cut = value - 1;
-            schematic::leaveAll(p.layers);
+            if (backToAll) p.layers.mode = schematic::LayerMode::All;
+            else schematic::leaveAll(p.layers);
             schematic::noteLayerEdit(p.layers);
             schematic::dualWrite(p.layers, structure->size, p.placement);
         }
         else (field == 0 ? p.placement.origin.x : field == 1 ? p.placement.origin.y : p.placement.origin.z) = value;
     });
 }
-void endEditing() { editingSchematicField = -1; }
+void endEditing() { editingSchematicField = -1; layerEditAllCut.reset(); }
 glm::vec2 caret() { return {schematicsDisplayed.stepperX(), schematicsDisplayed.fieldY(std::max(0, editingSchematicField))}; }
 bool docked() { return schematicsDocked; }
 void renderDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) { renderSchematicsDocked(context, size, pointer); }
@@ -2299,7 +2339,7 @@ void renderContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 
     renderSchematicsContent(context, size, pointer, table);
 }
 void reset() {
-    editingSchematicField = -1;
+    endEditing();
     schematicDeleteArmed = verifyUndoAllArmed = false;
     ignoreView = false;
     placementRows.clearSeveral(); // a closed screen keeps one row, not several; the picked one stays

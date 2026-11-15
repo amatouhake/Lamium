@@ -26,6 +26,7 @@ struct Mismatch {
     // entries say (countedState); `states` then holds every difference,
     // each marked when a rule covers it.
     IgnoreMark ignore = IgnoreMark::None;
+    bool statesCut = false; // `states` lists only the first of the differences the pass judged
 };
 // The Check list's filters (L-183): all rows (mistakes first, then not
 // placed), wrong block (extras too), wrong state, not placed.

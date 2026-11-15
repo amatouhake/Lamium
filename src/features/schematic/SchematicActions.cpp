@@ -376,9 +376,14 @@ void ignoreLooked(IClientInstance& client, LocalPlayer& player) {
     auto index = structure->blocks[static_cast<size_t>(structure->cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= structure->palette.size()) return notLooking();
     auto const& file = structure->palette[static_cast<size_t>(index)];
-    auto m = ghosts::mismatchAt(player.getDimensionBlockSource(), world);
+    // The check's verdict only while it is this placement's, where it is now
+    // (as the target card asks): until a newly selected one's first pass ends,
+    // the published check is still the placement selected before.
+    std::optional<Mismatch> m;
+    if (auto checked = ghosts::verification(); checked->placement == selected && !checked->stale)
+        m = ghosts::mismatchAt(player.getDimensionBlockSource(), world);
     // An extra is named by what stands on the file's air.
-    auto label = file.isAir() ? (m ? m->actualName : std::string{}) : ghosts::blockLabel(file).name;
+    auto label = file.isAir() ? (m ? m->actualName : target->ghost ? std::string{} : target->name) : ghosts::blockLabel(file).name;
     std::string name = label.empty() ? file.name : label;
     auto entry = placeEntry(*local, file.name);
     bool const on = p.ignored.contains(entry);

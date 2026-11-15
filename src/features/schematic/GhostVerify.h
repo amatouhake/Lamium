@@ -35,17 +35,22 @@ int actualShulkerFace(BlockSource& region, Point world);
 // entity data does not (L-303), from its last finished pass. The in-world
 // marks take them from here: reading every block entity again while building
 // a section would cost a save per cell. `key` is the placement's drawKey.
+// `ignored`: the cells holding a compared block entity whose every difference
+// a rule covered in that pass (L-183), for the same reason.
 struct EntityMistakes {
     std::string key;
-    std::set<std::tuple<int, int, int>> cells;
+    std::set<std::tuple<int, int, int>> cells, ignored;
     bool has(Point p) const { return cells.contains({p.x, p.y, p.z}); }
+    bool passed(Point p) const { return ignored.contains({p.x, p.y, p.z}); }
 };
 std::shared_ptr<EntityMistakes const> entityMistakes();
 // L-183: whether the placement's ignore entries take the cell at `world` out
 // of the mistakes: an ignored place, or a wrong state whose every difference
 // a rule covers. The in-world marks ask it for a cell an entry touches
-// before marking it.
-bool ignoredAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point world);
+// before marking it. It reads no block entity: a cell comparing one takes
+// the last pass's verdict from `judged` (null: no pass for this placement).
+bool ignoredAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point world,
+               EntityMistakes const* judged);
 // Drops the running pass and publishes an empty result.
 void resetVerification();
 }
