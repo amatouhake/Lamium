@@ -42,6 +42,8 @@ Copy `BP` into `games/com.mojang/development_behavior_packs/` and `RP` into
   not load. C and D show that missing texture on purpose.
 - A block name like `tile.lamiumtest:look_cyan.name` in the inventory means
   the RP is not applied at all.
+- A block missing from the creative inventory means the game rejected its
+  BP JSON (the blocks now use `format_version` `1.26.0`; `1.21.60` loaded).
 - Settings > Creator > Content Log GUI shows pack and block JSON errors when
   the world loads.
 

@@ -66,8 +66,8 @@ def manifest(name, description, uuid, module_type, module_uuid, dependency=None)
 
 def block(name, texture, map_color):
     components = {
-        # Without a geometry the game ignores material_instances and looks
-        # for a blocks.json entry the pack does not have.
+        # Likely why the first version showed the missing texture: without a
+        # geometry the game seems to use blocks.json, which the pack lacks.
         "minecraft:geometry": "minecraft:geometry.full_block",
         "minecraft:material_instances": {"*": {"texture": texture, "render_method": "opaque"}},
         "minecraft:destructible_by_mining": {"seconds_to_destroy": 0.5},
