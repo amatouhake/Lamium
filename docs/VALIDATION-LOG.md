@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Confirm wording, stable widths, selected rings (L-351, L-350, L-190, 2026-11-15)
+
+Build `497343b4` (branch `l-190-waypoint-selection` with main at `b8ca5f83`), DLL SHA-256
+`fff0406698647947fcb040dee04d56d1d46be5e5462c68fd945ffa44ecd75b35`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Deletes arm as 「削除を確定」, HUD layout's reset as
+「リセットを確定」, without the HUD editor panel, Saved data's or the map cache's Delete
+changing width; Highlight's Remove arms as 「確定」; bulk delete reads 「N 件の削除を確定」 in
+the map panel and in full in the Waypoints, Shapes and Placed panes; every selected map mark
+has the white ring; Saved data shows no count beside Delete; a distance of 0 reads "0 m".
+Not seen: the settings table's reset buttons (「この分類を初期化」 and the like) armed.
+
 ## List columns, selection follow-ups, Again labels, 3D waypoint distance (L-190, L-351, L-350, 2026-11-15)
 
 Build `3a470553` (branch `l-190-waypoint-selection` with main at `12eb4df4`), DLL SHA-256

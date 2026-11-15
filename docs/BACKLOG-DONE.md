@@ -92,6 +92,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-350](backlog/done/L-350.md) Waypoint distance: 3D by default, horizontal as an option
 - [L-337](backlog/done/L-337.md) Minimap: one size setting instead of two
 - [L-317](backlog/done/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether
 - [L-325](backlog/done/L-325.md) Zoom: return to the set magnification on release

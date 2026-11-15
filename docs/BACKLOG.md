@@ -204,8 +204,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-350](backlog/L-350.md) Waypoint distance: 3D by default, horizontal as an option (Ready): Built, not checked in game
-- [L-351](backlog/L-351.md) One wording for press-again confirmations (Ready): Reworked, not checked in game
+- [L-351](backlog/L-351.md) One wording for press-again confirmations (Ready): Checked in game 2026-11-15 (`497343b4`) except the settings table reset buttons
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
