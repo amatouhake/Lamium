@@ -4,11 +4,11 @@
   "padding": 8,
   "num_mip_levels": 4,
   "texture_data": {
-    "lamiumtest_map_magenta": {
-      "textures": "textures/blocks/lamiumtest_map_magenta"
+    "lamiumtest_look_cyan": {
+      "textures": "textures/blocks/lamiumtest_look_cyan"
     },
-    "lamiumtest_map_none": {
-      "textures": "textures/blocks/lamiumtest_map_none"
+    "lamiumtest_look_yellow": {
+      "textures": "textures/blocks/lamiumtest_look_yellow"
     }
   }
 }
