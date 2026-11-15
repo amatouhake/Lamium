@@ -926,6 +926,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.ignore.stopShort", "不再忽略"},
     {"schematic.ignore.settings", "忽略设置"},
     {"schematic.ignore.viewHint", "所选放置中忽略的位置，以及在整个放置中忽略的差异。即使尚未出现差异，也可以选择方块按项目忽略。"},
+    {"schematic.ignore.viewKeys", "点击: 选择 | Esc: 返回核对"},
     {"schematic.ignore.placesHeading", "忽略的位置"},
     {"schematic.ignore.blocksHeading", "可忽略差异的方块"},
     {"schematic.ignore.none", "无"},

@@ -146,8 +146,8 @@ std::uint64_t blockCount(schematic::Structure const& structure) {
     }
     return found->second;
 }
-// Cells per block name, counted once per loaded structure (L-183: "every
-// same block" and whether such an entry applies).
+// Cells per block name, counted once per loaded structure (L-183: whether a
+// rule's block is still in the file).
 std::map<schematic::Structure const*, schematic::BlockCounts> schematicNameCounts;
 schematic::BlockCounts const& nameCounts(schematic::Structure const& structure) {
     auto found = schematicNameCounts.find(&structure);
@@ -803,7 +803,7 @@ void pickInPreview(glm::vec2 at) {
     auto& t = previewTurn;
     t.picked = schematic::preview::pickAt(at.x * screen::scale(), at.y * screen::scale());
     t.pickedFile = t.file;
-    if (schematicTab != SchematicTab::Verify || ignoreView || !t.picked) return;
+    if (schematicTab != SchematicTab::Verify || ignoreView || checkRows.several() || !t.picked) return;
     auto const* checked = checkedPlacement();
     auto structure = checked ? schematic::session::structure(checked->file) : nullptr;
     if (!structure) return;
@@ -1684,7 +1684,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 mix(static_cast<std::uint32_t>(c.y));
             }
             if (!cells.empty() || !block.empty()) {}
-            else if (previewTurn.picked && previewTurn.pickedFile == checked->file) {
+            else if (!ignoreView && previewTurn.picked && previewTurn.pickedFile == checked->file) {
                 auto w = schematic::toWorld(structure->size, checked->placement, {previewTurn.picked->x, previewTurn.picked->y, previewTurn.picked->z});
                 marked->insert({w.x, w.y, w.z});
                 mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(w.x)) << 32 ^ static_cast<std::uint32_t>(w.z));
@@ -1749,6 +1749,17 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             drawButton(context,x,top,w,10,std::move(text),pointed(x,top,w,10));
             ignoreControls.push_back({x, top, w, 10, kind, std::move(entries)});
             return x;
+        };
+        // The action row's two slots, the left action and the one at the right
+        // edge, each widened for its text where the pane has room, never into
+        // the other (long labels such as "Stop ignoring this place").
+        struct Slots { float lx, lw, rx, rw; };
+        auto actionSlots = [&](std::string_view leftText, std::string_view rightText) {
+            float edge = l.detailLeft + l.detailWidth - ShapesLayout::pad, start = l.actionX(0), room = edge - start - 4;
+            float rw = std::min(std::max(ShapesLayout::deleteWidth, textWidth(context, rightText) + 10),
+                                std::max(ShapesLayout::deleteWidth, room - l.firstActionWidth));
+            float lw = std::max(l.firstActionWidth, std::min(textWidth(context, leftText) + 10, room - rw));
+            return Slots{start, lw, edge - rw, rw};
         };
         auto distanceTo = [&](schematic::Point p) {
             double ddx = p.x + .5 - feet.x, ddy = p.y + .5 - feet.y, ddz = p.z + .5 - feet.z;
@@ -1833,14 +1844,17 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
             float const ay = l.actionsY + 2;
             bool const placePicked = picked && picked->kind == IgnoreKind::Place;
-            float ux = l.actionX(0), uw = l.firstActionWidth;
-            drawButton(context,ux,ay,uw,12,translated("schematic.ignore.unplace"),placePicked && pointed(ux,ay,uw,12),ButtonKind::Plain,placePicked);
+            std::string const unplace = translated("schematic.ignore.unplace"), undoAll = translated("schematic.ignore.undoAll"),
+                              undoConfirm = translated("confirm.undoAll");
+            auto slots = actionSlots(unplace, textWidth(context, undoAll) >= textWidth(context, undoConfirm) ? undoAll : undoConfirm);
+            float ux = slots.lx, uw = slots.lw;
+            drawButton(context,ux,ay,uw,12,unplace,placePicked && pointed(ux,ay,uw,12),ButtonKind::Plain,placePicked);
             if (placePicked) ignoreControls.push_back({ux, ay, uw, 12, IgnoreControlKind::Remove, {picked->entry}});
-            float ax = l.deleteX(), aw = ShapesLayout::deleteWidth;
-            if (ignored.empty()) drawButton(context,ax,ay,aw,12,translated("schematic.ignore.undoAll"),false,ButtonKind::Plain,false);
+            float ax = slots.rx, aw = slots.rw;
+            if (ignored.empty()) drawButton(context,ax,ay,aw,12,undoAll,false,ButtonKind::Plain,false);
             else {
-                drawDangerButton(context,ax,ay,aw,12,armedLabel(context,translated("schematic.ignore.undoAll"),translated("confirm.undoAll"),
-                    verifyUndoAllArmed,aw),pointed(ax,ay,aw,12),verifyUndoAllArmed);
+                drawDangerButton(context,ax,ay,aw,12,armedLabel(context,undoAll,undoConfirm,verifyUndoAllArmed,aw),pointed(ax,ay,aw,12),
+                    verifyUndoAllArmed);
                 ignoreControls.push_back({ax, ay, aw, 12, IgnoreControlKind::UndoAll, {}});
             }
             break;
@@ -1988,17 +2002,20 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         float const ay = l.actionsY + 2;
         bool canShow = selected || (previewTurn.picked && previewTurn.pickedFile == checked->file);
-        float sx = l.actionX(0), sw = l.firstActionWidth;
-        drawButton(context,sx,ay,sw,12,translated("schematic.showInWorld"),canShow && pointed(sx,ay,sw,12),ButtonKind::Primary,canShow);
+        bool const placeButton = selected && schematic::takesIgnores(*selected);
+        bool const placeOn = placeButton && ignored.place(selected->local, selected->fileBlock);
+        std::string const showText = translated("schematic.showInWorld"),
+                          placeText = placeButton ? translated(placeOn ? "schematic.ignore.unplace" : "schematic.ignore.place") : std::string{};
+        auto slots = actionSlots(showText, placeText);
+        float sx = slots.lx, sw = slots.lw;
+        drawButton(context,sx,ay,sw,12,showText,canShow && pointed(sx,ay,sw,12),ButtonKind::Primary,canShow);
         if (canShow) ignoreControls.push_back({sx, ay, sw, 12, IgnoreControlKind::Show, {}});
-        if (selected && schematic::takesIgnores(*selected)) {
+        if (placeButton) {
             auto const& m = *selected;
-            bool on = ignored.place(m.local, m.fileBlock);
-            float px = l.deleteX(), pw = ShapesLayout::deleteWidth;
-            drawButton(context,px,ay,pw,12,translated(on ? "schematic.ignore.unplace" : "schematic.ignore.place"),
-                editable && pointed(px,ay,pw,12),ButtonKind::Plain,editable);
+            float px = slots.rx, pw = slots.rw;
+            drawButton(context,px,ay,pw,12,placeText,editable && pointed(px,ay,pw,12),ButtonKind::Plain,editable);
             if (editable)
-                ignoreControls.push_back({px, ay, pw, 12, on ? IgnoreControlKind::Remove : IgnoreControlKind::Add,
+                ignoreControls.push_back({px, ay, pw, 12, placeOn ? IgnoreControlKind::Remove : IgnoreControlKind::Add,
                                           {schematic::placeEntry(m.local, m.fileBlock)}});
         }
         break;
@@ -2062,8 +2079,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     else {
         paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());
         bool menuUnbound = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::SchematicMenu).empty();
+        bool const inIgnoreView = schematicTab == SchematicTab::Verify && ignoreView;
         label(context,textLeft,l.footerTop+30,available,translated(editingSchematicField >= 0 ? "shape.numberHint"
-            : menuUnbound ? "schematic.menuKeyHint" : "schematic.screenHint"),palette::faint);
+            : inIgnoreView ? "schematic.ignore.viewKeys" : menuUnbound ? "schematic.menuKeyHint" : "schematic.screenHint"),palette::faint);
     }
 }
 ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) {

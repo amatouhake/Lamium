@@ -75,7 +75,7 @@ struct RowSelection {
 
 // What the selection pane offers while several rows are selected, in its
 // order. Not saved. The Schematics Check list (L-183) marks its cells in the
-// world, ignores their whole blocks, or takes their own entries back.
+// world, ignores their places, or stops ignoring them.
 enum class BulkAction { Show, Hide, Delete, ShowInWorld, IgnorePlaces, Unignore };
 enum class SelectionList { Waypoints, Shapes, Placements, MapPanel, Check };
 // Maintainer 2026-11-15: no bulk move or turn; the map's side panel matches

@@ -526,8 +526,8 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         bool visible = c.visible, air = c.air;
         CellState state = c.state;
         Point world = c.world;
-        // L-183: a cell ignored as a whole block is in no count and asks for
-        // no material; one whose differences are all ignored is placed.
+        // L-183: an ignored place is in no count and asks for no material;
+        // a cell whose differences rules all cover is placed.
         auto counted = countedState(state, c.mark);
         if (!air && counted) {
             auto const& info = blocks.items[static_cast<size_t>(paletteIndex)];
