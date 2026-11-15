@@ -529,7 +529,10 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
         if (type == BlockActorType::Music)
             try { appendGhostInstrument(result.details, *ghost); } catch (...) {}
     }
-    result.details.push_back(ghostRow());
+    // A ghost of the selected placement ignored as a whole block keeps its
+    // ghost (L-183) and says it is ignored instead of still to place.
+    auto checked = schematic::ghosts::mismatchAt(source, ghost->cell);
+    result.details.push_back(checked && checked->ignore == schematic::IgnoreMark::Block ? ignoredRow() : ghostRow());
     result.ghost = true;
     result.distance = schematic::entryDistance(x, y, z, dx, dy, dz, {ghost->cell.x, ghost->cell.y, ghost->cell.z});
     return result;
@@ -702,10 +705,12 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
             if (shown.structure && placement.visible && placement.dimension == static_cast<int>(player->getDimensionId())
                 && schematic::layerShown(placement.layers, shown.structure->size, placement.placement, offset)) {
                 // Read just this cell now; the capped background list may be old or omit it.
-                // L-183: a cell the ignore entries take out reads as correct;
-                // ignored differences of a wrong state are not listed.
-                if (auto m = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z});
-                    m && !m->entity && m->ignore == schematic::IgnoreMark::None) {
+                // L-183: a cell ignored as a whole block says so; one whose
+                // differences are all ignored reads as correct, and ignored
+                // differences of a wrong state are not listed.
+                auto m = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z});
+                if (m && !m->entity && m->ignore == schematic::IgnoreMark::Block) schematicDetails.push_back(ignoredRow());
+                else if (m && !m->entity && m->ignore == schematic::IgnoreMark::None) {
                     std::erase_if(m->states, [](auto const& d) { return d.covered != schematic::Covered::None; });
                     schematicDetails = schematicRows(m->state, m->expectedName, m->expected, m->states,
                         result.identifier, [](std::string_view key) { return ui::translated(key); });

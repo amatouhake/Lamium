@@ -865,7 +865,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         }
         // Schematic rows in the verifier's colors (the HUD and Check tab use the same).
         auto color = row.tone == Tone::Wrong ? ui::palette::mismatch : row.tone == Tone::State ? ui::palette::warning
-            : row.tone == Tone::Missing ? ui::palette::info : ui::palette::text;
+            : row.tone == Tone::Missing ? ui::palette::info : row.tone == Tone::Ignored ? ui::palette::dim : ui::palette::text;
         if (!row.before.empty()) {
             float w = ui::textWidthScaled(context, row.before, z);
             ui::labelScaled(context, x, y, w + 2, row.before, z, color, ui::Align::Left, element.shadow);

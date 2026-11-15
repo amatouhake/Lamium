@@ -33,6 +33,14 @@ inline TargetInfo::DetailRow ghostRow() {
     row.tone = Tone::Missing;
     return row;
 }
+// The card's row for a cell of the selected placement ignored as a whole
+// block (L-183), dimmed: the key's effect seen up close.
+inline TargetInfo::DetailRow ignoredRow() {
+    TargetInfo::DetailRow row{"target.schematic", "target.schematicIgnored", true};
+    row.kind = DetailKind::Schematic;
+    row.tone = Tone::Ignored;
+    return row;
+}
 inline std::vector<TargetInfo::DetailRow> schematicRows(schematic::CellState state, std::string const& expectedName,
     std::string const& icon, std::vector<schematic::StateDifference> const& differences, std::string_view identifier,
     Translate const& translate) {

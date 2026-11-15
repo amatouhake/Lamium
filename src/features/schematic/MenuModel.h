@@ -16,7 +16,7 @@ enum class Stepper : std::uint8_t { ForwardBack, LeftRight, UpDown, Rotate, Mirr
 enum class Command : std::uint8_t {
     ToFeet, ResetTurn, LayerHere, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature, ToggleMarks,
     Corner1Here, Corner2Here, MoveArea, MovePlacement, SaveArea, ClearArea,
-    SelectLooked, PlaceFile, PlacedList, NearestMistake, CheckTab, MaterialsTab, KeySettings,
+    SelectLooked, PlaceFile, PlacedList, NearestMistake, CheckTab, MaterialsTab, KeySettings, IgnoreLooked,
 };
 // What the Move category moves.
 enum class Target : std::uint8_t { Placement, Corner1, Corner2, Area };
@@ -46,8 +46,11 @@ inline constexpr std::array<Item, 6> move{{
     {"schematic.menu.toFeet", C::ToFeet, A::MovePlacementHere},
     {"schematic.menu.moveTarget", S::Target, A::CycleMoveTarget},
     {"schematic.menu.selectLooked", C::SelectLooked, A::SelectLookedPlacement}}};
-inline constexpr std::array<Item, 5> placement{{
+// L-183: "Show placement" moved here from Show and check, a per-placement
+// setting like the rest (maintainer 2026-11-15), which keeps six and six.
+inline constexpr std::array<Item, 6> placement{{
     {"schematic.menu.placement", S::Placement, A::NextPlacement, A::PreviousPlacement},
+    {"schematic.menu.toggleShown", C::ToggleShown, A::TogglePlacementShown},
     {"schematic.menu.rotate", S::Rotate, A::RotatePlacement, A::RotatePlacementBack},
     {"schematic.menu.mirror", S::Mirror, A::MirrorPlacement},
     {"schematic.menu.resetTurn", C::ResetTurn, A::ResetPlacementTurn},
@@ -60,10 +63,11 @@ inline constexpr std::array<Item, 5> layers{{
     {"schematic.menu.layerHere", C::LayerHere, A::LayerHere}}};
 // L-266: the HUD moved to Screen to make room for the mistake marks.
 // Clockwise from the top: the feature, the selected placement's display on
-// the right, the check on the left (maintainer 2026-10-26).
+// the right, the check on the left (maintainer 2026-10-26). L-183: ignoring
+// the looked-at block takes the place "Show placement" left.
 inline constexpr std::array<Item, 6> show{{
     {"schematic.menu.toggleFeature", C::ToggleFeature, A::ToggleSchematic},
-    {"schematic.menu.toggleShown", C::ToggleShown, A::TogglePlacementShown},
+    {"schematic.menu.ignoreLooked", C::IgnoreLooked, A::IgnoreLookedBlock},
     {"schematic.menu.toggleEntities", C::ToggleEntities, A::TogglePlacementEntities},
     {"schematic.menu.toggleExtras", C::ToggleExtras, A::TogglePlacementExtras},
     {"schematic.menu.toggleMarks", C::ToggleMarks, A::ToggleMistakeMarks},

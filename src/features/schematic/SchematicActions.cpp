@@ -8,6 +8,9 @@
 #include "features/schematic/TargetRay.h"
 #include "features/schematic/UnreadableNotice.h"
 #include "features/schematic/SchematicSession.h"
+#include "features/schematic/RayCells.h"
+#include "features/information/TargetCard.h"
+#include "features/information/TargetInfo.h"
 #include "app/Runtime.h"
 #include "features/schematic/Selection.h"
 #include "input/Actions.h"
@@ -25,6 +28,8 @@
 #include "mc/world/level/ShapeType.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/dimension/Dimension.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include <atomic>
 #include <cmath>
 #include <limits>
@@ -337,6 +342,64 @@ void nearestMistake(LocalPlayer& player) {
         : nearest->state == CellState::Extra ? "schematic.kind.extra" : "schematic.kind.state";
     ui::showMessageToast(ui::translated("schematic.toast.nearest", ui::translated(kind), static_cast<int>(std::lround(std::sqrt(best)))));
 }
+// L-183: the looked-at cell of the selected placement, ignored as a whole
+// block or given back. The target is the one the target card picks: a ghost,
+// or a real block in a placement cell. Finer choices are in the Check tab.
+void ignoreLooked(IClientInstance& client, LocalPlayer& player) {
+    auto set = session::current();
+    if (set.selected < 0 || set.selected >= static_cast<int>(set.placements.size())) {
+        ui::showMessageToast(ui::translated("schematic.toast.noPlacement"));
+        return;
+    }
+    auto const selected = set.selected;
+    auto const& p = set.placements[static_cast<size_t>(selected)];
+    auto structure = session::structure(p.file);
+    std::optional<information::ViewRay> ray;
+    if (auto view = CameraSessions::instance().detachedViewRay(client)) {
+        // A detached Freelook or FreeCamera view owns the crosshair (L-230).
+        auto const& info = Runtime::instance().preferences().information;
+        auto const& height = player.getDimension().mHeightRange;
+        double reach = reachInHeight(view->y, view->dy,
+            information::targetReach(info.targetDistance, info.targetFullRange, client.getOptions().getViewDistanceChunks()),
+            height->mMin, height->mMax);
+        ray = information::ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach, true};
+    }
+    auto target = information::collectTargetInfo(client, false, ray, true);
+    auto notLooking = [] { ui::showMessageToast(ui::translated("schematic.toast.notSchematicBlock")); };
+    if (!structure || p.dimension != static_cast<int>(player.getDimensionId()) || !target || !target->blockPosition) return notLooking();
+    Point world{target->blockPosition->x, target->blockPosition->y, target->blockPosition->z};
+    auto local = toLocal(structure->size, p.placement, world);
+    auto const& o = p.placement.origin;
+    if (!local || !layerShown(p.layers, structure->size, p.placement, {world.x - o.x, world.y - o.y, world.z - o.z}, *local))
+        return notLooking();
+    auto index = structure->blocks[static_cast<size_t>(structure->cell(local->x, local->y, local->z))];
+    if (index == voidCell || static_cast<size_t>(index) >= structure->palette.size()) return notLooking();
+    auto const& file = structure->palette[static_cast<size_t>(index)];
+    // Extras (air in the file) have "do not count" instead.
+    if (file.isAir()) return notLooking();
+    auto label = ghosts::blockLabel(file).name;
+    std::string name = label.empty() ? file.name : label;
+    auto entry = blockEntry(*local, file.name);
+    bool const on = p.ignored.contains(entry);
+    if (!on)
+        if (auto m = ghosts::mismatchAt(player.getDimensionBlockSource(), world);
+            m && m->state == CellState::Correct && m->ignore == IgnoreMark::None) {
+            ui::showMessageToast(ui::translated("schematic.pick.correct"));
+            return;
+        }
+    auto added = IgnoreList::Added::Invalid;
+    bool saved = session::change([&](PlacementSet& s) {
+        if (s.selected != selected || static_cast<size_t>(selected) >= s.placements.size()) return false;
+        auto& list = s.placements[static_cast<size_t>(selected)].ignored;
+        if (on) return list.remove(entry);
+        added = list.add(entry);
+        return added == IgnoreList::Added::Added;
+    });
+    if (!on && added == IgnoreList::Added::Full) ui::showMessageToast(ui::translated("schematic.ignore.full", maxIgnored));
+    else if (!saved) ui::showMessageToast(ui::translated("schematic.saveError"));
+    else if (on) ui::showMessageToast(ui::translated("schematic.toast.unignored", name));
+    else ui::showMessageToast(ui::translated("schematic.toast.ignoredBlock", name, world.x, world.y, world.z));
+}
 // A corner of the area to save: the block in the crosshair.
 void setCorner(IClientInstance& client, LocalPlayer& player, int which) {
     BlockHit hit = viewBlock(client, player);
@@ -534,7 +597,7 @@ bool handles(Action action) {
     case Action::SchematicCorner1: case Action::SchematicCorner2:
     case Action::ResetPlacementTurn: case Action::RotatePlacementBack: case Action::PreviousPlacement:
     case Action::TogglePlacementShown: case Action::TogglePlacementExtras: case Action::TogglePlacementEntities:
-    case Action::ClearSchematicArea:
+    case Action::ClearSchematicArea: case Action::IgnoreLookedBlock:
         return true;
     default: return false;
     }
@@ -546,6 +609,7 @@ void press(IClientInstance& client, Action action) {
     syncLifecycle(client);
     switch (action) {
     case Action::NearestMistake: nearestMistake(*player); return;
+    case Action::IgnoreLookedBlock: ignoreLooked(client, *player); return;
     case Action::SelectLookedPlacement: selectLooked(client, *player); return;
     case Action::SchematicCorner1: setCorner(client, *player, 0); return;
     case Action::SchematicCorner2: setCorner(client, *player, 1); return;
@@ -749,6 +813,7 @@ void run(IClientInstance& client, menu::Command command) {
         return;
     case C::SelectLooked: press(client, Action::SelectLookedPlacement); return;
     case C::NearestMistake: press(client, Action::NearestMistake); return;
+    case C::IgnoreLooked: press(client, Action::IgnoreLookedBlock); return;
     default: return; // screen commands
     }
 }

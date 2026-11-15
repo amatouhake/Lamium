@@ -12,8 +12,9 @@ namespace lamium::information {
 // listed highlight type (L-320).
 enum class DetailKind { Other, Health, Armor, Growth, Schematic, Highlight };
 // Schematic rows take the verifier's colors: red for a wrong or extra block,
-// yellow for a wrong state, light blue for a missing one.
-enum class Tone { Normal, Wrong, State, Missing };
+// yellow for a wrong state, light blue for a missing one; a cell ignored as a
+// whole block (L-183) is dimmed.
+enum class Tone { Normal, Wrong, State, Missing, Ignored };
 // What the card draws beside the name. Item is a real item stack (block items
 // and spawn eggs); Texture is the target's own texture for blocks that have no
 // item, with the region of the source image to draw (one animation frame).
