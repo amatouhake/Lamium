@@ -28,13 +28,13 @@ using ShapeZone = ShapesLayout::Zone;
 // current world's waypoints taken each frame.
 bool waypointsDocked = false;
 std::optional<map::MarkKey> waypointSelected; // the death point or a waypoint, by its session id
-// What the list has selected (L-190); waypointSelected is its single row, if it
-// has just one, which is what the editor works on.
+// What the list has selected (L-190); waypointSelected is its shown row, the
+// one the editor works on.
 RowSelection<map::MarkKey> waypointRows;
-bool severalSelected() { return waypointRows.keys.size() > 1; }
-void syncSelected() {
-    waypointSelected = waypointRows.keys.size() == 1 ? std::optional(waypointRows.keys.front()) : std::nullopt;
-}
+BulkBar waypointBulk;
+BulkBarLayout waypointBulkDrawn;
+bool severalSelected() { return waypointRows.several(); }
+void syncSelected() { waypointSelected = waypointRows.shown; }
 map::WaypointSet waypointSet;
 std::vector<size_t> waypointList; // Display order, indices into the set.
 ShapesLayout waypointsDisplayed;
@@ -88,6 +88,7 @@ void selectWaypoint(std::optional<map::MarkKey> value) {
     waypointFieldFirst = 0;
     waypointFieldSelected = -1;
     waypointDeleteArmed = false;
+    waypointBulk.disarm();
 }
 void applyWaypointName() {
     if (!editingWaypointName || !std::exchange(waypointNameDirty, false)) return;
@@ -189,48 +190,37 @@ void deleteSelectedWaypoint() {
     int rowsLeft = waypointRowCount();
     selectWaypoint(rowsLeft ? waypointAtRow(std::min(row, rowsLeft - 1)) : std::nullopt);
 }
-// Ctrl + click toggles a row, Shift + click takes a range.
-void pickRows(map::MarkKey const& value, bool range) {
-    if (range) {
-        std::vector<map::MarkKey> order;
-        order.reserve(waypointList.size());
-        for (size_t index : waypointList) order.push_back(map::waypointKey(waypointSet.waypoints[index].id));
-        waypointRows.range(value, order);
-    } else waypointRows.toggle(value);
+std::vector<map::MarkKey> waypointOrder() {
+    std::vector<map::MarkKey> order;
+    order.reserve(waypointList.size());
+    for (size_t index : waypointList) order.push_back(map::waypointKey(waypointSet.waypoints[index].id));
+    return order;
+}
+// Ctrl + click toggles a row, Shift + click takes a range, Ctrl + A takes all;
+// the editor follows the row clicked last.
+void pickRows(map::MarkKey const& value) {
+    screen::finishEditing();
+    auto shown = waypointRows.shown;
+    waypointRows.click(value, screen::heldCtrl(), screen::heldShift(), waypointOrder());
     syncSelected();
-    waypointFieldFirst = 0;
-    waypointFieldSelected = -1;
+    if (waypointRows.shown != shown) { waypointFieldFirst = 0; waypointFieldSelected = -1; }
     waypointDeleteArmed = false;
+    waypointBulk.disarm();
 }
-// Whether the bulk switch would show: any selected waypoint that is hidden.
-bool anySelectedHidden() {
-    return std::any_of(waypointRows.keys.begin(), waypointRows.keys.end(), [](map::MarkKey const& key) {
-        int index = indexOfId(waypointSet.waypoints, key.id);
-        return index >= 0 && !waypointSet.waypoints[static_cast<size_t>(index)].visible;
-    });
-}
-void showSelectedRows() {
-    bool const show = anySelectedHidden();
+void bulkWaypoints(BulkAction action) {
     auto const keys = waypointRows.keys;
     bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        for (auto const& key : keys)
-            if (int index = indexOfId(set.waypoints, key.id); index >= 0) set.waypoints[static_cast<size_t>(index)].visible = show;
-        return true;
-    });
-    if (saved) screen::clearMessage();
-    else screen::setMessage(translated("waypoint.saveError"));
-    refreshWaypoints();
-}
-void deleteSelectedRows() {
-    auto const keys = waypointRows.keys;
-    bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        for (auto const& key : keys)
-            if (int index = indexOfId(set.waypoints, key.id); index >= 0) set.waypoints.erase(set.waypoints.begin() + index);
+        for (auto const& key : keys) {
+            int index = indexOfId(set.waypoints, key.id);
+            if (index < 0) continue;
+            if (action == BulkAction::Delete) set.waypoints.erase(set.waypoints.begin() + index);
+            else set.waypoints[static_cast<size_t>(index)].visible = action == BulkAction::Show;
+        }
         return true;
     });
     if (!saved) { screen::setMessage(translated("waypoint.saveError")); return; }
     screen::clearMessage();
-    selectWaypoint(std::nullopt);
+    if (action == BulkAction::Delete) selectWaypoint(std::nullopt);
     refreshWaypoints();
 }
 void handleWaypointClick(float x, float y, bool right) {
@@ -250,6 +240,7 @@ void handleWaypointClick(float x, float y, bool right) {
     if (!waypointsDocked && screen::navClick(x, y)) return;
     auto hit = waypointsDisplayed.hit(x, y);
     if (!(hit.zone == ShapeZone::Action && hit.index == 1)) waypointDeleteArmed = false;
+    if (hit.zone != ShapeZone::Bulk) waypointBulk.disarm();
     switch (hit.zone) {
     case ShapeZone::Close: if (fromMapFlag) screen::returnToMap(); else screen::close(); return;
     case ShapeZone::Dock: waypointsDocked = !waypointsDocked; return;
@@ -268,7 +259,7 @@ void handleWaypointClick(float x, float y, bool right) {
             return;
         }
         if (value && (screen::heldCtrl() || screen::heldShift())) {
-            pickRows(*value, screen::heldShift());
+            pickRows(*value);
             return;
         }
         if (value && (value != waypointSelected || severalSelected())) selectWaypoint(value);
@@ -294,13 +285,14 @@ void handleWaypointClick(float x, float y, bool right) {
         }
         activateWaypointField(hit.index, right ? -1 : hit.part);
         return;
+    case ShapeZone::Bulk: {
+        auto const actions = bulkActions(SelectionList::Waypoints);
+        int at = waypointBulkDrawn.at(x, y);
+        if (severalSelected() && at >= 0 && at < static_cast<int>(actions.size()) && waypointBulk.press(actions[static_cast<size_t>(at)]))
+            bulkWaypoints(actions[static_cast<size_t>(at)]);
+        return;
+    }
     case ShapeZone::Action:
-        if (severalSelected()) {
-            if (hit.index == 0) showSelectedRows();
-            else if (!waypointDeleteArmed) waypointDeleteArmed = true; // Always a second press for several.
-            else deleteSelectedRows();
-            return;
-        }
         if (hit.index == 0) return;
         if (!waypointSelected) return;
         // A temporary waypoint goes on the first click (L-261).
@@ -328,6 +320,16 @@ void handleWaypointKey(int key) {
         case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
+    }
+    switch (selectionKey(key, screen::heldCtrl(), severalSelected())) {
+    case SelectionKey::SelectAll:
+        waypointRows.selectAll(waypointOrder());
+        syncSelected();
+        waypointDeleteArmed = false;
+        waypointBulk.disarm();
+        return;
+    case SelectionKey::Collapse: waypointRows.collapse(); waypointBulk.disarm(); return;
+    case SelectionKey::None: break;
     }
     switch (key) {
     case 0x1b: if (fromMapFlag) screen::returnToMap(); else screen::close(); break;
@@ -368,7 +370,6 @@ void drawCrossGlyph(MinecraftUIRenderContext& context, float cx, float cy, Rgb c
     }
 }
 std::string waypointDescription() {
-    if (severalSelected()) return translated("waypoint.selectedCount", waypointRows.keys.size());
     auto const* w = selectedWaypoint();
     if (!w) return translated(waypointSet.waypoints.empty() ? "waypoint.empty" : "waypoint.selectHint");
     if (editingWaypointField >= 0) return translated("integerRange", -map::coordinateLimit, map::coordinateLimit);
@@ -419,18 +420,15 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
     drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
+    waypointBulkDrawn = l.bulkTop < 0 ? BulkBarLayout{} : drawBulkBar(context,l.listLeft+ShapesLayout::pad,l.bulkTop+1,
+        l.listWidth-2*ShapesLayout::pad,12,waypointRows.keys.size(),bulkActions(SelectionList::Waypoints),waypointBulk,pointer.x,pointer.y);
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
     // Editor pane.
     float dx = l.detailLeft + ShapesLayout::pad, dw = l.detailWidth - 2 * ShapesLayout::pad;
     auto const* w = selectedWaypoint();
-    if (severalSelected()) {
-        label(context,dx,l.detailTop+6,dw,translated("waypoint.selectedCount", waypointRows.keys.size()));
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(anySelectedHidden() ? "waypoint.showSelected" : "waypoint.hideSelected"),
-            over(ShapeZone::Action,0));
-    } else if (!w) {
+    if (!w) {
         paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() ? "waypoint.empty"
             : "waypoint.selectHint"),3,palette::faint);
     } else {
@@ -494,7 +492,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         }
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     }
-    if (waypointSelected || severalSelected()) {
+    if (waypointSelected) {
         drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
             translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), waypointDeleteArmed);
     }
@@ -515,7 +513,7 @@ ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
     int fieldCount = selectedWaypoint() ? static_cast<int>(map::waypointFields.size()) : 0;
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
         waypointFieldFirst, false, false, false, data_notice::height(data_notice::Kind::Waypoints));
-    if (severalSelected()) l.firstActionWidth = 110;
+    if (severalSelected()) l.reserveBulkBar();
     waypointsDisplayed = l;
     waypointListFirst = l.listFirst;
     waypointFieldFirst = l.fieldFirst;
@@ -579,6 +577,8 @@ void renderContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 
 }
 void reset() {
     endEditing();
+    waypointRows.collapse(); // a closed screen keeps one row, as before L-190
+    waypointBulk.disarm();
     waypointDeleteArmed = false;
     fromMapFlag = false;
 }

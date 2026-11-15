@@ -3,6 +3,7 @@
 // prompts draw with, on top of Widgets.h.
 #include "ui/HudContents.h"
 #include "ui/NumberInput.h"
+#include "ui/RowSelection.h"
 #include "ui/SearchQuery.h"
 #include "ui/SettingsTable.h"
 #include "ui/ShapesLayout.h"
@@ -27,6 +28,12 @@ Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, 
 // visible one (a section's Reset) does not draw the eye.
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed);
+// The bar of bulk actions while several rows are selected (L-190): a rule
+// above, "N selected", then a button per action at the right; Delete is a
+// destructive button armed by `bar`. Buttons are `h` high from `y`; returns
+// where they went, for the click that follows.
+BulkBarLayout drawBulkBar(MinecraftUIRenderContext& context, float x, float y, float w, float h, size_t count,
+                          std::vector<BulkAction> const& actions, BulkBar const& bar, float pointerX, float pointerY);
 // The body of a docked view too short for its editor (!l.usable()): Expand and
 // a hint under the header, which matches what ShapesLayout::hit() answers then.
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);

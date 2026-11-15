@@ -13,7 +13,7 @@ struct ShapesLayout {
     static constexpr float pad = 6, previewSize = 60, actionsHeight = 16, pickHeight = 22;
     static constexpr float closeWidth = 58, dockWidth = 62, keysWidth = 58, drawAllWidth = 78, newWidth = 86;
     static constexpr int dockedListRows = 5;
-    enum class Zone { None, Close, Dock, Keys, DrawAll, NewShape, ListRow, Name, LayerDown, LayerUp, Field, Action, Pick, Footer };
+    enum class Zone { None, Close, Dock, Keys, DrawAll, NewShape, ListRow, Name, LayerDown, LayerUp, Field, Action, Pick, Footer, Bulk };
     struct Hit { Zone zone = Zone::None; int index = -1; int part = 0; };
 
     bool docked{}, draft{}, picking{};
@@ -25,6 +25,7 @@ struct ShapesLayout {
     int listVisible{}, listFirst{}, listCount{};
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
+    float bulkTop = -1; // The bar of bulk actions, when reserveBulkBar() made room for it.
 
     // fullToolbar: the toolbar is taken across its width (the Schematics tabs),
     // so a docked draw-all switch gets a row of its own below it.
@@ -94,6 +95,15 @@ struct ShapesLayout {
         return l;
     }
     bool usable() const { return width > 0 && fieldVisible > 0; }
+    // While several rows are selected (L-190) the list's last row holds the
+    // bar of bulk actions; a list of fewer than two rows keeps them.
+    void reserveBulkBar() {
+        if (listVisible < 2) return;
+        bool atEnd = listFirst + listVisible >= listCount; // the last row stays in view
+        --listVisible;
+        bulkTop = rowsTop + listVisible * rowHeight;
+        listFirst = atEnd ? std::max(0, listCount - listVisible) : std::clamp(listFirst, 0, std::max(0, listCount - listVisible));
+    }
     float listRowY(int index) const { return rowsTop + (index - listFirst) * rowHeight; }
     // The list's scrollbar, along its right edge while the rows overflow:
     // a press there or a drag puts the first row where the pointer is.
@@ -162,6 +172,7 @@ struct ShapesLayout {
             if (y >= toolbarTop && y < toolbarTop + toolbarHeight)
                 return x < listLeft + pad + newWidth ? Hit{Zone::NewShape} : Hit{};
             if (y < rowsTop) return {};
+            if (bulkTop >= 0 && y >= bulkTop && y < bulkTop + rowHeight) return {Zone::Bulk};
             int offset = static_cast<int>((y - rowsTop) / rowHeight);
             int row = listFirst + offset;
             return offset < listVisible && row < listCount ? Hit{Zone::ListRow, row} : Hit{};
