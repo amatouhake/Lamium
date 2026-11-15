@@ -392,11 +392,11 @@ void handleShapeKey(int key) {
         }
         return;
     }
-    // Esc ends a draft or type choice first, then several rows, then closes.
-    if (!(key == 0x1b && (shapePicking || shapeDraft)))
+    // Esc ends a draft or type choice first, then several rows, then closes;
+    // Ctrl + A never drops a draft.
+    if (!shapePicking && !shapeDraft)
         switch (selectionKey(key, screen::heldCtrl(), shapeRows.several())) {
         case SelectionKey::SelectAll:
-            cancelDraft();
             shapeRows.selectAll(shapeOrder());
             if (shapeRows.shown != shapeSelected) resetShapeEditor();
             shapeSelected = shapeRows.shown;
@@ -673,7 +673,7 @@ void renderShapesContent(MinecraftUIRenderContext& context, glm::vec2 size, glm:
         : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
     auto l = ShapesLayout::fit(t, size.x, size.y, false, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
         shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
-    if (shapeRows.several() && !shapeDraft && !shapePicking) l.reserveBulkBar();
+    if (shapeRows.several() && !shapeDraft && !shapePicking) l.reserveBulkBar(shapeListFirst);
     shapesDisplayed = l;
     shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
     if (l.usable()) drawShapesBody(context, l, pointer, definition);
@@ -685,7 +685,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
         : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
     auto l = ShapesLayout::fit(screen::table(), size.x, size.y, true, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
         shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
-    if (shapeRows.several() && !shapeDraft && !shapePicking) l.reserveBulkBar();
+    if (shapeRows.several() && !shapeDraft && !shapePicking) l.reserveBulkBar(shapeListFirst);
     shapesDisplayed = l;
     shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
     if (l.width <= 0) {

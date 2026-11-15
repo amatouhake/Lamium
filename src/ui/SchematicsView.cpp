@@ -1542,7 +1542,7 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
     l.firstActionWidth = std::clamp(l.detailWidth - 2 * ShapesLayout::pad - ShapesLayout::deleteWidth - 4, 40.f, 96.f);
     // Materials has one action: the calculator link, readable across the pane.
     if (schematicTab == SchematicTab::Materials) l.firstActionWidth = std::max(40.f, l.detailWidth - 2 * ShapesLayout::pad);
-    if (schematicTab == SchematicTab::Placements && placementRows.several()) l.reserveBulkBar();
+    if (schematicTab == SchematicTab::Placements && placementRows.several()) l.reserveBulkBar(schematicListFirst);
     if (std::exchange(scrollToSelected, false) && schematicTab == SchematicTab::Verify && verifySelected >= 0
         && (verifySelected < l.listFirst || verifySelected >= l.listFirst + l.listVisible)) {
         schematicListFirst = std::max(0, verifySelected - l.listVisible / 2);

@@ -96,13 +96,13 @@ struct ShapesLayout {
     }
     bool usable() const { return width > 0 && fieldVisible > 0; }
     // While several rows are selected (L-190) the list's last row holds the
-    // bar of bulk actions; a list of fewer than two rows keeps them.
-    void reserveBulkBar() {
+    // bar of bulk actions; a list of fewer than two rows keeps them. `first`
+    // is the view's own first row, which fit() clamped for the taller list.
+    void reserveBulkBar(int first) {
         if (listVisible < 2) return;
-        bool atEnd = listFirst + listVisible >= listCount; // the last row stays in view
         --listVisible;
         bulkTop = rowsTop + listVisible * rowHeight;
-        listFirst = atEnd ? std::max(0, listCount - listVisible) : std::clamp(listFirst, 0, std::max(0, listCount - listVisible));
+        listFirst = std::clamp(first, 0, std::max(0, listCount - listVisible));
     }
     float listRowY(int index) const { return rowsTop + (index - listFirst) * rowHeight; }
     // The list's scrollbar, along its right edge while the rows overflow:

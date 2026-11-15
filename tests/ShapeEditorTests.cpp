@@ -109,15 +109,24 @@ void shapeEditorTests() {
     auto many = ui::ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false);
     {
         auto bulk = many;
-        bulk.reserveBulkBar();
+        bulk.reserveBulkBar(0);
         check(bulk.listVisible == many.listVisible - 1 && bulk.bulkTop == bulk.rowsTop + bulk.listVisible * ui::ShapesLayout::rowHeight
               && bulk.hit(bulk.listLeft + 20, bulk.bulkTop + 2).zone == ui::ShapesLayout::Zone::Bulk
               && bulk.hit(bulk.listLeft + 20, bulk.bulkTop - 2).zone == ui::ShapesLayout::Zone::ListRow
               && many.hit(many.listLeft + 20, bulk.bulkTop + 2).zone == ui::ShapesLayout::Zone::ListRow,
               "the bar of bulk actions takes the list's last row");
         auto scrolled = ui::ShapesLayout::fit(table, 640, 360, false, 80, 80, 16, 0, false, false);
-        scrolled.reserveBulkBar();
+        scrolled.reserveBulkBar(80);
         check(scrolled.listFirst == 80 - scrolled.listVisible, "a list scrolled to its end stays at its end with the bar");
+        int rows = ui::ShapesLayout::dockedListRows;
+        auto full = ui::ShapesLayout::fit(table, 640, 360, true, rows, 0, 16, 0, false, false);
+        auto top = full;
+        top.reserveBulkBar(0);
+        check(full.listVisible == rows && top.listFirst == 0 && top.hit(top.listLeft + 20, top.rowsTop + 2).index == 0,
+              "a list that just fitted keeps its first row in view with the bar");
+        auto down = full;
+        down.reserveBulkBar(1);
+        check(down.listFirst == 1, "the row hidden by the bar can be scrolled to");
     }
     float bar = many.listLeft + many.listWidth - 2;
     check(many.onScrollbar(bar, many.rowsTop + 1) && !many.onScrollbar(many.listLeft + 10, many.rowsTop + 1) && !inside.onScrollbar(bar, inside.rowsTop + 1)

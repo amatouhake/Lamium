@@ -513,7 +513,7 @@ ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
     int fieldCount = selectedWaypoint() ? static_cast<int>(map::waypointFields.size()) : 0;
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
         waypointFieldFirst, false, false, false, data_notice::height(data_notice::Kind::Waypoints));
-    if (severalSelected()) l.reserveBulkBar();
+    if (severalSelected()) l.reserveBulkBar(waypointListFirst);
     waypointsDisplayed = l;
     waypointListFirst = l.listFirst;
     waypointFieldFirst = l.fieldFirst;
