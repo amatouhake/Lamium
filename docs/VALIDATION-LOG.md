@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Night run of 2026-11-15: settings, HUD, map and schematic items
+
+Build `10325a18`, DLL SHA-256
+`9108b6300fb90ef36b335d38d59e2c68af9507264b624f68f48962ec8b1356c7`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: with Game HUD placement on, the two new switches hide
+the game's position and days played lines (L-348); the Map size row is gone and an existing
+file's minimap looks about the same size (not measured, L-337); Nether view = Cave gives the
+cave view in the Nether and the Surface view above ground (L-317); Zoom's Reset on release
+starts every press at the set magnification (L-325); the HUD editor's Contents switches
+resize the Durability HUD (L-336); English Search finds enchanted books by "protection"
+(L-344); stepping the Up to cut on a large schematic looks right (L-236; blocks acting
+across a section border not checked); "Offhand slot" reads fine beside the renamed HUDs.
+Not working as meant (L-183): ignored rows are hard to tell apart, the button reads
+"Ignored: 0", and ignored differences still show in the Check tab, the Schematic HUD and
+the nearest-mistake key. Not seen: add-on map colors (L-324, no add-on at hand); the
+L-339 fixes; L-319's small fixes; other Contents popovers than Durability's.
+
 ## Binding capture cell (2026-11-15)
 
 Build `9c6f504d`, DLL SHA-256

@@ -330,5 +330,5 @@ choices. The hotbar is not part of it.
 
 - Coverage: [VALIDATION.md "Information and overlays"](VALIDATION.md#information-and-overlays).
 - Open work:
-  [L-336 HUD layout: choose each element's contents in the editor](backlog/L-336.md),
+  [L-336 HUD layout: choose each element's contents in the editor](backlog/done/L-336.md),
   [L-184 Inspect ghost block data and schematic container contents](backlog/L-184.md).

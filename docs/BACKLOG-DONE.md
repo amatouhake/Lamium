@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-344](backlog/done/L-344.md) English Search does not find enchanted books by enchantment name
 - [L-335](backlog/done/L-335.md) Rows under a switched-off feature are dimmed only in the middle
 - [L-331](backlog/done/L-331.md) Connected Textures: glass pane edges are uneven in less simple arrangements
 - [L-322](backlog/done/L-322.md) Fake Offhand: a key of its own does nothing while its slot is selected
@@ -90,6 +91,8 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-336](backlog/done/L-336.md) HUD layout: choose each element's contents in the editor
+- [L-348](backlog/done/L-348.md) Hide the game's position and days played lines
 - [L-333](backlog/done/L-333.md) Death waypoints: which one is the latest
 - [L-332](backlog/done/L-332.md) Death points: grow them as their own feature, or make them simpler
 - [L-328](backlog/done/L-328.md) The death point still reads as a third kind of waypoint
