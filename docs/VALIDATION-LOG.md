@@ -12,6 +12,66 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Rows off the scroll bar and room for Check items (2026-11-16)
+
+Build `c29aca91` (branch `l-190-waypoint-selection`), DLL SHA-256
+`45c895d9824f1674f1f570a97efda8dcae070f8b2223b2f1d650ef930ebfc4b3`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: a door with three differing items shows all three and the
+preview stays readable; Shapes, Waypoints, schematic and Highlight lists keep the selection
+frame off the bar and light no row when pointing at it, as does the HUD layout contents
+popover; the Game language list drags by its bar. On `6b443dbe`: a long settings description
+scrolls by wheel and bar. Not seen: the anvil panels (no tried item made them overflow) and a
+long Saved data list.
+
+## L-183 follow-ups and one shared scroll bar drag (2026-11-16)
+
+Build `6b443dbe` (branch `l-190-waypoint-selection`), DLL SHA-256
+`01bf0e1114c8e52666c225c4a33b365cc05e4ffeff8c8e506186a04a78e00cf7`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: "Ignore settings" at the pane's top right in all three
+pane states, pressed while open; the four filters fit in Japanese and English (large GUI and
+docked); differing and compared items scroll by wheel and bar; facing and shulker openings
+named; no confusing duplicate names seen; the ignore view relabels after a language change;
+long tags show in full on hover; "Whole placement" not cut. Bars: grip kept on the thumb,
+track press centers it, only the held thumb lit; calculator history, world map side list,
+Shapes / Waypoints / Placed lists, Highlight and the HUD layout contents popover drag.
+Raised: the Check pane shows one item line for a door with three differences (the preview
+takes the room); the list's selection frame and row hover overlap the bar (Shapes, Waypoints,
+schematic lists, Highlight, HUD contents popover); the Game language list cannot be dragged
+(rows take the press). Not seen: the anvil panels never overflowed; scroll reset on a new
+pick unclear; long Saved data and settings description lists not tried.
+
+## Schematic ignore rebuilt as places and rules (L-183, 2026-11-15)
+
+Build `e44d7cc4` (branch `l-190-waypoint-selection`), DLL SHA-256
+`66dc504b0d07bbfd983889e56879ffa5910e0e7da92fe3aec285ac2146dd06af`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: the one-of filters switch rows; kind squares, hollow when
+ignored, with 場所を無視 / 違いを無視 tags; cut names in full on hover; "Ignore on every
+<block>" and Undo; Ignore this place and its undo, extras included; several rows mark the
+preview and ignore or stop ignoring places; the ignore view's list, preview marks, two-press
+Undo all and Esc back. Much clearer than before. Raised: whether All should sort by kind
+rather than distance; the filter row is cramped in Japanese and English (English drops "Not
+placed" to its square, "Ignore settings" is cut); after changing the language in game the
+ignore view's list keeps the old language; long item lists in the ignore view and long tags;
+seen in a screenshot: a facing state shown as its raw key (minecraft:c...), a lectern "Page - ->
+0", "Whole placement - ..." cut.
+
+## Schematic ignore rebuild and Check list selection (L-183, 2026-11-15)
+
+Build `41ace47e` (branch `l-190-waypoint-selection`), DLL SHA-256
+`bba2f69c8b3a23df9dbdb5b7ec395fed1c26a8727d7864deeb978e7729e75426`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: "Ignore here" and "Ignore on all N" dim and tag the
+state row and Undo restores it; "Ignore whole block" dims and tags the row and the cell leaves
+the totals after the next pass; the HUD and the nearest-mistake key show "counting" and then
+skip ignored blocks (the earlier build's still-counted difference did not recur); Ctrl/Shift +
+click selects several Check rows with "Powered · 3 / 5 rows", ignoring several rows works, Esc
+clears; no Ignored button without entries and a two-press Undo all; the key and the radial
+menu item on a ghost show a toast, keep the ghost and add "Schematic: whole block ignored" to
+the target card; "Show placement" sits in Placement. Raised in use, design reopened: one state
+on one cell is too narrow (a placement-wide state is the useful case); nothing can be ignored
+before a difference appears; block entity fields can only be ignored for every placement and
+players cannot tell them from states; "Ignored: 1" uses a colon and a count; the ignore list
+does not say clearly what it ignores; the Check list's tabs have no way to see everything.
+
 ## Confirm wording, stable widths, selected rings (L-351, L-350, L-190, 2026-11-15)
 
 Build `497343b4` (branch `l-190-waypoint-selection` with main at `b8ca5f83`), DLL SHA-256

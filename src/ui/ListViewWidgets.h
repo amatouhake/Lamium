@@ -41,6 +41,14 @@ std::string listDistanceText(int x, int y, int z, int dimension);
 // A footprint's small mark (a placement in the lists and the map, L-296):
 // a faint fill and a frame with corner dots, 7 wide from `x`, centered on `cy`.
 void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha = 1);
+// A kind's small square (the Schematics Check rows and filters, L-183):
+// filled, or only its edge while the row is ignored; `size` wide from `x`,
+// centered on `cy`.
+void drawKindSquare(MinecraftUIRenderContext& context, float x, float cy, Rgb color, bool hollow = false, float size = 6);
+// A framed tag after a row's name ("Place ignored"): small dim text in a
+// thin dim frame, `tagWidth` wide; returns that width. Drawn cut to `maxWidth`.
+float tagWidth(MinecraftUIRenderContext& context, std::string_view text);
+float drawTag(MinecraftUIRenderContext& context, float x, float y, std::string text, float maxWidth);
 // The selection pane while several rows are selected (L-190), laid out by
 // `pane`: "N selected", "Shown N / Hidden M" (`shown` of `count`), then the
 // first pane.fit.names of `names` (the selected rows in list order; faded
@@ -49,11 +57,13 @@ void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rg
 // distance and the list's own column (`ownWidth`, 0: none) as its rows show
 // them; "N more" when they do not all fit, and a button per action; Delete
 // is destructive, armed by `arm`. The view draws the rule above the buttons.
+// Without pane.summary there is no summary line; `enabled` (one per action,
+// empty: all) draws a button that would change nothing disabled.
 struct SelectedName { std::string name; bool faded = false; std::string distance, own; };
 void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
-                       size_t shown, float ownWidth = 0);
+                       size_t shown, float ownWidth = 0, std::vector<bool> const& enabled = {});
 // Bulk Delete's label for `count` selected rows: "Delete", armed
 // "Confirm delete N" (the map panel sizes its button for both with armedWidth;
 // the lists' fixed-width Delete falls back to "Confirm" through armedLabel).

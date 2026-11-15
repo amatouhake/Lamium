@@ -170,8 +170,12 @@ the same commit. A screen never draws its own variant.
   outside keeps the edit; Esc drops it and shows the stored value again.
 - **Scrollbars** (`drawScrollbar`) on any list or text that overflows: a
   faint track and a 2-unit thumb that turns lighter (`dim`) under the
-  pointer or while dragged, without widening; pressing or dragging puts the first line under
-  the pointer.
+  pointer or while dragged, without widening. One bar (`ui/ScrollBar.h`) and
+  one drag (`ui/ScrollDrag.h`, also beside the anvil and on the world map):
+  a press on the thumb keeps its grip,
+  on the track the thumb's middle goes to the pointer, and the bar follows
+  the pointer until release. While a bar shows, rows (background, selection,
+  hover) stop short of it.
 - **List columns** (L-190, `ui/ListColumns.h`, `drawListHeadings`): the
   Waypoints, Shapes and Placed lists, docked or not, share one shape: the
   mark (kind and color; a shape's mark is its type glyph, a placement's a
@@ -193,7 +197,10 @@ the same commit. A screen never draws its own variant.
   under Buttons) in the single pane's Delete place. No
   bar in or under the list. Esc lets several rows go (nothing selected),
   then closes. The map's side panel has the same pane with its buttons on
-  its last row (`compactSelectionPane`).
+  its last row (`compactSelectionPane`). The Schematics Check list (L-183)
+  has no shown switch, so no summary line and no Delete: Show in world,
+  Ignore places and Stop ignoring share the row, its names sit under the
+  preview it keeps, and a button that would change nothing is disabled.
 - **Tips** open below their anchor (above when there is no room) and look
   the same everywhere (`drawTipBox`): the floating panel, a `keyEdge` edge
   (`warning` when the tip warns), 4 units of padding, white text. The

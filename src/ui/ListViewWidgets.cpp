@@ -66,13 +66,28 @@ void drawFootprintGlyph(MinecraftUIRenderContext& context, float x, float cy, Rg
     for (float dx : {-1.f, 6.f})
         for (float dy : {-4.f, 2.f}) fill(context, x + dx, cy + dy, 2, 2, color, alpha);
 }
+void drawKindSquare(MinecraftUIRenderContext& context, float x, float cy, Rgb color, bool hollow, float size) {
+    if (hollow) frame(context, x, cy - size / 2, size, size, color);
+    else fill(context, x, cy - size / 2, size, size, color);
+}
+namespace {
+constexpr float tagText = .8f;
+}
+float tagWidth(MinecraftUIRenderContext& context, std::string_view text) { return textWidthScaled(context, text, tagText) + 6; }
+float drawTag(MinecraftUIRenderContext& context, float x, float y, std::string text, float maxWidth) {
+    float w = std::min(tagWidth(context, text), maxWidth);
+    if (w <= 6) return 0;
+    frame(context, x, y, w, 10, palette::dim, .8f);
+    labelScaled(context, x + 3, y + (10 - 8 * tagText) / 2 - 1 + boxTextInset(), w - 4, std::move(text), tagText, palette::dim);
+    return w;
+}
 void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout const& pane, size_t count,
                        std::vector<SelectedName> const& names, std::function<void(size_t, float, float)> const& drawMark,
                        std::vector<BulkAction> const& actions, BulkArm const& arm, float pointerX, float pointerY,
-                       size_t shown, float ownWidth) {
-    label(context,pane.x,pane.y+3,pane.w,translated("list.selectedCount", count));
+                       size_t shown, float ownWidth, std::vector<bool> const& enabled) {
+    label(context,pane.x,pane.y+3,pane.countW > 0 ? pane.countW : pane.w,translated("list.selectedCount", count));
     shown = std::min(shown, count);
-    label(context,pane.x,pane.summaryY+2,pane.w,translated("list.shownHidden", shown, count - shown),palette::dim);
+    if (pane.summary) label(context,pane.x,pane.summaryY+2,pane.w,translated("list.shownHidden", shown, count - shown),palette::dim);
     auto const c = listColumns(pane.x - ListColumns::pad, pane.w + 2 * ListColumns::pad, ownWidth, 0);
     float y = pane.linesTop;
     for (size_t i = 0; i < names.size() && i < static_cast<size_t>(pane.fit.names); ++i, y += pane.lineHeight) {
@@ -88,10 +103,18 @@ void drawSelectionPane(MinecraftUIRenderContext& context, SelectionPaneLayout co
         switch (action) {
         case BulkAction::Show: return translated("list.showSelected");
         case BulkAction::Hide: return translated("list.hideSelected");
+        case BulkAction::ShowInWorld: return translated("schematic.showInWorld");
+        case BulkAction::IgnorePlaces: return translated("schematic.ignore.placeShort");
+        case BulkAction::Unignore: return translated("schematic.ignore.stopShort");
         default: return std::string{};
         }
     };
     for (size_t i = 0; i < actions.size() && i < pane.buttonX.size(); ++i) {
+        bool on = i >= enabled.size() || enabled[i];
+        if (!on) {
+            drawButton(context,pane.buttonX[i],pane.buttonsY,pane.buttonW[i],pane.buttonH,text(actions[i]),false,ButtonKind::Plain,false);
+            continue;
+        }
         bool over = pane.at(pointerX, pointerY) == static_cast<int>(i);
         bool armed = arm.armed == actions[i];
         if (irreversible(actions[i]))
@@ -296,10 +319,7 @@ void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::Contents
 }
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot) {
     if (l.listCount <= l.listVisible) return;
-    float listRight = l.listLeft + l.listWidth;
-    float track = l.listVisible * ShapesLayout::rowHeight;
-    float thumb = std::max(8.0f, track * l.listVisible / l.listCount);
-    float thumbY = l.rowsTop + (track - thumb) * l.listFirst / (l.listCount - l.listVisible);
-    drawScrollbar(context,listRight-3,l.rowsTop,track,thumbY,thumb,hot);
+    auto bar = l.scrollBar();
+    drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,hot);
 }
 }

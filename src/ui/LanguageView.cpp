@@ -10,7 +10,7 @@
 
 namespace lamium::ui::language_view {
 namespace {
-bool open = false, dragging = false;
+bool open = false;
 LanguageSelection selection;
 ShapesLayout last;
 std::shared_ptr<game_language::Request> request;
@@ -58,18 +58,18 @@ bool begin() {
     return true;
 }
 bool opened() { return open; }
-void calm() { dragging = false; }
+void calm() {}
 void reset() {
     if (request) request->cancelled.store(true);
     request.reset();
     selection = {}; last = {}; notice = {};
-    open = false; dragging = false;
+    open = false;
 }
 bool click(float x, float y, bool right) {
     if (last.width <= 0 || x < last.left || x >= last.left + last.width || y < last.top || y >= last.footerTop) return false;
     if (right) return true;
     if (overBack(x, y)) { back(); return true; }
-    if (last.onScrollbar(x, y)) { selection.first = last.firstAt(y); dragging = true; return true; }
+    if (screen::pressScrollbar(last, selection.first, x, y)) return true;
     if (y < last.rowsTop) return true;
     int offset = static_cast<int>((y - last.rowsTop) / ShapesLayout::rowHeight);
     if (offset >= last.listVisible || offset + last.listFirst >= last.listCount || busy()) return true;
@@ -93,12 +93,11 @@ void key(int key) {
 void wheel(int amount) {
     selection.first = SettingsTable::clampFirst(selection.first + amount, static_cast<int>(selection.choices.size()), last.listVisible);
 }
-void release() { dragging = false; }
+void release() {}
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     poll();
     last = languageLayout(t, static_cast<int>(selection.choices.size()), selection.first);
     if (last.width <= 0) return;
-    if (dragging) selection.first = last.firstAt(pointer.y);
     selection.first = last.listFirst = SettingsTable::clampFirst(selection.first, last.listCount, last.listVisible);
     auto current = game_language::currentCode();
 
@@ -110,13 +109,13 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         auto const& choice = selection.choices[i];
         float y = last.listRowY(i);
         bool hovered = pointer.x >= last.listLeft && pointer.x < last.listLeft + last.listWidth
-            && pointer.y >= y && pointer.y < y + ShapesLayout::rowHeight;
-        rowBackground(context, last.listLeft + 1, y, last.listWidth - 2, ShapesLayout::rowHeight, selection.selected == i, hovered);
+            && pointer.y >= y && pointer.y < y + ShapesLayout::rowHeight && !last.onScrollbar(pointer.x, pointer.y);
+        rowBackground(context, last.listLeft + 1, y, last.rowWidth(), ShapesLayout::rowHeight, selection.selected == i, hovered);
         label(context, t.nameX, y + 3, t.keyX - t.nameX - SettingsTable::gap, choice.name,
             choice.code == current ? palette::accent : palette::text);
         label(context, t.keyX, y + 3, codeWidth, choice.code, choice.code == current ? palette::accent : palette::faint);
     }
-    drawListScrollbar(context, last, dragging || last.onScrollbar(pointer.x, pointer.y));
+    drawListScrollbar(context, last, screen::scrollHeld(&selection.first) || last.onScrollbar(pointer.x, pointer.y));
 
     // Footer, as in the table: status first, hints below.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);

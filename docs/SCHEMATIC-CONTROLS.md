@@ -138,12 +138,18 @@ direction); Hold actions cannot.
   placement turns normally.
 - A mixed file round-trips both forms; rollback reads the last legacy fields
   and shows the same view.
-- Ignored check differences (L-183): an optional `ignored` array of strings
-  `"x,y,z block state"` (structure-local cell, the file's block there, the
-  state key), written only when not empty, at most 64 per placement. A
-  missing key is an empty list; unreadable or repeated entries are dropped
-  on reading; entries are never pruned when the structure cannot be read.
-  An older Lamium that saves the placement drops the key.
+- Ignored check differences (L-183): an optional `ignored` array of strings,
+  written only when not empty, at most 64 per placement across kinds:
+  `"x,y,z block"` (an ignored place; `minecraft:air` for an extra) and
+  `"* block item"` (a rule: that item on every such block). An item is a
+  block state's name or a compared block entity field's id starting with
+  `#` (`#FrontText.Text`, `#note`, `#instrument`, `#opening`). The older
+  `"x,y,z block state"` (one state of a cell) still loads and saves
+  unchanged but is never applied. Cells are structure-local, the block is
+  the file's palette name. A missing key is an empty list; unreadable or
+  repeated entries are dropped on reading; entries are never pruned when
+  the structure cannot be read. An older Lamium that saves the placement
+  drops the key.
 
 ### Looked-at selection
 
@@ -189,14 +195,23 @@ the screen; absolute X/Y/Z are not in the menu.
 | Category | Items |
 |---|---|
 | Move | Forward/back, Left/right, Up/down, To feet, Move target, Select what you look at |
-| Placement | Selected placement (stepper), Rotate, Mirror, Reset rotation and mirror, Move placement → |
+| Placement | Selected placement (stepper), Show selected placement, Rotate, Mirror, Reset rotation and mirror, Move placement → |
 | Layers | Axis, Cut, Mode, Keep, Cut here |
-| Show and check | Schematics on/off, Show selected placement, Entities, Extra blocks, Mistake marks, Nearest mistake |
+| Show and check | Schematics on/off, Ignore looked-at block, Entities, Extra blocks, Mistake marks, Nearest mistake |
 | Area | Corner 1 at the looked block, Corner 2 at the looked block, Move area →, Save, Clear |
 | Screen | Place from a file…, Placed list…, Check tab, Materials tab, Schematic HUD, Key settings |
 
 - Five or six items per category (eight categories of three to seven felt
   sparse or crowded). "Move placement/area →" set the target and open Move.
+  "Show selected placement" moved to Placement with L-183 (a per-placement
+  setting), keeping six and six.
+- "Ignore looked place" and its key "Ignore the looked-at place" (L-183,
+  unbound): the selected placement's place the target card picks (a ghost,
+  a real block in a shown layer, or an extra on the file's air) is ignored,
+  or given back; toasts name the block and its coordinates. A correct block
+  says so; another placement or nothing says "Not looking at a block of the
+  selected placement"; a full list, the cap. Rules on every such block are
+  set in the Check tab.
 - With Schematics off the menu opens at Show and check with a toast and runs
   only the feature switch, the HUD switch and the screen items
   (`worksWhileOff`); schematic keys toast how to turn the feature on.

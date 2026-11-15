@@ -399,8 +399,8 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
         float y = l.listRowY(i);
         auto value = waypointAtRow(i);
-        if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
-        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && waypointRows.contains(*value),over(ShapeZone::ListRow,i));
+        if (i % 2) fill(context,l.listLeft+1,y,l.rowWidth(),ShapesLayout::rowHeight,palette::white,.025f);
+        rowBackground(context,l.listLeft+1,y,l.rowWidth(),ShapesLayout::rowHeight,value && waypointRows.contains(*value),over(ShapeZone::ListRow,i));
         float gx = columns.markX + 4, gy = y + ShapesLayout::rowHeight / 2;
         int index = value ? indexOfId(waypointSet.waypoints, value->id) : -1;
         if (index < 0) continue;
@@ -416,7 +416,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             label(context,columns.distanceX,y+3,columns.distanceWidth,listDistanceText(w.x, w.y, w.z, w.dimension),palette::dim,Align::Right);
         toggleSwitch(context,columns.shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
-    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
+    drawListScrollbar(context,l,screen::scrollHeld(&waypointListFirst) || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 

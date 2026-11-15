@@ -92,6 +92,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-183](backlog/done/L-183.md) Disregard selected schematic check mismatches
 - [L-190](backlog/done/L-190.md) Select several rows at once in list screens
 - [L-351](backlog/done/L-351.md) One wording for press-again confirmations
 - [L-350](backlog/done/L-350.md) Waypoint distance: 3D by default, horizontal as an option

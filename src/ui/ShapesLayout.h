@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/RowSelection.h"
+#include "ui/ScrollBar.h"
 #include "ui/SettingsTable.h"
 #include <algorithm>
 #include <cmath>
@@ -27,7 +28,8 @@ struct ShapesLayout {
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
     // Several rows selected (L-190): the selection pane's actions replace the
-    // editor, set by the view after fit().
+    // editor, set by the view after fit(). A list without an irreversible
+    // action (the Check list) has no summary line.
     std::vector<BulkAction> selecting;
 
     // fullToolbar: the toolbar is taken across its width (the Schematics tabs),
@@ -99,17 +101,21 @@ struct ShapesLayout {
     }
     bool usable() const { return width > 0 && fieldVisible > 0; }
     float listRowY(int index) const { return rowsTop + (index - listFirst) * rowHeight; }
-    // The list's scrollbar, along its right edge while the rows overflow:
-    // a press there or a drag puts the first row where the pointer is.
+    // The list's scrollbar, along its right edge while the rows overflow
+    // (the press zone; the drag is the shared one, ScrollDrag.h).
+    // A list without a detail pane (Game language) has one too; a docked
+    // panel too short for its body has none.
     bool onScrollbar(float x, float y) const {
         float right = listLeft + listWidth;
-        return usable() && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
+        return (usable() || (detailWidth <= 0 && listWidth > 0)) && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
     }
-    int firstAt(float y) const {
-        float track = listVisible * rowHeight;
-        if (listCount <= listVisible || !(track > 0)) return 0;
-        float t = std::clamp((y - rowsTop) / track, 0.0f, 1.0f);
-        return static_cast<int>(std::lround(t * static_cast<float>(listCount - listVisible)));
+    // A row's background and hover stop short of the bar while it shows, so
+    // the selection frame never covers it and pointing at it lights no row.
+    static constexpr float barGutter = 6;
+    float rowWidth() const { return listWidth - 2 - (listCount > listVisible ? barGutter : 0); }
+    // The list's bar as drawn (drawListScrollbar) and dragged.
+    ScrollBar scrollBar() const {
+        return rowScrollBar(listLeft + listWidth - 3, rowsTop, listVisible * rowHeight, listCount, listVisible, listFirst);
     }
     float fieldY(int index) const { return fieldsTop + (index - fieldFirst) * (picking ? pickHeight : rowHeight); }
     // Values are right-aligned steppers in the editor.
@@ -140,14 +146,22 @@ struct ShapesLayout {
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
     // The selection pane in the detail pane: the count where the name sits,
     // the summary and the names below, the buttons where the editor's actions are.
-    SelectionPaneLayout selectionPane(int count) const {
+    // `below`: room kept under the names for the view's own lines;
+    // `namesTop`: where the names start instead, for a view that keeps
+    // something above them (the Check preview, L-183).
+    SelectionPaneLayout selectionPane(int count, float below = 0, float namesTop = 0) const {
         SelectionPaneLayout p;
         p.x = detailLeft + pad; p.w = detailWidth - 2 * pad; p.y = nameY;
+        bool destructive = std::any_of(selecting.begin(), selecting.end(), irreversible);
+        p.summary = destructive;
         p.summaryY = nameY + rowHeight;
-        p.linesTop = p.summaryY + p.lineHeight;
-        p.fit = namesFit(count, actionsY - 4 - p.linesTop, p.lineHeight);
+        p.linesTop = std::max(namesTop, destructive ? p.summaryY + p.lineHeight : p.summaryY);
+        p.fit = namesFit(count, actionsY - 4 - below - p.linesTop, p.lineHeight);
         p.buttonsY = actionsY + 2; p.buttonH = 12;
-        placeSelectionButtons(p, selecting, actionX(0), actionWidth, 4, deleteX(), deleteWidth);
+        if (destructive) placeSelectionButtons(p, selecting, actionX(0), actionWidth, 4, deleteX(), deleteWidth);
+        else {
+            placeSelectionButtons(p, selecting, actionX(0), 96, 4, detailLeft + detailWidth - pad + 4, 0);
+        }
         return p;
     }
 
@@ -177,7 +191,7 @@ struct ShapesLayout {
                 return {Zone::DrawAll};
             if (y >= toolbarTop && y < toolbarTop + toolbarHeight)
                 return x < listLeft + pad + newWidth ? Hit{Zone::NewShape} : Hit{};
-            if (y < rowsTop) return {};
+            if (y < rowsTop || onScrollbar(x, y)) return {};
             int offset = static_cast<int>((y - rowsTop) / rowHeight);
             int row = listFirst + offset;
             return offset < listVisible && row < listCount ? Hit{Zone::ListRow, row} : Hit{};

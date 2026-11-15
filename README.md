@@ -140,13 +140,16 @@ The HUD layout view moves and styles Lamium's HUD elements.
 | World map | A full-screen map of the areas you have visited | `M` | Recording off |
 
 Map marks, Radar and Slime chunks each choose the maps they show on.
+Lists of shapes, waypoints and placements select several rows with Ctrl + click
+or Shift + click to show, hide or delete them together.
+
 Waypoints also show in the world, with both maps off.
 
 ### Schematics *Exp.*
 
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
-| Schematics | Place `.mcstructure` files as ghost blocks, check the build, count materials, save an area | — | Off |
+| Schematics | Place `.mcstructure` files as ghost blocks, check the build (ignore chosen differences), count materials, save an area | — | Off |
 | Schematic menu | A radial menu with every schematic operation; each can also get its own key | — | — |
 | Move schematic target | Move the placement, corner or area away/closer | Alt+Wheel | — |
 | Schematic HUD | Check counts and materials left for the selected placement | — | Off |

@@ -1,6 +1,7 @@
 #include "ui/HudEditor.h"
 #include "ui/HudContents.h"
 #include "ui/HudEditorLayout.h"
+#include "ui/ScrollDrag.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/ScreenParts.h"
@@ -49,7 +50,6 @@ std::vector<Control> controls;
 std::optional<Box> popoverBox;
 // The contents list as drawn (for its scroll bar), and whether the bar is being dragged.
 std::optional<ContentsLayout> contentsShown;
-bool scrolling = false;
 float screenW = 0, screenH = 0;
 bool resetArmed = false; // "Reset layout" asks for a second press.
 
@@ -222,8 +222,9 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         label(context, at.x + 6, at.y + 6 + 3 * cellH + 2 * cellGap + 3, w - 12, readout, palette::faint);
     } else if (popover == Popover::Contents && !contents.entries.empty()) {
         auto const& entries = contents.entries;
+        if (scroll_drag::holding(&contentsFirst)) scroll_drag::follow(py);
         auto layout = layoutContents(*spot, barHeight, static_cast<int>(entries.size()), contents.reorder, contentsFirst,
-                                     screenW, screenH, switchWidth, switchHeight, scrolling ? std::optional(py) : std::nullopt);
+                                     screenW, screenH, switchWidth, switchHeight);
         contentsFirst = layout.first;
         popoverBox = layout.box;
         // Each switch is the settings row's own option, so it writes the same field.
@@ -242,7 +243,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
             if (row.up) controls.push_back({*row.up, Command::LineUp, 0, entry.line});
             if (row.down) controls.push_back({*row.down, Command::LineDown, 0, entry.line});
         }
-        drawContentsPopover(context, layout, names, on, px, py, scrolling);
+        drawContentsPopover(context, layout, names, on, px, py, scroll_drag::holding(&contentsFirst));
         contentsShown = std::move(layout);
     }
     return bar;
@@ -382,7 +383,7 @@ void reset() {
     controls.clear();
     popoverBox.reset();
     contentsShown.reset();
-    scrolling = false;
+    if (scroll_drag::holding(&contentsFirst)) scroll_drag::release();
 }
 void select(std::optional<HudElementId> id) {
     // The toolbar draw is what refreshes popoverBox, and nothing draws it
@@ -631,9 +632,9 @@ Result press(float x, float y) {
     screen::finishEditing();
     resetArmed = false;
     if (popover == Popover::Contents && contentsShown && onContentsTrack(*contentsShown, x, y)) {
-        scrolling = true;
         auto const& t = *contentsShown->track;
-        contentsFirst = scrollFirstAt(y, t.top, t.track, contentsShown->count, contentsShown->visible);
+        scroll_drag::hold(rowScrollBar(t.x + 1, t.top, t.track, contentsShown->count, contentsShown->visible, contentsFirst, 6), y,
+                          scroll_drag::firstRow(contentsFirst), &contentsFirst);
         return Result::Stay;
     }
     if (popoverBox && popoverBox->contains(x, y)) return Result::Stay;
@@ -659,7 +660,7 @@ Result press(float x, float y) {
     return Result::Stay;
 }
 void release() {
-    scrolling = false;
+    if (scroll_drag::holding(&contentsFirst)) scroll_drag::release();
     if (auto finished = std::exchange(resize, std::nullopt)) {
         auto value = Runtime::instance().preferences();
         auto& element = settings::hudElement(value, finished->id);

@@ -135,12 +135,12 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
         float const y = rows.listRowY(i);
         bool const done = static_cast<size_t>(number) < following.done.size() && following.done[static_cast<size_t>(number)];
         bool const next = number == following.next, inSlots = number == info.inSlots;
-        if (number % 2 == 1) fill(context, rows.listLeft + 1, y, rows.listWidth - 2, ShapesLayout::rowHeight, palette::white, .04f);
-        if (inSlots) fill(context, rows.listLeft + 1, y, rows.listWidth - 2, ShapesLayout::rowHeight, palette::accent, .16f);
+        if (number % 2 == 1) fill(context, rows.listLeft + 1, y, rows.rowWidth(), ShapesLayout::rowHeight, palette::white, .04f);
+        if (inSlots) fill(context, rows.listLeft + 1, y, rows.rowWidth(), ShapesLayout::rowHeight, palette::accent, .16f);
         if (next || inSlots) fill(context, rows.listLeft + 1, y, 2, ShapesLayout::rowHeight, inSlots ? palette::accent : palette::white);
         if (i % L::stepRows == 0) {
             // A line above each step after the first: where one anvil use ends.
-            if (i > 0) fill(context, rows.listLeft + 1, y, rows.listWidth - 2, 1, palette::white, .18f);
+            if (i > 0) fill(context, rows.listLeft + 1, y, rows.rowWidth(), 1, palette::white, .18f);
             label(context, left, y + 3, numberWidth, std::to_string(number + 1), done ? palette::faint : palette::dim, Align::Right);
             enchant_chooser::addIcon(icons, step.keptIsItem ? game::stepItemIcon(itemsDrawn++, step.keptEnchanted) : game::stepBookIcon(booksDrawn++),
                 textLeft, y + 2);

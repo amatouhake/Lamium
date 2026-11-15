@@ -149,8 +149,10 @@ PlacementSet decodePlacements(std::string_view text) {
             p.visible = flag(entry.value("visible", Json()), true);
             p.countExtras = flag(entry.value("countExtras", Json()), true);
             p.entities = flag(entry.value("entities", Json()), true);
+            // The per-state build wrote only "x,y,z block state", which reads
+            // as one state of a cell.
             if (auto ignored = entry.find("ignored"); ignored != entry.end() && ignored->is_array()) {
-                std::vector<IgnoredDifference> entries;
+                std::vector<IgnoreEntry> entries;
                 for (auto const& item : *ignored)
                     if (item.is_string() && entries.size() < maxIgnored)
                         if (auto e = decodeIgnored(item.get<std::string>())) entries.push_back(std::move(*e));

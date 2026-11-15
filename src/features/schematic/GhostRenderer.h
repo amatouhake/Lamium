@@ -117,13 +117,20 @@ void stop();
 void invalidateResources();
 // The latest finished verification of the selected placement (never null).
 std::shared_ptr<Verification const> verification();
+// What an ignore rule's item (L-183, itemId) is called on a block of type
+// `identifier`: a state's readable name, or a block entity field's label as
+// the Check rows draw it.
+std::string itemName(std::string_view item, std::string_view identifier);
 // Progress for the Placed list (L-93 screen review): correct / total in the
 // placement's shown layers, counted in the background for about a second
 // after each wantProgress(); nullopt until a pass finished.
 void wantProgress();
 std::optional<Tally> progress(SavedPlacement const&);
-// Marks a cell in the world for a while ("Show in world").
+// Marks a cell in the world for a while ("Show in world"), or several at
+// once (selected Check rows, at most maxPointed); the next call replaces them.
+inline constexpr size_t maxPointed = 64;
 void point(Point cell);
+void point(std::vector<Point> cells);
 
 // Saving an area: the world render reads it in bounded steps (it needs the
 // world's blocks) and writes the file when done. One save at a time.

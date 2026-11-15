@@ -19,10 +19,47 @@ struct Mismatch {
     std::vector<StateDifference> states; // CellState::State: what differs
     std::string identifier; // the expected block's name (minecraft:oak_trapdoor), for naming its states
     // What an ignore entry (L-183) names: the structure cell and the file's
-    // block there; local.x is -1 for an entity or an expected air cell.
+    // block there (minecraft:air for an extra); local.x is -1 for an entity.
     Point local{-1, -1, -1};
     std::string fileBlock;
+    // L-183: ignored rows stay listed in their own kind and count as the
+    // entries say (countedState); `states` then holds every difference,
+    // each marked when a rule covers it.
+    IgnoreMark ignore = IgnoreMark::None;
 };
+// The Check list's filters (L-183): all rows (mistakes first, then not
+// placed), wrong block (extras too), wrong state, not placed.
+enum class CheckFilter { All, WrongBlock, WrongState, NotPlaced };
+inline bool listedIn(CheckFilter filter, CellState state) {
+    switch (filter) {
+    case CheckFilter::WrongBlock: return state == CellState::Wrong || state == CellState::Extra;
+    case CheckFilter::WrongState: return state == CellState::State;
+    case CheckFilter::NotPlaced: return state == CellState::Missing;
+    case CheckFilter::All: break;
+    }
+    return true;
+}
+// A row the counts, the HUD's nearest mistake and the nearest-mistake key
+// treat as a mistake: wrong, extra or wrong state, not ignored. Every reader
+// of the rows asks this, so an ignored difference is never one of them.
+inline bool countsAsMistake(Mismatch const& m) {
+    return m.ignore == IgnoreMark::None
+        && (m.state == CellState::Wrong || m.state == CellState::Extra || m.state == CellState::State);
+}
+// The mistake nearest to (x, y, z), with its squared distance; null when none.
+inline Mismatch const* nearestMistake(std::vector<Mismatch> const& rows, double x, double y, double z,
+                                      double* distanceSquared = nullptr) {
+    Mismatch const* nearest = nullptr;
+    double best = 0;
+    for (auto const& m : rows) {
+        if (!countsAsMistake(m)) continue;
+        double dx = m.position.x + .5 - x, dy = m.position.y + .5 - y, dz = m.position.z + .5 - z;
+        double d = dx * dx + dy * dy + dz * dz;
+        if (!nearest || d < best) { best = d; nearest = &m; }
+    }
+    if (distanceSquared) *distanceSquared = best;
+    return nearest;
+}
 struct MaterialLine {
     std::string item;      // item name, e.g. minecraft:oak_stairs; empty when the block has no item
     std::string name;      // display name
@@ -39,10 +76,14 @@ struct Verification {
     // pass's, kept on screen while the next counts, but no longer where the
     // ghosts are, so nothing points into the world from them (L-177).
     bool stale = false;
+    // L-183: the ignore entries changed since. The rows' cells are still where
+    // the ghosts are, but their verdicts and the counts are the last pass's:
+    // the counts, the HUD and the nearest-mistake key wait for the next one.
+    bool outdated = false;
     Tally visible;              // counts within the shown layers
     std::vector<Mismatch> mismatches; // within the shown layers, nearest first, capped
     std::vector<MaterialLine> materials, visibleMaterials;
-    bool ready(int selected) const { return selected >= 0 && placement == selected && complete && !stale; }
+    bool ready(int selected) const { return selected >= 0 && placement == selected && complete && !stale && !outdated; }
 };
 inline constexpr size_t maxMismatches = 2000;
 

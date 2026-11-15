@@ -327,14 +327,10 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     std::optional<int> nearest;
     if (ready && player) {
         auto p = player->getFeetPos();
-        double best = -1;
-        for (auto const& m : result->mismatches) {
-            if (m.state == schematic::CellState::Missing) continue;
-            double dx = m.position.x + .5 - p.x, dy = m.position.y + .5 - p.y, dz = m.position.z + .5 - p.z;
-            double d = dx * dx + dy * dy + dz * dz;
-            if (best < 0 || d < best) best = d;
-        }
-        if (best >= 0) nearest = static_cast<int>(std::lround(std::sqrt(best)));
+        double best = 0;
+        // The same rule as the nearest-mistake key: ignored rows are skipped (L-183).
+        if (schematic::nearestMistake(result->mismatches, p.x, p.y, p.z, &best))
+            nearest = static_cast<int>(std::lround(std::sqrt(best)));
     }
     struct Material { std::string icon, name; std::uint64_t left, have; bool unknown; };
     std::vector<Material> materials;
@@ -869,7 +865,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         }
         // Schematic rows in the verifier's colors (the HUD and Check tab use the same).
         auto color = row.tone == Tone::Wrong ? ui::palette::mismatch : row.tone == Tone::State ? ui::palette::warning
-            : row.tone == Tone::Missing ? ui::palette::info : ui::palette::text;
+            : row.tone == Tone::Missing ? ui::palette::info : row.tone == Tone::Ignored ? ui::palette::dim : ui::palette::text;
         if (!row.before.empty()) {
             float w = ui::textWidthScaled(context, row.before, z);
             ui::labelScaled(context, x, y, w + 2, row.before, z, color, ui::Align::Left, element.shadow);

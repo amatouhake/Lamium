@@ -529,7 +529,10 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
         if (type == BlockActorType::Music)
             try { appendGhostInstrument(result.details, *ghost); } catch (...) {}
     }
-    result.details.push_back(ghostRow());
+    // A ghost of the selected placement on an ignored place keeps its ghost
+    // (L-183) and says it is ignored instead of still to place.
+    auto checked = schematic::ghosts::mismatchAt(source, ghost->cell);
+    result.details.push_back(checked && checked->ignore == schematic::IgnoreMark::Place ? ignoredRow() : ghostRow());
     result.ghost = true;
     result.distance = schematic::entryDistance(x, y, z, dx, dy, dz, {ghost->cell.x, ghost->cell.y, ghost->cell.z});
     return result;
@@ -702,8 +705,13 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
             if (shown.structure && placement.visible && placement.dimension == static_cast<int>(player->getDimensionId())
                 && schematic::layerShown(placement.layers, shown.structure->size, placement.placement, offset)) {
                 // Read just this cell now; the capped background list may be old or omit it.
-                if (auto m = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z});
-                    m && !m->entity) {
+                // L-183: an ignored place says so; a cell whose differences
+                // rules all cover reads as correct, and ruled differences of
+                // a wrong state are not listed.
+                auto m = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z});
+                if (m && !m->entity && m->ignore == schematic::IgnoreMark::Place) schematicDetails.push_back(ignoredRow());
+                else if (m && !m->entity && m->ignore == schematic::IgnoreMark::None) {
+                    std::erase_if(m->states, [](auto const& d) { return d.ruled; });
                     schematicDetails = schematicRows(m->state, m->expectedName, m->expected, m->states,
                         result.identifier, [](std::string_view key) { return ui::translated(key); });
                     for (auto const& d : m->states) fixedStates.insert(d.key);

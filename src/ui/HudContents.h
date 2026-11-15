@@ -62,9 +62,8 @@ struct ContentsLayout {
     std::optional<ContentsTrack> track;
     std::vector<ContentsRow> rows;
 };
-// `scrollY`: the scroll bar is being dragged, so the first row follows it.
 inline ContentsLayout layoutContents(Spot toolbar, float toolbarH, int count, bool reorder, int first, float screenW,
-                                     float screenH, float switchW, float switchH, std::optional<float> scrollY = std::nullopt) {
+                                     float screenH, float switchW, float switchH) {
     ContentsLayout out;
     constexpr float w = contentsWidth, rowH = contentsRowHeight;
     count = std::max(0, count);
@@ -75,7 +74,6 @@ inline ContentsLayout layoutContents(Spot toolbar, float toolbarH, int count, bo
     if (!toolbar.below || at.y < toolbar.y) at.y = at.y + at.h - h; // Hug the toolbar when opening upward.
     out.box = {at.x, at.y, w, h};
     float listTop = at.y + 3, listH = out.visible * rowH;
-    if (scrollY) first = scrollFirstAt(*scrollY, listTop, listH, count, out.visible);
     out.first = std::clamp(first, 0, std::max(0, count - out.visible));
     if (out.visible < count && out.visible > 0) out.track = ContentsTrack{at.x + w - 5, listTop, listH};
     float rw = w - 6;
@@ -83,7 +81,8 @@ inline ContentsLayout layoutContents(Spot toolbar, float toolbarH, int count, bo
         ContentsRow row;
         row.index = out.first + i;
         float ry = listTop + i * rowH;
-        row.row = {at.x + 2, ry, w - 4, rowH};
+        // The row stops short of the bar, so pointing at it lights no row.
+        row.row = {at.x + 2, ry, w - 4 - (out.track ? 6.f : 0.f), rowH};
         row.switchAt = {at.x + 5, ry + (rowH - switchH) / 2};
         row.labelAt = {at.x + 8 + switchW, ry + 1};
         if (reorder) {

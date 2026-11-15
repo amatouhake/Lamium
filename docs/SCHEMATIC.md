@@ -132,14 +132,12 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   a "Lit"/"Powered" row instead of a wrong block, never correct. An ignored
   difference is correct everywhere (list, HUD, nearest mistake, marks). Rules
   are a table: a new category or state is a row, not code.
-- Ignored differences ([L-183 Disregard selected schematic check mismatches](backlog/L-183.md)):
-  one state of one cell each, saved with the placement in structure cells
-  (moving, turning, mirroring keep it). "Ignore" beside a state of a selected
-  wrong-state row adds one (not block entity rows, a shulker box's opening or
-  air cells); it counts as matching everywhere, other differences and blocks
-  still show. "Ignored: N" (entries that apply) opens their list in place of
-  the counts: Undo each, "Undo all" pressed twice; an entry whose cell lost
-  the named block is listed as stale, not applied. At most 64.
+- Ignored differences ([L-183 Disregard selected schematic check mismatches](backlog/done/L-183.md)),
+  per placement in structure cells, at most 64: places (a
+  cell, extras too; in no count or material, ghost kept) and rules (a state
+  or compared block entity field on every such block, counted as matching).
+  Ignored rows keep their kind (hollow square, framed tag), no in-world mark
+  or nearest mistake; stale and old one-cell-state entries are kept unused.
 - Waterlogging: once a cell's block is right, the second layer must match the
   world's extra block (none on both sides included); a difference is a state
   row `waterlogged: true -> false` (or the reverse) and a yellow mark. A
@@ -159,15 +157,17 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   (beyond that the client does not know them). Pose, equipment, name and
   contents are not checked.
 - Mistake marks (`mistakeMarks`): red/yellow boxes in the world. Off, they
-  are not built or drawn; the check still runs.
-- Nearest mistake key: marks the nearest mistake with its distance; again,
-  the next. "Show in world" from the Check list closes the screen and marks
-  the cell with a white box and a beam for 30 s.
-- The Check tab lists up to 2000 mismatches per pass, mistakes before not
-  placed, nearest first, filtered by Mistakes / Wrong or extra / Wrong state /
-  Not placed with counts above the list; selecting a wrong-state row shows
-  every differing state in the right pane as "<state> <now> -> <should be>"
-  with readable names.
+  are not built or drawn; the check still runs. Nearest mistake key: marks
+  the nearest one with its distance. "Show in world" closes the screen and
+  marks the selected cells (up to 64) with a white box and a beam for 30 s.
+- The Check tab lists up to 2000 mismatches per pass, mistakes first, then
+  nearest, under All / Wrong block (extras too) / Wrong state / Not placed
+  (no counts, kept while the game runs): kind square, file block (-> world
+  block), tag, distance; cut names and tags whole on hover. The pane names
+  the kind and each item (as the target card) with "Ignore on every <block>"
+  or Undo, scrolling (wheel or bar), then Show in world and the place
+  toggle; several rows (L-190): Show in world, Ignore places, Stop ignoring.
+  "Ignore settings" ends its top line: ignored places and block types instead.
 
 ### Materials
 

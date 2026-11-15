@@ -100,7 +100,14 @@ bool waypointsView() { return screen::currentNav() == nav::waypoints; }
 bool schematicsView() { return screen::currentNav() == nav::schematics; }
 settings::Option const* sliderDrag = nullptr; // Slider being dragged with the left button.
 // A scrollbar held with the left button follows the pointer until release.
-enum class ScrollDrag { None, List, Description } scrollDrag = ScrollDrag::None;
+// The list's and the footer description's scroll bars (the shared drag).
+ScrollBar listBar(SettingsTable const& t) {
+    return rowScrollBar(t.rowsRight() - 3, t.rowsTop, t.visible * SettingsTable::rowHeight, t.count, t.visible, t.first);
+}
+ScrollBar descriptionBar(SettingsTable const& t, int lines, int first) {
+    return rowScrollBar(t.left + t.width - SettingsTable::pad, t.footerTop + 3, SettingsTable::descriptionLines * SettingsTable::descriptionLineHeight,
+        lines, SettingsTable::descriptionLines, first, 4);
+}
 std::set<std::string_view> expanded;
 std::set<std::string_view> searchCollapsed;
 std::vector<SettingsRow> rows;
@@ -338,10 +345,13 @@ void pressReset(ResetScope scope) {
 }
 void handleClick(SettingsTable::Hit const& hit, bool right) {
     if (!right && displayed.onListScrollbar(hit.x, hit.y)) {
-        scrollDrag = ScrollDrag::List; first = displayed.listFirstAt(hit.y); return;
+        screen::holdScrollbar(listBar(displayed), hit.y, [](float pos) { first = static_cast<int>(std::lround(pos)); }, &first);
+        return;
     }
     if (!right && displayed.onDescriptionScrollbar(hit.x, hit.y, helpLineCount)) {
-        scrollDrag = ScrollDrag::Description; helpFirst = displayed.descriptionFirstAt(hit.y, helpLineCount); return;
+        screen::holdScrollbar(descriptionBar(displayed, helpLineCount, helpFirst), hit.y,
+            [](float pos) { helpFirst = static_cast<int>(std::lround(pos)); }, &helpFirst);
+        return;
     }
     if (!(hit.zone == Zone::Row && valid(hit.index) && rows[hit.index].kind == RowKind::MapCache && !right
           && onMapCacheButton(hit.x)))
@@ -874,9 +884,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (wrapped.width != descriptionWidth)
         wrapped = {descriptionWidth, wrapFullText(helpText,descriptionWidth,[&](std::string_view text) { return textWidth(context,text); })};
     helpLineCount = static_cast<int>(wrapped.lines.size());
-    if (scrollDrag == ScrollDrag::Description) helpFirst = t.descriptionFirstAt(pointer.y,helpLineCount);
     helpFirst = SettingsTable::clampFirst(helpFirst,helpLineCount,SettingsTable::descriptionLines);
-    if (scrollDrag == ScrollDrag::List) t.first = t.listFirstAt(pointer.y);
     t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion() + pausedHeader()));
     displayed = t;
     if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
@@ -1119,11 +1127,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             }
     }
     if (static_cast<int>(rows.size()) > t.visible) {
-        float track = t.visible * SettingsTable::rowHeight;
-        float thumb = std::max(8.0f, track * t.visible / rows.size());
-        float thumbY = t.rowsTop + (track - thumb) * t.first / (rows.size() - t.visible);
-        drawScrollbar(context,t.rowsRight()-3,t.rowsTop,track,thumbY,thumb,
-            scrollDrag == ScrollDrag::List || t.onListScrollbar(pointer.x,pointer.y));
+        auto bar = listBar(t);
+        drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,
+            screen::scrollHeld(&first) || t.onListScrollbar(pointer.x,pointer.y));
     }
 
     // Footer: description and hints, or the binding editor's buttons.
@@ -1153,11 +1159,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 descriptionWidth,wrapped.lines[helpFirst+i],warns ? palette::warning : palette::text);
         bool overflow = helpLineCount > SettingsTable::descriptionLines;
         if (overflow) {
-            float track = SettingsTable::descriptionLines * SettingsTable::descriptionLineHeight;
-            float thumb = std::max(4.0f, track * SettingsTable::descriptionLines / helpLineCount);
-            float y = t.footerTop + 3 + (track-thumb) * helpFirst / (helpLineCount-SettingsTable::descriptionLines);
-            drawScrollbar(context,t.left+t.width-SettingsTable::pad,t.footerTop+3,track,y,thumb,
-                scrollDrag == ScrollDrag::Description || t.onDescriptionScrollbar(pointer.x,pointer.y,helpLineCount));
+            auto bar = descriptionBar(t, helpLineCount, helpFirst);
+            drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,
+                screen::scrollHeld(&helpFirst) || t.onDescriptionScrollbar(pointer.x,pointer.y,helpLineCount));
             if (screen::message().empty()) hint = translated("description.hint") + " | " + hint;
         }
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : screen::messageColor());
@@ -1184,7 +1188,7 @@ void open() {
 void reset() {
     helpText.clear(); wrapped = {};
     descriptionRow.reset();
-    sliderDrag = nullptr; scrollDrag = ScrollDrag::None;
+    sliderDrag = nullptr;
     endEditing();
     capturing_.reset(); bindingEdit.reset(); capture.clear();
     findingKey = false; foundKey.reset(); keyQuery.reset();
@@ -1259,7 +1263,7 @@ void wheel(int step, float x, float y) {
         helpFirst = SettingsTable::clampFirst(helpFirst + step,helpLineCount,SettingsTable::descriptionLines);
     else first = SettingsTable::clampFirst(first + step, static_cast<int>(rows.size()), displayed.visible);
 }
-void release() { sliderDrag = nullptr; scrollDrag = ScrollDrag::None; }
+void release() { sliderDrag = nullptr; }
 void disarm() { resetArmed = false; }
 glm::vec2 caret() {
     float caretY = editingNumber_ && valid(selected) ? displayed.rowY(selected) : displayed.top + 4;

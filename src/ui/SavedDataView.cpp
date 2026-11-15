@@ -17,7 +17,7 @@ namespace lamium::ui::saved_data_view {
 namespace {
 using Data = map::waypoints::SavedData;
 using Zone = SavedDataLayout::Zone;
-bool open = false, dragging = false;
+bool open = false;
 std::vector<Data> items;
 int selected = 0, first = 0;
 std::string armed; // The key whose Delete was pressed once.
@@ -114,7 +114,7 @@ void reset() {
     data_thumb::reset();
     items.clear(); armed.clear(); notice.clear();
     selected = first = 0; last = {};
-    open = false; dragging = false; noticeWarns = false;
+    open = false; noticeWarns = false;
 }
 std::string currentName() {
     double const time = now();
@@ -124,7 +124,7 @@ std::string currentName() {
 bool click(float x, float y, bool right) {
     if (!last.usable() || x < last.left || x >= last.left + last.width || y < last.headTop || y >= last.footerTop) return false;
     if (right) return true;
-    if (last.list.onScrollbar(x, y)) { first = last.list.firstAt(y); dragging = true; return true; }
+    if (screen::pressScrollbar(last.list, first, x, y)) return true;
     auto hit = last.hit(x, y);
     if (hit.zone != Zone::Delete) armed.clear();
     switch (hit.zone) {
@@ -158,8 +158,8 @@ void key(int key) {
     }
 }
 void wheel(int amount) { first = SettingsTable::clampFirst(first + amount, static_cast<int>(items.size()), last.list.listVisible); }
-void release() { dragging = false; }
-void calm() { dragging = false; armed.clear(); }
+void release() {}
+void calm() { armed.clear(); }
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     auto const* d = chosen();
     bool const server = d && d->kind == Data::Kind::Server;
@@ -169,7 +169,6 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         d && d->canDelete, textWidth(context, useText) + 12, armedWidth(context, removeLabel, confirmDelete(), 12));
     std::string const removeText = armedLabel(context, removeLabel, confirmDelete(), d && armed == d->key, last.deleteWidth);
     if (!last.usable()) return;
-    if (dragging) first = last.list.firstAt(pointer.y);
     first = last.list.listFirst = SettingsTable::clampFirst(first, last.list.listCount, last.list.listVisible);
     auto hover = last.hit(pointer.x, pointer.y);
 
@@ -186,7 +185,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     for (int i = list.listFirst; i < list.listFirst + list.listVisible && i < list.listCount; ++i) {
         auto const& item = items[static_cast<size_t>(i)];
         float const y = list.listRowY(i);
-        rowBackground(context, list.listLeft + 1, y, list.listWidth - 2, ShapesLayout::rowHeight, selected == i,
+        rowBackground(context, list.listLeft + 1, y, list.rowWidth(), ShapesLayout::rowHeight, selected == i,
             hover.zone == Zone::Row && hover.index == i);
         std::string const tag = item.inUse ? translated("savedData.inUse") : maybeText(item.maybe);
         float const tagWidth = tag.empty() ? 0 : textWidth(context, tag) + SettingsTable::gap;
@@ -202,7 +201,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             label(context, list.listLeft + list.listWidth - pad - 6 - tagWidth, y + 3, tagWidth, tag,
                 item.inUse ? palette::accent : palette::warning, Align::Right);
     }
-    drawListScrollbar(context, list, dragging || list.onScrollbar(pointer.x, pointer.y));
+    drawListScrollbar(context, list, screen::scrollHeld(&first) || list.onScrollbar(pointer.x, pointer.y));
     fill(context, last.dividerX, last.bodyTop, 1, last.footerTop - last.bodyTop, palette::white, .14f);
 
     // The details: enough to tell whose data it is.

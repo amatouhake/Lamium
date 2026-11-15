@@ -1418,7 +1418,7 @@ void liquidChecks() {
     auto row = liquidDifference(true, false);
     check(row.key == "waterlogged" && row.expected == "true" && row.actual == "false", "the waterlogging row names both sides");
     auto face = faceDifference(2, 5);
-    check(face.key == "facing" && face.expected == "north" && face.actual == "east" && faceDifference(9, 0).expected == "9",
+    check(face.key == "minecraft:facing_direction" && face.expected == "north" && face.actual == "east" && faceDifference(9, 0).expected == "9",
           "a shulker box's opening row names both faces");
 }
 // L-184: the cells a ray passes, nearest first.

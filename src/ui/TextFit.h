@@ -75,6 +75,12 @@ std::string const& armedText(std::string const& label, std::string const& confir
     if (!armed) return label;
     return measure(confirm) <= width ? confirm : brief;
 }
+// A label with a shorter form ("Ignore on every Lever", "Ignore on all"):
+// `full` where it fits in `width`, else `brief`.
+template<class Measure>
+std::string const& fittingText(std::string const& full, std::string const& brief, float width, Measure measure) {
+    return measure(full) <= width ? full : brief;
+}
 // A press-twice button sized by its text holds the longer of its two labels,
 // so arming neither moves nor cuts it.
 template<class Measure>

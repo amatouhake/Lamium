@@ -127,8 +127,8 @@ void shapeEditorTests() {
     }
     float bar = many.listLeft + many.listWidth - 2;
     check(many.onScrollbar(bar, many.rowsTop + 1) && !many.onScrollbar(many.listLeft + 10, many.rowsTop + 1) && !inside.onScrollbar(bar, inside.rowsTop + 1)
-          && many.firstAt(many.rowsTop) == 0 && many.firstAt(many.rowsTop + many.listVisible * ui::ShapesLayout::rowHeight) == 80 - many.listVisible,
-          "the scrollbar takes presses only while rows overflow, and maps its track to the first row");
+          && many.scrollBar().scrolls() && many.scrollBar().range == 80 - many.listVisible && !inside.scrollBar().scrolls(),
+          "the scrollbar takes presses only while rows overflow, and its bar spans every first row");
     check(inside.hit(inside.listLeft + 10, inside.listRowY(1) + 3).zone == ui::ShapesLayout::Zone::ListRow
         && inside.hit(inside.listLeft + 10, inside.listRowY(1) + 3).index == 1, "list rows are hit by index");
     auto field = inside.hit(inside.stepperX() + 2, inside.fieldY(2) + 3);

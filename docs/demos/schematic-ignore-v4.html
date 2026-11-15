@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schematic Ignore v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;
+  --ground:#15181a;--ground-2:#1c2124;--line:#2c3337;--ink:#e6ebe8;--ink-2:#a6b0ab;--accent:#6cc349;--accent-deep:#3c8527;
+  --panel:rgba(18,19,21,.88);--edge:rgba(255,255,255,.16);--alt:rgba(255,255,255,.025);--hover:rgba(255,255,255,.07);
+  --sel:rgba(108,195,73,.14);--text:#fff;--dim:#b4b8b6;--faint:#7f8583;--key:#2b2c2d;--key-edge:#6a6b6c;
+  --state:#ffcc40;--bad:#ff5a4e;--miss:#8cccff;--danger:#8f2a24;--danger-edge:#ff6a5e}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 23px/1.3 "Noto Sans JP",sans-serif;margin:0} h2{font:700 17px/1.3 "Noto Sans JP",sans-serif;margin:0 0 6px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.lede{color:var(--ink-2);max-width:84ch;margin:8px 0 0}
+.cap{color:var(--ink-2);font-size:13.5px} .cap b,.qa b{color:var(--ink)}
+ul.cap,.qa ol{margin:0;padding-left:20px} .cap li,.qa li{margin:4px 0}
+.box,.qa{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.qa ol{color:var(--ink-2)}
+.ex{display:flex;gap:8px;flex-wrap:wrap}
+.ex button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:12.5px;padding:3px 10px}
+.ex button:hover{border-color:var(--ink-2)}
+/* the game screen, drawn at 960 x 540 and scaled */
+.stage-outer{border:1px solid var(--line);background:#0b0d0e}
+.fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;overflow:hidden;outline:none;color:var(--text);
+  font:12px/1.2 "Noto Sans JP",sans-serif;background:linear-gradient(160deg,#3a4a52 0%,#55524a 45%,#2e3a40 100%)}
+.screen{position:absolute;left:12px;top:10px;width:936px;height:520px;background:var(--panel);border:1px solid var(--edge);
+  display:grid;grid-template-columns:167px 384px 1fr;grid-template-rows:30px 1fr 64px}
+.top{grid-column:1/4;display:flex;align-items:center;gap:10px;padding:0 9px;border-bottom:1px solid var(--edge)}
+.top .sp{flex:1} .ver{color:var(--faint)} .link{color:var(--accent);text-decoration:underline}
+.sw{display:inline-block;width:26px;height:12px;background:var(--accent-deep);border:1px solid var(--accent);position:relative;vertical-align:-2px}
+.sw:after{content:"";position:absolute;right:1px;top:1px;width:10px;height:8px;background:#fff}
+.btn{border:1px solid var(--key-edge);background:var(--key);padding:0 7px;height:17px;line-height:15px;font-size:11.5px;color:var(--text);white-space:nowrap;cursor:pointer;display:inline-block;text-align:center;overflow:hidden;text-overflow:ellipsis}
+.btn:hover{background:#3a3b3c}
+.btn.on{background:var(--accent-deep);border-color:var(--accent)}
+.btn.off{color:var(--faint);cursor:default}.btn.off:hover{background:var(--key)}
+.btn.armed{background:var(--danger);border-color:var(--danger-edge)}
+.btn.sm{height:13px;line-height:11px;font-size:10px;padding:0 5px}
+.side{border-right:1px solid var(--edge);padding:6px 0;font-size:12.5px;display:flex;flex-direction:column}
+.side div{padding:3px 12px;display:flex;justify-content:space-between;color:var(--dim)} .side div b{font-weight:400;color:var(--faint)}
+.side div.cur{background:var(--sel);box-shadow:inset 3px 0 var(--accent);color:var(--text)}
+.side .gap{flex:1;border-bottom:1px solid rgba(255,255,255,.12);margin:0 10px 6px;padding:0}
+.list{border-right:1px solid var(--edge);display:flex;flex-direction:column;min-height:0}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px 9px 3px}
+.tabs .btn{cursor:default}
+.chips{display:flex;gap:4px;align-items:center;padding:2px 9px 3px;height:20px;border-bottom:1px solid rgba(255,255,255,.14)}
+.chips .sp{flex:1}
+.chip{border:1px solid var(--key-edge);height:14px;line-height:12px;padding:0 5px;font-size:10.5px;color:var(--dim);cursor:pointer;display:flex;align-items:center;gap:3px}
+.chip.on{border-color:var(--accent);color:var(--accent);background:rgba(108,195,73,.15)}
+.rows{flex:1;overflow:hidden;user-select:none}
+.row{display:flex;align-items:center;gap:6px;height:21px;padding:0 9px;cursor:pointer;white-space:nowrap}
+.row:nth-child(even){background:var(--alt)} .row:hover{background:var(--hover)}
+.row.sel{background:var(--sel);outline:1px solid var(--accent);outline-offset:-1px}
+.sq{width:7px;height:7px;flex:none;display:inline-block}
+.sq.hollow{background:none!important;box-shadow:inset 0 0 0 1px var(--c)}
+.ic{width:11px;height:11px;flex:none;display:inline-block;border:1px solid rgba(255,255,255,.25)}
+.row .nm{flex:1;display:flex;gap:4px;align-items:center;min-width:0}
+.row .nm .t{overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.row .ar{color:var(--faint)}
+.row .tg{font-size:10px;border:1px solid var(--dim);color:var(--dim);padding:0 3px;line-height:12px}
+.row .dist{width:34px;text-align:right;color:var(--dim)}
+.heading{padding:5px 9px 2px;font-size:10.5px;color:var(--faint)}
+.row.stale .t{color:var(--faint)}
+.right{display:flex;flex-direction:column;min-height:0}
+.detail{flex:1;padding:6px 9px;display:flex;flex-direction:column;gap:2px;min-height:0;overflow:hidden}
+.title{font-size:12.5px;margin-bottom:2px}
+.pv{border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);height:178px;flex:none;position:relative}
+.pv span{position:absolute;left:5px;top:3px;font-size:10.5px;color:var(--faint)}
+.two{display:grid;grid-template-columns:42% 1fr;gap:0 10px;margin-top:5px}
+.two>div:last-child{border-left:1px solid rgba(255,255,255,.12);padding-left:8px;min-width:0}
+.two div div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45}
+.hr{border-top:1px solid rgba(255,255,255,.1);margin:5px 0 2px}
+.item{display:flex;align-items:center;gap:5px;min-height:15px;white-space:nowrap}
+.item .k{width:78px;color:var(--dim);overflow:hidden} .item .v{flex:1;overflow:hidden;text-overflow:ellipsis}
+.d{color:var(--dim)} .f{color:var(--faint)} .y{color:var(--state)} .rd{color:var(--bad)} .ac{color:var(--accent)} .bl{color:var(--miss)}
+.acts{height:30px;border-top:1px solid var(--edge);display:flex;align-items:center;gap:7px;padding:0 9px}
+.acts .btn{width:143px;height:18px;line-height:16px}
+.acts.three .btn{width:117px}
+.foot{grid-column:1/4;border-top:1px solid var(--edge);padding:5px 9px;font-size:12px;display:flex;flex-direction:column;justify-content:space-between}
+.foot .hint{color:var(--faint);font-size:11px}
+.tip{position:absolute;background:#101113;border:1px solid var(--edge);padding:1px 5px;font-size:11px;pointer-events:none;display:none;z-index:5;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">BACKLOG L-183 · 設計図の照合で違いを無視する · モック v4 2026-11-15</div>
+  <h1>照合タブ：今の画面の寸法に合わせた案</h1>
+  <p class="lede">ゲームの照合タブ（GUI 大きめの画面）を 960×540 に縮めて写し、話し合って決めた内容を入れたものです。行を押すと選べます。Ctrl+クリックで複数行、Esc で解除（先に画面を一度押してください）。ブロック名、位置、アイコンは例です。</p>
+</header>
+
+<div class="ex">
+  <button id="ex1">例：レバーの動力を全レバーで無視</button>
+  <button id="ex2">例：白色の羊毛→雪の場所を無視</button>
+  <button id="reset">最初に戻す</button>
+</div>
+
+<div class="stage-outer"><div class="fit" id="fit"><div class="stage" id="stage" tabindex="0">
+  <div class="screen">
+    <div class="top"><span>Lamium</span><span class="ver">0.6.0</span><span class="sp"></span>
+      <span>すべて表示</span><span class="sw"></span><span class="link">キーの設定</span><span class="btn" style="cursor:default">右に寄せる</span><span class="btn" style="cursor:default">閉じる (Esc)</span></div>
+    <div class="side">
+      <div>すべて</div><div>カメラ・見た目 <b>0/5</b></div><div>情報・オーバーレイ <b>5/15</b></div><div>マップ <b>4/5</b></div><div>設計図 <b>2/2</b></div><div>インベントリ <b>10/13</b></div><div>操作 <b>2/6</b></div><div>全般 <b>1/2</b></div>
+      <div class="gap"></div>
+      <div>ホットキー</div><div>形状 <b>0</b></div><div>ウェイポイント <b>5</b></div><div class="cur">設計図 <b>5</b></div><div>ワールドマップ</div><div>HUD レイアウト</div>
+    </div>
+    <div class="list">
+      <div class="tabs"><span class="btn">ファイル</span><span class="btn">配置</span><span class="btn on">照合</span><span class="btn">資材</span></div>
+      <div class="chips" id="chips"></div>
+      <div class="rows" id="rows"></div>
+    </div>
+    <div class="right">
+      <div class="detail" id="detail"></div>
+      <div class="acts" id="acts"></div>
+    </div>
+    <div class="foot" id="foot"></div>
+  </div>
+  <div class="tip" id="tip"></div>
+</div></div></div>
+
+<section class="box">
+  <h2>このモックで入れたこと</h2>
+  <ul class="cap">
+    <li><b>一覧の行</b>：色の四角／設計図のブロック → 今のブロック／札／距離。種類の文字と座標は出しません。種類はフィルターの色の四角が凡例を兼ね、座標と種類の名前は右の欄に出ます。切れた名前はポインターを乗せると全体が出ます。</li>
+    <li><b>フィルター</b>：すべて／ブロック違い／状態違い／未設置 から1つ。数なし。右端に「無視の設定」。</li>
+    <li><b>無視した行</b>：四角を枠だけにして、札「場所を無視」か「違いを無視」。一部の項目だけ無視した行には札を出しません。</li>
+    <li><b>操作行</b>：今の画面と同じ2か所。ワールドで示す／この場所を無視（この場所の無視をやめる）。</li>
+    <li><b>プレビュー</b>：複数行と無視の設定でも同じ大きさで残し、選んだ場所（ブロックを選んだときはそのブロック全部）に印を付けます（モックでは印を文字で示しています）。</li>
+    <li><b>無視の設定</b>：照合タブが切り替わり、左に「無視している場所」と「違いを無視できるブロック」。もう一度押すか Esc で戻ります。</li>
+  </ul>
+</section>
+
+<section class="qa">
+  <h2>このモックで決めたいこと（推奨は先頭）</h2>
+  <ol>
+    <li><b>行から種類の文字をなくす</b>：色の四角だけにし、フィルターの四角を凡例にする（推奨）。色の見分けにくい人でも、「→ 今のブロック」があるのがブロック違い、ないのが状態違いと未設置、と形でも分かります。未設置と状態違いの区別は右の欄の文字です。</li>
+    <li><b>複数行のボタン</b>：3つ並べると「選んだ場所の無視をやめる」は入りきりません。推奨は「ワールドで示す／場所を無視／無視をやめる」と短くすること（右の欄の見出しに「N 件を選択中」があるので、選んだ場所のことだと分かります）。</li>
+    <li><b>無視の設定の右の欄が空のとき</b>（何も選んでいない）：「左から場所かブロックを選んでください」と出す（推奨）。</li>
+  </ol>
+</section>
+</div>
+
+<script>
+const st={filter:0,sel:new Set(['r4']),places:new Set(),rules:new Set(),view:'check',ivSel:null,undoArmed:false};
+const ITEMS={'レバー':[['動力','オン','オフ'],['向き','北','東'],['付いている面','床','壁']],
+  'リピーター':[['遅延','1','3'],['向き','南','南'],['固定','いいえ','いいえ']],
+  '看板':[['文字','「入口」','「出口」'],['文字の色','黒','黒']],
+  '音符ブロック':[['音程','ファ#','ド'],['楽器','ピアノ','ピアノ']]};
+const ICON={'空気':'transparent','雪':'#f4f6f8','白色の羊毛':'#e9ecec','黒色の羊毛':'#1d1d21','青色の羊毛':'#35399d','赤色の羊毛':'#a12722','レバー':'#7a6a4f','リピーター':'#a59a96','看板':'#b8945f','音符ブロック':'#6b4434','石':'#7d7d7d'};
+const ROWS=[
+  {id:'r1',kind:'block',pos:'-7, 124, 154',exp:'空気',act:'雪',dist:12,extra:true},
+  {id:'r2',kind:'block',pos:'-6, 124, 154',exp:'黒色の羊毛',act:'雪',dist:13},
+  {id:'r3',kind:'state',pos:'-4, 124, 154',exp:'レバー',dist:13,diff:['動力']},
+  {id:'r4',kind:'block',pos:'-7, 124, 155',exp:'白色の羊毛',act:'雪',dist:13},
+  {id:'r5',kind:'state',pos:'-4, 124, 155',exp:'レバー',dist:14,diff:['動力','向き']},
+  {id:'r6',kind:'block',pos:'-5, 124, 155',exp:'青色の羊毛',act:'雪',dist:14},
+  {id:'r7',kind:'state',pos:'-3, 124, 155',exp:'看板',dist:14,diff:['文字']},
+  {id:'r8',kind:'state',pos:'-3, 124, 156',exp:'リピーター',dist:15,diff:['遅延']},
+  {id:'r9',kind:'block',pos:'-6, 124, 156',exp:'赤色の羊毛',act:'雪',dist:15},
+  {id:'r10',kind:'state',pos:'-2, 124, 156',exp:'音符ブロック',dist:16,diff:['音程']},
+  {id:'m1',kind:'missing',pos:'-7, 125, 154',exp:'石',dist:12},
+  {id:'m2',kind:'missing',pos:'-6, 125, 154',exp:'石',dist:13},
+  {id:'m3',kind:'missing',pos:'-4, 125, 155',exp:'レバー',dist:14},
+  {id:'m4',kind:'missing',pos:'-5, 125, 156',exp:'石',dist:15},
+];
+const FILE_BLOCKS=['白色の羊毛','黒色の羊毛','青色の羊毛','赤色の羊毛','石','レバー','リピーター','看板','音符ブロック'];
+let STALE=[['トーチ','向き']];
+const COLOR={block:'var(--bad)',state:'var(--state)',missing:'var(--miss)'};
+const KIND={block:'ブロック違い',state:'状態違い',missing:'未設置'};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rk=(b,k)=>b+'|'+k, ruled=(r,k)=>st.rules.has(rk(r.exp,k));
+function mark(r){ if(st.places.has(r.id))return 'place'; if(r.kind==='state'&&r.diff.every(k=>ruled(r,k)))return 'rule'; return null; }
+function tally(){ let total=129,correct=80,miss=0,blk=0,sta=0;
+  for(const r of ROWS){ const m=mark(r); if(m==='place'){total--;continue;} if(m==='rule'){correct++;continue;}
+    if(r.kind==='missing')miss++; else if(r.kind==='block')blk++; else sta++; } return {total,correct,miss,blk,sta}; }
+const ic=n=>`<i class="ic" style="background:${ICON[n]||'#888'}"></i>`;
+function chips(){
+  const btn=`<span class="sp"></span><span class="btn sm ${st.view==='ignore'?'on':''}" data-a="view" style="height:14px;line-height:12px">無視の設定</span>`;
+  if(st.view==='ignore'){ $('chips').innerHTML=btn; return; }
+  const F=[['すべて',null],['ブロック違い','block'],['状態違い','state'],['未設置','missing']];
+  $('chips').innerHTML=F.map(([n,k],i)=>`<span class="chip ${st.filter===i?'on':''}" data-f="${i}">${k?`<i class="sq" style="background:${COLOR[k]}"></i>`:''}${n}</span>`).join('')+btn;
+}
+function rowHtml(r){
+  const m=mark(r), c=COLOR[r.kind];
+  const nm=r.kind==='block'?`${ic(r.exp)}<span class="t" data-full="${esc(r.exp)}">${esc(r.exp)}</span><span class="ar">→</span>${ic(r.act)}<span class="t" data-full="${esc(r.act)}">${esc(r.act)}</span>`
+    :`${ic(r.exp)}<span class="t" data-full="${esc(r.exp)}">${esc(r.exp)}</span>`;
+  return `<div class="row ${st.sel.has(r.id)?'sel':''}" data-id="${r.id}"><i class="sq ${m?'hollow':''}" style="--c:${c};background:${c}"></i>`
+    +`<span class="nm">${nm}</span>${m?`<span class="tg">${m==='place'?'場所を無視':'違いを無視'}</span>`:''}<span class="dist">${r.dist} m</span></div>`;
+}
+function rows(){
+  if(st.view==='ignore')return ignoreRows();
+  const k=[null,'block','state','missing'][st.filter];
+  const list=ROWS.filter(r=>!k||r.kind===k).sort((a,b)=>((a.kind==='missing')-(b.kind==='missing'))||a.dist-b.dist);
+  $('rows').innerHTML=list.map(rowHtml).join('');
+}
+function ignoreRows(){
+  let h='<div class="heading">無視している場所</div>';
+  const pl=ROWS.filter(r=>st.places.has(r.id));
+  if(!pl.length)h+='<div class="row" style="cursor:default"><span class="f">なし</span></div>';
+  for(const r of pl){ const n=r.extra?r.act:r.exp; h+=`<div class="row ${st.ivSel==='p:'+r.id?'sel':''}" data-iv="p:${r.id}"><i class="sq hollow" style="--c:${COLOR[r.kind]}"></i><span class="nm">${ic(n)}<span class="t">${esc(n)}</span></span><span class="tg">場所を無視</span><span class="dist">${r.dist} m</span></div>`; }
+  h+='<div class="heading">違いを無視できるブロック</div>';
+  for(const b of FILE_BLOCKS){ if(!ITEMS[b])continue; const on=ITEMS[b].filter(([k])=>st.rules.has(rk(b,k))).map(([k])=>k);
+    h+=`<div class="row ${st.ivSel==='b:'+b?'sel':''}" data-iv="b:${b}"><span class="nm">${ic(b)}<span class="t">${esc(b)}</span></span>${on.length?`<span class="tg">${esc(on.join('・'))}を無視</span>`:''}</div>`; }
+  for(const [b,k] of STALE)h+=`<div class="row stale ${st.ivSel==='s:'+b?'sel':''}" data-iv="s:${b}"><span class="nm"><i class="ic"></i><span class="t">${esc(b)}</span></span><span class="tg">${k}を無視 · 設計図にない</span></div>`;
+  $('rows').innerHTML=h;
+}
+const sb=(t,a)=>`<span class="btn sm" data-a="${a}">${esc(t)}</span>`;
+function detail(){
+  if(st.view==='ignore'){ $('detail').innerHTML=ignoreDetail(); return; }
+  const sel=ROWS.filter(r=>st.sel.has(r.id));
+  if(sel.length>1){ let h=`<div class="title">${sel.length} 件を選択中</div>`+`<div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span><span style="top:auto;bottom:3px;color:var(--text)">印: 選んだ ${sel.length} か所</span></div>`;
+    for(const r of sel.slice(0,7))h+=`<div class="d" style="display:flex;gap:4px;align-items:center"><i class="sq ${mark(r)?'hollow':''}" style="--c:${COLOR[r.kind]};background:${COLOR[r.kind]}"></i>${esc(r.exp)}${r.kind==='block'?' → '+esc(r.act):''}<span class="f" style="margin-left:auto">${r.dist} m</span></div>`;
+    if(sel.length>7)h+=`<div class="f">ほか ${sel.length-7} 件</div>`;
+    $('detail').innerHTML=h; return; }
+  const t=tally(), r=sel[0];
+  let h=`<div class="title">armorstand_direction</div><div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span></div>`;
+  h+=`<div class="two"><div><div class="f">配置全体 · すべて</div><div class="ac">正しい: ${t.correct} / ${t.total}</div><div class="bl">未設置: ${t.miss}</div><div class="rd">ブロック違い: ${t.blk}</div><div class="y">状態違い: ${t.sta}</div></div><div>`;
+  if(r){ const m=mark(r), col=m?'var(--dim)':COLOR[r.kind];
+    h+=`<div style="color:${col}">この場所 ${r.pos}</div><div style="color:${col}">${KIND[r.kind]}${m?' · '+(m==='place'?'場所を無視':'違いを無視'):''}</div>`
+     +`<div class="d">${ic(r.exp)} 設計図では: ${esc(r.exp)}</div>`+(r.kind!=='missing'?`<div class="d">${ic(r.act||r.exp)} ワールドでは: ${esc(r.act||r.exp)}</div>`:''); }
+  h+='</div></div>';
+  if(r&&r.kind==='state'){ const place=st.places.has(r.id);
+    h+=`<div class="hr"></div><div class="f">違う項目（${esc(r.exp)}）</div>`;
+    for(const k of r.diff){ const it=ITEMS[r.exp].find(x=>x[0]===k), on=ruled(r,k);
+      h+=`<div class="item"><span class="k">${k}</span><span class="v ${on||place?'f':'y'}">${it[1]} → ${it[2]}${on?`　<span class="d">全${esc(r.exp)}で無視中</span>`:''}</span>${place?'':on?sb('戻す','unrule:'+k):sb('全'+r.exp+'で無視','rule:'+k)}</div>`; }
+  }
+  if(r&&st.places.has(r.id))h+=`<div class="f" style="margin-top:3px">この場所は無視中で、数えません。</div>`;
+  $('detail').innerHTML=h;
+}
+function ignoreDetail(){
+  const s=st.ivSel; if(!s)return `<div class="f">左から場所かブロックを選んでください。</div>`;
+  const kind=s[0], key=s.slice(2);
+  if(kind==='p'){ const r=ROWS.find(x=>x.id===key);
+    return `<div class="title">${esc(r.extra?r.act:r.exp)}</div>`+`<div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span><span style="top:auto;bottom:3px;color:var(--text)">印: この場所</span></div>`+`<div class="d">この場所 ${r.pos}</div><div class="d">${KIND[r.kind]}：${esc(r.exp)}${r.act?' → '+esc(r.act):''}</div><div class="f">この場所は数えません。</div>`; }
+  if(kind==='s')return `<div class="title">${esc(key)}</div><div class="f">このブロックは今の設計図にないので、使われていません。</div><div style="margin-top:4px">${sb('戻す','stale')}</div>`;
+  const cnt={'レバー':4,'リピーター':2,'看板':1,'音符ブロック':1}[key]||1;
+  let h=`<div class="title">${ic(key)} ${esc(key)}</div>`+`<div class="pv"><span>ドラッグ: 回転 / ホイール: 拡大 / Shift+ホイール: 層</span><span style="top:auto;bottom:3px;color:var(--text)">印: この配置の${esc(key)} ${cnt} か所</span></div>`+`<div class="f">照合で比べる項目</div>`;
+  for(const [k] of ITEMS[key]){ const on=st.rules.has(rk(key,k)), n=ROWS.filter(r=>r.exp===key&&r.kind==='state'&&r.diff.includes(k)).length;
+    h+=`<div class="item"><span class="k">${k}</span><span class="v">${on?`<span class="d">全${esc(key)}で無視中</span>`:n?`<span class="f">${n} か所で違う</span>`:''}</span>${on?sb('戻す','irule-:'+k):sb('全'+key+'で無視','irule+:'+k)}</div>`; }
+  return h;
+}
+function acts(){
+  const sel=ROWS.filter(r=>st.sel.has(r.id)); let h='', cls='acts';
+  if(st.view==='ignore'){
+    const p=st.ivSel&&st.ivSel[0]==='p';
+    h=`<span class="btn ${p?'':'off'}" data-a="unplace-iv">この場所の無視をやめる</span><span class="btn ${st.undoArmed?'armed':''}" data-a="undoall">${st.undoArmed?'取り消しを確定':'すべて戻す'}</span>`;
+  } else if(sel.length>1){ cls+=' three';
+    const any=sel.some(r=>st.places.has(r.id)), notall=sel.some(r=>!st.places.has(r.id));
+    h=`<span class="btn on" data-a="show">ワールドで示す</span><span class="btn ${notall?'':'off'}" data-a="placeall">場所を無視</span><span class="btn ${any?'':'off'}" data-a="unplaceall">無視をやめる</span>`;
+  } else { const r=sel[0];
+    h=`<span class="btn on ${r?'':'off'}" data-a="show">ワールドで示す</span>`+(r?`<span class="btn" data-a="place">${st.places.has(r.id)?'この場所の無視をやめる':'この場所を無視'}</span>`:''); }
+  $('acts').className=cls; $('acts').innerHTML=h;
+  const desc= st.view==='ignore'?'選択中の配置で無視している場所と、配置全体で無視する違いです。違いが起きる前でも、ブロックを選んで項目ごとに無視できます。'
+    :'選択中の配置を、表示中の層についてワールドと照らし合わせた結果です。「ワールドで示す」で選んだ場所に印を出します。';
+  const hint= st.view==='ignore'?'クリック: 選択 | Esc: 照合に戻る': sel.length>1?`${sel.length} 件を選択中 | Esc: 選択を解除`:'クリック: 選択 | Ctrl+クリック: 複数選択 | Esc: 閉じる';
+  $('foot').innerHTML=`<div>${desc}</div><div class="hint">${hint}</div>`;
+}
+function render(){ chips(); rows(); detail(); acts(); fit(); }
+function fit(){ const f=$('fit'), w=f.clientWidth||960, k=Math.min(1,w/960); $('stage').style.transform=`scale(${k})`; f.style.height=540*k+'px'; }
+document.addEventListener('click',e=>{
+  const c=e.target.closest('.chip'); if(c){st.filter=+c.dataset.f;render();return;}
+  const iv=e.target.closest('[data-iv]'); if(iv){st.ivSel=iv.dataset.iv;st.undoArmed=false;render();return;}
+  const row=e.target.closest('.row[data-id]'); if(row){const id=row.dataset.id;
+    if(e.ctrlKey||e.metaKey){st.sel.has(id)?st.sel.delete(id):st.sel.add(id);} else st.sel=new Set([id]); render(); return;}
+  const a=e.target.closest('[data-a]'); if(a){act(a.dataset.a);return;}
+  if(e.target.id==='ex1'){st.view='check';st.rules.add('レバー|動力');st.sel=new Set(['r3']);render();}
+  if(e.target.id==='ex2'){st.view='check';st.places.add('r4');st.sel=new Set(['r4']);render();}
+  if(e.target.id==='reset'){Object.assign(st,{filter:0,sel:new Set(['r4']),places:new Set(),rules:new Set(),view:'check',ivSel:null,undoArmed:false});STALE=[['トーチ','向き']];render();}
+});
+function act(a){ const sel=ROWS.filter(r=>st.sel.has(r.id)), r=sel[0];
+  if(a!=='undoall')st.undoArmed=false;
+  if(a==='view'){st.view=st.view==='ignore'?'check':'ignore';st.ivSel=null;}
+  else if(a==='place'&&r){st.places.has(r.id)?st.places.delete(r.id):st.places.add(r.id);}
+  else if(a==='placeall')sel.forEach(x=>st.places.add(x.id));
+  else if(a==='unplaceall')sel.forEach(x=>st.places.delete(x.id));
+  else if(a.startsWith('rule:'))st.rules.add(rk(r.exp,a.slice(5)));
+  else if(a.startsWith('unrule:'))st.rules.delete(rk(r.exp,a.slice(7)));
+  else if(a.startsWith('irule+:'))st.rules.add(rk(st.ivSel.slice(2),a.slice(7)));
+  else if(a.startsWith('irule-:'))st.rules.delete(rk(st.ivSel.slice(2),a.slice(7)));
+  else if(a==='unplace-iv'&&st.ivSel&&st.ivSel[0]==='p'){st.places.delete(st.ivSel.slice(2));st.ivSel=null;}
+  else if(a==='stale'){STALE=[];st.ivSel=null;}
+  else if(a==='undoall'){ if(!st.undoArmed)st.undoArmed=true; else {st.undoArmed=false;st.places.clear();st.rules.clear();STALE=[];st.ivSel=null;} }
+  render(); }
+$('stage').addEventListener('keydown',e=>{ if(e.key!=='Escape')return; e.preventDefault();
+  if(st.view==='ignore'){st.view='check';st.ivSel=null;} else if(st.sel.size>1)st.sel=new Set(); render(); });
+// Cut names show in full on hover.
+$('stage').addEventListener('mousemove',e=>{ const t=e.target.closest('.t'), tip=$('tip');
+  if(!t||t.scrollWidth<=t.clientWidth){tip.style.display='none';return;}
+  const s=$('stage').getBoundingClientRect(), k=s.width/960;
+  tip.textContent=t.dataset.full||t.textContent; tip.style.display='block';
+  tip.style.left=((e.clientX-s.left)/k+10)+'px'; tip.style.top=((e.clientY-s.top)/k+12)+'px'; });
+window.addEventListener('resize',fit);
+render();
+</script>
+</body>
+</html>

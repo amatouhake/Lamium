@@ -286,7 +286,12 @@ build them.
   differs says what is wrong first. Block entity data is compared too (a note
   block's note, a lectern's page, a flower pot's plant, a sign's text and more),
   unless "Ignore block entities" is on. On Minecraft 1.26.60.05 a note block's
-  instrument is neither compared nor shown for a ghost.
+  instrument is neither compared nor shown for a ghost. The Check list filters
+  by kind (all, wrong block, wrong state, not placed).
+- **Ignore:** leave a place out of the counts (a key, the radial menu or the
+  Check list, ghosts too), or ignore one difference on every such block of a
+  placement ("Hinge" on every door), before it even differs, from Ignore
+  settings in the Check tab. Kept with the placement; undo one or all.
 - **Materials:** count the materials left against what you carry, Shulker
   Boxes included, in chests and stacks.
 - **Save:** save an area of the world as a schematic, also larger than the
@@ -310,6 +315,10 @@ build them.
   tabs have a turnable 3D preview.
 - **Map:** placements show on the minimap and world map, and can be selected,
   shown or hidden there.
+- **Several at once:** Ctrl + click and Shift + click select several rows in
+  the Placed, Shapes, Waypoints and Check lists and the map's side panel
+  (Ctrl + click on map marks too) to show, hide, delete or ignore them
+  together.
 
 ## Inventory
 

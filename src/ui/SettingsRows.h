@@ -123,9 +123,9 @@ inline int actionRank(input::Action action) {
     static constexpr A order[] = {A::SchematicMenu, A::AdjustSchematic, A::OpenSchematics,
         A::MovePlacementForward, A::MovePlacementBack, A::MovePlacementLeft, A::MovePlacementRight, A::MovePlacementUp,
         A::MovePlacementDown, A::MovePlacementHere, A::CycleMoveTarget, A::SelectLookedPlacement,
-        A::NextPlacement, A::PreviousPlacement, A::RotatePlacement, A::RotatePlacementBack, A::MirrorPlacement, A::ResetPlacementTurn,
-        A::CycleLayerAxis, A::LayerUp, A::LayerDown, A::CycleLayerMode, A::ToggleLayerKeep, A::LayerHere,
-        A::TogglePlacementShown, A::TogglePlacementEntities, A::TogglePlacementExtras, A::NearestMistake,
+        A::NextPlacement, A::PreviousPlacement, A::TogglePlacementShown, A::RotatePlacement, A::RotatePlacementBack, A::MirrorPlacement,
+        A::ResetPlacementTurn, A::CycleLayerAxis, A::LayerUp, A::LayerDown, A::CycleLayerMode, A::ToggleLayerKeep, A::LayerHere,
+        A::IgnoreLookedBlock, A::TogglePlacementEntities, A::TogglePlacementExtras, A::NearestMistake,
         A::SchematicCorner1, A::SchematicCorner2, A::SaveSchematicArea, A::ClearSchematicArea,
         A::OpenSchematicFiles, A::OpenSchematicPlaced, A::OpenSchematicCheck, A::OpenSchematicMaterials, A::OpenSchematicKeys};
     for (size_t i = 0; i < std::size(order); ++i) if (order[i] == action) return static_cast<int>(i);

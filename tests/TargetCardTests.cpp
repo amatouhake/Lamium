@@ -165,6 +165,14 @@ void targetCardTests() {
               "slab half, axis and upside down are named");
         check(!interpretBlockState("minecraft:corner", StateKind::Text, 0, "none", "minecraft:stone_stairs"),
               "unknown states keep their raw rows");
+        auto cardinal = stateLabel("minecraft:cardinal_direction", "minecraft:lectern");
+        auto face = stateLabel("minecraft:block_face", "minecraft:lever");
+        auto half = stateLabel("minecraft:vertical_half", "minecraft:stone_slab");
+        auto growth = stateLabel("growth", "minecraft:wheat");
+        auto raw = stateLabel("minecraft:corner", "minecraft:stone_stairs");
+        check(cardinal.labelIsKey && cardinal.label == "target.facing" && face.label == "target.facing" && half.label == "target.half"
+                  && growth.label == "target.growth" && !raw.labelIsKey && raw.label == "minecraft:corner",
+              "a state's name without a value is the card's label, text-valued directions included (L-183)");
         auto source = interpretBlockState("liquid_depth", StateKind::Integer, 0, {}, "minecraft:water");
         auto flowing = interpretBlockState("liquid_depth", StateKind::Integer, 3, {}, "minecraft:flowing_water");
         auto falling = interpretBlockState("liquid_depth", StateKind::Integer, 9, {}, "minecraft:flowing_water");

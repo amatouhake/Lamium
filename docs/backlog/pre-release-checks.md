@@ -143,5 +143,7 @@ validation checkpoints" (snapshot 2026-10-20).
 | Effects/ammo HUD, L-147/L-150 | Beacon effects, server updates/counts, Pocket UI, layout sample, F1/inventory interplay. |
 | In-world language/server packs, L-167 | English Search and schematic ghosts after a change, broader servers/packs, rapid switching/hang risk and the 5 s interval (L-310). Cosmetic BDS evidence does not establish all pack types. See LANGUAGE.md. |
 | Camera and visual effects | FreeCamera world-exit/death/controller/body-view and hold-input cases, speed restart persistence; Hide effects restart/keys/master, ambient layers, packs, graphics modes and lifecycle. Detailed coverage is in VALIDATION.md, CAMERA.md and VISUAL-EFFECTS.md. |
+| Schematic check ignores, L-183 | Old schematic files whose state names differ from the game's: a rule made in advance may only apply once the item differs; servers. |
+| Shared scroll bar drag, DESIGN "Scrollbars" | The panels beside the anvil (no tried item overflowed them) and a long Saved data list. |
 | Schematic ghost pick in creative, L-263 | A block not carried is given into the hotbar (empty selected slot, another empty slot, full hotbar), unlisted items (water, lava, structure block) do nothing, carried and survival picks unchanged; also on a server. |
 | Distribution listings | 0.1.4–0.1.8 registry pickup is recorded; LeviLauncher 0.2.0 was seen; 0.5.1 is offered by the LIP registry, Bedrinth and LeviLauncher (VALIDATION-LOG 2026-11-07). Verify the version being released using DISTRIBUTION.md rather than reopening old release gates. |

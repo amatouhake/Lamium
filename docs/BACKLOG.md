@@ -214,7 +214,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
 - [L-352](backlog/L-352.md) More on and off forms as a wrong state (Design): Proposed by the maintainer 2026-11-15; the wording waits for an answer
-- [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Design): First scope and mockup agreed 2026-11-15; waits for L-190 to build
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).

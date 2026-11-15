@@ -100,6 +100,13 @@ void rowSelectionTests() {
     SelectionPaneLayout plain;
     placeSelectionButtons(plain, {BulkAction::Show, BulkAction::Hide}, 0, 30, 3, 0, 0);
     check(plain.buttonX == std::vector<float>{0, 33} && plain.buttonW == std::vector<float>{30, 30}, "without Delete the buttons keep their width");
+    // The Check list (L-183): no Delete, the pane's right edge bounds the three.
+    SelectionPaneLayout check3;
+    auto checkActions = bulkActions(SelectionList::Check);
+    placeSelectionButtons(check3, checkActions, 6, 96, 4, 200, 0);
+    check(checkActions.size() == 3 && std::none_of(checkActions.begin(), checkActions.end(), irreversible)
+        && check3.buttonX.back() + check3.buttonW.back() <= 196.01f && check3.buttonW[0] == check3.buttonW[2],
+        "the Check list's buttons share the room up to the pane's edge");
 
     // The map's side panel: 116 units inside at its narrowest, Japanese-sized labels.
     auto map = compactSelectionPane(1000, 116, 200, 400, 11, 40, bulkActions(SelectionList::MapPanel), 35, 53);

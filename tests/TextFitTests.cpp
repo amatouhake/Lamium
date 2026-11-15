@@ -56,4 +56,7 @@ void textFitTests() {
     check(lamium::ui::armedTextWidth("Delete", "Confirm delete", measure) == 14
               && lamium::ui::armedTextWidth("すべて既定に戻す", "Reset", measure) == 16,
           "a press-twice button sized by its text holds the longer of its two labels");
+    std::string const every = "Ignore on every Lever", all = "Ignore on all";
+    check(&lamium::ui::fittingText(every, all, 21, measure) == &every && &lamium::ui::fittingText(every, all, 20, measure) == &all,
+          "a label takes its short form only where the full one would be cut");
 }

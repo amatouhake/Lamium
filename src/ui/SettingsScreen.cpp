@@ -16,6 +16,7 @@
 #include "ui/LanguageView.h"
 #include "ui/SavedDataView.h"
 #include "ui/ScreenParts.h"
+#include "ui/ScrollDrag.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/RowPages.h"
 #include "ui/WaypointPromptLayout.h"
@@ -124,17 +125,9 @@ std::chrono::steady_clock::time_point titleViewSeen;
 // Where the pointer was at the last frame, in GUI units. Wheel events carry
 // no position, so the pane under the pointer is found from this.
 glm::vec2 lastPointer{-1, -1};
-// A list scrollbar being dragged: the list's first row and its layout.
-int* scrollDragFirst = nullptr;
-ShapesLayout const* scrollDragLayout = nullptr;
-// A press on a list's scrollbar moves the list there and starts a drag.
-bool pressScrollbar(ShapesLayout const& l, int& first, float x, float y) {
-    if (!l.onScrollbar(x, y)) return false;
-    first = l.firstAt(y);
-    scrollDragFirst = &first;
-    scrollDragLayout = &l;
-    return true;
-}
+// Scroll bar drags are the shared ones (ScrollDrag.h); the screen follows
+// and releases them with its own pointer and button.
+void followScrollbar(float y) { scroll_drag::follow(y); }
 // GUI coordinates; resolved against the layout drawn in the next frame.
 struct Click { float x, y; bool right; };
 std::optional<Click> pendingClick;
@@ -1122,19 +1115,20 @@ void render(ll::event::UIRenderEvent& event) {
                 table_view::click(click->x, click->y, click->right);
             }
             for (auto wheel : std::exchange(pendingWheels, {})) if (page->opened()) page->wheel(wheel.direction);
-            if (std::exchange(pendingRelease, false)) page->release();
+            if (std::exchange(pendingRelease, false)) { page->release(); scroll_drag::release(); }
             for (int key : std::exchange(pendingKeys, {})) if (page->opened()) page->key(key);
         }
         pendingSearch = false;
         if (!scene) return;
         if (page->typing && page->opened()) syncTextKeyboard(lastPointer.x, lastPointer.y);
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
+        followScrollbar(lastPointer.y);
         DrawScale scale{screenScale};
         table_view::render(context, current, size / screenScale, lastPointer);
         return;
     }
     if (calculatorOpen) {
-        if (std::exchange(pendingRelease, false)) calculator_view::release();
+        if (std::exchange(pendingRelease, false)) { calculator_view::release(); scroll_drag::release(); }
         if (!closing) {
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right
                 && calculator_view::click(click->x, click->y, size) == calculator_view::Result::Close) {
@@ -1151,6 +1145,7 @@ void render(ll::event::UIRenderEvent& event) {
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         auto at = calculator_view::fieldPosition(size);
         syncTextKeyboard(at.x, at.y);
+        followScrollbar(view.mPointerLocationPrevious->y);
         calculator_view::render(context, size, view.mPointerLocationPrevious);
         return;
     }
@@ -1239,11 +1234,11 @@ void render(ll::event::UIRenderEvent& event) {
     } else if (!closing) {
         if (std::exchange(pendingRelease, false)) {
             table_view::release();
-            scrollDragFirst = nullptr;
+            scroll_drag::release();
             schematics_view::release();
         }
         schematics_view::drag(lastPointer);
-        if (scrollDragFirst && scrollDragLayout) *scrollDragFirst = scrollDragLayout->firstAt(lastPointer.y);
+        followScrollbar(lastPointer.y);
         if (shapesView()) {
             shapes_view::refresh();
             if (auto click = std::exchange(pendingClick, std::nullopt)) shapes_view::click(click->x, click->y, click->right);
@@ -1349,8 +1344,14 @@ bool navClick(float x, float y) {
     if (hit.zone == Zone::Version) { table_view::copyVersion(); return true; }
     return false;
 }
-bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y) { return ui::pressScrollbar(layout, first, x, y); }
-bool scrollDragging() { return scrollDragFirst != nullptr; }
+void holdScrollbar(ScrollBar const& bar, float y, std::function<void(float)> set, void const* owner) { scroll_drag::hold(bar, y, std::move(set), owner); }
+bool pressScrollbar(ScrollBar const& bar, float x, float y, std::function<void(float)> set, void const* owner) { return scroll_drag::press(bar, x, y, std::move(set), owner); }
+bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y) {
+    if (!layout.onScrollbar(x, y)) return false;
+    scroll_drag::hold(layout.scrollBar(), y, scroll_drag::firstRow(first), &first);
+    return true;
+}
+bool scrollHeld(void const* owner) { return scroll_drag::holding(owner); }
 void toggleOption(std::string_view id) { table_view::adjustOption(id, 1); }
 void showFeatureKeys(std::string_view featureId) {
     int category = 0;
