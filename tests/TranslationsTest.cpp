@@ -92,7 +92,8 @@ void translationTests() {
             else if (entry.key == "enchantOrder.penalty.help") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
             else if (entry.key == "schematic.save.tooLarge") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.withDetail") rendered = std::vformat(pattern, std::make_format_args(key, key));
-            else if (entry.key == "schematic.toast.ignoredBlock") rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));
+            else if (entry.key == "schematic.toast.ignoredPlace" || entry.key == "schematic.toast.unignored")
+                rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));
             else if (entry.key == "paused.notice") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "durabilityValue") {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));

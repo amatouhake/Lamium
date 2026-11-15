@@ -397,7 +397,7 @@ void ignoreLooked(IClientInstance& client, LocalPlayer& player) {
     if (!on && added == IgnoreList::Added::Full) ui::showMessageToast(ui::translated("schematic.ignore.full", maxIgnored));
     else if (!saved) ui::showMessageToast(ui::translated("schematic.saveError"));
     else if (on) ui::showMessageToast(ui::translated("schematic.toast.unignored", name, world.x, world.y, world.z));
-    else ui::showMessageToast(ui::translated("schematic.toast.ignoredBlock", name, world.x, world.y, world.z));
+    else ui::showMessageToast(ui::translated("schematic.toast.ignoredPlace", name, world.x, world.y, world.z));
 }
 // A corner of the area to save: the block in the crosshair.
 void setCorner(IClientInstance& client, LocalPlayer& player, int which) {
