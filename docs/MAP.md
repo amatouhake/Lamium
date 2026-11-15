@@ -218,17 +218,17 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
 ### World map side panel lists
 
 - The panel lists one layer at a time (`worldMapList`): waypoints, placed
-  schematics or shapes. Its header names the layer with its count and a down
-  arrow; clicking opens a menu of the three with symbols and counts
-  (maintainer: tabs side by side do not fit). Selecting a mark on the map
-  shows its layer; "+" only for waypoints.
-- Placement and shape rows match waypoint rows: symbol in the mark's color,
-  name, distance in the player's dimension, nearest first, show/hide switch;
-  a click centers and selects (a placement also becomes the schematic's
-  selected one), with details and "Open" below.
+  schematics or shapes; its header (layer and count, a down arrow) opens a
+  menu of the three with symbols and counts (maintainer: tabs side by side
+  do not fit). Selecting a mark on the map shows its layer; "+" only for waypoints.
+- Placement and shape rows match waypoint rows (symbol in the mark's color,
+  name, distance, nearest first, switch); a click centers and selects (a
+  placement also becomes the schematic's selected one), details and "Open" below.
 - Several rows of the listed layer (L-190, branch only): Ctrl/Shift + click
-  keeps the map still; the count, Show and Hide replace the details; a layer
-  or dimension change drops them; Ctrl + A while the panel is open.
+  keeps the map still; the selection pane (DESIGN "Several rows", with a
+  two-press Delete) replaces the details, the list keeps its height; a layer
+  or dimension change drops them; Ctrl + A takes all. Ctrl + click on a map
+  mark adds or drops it (no range or box, no move); another layer's starts anew.
 - Only the dimension shown. A layer switched off keeps its list
   (`State::allAreas`) with a faint "Hidden on the map" line on top.
 

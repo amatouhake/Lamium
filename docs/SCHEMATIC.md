@@ -58,7 +58,8 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   never by walking near another. No placement switcher on the Check and
   Materials tabs: it does not scale; the Placed list is where to pick. Its
   several rows ([L-190](backlog/L-190.md), branch only) show, hide, delete
-  (no bulk move or turn) and pick none: the selected placement stays.
+  (no bulk move or turn) and pick none: the selected placement stays. Rows: a
+  footprint, name, distance, progress, shown (DESIGN "List columns").
 - Per placement: position, rotation, mirror, visibility, layer view, extra
   blocks (shown red and counted by default, or ignored), entities (default
   on). Structure void means "place nothing here".
@@ -360,9 +361,8 @@ Game and SDK:
 - A translucent ghost look as default: right block by block, unpredictable in
   dense builds; the tinted look is default, translucency is [L-186 Improve schematic ghost legibility and reconsider translucency](backlog/L-186.md).
 - `BlockActor::create` from NBT: null for every id.
-- Hooking `BlockSource::getLightColor`: crashed at start (its `Brightness` is
-  by value in the game, by reference in the SDK); `getBrightnessPair`: no
-  effect.
+- Hooking `BlockSource::getLightColor`: crashed at start (its `Brightness`
+  is by value in the game, by reference in the SDK); `getBrightnessPair`: no effect.
 - A `static` block pointer in `liquidShell`: crashed after a registry reload.
   Look it up each time.
 - `beacon_beam_transparent` in the previews: no depth, so the far-to-near

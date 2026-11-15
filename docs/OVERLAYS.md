@@ -51,8 +51,10 @@ the file).
 
 ### Shapes view
 
-The view places a shape list beside an editor. The list shows color, name,
-type (other dimensions are dimmed and tagged) and a visibility switch. The
+The view places a shape list beside an editor. The list has the lists' shared
+columns (DESIGN "List columns"): the type glyph in the shape's color, name,
+distance (the dimension's name for another dimension, "-" for a following
+shape) and a visibility switch. The
 editor shows the name, a top-down block preview of one layer (planes are seen
 along their normal) with a layer stepper, and fields grouped as shape,
 position and display. Fields come from `ui/ShapeEditor.h`: adding a shape type
