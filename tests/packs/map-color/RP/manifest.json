@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Lamium map_color test RP",
+    "description": "Textures for the Lamium map_color test blocks",
+    "uuid": "126ef8ec-bc4d-4e8b-8544-9d4d8e5e0877",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      60
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "240c3180-d6b3-4bd8-81a4-21703df22c00",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

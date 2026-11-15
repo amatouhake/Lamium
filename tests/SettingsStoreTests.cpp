@@ -436,6 +436,23 @@ void settingsStoreTests() {
               && !decodeSettings(R"({"camera":{"zoomResetOnRelease":false}})").camera.zoomResetOnRelease
               && decodeSettings(R"({"camera":{"zoomResetOnRelease":true}})").camera.zoomResetOnRelease,
           "Reset on release is on for a fresh or keyless file and a saved value is kept (L-325)");
+    {
+        // The 2026-11-15 follow-ups save and load (L-349, L-317, L-325).
+        Settings saved;
+        saved.information.durabilityMainHand = false;
+        saved.camera.zoomResetOnRelease = false;
+        saved.information.chatPosition = true;
+        saved.bindings[static_cast<size_t>(input::Action::MinimapNetherView)] = input::Chord{{input::Device::Key, 0x4E}};
+        auto file = std::filesystem::temp_directory_path()
+            / ("lamium-followups-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".json");
+        writeSettings(file, saved);
+        auto loaded = readSettings(file);
+        std::filesystem::remove(file);
+        auto const& chord = loaded.bindings[static_cast<size_t>(input::Action::MinimapNetherView)];
+        check(!loaded.information.durabilityMainHand && !loaded.camera.zoomResetOnRelease && loaded.information.chatPosition
+              && chord && chord->size() == 1 && chord->front().code == 0x4E,
+              "Main hand off, Reset on release off, a Placed chat and the Nether view key survive a save");
+    }
     check(!old.visuals.skipServerPacks && decodeSettings(R"({"visuals":{"skipServerPacks":true}})").visuals.skipServerPacks,
           "server resource packs apply until skipping is saved on (L-167)");
     {

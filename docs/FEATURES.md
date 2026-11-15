@@ -216,8 +216,8 @@ A HUD element colored from your block textures.
   where the camera looks.
 - Cave view: under a roof and in the Nether it shows the floors around your
   height. The Cave view row, or its key, fixes the surface or cave view, or
-  returns to switching on its own. A Nether view row can choose another view
-  for the Nether alone.
+  returns to switching on its own. A Nether view row, with a key of its
+  own, can choose another view for the Nether alone.
 
 ### Map marks
 

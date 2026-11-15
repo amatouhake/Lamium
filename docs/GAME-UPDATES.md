@@ -667,7 +667,8 @@ Hooks: `FrameAlphaHook`, `CommandListHook`
 Meaning: the available commands packet lists `tp` or `teleport` when the
 player may use it (world map teleport). Block colors (L-324): a block's
 `BlockMapColorComponent`, found with `Block::tryGetComponent`, holds the
-`minecraft:map_color` an add-on defined.
+`minecraft:map_color` an add-on defined. Re-check with the test packs in
+[tests/packs/map-color](../tests/packs/map-color/README.md).
 
 ### `src/features/map/PlayerLocationTrace.cpp`
 Hooks: `UpdateHook`, `HideHook`
