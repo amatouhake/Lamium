@@ -10,7 +10,7 @@ change, no camera command, no server support. Freelook and FreeCamera are
 off and unbound by default.
 
 Settings (Camera): Zoom with Activation (Hold default), magnification (2x-50x),
-Wide-angle view (off), Reset on release (off), magnification HUD element (on); Freelook with
+Wide-angle view (off), Reset on release (on), magnification HUD element (on); Freelook with
 Activation and starting view (first, rear third default, front third);
 FreeCamera with Activation (Toggle default), flight speed (5-100 blocks/s,
 default 20), Position reference (Player default, World), Hide while flying
@@ -60,11 +60,12 @@ plus two unbound FreeCamera speed actions.
   feels the same at 2x and 40x; a notch crossing 1x stops on exactly 1x once.
   The shown magnification eases toward the target; turn sensitivity follows
   the shown magnification above 1x and stays normal below it.
-- The wheel level is kept between presses until the world is left, including
-  levels below 1x and across dimension changes. A level left at exactly 1x
-  is the exception: the next press starts from the setting. With Reset on
-  release on (L-325), every release returns to the setting, so each press
-  starts there.
+- Reset on release (L-325, on by default; a settings file that has the key
+  keeps its value): every release returns to the setting, so each press
+  starts there. With it off, the wheel level is kept between presses until
+  the world is left, including levels below 1x and across dimension changes;
+  a level left at exactly 1x is the exception: the next press starts from
+  the setting.
 - The wheel changes the magnification only while the Zoom key is held. In
   Toggle mode the wheel keeps its normal job (hotbar) while Zoom is on;
   Toggle switches on at the press and off at the release of a plain tap, and

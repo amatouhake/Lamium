@@ -431,6 +431,11 @@ void settingsStoreTests() {
           "the side panel's list starts on waypoints and loads clamped (L-204)");
     check(!old.camera.zoomWideAngle && decodeSettings(R"({"camera":{"zoomWideAngle":true}})").camera.zoomWideAngle,
           "Wide-angle view stays off until saved on (L-140)");
+    check(Settings{}.camera.zoomResetOnRelease
+              && decodeSettings(R"({"camera":{"zoomWideAngle":false}})").camera.zoomResetOnRelease
+              && !decodeSettings(R"({"camera":{"zoomResetOnRelease":false}})").camera.zoomResetOnRelease
+              && decodeSettings(R"({"camera":{"zoomResetOnRelease":true}})").camera.zoomResetOnRelease,
+          "Reset on release is on for a fresh or keyless file and a saved value is kept (L-325)");
     check(!old.visuals.skipServerPacks && decodeSettings(R"({"visuals":{"skipServerPacks":true}})").visuals.skipServerPacks,
           "server resource packs apply until skipping is saved on (L-167)");
     {

@@ -210,7 +210,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design): Built and checked in game (`10325a18`); a large map with small text is now awkward, to be agreed
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
-- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Ready): Built and checked in game (`10325a18`); on by default for new installs agreed 2026-11-15, not built
+- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Ready): Built, not checked in game (the option checked in game at `10325a18`; on by default built since)
 - [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices and unchecked cases remain
 - [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Ready): Built, not checked in game (the Nether view row checked in game at `10325a18`; its own key built since)
