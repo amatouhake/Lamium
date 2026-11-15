@@ -1153,7 +1153,7 @@ void footprintCorners(MinecraftUIRenderContext& context, float x, float y, float
 }
 // Footprints (L-139): shapes, then schematic placements over them, each a
 // faint fill, a frame and its name, under the other markers. Hidden ones
-// stay faint, like hidden waypoints; the selected one is framed white.
+// stay faint, like hidden waypoints; every selected one is framed white.
 void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) {
     auto& view = state.view;
     auto on = layers();
@@ -1173,7 +1173,7 @@ void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) 
         x0 = cx - w / 2; y0 = cy - h / 2;
         if (x0 + w < -20 || y0 + h < -20 || x0 > view.width + 20 || y0 > view.height + 20) continue;
         auto color = rgb(mark.color);
-        bool chosen = mark.selected || (state.panelWidth > 0 && state.selected == mark.key);
+        bool chosen = mark.selected || (state.panelWidth > 0 && state.rows.contains(mark.key));
         float opacity = mark.visible ? 1.f : .35f;
         auto line = chosen ? ui::palette::white : color;
         if (mark.key.layer == MarkLayer::Placement) {
@@ -1261,7 +1261,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             // Hidden ones stay faint here so they can be shown again.
             float opacity = w.visible ? 1.f : .35f;
             Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]);
-            bool const chosen = state.panelWidth > 0 && state.selected == waypointKey(w.id);
+            bool const chosen = state.panelWidth > 0 && state.rows.contains(waypointKey(w.id));
             if (w.death) {
                 // A death's waypoint keeps the cross for its mark (L-328).
                 if (chosen) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);

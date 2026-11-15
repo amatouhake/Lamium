@@ -227,8 +227,8 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   placement also becomes the schematic's selected one), details and "Open" below.
 - Several rows (L-190, branch only): Ctrl/Shift + click keeps the map still;
   the selection pane (DESIGN "Several rows") replaces the details, the list
-  keeps its height; a layer or dimension change drops them; Ctrl + A takes all.
-  Ctrl + click on a map mark adds or drops it (another layer's restarts the rows).
+  keeps its height; selected marks are ringed white; a layer or dimension
+  change drops them; Ctrl + A takes all; Ctrl + click on a mark toggles it.
 - Only the dimension shown. A layer switched off keeps its list
   (`State::allAreas`) with a faint "Hidden on the map" line on top.
 
