@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-183 follow-ups and one shared scroll bar drag (2026-11-16)
+
+Build `6b443dbe` (branch `l-190-waypoint-selection`), DLL SHA-256
+`01bf0e1114c8e52666c225c4a33b365cc05e4ffeff8c8e506186a04a78e00cf7`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: "Ignore settings" at the pane's top right in all three
+pane states, pressed while open; the four filters fit in Japanese and English (large GUI and
+docked); differing and compared items scroll by wheel and bar; facing and shulker openings
+named; no confusing duplicate names seen; the ignore view relabels after a language change;
+long tags show in full on hover; "Whole placement" not cut. Bars: grip kept on the thumb,
+track press centers it, only the held thumb lit; calculator history, world map side list,
+Shapes / Waypoints / Placed lists, Highlight and the HUD layout contents popover drag.
+Raised: the Check pane shows one item line for a door with three differences (the preview
+takes the room); the list's selection frame and row hover overlap the bar (Shapes, Waypoints,
+schematic lists, Highlight, HUD contents popover); the Game language list cannot be dragged
+(rows take the press). Not seen: the anvil panels never overflowed; scroll reset on a new
+pick unclear; long Saved data and settings description lists not tried.
+
 ## Schematic ignore rebuilt as places and rules (L-183, 2026-11-15)
 
 Build `e44d7cc4` (branch `l-190-waypoint-selection`), DLL SHA-256
