@@ -772,47 +772,57 @@ std::vector<Summary> list() {
 }
 std::optional<ShapeDefinition> find(ShapeId id) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     auto shape = shapeCollection.find(id);
     return shape ? std::optional(shape->definition) : std::nullopt;
 }
 ShapeId add(ShapeDefinition definition) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     if (identityFailed) throw std::runtime_error("Shape workspace unavailable");
     return shapeWorkspace.change([&](auto& values) { return values.add(std::move(definition)); });
 }
 void edit(ShapeId id, ShapeDefinition definition) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { values.edit(id, std::move(definition)); });
 }
 void setVisible(ShapeId id, bool visible) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { values.setVisible(id, visible); });
 }
 void rename(ShapeId id, std::string name) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { values.rename(id,std::move(name)); });
 }
 bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
 void setVisible(std::vector<ShapeId> const& ids, bool visible) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) {
         for (auto id : ids) if (values.find(id)) values.setVisible(id, visible);
     });
 }
 void remove(std::vector<ShapeId> const& ids) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { for (auto id : ids) values.remove(id); });
 }
 std::optional<Cell> lastFeet(int dimension) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     auto found = followFeet.find(dimension);
     return found == followFeet.end() ? std::nullopt : std::optional(found->second);
 }
 std::vector<Footprint> footprints(int dimension) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     // Boxes by shape and the revision they were computed for.
     static std::map<ShapeId, std::pair<uint64_t, std::optional<ShapeFootprint>>> cache;
     std::erase_if(cache, [](auto const& entry) { return !shapeCollection.find(entry.first); });
@@ -834,6 +844,7 @@ std::vector<Footprint> footprints(int dimension) {
 }
 void setDraft(std::optional<ShapeDefinition> definition) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     draftCollection.clear();
     if (definition) draftCollection.add(std::move(*definition));
 }
@@ -849,6 +860,7 @@ void clear() {
 }
 Storage storage() {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     return identityFailed || shapeWorkspace.failedToLoad() ? Storage::LoadFailed
         : shapeWorkspace.persistent() ? Storage::Saved : Storage::Session;
 }
