@@ -16,8 +16,8 @@ namespace lamium::information {
 // L-334); at 0 it is measured but nothing is drawn.
 struct HudPreview {
     Settings::Hud layout;
-    std::array<bool, 16> outline{}, hidden{};
-    std::array<float, 16> opacity = [] { std::array<float, 16> all; all.fill(1); return all; }();
+    std::array<bool, ui::hudElementCount> outline{}, hidden{};
+    std::array<float, ui::hudElementCount> opacity = [] { std::array<float, ui::hudElementCount> all; all.fill(1); return all; }();
 };
 // Returns where each element was drawn this frame (for editor hit tests).
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext&, float width, float height, Settings::Information const&,

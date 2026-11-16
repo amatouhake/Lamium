@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cmath>
 #include <limits>
 #include <optional>
@@ -12,6 +13,8 @@ namespace lamium::ui {
 // The debug view is not an element: it is fixed to the screen edges. Pure
 // math; InfoHud draws. Append new ids: they index saved boxes.
 enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat, PaperDoll, Scoreboard, BossBars };
+// How many elements there are: arrays indexed by HudElementId take their size from here.
+inline constexpr size_t hudElementCount = static_cast<size_t>(HudElementId::BossBars) + 1;
 enum class Anchor {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, Center, MiddleRight,
