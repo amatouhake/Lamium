@@ -18,12 +18,15 @@
 #include "mc/deps/renderer/ShaderColor.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/Item.h"
+#include "mc/world/item/ResolvedItemIconInfo.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <memory>
 #include <new>
 #include <optional>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace lamium::inspection::render {
@@ -74,6 +77,32 @@ bool drawable(IconAt const& icon) { return icon.stack && !icon.stack->isNull() &
 // enchanted book's pixels, same frames, no difference (2026-11-14). The earlier
 // purple x 1.35 had been fitted against the container preview's border fill.
 constexpr mce::Color glintTint{1.0f, 1.0f, 1.0f, 1.0f};
+// Compasses and clocks draw each frame from a strip of frames of their own, not from the item atlas: a slot
+// batches them with that texture and lets the renderer animate. Through the item atlas they showed their still
+// icon, and a recovery compass, which has none there, showed nothing (L-339, traced 2026-11-16). Such an item
+// answers the out-of-pane icon question with raw UVs into its strip; the strip's path is not on the item (its
+// atlas file is the item atlas), so the paths are the ones the vanilla slots were traced using. Anything else
+// keeps the item atlas. Asked once per item kind.
+std::string const& ownTexture(ItemStack const& stack) {
+    static std::unordered_map<int, std::string> known;
+    int const id = stack.getId();
+    if (auto found = known.find(id); found != known.end()) return found->second;
+    static std::pair<char const*, char const*> const strips[]{
+        {"minecraft:compass", "textures/items/compass_atlas"},
+        {"minecraft:recovery_compass", "textures/items/recovery_compass_atlas"},
+        {"minecraft:clock", "textures/items/watch_atlas"},
+    };
+    std::string name;
+    try {
+        auto const type = stack.getTypeName();
+        for (auto [item, strip] : strips) {
+            if (type != item) continue;
+            auto info = stack.mItem->getIconInfo(stack, 0, false);
+            if (static_cast<ItemIconInfoType>(info.mIconType) == ItemIconInfoType::RawUVs) name = strip;
+        }
+    } catch (...) { name.clear(); }
+    return known.emplace(id, std::move(name)).first->second;
+}
 int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;
     return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
@@ -119,20 +148,36 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
     // One batch per chunk type and opacity: the batch key carries the alpha.
     std::vector<float> alphas;
     for (auto const& icon : icons) if (std::find(alphas.begin(), alphas.end(), icon.alpha) == alphas.end()) alphas.push_back(icon.alpha);
-    for (float alpha : alphas)
-    for (int chunk : {blockChunk, flatChunk}) {
+    // Flat items with a texture of their own get a batch per texture, animated as in a slot.
+    std::vector<std::string const*> textures(icons.size(), nullptr);
+    std::vector<std::string const*> ownTextures;
+    for (size_t i = 0; i < icons.size(); ++i) {
+        if (chunks[i] != flatChunk) continue;
+        auto const& name = ownTexture(*icons[i].stack);
+        if (name.empty()) continue;
+        textures[i] = &name;
+        if (std::find(ownTextures.begin(), ownTextures.end(), &name) == ownTextures.end()) ownTextures.push_back(&name);
+    }
+    auto drawBatch = [&](int chunk, std::string const* texture, float alpha) {
         bool any = false;
-        for (size_t i = 0; i < icons.size(); ++i) any = any || (chunks[i] == chunk && icons[i].alpha == alpha);
-        if (!any) continue;
-        SharedItemBatch batch{zOrder, chunk == blockChunk ? "atlas.terrain" : "atlas.items", alpha};
+        for (size_t i = 0; i < icons.size(); ++i)
+            any = any || (chunks[i] == chunk && textures[i] == texture && icons[i].alpha == alpha);
+        if (!any) return;
+        SharedItemBatch batch{zOrder, texture ? texture->c_str() : chunk == blockChunk ? "atlas.terrain" : "atlas.items", alpha};
         context.beginSharedMeshBatch(batch.get());
         for (size_t i = 0; i < icons.size(); ++i) {
-            if (chunks[i] != chunk || icons[i].alpha != alpha) continue;
+            if (chunks[i] != chunk || textures[i] != texture || icons[i].alpha != alpha) continue;
             auto const& icon = icons[i];
             renderer->renderGuiItemInChunk(renderContext, static_cast<ItemRenderChunkType>(chunk), *icon.stack, icon.x,
-                icon.y, 1.0f, chunk == blockChunk ? 0.0f : 1.0f, icon.scale, icon.frame, false, zOrder, std::nullopt);
+                icon.y, 1.0f, chunk == blockChunk ? 0.0f : 1.0f, icon.scale, icon.frame, texture != nullptr, zOrder,
+                std::nullopt);
         }
         context.endSharedMeshBatch(batch.get());
+    };
+    for (float alpha : alphas) {
+        drawBatch(blockChunk, nullptr, alpha);
+        drawBatch(flatChunk, nullptr, alpha);
+        for (auto const* texture : ownTextures) drawBatch(flatChunk, texture, alpha);
     }
     for (size_t i = 0; i < icons.size(); ++i)
         if (chunks[i] != -1 && chunks[i] != glinting && chunks[i] != blockChunk && chunks[i] != flatChunk) direct(i);

@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Compass, recovery compass and clock icons (2026-11-17)
+
+Build: `84a3637d` plus the uncommitted L-339 fix with `icon_trace` on, DLL
+SHA-256 `bf9585e6b50319aedc941e1d1f9ee11c24c05043322a20d112fc45a7e112348a`,
+1.26.60.05 Dev instance, the maintainer. Passed: in the inventory HUD (with
+the hotbar row) a compass and a recovery compass turn their needle and a
+clock shows its time, looking as in the vanilla hotbar; the shulker box
+preview shows them right too; other items look unchanged. The committed
+build differs only by the trace being off.
+
+Trace (`icon_trace`): vanilla slots batch these items with their own strip
+(`textures/items/compass_atlas` 16x512, `recovery_compass_atlas`,
+`watch_atlas` 16x1024) and animate; Lamium had used the item atlas without
+animation (still icon; the recovery compass has no icon there, so nothing).
+
+Still as before (L-91): a head in a never-opened box stays see-through until
+drawn once, an enchanted shield has no glint, enchanted leather's undyeable
+parts are see-through. Not looked at: a lodestone compass.
+
 ## 0.7.0 release smoke and tag (2026-11-16)
 
 Smoke of the commit's CI package: `b9d35a5f`, run 43869719844, DLL SHA-256

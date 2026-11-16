@@ -43,8 +43,9 @@ not seen was still not seen in 0.7.0.
 - Durability HUD and Inventory HUD draw an item with the frame a slot would
   use: the crossbow's states passed on `df963770`, and a second crossbow
   in the inventory keeping its look while the held one is drawn on
-  `761b612e` (VALIDATION-LOG 2026-11-14). Not looked at: a bow's pull, a
-  compass or clock.
+  `761b612e` (VALIDATION-LOG 2026-11-14); a compass's needle, a recovery
+  compass and a clock's time on `bf9585e6`'s build (VALIDATION-LOG
+  2026-11-17). Not looked at: a bow's pull, a lodestone compass.
 - Server data names (L-343): a server joined before the change still shows
   its map and waypoints, the log names the key and `config/servers.json`
   is written (passed, VALIDATION-LOG 2026-11-14). Not

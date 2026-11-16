@@ -270,7 +270,6 @@ requests are handled. What has been checked in game, per feature, is in
   (offhand slot, Shulker/Bundle previews, the inventory HUD); enchanted
   golden apples and other flat icons do. Enchanted leather armor shows its
   undyeable parts see-through there (unenchanted leather draws whole).
-  In the inventory HUD a compass and a clock show no needle or time.
 
 **Map**
 
