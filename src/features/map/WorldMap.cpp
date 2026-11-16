@@ -1769,6 +1769,11 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         ui::drawScrollbar(context, bar.x, bar.top, bar.track, bar.thumbTop(), bar.thumb,
             ui::scroll_drag::holding(&state.listFirst) || onListBar(static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y)));
     }
+    // Rows and their switches end short of the bar while it shows.
+    float const gutter = rows > maxRows ? ui::rowBarGutter : 0, rowW = w - gutter;
+    auto overRow = [&](float ry) {
+        return hovering(x0, ry, rowW, rowH) && !onListBar(static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y));
+    };
     if (!rows) {
         constexpr std::array<std::string_view, 3> emptyTexts{"worldMap.noWaypoints", "worldMap.noPlacements", "worldMap.noShapes"};
         ui::label(context, x, y + 2, inner, ui::translated(emptyTexts[static_cast<size_t>(kind)]), ui::palette::faint);
@@ -1776,17 +1781,17 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (int r = 0; kind != 0 && r < maxRows && state.listFirst + r < rows; ++r) {
         auto const& area = *areaRows[static_cast<size_t>(state.listFirst + r)];
         float ry = y + r * rowH;
-        bool selected = state.rows.contains(area.key), over = hovering(x0, ry, w, rowH);
+        bool selected = state.rows.contains(area.key), over = overRow(ry);
         if (selected) {
-            ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::accent, .16f);
+            ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::accent, .16f);
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
-        } else if (over) ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::white, .07f);
-        state.hits.push_back({x0, ry, w, rowH, Target::Row, -2, area.key});
+        } else if (over) ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::white, .07f);
+        state.hits.push_back({x0, ry, rowW, rowH, Target::Row, -2, area.key});
         float iconAlpha = area.visible ? 1.f : .4f;
         if (area.key.layer == MarkLayer::Placement) footprintIcon(context, x + 1, ry + rowH / 2, rgb(area.color), iconAlpha);
         else if (area.round) shapeIcon(context, x + 1, ry + rowH / 2, rgb(area.color), iconAlpha);
         else ui::frame(context, x + 1, ry + rowH / 2 - 3, 7, 6, rgb(area.color), iconAlpha);
-        float switchX = x0 + w - pad - ui::switchWidth;
+        float switchX = x0 + rowW - pad - ui::switchWidth;
         std::string far;
         if (spot && spot->dimension == state.dimension)
             far = ui::translated("waypoint.meters", static_cast<int>(std::lround(areaDistance(area))));
@@ -1800,17 +1805,17 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         int index = entries[static_cast<size_t>(state.listFirst + r)];
         auto mark = waypointKey(set.waypoints[static_cast<size_t>(index)].id);
         float ry = y + r * rowH;
-        bool selected = state.rows.contains(mark), over = hovering(x0, ry, w, rowH);
+        bool selected = state.rows.contains(mark), over = overRow(ry);
         if (selected) {
-            ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::accent, .16f);
+            ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::accent, .16f);
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
-        } else if (over) ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::white, .07f);
-        state.hits.push_back({x0, ry, w, rowH, Target::Row, index, mark});
+        } else if (over) ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::white, .07f);
+        state.hits.push_back({x0, ry, rowW, rowH, Target::Row, index, mark});
         auto const& p = set.waypoints[static_cast<size_t>(index)];
         if (Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]); p.death)
             cross(context, x + 4, ry + rowH / 2, color, p.visible ? 1.f : .4f);
         else diamond(context, x + 4, ry + rowH / 2, 7, color, p.visible ? 1.f : .4f, p.temporary);
-        float switchX = x0 + w - pad - ui::switchWidth;
+        float switchX = x0 + rowW - pad - ui::switchWidth;
         std::string far;
         if (spot && spot->dimension == state.dimension) far = ui::translated("waypoint.meters", static_cast<int>(std::lround(distance(index))));
         float farW = far.empty() ? 0 : ui::textWidthScaled(context, far, .75f);

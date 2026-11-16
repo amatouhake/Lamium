@@ -175,7 +175,9 @@ void reveal(Layout const& l, int index) {
 }
 bool inside(float x, float y, float left, float top, float w, float h) { return x >= left && x < left + w && y >= top && y < top + h; }
 // A card's copy button, beside its expression line.
-float cardCopyX(Layout const& l) { return l.rightX() + l.rightWidth() - 5 - 4 - Layout::copyWidth - Layout::arrowWidth - 1; }
+// A history card; while the history scrolls it ends short of the bar, as list rows do.
+float cardWidth(Layout const& l) { return l.rightWidth() - (scrollRange(l) > 0 ? 2 + rowBarGutter : 5); }
+float cardCopyX(Layout const& l) { return l.rightX() + cardWidth(l) - 4 - Layout::copyWidth - Layout::arrowWidth - 1; }
 // The history's scroll bar, the shared one (ScrollBar.h), at the column's
 // right edge. The thumb follows the pointer smoothly (whole cards jumped,
 // 2026-10-13). `scrolled` counts up from the newest card at the bottom, so
@@ -300,7 +302,7 @@ Result click(float x, float y, glm::vec2 size) {
             if (inside(x, y, l.keyX(column), l.keyY(row), l.cell(), l.rowHeight())) { press(grid[row][column]); return Result::None; }
     for (int index = 0; index < static_cast<int>(history.size()); ++index) {
         auto top = cardY(l, index);
-        if (!top || y < l.cardsTop() || y >= l.bottom() || !inside(x, y, l.rightX(), *top, l.rightWidth() - 5, Layout::cardHeight)) continue;
+        if (!top || y < l.cardsTop() || y >= l.bottom() || !inside(x, y, l.rightX(), *top, cardWidth(l), Layout::cardHeight)) continue;
         float cx = cardCopyX(l);
         if (inside(x, y, cx, *top + 3, Layout::copyWidth, 10)) { copy(calculator::format(history[static_cast<size_t>(index)].value)); return Result::None; }
         if (inside(x, y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10)) { menuFor = index; return Result::None; }
@@ -372,7 +374,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         }
 
     // ---- Right: history cards, newest at the bottom ----
-    float rx = l.rightX(), rw = l.rightWidth();
+    float rx = l.rightX(), rw = l.rightWidth(), cw = cardWidth(l);
     fill(context, rx - 5, l.top + 19, 1, l.height - 19, palette::white, .14f);
     label(context, rx, l.top + 23, rw, translated("calc.history", history.size(), calculator::historyLimit), palette::faint);
     // Cards scroll by the unit and are clipped to their column.
@@ -384,14 +386,14 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         if (!top) continue;
         auto const& entry = history[static_cast<size_t>(index)];
         bool current = recalled >= 0 && index == static_cast<int>(history.size()) - 1 - recalled;
-        bool over = !screen::scrollHeld(&scrolled) && pointer.y >= l.cardsTop() && pointer.y < l.bottom() && inside(pointer.x, pointer.y, rx, *top, rw - 5, Layout::cardHeight);
-        fill(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accentDeep : palette::white, current ? .35f : over ? .08f : .04f);
-        frame(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accent : palette::white, current ? 1.f : .08f);
+        bool over = !screen::scrollHeld(&scrolled) && pointer.y >= l.cardsTop() && pointer.y < l.bottom() && inside(pointer.x, pointer.y, rx, *top, cw, Layout::cardHeight);
+        fill(context, rx, *top, cw, Layout::cardHeight, current ? palette::accentDeep : palette::white, current ? .35f : over ? .08f : .04f);
+        frame(context, rx, *top, cw, Layout::cardHeight, current ? palette::accent : palette::white, current ? 1.f : .08f);
         bool buttons = over || menuFor == index;
-        float textWidth = rw - 13 - (buttons ? Layout::copyWidth + Layout::arrowWidth + 6 : 0);
+        float textWidth = cw - 8 - (buttons ? Layout::copyWidth + Layout::arrowWidth + 6 : 0);
         label(context, rx + 4, *top + 3, textWidth, entry.text, palette::dim);
-        label(context, rx + 4, *top + 12, rw - 13, "= " + calculator::format(entry.value));
-        if (auto amount = chests(entry.value); !amount.empty()) labelScaled(context, rx + 4, *top + 22, rw - 13, amount, .75f, palette::faint);
+        label(context, rx + 4, *top + 12, cw - 8, "= " + calculator::format(entry.value));
+        if (auto amount = chests(entry.value); !amount.empty()) labelScaled(context, rx + 4, *top + 22, cw - 8, amount, .75f, palette::faint);
         if (buttons) {
             float cx = cardCopyX(l);
             drawButton(context, cx, *top + 3, Layout::copyWidth, 10, translated("calc.copy"), inside(pointer.x, pointer.y, cx, *top + 3, Layout::copyWidth, 10));
