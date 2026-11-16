@@ -41,4 +41,20 @@ inline bool holding(void const* owner) { return current() && owner && current()-
 inline std::function<void(float)> firstRow(int& first) {
     return [&first](float pos) { first = static_cast<int>(std::lround(pos)); };
 }
+// Which came last of a press and a release queued between two frames, for a
+// view that ends a drag before the press that follows it: a quick click
+// queues its release after the press, and that release must end what the
+// press began.
+struct PressOrder {
+    bool pressQueued = false, releaseLast = false;
+    void pressed() { pressQueued = true; releaseLast = false; }
+    void released() { releaseLast = pressQueued; }
+    void clear() { *this = {}; }
+    // Once a frame: whether the release goes after the press.
+    bool takeReleaseAfterPress() {
+        bool after = releaseLast;
+        clear();
+        return after;
+    }
+};
 }

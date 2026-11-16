@@ -1,5 +1,5 @@
 # Keeps screens on the shared widgets (AGENTS.md rule 7, DESIGN.md "Tokens"):
-# a color literal (`Rgb{...}`, `Rgb name{...}`) or a hand-drawn button fill
+# a color literal (`Rgb{...}`, `Rgb name{...}`, a returned `{r, g, b}`) or a hand-drawn button fill
 # (`palette::keyFill`) outside the shared widget files may not grow. Existing
 # ones are counted per file in UiTokenBaseline.txt (L-341 and L-347 removed them); a
 # file over its count fails, and so does one under it, so the baseline shrinks
@@ -13,7 +13,8 @@ $projectDirectory = Split-Path $PSScriptRoot -Parent
 $shared = @('src/ui/Widgets.h', 'src/ui/Widgets.cpp', 'src/ui/ListViewWidgets.h', 'src/ui/ListViewWidgets.cpp')
 $patterns = [ordered]@{
     # A literal starts with a number; Rgb{c.r, c.g, c.b} converts a game or waypoint color and is not one.
-    color  = '\bRgb(\s+\w+)?\s*\{\s*[-.\d]'
+    # A returned brace list of three numbers with a fraction is one too (whole numbers are a direction).
+    color  = '\bRgb(\s+\w+)?\s*\{\s*[-.\d]|\breturn\s*\{(?=[^}]*\.)\s*[-.\df]+\s*,\s*[-.\df]+\s*,\s*[-.\df]+\s*\}'
     button = '\bpalette::keyFill\b'
 }
 $counts = [ordered]@{}

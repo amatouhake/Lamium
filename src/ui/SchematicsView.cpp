@@ -1182,8 +1182,8 @@ std::map<std::string, std::uint64_t> carriedItems() {
 Rgb mismatchColor(schematic::CellState state) {
     switch (state) {
     case schematic::CellState::Wrong: case schematic::CellState::Extra: return palette::mismatch;
-    case schematic::CellState::State: return {1.f, .8f, .25f};
-    default: return {.75f, .85f, .9f};
+    case schematic::CellState::State: return palette::wrongState;
+    default: return palette::notPlaced;
     }
 }
 // A row's kind as the filters name it: an extra is a wrong block (L-183).

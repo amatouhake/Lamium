@@ -5,6 +5,7 @@
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/LiquidShape.h"
 #include "features/schematic/SchematicRegion.h"
+#include "ui/Widgets.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/renderer/SupplementaryFieldAutoGenerationMode.h"
 #include "mc/client/renderer/Tessellator.h"
@@ -38,6 +39,8 @@
 namespace lamium::schematic::ghosts {
 namespace {
 struct Outline { glm::vec3 min, max; float r, g, b; };
+// A mistake mark in the Check list's color for its kind.
+Outline markOf(glm::vec3 low, glm::vec3 high, ui::Rgb c) { return {low, high, c.r, c.g, c.b}; }
 // Near the camera, a pair of ghost faces in one plane keeps only the face
 // toward the camera for every pair (true), or only for pairs of opaque full
 // blocks (false). True: no flicker where a see-through block (a spawner)
@@ -536,7 +539,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     // An extra block: red outline (the real block hides any
                     // ghost), unless its place is ignored (L-183).
                     if (showMarks && placement.countExtras && !actual.isAir() && !placement.ignored.place(*local, fileName)) {
-                        marks.push_back({boxLow, boxHigh, 1.f, .25f, .2f});
+                        marks.push_back(markOf(boxLow, boxHigh, ui::palette::mismatch));
                     }
                     continue;
                 }
@@ -559,13 +562,13 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                         || (entityChecked && entityMarks->has({x, y, z}));
                     // Unless the entries take the cell out (L-183).
                     if (showMarks && differs && !(placement.ignored.touches(*local, fileName) && ignoredAt(region, shown, blocks, {x, y, z}, judged)))
-                        marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
+                        marks.push_back(markOf(boxLow, boxHigh, ui::palette::wrongState));
                     continue;
                 }
                 if (!actual.isAir()) {
                     bool sameType = relaxedSameType(*expected, actual, relax);
                     // Something else is there: red, or yellow when only the state differs.
-                    Outline mark = sameType ? Outline{boxLow, boxHigh, 1.f, .8f, .2f} : Outline{boxLow, boxHigh, 1.f, .25f, .2f};
+                    Outline mark = markOf(boxLow, boxHigh, sameType ? ui::palette::wrongState : ui::palette::mismatch);
                     // No mark for a cell the entries take out: an ignored
                     // place, or every difference ruled (L-183).
                     bool const passes = placement.ignored.place(*local, fileName)

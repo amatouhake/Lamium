@@ -153,12 +153,13 @@ thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
 thread_local uint64_t eyeFrame = 0;
 thread_local int eyeDimension = 0;
 std::array<float,3> shapeColor(ShapeColor color, bool draft) {
-    if (draft) return {ui::palette::info.r,ui::palette::info.g,ui::palette::info.b}; // as the Shapes list
+    auto rgb = [](ui::Rgb c) { return std::array{c.r, c.g, c.b}; };
+    if (draft) return rgb(ui::palette::info); // as the Shapes list
     switch (color) {
-    case ShapeColor::Yellow: return {.95f,.8f,.24f};
-    case ShapeColor::Pink: return {.94f,.5f,.75f};
-    case ShapeColor::White: return {.95f,.95f,.95f};
-    default: return {.25f,.82f,.88f};
+    case ShapeColor::Yellow: return rgb(ui::palette::shapeYellow);
+    case ShapeColor::Pink: return rgb(ui::palette::shapePink);
+    case ShapeColor::White: return rgb(ui::palette::shapeWhite);
+    default: return rgb(ui::palette::shapeCyan);
     }
 }
 // Draws a mesh built relative to `origin`, scaled toward the eye. The

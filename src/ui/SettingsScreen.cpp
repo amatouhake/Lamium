@@ -118,6 +118,7 @@ bool directTool = false;
 // not the table behind the page.
 bool pageClosing = false;
 bool pendingRelease = false;
+scroll_drag::PressOrder pressOrder; // of pendingClick and pendingRelease
 SettingsNavigation navigation;
 float displayedInverseScale = 0;
 // The title screen's "Lamium <version>" entry, as drawn last (L-175).
@@ -432,7 +433,7 @@ void clear() {
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
     scene.reset(); seen = false; closing = false; pageClosing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
-    pendingClose = false; pendingRelease = false;
+    pendingClose = false; pendingRelease = false; pressOrder.clear();
     // The button may go up where the screen no longer sees it.
     scroll_drag::release();
     // A draft is never kept once the screen is gone.
@@ -1229,11 +1230,14 @@ void render(ll::event::UIRenderEvent& event) {
         return;
     }
     if (!closing && hudEditorView()) {
-        // Release first so a click that lands after a drag starts fresh.
-        if (std::exchange(pendingRelease, false)) hud_editor::release();
+        // Release first so a click that lands after a drag starts fresh;
+        // a quick click's release came after its press and ends what it began.
+        bool released = std::exchange(pendingRelease, false), after = pressOrder.takeReleaseAfterPress();
+        if (released && !after) hud_editor::release();
         bool exit = false;
         if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right)
             exit = hud_editor::press(click->x, click->y) == hud_editor::Result::Exit;
+        if (released && after && !exit) hud_editor::release();
         for (int key : std::exchange(pendingKeys, {}))
             if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
         if (exit) {
@@ -1407,7 +1411,7 @@ void open(IClientInstance& current) {
         || (overAnvilScreen && current.getScreenName() == "anvil_screen"))) return;
     CameraSessions::instance().suspendInput();
     error.clear(); rangeWarning.reset(); seen = false; closing = false; pageClosing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
-    pendingClose = false; pendingRelease = false;
+    pendingClose = false; pendingRelease = false; pressOrder.clear();
     numberDirty = false; uiHeld.clear();
     // The key that opened the screen may still be down: its repeats must not
     // close it again (L-188).
@@ -1634,6 +1638,7 @@ void cancelInputCapture() {
     row_pages::calmAll();
     // The button may go up in another window.
     scroll_drag::release();
+    table_view::release();
     if (savePrompt && savePrompt->overwrite) { savePrompt->overwrite = false; savePrompt->problem.clear(); } // an armed Overwrite disarms
     if (savePrompt) endCornerEdit(*savePrompt, true);
     releaseTextKeyboard();
@@ -1707,7 +1712,7 @@ void start() {
         // A button may already be down when L opens the panel. Let vanilla
         // observe its release, just as we do for keys, so it cannot stay held.
         if (!wheel && event.buttonData() == MouseAction::DataUp) {
-            if (button == MouseAction::ActionLeft) pendingRelease = true;
+            if (button == MouseAction::ActionLeft) { pendingRelease = true; pressOrder.released(); }
             return;
         }
         event.cancel();
@@ -1756,7 +1761,7 @@ void start() {
             return;
         }
         if (!scaled || !down) return;
-        if (button == MouseAction::ActionLeft) pendingClick = Click{x, y, false};
+        if (button == MouseAction::ActionLeft) { pendingClick = Click{x, y, false}; pressOrder.pressed(); }
         if (button == MouseAction::ActionRight) pendingClick = Click{x, y, true};
     });
     listeners[2] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
