@@ -187,6 +187,9 @@ void targetCardTests() {
         auto powered = interpretBlockState("powered", StateKind::Integer, 0, {}, "minecraft:unpowered_repeater");
         check(lit && lit->label == "target.lit" && lit->value == "target.yes" && powered && powered->label == "target.powered"
                   && powered->value == "target.no", "lit and powered read as Lit / Powered: yes or no");
+        auto inverted = interpretBlockState("inverted", StateKind::Integer, 1, {}, "minecraft:daylight_detector");
+        check(inverted && inverted->label == "target.inverted" && inverted->value == "target.yes",
+              "the daylight detector's pair reads as Inverted (L-352)");
         // L-93: schematic rows say what to do.
         auto translate = [](std::string_view key) { return "<" + std::string(key) + ">"; };
         using lamium::schematic::CellState;

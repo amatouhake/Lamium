@@ -197,7 +197,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
-- [L-352](backlog/L-352.md) More on and off forms as a wrong state (Design): Proposed by the maintainer 2026-11-15; the wording waits for an answer
+- [L-352](backlog/L-352.md) More on and off forms as a wrong state (Ready): Built 2026-11-17, not checked in game
 - [L-356](backlog/L-356.md) Save shapes per server, like waypoints and placements (Design): Wanted by the maintainer 2026-11-17, not now; not started
 - [L-357](backlog/L-357.md) HUD elements: their size and their text size apart (Ready): Decided 2026-11-17; the inventory grid's slot size is built, the Look popover is not
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.

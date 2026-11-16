@@ -127,9 +127,9 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
 - Strict by default (maintainer 2026-10-09): every differing state is a
   mistake, including states the game changes itself. The Check switches
   relax it by category (L-262, global, off by default, maintainer
-  2026-10-26): ignore redstone signal; ignore plant growth; on and off forms
-  (redstone lamp, repeater, comparator, redstone torch) as a wrong state with
-  a "Lit"/"Powered" row instead of a wrong block, never correct. An ignored
+  2026-10-26): ignore redstone signal; ignore plant growth; lit and inverted
+  forms (`nameRules`, L-352) as a wrong state with a "Lit"/"Powered"/
+  "Inverted" row instead of a wrong block, never correct. An ignored
   difference is correct everywhere (list, HUD, nearest mistake, marks). Rules
   are a table: a new category or state is a row, not code.
 - Ignored differences ([L-183 Disregard selected schematic check mismatches](backlog/done/L-183.md)),

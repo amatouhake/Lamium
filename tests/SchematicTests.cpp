@@ -1707,6 +1707,12 @@ void checkRelaxations() {
     check(torch && torch->on && torch->state == "lit" && unlit && !unlit->on && repeaterOn && repeaterOn->state == "powered"
               && !r::switchedOn("minecraft:stone"),
           "which form of a pair is on, named lit or powered as in Java Edition");
+    auto furnace = r::switchedOn("minecraft:lit_furnace"), inverted = r::switchedOn("minecraft:daylight_detector_inverted");
+    check(furnace && furnace->on && furnace->state == "lit" && inverted && inverted->on && inverted->state == "inverted"
+              && r::sameType("minecraft:deepslate_redstone_ore", "minecraft:lit_deepslate_redstone_ore", r::Lit)
+              && !r::sameType("minecraft:smoker", "minecraft:lit_smoker", 0)
+              && !r::sameType("minecraft:pumpkin", "minecraft:lit_pumpkin", r::Lit),
+          "furnaces, redstone ore and the daylight detector are pairs too; the jack o'lantern is not (L-352)");
     check(!r::sameBlock("minecraft:unpowered_repeater", repeater, "minecraft:powered_repeater", faced, r::Lit | r::Signal)
               && !r::sameType("minecraft:redstone_lamp", "minecraft:glowstone", r::Lit),
           "other states and other blocks still count");

@@ -30,11 +30,19 @@ inline constexpr std::array<StateRule, 17> stateRules{{
 // `state`: what the difference is called, as the block's state in Java
 // Edition, where the two forms are one block (maintainer 2026-10-26).
 struct NameRule { std::string_view off, on, state; Category category; };
-inline constexpr std::array<NameRule, 4> nameRules{{
+inline constexpr std::array<NameRule, 10> nameRules{{
     {"minecraft:redstone_lamp", "minecraft:lit_redstone_lamp", "lit", Lit},
     {"minecraft:unpowered_repeater", "minecraft:powered_repeater", "powered", Lit},
     {"minecraft:unpowered_comparator", "minecraft:powered_comparator", "powered", Lit},
     {"minecraft:unlit_redstone_torch", "minecraft:redstone_torch", "lit", Lit},
+    // Lit by the game while smelting or when touched (L-352).
+    {"minecraft:furnace", "minecraft:lit_furnace", "lit", Lit},
+    {"minecraft:blast_furnace", "minecraft:lit_blast_furnace", "lit", Lit},
+    {"minecraft:smoker", "minecraft:lit_smoker", "lit", Lit},
+    {"minecraft:redstone_ore", "minecraft:lit_redstone_ore", "lit", Lit},
+    {"minecraft:deepslate_redstone_ore", "minecraft:lit_deepslate_redstone_ore", "lit", Lit},
+    // A player's use flips it; daylight changes only its signal.
+    {"minecraft:daylight_detector", "minecraft:daylight_detector_inverted", "inverted", Lit},
 }};
 
 inline bool ignoredState(std::string_view state, unsigned on) {
