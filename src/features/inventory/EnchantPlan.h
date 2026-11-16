@@ -5,8 +5,8 @@
 #include <span>
 #include <vector>
 
-// L-170 groundwork: the order of anvil combinations that costs the fewest
-// levels. Not wired to any screen, setting or action yet.
+// L-170: the order of anvil combinations that costs the fewest levels, for
+// the enchantment order planner and the step list beside the anvil.
 //
 // The caller supplies what each input costs as a sacrifice. The prior-work
 // rule and the limit of 40 were read from the anvil screen on 1.26.60

@@ -442,7 +442,8 @@ void rebuild() {
     finishedAtAnvil = false;
 }
 
-// The step list beside the anvil screen. It takes no input.
+// The panels beside the anvil screen (the choosing panel, the steps and the Change button): which side of the
+// anvil a stack belongs on for the plan, if any.
 std::optional<unsigned> sideOf(ItemStack const& stack) {
     if (stack.isNull() || !stack.mItem) return std::nullopt;
     bool const isBook = stack.getTypeName() == bookItem;
