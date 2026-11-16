@@ -35,6 +35,12 @@ void rawMaterialsTests() {
         check(result.steps == std::vector<Step>{{block, 2, 0}}, "the asked item is still crafted once");
         auto both = reduce({{block, 1}, {ingot, 1}}, loop);
         check(both.looped.size() == 1 && !both.raw.empty(), "a loop where everything was asked for still ends");
+        // A loop (10 <-> 20) beside a chain (5 from 6) that sorts before it: the chain is crafted, not kept raw.
+        Recipes beside{{10, {1, {{20, 1}, {5, 1}}}}, {20, {1, {{10, 1}}}}, {5, {1, {{6, 1}}}}};
+        auto chain = reduce({{10, 1}}, beside);
+        check(chain.looped == std::vector<Item>{20} && chain.raw == Raw{{6, 1}, {20, 1}}
+                  && std::find(chain.steps.begin(), chain.steps.end(), Step{5, 1, 0}) != chain.steps.end(),
+              "only an item on the loop is kept raw; one made beside it is still crafted (L-342)");
     }
     {
         Recipes odd{{stone, {0, {{cobble, 1}}}}, {planks, {4, {}}}, {sticks, {4, {{planks, 0}}}}};

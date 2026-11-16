@@ -59,14 +59,33 @@ inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes 
     auto release = [&](Recipe const& recipe) {
         for (auto const& [part, count] : recipe.uses) if (count) --users[part];
     };
+    // Whether `item` leads back to itself through the recipes of items still left: only an item on a loop may
+    // be kept raw to break it, never one that is merely made from a loop's item.
+    auto onLoop = [&](Item item) {
+        std::set<Item> seen;
+        std::vector<Item> stack{item};
+        while (!stack.empty()) {
+            Item const at = stack.back();
+            stack.pop_back();
+            auto const* recipe = recipeOf(at);
+            if (!recipe) continue;
+            for (auto const& [part, count] : recipe->uses) {
+                if (!count || !left.contains(part)) continue;
+                if (part == item) return true;
+                if (seen.insert(part).second) stack.push_back(part);
+            }
+        }
+        return false;
+    };
     while (!left.empty()) {
         Item next = 0;
         bool found = false, loop = false;
         for (Item item : left) if (users[item] == 0) { next = item; found = true; break; }
         if (!found) {
-            // Only loops remain. Keep one item raw: one the player did not ask for, if any.
+            // Only loops remain. Keep one item on a loop raw: one the player did not ask for, if any.
             loop = true;
-            for (Item item : left) if (!asked.contains(item)) { next = item; found = true; break; }
+            for (Item item : left) if (!asked.contains(item) && onLoop(item)) { next = item; found = true; break; }
+            if (!found) for (Item item : left) if (onLoop(item)) { next = item; found = true; break; }
             if (!found) next = *left.begin();
         }
         left.erase(next);
