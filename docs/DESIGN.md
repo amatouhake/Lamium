@@ -242,12 +242,17 @@ the same commit. A screen never draws its own variant.
   disarms, nothing else. The tool views (Shapes, Waypoints, Schematics)
   share their header (`drawToolHeader`) and, docked, their frame
   (`drawDockedFrame`).
-- **Passing notices**: a toast is for what happens in the world (keys, the
-  schematic menu). Inside a Lamium screen a result goes to that screen's
+- **Passing notices**: a toast is for what the player did outside a Lamium
+  screen (keys, the schematic menu) or what came from outside (a death
+  layout restored, a waypoint reached, a background save finished). Inside
+  a Lamium screen a result of the player's own action goes to that screen's
   status line (the settings footer, the tool views' footers, the anvil
   panel's status lines) with `screen::setInfo` (white) or `setMessage`
-  (`warning`); a screen without one (world map, calculator) shows it in the
-  shared notice box above its bottom edge (`drawNotice`, 2.5 s).
+  (`warning`), never a toast; a screen without one (world map, calculator)
+  shows it in the shared notice box above its bottom edge (`drawNotice`,
+  2.5 s). A message or warning toast raised while the settings screen is
+  open waits and starts when it closes; one older than 60 s is dropped, and
+  an on/off toast never waits (L-339).
 - **Footer**: always two description lines; longer text scrolls there (wheel
   or its scrollbar). No "read more", expansion or help panel. White says
   what a setting is (a number's help includes its range); faint says how to
