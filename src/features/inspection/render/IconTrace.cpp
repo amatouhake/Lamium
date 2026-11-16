@@ -22,7 +22,7 @@
 namespace lamium::inspection::iconTrace {
 namespace {
 bool watchedName(std::string const& name) {
-    for (char const* part : {"fence", "door", "sign", "_bed", "stairs", "wall", "leather", "shield", "compass", "clock"})
+    for (char const* part : {"fence", "door", "sign", "_bed", "stairs", "wall", "leather", "shield", "compass", "clock", "sword"})
         if (name.find(part) != std::string::npos) return true;
     return false;
 }
@@ -56,8 +56,9 @@ LL_TYPE_INSTANCE_HOOK(SlotRenderHook, ll::memory::HookPriority::Normal, Inventor
         int passes = this->getNumRenderPasses();
         std::string materials;
         for (int p = 0; p < passes && p < 8; ++p)
-            materials += std::format(" p{}=m{}[{} | {}]", p, static_cast<int>(this->getUIMaterialType(p)),
-                location(this->getResourceLocation(0, p)), location(this->getResourceLocation(1, p)));
+            materials += std::format(" p{}=m{}[{} | {}] pre={}", p, static_cast<int>(this->getUIMaterialType(p)),
+                location(this->getResourceLocation(0, p)), location(this->getResourceLocation(1, p)),
+                this->getRequiresPreRenderSetup(p));
         // getItemRenderInfo crashed when called from here (2026-10-10); the batch key carries the same flags.
         auto key = std::format("slot {} pass={} of {} itemMaterial={} renderType={} texture={} enchanted={} batch={} preRender={}{}",
             name, pass, passes, static_cast<int>(this->mUIMaterialType), static_cast<int>(this->mItemRenderType),
