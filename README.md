@@ -268,8 +268,7 @@ requests are handled. What has been checked in game, per feature, is in
   without a distance. Checked locally, on BDS and in a LAN world.
 - **Item icons:** enchanted shields show no glint in Lamium's item icons
   (offhand slot, Shulker/Bundle previews, the inventory HUD); enchanted
-  golden apples and other flat icons do. Enchanted leather armor shows its
-  undyeable parts see-through there (unenchanted leather draws whole).
+  golden apples and other flat icons do.
 
 **Map**
 

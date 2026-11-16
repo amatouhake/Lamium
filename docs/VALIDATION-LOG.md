@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Glint passes in Lamium's item icons (2026-11-17)
+
+Builds: `c71804a1` plus the uncommitted L-91 change with `icon_trace` on,
+1.26.60.05 Dev instance, the maintainer. Slot trace (`c54ca728`): an
+enchanted flat item is one shared-mesh batch with passes UI material 6
+(chunk 2), 5 with `textures/misc/enchanted_item_glint` (chunk 4, the only
+pass asking for pre-render setup) and 7 (chunk 5); a shield is a default
+batch, 9 (chunk 7), 5, 7.
+
+`d44192a1` (enchanted leather only, three batches): undyeable parts whole,
+glint shown and moving, the rest of the HUD and inventory screen normal.
+`03d52af7` (every glinting flat item): an enchanted sword, book, golden
+apple and leather piece right in the inventory HUD and the shulker box
+preview, glint as strong as the vanilla hotbar's, also in the Durability
+HUD; the enchantment order planner (beside the anvil and its screen) shows
+glints as before. An enchanted shield drawn as its three passes: no glint,
+looks like a plain shield (that experiment is not in the commit). The
+committed build differs by the trace being off and the shield experiment
+removed.
+
 ## Compass, recovery compass and clock icons (2026-11-17)
 
 Build: `84a3637d` plus the uncommitted L-339 fix with `icon_trace` on, DLL

@@ -20,6 +20,7 @@
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ResolvedItemIconInfo.h"
 #include <algorithm>
+#include <initializer_list>
 #include <cstddef>
 #include <cstring>
 #include <memory>
@@ -42,18 +43,19 @@ constexpr UIMaterialType itemMaterial = static_cast<UIMaterialType>(13);
 class SharedItemBatch {
     alignas(ComponentRenderBatch) std::byte bytes[sizeof(ComponentRenderBatch)];
 public:
-    SharedItemBatch(int depth, char const* atlas, float alpha = 1.0f) {
+    SharedItemBatch(int depth, char const* atlas, float alpha = 1.0f, UIMaterialType material = itemMaterial,
+                    char const* second = "textures/entity/banner/banner") {
         std::memset(bytes, 0, sizeof bytes);
         auto& batch = get();
         alignas(BatchClippingState) std::byte clipBytes[sizeof(BatchClippingState)]{};
         auto& key = *::new (&*batch.mBatchKey) BatchKey(depth, alpha, *reinterpret_cast<BatchClippingState*>(clipBytes));
         key.mBatchType = UIBatchType::SharedMesh;
-        key.mUIMaterialType = itemMaterial;
+        key.mUIMaterialType = material;
         auto& textures = *key.mResourceLocations;
         std::destroy_at(&textures[0]);
         ::new (&textures[0]) ResourceLocation(Core::PathView(atlas));
         std::destroy_at(&textures[1]);
-        ::new (&textures[1]) ResourceLocation(Core::PathView("textures/entity/banner/banner"));
+        ::new (&textures[1]) ResourceLocation(Core::PathView(second));
         batch.mIsDirty = true; // Rebuilt every frame: Lamium's icons change freely.
         batch.mRequiresPreRenderSetup = false;
         batch.mRenderPass = 0;
@@ -141,10 +143,43 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
             shaderColor.dirty = true;
         }
     };
-    // Glinting items before any shared-mesh batch: after one, the foil call
-    // drew nothing even right after its icon (L-142 round 2); 0.1.8 drew no
-    // batches at all.
+    // Direct glinting items before any shared-mesh batch: after one, the foil
+    // call drew nothing even right after its icon (L-142 round 2).
+    // A glinting flat item draws as a slot's three passes, each a batch (L-91, 2026-11-17): UI material 6
+    // ItemGlintStencil with the icon (chunk 2), 5 InventoryItemGlint with the glint texture (chunk 4), 7
+    // ItemUnglintStencil (chunk 5), which always runs so no stencil is left behind. Unlike the direct path's
+    // foil call this keeps enchanted leather's undyeable layer. The slot gives the glint pass a pre-render
+    // setup Lamium cannot run; the glint shows and moves without it (checked on leather).
+    std::vector<bool> passes(icons.size(), false);
+    for (size_t i = 0; i < icons.size(); ++i) {
+        if (chunks[i] != glinting || icons[i].direct || !icons[i].glint) continue;
+        passes[i] = static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(*icons[i].stack)) == flatChunk;
+        if (passes[i]) chunks[i] = -1;
+    }
+    // A shield (chunk 7) keeps the direct path: drawn as its slot's passes (9 Shield, 5, 7) it showed no glint.
     for (size_t i = 0; i < icons.size(); ++i) if (chunks[i] == glinting) direct(i);
+    struct Pass { int material, chunk; char const* second; };
+    auto drawPasses = [&](std::vector<bool> const& which, std::initializer_list<Pass> list) {
+        std::vector<float> passAlphas;
+        for (size_t i = 0; i < icons.size(); ++i)
+            if (which[i] && std::find(passAlphas.begin(), passAlphas.end(), icons[i].alpha) == passAlphas.end())
+                passAlphas.push_back(icons[i].alpha);
+        for (float alpha : passAlphas)
+        for (Pass pass : list) {
+            SharedItemBatch batch{zOrder, "atlas.items", alpha, static_cast<UIMaterialType>(pass.material), pass.second};
+            context.beginSharedMeshBatch(batch.get());
+            for (size_t i = 0; i < icons.size(); ++i) {
+                if (!which[i] || icons[i].alpha != alpha) continue;
+                auto const& icon = icons[i];
+                renderer->renderGuiItemInChunk(renderContext, static_cast<ItemRenderChunkType>(pass.chunk), *icon.stack,
+                    icon.x, icon.y, 1.0f, 1.0f, icon.scale, icon.frame, true, zOrder, std::nullopt);
+            }
+            context.endSharedMeshBatch(batch.get());
+        }
+    };
+    constexpr char const* noTexture = "textures/entity/banner/banner";
+    constexpr char const* glintTexture = "textures/misc/enchanted_item_glint";
+    drawPasses(passes, {{6, flatChunk, noTexture}, {5, 4, glintTexture}, {7, 5, noTexture}});
     // One batch per chunk type and opacity: the batch key carries the alpha.
     std::vector<float> alphas;
     for (auto const& icon : icons) if (std::find(alphas.begin(), alphas.end(), icon.alpha) == alphas.end()) alphas.push_back(icon.alpha);
