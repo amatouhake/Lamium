@@ -53,7 +53,8 @@ Json highlightJson(std::vector<visuals::highlight::Entry> const& entries) {
 Json encodeHudElement(ui::HudElement const& element) {
     return {{"anchor", static_cast<int>(element.anchor)}, {"dx", element.dx},
             {"dy", element.dy}, {"scale", element.scale},
-            {"background", static_cast<int>(element.background)}, {"shadow", element.shadow}};
+            {"background", static_cast<int>(element.background)}, {"shadow", element.shadow},
+            {"standardText", element.standardText}};
 }
 // The inventory grid's slot became the hotbar's 20 units (L-357); "cell" marks a scale set against that.
 Json inventoryElementJson(ui::HudElement const& element) {
@@ -68,6 +69,8 @@ void decodeHudElement(Json const& data, ui::HudElement& element, ui::HudElement 
     element.scale = settingsValue(data, "scale", defaultValue.scale);
     element.background = static_cast<ui::ElementBackground>(settingsValue(data, "background", static_cast<int>(defaultValue.background)));
     element.shadow = settingsValue(data, "shadow", defaultValue.shadow);
+    // A layout saved before L-357 keeps its text following the scale.
+    element.standardText = settingsValue(data, "standardText", false);
 }
 Json encode(Settings const& settings) {
     Json bindings = Json::object();
@@ -295,7 +298,6 @@ Json encode(Settings const& settings) {
                  {"netherView", settings.map.netherView},
                  {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
-                 {"textSize", settings.map.textSize},
                  {"debugHide", settings.map.debugHide}, {"radar", settings.map.radar},
                  {"radarPlayers", settings.map.radarPlayers}, {"radarHostile", settings.map.radarHostile},
                  {"radarPassive", settings.map.radarPassive}, {"radarItems", settings.map.radarItems},
@@ -597,7 +599,6 @@ Settings decodeSettings(std::string_view text) {
         value.map.coordinates = settingsValue(map, "coordinates", value.map.coordinates);
         value.map.biome = settingsValue(map, "biome", value.map.biome);
         value.map.compass = settingsValue(map, "compass", value.map.compass);
-        value.map.textSize = settingsValue(map, "textSize", value.map.textSize);
         value.map.debugHide = settingsValue(map, "debugHide", value.map.debugHide);
         // Before L-297 one switch hid the marks on the minimap ("minimapLayers",
         // before L-295 the waypoints' "waypointsMinimap"); off means the world

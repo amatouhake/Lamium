@@ -4,12 +4,9 @@
 #include <cstddef>
 
 namespace lamium::map {
-// The minimap's text (compass letters, the lines below, player names) is
-// the element's HUD scale times "Text size" (L-337); both are 50-200 % in
-// 5 % steps, so the text spans 25-400 % of its unscaled size.
-inline float minimapTextScale(float hudScale, float textSize) {
-    return ui::clampHudScale(hudScale) / 100 * ui::clampHudScale(textSize) / 100;
-}
+// The minimap's text (compass letters, the lines below, player names) is at
+// the element's text zoom: the standard size or its scale (L-357,
+// ui::hudTextZoom).
 // The box around a map of `side` units: compass letters straddle the frame
 // (half a letter outside it), the lines below are centered under it.
 struct MinimapLayout {

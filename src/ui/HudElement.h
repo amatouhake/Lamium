@@ -41,6 +41,8 @@ struct HudElement {
     float scale = 100; // Percent, hudScaleMin-hudScaleMax.
     ElementBackground background = ElementBackground::None;
     bool shadow = true;
+    // Text at the standard size (as at 100 %) whatever the scale; off: the text follows the scale (L-357).
+    bool standardText = false;
 };
 // Scale bounds and the step of the editor's buttons and handles (L-321);
 // a typed value may be any whole percent.
@@ -72,7 +74,26 @@ inline constexpr bool hudGameDrawn(HudElementId id) {
 // Gap from the screen edge used by defaults and snap-to; flush is allowed.
 inline constexpr float hudInset = 4;
 // Defaults match docs/demos/hud-editor.html.
+// Elements with graphics beside their text, whose text may keep the standard size while the
+// element is scaled (L-357). Text-only elements keep their scale as their text; text drawn on
+// graphics (a slot's count) follows the scale.
+inline constexpr bool hudTextChoice(HudElementId id) {
+    return id == HudElementId::Minimap || id == HudElementId::Durability || id == HudElementId::StatusEffects
+        || id == HudElementId::Target || id == HudElementId::Schematic || id == HudElementId::PlayerList;
+}
+inline constexpr HudElement placedHudElement(HudElementId id);
+// New installs and a reset start these elements with standard-size text; a saved element
+// without the setting keeps following its scale (SettingsStore).
 inline constexpr HudElement defaultHudElement(HudElementId id) {
+    HudElement element = placedHudElement(id);
+    element.standardText = hudTextChoice(id);
+    return element;
+}
+// The zoom an element's text is drawn at, for its scale (1 = 100 %).
+inline float hudTextZoom(HudElementId id, HudElement const& element) {
+    return hudTextChoice(id) && element.standardText ? 1.f : clampHudScale(element.scale) / 100;
+}
+inline constexpr HudElement placedHudElement(HudElementId id) {
     switch (id) {
     // Info per line and Status on a card: chosen in game for L-98 (2026-10-06).
     case HudElementId::Info: return {Anchor::TopLeft, hudInset, hudInset, 100, ElementBackground::Line, true};
