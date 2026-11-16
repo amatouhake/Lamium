@@ -124,7 +124,7 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Chunk Borders | Java-style chunk edges | `F3+G` | Off |
 | Hitboxes | Entity bounds with eye and look markers | `F3+B` | Off |
 | Light Level Overlay | Where monsters can spawn | — | Off |
-| Shapes | Boxes, cones, domes and more in the world, saved per world | — | On |
+| Shapes | Boxes, cones, domes and more in the world, saved per world and server | — | On |
 
 The HUD layout view moves and styles Lamium's HUD elements.
 

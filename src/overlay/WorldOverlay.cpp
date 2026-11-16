@@ -74,6 +74,8 @@ std::atomic<bool> joiningLocal{false};
 // The joined world the shapes were loaded for (map::waypoints::place().world, L-356): a local world's
 // Lamium folder or a server's file in the config folder, as the waypoints and placements.
 unsigned shapeWorld = 0;
+// World exit (or a reload of the shapes) asks the next frame to release the uploaded meshes.
+std::atomic<bool> releaseMeshes{false};
 // The latest feet block per dimension, under shapeMutex (L-311): a following
 // shape stays where the player left its dimension.
 std::map<int, Cell> followFeet;
@@ -110,6 +112,7 @@ void followWorld() {
     if (place.world == shapeWorld) return;
     shapeWorld = place.world;
     shapeWorkspace.leave();
+    releaseMeshes = true; // Reloaded shapes get new ids; the old ids' meshes go.
     identityFailed = false;
     if (!place.active || !place.shapeFile) return;
     try { shapeWorkspace.enter(*place.shapeFile); }
@@ -151,7 +154,6 @@ std::map<ShapeId, CellMesh> shapeMeshes;
 // The breaking region of the press in progress (L-15): white faces with a
 // faint grid, like a face-style shape.
 CellMesh restrictionMesh;
-std::atomic<bool> releaseMeshes{false};
 struct EyeTrack { EyeOffsetInterpolator offset; uint64_t seenFrame = 0; };
 thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
 thread_local uint64_t eyeFrame = 0;
