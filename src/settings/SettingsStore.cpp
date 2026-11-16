@@ -3,6 +3,7 @@
 #include "settings/SettingsValue.h"
 #include "nlohmann/json.hpp"
 #include <array>
+#include <cmath>
 #include <fstream>
 #include <stdexcept>
 #include <system_error>
@@ -755,10 +756,13 @@ Settings decodeSettings(std::string_view text) {
         element("schematic", value.hud.schematic, ui::HudElementId::Schematic);
         element("playerList", value.hud.playerList, ui::HudElementId::PlayerList);
         element("inventory", value.hud.inventory, ui::HudElementId::Inventory);
-        // A scale saved for the 18-unit slot keeps the grid's size on screen.
-        if (auto found = hud.find("inventory"); found != hud.end() && found->is_object() && !found->contains("cell"))
-            value.hud.inventory.scale = ui::clampHudScale(value.hud.inventory.scale * information::inventoryHud::slotSizeBefore
-                                                          / information::inventoryHud::slotSize);
+        // A scale saved for the 18-unit slot keeps the grid's size on screen, to the nearest 5 % step as the
+        // editor's buttons give (as the minimap's size conversion does).
+        if (auto found = hud.find("inventory"); found != hud.end() && found->is_object() && !found->contains("cell")) {
+            float const kept = ui::clampHudScale(value.hud.inventory.scale) * information::inventoryHud::slotSizeBefore
+                / information::inventoryHud::slotSize;
+            value.hud.inventory.scale = ui::clampHudScale(std::round(kept / ui::hudScaleStep) * ui::hudScaleStep);
+        }
         element("usedSlots", value.hud.usedSlots, ui::HudElementId::UsedSlots);
         element("chat", value.hud.chat, ui::HudElementId::Chat);
         element("paperDoll", value.hud.paperDoll, ui::HudElementId::PaperDoll);

@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Inventory grid slot as the hotbar's (L-357, 2026-11-17)
+
+Build `87c48e2a`, DLL SHA-256
+`df71f244968db52597dba0b8e2aa764b74eab2550e3c549f22138cb7e8eefbb4`, 1.26.60.05 Dev
+instance, the maintainer. Passed: after a rejoin the inventory HUD kept its
+size on screen; at 100 % its cells and counts match the vanilla hotbar's;
+icons centered, durability bars and counts in place. The saved 110 % became
+99 % (any whole percent can be typed, but the buttons step by 5): the
+conversion now rounds to the 5 % step (the next commit; not seen in game, a
+file already converted keeps its value).
+
 ## Merging saved data (L-343 part 4, 2026-11-17)
 
 Build `072d15c5`, DLL SHA-256

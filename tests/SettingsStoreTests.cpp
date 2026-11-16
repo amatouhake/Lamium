@@ -700,6 +700,9 @@ void settingsStoreTests() {
         check(newGrid.hud.inventory.scale == 100, "a scale saved for the 20-unit slot is kept");
         check(decodeSettings(R"({"hud":{"inventory":{"scale":50}}})").hud.inventory.scale == 50,
               "the converted scale stays within 50-200 %");
+        check(decodeSettings(R"({"hud":{"inventory":{"scale":110}}})").hud.inventory.scale == 100
+              && decodeSettings(R"({"hud":{"inventory":{"scale":150}}})").hud.inventory.scale == 135,
+              "the converted scale rounds to the 5 % step");
         check(decodeSettings(R"({"map":{"minimap":true}})").hud.inventory.scale == 100, "no saved grid keeps the default");
         auto none = decodeSettings(R"({"hud":{"minimap":{"scale":120}},"map":{"minimap":true}})");
         check(none.hud.minimap.scale == 120, "a file without map.size keeps its scale");
