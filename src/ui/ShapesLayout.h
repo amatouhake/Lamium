@@ -118,7 +118,7 @@ struct ShapesLayout {
     // panel too short for its body has none.
     bool onScrollbar(float x, float y) const {
         float right = listLeft + listWidth;
-        return (usable() || (detailWidth <= 0 && listWidth > 0)) && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
+        return (usable() || (detailWidth <= 0 && listWidth > 0)) && listCount > listVisible && x >= right - 3 - barReach && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
     }
     // A row's background and hover stop short of the bar while it shows, so
     // the selection frame never covers it and pointing at it lights no row.

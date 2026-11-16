@@ -313,7 +313,7 @@ void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::Contents
     }
     if (auto const& t = layout.track) {
         auto thumb = hud_editor::scrollThumb(t->top, t->track, layout.count, layout.visible, layout.first);
-        bool over = pointerX >= t->x - 2 && pointerX < t->x + 4 && pointerY >= t->top && pointerY < t->top + t->track;
+        bool over = pointerX >= t->x + 1 - barReach && pointerX < t->x + 5 && pointerY >= t->top && pointerY < t->top + t->track;
         drawScrollbar(context, t->x + 1, t->top, t->track, thumb.top, thumb.h, scrollHot || over);
     }
 }

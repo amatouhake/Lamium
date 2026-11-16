@@ -1912,7 +1912,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 label(context,dx,y,dw,translated("schematic.ignore.compared"),palette::faint);
                 y += 12;
                 auto const scroll = scrollItems("b" + picked->block, items.size(), y, textEnd, 12);
-                float const edge = scroll.overflows() ? dx + dw - 1 - rowBarGutter : dx + dw; // the bar sits 1 further right than a list's
+                float const edge = scroll.overflows() ? dx + dw - 1 - rowBarGutter : dx + dw;
                 for (int i = scroll.first; i < scroll.first + scroll.visible; ++i) {
                     auto const& item = items[static_cast<size_t>(i)];
                     bool const ruled = ignored.ruled(picked->block, item);
@@ -2036,7 +2036,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             // A place ignored keeps its note under the lines.
             auto const scroll = scrollItems(std::format("c{},{},{},{}", m.position.x, m.position.y, m.position.z, m.entity),
                 m.states.size(), sy, placeIgnored ? textEnd - 24 : textEnd, pitch);
-            float const edge = scroll.overflows() ? dx + dw - 1 - rowBarGutter : dx + dw; // the bar sits 1 further right than a list's
+            float const edge = scroll.overflows() ? dx + dw - 1 - rowBarGutter : dx + dw;
             for (int i = scroll.first; i < scroll.first + scroll.visible; ++i) {
                 auto const& d = m.states[static_cast<size_t>(i)];
                 auto const& item = schematic::itemId(d);

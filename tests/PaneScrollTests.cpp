@@ -24,7 +24,7 @@ void scrollBarTests() {
     check(!fits.scrolls() && !fits.hit(100, 10), "a bar whose rows fit neither scrolls nor takes a press");
     auto bar = rowScrollBar(100, 0, 100, 20, 10, 0);
     check(bar.scrolls() && bar.thumb == 50 && bar.thumbTop() == 0, "the thumb is the shown share, at the top for the first row");
-    check(bar.hit(97, 10) && bar.hit(102, 10) && !bar.hit(90, 10) && !bar.hit(100, 100), "a press counts on the bar's column only");
+    check(bar.hit(99, 10) && bar.hit(102, 10) && !bar.hit(98, 10) && !bar.hit(100, 100), "a press counts on the bar's column only");
     check(bar.grabAt(20) == 20 && bar.grabAt(80) == 25, "the thumb keeps its grip, the track centers it");
     check(bar.posAt(20, 20) == 0 && bar.posAt(70, 20) == 10 && bar.posAt(500, 20) == 10 && bar.posAt(-50, 20) == 0,
           "dragging maps the thumb's travel onto the range and stops at both ends");
@@ -82,7 +82,8 @@ void barGutterTests() {
           "a table that fits keeps its full width");
     auto t = SettingsTable::fit(640, 360, 200, 0);
     float barX = t.rowsRight() - 3, rowEnd = t.tableLeft + 1 + t.rowWidth();
-    check(rowEnd < barX - 2 && t.keyX + t.keyWidth < rowEnd, "a scrolling table's rows and keys end before its bar");
+    check(rowEnd < barX && !t.onListScrollbar(rowEnd - .5f, t.rowsTop + 1) && t.keyX + t.keyWidth < rowEnd,
+          "a scrolling table's rows and keys end before its bar and its press zone");
     check(t.onListScrollbar(barX, t.rowsTop + 1) && t.hitZone(barX, t.rowsTop + 1, 13).zone != SettingsTable::Zone::Row,
           "pointing at the table's bar points at no row");
     check(t.hitZone(t.nameX, t.rowsTop + 1, 13).zone == SettingsTable::Zone::Row, "the row is still pointed at left of the bar");
@@ -91,6 +92,7 @@ void barGutterTests() {
     auto l = ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false);
     auto c = listColumns(l.listLeft, l.contentWidth(), 0, 18);
     float listRowEnd = l.listLeft + 1 + l.rowWidth();
-    check(l.listCount > l.listVisible && c.shownX + c.shownWidth < listRowEnd - 2 && listRowEnd < l.scrollBar().x - 2,
+    check(l.listCount > l.listVisible && c.shownX + c.shownWidth < listRowEnd - 2 && listRowEnd < l.scrollBar().x
+          && !l.onScrollbar(listRowEnd - .5f, l.rowsTop + 1) && !l.scrollBar().hit(listRowEnd - .5f, l.rowsTop + 1),
           "a scrolling list's switch stays inside its row, the row short of the bar");
 }

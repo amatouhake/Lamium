@@ -177,9 +177,12 @@ the same commit. A screen never draws its own variant.
   one drag (`ui/ScrollDrag.h`, also beside the anvil and on the world map):
   a press on the thumb keeps its grip,
   on the track the thumb's middle goes to the pointer, and the bar follows
-  the pointer until release. While a bar shows, rows (background, selection,
-  hover) and their columns stop short of it (`rowBarGutter`), the settings
-  table's too.
+  the pointer until release. A press takes the bar on its column and 1
+  unit to its left (`barReach`). While a bar shows, rows (background,
+  selection, hover) and their columns, the settings table's too, end 4 short
+  of the list's edge (`rowBarGutter`), clear of that zone with 2 units seen
+  between row and bar (maintainer 2026-11-16: kept tight, a little harder to
+  grab).
 - **List columns** (L-190, `ui/ListColumns.h`, `drawListHeadings`): the
   Waypoints, Shapes and Placed lists, docked or not, share one shape: the
   mark (kind and color; a shape's mark is its type glyph, a placement's a

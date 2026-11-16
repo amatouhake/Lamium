@@ -106,7 +106,7 @@ inline ContentsLayout layoutContents(Spot toolbar, float toolbarH, int count, bo
 }
 // The scroll bar takes a press a little wider than it is drawn.
 inline bool onContentsTrack(ContentsLayout const& layout, float px, float py) {
-    return layout.track && px >= layout.track->x - 2 && px < layout.track->x + 5 && py >= layout.track->top
+    return layout.track && px >= layout.track->x + 1 - barReach && px < layout.track->x + 5 && py >= layout.track->top
         && py < layout.track->top + layout.track->track;
 }
 }

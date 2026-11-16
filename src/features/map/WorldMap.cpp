@@ -387,7 +387,7 @@ void dropList() {
     if (ui::scroll_drag::holding(&state.listFirst)) ui::scroll_drag::release();
 }
 bool onListBar(float x, float y) {
-    return state.listRows > state.listVisible && x >= state.listBarX - 5 && x < state.listBarX + 3
+    return state.listRows > state.listVisible && x >= state.listBarX - ui::barReach && x < state.listBarX + 3
         && y >= state.listTop && y < state.listBottom;
 }
 // The side list's bar, the shared one (ScrollBar.h, dragged through ScrollDrag.h).

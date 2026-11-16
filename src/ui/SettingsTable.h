@@ -91,7 +91,7 @@ struct SettingsTable {
     // Scrollbars in the right padding of the list and of the footer (the
     // press zones; the bar and its drag are the shared ones, ScrollBar.h).
     bool onListScrollbar(float x, float y) const {
-        return count > visible && x >= rowsRight() - pad && x < rowsRight() && y >= rowsTop && y < rowsTop + visible * rowHeight;
+        return count > visible && x >= rowsRight() - 3 - barReach && x < rowsRight() && y >= rowsTop && y < rowsTop + visible * rowHeight;
     }
     bool onDescriptionScrollbar(float x, float y, int lines) const {
         float right = left + width;
