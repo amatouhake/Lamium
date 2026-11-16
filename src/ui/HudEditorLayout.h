@@ -157,6 +157,17 @@ inline Box nameTag(Box element, float w, float screenW, float screenH, std::vect
     for (auto const& place : places) if (onScreen(place)) return place;
     return {std::clamp(left, 0.f, std::max(0.f, screenW - w)), std::clamp(above, 0.f, std::max(0.f, screenH - h)), w, h};
 }
+// The selected element's tag, placed with room for its switch (`whole`), split
+// into the name and the switch (L-334): the name keeps the end at the
+// element's corner the tag lines up with (not its middle: a tag wider than
+// the element still hangs from one corner), the switch takes the other end.
+struct TagParts { Box name, toggle; };
+inline TagParts splitTag(Box whole, Box element, float nameW) {
+    bool const fromRight = std::abs(whole.x + whole.w - (element.x + element.w + 1)) < std::abs(whole.x - (element.x - 1));
+    Box name{fromRight ? whole.x + whole.w - nameW : whole.x, whole.y, nameW, whole.h};
+    Box toggle{fromRight ? whole.x : whole.x + nameW, whole.y, std::max(0.f, whole.w - nameW), whole.h};
+    return {name, toggle};
+}
 // Diagonal hatching over an element hidden from HUD layout (L-334): lines of
 // one-unit squares `step` units apart, clipped to the box, at most `limit`.
 // The dot step stays fixed so every element reads as the same lines; a large

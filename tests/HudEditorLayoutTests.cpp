@@ -93,6 +93,16 @@ void hudEditorLayoutTests() {
     auto tag = nameTag(tagged, 40, 640, 360);
     check(tag.x == 99 && tag.y == 27 && tag.w == 40 && tag.h == nameTagHeight, "a name tag hangs above the left corner");
     check(nameTag(Box{100, 4, 60, 30}, 40, 640, 360).y == 36, "at the top of the screen the tag goes below");
+    {
+        // L-342: the selected tag's name stays at the element's corner, the switch takes the far end.
+        Box element{100, 100, 60, 30};
+        auto left = splitTag(Box{99, 87, 62, 11}, element, 40);
+        check(left.name.x == 99 && left.name.w == 40 && left.toggle.x == 139 && left.toggle.w == 22,
+              "a tag from the left corner: name first, then the switch");
+        auto right = splitTag(Box{99, 87, 62, 11}, Box{120, 100, 40, 30}, 40);
+        check(right.name.x == 121 && right.toggle.x == 99 && right.toggle.w == 22,
+              "a tag from the right corner: the switch first, the name at the corner");
+    }
     auto second = nameTag(tagged, 40, 640, 360, {tag});
     check(second.x == 99 && second.y == 72, "a taken place sends the next tag below the box");
     auto third = nameTag(tagged, 40, 640, 360, {tag, second});

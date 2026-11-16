@@ -507,12 +507,10 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             constexpr float switchRoom = switchWidth + 4;
             float nameW = textWidth(context, name) + 6;
             auto whole = nameTag(*box, nameW + (shown ? switchRoom : 0), width, height, {}, rightSide(*focus));
-            // The corner the tag lines up with, not its middle: a tag wider
-            // than the element still hangs from one corner.
-            bool fromRight = std::abs(whole.x + whole.w - (box->x + box->w + 1)) < std::abs(whole.x - (box->x - 1));
-            focusTag = Box{fromRight ? whole.x + whole.w - nameW : whole.x, whole.y, nameW, whole.h};
+            auto parts = splitTag(whole, *box, nameW);
+            focusTag = parts.name;
             tags.push_back({*focusTag, std::move(name), true, isOff(*focus)});
-            if (shown) focusSwitch = std::pair{Box{fromRight ? whole.x : whole.x + nameW, whole.y, switchRoom, whole.h}, *shown};
+            if (shown) focusSwitch = std::pair{parts.toggle, *shown};
         }
     if (focusTag) taken.push_back(*focusTag);
     if (focusSwitch) taken.push_back(focusSwitch->first);
