@@ -317,6 +317,23 @@ void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::Contents
         drawScrollbar(context, t->x + 1, t->top, t->track, thumb.top, thumb.h, scrollHot || over);
     }
 }
+void drawLookPopover(MinecraftUIRenderContext& context, hud_editor::Box box, std::vector<LookPopoverRow> const& rows,
+                     float pointerX, float pointerY) {
+    panel(context, box.x, box.y, box.w, box.h, opacity::screen);
+    frame(context, box.x, box.y, box.w, box.h, palette::white, .14f);
+    for (auto const& r : rows) {
+        auto const& item = r.item;
+        if (item.row.contains(pointerX, pointerY)) fill(context, item.row.x, item.row.y, item.row.w, item.row.h, palette::white, .06f);
+        if (item.kind == hud_editor::LookRow::Background) {
+            label(context, item.labelAt.x, item.labelAt.y, item.labelWidth, r.name, palette::text);
+            drawStepper(context, item.stepper.x, item.stepper.y, item.stepper.w, item.stepper.h, false, r.value,
+                        {.cell = hud_editor::lookCell, .pointerX = pointerX, .pointerY = pointerY});
+        } else {
+            toggleSwitch(context, item.switchAt.x, item.switchAt.y, r.on);
+            label(context, item.labelAt.x, item.labelAt.y, item.labelWidth, r.name, palette::text);
+        }
+    }
+}
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot) {
     if (l.listCount <= l.listVisible) return;
     auto bar = l.scrollBar();

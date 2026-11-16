@@ -56,9 +56,17 @@ is fixed to the screen edges and is not an element.
   unchanged. Overlap matters only in the editor, so there are no overlap
   warnings, no automatic avoidance and, for now, no element list.
 - Selecting an element opens a small toolbar next to it (below, or above
-  when there is no room): snap-to 3x3, scale, background, shadow (a "name:
-  value" button like background), a "Contents" popover where the element
-  has content switches (below), then a divider and Reset. The toolbar stays put while
+  when there is no room): snap-to 3x3, scale, a "Look" popover (below), a
+  "Contents" popover where the element has content switches (below), then a
+  divider and Reset. Game parts keep position and scale only.
+- Look (L-357): background (a `< value >` stepper), text shadow, and for an
+  element with graphics beside its text (minimap, durability, status
+  effects, target, schematic HUD, player list) "Standard text size": on,
+  its text stays as at 100 % whatever the element's scale; off, it follows
+  the scale. Text drawn on graphics (a slot's count) always follows the
+  scale; text-only elements keep their scale as their text. Saved layouts
+  keep following the scale; new installs and an element's Reset start
+  standard. The toolbar stays put while
   only the look changes and re-anchors after a move or when the element grows
   over it. Why: a side panel that follows the selection jumps across the
   screen.
@@ -76,7 +84,7 @@ is fixed to the screen edges and is not an element.
   state, so no switch. The element is measured every frame, so it takes its
   new size at once; the toolbar keeps its place unless the element grows
   over it.
-- Popovers (snap-to, contents) never cover their toolbar: they open on the side
+- Popovers (snap-to, look, contents) never cover their toolbar: they open on the side
   that fits and scroll when there is not enough room.
 - Resets (decided 2026-11-11): the selected element's Reset applies at once,
   like a binding row's Reset (the Info HUD's also restores its line order);
