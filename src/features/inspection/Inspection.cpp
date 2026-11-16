@@ -205,7 +205,7 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
         }
         // The anvil's surcharge on this item (L-319). Read the way the enchantment order reads it, and under the
         // same capability: what the number means was checked against the anvil screen for that feature.
-        if (settings.workPenalty && versionSensitiveAllowed(capabilities::Id::EnchantOrder))
+        if (settings.workPenalty && versionSensitiveAllowed(capabilities::Id::WorkPenalty))
             if (auto const penalty = inventory::enchantPlan::workPenalty(getBaseRepairCost()))
                 text += "\n\u00a77" + (penalty->uses ? ui::translated("workPenaltyValue", penalty->levels, *penalty->uses)
                                                       : ui::translated("workPenaltyOnly", penalty->levels));

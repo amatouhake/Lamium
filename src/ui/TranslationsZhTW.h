@@ -34,6 +34,8 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"capability.EnchantOrder", "附魔順序（花費與鐵砧步驟）"},
     {"capability.ItemDetails", "物品詳情（燉菜效果、屬性值、ID、標籤和 NBT）"},
     {"capability.MapMaterialInstances", "附加包方塊的地圖顏色"},
+    {"capability.EnglishSearchEnchants", "以附魔名稱搜尋附魔書"},
+    {"capability.WorkPenalty", "物品提示中的累積懲罰"},
     {"capability.FreeCameraHand", "隱藏手部"},
     {"capability.FreeCameraHud", "隱藏整個 HUD"},
     {"capability.HideParticles", "粒子的隱藏"},

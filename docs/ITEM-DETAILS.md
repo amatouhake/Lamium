@@ -116,10 +116,10 @@ long as the button is).
 
 ### Version gate
 
-- The work penalty line asks `versionSensitiveAllowed(EnchantOrder)`, the
-  enchantment order's capability: on a game version that is not verified
+- The work penalty line asks `versionSensitiveAllowed(WorkPenalty)`, its
+  own capability under Item details: on a game version that is not verified
   the line is left out and, while the line and the main switch are on, the
-  paused notice names Enchantment order.
+  paused notice names Item details.
 - The stew's effect, property values, ID, tags and NBT ask
   `versionSensitiveAllowed(ItemDetails)` ("Item details (item data reads)",
   partial impact). On an unverified game those lines are left out, the

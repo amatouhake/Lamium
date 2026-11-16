@@ -14,7 +14,7 @@ enum class Id {
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
     NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, BossBarPosition,
-    ItemDetails, MapMaterialInstances, Count
+    ItemDetails, MapMaterialInstances, EnglishSearchEnchants, WorkPenalty, WorldMapMaterialInstances, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -72,6 +72,12 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::BossBarPosition, "Boss bar position (HUD control positions)", "gameHud", "capability.BossBarPosition", Impact::Partly},
     {Id::ItemDetails, "Item details (item data reads)", "itemDetails", "capability.ItemDetails", Impact::Partly, true, true},
     {Id::MapMaterialInstances, "Map colors of add-on blocks (block material instances)", "minimap", "capability.MapMaterialInstances", Impact::Partly, true, true},
+    // Readers of data another capability checked, under the feature that shows them: a notice names
+    // what the player switched on, not the feature the data was first read for.
+    {Id::EnglishSearchEnchants, "English Search (enchanted books' enchantments)", "englishSearch", "capability.EnglishSearchEnchants", Impact::Partly, true, true},
+    {Id::WorkPenalty, "Work penalty line (an item's anvil uses)", "itemDetails", "capability.WorkPenalty", Impact::Partly, true, true},
+    // The world map's recording reads the same colors as the minimap (MapMaterialInstances is the gate).
+    {Id::WorldMapMaterialInstances, "World map colors of add-on blocks (block material instances)", "worldMap", "capability.MapMaterialInstances", Impact::Partly, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

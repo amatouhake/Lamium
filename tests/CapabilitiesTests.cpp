@@ -155,14 +155,16 @@ void capabilitiesTests() {
         lamium::Settings quiet;
         quiet.inspection.itemTooltip = quiet.inspection.englishSearch = false;
         check(!requested(Id::EnchantOrder, quiet) && !requested(Id::ItemDetails, quiet)
-            && !requested(Id::MapMaterialInstances, quiet), "nothing that reads gated data is on, so nothing is named");
+            && !requested(Id::MapMaterialInstances, quiet) && !requested(Id::WorldMapMaterialInstances, quiet)
+            && !requested(Id::EnglishSearchEnchants, quiet) && !requested(Id::WorkPenalty, quiet),
+            "nothing that reads gated data is on, so nothing is named");
         auto search = quiet;
         search.inspection.englishSearch = true;
         auto penalty = quiet;
         penalty.inspection.itemTooltip = penalty.inspection.workPenalty = true;
-        check(requested(Id::EnchantOrder, search) && requested(Id::EnchantOrder, penalty)
-            && (penalty.inspection.workPenalty = false, !requested(Id::EnchantOrder, penalty)),
-            "English Search's enchanted books and the tooltip's work penalty line count as using the enchantment data");
+        check(requested(Id::EnglishSearchEnchants, search) && requested(Id::WorkPenalty, penalty)
+            && !requested(Id::EnchantOrder, search) && !requested(Id::EnchantOrder, penalty),
+            "English Search's enchanted books and the tooltip's work penalty line are asked for under their own features");
         auto lines = quiet;
         lines.inspection.itemTooltip = true;
         lines.inspection.itemDetails = lines.inspection.itemDetailsStew = lines.inspection.itemDetailsId = false;
@@ -180,15 +182,17 @@ void capabilitiesTests() {
         auto minimap = quiet, worldMap = quiet;
         minimap.map.minimap = true;
         worldMap.map.worldMap = true;
-        check(requested(Id::MapMaterialInstances, minimap) && requested(Id::MapMaterialInstances, worldMap),
-            "either map reads add-on block colors");
+        check(requested(Id::MapMaterialInstances, minimap) && requested(Id::WorldMapMaterialInstances, worldMap)
+            && !requested(Id::MapMaterialInstances, worldMap) && !requested(Id::WorldMapMaterialInstances, minimap),
+            "either map reads add-on block colors and is named for itself");
         auto names = [](lamium::Settings const& s, std::string_view feature) {
             for (auto used : lamium::paused::inUse(s)) if (used == feature) return true;
             return false;
         };
-        check(names(minimap, "minimap") && !names(quiet, "minimap") && names(search, "enchantOrder")
-            && !names(quiet, "enchantOrder") && names(lamium::Settings{}, "itemDetails") && !names(quiet, "itemDetails"),
-            "on an unverified game the notice names the map, the enchantment data and Item details only while they are used");
+        check(names(minimap, "minimap") && !names(quiet, "minimap") && names(worldMap, "worldMap") && !names(worldMap, "minimap")
+            && names(search, "englishSearch") && !names(search, "enchantOrder") && names(penalty, "itemDetails")
+            && !names(penalty, "enchantOrder") && names(lamium::Settings{}, "itemDetails") && !names(quiet, "itemDetails"),
+            "on an unverified game the notice names each feature that is used, by its own name");
     }
     Notice notice;
     check(notice.poll(1,1) && !notice.changed(""), "pending initialization stays quiet on join");

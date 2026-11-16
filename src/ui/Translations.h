@@ -37,6 +37,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.EnchantOrder", "Enchantment order (costs and the anvil list)", "エンチャント順序（コストと金床の手順）"},
     {"capability.ItemDetails", "Item details (stew effect, property values, ID, tags and NBT)", "アイテムの詳細（シチューの効果、性質の値、ID、タグ、NBT）"},
     {"capability.MapMaterialInstances", "Map colors of add-on blocks", "アドオンブロックの地図の色"},
+    {"capability.EnglishSearchEnchants", "Enchanted books found by enchantment name", "エンチャント名でのエンチャント本の検索"},
+    {"capability.WorkPenalty", "Work penalty in item tooltips", "アイテムツールチップの作業ペナルティ"},
     {"capability.FreeCameraHand", "Hide the hand", "手の非表示"},
     {"capability.FreeCameraHud", "Hide the whole HUD", "HUD全体の非表示"},
     {"capability.HideParticles", "Particle visibility", "パーティクルの非表示"},

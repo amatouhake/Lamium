@@ -134,9 +134,12 @@ the package/SDK loader-policy alignment in CI.
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
-| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge), and English Search does not find enchanted books by enchantment name (`EnglishSearch.cpp` `storedEnchantNames`) | everything else |
-| Item details (item data reads) | `Inspection.cpp` (`Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`, burn and use times in the item's components, `getCooldownDuration`, the suspicious stew's effect) | the tooltip has no stew effect, property values, ID, tags or NBT lines | the game's tooltip, durability numbers, food values; the work penalty follows Enchantment order's capability |
+| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, and nothing is drawn beside the anvil | everything else |
+| Item details (item data reads) | `Inspection.cpp` (`Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`, burn and use times in the item's components, `getCooldownDuration`, the suspicious stew's effect) | the tooltip has no stew effect, property values, ID, tags or NBT lines | the game's tooltip, durability numbers, food values; the work penalty line has its own row |
 | Map colors of add-on blocks (block material instances) | `Minimap.cpp` `topMaterial` (the game's `type_id<void, BlockMaterialInstancesComponent>` id, resolved by name with `SymbolView`, `BlockComponentStorage::_findComponentBase` on the state then the type, `mMaterials` "up"/"*" and their `mTextureName` and `mTintMethod`, resolved with `BlockGraphics::getTextureUVCoordinateSet`) | an add-on block whose `BlockGraphics` texture is missing is drawn in the game's map color | every other map color, vanilla blocks |
+| English Search (enchanted books' enchantments) | `EnglishSearch.cpp` `storedEnchantNames` (`constructItemEnchantsFromUserData`, `Enchant::mEnchants`, `mEnchantType`, `mDescription`, `mStringId`) | Creative search does not find an enchanted book by its enchantments' names | English names and IDs of items, the book's own name |
+| Work penalty line (an item's anvil uses) | `Inspection.cpp` (`ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | item tooltips carry no work penalty line | the game's tooltip, Item details' other lines |
+| World map colors of add-on blocks (block material instances) | `Minimap.cpp` `topMaterial`: the read of the row above, named for the world map's recording | as the row above | as the row above |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -317,9 +320,9 @@ Hooks: `SearchHook`
 Meaning: the crafting screen filters by the text passed to `_filterByText`.
 Enchanted books (L-344) read `ItemStackBase::constructItemEnchantsFromUserData`,
 `Enchant::mEnchants`, `mEnchantType`, `mDescription` (en_US key, with or
-without the `enchantment.` prefix) and `mStringId`. These reads ask the
-Enchantment order capability: on an unverified game a book is found by its
-own name and ID only.
+without the `enchantment.` prefix) and `mStringId`. These reads ask their
+own capability (English Search): on an unverified game a book is found by
+its own name and ID only.
 
 ### `src/features/inspection/hover/HoverTracker.cpp`
 Hooks: `ContainerSlotHoveredHook`, `CraftingSlotHoveredHook`, `ContainerSlotUnhoveredHook`, `ContainerScreenLeaveHook`
