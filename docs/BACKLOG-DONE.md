@@ -92,6 +92,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-338](backlog/done/L-338.md) When a death layout ends
 - [L-355](backlog/done/L-355.md) Color tokens for the schematic check's wrong state and not placed
 - [L-354](backlog/done/L-354.md) Drags that outlive a quick click or a focus loss in the settings
 - [L-183](backlog/done/L-183.md) Disregard selected schematic check mismatches

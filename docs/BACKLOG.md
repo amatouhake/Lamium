@@ -135,8 +135,8 @@ from the file); never restate them here.
    pose is low priority. What waits for more game symbols is collected in
    L-315.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10), in this order: the follow-ups of L-338 death layout time
-   limit, L-170 enchantment order planner and L-319 item details; then
+   2026-10-10), in this order: the follow-ups of L-170 enchantment order
+   planner and L-319 item details; then
    L-340 settings grouping, L-330 radar icons, L-166 trade helpers, L-167
    resource packs, L-168 trade finder, L-169 transfer extensions, L-173
    quick shapes, L-163 a Lamium inventory screen, L-249 simulation distance
@@ -190,7 +190,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14; ending after 5 minutes and pausing while away checked in game, the count over a rejoin not yet
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices and unchecked cases remain

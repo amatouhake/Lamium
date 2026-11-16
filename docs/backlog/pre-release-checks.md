@@ -30,7 +30,7 @@ Do not infer game success from a build or unit-test result.
   details unchanged. Not looked at: Item details on an unverified game
   version (cannot be brought about on the verified one).
 - The death layout's time limit (L-338): the end after 5 minutes and the
-  pause while away passed on `5c8ddb07`; the count over a rejoin not yet.
+  pause while away and the count over a rejoin passed on `5c8ddb07`.
 - Durability HUD's glint on enchanted items passed on `fc83b806`
   (VALIDATION-LOG 2026-11-14), also faint on a hidden element.
 - Durability HUD and Inventory HUD draw an item with the frame a slot would

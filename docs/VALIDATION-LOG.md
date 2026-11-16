@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The death layout's count over a rejoin (2026-11-16)
+
+Build `5c8ddb07` (main), DLL SHA-256
+`c9551ba878ad7cf5e824063863b5d6ce5cb34651a558997f4e78dd9e527775e4`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed (L-338): died about 21:28:45 and stayed near, rejoined at
+21:31:19 (log), stayed near; the toast came at the end of 21:33 and the log ended the layout at
+21:33:59, 2 min 40 s after the rejoin, about 5 minutes loaded in all, so the count carried over.
+
 ## Tighter scroll bar zone and the death layout's time limit (2026-11-16)
 
 Build `5c8ddb07` (main), DLL SHA-256
