@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Tighter scroll bar zone and the death layout's time limit (2026-11-16)
+
+Build `5c8ddb07` (main), DLL SHA-256
+`c9551ba878ad7cf5e824063863b5d6ce5cb34651a558997f4e78dd9e527775e4`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: the narrower gap between rows and the scroll bar in the
+settings table and Waypoints, no row lit over the bar, and the narrower press zone still easy to
+grab and drag. L-338: staying near a death for 5 minutes without picking up shows "Death layout
+restore ended" and nothing is restored afterwards (log 21:12:45); leaving at once and returning
+later still restores. Not confirmed: the count carrying over a rejoin (a rejoin after 2-3
+minutes still restored, which a reset count would do too; the toast was not seen).
+
 ## World map list and calculator cards off their bars (2026-11-16)
 
 Build `b8beb187` (main), DLL SHA-256
