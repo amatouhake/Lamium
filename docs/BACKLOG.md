@@ -192,7 +192,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
-- [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices and unchecked cases remain
+- [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature): Built 2026-11-13 after 0.6.0 (not released) and checked in game; unchecked cases remain
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
@@ -203,7 +203,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
 - [L-173](backlog/L-173.md) Quick shapes: a beacon's range at a glance, shapes that are not saved (Design): Direction decided (2026-11-06); waiting for the in-game range check.
-- [L-170](backlog/L-170.md) Enchantment order planner (Feature): Built on `main` after 0.6.0 (not in a release) and checked in game step by step; runtime checks and open choices remain
+- [L-170](backlog/L-170.md) Enchantment order planner (Feature): Built after 0.6.0 (not released) and checked in game step by step; two small additions and runtime checks remain
 - [L-169](backlog/L-169.md) Item Transfer: remaining gesture and screen extensions (Design): Waiting for the maintainer to choose any extension; none approved
 - [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design): Waiting for the maintainer's choices below; not chosen for building, no release.
 - [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research): Partly done: Game language and Skip server resource packs shipped in 0.2.1; global pack stack work not chosen.

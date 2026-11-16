@@ -174,7 +174,7 @@ long as the button is).
   component; their use time is `Item::mMaxUseDuration`.
 - No linkable accessor was found for attack speed (SDK 26.60.4 headers).
   `Item::isValidRepairItem(...)` (virtual) only answers for a given item; the
-  repair material is not shown (L-319 Open). `Item::getMaxUseDuration` wants an `ItemStack` the
+  repair material is not shown (decided 2026-11-17: a later recipe feature). `Item::getMaxUseDuration` wants an `ItemStack` the
   tooltip does not always have.
 
 ## Tried

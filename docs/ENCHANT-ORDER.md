@@ -198,7 +198,8 @@ version is verified.
   with the next frame on the client thread. Nothing is taken while an item
   is on the pointer or while the panels fade. The goal is switched there
   only while the choosing column is shown. The wheel scrolls rows or steps;
-  a press on a scrollbar jumps (no dragging).
+  a press on a scrollbar jumps (no dragging yet: the shared drag is decided,
+  L-170; no text search there).
 - At hand at the anvil: the two input slots, the pointer, hotbar and
   inventory.
 - The step whose pair lies in the anvil's slots is tinted, and the last
@@ -258,8 +259,8 @@ detail; these are not to be undone without asking.
 - At the anvil: chooser left, steps right, always shown (a press each time
   is a chore), a setting to hide it and "Change" where it is not shown; the
   planner page stays too; the anvil chooser shares the planner's look and
-  handling. The item is not to be taken from the left slot by itself (as
-  built it is when nothing is chosen; open in L-170).
+  handling. With nothing chosen and no plan, the left slot's item is taken
+  as the plan's item (maintainer 2026-11-17).
 - One steps' component for both screens: count beside the total, no
   materials list, the level beside the total, "Needed at once" / "Work
   penalty of the result", three ways to tell steps apart and no more. The
@@ -376,7 +377,8 @@ Icons and glints (`inspection/render/ItemIcon.cpp`, shared):
   returns an int; it may give the game's own cost for a pair and replace the
   frequency mapping. Not tried.
 - A main-hand item whose anvil uses cannot be read is planned as fresh with
-  no notice (`enchantOrder.heldUnknown` is translated but unused).
+  no notice yet; a status line (`enchantOrder.heldUnknown`) is decided
+  (L-170).
 - Unchecked in game: see [VALIDATION.md](VALIDATION.md), row "Enchantment
   order, experimental".
 
