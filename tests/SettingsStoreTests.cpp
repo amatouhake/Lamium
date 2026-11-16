@@ -729,6 +729,14 @@ void settingsStoreTests() {
         writeSettings(path, sized);
         auto back = readSettings(path);
         check(!back.hud.minimap.standardText && back.hud.playerList.standardText, "the text choice survives a save");
+        // A minimap saved with "Text size": the nearer choice (150 % x 65 % = 0.975, nearer the standard 1).
+        check(decodeSettings(R"({"map":{"textSize":65},"hud":{"minimap":{"scale":150}}})").hud.minimap.standardText
+                  && !decodeSettings(R"({"map":{"textSize":100},"hud":{"minimap":{"scale":150}}})").hud.minimap.standardText
+                  && !decodeSettings(R"({"map":{"textSize":65},"hud":{"minimap":{"scale":150,"standardText":false}}})").hud.minimap.standardText,
+              "an old text size converts once to the nearer text choice");
+        Settings converted = decodeSettings(R"({"map":{"textSize":65},"hud":{"minimap":{"scale":150}}})");
+        writeSettings(path, converted);
+        check(readSettings(path).hud.minimap.standardText, "a converted text choice survives a save and does not convert again");
     }
     {
         Settings target;

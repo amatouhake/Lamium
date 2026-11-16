@@ -218,9 +218,10 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
             if (auto choice = std::get_if<settings::ChoiceValue>(&now)) row.value = translated(choice->label);
             if (auto flag = std::get_if<bool>(&now)) row.on = *flag;
             if (item.kind == LookRow::Background) {
+                // Presses are tested from the last control back: the end cells go after the whole box.
+                controls.push_back({item.stepper, Command::Background, 1});
                 controls.push_back({item.less, Command::Background, -1});
                 controls.push_back({item.more, Command::Background, 1});
-                controls.push_back({item.stepper, Command::Background, 1});
             } else controls.push_back({item.toggle, item.kind == LookRow::Shadow ? Command::Shadow : Command::StandardText});
             rows.push_back(std::move(row));
         }

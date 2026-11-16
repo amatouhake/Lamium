@@ -1,5 +1,6 @@
 #include "settings/SettingsStore.h"
 #include "features/information/InventoryHud.h"
+#include "features/map/MinimapLayout.h"
 #include "settings/SettingsValue.h"
 #include "nlohmann/json.hpp"
 #include <array>
@@ -293,6 +294,7 @@ Json encode(Settings const& settings) {
                    {"bossBars", encodeHudElement(settings.hud.bossBars)}}},
         {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)},
                  {"size", nullptr}, // L-337: removed by the merge, see scaleFromLegacySize.
+                 {"textSize", nullptr}, // L-357: removed by the merge once converted to standardText.
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"caveView", settings.map.caveView},
                  {"netherView", settings.map.netherView},
@@ -785,6 +787,15 @@ Settings decodeSettings(std::string_view text) {
     if (data.contains("map") && data.at("map").is_object() && data.at("map").contains("size"))
         value.hud.minimap.scale = Settings::Map::scaleFromLegacySize(value.hud.minimap.scale,
                                                                       settingsValue(data.at("map"), "size", 20.f));
+    // L-357: a minimap saved with "Text size" and without the text choice keeps its text about as large.
+    if (data.contains("map") && data.at("map").is_object() && data.at("map").contains("textSize")) {
+        Json const* minimap = nullptr;
+        if (data.contains("hud") && data.at("hud").is_object())
+            if (auto found = data.at("hud").find("minimap"); found != data.at("hud").end() && found->is_object()) minimap = &*found;
+        if (!minimap || !minimap->contains("standardText"))
+            value.hud.minimap.standardText = map::standardTextNearer(value.hud.minimap.scale,
+                                                                     settingsValue(data.at("map"), "textSize", 100.f));
+    }
     value.normalize();
     return value;
 }
