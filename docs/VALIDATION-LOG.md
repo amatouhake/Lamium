@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## World map list and calculator cards off their bars (2026-11-16)
+
+Build `b8beb187` (main), DLL SHA-256
+`d422222f445cc24bd9a287236af5a0b62769ba0c2817d20eceaf25757d9a2635`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: the world map's list lights no row under its bar and its
+row frame clears the switches and distances; the calculator's history cards do not light under
+the bar. Not seen: the Check item buttons; Block highlight, Saved data, Enchantment order and the
+HUD layout contents popover with a bar.
+
 ## Rows and columns off the scroll bar (2026-11-16)
 
 Build `4c06ac92` (main), DLL SHA-256

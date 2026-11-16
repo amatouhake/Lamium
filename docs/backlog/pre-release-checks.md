@@ -88,8 +88,8 @@ Do not infer game success from a build or unit-test result.
   (VALIDATION-LOG 2026-11-16). Still to see:
   - Rows and columns off the scroll bar: the settings table, Waypoints,
     Shapes, Schematics (Files, Placed) and Game language passed on
-    `4c06ac92`. Not seen: the world map list, calculator cards and Check
-    item buttons (`b8beb187`); Block highlight, Saved data, Enchantment
+    `4c06ac92`, the world map list and calculator cards on `b8beb187`.
+    Not seen: the Check item buttons; Block highlight, Saved data, Enchantment
     order and the HUD layout contents popover with a bar.
   - Schematics: an untouched Layer field keeps All layers, and a number
     typed then Esc returns to it; an armed Delete after "Use this data";
