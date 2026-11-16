@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.7.0 release smoke and tag (2026-11-16)
+
+Smoke of the commit's CI package: `b9d35a5f`, run 43869719844, DLL SHA-256
+`e90ae8dd4e18fbdaca439edd29c147c5b3c18621f463f013139f43c0c0ac3811`, LeviLamina
+Client 26.60.5, 1.26.60.05 Dev instance. Passed, per the maintainer: load,
+settings showing 0.7.0, the changed features tried; the log has no errors or
+warnings.
+
+Tag `v0.7.0` on that commit; its CI run 43872399049 made the draft release
+with `Lamium-0.7.0-client-windows-x64.zip`
+(`eb78e46851b7a57c3f1e42cbfddc3f05cbb13bd624dc9c787d18beb25251b112`) and
+`Lamium-0.7.0-client-windows-x64.pdb.zip`
+(`7dcfac6bffb30a0cafdbea66a950653781465ded192e5bf20856960f331a521d`), published
+the same day.
+
+Not checked: the published ZIP itself in game, the listings (LIP registry,
+Bedrinth, LeviLauncher), servers.
+
 ## The death layout's count over a rejoin (2026-11-16)
 
 Build `5c8ddb07` (main), DLL SHA-256

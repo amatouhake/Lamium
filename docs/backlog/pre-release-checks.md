@@ -7,7 +7,14 @@ server case are not release gates. [VALIDATION.md](../VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-## Since 0.6.0
+## Left from 0.7.0
+
+The tag (VALIDATION-LOG 2026-11-16; release published the same day): the
+published ZIP in game and the listings (LIP registry, Bedrinth,
+LeviLauncher) are not checked. The smoke used the commit's CI package
+(`b9d35a5f`). What follows was written before the release; what it calls
+not seen was still not seen in 0.7.0.
+
 
 - L-327: the "restore ended" toast was confirmed on `786424c4`; the help
   text naming 32 blocks was not looked at.

@@ -158,7 +158,7 @@ from the file); never restate them here.
    L-151 body in first person, L-152 held map preview, L-153 last pressed
    movement key and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   [pre-release checks](backlog/pre-release-checks.md). Latest release: 0.6.0, 2026-11-12 (`v0.6.0`). A full
+   [pre-release checks](backlog/pre-release-checks.md). Latest release: 0.7.0, 2026-11-16 (`v0.7.0`). A full
    regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
