@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Pre-release review fixes: input paths and directly opened pages (2026-11-16)
+
+Build `cd5dce83` (branch `ccr-d537b300-le9q4j`, main plus L-354/L-355), DLL SHA-256
+`ad95a1ce14ef7453652e616cb0de1b1c9dace97062ba0d57077975c8b07bb256`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: quick clicks on a settings slider, a scroll bar and the
+schematic preview hold nothing; a scroll bar held over Esc or Alt+Tab does not follow the
+pointer on return; Auto Attack and Auto Use are let go when a menu opens and on Alt+Tab;
+Alt + right click on a menu key places nothing; Block highlight, Enchantment order, Saved data
+and Game language opened by their keys close on Esc without the settings table, and opened
+from the table return to it. Found: the settings table still lights a row and draws its frame
+under its scroll bar, and in the Waypoints and Schematics lists the shortened selection frame
+meets the switches and numbers (fixed in `4c06ac92`, not seen yet). Not seen: the review's
+schematic, game HUD, inventory, map and tooltip fixes; L-338's time limit.
+
 ## Quick clicks that hold nothing and the schematic check's color tokens (2026-11-16)
 
 Build `cd5dce83` (branch `ccr-d537b300-le9q4j`), DLL SHA-256

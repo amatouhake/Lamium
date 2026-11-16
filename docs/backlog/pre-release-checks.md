@@ -83,16 +83,13 @@ Do not infer game success from a build or unit-test result.
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
   toasts, Fake Offhand's own key (L-322), Connected Textures panes (L-331),
   and the features that lost the Experimental badge.
-- Fixes from the 2026-11-16 pre-release review (from `b8cd9142`): none
-  seen in game yet.
-  - Shared input paths, first: quick clicks on a settings slider, a scroll
-    bar and the schematic preview (press now runs before release); a held
-    scroll bar after Esc or Alt+Tab; Auto Attack or Auto Use held while a
-    menu opens or on Alt+Tab (the release waits for the next input update);
-    Alt + right click on a menu key places nothing.
-  - Pages: Block highlight, Enchantment order, Saved data and Game language
-    opened by their keys close on Esc without the settings table showing,
-    and from the table Esc returns to the table.
+- Fixes from the 2026-11-16 pre-release review (from `b8cd9142`): the
+  shared input paths and the directly opened pages passed on `cd5dce83`
+  (VALIDATION-LOG 2026-11-16). Still to see:
+  - Rows and columns off the scroll bar (`4c06ac92`): the settings table
+    lights no row under its bar; in Waypoints, Shapes, the Schematics tabs,
+    Game language, Block highlight, Saved data and the HUD layout contents
+    popover the selection frame clears the switches and numbers.
   - Schematics: an untouched Layer field keeps All layers, and a number
     typed then Esc returns to it; an armed Delete after "Use this data";
     Ignore looked place right after selecting another placement; a rule
