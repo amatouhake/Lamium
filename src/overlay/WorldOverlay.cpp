@@ -10,7 +10,7 @@
 #include "overlay/LightOverlay.h"
 #include "overlay/ShapeSession.h"
 #include "overlay/ShapeWorkspace.h"
-#include "overlay/LocalShapePath.h"
+#include "features/map/WaypointSession.h"
 #include "features/interaction/BreakingRestriction.h"
 #include "features/visuals/BlockHighlightHooks.h"
 #include "app/Capabilities.h"
@@ -71,6 +71,9 @@ auto const& shapeCollection = shapeWorkspace.collection();
 ll::event::ListenerPtr exitListener;
 ll::event::ListenerPtr startJoinListener, joinListener;
 std::atomic<bool> joiningLocal{false};
+// The joined world the shapes were loaded for (map::waypoints::place().world, L-356): a local world's
+// Lamium folder or a server's file in the config folder, as the waypoints and placements.
+unsigned shapeWorld = 0;
 // The latest feet block per dimension, under shapeMutex (L-311): a following
 // shape stays where the player left its dimension.
 std::map<int, Cell> followFeet;
@@ -98,20 +101,20 @@ void joinWorld(ll::event::ClientJoinLevelEvent& event) noexcept {
 #ifdef LAMIUM_SHAPE_TRACE
     traceIdentity(event);
 #endif
-    try {
-        if (event.self().getLocalPlayer() != &event.player()) return;
-        std::lock_guard lock(shapeMutex);
-        shapeWorkspace.leave();
-        identityFailed = false;
-        if (!joiningLocal) return;
-        try {
-            auto paths = event.self().getMinecraftGame_DEPRECATED().getFilePathManager();
-            auto path = localShapePath(std::filesystem::u8path(paths->mWorlds->value),
-                event.player().getLevel().getLevelId());
-            if (path) shapeWorkspace.enter(*path);
-        } catch (...) { identityFailed = true; throw; }
-    } catch (std::exception const& error) {
-        Runtime::instance().self().getLogger().error("Shape workspace load failed: {}", error.what());
+    (void)event;
+}
+// Loads the shapes of the joined world when it changed (a join, other server data chosen, a merge). The
+// caller holds shapeMutex. Without a file the shapes are kept for the session only.
+void followWorld() {
+    auto place = map::waypoints::place();
+    if (place.world == shapeWorld) return;
+    shapeWorld = place.world;
+    shapeWorkspace.leave();
+    identityFailed = false;
+    if (!place.active || !place.shapeFile) return;
+    try { shapeWorkspace.enter(*place.shapeFile); }
+    catch (std::exception const& error) {
+        try { Runtime::instance().self().getLogger().error("Shape workspace load failed: {}", error.what()); } catch (...) {}
     } catch (...) {}
 }
 // A shape being created is previewed as lines and never persisted.
@@ -119,6 +122,7 @@ ShapeCollection draftCollection(1);
 constexpr ShapeId draftKey = ~ShapeId{0};
 bool hasShapes() {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     return !shapeCollection.entries().empty() || !draftCollection.entries().empty();
 }
 
@@ -758,6 +762,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
 namespace shapes {
 std::vector<Summary> list() {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     std::vector<Summary> result;
     result.reserve(shapeCollection.entries().size());
     for (auto const& [id, shape] : shapeCollection.entries()) result.push_back({id, shape.definition});
@@ -843,7 +848,7 @@ void clear() {
 Storage storage() {
     std::lock_guard lock(shapeMutex);
     return identityFailed || shapeWorkspace.failedToLoad() ? Storage::LoadFailed
-        : shapeWorkspace.persistent() ? Storage::LocalWorld : Storage::Session;
+        : shapeWorkspace.persistent() ? Storage::Saved : Storage::Session;
 }
 }
 void start() {

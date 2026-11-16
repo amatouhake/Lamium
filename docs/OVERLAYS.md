@@ -136,7 +136,11 @@ These are Lamium's own conventions:
   direct-child directory with `level.dat`. Relative roots, traversal or
   separator IDs and non-world directories are rejected; personal
   directories are never scanned. The file travels with a copied world.
-  Remote or unresolved worlds stay session-only.
+  A server's or friend's world's shapes are `shapes/<key>.json` in Lamium's
+  config folder under the same key as its waypoints and placements (L-343,
+  L-356), so the Saved data page's choose, delete and merge cover them;
+  the workspace follows `map::waypoints::place()`. A world with no key
+  stays session-only.
 - Entering another workspace clears the previous shapes before reading. A
   failed load leaves an empty collection and blocks editing until reentry,
   so an unreadable file is never overwritten with an empty one.
@@ -252,8 +256,8 @@ fallback.
 
 ## Limits
 
-- Remote worlds keep shapes for the session only; there is no in-screen
-  load retry after a failed load.
+- A server with nothing to name its data by keeps shapes for the session
+  only; there is no in-screen load retry after a failed load.
 - Ender Dragon part boxes are not shown.
 - In-game coverage, graphics modes, resource packs and performance:
   [VALIDATION.md](VALIDATION.md) rows "Shapes (L-13)" and "Chunk Borders

@@ -42,6 +42,8 @@ struct Place {
     std::optional<std::filesystem::path> schematicFile;
     // The death-time inventory layout (L-109), same rules.
     std::optional<std::filesystem::path> deathLayoutFile;
+    // The shapes (L-356), same rules.
+    std::optional<std::filesystem::path> shapeFile;
 };
 Place place();
 }

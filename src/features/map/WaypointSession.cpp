@@ -7,6 +7,7 @@
 #include "features/map/SavedData.h"
 #include "features/schematic/PlacementStore.h"
 #include "overlay/LocalShapePath.h"
+#include "overlay/ShapeStore.h"
 #include "app/Runtime.h"
 #include "app/SessionIds.h"
 #include "ll/api/event/EventBus.h"
@@ -55,7 +56,7 @@ void log(std::string const& text) {
 }
 // The data kinds kept per server, each in its own folder of the config folder.
 constexpr std::string_view mapFolder = "map", waypointFolder = "waypoints", schematicFolder = "schematics",
-    deathFolder = "death-layouts";
+    deathFolder = "death-layouts", shapeFolder = "shapes";
 // How much a key holds (servers::choose): its documents first, then the size of its map, counted up to a limit
 // so that a large map costs a bounded walk at join. Below zero: nothing is there.
 long long held(std::filesystem::path const& config, std::string const& key) {
@@ -86,7 +87,7 @@ struct Identity {
 } identity;
 std::filesystem::path configFolder() { return Runtime::instance().self().getConfigDir(); }
 // Fuller data that may be the joined server's, per kind (SavedData.h); refreshed by suggest().
-std::array<std::optional<SavedData>, 3> fullerFound;
+std::array<std::optional<SavedData>, 4> fullerFound;
 void suggest();
 // A map merge in progress (mergeData, stepMerge): the regions still to merge, from the other data's map folder
 // into the one in use, which the store is kept off meanwhile (joined.mapFolder empty).
@@ -101,7 +102,7 @@ struct MapMerge {
     std::unique_ptr<RegionCodec> codec = std::make_unique<RegionCodec>();
     MergeProgress progress() const {
         return {next < files.size(), key, static_cast<int>(next), static_cast<int>(files.size()), chunks, skipped,
-                start.waypoints, start.waypointsFull, start.placements, start.placementsFull};
+                start.waypoints, start.waypointsFull, start.placements, start.placementsFull, start.shapes, start.shapesFull};
     }
 };
 std::optional<MapMerge> mapMerge;
@@ -180,6 +181,8 @@ void attach() {
     catch (std::exception const& error) { log(std::string("no file for schematic placements: ") + error.what()); }
     try { joined.deathLayoutFile = resolve(identity, "death-layout.json", deathFolder, true); }
     catch (std::exception const& error) { log(std::string("no file for the death layout: ") + error.what()); }
+    try { joined.shapeFile = resolve(identity, "shapes.json", shapeFolder, true); }
+    catch (std::exception const& error) { log(std::string("no file for shapes: ") + error.what()); }
     try {
         destination = resolve(identity, "waypoints.json", waypointFolder, true);
         if (destination && std::filesystem::exists(*destination)) set = readWaypoints(*destination);
@@ -372,9 +375,9 @@ std::int64_t writtenAt(std::filesystem::path const& path) {
         time - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
     return std::chrono::duration_cast<std::chrono::seconds>(system.time_since_epoch()).count();
 }
-// One data's four kinds, given where each lies. Bounded: the map walk stops at 2000 files.
+// One data's five kinds, given where each lies. Bounded: the map walk stops at 2000 files.
 void measure(SavedData& item, std::filesystem::path const& waypointFile, std::filesystem::path const& schematicFile,
-             std::filesystem::path const& deathFile, std::filesystem::path const& map) {
+             std::filesystem::path const& deathFile, std::filesystem::path const& map, std::filesystem::path const& shapeFile) {
     std::error_code ignored;
     if (std::filesystem::is_regular_file(waypointFile, ignored)) {
         item.used = std::max(item.used, writtenAt(waypointFile));
@@ -392,6 +395,10 @@ void measure(SavedData& item, std::filesystem::path const& waypointFile, std::fi
         try { item.placements = static_cast<int>(schematic::readPlacements(schematicFile).placements.size()); } catch (...) {}
     }
     if (std::filesystem::is_regular_file(deathFile, ignored)) item.used = std::max(item.used, writtenAt(deathFile));
+    if (std::filesystem::is_regular_file(shapeFile, ignored)) {
+        item.used = std::max(item.used, writtenAt(shapeFile));
+        try { item.shapes = static_cast<int>(overlay::readShapes(shapeFile).size()); } catch (...) {}
+    }
     if (std::filesystem::is_directory(map, ignored)) {
         item.mapFolder = map;
         int files = 0;
@@ -428,7 +435,7 @@ SavedData summary(std::filesystem::path const& config, servers::List const& list
     }
     item.maybe = servers::maybe(list.servers, current, key);
     measure(item, config / waypointFolder / (key + ".json"), config / schematicFolder / (key + ".json"),
-            config / deathFolder / (key + ".json"), config / mapFolder / key);
+            config / deathFolder / (key + ".json"), config / mapFolder / key, config / shapeFolder / (key + ".json"));
     return item;
 }
 // Works out fullerFound for the joined server. Reads a few files: at a join and after a change only.
@@ -449,10 +456,11 @@ void suggest() {
     for (auto const& key : keys) {
         if (!safeKey(key)) continue;
         others.push_back(summary(config, list, key, current));
-        amounts.push_back({others.back().waypoints, others.back().placements, others.back().mapBytes});
+        amounts.push_back({others.back().waypoints, others.back().placements, others.back().mapBytes, others.back().shapes});
     }
-    auto best = servers::fuller({mine.waypoints, mine.placements, mine.mapBytes}, amounts);
-    for (auto [index, slot] : {std::pair{best.waypoints, 0}, std::pair{best.placements, 1}, std::pair{best.map, 2}})
+    auto best = servers::fuller({mine.waypoints, mine.placements, mine.mapBytes, mine.shapes}, amounts);
+    for (auto [index, slot] : {std::pair{best.waypoints, 0}, std::pair{best.placements, 1}, std::pair{best.map, 2},
+                               std::pair{best.shapes, 3}})
         if (index >= 0) {
             fullerFound[static_cast<size_t>(slot)] = others[static_cast<size_t>(index)];
             fullerFound[static_cast<size_t>(slot)]->canUse = true;
@@ -479,9 +487,9 @@ std::vector<SavedData> savedData() {
     servers::List list;
     try { if (std::filesystem::exists(config / "servers.json", ignored)) list = readServers(config / "servers.json"); } catch (...) {}
     std::string const current = !identity.local && identity.key ? *identity.key : std::string();
-    // Every key any of the four folders holds.
+    // Every key any of the five folders holds.
     std::set<std::string> keys;
-    for (auto folder : {mapFolder, waypointFolder, schematicFolder, deathFolder}) {
+    for (auto folder : {mapFolder, waypointFolder, schematicFolder, deathFolder, shapeFolder}) {
         std::filesystem::directory_iterator it(config / folder, ignored), end;
         for (; !ignored && it != end && keys.size() < savedDataLimit; it.increment(ignored)) {
             auto name = it->path().filename().u8string();
@@ -515,7 +523,7 @@ std::vector<SavedData> savedData() {
             item.maybe = servers::maybe(list.servers, current, key);
         }
         measure(item, config / waypointFolder / (key + ".json"), config / schematicFolder / (key + ".json"),
-                config / deathFolder / (key + ".json"), config / mapFolder / key);
+                config / deathFolder / (key + ".json"), config / mapFolder / key, config / shapeFolder / (key + ".json"));
         item.inUse = !current.empty() && key == current;
         item.canUse = item.kind == SavedData::Kind::Server && identity.hasAddress() && !item.inUse;
         item.canDelete = !item.inUse;
@@ -533,8 +541,9 @@ std::vector<SavedData> savedData() {
             item.key.assign(name.begin(), name.end());
             item.name = firstLine(it->path() / "levelname.txt");
             item.levelId = item.key;
-            measure(item, folder / "waypoints.json", folder / "schematics.json", folder / "death-layout.json", folder / "map");
-            if (!item.waypoints && !item.placements && !item.mapBytes && !item.used) continue;
+            measure(item, folder / "waypoints.json", folder / "schematics.json", folder / "death-layout.json", folder / "map",
+                    folder / "shapes.json");
+            if (!item.waypoints && !item.placements && !item.shapes && !item.mapBytes && !item.used) continue;
             item.inUse = identity.local && identity.levelId == item.key;
             item.canDelete = !item.inUse;
             items.push_back(std::move(item));
@@ -584,7 +593,7 @@ bool removeData(SavedData const& item) {
         try {
             // localWorldFile checks that the folder is a world of the game's own worlds folder.
             std::vector<std::filesystem::path> files;
-            for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json"})
+            for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json", "shapes.json"})
                 if (auto file = overlay::localWorldFile(identity.worlds, item.key, name)) files.push_back(*file);
             if (!remove(files, overlay::localWorldFile(identity.worlds, item.key, "map"))) return false;
         } catch (std::exception const& error) { log(std::string("could not delete a world's data: ") + error.what()); return false; }
@@ -597,7 +606,8 @@ bool removeData(SavedData const& item) {
     try {
         auto config = configFolder();
         std::vector<std::filesystem::path> files;
-        for (auto folder : {waypointFolder, schematicFolder, deathFolder}) files.push_back(config / folder / (item.key + ".json"));
+        for (auto folder : {waypointFolder, schematicFolder, deathFolder, shapeFolder})
+            files.push_back(config / folder / (item.key + ".json"));
         // The same path as resolve() gives the store.
         removed = remove(files, config / std::filesystem::u8path(mapFolder) / std::filesystem::path(item.key));
     } catch (std::exception const& error) { log(std::string("could not delete saved data: ") + error.what()); }
@@ -656,10 +666,15 @@ MergeStart mergeData(std::string const& key) {
     std::error_code ignored;
     auto const waypointFile = config / waypointFolder / (key + ".json");
     auto const schematicFile = config / schematicFolder / (key + ".json");
+    auto const shapeFile = config / shapeFolder / (key + ".json");
     // Everything is read before anything is written: a file that cannot be read stops the whole merge.
     WaypointSet incoming;
     schematic::PlacementSet placementsIn, placementsInUse;
+    std::vector<overlay::ShapeDefinition> shapesIn, shapesInUse;
     try {
+        if (std::filesystem::is_regular_file(shapeFile, ignored)) shapesIn = overlay::readShapes(shapeFile);
+        if (joined.shapeFile && std::filesystem::is_regular_file(*joined.shapeFile, ignored))
+            shapesInUse = overlay::readShapes(*joined.shapeFile);
         if (std::filesystem::is_regular_file(waypointFile, ignored)) incoming = readWaypoints(waypointFile);
         if (std::filesystem::is_regular_file(schematicFile, ignored)) placementsIn = schematic::readPlacements(schematicFile);
         if (joined.schematicFile && std::filesystem::is_regular_file(*joined.schematicFile, ignored))
@@ -671,6 +686,7 @@ MergeStart mergeData(std::string const& key) {
     auto candidate = set;
     auto waypointCounts = merge::mergeWaypoints(candidate, incoming.waypoints);
     auto placementCounts = merge::mergePlacements(placementsInUse, placementsIn.placements);
+    auto shapeCounts = merge::mergeShapes(shapesInUse, shapesIn);
     if (waypointCounts.taken && !commit(std::move(candidate))) return start;
     if (placementCounts.taken) {
         if (!joined.schematicFile) return start;
@@ -682,8 +698,17 @@ MergeStart mergeData(std::string const& key) {
             return start;
         }
     }
-    start = {true, waypointCounts.taken, waypointCounts.full, placementCounts.taken, placementCounts.full, 0};
-    bool moved = placementCounts.taken > 0; // Followers reload what changed under them.
+    if (shapeCounts.taken) {
+        if (!joined.shapeFile) return start;
+        try { overlay::writeShapes(*joined.shapeFile, shapesInUse); }
+        catch (std::exception const& error) {
+            log(std::string("could not save merged shapes: ") + error.what());
+            return start;
+        }
+    }
+    start = {true, waypointCounts.taken, waypointCounts.full, placementCounts.taken, placementCounts.full,
+             shapeCounts.taken, shapeCounts.full, 0};
+    bool moved = placementCounts.taken > 0 || shapeCounts.taken > 0; // Followers reload what changed under them.
     // The map: the store saves and lets go of both folders, and records to session files until the merge ends.
     auto const from = config / std::filesystem::u8path(mapFolder) / std::filesystem::path(key);
     if (joined.mapFolder && std::filesystem::is_directory(from, ignored)) {
@@ -707,7 +732,8 @@ MergeStart mergeData(std::string const& key) {
     }
     if (moved) ++joined.world;
     log("merged the data under '" + key + "': " + std::to_string(start.waypoints) + " waypoints, "
-        + std::to_string(start.placements) + " placements, " + std::to_string(start.regions) + " map regions to go");
+        + std::to_string(start.placements) + " placements, " + std::to_string(start.shapes) + " shapes, "
+        + std::to_string(start.regions) + " map regions to go");
     try { suggest(); } catch (...) { fullerFound = {}; }
     return start;
 }

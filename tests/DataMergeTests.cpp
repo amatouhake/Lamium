@@ -72,6 +72,29 @@ void dataMergeTests() {
         check(full.taken == 0 && full.full == 1, "a full placement list counts what was left out");
     }
     {
+        using lamium::overlay::ShapeDefinition;
+        auto sphere = [](std::string name, double x, double radius = 4, int dimension = 0) {
+            ShapeDefinition d;
+            d.name = std::move(name);
+            d.dimension = dimension;
+            lamium::overlay::ShapeSpec spec;
+            spec.center = {x, 64, 0};
+            spec.radius = radius;
+            d.geometry = spec;
+            return d;
+        };
+        std::vector<ShapeDefinition> into{sphere("a", 0)};
+        auto recolored = sphere("other", 0);
+        recolored.color = lamium::overlay::ShapeColor::Pink; recolored.visible = false;
+        auto counts = mergeShapes(into, {recolored, sphere("b", 0, 5), sphere("c", 0, 4, 1), sphere("d", 10)});
+        check(counts.taken == 3 && into.size() == 4,
+              "merging shapes counts one equal in kind, position, size and dimension once; name and color do not count (L-356)");
+        check(mergeShapes(into, {sphere("d", 10)}).taken == 0, "merging the same shape again adds nothing");
+        while (into.size() < 32) into.push_back(sphere("f", static_cast<double>(into.size()) * 100, 1));
+        auto full = mergeShapes(into, {sphere("z", -50, 1)});
+        check(full.taken == 0 && full.full == 1 && into.size() == 32, "a full shape list counts what was left out");
+    }
+    {
         RegionData into, from;
         record(into, 0, red, 100);  // newer in the data in use
         record(from, 0, blue, 50);

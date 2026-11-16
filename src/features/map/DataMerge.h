@@ -2,6 +2,7 @@
 #include "features/map/MapRegion.h"
 #include "features/map/Waypoints.h"
 #include "features/schematic/PlacementStore.h"
+#include "overlay/ShapeCollection.h"
 #include <algorithm>
 #include <vector>
 
@@ -46,6 +47,35 @@ inline Counts mergePlacements(schematic::PlacementSet& into, std::vector<schemat
         auto copy = placement;
         copy.id = 0;
         into.placements.push_back(std::move(copy));
+        ++counts.taken;
+    }
+    return counts;
+}
+// Equal in kind, position, size and dimension (L-356); name, color, style, visibility and following do not count.
+inline bool sameShape(overlay::ShapeDefinition const& a, overlay::ShapeDefinition const& b) {
+    if (a.dimension != b.dimension || a.geometry.index() != b.geometry.index()) return false;
+    if (auto const* x = std::get_if<overlay::ShapeSpec>(&a.geometry)) {
+        auto const& y = std::get<overlay::ShapeSpec>(b.geometry);
+        return x->shape == y.shape && x->center.x == y.center.x && x->center.y == y.center.y && x->center.z == y.center.z
+            && x->snap == y.snap && x->radius == y.radius && x->height == y.height && x->axis == y.axis
+            && x->topRadius == y.topRadius && x->heightRadius == y.heightRadius && x->dome == y.dome;
+    }
+    auto const& x = std::get<overlay::PlaneSpec>(a.geometry);
+    auto const& y = std::get<overlay::PlaneSpec>(b.geometry);
+    return x.origin == y.origin && x.width == y.width && x.depth == y.depth && x.spacing == y.spacing && x.plane == y.plane;
+}
+// Adds what the list lacks while the collection's limits (shapes and their lines) take it; one that does not fit
+// or does not validate is counted as left out.
+inline Counts mergeShapes(std::vector<overlay::ShapeDefinition>& into, std::vector<overlay::ShapeDefinition> const& from) {
+    Counts counts;
+    overlay::ShapeCollection check;
+    check.replace(into);
+    for (auto const& shape : from) {
+        bool const known = std::any_of(into.begin(), into.end(), [&](auto const& s) { return sameShape(s, shape); });
+        if (known) continue;
+        try { check.add(shape); }
+        catch (...) { ++counts.full; continue; }
+        into.push_back(shape);
         ++counts.taken;
     }
     return counts;
