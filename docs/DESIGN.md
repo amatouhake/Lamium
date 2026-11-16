@@ -250,9 +250,10 @@ the same commit. A screen never draws its own variant.
   panel's status lines) with `screen::setInfo` (white) or `setMessage`
   (`warning`), never a toast; a screen without one (world map, calculator)
   shows it in the shared notice box above its bottom edge (`drawNotice`,
-  2.5 s). A message or warning toast raised while the settings screen is
-  open waits and starts when it closes; one older than 60 s is dropped, and
-  an on/off toast never waits (L-339). A switch in the schematic radial menu
+  2.5 s). A message or warning toast from outside raised while the settings
+  screen is open waits and starts when it closes; one older than 60 s is
+  dropped. The screen's own results (its menus and prompts) and on/off
+  toasts never wait (L-339). A switch in the schematic radial menu
   shows its new state on its item, not in a toast.
 - **Footer**: always two description lines; longer text scrolls there (wheel
   or its scrollbar). No "read more", expansion or help panel. White says

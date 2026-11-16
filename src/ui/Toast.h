@@ -109,6 +109,14 @@ void showWarningToast(std::string message, double seconds = 6);
 std::optional<Toast::Visible> currentToggleToast(double now);
 // The settings screen says when it opens and closes: message and warning toasts wait meanwhile (ToastHold).
 void holdToasts(bool held);
+// Around what the settings screen itself does (its input, its menus, its prompts): the toasts raised there are
+// its own results and never wait; they replace the shown toast as before (L-339).
+struct ScreenToasts {
+    ScreenToasts();
+    ~ScreenToasts();
+    ScreenToasts(ScreenToasts const&) = delete;
+    ScreenToasts& operator=(ScreenToasts const&) = delete;
+};
 // Called by the HUD each frame it draws: starts the next waiting toast once the shown one has ended.
 void releaseHeldToast(double now);
 }
