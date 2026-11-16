@@ -5,6 +5,7 @@
 #include "ll/api/memory/Hook.h"
 #include "mc/client/gui/controls/renderers/InventoryItemRenderer.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
+#include "mc/client/renderer/actor/ItemGraphics.h"
 #include "mc/client/renderer/ActorShaderManager.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/core/math/Vec2.h"
@@ -26,7 +27,7 @@
 namespace lamium::inspection::iconTrace {
 namespace {
 bool watchedName(std::string const& name) {
-    for (char const* part : {"fence", "door", "sign", "_bed", "stairs", "wall", "leather", "shield", "compass", "clock", "sword"})
+    for (char const* part : {"fence", "door", "sign", "_bed", "stairs", "wall", "leather", "shield", "compass", "clock", "sword", "head", "skull", "shulker"})
         if (name.find(part) != std::string::npos) return true;
     return false;
 }
@@ -39,7 +40,7 @@ std::set<std::string> seen;
 // Logs each distinct line once: the trace is about which routes exist, not how often.
 bool firstTime(std::string const& key) {
     std::lock_guard lock{seenMutex};
-    return seen.size() < 600 && seen.insert(key).second;
+    return seen.size() < 4000 && seen.insert(key).second;
 }
 TraceBudget passBudget, chunkBudget, newBudget, blitBudget, typeBudget;
 // The caller of the current icon draw; nested draws happen inside these calls on the render thread.
@@ -87,6 +88,16 @@ LL_STATIC_HOOK(RenderTypeHook, ll::memory::HookPriority::Normal, &InventoryItemR
     } catch (...) {}
     return type;
 }
+// L-91 heads and shulker boxes (2026-11-17): whether the renderer's per-item graphics entry exists at the call.
+// It did from the start, also while their icons were missing.
+std::string graphicsState(ItemRenderer& renderer, ItemStack const& item) {
+    // ItemGraphics is opaque in this SDK: only whether the item's entry exists (keys sit before the value).
+    try {
+        auto const& map = *renderer.mItemGraphics;
+        return std::format("graphics={} of {}", map.contains(static_cast<short>(item.getId())) ? "present" : "absent",
+            map.size());
+    } catch (...) { return "graphics=?"; }
+}
 LL_TYPE_INSTANCE_HOOK(ChunkHook, ll::memory::HookPriority::Normal, ItemRenderer, &ItemRenderer::renderGuiItemInChunk,
     void, BaseActorRenderContext& context, ItemRenderChunkType type, ItemStack const& item, float x, float y, float light,
     float alpha, float scale, int frame, bool animate, int zOrder, std::optional<TextureUVCoordinateSet> const& uv) {
@@ -98,8 +109,10 @@ LL_TYPE_INSTANCE_HOOK(ChunkHook, ll::memory::HookPriority::Normal, ItemRenderer,
     std::string uvText = uv ? std::format("({:.4f},{:.4f})-({:.4f},{:.4f}) tex={}x{}", uv->_u0, uv->_v0, uv->_u1, uv->_v1,
                                           static_cast<int>(uv->_texSizeW), static_cast<int>(uv->_texSizeH))
                             : std::string{"none"};
-    auto key = std::format("chunk {} type={} frame={} animate={} scale={:.2f} light={:.2f} alpha={:.2f} z={} uv={} from=[{}]",
-        name, static_cast<int>(type), frame, animate, scale, light, alpha, zOrder, uvText, current.empty() ? "lamium" : current);
+    // No alpha in the key: the inventory screen's fade-in made a line per alpha and filled the seen set.
+    auto key = std::format("chunk {} type={} frame={} animate={} scale={:.2f} light={:.2f} z={} uv={} from=[{}]",
+        name, static_cast<int>(type), frame, animate, scale, light, zOrder, uvText, current.empty() ? "lamium" : current);
+    key += " " + graphicsState(*this, item);
     if (firstTime(key)) traceLog(chunkBudget, 200, "L-119 {}", key);
     auto previous = std::exchange(current, std::format("chunk {} type={} by={}", name, static_cast<int>(type),
                                                        current.empty() ? "lamium" : "vanilla"));
@@ -119,6 +132,7 @@ LL_TYPE_INSTANCE_HOOK(NewHook, ll::memory::HookPriority::Normal, ItemRenderer, &
     } catch (...) { block = "?"; }
     auto key = std::format("new {} block={} frame={} foil={} transparency={:.2f} light={:.2f} scale={:.2f} z={}", name,
         block, frame, foil, transparency, light, scale, zOrder);
+    key += " " + graphicsState(*this, item);
     if (firstTime(key)) traceLog(newBudget, 150, "L-119 {}", key);
     auto previous = std::exchange(current, std::format("new {} foil={}", name, foil));
     origin(context, item, frame, x, y, foil, transparency, light, scale, zOrder);
