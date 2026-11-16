@@ -348,7 +348,7 @@ Meaning: the trade screen's binding names and the trade offer packet's NBT
 (tiers, locked flags).
 
 ### `src/features/inspection/render/IconTrace.cpp`
-Hooks: `SlotRenderHook`, `RenderTypeHook`, `ChunkHook`, `NewHook`, `BlockTypeHook`, `DataDrivenHook`, `EntityBlockHook`, `BatchKeyHook`, `ContextRenderHook`, `SharedBatchHook`, `TileHook`, `BlitHook`
+Hooks: `SlotRenderHook`, `RenderTypeHook`, `ChunkHook`, `NewHook`, `BlitHook`, `EntityConstantsHook`, `ScreenGlintHook`
 Trace.
 
 ### `src/features/interaction/AutomationTrace.cpp`

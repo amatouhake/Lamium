@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Shield glint, glint constants (2026-11-17)
+
+Build: `14af95d1` plus a trace-only experiment, `icon_trace` on, DLL SHA-256
+`7848796cf7a3d3dedc9ba68653c46a58c9af8eb3693b20afdc4af7cbf9a52ab0`, 1.26.60.05
+Dev instance, the maintainer. An enchanted shield drawn directly, then the
+last glint constants vanilla set replayed before glint and unglint batches:
+no glint. The trace shows the glint chunk call setting those constants
+itself, for Lamium's calls too (L-91 Known). Not in the commit.
+
 ## Glint passes in Lamium's item icons (2026-11-17)
 
 Builds: `c71804a1` plus the uncommitted L-91 change with `icon_trace` on,
