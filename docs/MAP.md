@@ -83,8 +83,7 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   (compass letters and their margin outside the frame, the lines below,
   player names) keeps the standard size or follows the scale by the HUD
   layout editor's Look choice (L-357; standard for new installs, following
-  for a layout saved before); the box grows with it. The world map's text
-  is not affected. The earlier "Text size" (`map.textSize`) is gone. A settings file from before, with "Map size" (`map.size`),
+  for a layout saved before); the box grows with it, the world map's not. A settings file from before, with "Map size" (`map.size`),
   converts once on load: scale x (size / 20), rounded to the 5 % step and
   clamped to 50-200 %; the next save removes `map.size`, so a converted file
   cannot convert again. Hold-to-enlarge: twice the
