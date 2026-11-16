@@ -172,7 +172,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Bugs
 
-- [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging on request) decided, its control open; a Realm and a changing port not seen
+- [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging on request) decided, not built; a Realm and a changing port not seen
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Design): One entry left, waiting for the maintainer's choice of placement
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
@@ -198,6 +198,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
 - [L-352](backlog/L-352.md) More on and off forms as a wrong state (Design): Proposed by the maintainer 2026-11-15; the wording waits for an answer
+- [L-356](backlog/L-356.md) Save shapes per server, like waypoints and placements (Design): Wanted by the maintainer 2026-11-17, not now; not started
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
