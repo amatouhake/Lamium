@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Quick clicks that hold nothing and the schematic check's color tokens (2026-11-16)
+
+Build `cd5dce83` (branch `ccr-d537b300-le9q4j`), DLL SHA-256
+`ad95a1ce14ef7453652e616cb0de1b1c9dace97062ba0d57077975c8b07bb256`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed (L-354): in the HUD layout editor at a low frame rate, quick
+clicks on a contents popover's scroll bar, an element and a scale handle leave nothing held, and
+a normal drag and a click right after a drag work as before; a settings slider held over Alt+Tab
+does not follow the pointer on return. Confirmed (L-355): the Check list's squares keep their red,
+yellow and pale blue; the red and yellow mistake marks in the world read on blocks by day and
+night; shapes and Block highlight keep their four colors. Not seen: Pocket UI, other GUI scales.
+
 ## Block highlight without the Experimental badge (2026-11-16)
 
 Build `c32b623b` (main), DLL SHA-256
