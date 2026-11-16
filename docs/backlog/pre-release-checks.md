@@ -83,21 +83,42 @@ Do not infer game success from a build or unit-test result.
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
   toasts, Fake Offhand's own key (L-322), Connected Textures panes (L-331),
   and the features that lost the Experimental badge.
-- Fixes from the 2026-11-16 pre-release review (`b8cd9142`..`e5a66e88`):
-  none seen in game yet. Worth a look: the Layer field left untouched
-  keeps All layers; Alt + right click on a menu key places nothing; Alt+Tab
-  with chat, scoreboard and boss bars placed or hidden moves nothing; a
-  page opened by its key closes without the settings table showing; Fake
-  Offhand's own key held while scrolling to another slot; a finished
-  enchantment plan after Change; the world map's right edge after closing
-  the waypoint list; deleting data right after switching away from it.
-  Shared paths changed with them: quick clicks on a slider, a scroll bar
-  and the schematic preview in the settings (press now runs before
-  release); Auto Attack or Auto Use held while a menu opens or on Alt+Tab
-  (the release waits for the next input update).
-  Only on an unverified game build: the paused notice naming Item details
-  and Enchantment order, English Search without enchanted books, Saved
-  data's Delete off.
+- Fixes from the 2026-11-16 pre-release review (from `b8cd9142`): none
+  seen in game yet.
+  - Shared input paths, first: quick clicks on a settings slider, a scroll
+    bar and the schematic preview (press now runs before release); a held
+    scroll bar after Esc or Alt+Tab; Auto Attack or Auto Use held while a
+    menu opens or on Alt+Tab (the release waits for the next input update);
+    Alt + right click on a menu key places nothing.
+  - Pages: Block highlight, Enchantment order, Saved data and Game language
+    opened by their keys close on Esc without the settings table showing,
+    and from the table Esc returns to the table.
+  - Schematics: an untouched Layer field keeps All layers, and a number
+    typed then Esc returns to it; an armed Delete after "Use this data";
+    Ignore looked place right after selecting another placement; a rule
+    covering more than 2000 cells leaves the wrong blocks listed; a rule
+    on signs or note blocks clears their marks after one pass, without a
+    hitch walking by; the list's tooltip.
+  - Game HUD: Alt+Tab with chat, scoreboard and boss bars placed or hidden
+    moves nothing; hidden position and days lines over a settings change.
+  - Inventory: Fake Offhand's own key held while scrolling to another
+    slot; a finished enchantment plan after Change; an enchanted book
+    without enchantments as the planned item; Tool Switch, Auto Elytra and
+    the player list after leaving and joining a world again.
+  - Map and saved data: the world map's right edge after closing a long
+    waypoint list; a click where "Use this data" was right after the
+    terrain panel opens; deleting data right after switching away from
+    it; a docked Waypoints or Schematics panel at about 270 units of
+    height with the notice of fuller data (the editor stays, no notice).
+  - Tooltips, with an add-on item only: a section sign or a very long name
+    in an ID or a tag.
+  - Only on an unverified game build (`--unverified_game=y`): the paused
+    notice names Item details for its lines and the work penalty, English
+    Search for enchanted books, and the minimap or the world map for
+    add-on block colors, each only while switched on, and never
+    Enchantment order unless its anvil list is on; Creative search does
+    not find enchanted books by enchantment name; Saved data's Delete is
+    grey and says why.
 
 ## Left from 0.6.0
 
