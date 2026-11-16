@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Waypoint prompt's Add button hover (2026-11-17)
+
+Build `42815f56`'s code on the 1.26.60.05 Dev instance, the maintainer. The
+add prompt's primary "Add (Enter)" lightens faintly on hover, "Cancel (Esc)"
+clearly; the faint change comes from the bright accent fill and matches the
+other primary buttons. Not a bug: the 2026-11-14 review entry (L-339) is
+closed without a change.
+
 ## Heads and shulker boxes in Lamium's item icons (2026-11-17)
 
 Build: `97b712ca` plus the uncommitted L-91 change with `icon_trace` on, DLL
