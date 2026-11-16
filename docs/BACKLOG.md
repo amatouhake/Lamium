@@ -212,7 +212,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-132](backlog/L-132.md) Move while the inventory screen is open (Research): Parked 2026-10-10 after eight trial rounds without smooth movement; resume from Next
 - [L-59](backlog/L-59.md) Held placement style: vanilla, Java-like or fast (Design done; Research first): Planned, nothing built; no step starts until the maintainer says so
 - [L-15](backlog/L-15.md) Breaking and placement restrictions (Design): Breaking shipped in 0.1.8 and stays until replaced; the whole plan is reopened for redesign before placement is built
-- [L-91](backlog/L-91.md) Shield glint missing in Lamium's item icons (Research): Waiting for the maintainer: whether to drive a vanilla slot renderer for the shield glint. Known issue
+- [L-91](backlog/L-91.md) Shield glint missing in Lamium's item icons (Research): Parked 2026-11-17 (maintainer): shield glint left; heads not looked into. Known issue
 - [L-79](backlog/L-79.md) Carved pumpkin and spyglass frame draw path (Research): Open; next step is the transparent-texture test pack (no code)
 - [L-71](backlog/L-71.md) Start an elytra glide from the mod (Research): Open; headers read 2026-11-12, next trace not run
 - [L-93](backlog/L-93.md) Schematic: load, place, project, verify and list materials (experimental) (Follow-up tracking; each L-item below owns its kind and open choices): Initial scope shipped in 0.1.7, 0.1.8 rendering/compatibility work done; follow-ups open
