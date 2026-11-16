@@ -175,7 +175,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) open; a Realm and a changing port not seen
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): In progress; fixed entries leave this list, none seen in game
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-354](backlog/L-354.md) Drags that outlive a quick click or a focus loss in the settings (Ready): Open, not started
+- [L-354](backlog/L-354.md) Drags that outlive a quick click or a focus loss in the settings (Ready): Fixed in code; the DLL was not built where it was written and nothing was seen in game
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns

@@ -119,6 +119,12 @@ Do not infer game success from a build or unit-test result.
     Enchantment order unless its anvil list is on; Creative search does
     not find enchanted books by enchantment name; Saved data's Delete is
     grey and says why.
+- L-354 drags that outlive a quick click or a focus loss: not built with
+  the game toolchain and not seen in game. HUD layout editor at a low frame
+  rate: a quick click on a contents popover's scroll bar, on an element and
+  on a scale handle holds nothing afterwards, and a drag still starts and
+  ends as before; a settings slider held over Alt+Tab does not follow the
+  pointer on return.
 
 ## Left from 0.6.0
 

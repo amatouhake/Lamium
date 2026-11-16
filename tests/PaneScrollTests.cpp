@@ -45,6 +45,24 @@ void scrollDragTests() {
     scroll_drag::release();
     scroll_drag::follow(0);
     check(first == 10 && !scroll_drag::holding(&first), "after release the pointer moves nothing");
+    scroll_drag::PressOrder order;
+    order.released();
+    check(!order.takeReleaseAfterPress(), "a release alone ends the drag before anything else");
+    order.pressed();
+    order.released();
+    check(order.takeReleaseAfterPress(), "a quick click's release ends what its press began");
+    check(!order.takeReleaseAfterPress(), "the order is taken once");
+    order.released();
+    order.pressed();
+    check(!order.takeReleaseAfterPress(), "a press after a drag's release stays held");
+    order.pressed();
+    order.released();
+    order.pressed();
+    check(!order.takeReleaseAfterPress(), "the last press of a frame stays held");
+    order.pressed();
+    order.clear();
+    order.released();
+    check(!order.takeReleaseAfterPress(), "a cleared press is forgotten");
 }
 void previewHeightTests() {
     using namespace lamium::ui;
