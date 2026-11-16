@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Merging saved data (L-343 part 4, 2026-11-17)
+
+Build `072d15c5`, DLL SHA-256
+`3554c0e368042810e32b5200f32d56ef853fae275e3941937ca87d63cbdc47f2`, 1.26.60.05 Dev
+instance on a server, the maintainer; the config folder was copied to
+`lamium-validation-disabled/config-before-merge-2026-11-17` first. Passed:
+a small candidate merged with Merge pressed twice, the footer giving the
+counts and the waypoint and placement lists without duplicates; merging
+again gave zeros and the candidate stayed listed as it was; a candidate with
+a map showed "Merging the map" advancing, then the counts, and the world map
+showed the merged area; with the page closed mid-merge a toast came at the
+end. Not checked: the full lists (1000 waypoints, 64 placements), a region
+that cannot be read, leaving the world mid-merge.
+
 ## Waypoint prompt's Add button hover (2026-11-17)
 
 Build `42815f56`'s code on the 1.26.60.05 Dev instance, the maintainer. The
