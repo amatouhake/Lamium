@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Heads and shulker boxes in Lamium's item icons (2026-11-17)
+
+Build: `97b712ca` plus the uncommitted L-91 change with `icon_trace` on, DLL
+SHA-256 `d27106f293d116dec5b74ba6572cd9cfd0f81a0183dc85d4fa832825ddfbe4fe`,
+1.26.60.05 Dev instance, the maintainer. Passed: heads and shulker boxes
+kept outside the hotbar over a rejoin show in the inventory HUD before the
+inventory is opened, and heads in a never-opened box show in the shulker box
+preview; size and facing as in a vanilla slot; chests, banners, decorated
+pots and fence gates unchanged. Before (same day): shulker boxes failed like
+heads; chests, ender chests, a copper golem statue, grindstone, enchanting
+table, heavy core, banner and decorated pot did not.
+
+Trace (`38bac2f2`): heads and shulker boxes report chunk 0 and their
+per-item graphics entry exists from the start; a slot draws them in a
+default batch with UI material 11 (MobHead), 10 (dragon head) or 13 (box).
+Drawn through their chunk in a batch (`62a205b8`) they vanished. The
+committed build differs by the trace being off.
+
 ## Shield glint, glint constants (2026-11-17)
 
 Build: `14af95d1` plus a trace-only experiment, `icon_trace` on, DLL SHA-256

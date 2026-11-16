@@ -27,6 +27,7 @@
 #include <new>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -35,7 +36,7 @@ namespace {
 // Chunk types vanilla slots batch (InventoryItemRenderer::getRenderTypeFromItem):
 // 0 blocks on the terrain atlas (slot alpha argument 0), 2 flat items on the
 // item atlas (alpha 1). Both use UI material 13 ("Item").
-constexpr int blockChunk = 0, flatChunk = 2, glinting = -2;
+constexpr int blockChunk = 0, flatChunk = 2, glinting = -2, modelChunk = -3;
 constexpr UIMaterialType itemMaterial = static_cast<UIMaterialType>(13);
 
 // ComponentRenderBatch and BatchKey have no usable default constructors, so
@@ -105,9 +106,26 @@ std::string const& ownTexture(ItemStack const& stack) {
     } catch (...) { name.clear(); }
     return known.emplace(id, std::move(name)).first->second;
 }
+// Heads and shulker boxes report the block chunk, but a slot draws them as a model in a default batch (UI
+// material 11 MobHead, 10 DragonHead, 13 for the box). In Lamium's terrain batch they showed nothing until a
+// slot had drawn that item once since joining (L-91, traced 2026-11-17); they take the direct path.
+bool modelInBlockChunk(ItemStack const& stack) {
+    static std::unordered_map<int, bool> known;
+    int const id = stack.getId();
+    if (auto found = known.find(id); found != known.end()) return found->second;
+    bool model = false;
+    try {
+        auto const type = stack.getTypeName();
+        auto endsWith = [&](std::string_view tail) { return type.size() >= tail.size() && type.ends_with(tail); };
+        model = endsWith("_head") || endsWith("_skull") || endsWith("shulker_box");
+    } catch (...) { model = false; }
+    return known.emplace(id, model).first->second;
+}
 int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;
-    return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
+    int const chunk = static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
+    if (chunk == blockChunk && modelInBlockChunk(stack)) return modelChunk;
+    return chunk;
 }
 }
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder) {
