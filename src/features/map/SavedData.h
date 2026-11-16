@@ -53,4 +53,21 @@ enum class DataKind { Waypoints, Placements, Map };
 std::optional<SavedData> fullerData(DataKind kind);
 // "Do not show again": no such notice for the joined server from now on.
 void quietFullerData();
+// Merges a server data into the data in use (L-343 part 4, DataMerge.h): waypoints and placements at once, the
+// map after, a few regions per frame (stepMerge). The other data stays as it was; the death layout in use stays.
+struct MergeStart {
+    bool ok = false;
+    int waypoints = 0, waypointsFull = 0, placements = 0, placementsFull = 0;
+    int regions = 0; // Map regions to merge; 0 when there is no map to merge.
+};
+MergeStart mergeData(std::string const& key);
+struct MergeProgress {
+    bool running = false;
+    std::string key;           // The data being merged in.
+    int done = 0, total = 0;   // Regions.
+    int chunks = 0, skipped = 0; // Chunks changed; regions that could not be read or written.
+};
+// While a map merge runs it goes on for about `budgetMs` per call, from the HUD's frame and from the saved data
+// page; recording meanwhile goes to the session's files, and the map in use comes back when it ends.
+MergeProgress stepMerge(double budgetMs = 6);
 }

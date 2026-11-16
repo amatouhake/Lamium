@@ -127,6 +127,23 @@ void blockHighlightTests() {
         check(wide.useX == l.useX && wide.useY() == l.useY() && wide.useWidth == l.useWidth && wide.deleteX == l.deleteX
               && wide.deleteY == l.deleteY && wide.anyPortY == l.anyPortY && wide.deleteWidth <= wide.detailWidth
               && wide.hit(l.useX + 2, l.useY() + 2).zone == Zone::Use, "arming Delete widens it and moves nothing");
+        // Merge (L-343 part 4): beside Use when both fit, else on its own row between Use and Delete.
+        auto merged = SavedDataLayout::fit(table, 1, 0, true, true, true, 60, 40, true, 60);
+        check(merged.mergeY == merged.useY() && merged.mergeX >= merged.useX + merged.useWidth
+              && merged.mergeX + merged.mergeWidth <= merged.detailLeft + merged.detailWidth
+              && merged.hit(merged.mergeX + 2, merged.mergeY + 2).zone == Zone::Merge
+              && merged.hit(merged.useX + 2, merged.useY() + 2).zone == Zone::Use,
+              "Merge sits beside Use when both fit and answers where it is drawn");
+        auto narrow = SavedDataLayout::fit(SettingsTable::fit(460, 360, 60, 0, 13), 1, 0, true, true, true, 110, 40, true, 110);
+        check(narrow.usable() && narrow.mergeX == narrow.useX
+              && narrow.mergeY + SavedDataLayout::buttonHeight <= narrow.useY()
+              && narrow.deleteY + SavedDataLayout::buttonHeight <= narrow.mergeY
+              && narrow.anyPortY + SavedDataLayout::lineHeight <= narrow.deleteY
+              && narrow.hit(narrow.mergeX + 2, narrow.mergeY + 2).zone == Zone::Merge,
+              "in narrow details Merge takes its own row above Use, below Delete");
+        auto noUse = SavedDataLayout::fit(table, 1, 0, false, false, true, 80, 40, true, 60);
+        check(!noUse.merge && noUse.hit(noUse.useX + 2, noUse.useY() + 2).zone != Zone::Merge,
+              "no Merge where Use is not offered");
         auto plain = SavedDataLayout::fit(table, 1, 0, false, false, true, 80, 40);
         check(plain.hit(plain.deleteX + 2, plain.deleteY + 2).zone == Zone::Delete && plain.deleteY == plain.actionsY
               && plain.hit(plain.detailLeft + 4, plain.anyPortY + 2).zone == Zone::None, "a world's own data offers Delete alone");

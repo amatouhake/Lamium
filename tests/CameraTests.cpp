@@ -173,6 +173,8 @@ int main() try {
     mapTests();
     extern void waypointTests();
     waypointTests();
+    extern void dataMergeTests();
+    dataMergeTests();
     extern void rowSelectionTests();
     rowSelectionTests();
     extern void listColumnsTests();

@@ -2,6 +2,8 @@
 #include <algorithm>
 #include "features/map/WaypointStore.h"
 #include "features/map/MapStore.h"
+#include "features/map/DataMerge.h"
+#include "features/map/MapRegionFiles.h"
 #include "features/map/SavedData.h"
 #include "features/schematic/PlacementStore.h"
 #include "overlay/LocalShapePath.h"
@@ -86,6 +88,18 @@ std::filesystem::path configFolder() { return Runtime::instance().self().getConf
 // Fuller data that may be the joined server's, per kind (SavedData.h); refreshed by suggest().
 std::array<std::optional<SavedData>, 3> fullerFound;
 void suggest();
+// A map merge in progress (mergeData, stepMerge): the regions still to merge, from the other data's map folder
+// into the one in use, which the store is kept off meanwhile (joined.mapFolder empty).
+struct MapMerge {
+    std::string key;
+    std::filesystem::path from, into;
+    struct File { std::string folder; RegionKey region; };
+    std::vector<File> files;
+    size_t next = 0;
+    int chunks = 0, skipped = 0;
+    std::unique_ptr<RegionCodec> codec = std::make_unique<RegionCodec>();
+};
+std::optional<MapMerge> mapMerge;
 // Reads the server list, lets `edit` change it and saves it when it did. A list that cannot be read is never
 // overwritten: `edit` then works on an empty one and nothing is saved. The caller holds the lock.
 template<class Edit>
@@ -144,6 +158,7 @@ std::optional<std::filesystem::path> resolve(Identity const& who, std::string_vi
 // Points every kind of data at `identity` and loads the waypoints: at a join, and when the player gives the
 // joined server other data. Everything else follows `joined.world`. The caller holds the lock.
 void attach() {
+    mapMerge.reset(); // What was merged is saved; merging again finishes it.
     set = {};
     destination.reset();
     loadFailed = false;
@@ -221,6 +236,7 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
 }
 void leave() {
     std::lock_guard lock(mutex);
+    mapMerge.reset();
     joined.active = false;
     identity = {};
     fullerFound = {};
@@ -287,6 +303,7 @@ void watchDeath(IClientInstance& client) {
                               static_cast<int>(std::floor(feet.z)), static_cast<int>(player->getDimensionId())};
 }
 void frame(bool recordDeath, bool temporary, std::string const& name) {
+    stepMerge(); // A map merge goes on while playing too (L-343).
     std::lock_guard lock(mutex);
     // A death point saved before L-328 becomes its waypoint.
     if (set.death && legacyDeathKept != set.waypoints.size()) {
@@ -567,6 +584,7 @@ bool removeData(SavedData const& item) {
         return true;
     }
     if (!safeKey(item.key) || (!identity.local && identity.key && *identity.key == item.key)) return false;
+    if (mapMerge && mapMerge->key == item.key) return false;
     bool removed = false;
     try {
         auto config = configFolder();
@@ -599,6 +617,125 @@ int setDataAnyPort(std::string const& key, bool on) {
         }
     }
     return released;
+}
+namespace {
+// The regions of a map folder, once each (a region saved as .lm2 and .lmr is one), in layers the store knows.
+std::vector<MapMerge::File> regionFiles(std::filesystem::path const& folder) {
+    std::vector<MapMerge::File> files;
+    std::set<std::pair<std::string, std::pair<int, int>>> seen;
+    std::error_code ignored;
+    std::filesystem::recursive_directory_iterator it(folder, ignored), end;
+    for (; !ignored && it != end; it.increment(ignored)) {
+        if (!it->is_regular_file(ignored)) continue;
+        auto name = it->path().filename().u8string();
+        auto region = regionOfFileName(std::string_view(reinterpret_cast<char const*>(name.data()), name.size()));
+        if (!region) continue;
+        auto relative = it->path().parent_path().lexically_relative(folder).generic_u8string();
+        std::string layer(relative.begin(), relative.end());
+        if (!layerOfFolder(layer)) continue;
+        if (seen.insert({layer, {region->x, region->z}}).second) files.push_back({layer, *region});
+    }
+    return files;
+}
+}
+MergeStart mergeData(std::string const& key) {
+    std::lock_guard lock(mutex);
+    MergeStart start;
+    if (!joined.active || !identity.hasAddress() || !identity.key || !safeKey(key) || key.starts_with("world_")
+        || *identity.key == key || loadFailed || mapMerge)
+        return start;
+    auto config = configFolder();
+    std::error_code ignored;
+    auto const waypointFile = config / waypointFolder / (key + ".json");
+    auto const schematicFile = config / schematicFolder / (key + ".json");
+    // Everything is read before anything is written: a file that cannot be read stops the whole merge.
+    WaypointSet incoming;
+    schematic::PlacementSet placementsIn, placementsInUse;
+    try {
+        if (std::filesystem::is_regular_file(waypointFile, ignored)) incoming = readWaypoints(waypointFile);
+        if (std::filesystem::is_regular_file(schematicFile, ignored)) placementsIn = schematic::readPlacements(schematicFile);
+        if (joined.schematicFile && std::filesystem::is_regular_file(*joined.schematicFile, ignored))
+            placementsInUse = schematic::readPlacements(*joined.schematicFile);
+    } catch (std::exception const& error) {
+        log(std::string("could not read data to merge: ") + error.what());
+        return start;
+    }
+    auto candidate = set;
+    auto waypointCounts = merge::mergeWaypoints(candidate, incoming.waypoints);
+    auto placementCounts = merge::mergePlacements(placementsInUse, placementsIn.placements);
+    if (waypointCounts.taken && !commit(std::move(candidate))) return start;
+    if (placementCounts.taken) {
+        if (!joined.schematicFile) return start;
+        try {
+            schematic::normalize(placementsInUse);
+            schematic::writePlacements(*joined.schematicFile, placementsInUse);
+        } catch (std::exception const& error) {
+            log(std::string("could not save merged placements: ") + error.what());
+            return start;
+        }
+    }
+    start = {true, waypointCounts.taken, waypointCounts.full, placementCounts.taken, placementCounts.full, 0};
+    // The map: the store saves and lets go of both folders, and records to session files until the merge ends.
+    auto const from = config / std::filesystem::u8path(mapFolder) / std::filesystem::path(key);
+    if (joined.mapFolder && std::filesystem::is_directory(from, ignored)) {
+        if (!store::release(*joined.mapFolder) || !store::release(from)) {
+            log("the map is still being saved; it was not merged");
+        } else {
+            MapMerge job;
+            job.key = key;
+            job.from = from;
+            job.into = *joined.mapFolder;
+            job.files = regionFiles(from);
+            start.regions = static_cast<int>(job.files.size());
+            if (!job.files.empty()) {
+                mapMerge = std::move(job);
+                joined.mapFolder.reset();
+            }
+        }
+    }
+    // Followers reload: placements from their file, and the store attaches again.
+    ++joined.world;
+    log("merged the data under '" + key + "': " + std::to_string(start.waypoints) + " waypoints, "
+        + std::to_string(start.placements) + " placements, " + std::to_string(start.regions) + " map regions to go");
+    try { suggest(); } catch (...) { fullerFound = {}; }
+    return start;
+}
+MergeProgress stepMerge(double budgetMs) {
+    std::lock_guard lock(mutex);
+    if (!mapMerge) return {};
+    auto& job = *mapMerge;
+    auto const until = std::chrono::steady_clock::now() + std::chrono::duration<double, std::milli>(budgetMs);
+    while (job.next < job.files.size() && std::chrono::steady_clock::now() < until) {
+        auto const& file = job.files[job.next++];
+        auto const relative = std::filesystem::u8path(file.folder) / regionFileName(file.region);
+        try {
+            auto source = readRegionFiles(job.from / relative, file.region, *job.codec);
+            if (source.status != RegionStatus::Loaded || source.damaged || !source.data) { ++job.skipped; continue; }
+            auto target = readRegionFiles(job.into / relative, file.region, *job.codec);
+            if (target.status == RegionStatus::Refused || target.damaged) { ++job.skipped; continue; }
+            RegionData data = target.data ? std::move(*target.data) : RegionData{};
+            int const changed = merge::mergeRegion(data, *source.data);
+            if (!changed && !target.needsSave) continue;
+            std::filesystem::create_directories((job.into / relative).parent_path());
+            writeRegionFiles(job.into / relative, file.region, data, *job.codec);
+            job.chunks += changed;
+        } catch (std::exception const& error) {
+            ++job.skipped;
+            log("could not merge map region " + relative.string() + ": " + error.what());
+        }
+    }
+    MergeProgress progress{true, job.key, static_cast<int>(job.next), static_cast<int>(job.files.size()), job.chunks,
+                           job.skipped};
+    if (job.next >= job.files.size()) {
+        progress.running = false;
+        joined.mapFolder = job.into;
+        ++joined.world;
+        log("merged the map under '" + job.key + "': " + std::to_string(job.chunks) + " chunks, "
+            + std::to_string(job.skipped) + " regions skipped");
+        mapMerge.reset();
+        try { suggest(); } catch (...) { fullerFound = {}; }
+    }
+    return progress;
 }
 std::string dataName() {
     std::lock_guard lock(mutex);

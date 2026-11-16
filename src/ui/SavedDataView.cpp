@@ -22,6 +22,7 @@ bool open = false;
 std::vector<Data> items;
 int selected = 0, first = 0;
 std::string armed; // The key whose Delete was pressed once.
+std::string armedMerge; // The key whose Merge was pressed once.
 std::string notice;
 bool noticeWarns = false;
 SavedDataLayout last;
@@ -38,6 +39,7 @@ void reload(std::string const& keep = {}) {
     selected = 0;
     for (size_t i = 0; i < items.size(); ++i) if (!keep.empty() && items[i].key == keep) selected = static_cast<int>(i);
     armed.clear();
+    armedMerge.clear();
     rowNameAt = -1;
 }
 void reveal() {
@@ -51,6 +53,21 @@ void use() {
     std::string const key = d->key, name = shown(*d);
     if (map::waypoints::useData(key)) { reload(key); say(translated("savedData.switched", name)); }
     else say(translated("savedData.failed"), true);
+}
+// Merge (L-343 part 4), pressed twice: the other data is copied into the data in use and stays listed. The map
+// goes on after, a few regions per frame; the footer shows how far.
+void mergeIn() {
+    auto const* d = chosen();
+    if (!d || !d->canUse) return;
+    if (armedMerge != d->key) { armedMerge = d->key; return; }
+    std::string const key = d->key, name = shown(*d);
+    auto start = map::waypoints::mergeData(key);
+    reload(key);
+    if (!start.ok) { say(translated("savedData.failed"), true); return; }
+    std::string text = translated("savedData.merged", name, start.waypoints, start.placements);
+    if (start.waypointsFull || start.placementsFull)
+        text += "  " + translated("savedData.mergeFull", start.waypointsFull, start.placementsFull);
+    say(std::move(text), start.waypointsFull || start.placementsFull);
 }
 // The folder is named from game values a rebuild cannot check: on a game they were not checked on it could be
 // another world's, so nothing is deleted there. Looking and choosing stay.
@@ -117,7 +134,7 @@ bool begin() {
 bool opened() { return open; }
 void reset() {
     data_thumb::reset();
-    items.clear(); armed.clear(); notice.clear();
+    items.clear(); armed.clear(); armedMerge.clear(); notice.clear();
     selected = first = 0; last = {};
     open = false; noticeWarns = false;
 }
@@ -132,11 +149,13 @@ bool click(float x, float y, bool right) {
     if (screen::pressScrollbar(last.list, first, x, y)) return true;
     auto hit = last.hit(x, y);
     if (hit.zone != Zone::Delete) armed.clear();
+    if (hit.zone != Zone::Merge) armedMerge.clear();
     switch (hit.zone) {
     case Zone::Back: back(); break;
     case Zone::Row: selected = hit.index; notice.clear(); break;
     case Zone::AnyPort: anyPort(); break;
     case Zone::Use: use(); break;
+    case Zone::Merge: mergeIn(); break;
     case Zone::Delete: remove(); break;
     case Zone::None: break;
     }
@@ -144,12 +163,13 @@ bool click(float x, float y, bool right) {
 }
 void key(int key) {
     if (key == 0x1b || key == 0x08) {
-        if (!armed.empty()) { armed.clear(); return; }
+        if (!armed.empty() || !armedMerge.empty()) { armed.clear(); armedMerge.clear(); return; }
         // Esc goes back to where the page was opened from: the game when its key opened it.
         if (key != 0x1b || !screen::leaveDirectTool()) back();
         return;
     }
     armed.clear();
+    armedMerge.clear();
     int const count = static_cast<int>(items.size());
     if (!count) return;
     auto move = [&](int amount) { selected = std::clamp(selected + amount, 0, count - 1); notice.clear(); reveal(); };
@@ -165,15 +185,28 @@ void key(int key) {
 }
 void wheel(int amount) { first = SettingsTable::clampFirst(first + amount, static_cast<int>(items.size()), last.list.listVisible); }
 void release() {}
-void calm() { armed.clear(); }
+void calm() { armed.clear(); armedMerge.clear(); }
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
+    // A map merge goes on while the page is open (the HUD that also steps it is not drawn under the screen).
+    if (auto progress = map::waypoints::stepMerge(); !progress.key.empty()) {
+        if (progress.running) say(translated("savedData.mergingMap", progress.done, progress.total));
+        else {
+            auto const* now = chosen();
+            reload(now ? now->key : std::string());
+            say(progress.skipped ? translated("savedData.mergedMapSkipped", progress.chunks, progress.skipped)
+                                 : translated("savedData.mergedMap", progress.chunks), progress.skipped > 0);
+        }
+    }
     auto const* d = chosen();
     bool const server = d && d->kind == Data::Kind::Server;
     std::string const useText = translated("savedData.use"), removeLabel = translated("savedData.delete");
-    // Delete holds both its labels, so arming moves nothing.
+    std::string const mergeLabel = translated("savedData.merge"), mergeConfirm = translated("savedData.confirmMerge");
+    // Delete and Merge hold both their labels, so arming moves nothing.
     last = SavedDataLayout::fit(t, static_cast<int>(items.size()), first, server && !d->host.empty(), d && d->canUse,
-        d && d->canDelete, textWidth(context, useText) + 12, armedWidth(context, removeLabel, confirmDelete(), 12));
+        d && d->canDelete, textWidth(context, useText) + 12, armedWidth(context, removeLabel, confirmDelete(), 12),
+        d && d->canUse, armedWidth(context, mergeLabel, mergeConfirm, 12));
     std::string const removeText = armedLabel(context, removeLabel, confirmDelete(), d && armed == d->key, last.deleteWidth);
+    std::string const mergeText = armedLabel(context, mergeLabel, mergeConfirm, d && armedMerge == d->key, last.mergeWidth);
     if (!last.usable()) return;
     first = last.list.listFirst = SettingsTable::clampFirst(first, last.list.listCount, last.list.listVisible);
     auto hover = last.hit(pointer.x, pointer.y);
@@ -290,6 +323,9 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (last.use)
             drawButton(context, last.useX, last.useY(), last.useWidth, SavedDataLayout::buttonHeight, useText,
                 hover.zone == Zone::Use, ButtonKind::Primary);
+        if (last.merge)
+            drawButton(context, last.mergeX, last.mergeY, last.mergeWidth, SavedDataLayout::buttonHeight, mergeText,
+                hover.zone == Zone::Merge, ButtonKind::Plain);
         if (last.remove && !deletable())
             drawButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeLabel,
                 false, ButtonKind::Plain, false);
