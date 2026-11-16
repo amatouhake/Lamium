@@ -585,7 +585,8 @@ The list is painted from `Inspection.cpp`'s `TooltipPainter` right before the ga
 screen's own drawing, between its `BeforeUIRenderEvent` and `AfterUIRenderEvent`), so it is above the screen's dark
 layer and under the tooltip; in a frame without a tooltip it is painted after the screen. Relies on the tooltip
 being drawn after the screen's other controls. The item held on the pointer is drawn again over the list in the
-box of the control `selected_item_icon` (name and 21-unit size read from the log 2026-11-12).
+box of the control `selected_item_icon` (name and 21-unit size read from the log 2026-11-12), with its count
+label from `selected_stack_size_text` (12x10 units, read from the log 2026-11-12).
 Gated (Enchantment order). After a game update: read a few costs from the anvil again and open the planner beside it.
 
 ### `src/features/inventory/BookPaste.cpp`
