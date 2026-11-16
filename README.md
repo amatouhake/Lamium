@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.6.0 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.7.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -258,8 +258,10 @@ requests are handled. What has been checked in game, per feature, is in
 **HUD & overlays**
 
 - **Game HUD placement:** checked in a local world at the desktop GUI scale;
-  Pocket UI, other GUI scales and servers' own sidebars are untested. A paper
-  doll placed over another HUD element may not be shown.
+  Pocket UI, other GUI scales and servers' own sidebars are untested. The
+  boss bars' default place does not follow the extra padding some layouts
+  add above them. A paper doll placed over another HUD element may not be
+  shown.
 
 - **Player list:** knows where other players are only while they share your
   dimension: elsewhere it shows the dimension they were last seen in, faded,
@@ -268,6 +270,7 @@ requests are handled. What has been checked in game, per feature, is in
   (offhand slot, Shulker/Bundle previews, the inventory HUD); enchanted
   golden apples and other flat icons do. Enchanted leather armor shows its
   undyeable parts see-through there (unenchanted leather draws whole).
+  In the inventory HUD a compass and a clock show no needle or time.
 
 **Map**
 
@@ -275,9 +278,15 @@ requests are handled. What has been checked in game, per feature, is in
   large explored area. Waypoint storage per server, distant players on
   dedicated servers, and the latest section-request/teleport changes on
   servers remain unverified.
+- Map areas recorded before 0.7.0 keep their old colors for add-on blocks
+  until they are scanned again.
 - Slime chunks are checked against the game's spawn rule in a local world;
   servers are untested (the rule does not depend on the world).
 - Some servers may treat seeing mobs and players through walls as unfair.
+- **Saved data:** a server's map, waypoints and placements follow its
+  address and port; when a server is reached under another address, Saved
+  data gives it its earlier data. A friend's world over a rejoin and Realms
+  are untested.
 - A few mob faces are not right yet (silverfish and tadpoles stay dots;
   camel and hoglin faces may look off), and skins with custom head models
   are untested.
@@ -315,8 +324,11 @@ requests are handled. What has been checked in game, per feature, is in
   planner says it is not checked and stays closed.
 - **Death layout restore:** checked in local worlds; with instant respawn the
   inventory may be read as kept and nothing is restored. In use it sometimes
-  restores after a death you did not expect, or in a layout that looks
-  wrong (under investigation). Servers with latency are untested.
+  restored after a death you did not expect, or in a layout that looked
+  wrong; a layout now ends once the dropped items must be gone, and whether
+  that stops it is being watched. On a server other players can keep the
+  place loaded while you are away, so the items can be gone before the
+  layout ends. Servers with latency are untested.
 - **Paste across book pages:** checked in a local world. Servers, replacing a
   selection and the message when 50 pages are not enough are untested.
 
