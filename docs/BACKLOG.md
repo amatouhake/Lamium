@@ -199,7 +199,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
 - [L-352](backlog/L-352.md) More on and off forms as a wrong state (Ready): Built 2026-11-17, not checked in game
 - [L-356](backlog/L-356.md) Save shapes per server, like waypoints and placements (Ready): Decided 2026-11-17 (maintainer); being built on `night/L-356`
-- [L-357](backlog/L-357.md) HUD elements: their size and their text size apart (Ready): Decided 2026-11-17; the inventory grid's slot size is built, the Look popover is not
+- [L-357](backlog/L-357.md) HUD elements: their size and their text size apart (Ready): Built 2026-11-17 on `night/L-357`, not checked in game
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
