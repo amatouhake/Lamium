@@ -92,7 +92,7 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 | `warning` | Yellow: only warnings (conflicts, refused values, notices, a schematic block in the wrong state) |
 | `danger`, `dangerEdge`, `dangerText` | Red: only destructive actions: armed fill, edge (hovered or armed), hovered text |
 | `info` | Light blue: reference, not Lamium's own content: drafts, ghosts, waypoint names on the map, the game's own HUD parts |
-| `mismatch` | Red text for a schematic block that differs from the world (not destructive, so not `danger`) |
+| `mismatch`, `wrongState`, `notPlaced` | The schematic check's kinds, in the Check list and as mistake marks in the world: red for a block that differs from the file (not destructive, so not `danger`), yellow for one whose state differs (not `warning`), pale blue for one not placed yet |
 | `cornerOne`, `cornerTwo` | A schematic area's two corners, as their marks in the world |
 | `shade` | Black scrims, field backs and outlines; each use sets its opacity |
 | `controlEdge`, `gripOn`, `gripOff` | Switch and slider parts only |

@@ -1,5 +1,6 @@
 #pragma once
 #include "overlay/Geometry.h"
+#include "ui/Widgets.h"
 #include <algorithm>
 #include <cmath>
 #include <array>
@@ -142,11 +143,12 @@ inline constexpr std::array<std::string_view, 5> lookLabels{"highlightColor.rain
 inline constexpr bool animated(Look look) { return look == Look::Rainbow; }
 // A still look's color (WorldOverlay's shape colors); white for the rainbow.
 inline constexpr std::array<float, 3> lookColor(Look look) {
+    constexpr auto rgb = [](ui::Rgb c) { return std::array{c.r, c.g, c.b}; };
     switch (look) {
-    case Look::Cyan: return {.25f, .82f, .88f};
-    case Look::Yellow: return {.95f, .8f, .24f};
-    case Look::Pink: return {.94f, .5f, .75f};
-    default: return {.95f, .95f, .95f};
+    case Look::Cyan: return rgb(ui::palette::shapeCyan);
+    case Look::Yellow: return rgb(ui::palette::shapeYellow);
+    case Look::Pink: return rgb(ui::palette::shapePink);
+    default: return rgb(ui::palette::shapeWhite);
     }
 }
 // The faces' alpha: `base` is the material's shape alpha, `strength` the
