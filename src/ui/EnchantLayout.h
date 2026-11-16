@@ -152,7 +152,7 @@ struct EnchantLayout {
     float kindY(int index) const { return kindsTop + (index / kindColumns) * (cell + cellGap); }
     // A row reads name, then the level as a stepper (- level +), then the
     // switch at the right edge, so nothing is left empty beside it.
-    float switchX() const { return rows.listLeft + rows.listWidth - SettingsTable::pad - 18; }
+    float switchX() const { return rows.listLeft + rows.contentWidth() - SettingsTable::pad - 18; }
     float plusX() const { return switchX() - 6 - stepWidth; }
     float levelX() const { return plusX() - levelWidth; }
     bool onLevel(float x) const { return x >= levelX() && x < levelX() + levelWidth; }

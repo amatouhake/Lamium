@@ -300,7 +300,7 @@ void handleShapeClick(float x, float y, bool right) {
         if (index < 0 || index >= static_cast<int>(shapeList.size())) return;
         auto const& item = shapeList[index];
         auto const& l = shapesDisplayed;
-        if (listColumns(l.listLeft, l.listWidth, 0, switchWidth).onShown(x)) {
+        if (listColumns(l.listLeft, l.contentWidth(), 0, switchWidth).onShown(x)) {
             try { overlay::shapes::setVisible(item.id, !item.definition.visible); screen::clearMessage(); }
             catch (overlay::ShapeSaveError const&) { screen::setMessage(translated("shape.saveError")); }
             catch (std::exception const&) { screen::setMessage(translated("shape.editError")); }
@@ -510,7 +510,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
         over(ShapeZone::NewShape) || shapePicking,ButtonKind::Primary); // lit while picking a type
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
-    auto const columns = listColumns(l.listLeft, l.listWidth, 0, switchWidth);
+    auto const columns = listColumns(l.listLeft, l.contentWidth(), 0, switchWidth);
     drawListHeadings(context,columns,l.theadTop);
     fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
     int draftOffset = shapeDraft ? 1 : 0;

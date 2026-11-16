@@ -46,8 +46,8 @@ struct HighlightLayout {
     }
     float searchX() const { return rightLeft + SettingsTable::pad; }
     float searchWidth() const { return rightWidth - 2 * SettingsTable::pad; }
-    float removeX() const { return listed.listLeft + listed.listWidth - SettingsTable::pad - removeWidth; }
-    float addX() const { return rightLeft + rightWidth - SettingsTable::pad - addWidth; }
+    float removeX() const { return listed.listLeft + listed.contentWidth() - SettingsTable::pad - removeWidth; }
+    float addX() const { return results.listLeft + results.contentWidth() - SettingsTable::pad - addWidth; }
     static int rowAt(ShapesLayout const& c, float x, float y) {
         if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop || c.onScrollbar(x, y)) return -1;
         int offset = static_cast<int>((y - c.rowsTop) / ShapesLayout::rowHeight);

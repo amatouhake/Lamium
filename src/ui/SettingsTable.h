@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/ScrollBar.h"
 #include <algorithm>
 #include <cmath>
 
@@ -70,9 +71,9 @@ struct SettingsTable {
         t.rowsTop = body + theadHeight;
         t.keyWidth = t.tableWidth < 380 ? 70 : 88;
         t.nameX = t.tableLeft + pad;
-        t.keyX = t.tableLeft + t.tableWidth - pad - t.keyWidth;
-        t.stateX = t.keyX - gap - stateWidth;
         t.visible = std::max(0, static_cast<int>((t.footerTop - t.rowsTop - 2) / rowHeight));
+        t.keyX = t.tableLeft + t.contentWidth() - pad - t.keyWidth;
+        t.stateX = t.keyX - gap - stateWidth;
         t.first = clampFirst(first, t.count, t.visible);
         return t;
     }
@@ -118,6 +119,9 @@ struct SettingsTable {
     }
     float rowY(int index) const { return rowsTop + (index - first) * rowHeight; }
     float rowsRight() const { return tableLeft + tableWidth; }
+    // Rows and their columns stop short of the list's bar while it shows.
+    float contentWidth() const { return tableWidth - (count > visible ? rowBarGutter : 0); }
+    float rowWidth() const { return contentWidth() - 2; }
     // Values without a switch span the state and key columns.
     float controlX() const { return stateX; }
     float controlWidth() const { return keyX + keyWidth - stateX; }
@@ -209,7 +213,7 @@ struct SettingsTable {
             int index = static_cast<int>(std::floor((y - navTop - 4) / navStep));
             return index >= 0 && index < navItems - pinnedItems ? Hit{Zone::Nav, index} : Hit{};
         }
-        if (y < rowsTop) return {};
+        if (y < rowsTop || onListScrollbar(x, y)) return {};
         int offset = static_cast<int>((y - rowsTop) / rowHeight);
         int row = first + offset;
         if (offset >= visible || row >= count) return {};

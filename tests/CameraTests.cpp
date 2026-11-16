@@ -185,6 +185,8 @@ int main() try {
     scrollDragTests();
     extern void previewHeightTests();
     previewHeightTests();
+    extern void barGutterTests();
+    barGutterTests();
     extern void worldMapTests();
     worldMapTests();
     extern void mapRegionFormatTests();

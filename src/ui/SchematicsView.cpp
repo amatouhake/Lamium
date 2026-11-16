@@ -970,7 +970,7 @@ void handleSchematicClick(float x, float y, bool right) {
         auto const& l = schematicsDisplayed;
         switch (schematicTab) {
         case SchematicTab::Placements:
-            if (listColumns(l.listLeft, l.listWidth, progressColumn, switchWidth).onShown(x)) {
+            if (listColumns(l.listLeft, l.contentWidth(), progressColumn, switchWidth).onShown(x)) {
                 schematic::session::change([&](schematic::PlacementSet& set) {
                     if (row < 0 || row >= static_cast<int>(set.placements.size())) return false;
                     set.placements[static_cast<size_t>(row)].visible = !set.placements[static_cast<size_t>(row)].visible;
@@ -1234,7 +1234,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
 
     // List.
-    float listRight = l.listLeft + l.listWidth;
+    float listRight = l.listLeft + l.contentWidth();
     float left = l.listLeft + ShapesLayout::pad;
     auto heading = [&](float x, float w, std::string_view key, Align align = Align::Left) {
         label(context,x,l.theadTop+2,w,translated(key),palette::faint,align);
@@ -1255,7 +1255,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     bool loadedOne = false; // At most one file is read per frame to fill the columns.
     // Placed: the lists' shared columns, progress as its own (the detail pane
     // shows the position).
-    auto const placed = listColumns(l.listLeft, l.listWidth, progressColumn, switchWidth);
+    auto const placed = listColumns(l.listLeft, l.contentWidth(), progressColumn, switchWidth);
     if (schematicTab == SchematicTab::Placements) schematic::ghosts::wantProgress();
     float distW = 28;
     float numW = 34, carriedX = listRight - ShapesLayout::pad - numW, leftX = carriedX - numW - 2;

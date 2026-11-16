@@ -25,6 +25,9 @@ struct ScrollBar {
         return std::clamp((py - grab - top) / room, 0.f, 1.f) * range;
     }
 };
+// While a bar shows, rows and their columns end this far short of the
+// list's right edge, so no row, frame or column meets the bar.
+inline constexpr float rowBarGutter = 6;
 // A bar over rows: `count` rows, `visible` of them from `first`; the thumb
 // is the shown share of the track, at least `minThumb` long.
 inline ScrollBar rowScrollBar(float x, float top, float track, int count, int visible, int first, float minThumb = 8) {

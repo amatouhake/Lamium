@@ -122,8 +122,10 @@ struct ShapesLayout {
     }
     // A row's background and hover stop short of the bar while it shows, so
     // the selection frame never covers it and pointing at it lights no row.
-    static constexpr float barGutter = 6;
-    float rowWidth() const { return listWidth - 2 - (listCount > listVisible ? barGutter : 0); }
+    // The columns end inside it: `contentWidth` is the span they lay out in.
+    static constexpr float barGutter = rowBarGutter;
+    float contentWidth() const { return listWidth - (listCount > listVisible ? barGutter : 0); }
+    float rowWidth() const { return contentWidth() - 2; }
     // The list's bar as drawn (drawListScrollbar) and dragged.
     ScrollBar scrollBar() const {
         return rowScrollBar(listLeft + listWidth - 3, rowsTop, listVisible * rowHeight, listCount, listVisible, listFirst);

@@ -105,16 +105,17 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     // Heading row: where this list belongs, and the way back to it.
     drawPageHeading(context, t, "section.interface", "feature.gameLanguage", last.closeX, overBack(pointer.x, pointer.y));
 
-    float codeWidth = t.keyWidth;
+    // The code column ends short of the list's own bar, not the table's.
+    float codeWidth = t.keyWidth, codeX = last.listLeft + last.contentWidth() - SettingsTable::pad - codeWidth;
     for (int i = last.listFirst; i < last.listFirst + last.listVisible && i < last.listCount; ++i) {
         auto const& choice = selection.choices[i];
         float y = last.listRowY(i);
         bool hovered = pointer.x >= last.listLeft && pointer.x < last.listLeft + last.listWidth
             && pointer.y >= y && pointer.y < y + ShapesLayout::rowHeight && !last.onScrollbar(pointer.x, pointer.y);
         rowBackground(context, last.listLeft + 1, y, last.rowWidth(), ShapesLayout::rowHeight, selection.selected == i, hovered);
-        label(context, t.nameX, y + 3, t.keyX - t.nameX - SettingsTable::gap, choice.name,
+        label(context, t.nameX, y + 3, codeX - t.nameX - SettingsTable::gap, choice.name,
             choice.code == current ? palette::accent : palette::text);
-        label(context, t.keyX, y + 3, codeWidth, choice.code, choice.code == current ? palette::accent : palette::faint);
+        label(context, codeX, y + 3, codeWidth, choice.code, choice.code == current ? palette::accent : palette::faint);
     }
     drawListScrollbar(context, last, screen::scrollHeld(&selection.first) || last.onScrollbar(pointer.x, pointer.y));
 

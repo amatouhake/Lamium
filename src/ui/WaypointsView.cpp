@@ -251,7 +251,7 @@ void handleWaypointClick(float x, float y, bool right) {
     case ShapeZone::ListRow: {
         auto value = waypointAtRow(hit.index);
         auto const& l = waypointsDisplayed;
-        if (value && value->layer == map::MarkLayer::Waypoint && listColumns(l.listLeft, l.listWidth, 0, switchWidth).onShown(x)) {
+        if (value && value->layer == map::MarkLayer::Waypoint && listColumns(l.listLeft, l.contentWidth(), 0, switchWidth).onShown(x)) {
             if (!changeWaypoint(value, [](map::Waypoint& t) { t.visible = !t.visible; })) screen::setMessage(translated("waypoint.saveError"));
             else screen::clearMessage();
             refreshWaypoints();
@@ -392,7 +392,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("waypoint.addHere"),
         over(ShapeZone::NewShape),ButtonKind::Primary);
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
-    auto const columns = listColumns(l.listLeft, l.listWidth, 0, switchWidth);
+    auto const columns = listColumns(l.listLeft, l.contentWidth(), 0, switchWidth);
     drawListHeadings(context,columns,l.theadTop);
     fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
     if (l.listCount == 0)

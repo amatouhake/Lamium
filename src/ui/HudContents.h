@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/ScrollBar.h"
 #include "ui/HudEditorLayout.h"
 #include <algorithm>
 #include <optional>
@@ -76,13 +77,13 @@ inline ContentsLayout layoutContents(Spot toolbar, float toolbarH, int count, bo
     float listTop = at.y + 3, listH = out.visible * rowH;
     out.first = std::clamp(first, 0, std::max(0, count - out.visible));
     if (out.visible < count && out.visible > 0) out.track = ContentsTrack{at.x + w - 5, listTop, listH};
-    float rw = w - 6;
+    // Rows and their columns end short of the bar while it shows.
+    float gutter = out.track ? rowBarGutter : 0.f, rw = w - 6 - gutter;
     for (int i = 0; i < out.visible; ++i) {
         ContentsRow row;
         row.index = out.first + i;
         float ry = listTop + i * rowH;
-        // The row stops short of the bar, so pointing at it lights no row.
-        row.row = {at.x + 2, ry, w - 4 - (out.track ? 6.f : 0.f), rowH};
+        row.row = {at.x + 2, ry, w - 4 - gutter, rowH};
         row.switchAt = {at.x + 5, ry + (rowH - switchH) / 2};
         row.labelAt = {at.x + 8 + switchW, ry + 1};
         if (reorder) {

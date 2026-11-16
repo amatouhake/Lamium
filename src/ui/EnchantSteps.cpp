@@ -126,7 +126,7 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
     label(context, left, l.titleY + 2, inner - 2, translated("enchantOrder.levels"), palette::faint, Align::Right);
 
     constexpr float numberWidth = 12, costWidth = 20;
-    float const textLeft = left + numberWidth + 4, textRight = rows.listLeft + rows.listWidth - pad - costWidth - 2;
+    float const textLeft = left + numberWidth + 4, textRight = rows.listLeft + rows.contentWidth() - pad - costWidth - 2;
     int itemsDrawn = 0, booksDrawn = 0;
     for (int i = rows.listFirst; i < rows.listFirst + rows.listVisible && i < rows.listCount; ++i) {
         int const number = i / L::stepRows;

@@ -195,7 +195,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             hover.zone == Zone::Row && hover.index == i);
         std::string const tag = item.inUse ? translated("savedData.inUse") : maybeText(item.maybe);
         float const tagWidth = tag.empty() ? 0 : textWidth(context, tag) + SettingsTable::gap;
-        float const nameX = list.listLeft + pad + kindWidth, nameRoom = list.listWidth - 2 * pad - kindWidth - tagWidth - 6;
+        float const nameX = list.listLeft + pad + kindWidth, nameRoom = list.contentWidth() - 2 * pad - kindWidth - tagWidth - 6;
         std::string const name = shown(item), extra = apart(item);
         label(context, list.listLeft + pad, y + 3, kindWidth, kindText(item), palette::faint);
         label(context, nameX, y + 3, nameRoom, name, item.inUse ? palette::accent : palette::text);
@@ -204,7 +204,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             if (nameRoom - used > 20) label(context, nameX + used, y + 3, nameRoom - used, extra, palette::faint);
         }
         if (!tag.empty())
-            label(context, list.listLeft + list.listWidth - pad - 6 - tagWidth, y + 3, tagWidth, tag,
+            label(context, list.listLeft + list.contentWidth() - pad - 6 - tagWidth, y + 3, tagWidth, tag,
                 item.inUse ? palette::accent : palette::warning, Align::Right);
     }
     drawListScrollbar(context, list, screen::scrollHeld(&first) || list.onScrollbar(pointer.x, pointer.y));

@@ -1,4 +1,6 @@
+#include "ui/ListColumns.h"
 #include "ui/PaneScroll.h"
+#include "ui/ShapesLayout.h"
 void check(bool, char const*);
 void paneScrollTests() {
     using namespace lamium::ui;
@@ -71,4 +73,24 @@ void previewHeightTests() {
     check(previewHeight(300, 9, 80, 12) == previewHeight(300, 4, 80, 12), "only four lines are made room for; more scroll");
     check(previewHeight(150, 4, 80, 12) == 60, "the preview never goes under its minimum");
     check(previewHeight(600, 2, 80, 12) == 240, "with room to spare the preview keeps its size");
+}
+void barGutterTests() {
+    using namespace lamium::ui;
+    // The settings table: rows and the key column end short of the list's bar.
+    auto fits = SettingsTable::fit(640, 360, 3, 0);
+    check(fits.contentWidth() == fits.tableWidth && fits.keyX + fits.keyWidth == fits.rowsRight() - SettingsTable::pad,
+          "a table that fits keeps its full width");
+    auto t = SettingsTable::fit(640, 360, 200, 0);
+    float barX = t.rowsRight() - 3, rowEnd = t.tableLeft + 1 + t.rowWidth();
+    check(rowEnd < barX - 2 && t.keyX + t.keyWidth < rowEnd, "a scrolling table's rows and keys end before its bar");
+    check(t.onListScrollbar(barX, t.rowsTop + 1) && t.hitZone(barX, t.rowsTop + 1, 13).zone != SettingsTable::Zone::Row,
+          "pointing at the table's bar points at no row");
+    check(t.hitZone(t.nameX, t.rowsTop + 1, 13).zone == SettingsTable::Zone::Row, "the row is still pointed at left of the bar");
+    // A list: its shared columns end inside the shortened row.
+    auto table = SettingsTable::fit(640, 360, 20, 0);
+    auto l = ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false);
+    auto c = listColumns(l.listLeft, l.contentWidth(), 0, 18);
+    float listRowEnd = l.listLeft + 1 + l.rowWidth();
+    check(l.listCount > l.listVisible && c.shownX + c.shownWidth < listRowEnd - 2 && listRowEnd < l.scrollBar().x - 2,
+          "a scrolling list's switch stays inside its row, the row short of the bar");
 }

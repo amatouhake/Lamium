@@ -994,7 +994,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (rows.empty())
         label(context,t.nameX,t.rowsTop+4,t.tableWidth-2*SettingsTable::pad,translated("noResultsFor",query.value()),palette::faint);
     for (int i = t.first; i < t.first + t.visible && valid(i); ++i) {
-        float y = t.rowY(i), rowLeft = t.tableLeft + 1, rowWidth = t.tableWidth - 2;
+        float y = t.rowY(i), rowLeft = t.tableLeft + 1, rowWidth = t.rowWidth();
         auto const& entry = rows[i];
         if (entry.kind == RowKind::Section) {
             label(context,t.nameX,y+4,t.tableWidth-2*SettingsTable::pad,translated(entry.section),palette::accent);
