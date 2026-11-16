@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lamium HUD Text Size</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{color-scheme:dark;--ground:#15181a;--ground-2:#1c2124;--line:#2c3337;--ink:#e6ebe8;--ink-2:#a6b0ab;--ink-3:#77827c;--accent:#6cc349;--accent-deep:#3c8527;--warn:#ffc24a;--mc-font:"DotGothic16","MS Gothic",monospace}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:84ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:5px 12px}
+.seg button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.seg>span{font-size:12.5px;color:var(--ink-3);margin-right:4px;min-width:7em}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.screen{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(#8fb6e8 0 46%,#6d9a52 46% 62%,#5b7f43 62%);user-select:none}
+.screen .el{position:absolute;cursor:pointer}
+.screen .el.sel{outline:2px dashed #fff;outline-offset:2px}
+.card{background:rgba(16,17,19,.6)}
+.mc{font-family:var(--mc-font);color:#fff;white-space:nowrap;line-height:1}
+.sh{text-shadow:var(--sh) var(--sh) 0 #3f3f3f}
+.hotbar{position:absolute;left:50%;transform:translateX(-50%);display:flex;background:rgba(0,0,0,.45)}
+.hotbar i{display:block;border:1px solid #2b2b2b}
+.cross{position:absolute;left:50%;top:50%;width:12px;height:12px;transform:translate(-50%,-50%)}
+.cross:before,.cross:after{content:"";position:absolute;background:#fff;opacity:.85}
+.cross:before{left:5px;top:0;width:2px;height:12px}.cross:after{top:5px;left:0;width:12px;height:2px}
+.side{display:grid;gap:14px}
+.box{background:var(--ground-2);border:1px solid var(--line);padding:14px}
+.box h3{font:700 14px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+.row{display:grid;grid-template-columns:7.5em 1fr 3.4em;gap:8px;align-items:center;font-size:13px;margin:6px 0;color:var(--ink-2)}
+.row input[type=range]{width:100%;accent-color:var(--accent)}
+.row output{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.row.off{opacity:.35}
+.toggle{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2);margin:6px 0}
+.note{font-size:13px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+.warn{color:var(--warn)}
+.tb{position:absolute;display:flex;gap:4px;align-items:center;background:rgba(16,17,19,.92);border:1px solid #444;padding:3px 5px;font:12px/1.2 "Noto Sans JP",sans-serif;color:#ddd;white-space:nowrap;z-index:5}
+.tb span{padding:1px 6px;border:1px solid #555;background:#262a2c}
+.tb em{font-style:normal;color:#9aa}
+.cands{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.cand{background:var(--ground-2);border:1px solid var(--line);padding:12px 14px;font-size:13.5px;color:var(--ink-2)}
+.cand h3{font:700 14.5px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px;color:var(--ink)}
+.cand ul{margin:6px 0 0;padding-left:1.2em}
+.cand.on{border-color:var(--accent)}
+</style>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">L-357 · Design demo</div>
+    <h1>HUD 要素の大きさと文字の大きさ</h1>
+    <p class="lede">いまは HUD レイアウトエディタの倍率ひとつが、要素の図形と文字をまとめて大きくします（地図だけは「地図の文字の大きさ」を掛け算）。下の画面で候補を切り替え、要素をクリックして選び、右の値を動かして比べてください。画面は 480×270 GUI 単位を幅に合わせて描いています。</p>
+  </header>
+
+  <div class="seg" id="models"><span>モデル</span></div>
+
+  <div class="layout">
+    <div class="screen" id="screen"></div>
+    <div class="side">
+      <div class="box" id="panel"></div>
+      <div class="box note" id="explain"></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>候補の違い</h2>
+    <div class="cands" id="cands"></div>
+  </section>
+
+  <section class="box note">
+    <h3>確認したいこと（どの候補でも決める）</h3>
+    <ul>
+      <li><b>アイコンに付く文字</b>：スロット隅の個数、バー横の数字。文字だけ大きくするとセルからはみ出す（インベントリで文字を 200% にして確かめられます）。はみ出しを許すか、セルの大きさで頭打ちにするか。</li>
+      <li><b>今の見た目の引き継ぎ</b>：保存済みのレイアウトは、どの候補でも今と同じ見た目になるよう一度だけ換算する。<code>map.textSize</code> は新しい「文字」に吸収する。</li>
+      <li><b>ゲーム本来の HUD 部品</b>（ホットバー、体力など）は今どおり位置と倍率だけ。</li>
+    </ul>
+  </section>
+</div>
+<script>
+const MODELS = [
+  {id:'now', name:'今', short:'倍率ひとつ（地図だけ文字の掛け算）'},
+  {id:'c1', name:'候補1', short:'要素ごとに「大きさ」と「文字」'},
+  {id:'c2', name:'候補2', short:'文字は HUD 全体でひとつ'},
+  {id:'c3', name:'候補3', short:'候補1 ＋「文字も大きさに合わせる」'},
+];
+const CANDS = {
+  now:['今の作り','倍率で図形も文字も一緒に変わる。地図だけ「文字の大きさ」が倍率に掛かる。',['地図を大きくすると文字も大きくなる','要素ごとに文字だけ小さくはできない']],
+  c1:['候補1 要素ごとに2つの値','ツールバーに「大きさ」と「文字」。文字は大きさに連動しない。文字だけの要素は「文字」のみ。',['いちばん自由。地図の文字の設定はツールバーへ移る','値が2つになり、全体の文字をそろえるには要素ごとに合わせる']],
+  c2:['候補2 文字は全体でひとつ','設定に「HUD の文字の大きさ」ひとつ。要素の倍率は図形だけ。文字だけの要素の倍率は意味がなくなる。',['操作がいちばん単純で、文字が自然にそろう','要素ごとに文字を変えたい場合に応えられない']],
+  c3:['候補3 候補1 ＋ 合わせるスイッチ','要素ごとにスイッチ。オンは今と同じ（文字＝大きさ×文字）、オフは文字が独立。',['既定オンなら今の操作感のまま','概念が3つ（大きさ・文字・スイッチ）になり説明が要る']],
+};
+const ELEMENTS = [
+  {id:'map', name:'ミニマップ', graphics:true, x:466, y:6, anchor:'tr'},
+  {id:'inv', name:'インベントリ HUD', graphics:true, x:6, y:180, anchor:'bl'},
+  {id:'dur', name:'耐久値 HUD', graphics:true, x:466, y:200, anchor:'br'},
+  {id:'info', name:'情報行', graphics:false, x:6, y:6, anchor:'tl'},
+];
+const state = {model:'now', sel:'map', global:100,
+  el:{map:{size:120,text:100,follow:true}, inv:{size:100,text:100,follow:true}, dur:{size:100,text:100,follow:true}, info:{size:100,text:100,follow:true}}};
+
+// The text scale and graphics scale an element gets under the chosen model.
+function scales(id){
+  const e = state.el[id], g = ELEMENTS.find(x=>x.id===id).graphics, m = state.model;
+  if (m==='now') return {size:e.size/100, text:(id==='map' ? e.size*e.text/100 : e.size)/100};
+  if (m==='c1') return {size:(g?e.size:100)/100, text:e.text/100};
+  if (m==='c2') return {size:(g?e.size:100)/100, text:state.global/100};
+  return {size:(g?e.size:100)/100, text:(e.follow ? (g?e.size:100)*e.text/100 : e.text)/100};
+}
+function controls(id){
+  const g = ELEMENTS.find(x=>x.id===id).graphics, m = state.model;
+  if (m==='now') return id==='map' ? ['size','maptext'] : ['size'];
+  if (m==='c1') return g ? ['size','text'] : ['text'];
+  if (m==='c2') return g ? ['size'] : [];
+  return g ? ['size','text','follow'] : ['text'];
+}
+const LABEL = {size:'倍率', maptext:'地図の文字', text:'文字', follow:'文字も大きさに合わせる'};
+function labelFor(k){ return state.model==='now' ? LABEL[k] : (k==='size' ? '大きさ' : LABEL[k]); }
+
+const screen = document.getElementById('screen');
+function px(units){ return units * screen.clientWidth / 480; }
+
+function textSpan(str, t, extra=''){ return `<span class="mc sh" style="font-size:${px(8*t)}px;--sh:${px(t)}px;${extra}">${str}</span>`; }
+
+function drawMap(s){
+  const side = 64*s.size, line = 10*s.text, pad = 3*s.size;
+  const lines = ['123, 64, -45','平原'];
+  let h = `<div class="card" style="padding:${px(pad)}px">`;
+  h += `<div style="position:relative;width:${px(side)}px;height:${px(side)}px;background:
+    linear-gradient(135deg,#3f7d3a 0 30%,#5a9a43 30% 55%,#2f6db3 55% 70%,#c9b77a 70%);image-rendering:pixelated">`;
+  const c = (str,l,t)=>`<div style="position:absolute;left:${l};top:${t};transform:translate(-50%,-50%)">${textSpan(str,s.text)}</div>`;
+  h += c('N','50%','0') + c('S','50%','100%') + c('W','0','50%') + c('E','100%','50%');
+  h += `<div style="position:absolute;left:62%;top:30%">${textSpan('Steve',s.text*.75)}</div>`;
+  h += `<div style="position:absolute;left:48%;top:48%;width:${px(4*s.size)}px;height:${px(4*s.size)}px;background:#fff;transform:rotate(45deg)"></div>`;
+  h += `</div>`;
+  for (const l of lines) h += `<div style="height:${px(line)}px;margin-top:${px(2*s.text)}px;text-align:center">${textSpan(l,s.text)}</div>`;
+  return h + `</div>`;
+}
+const ITEMS = [['#56c4e8',1],['#a35bc8',1],['#8a6a3c',1],['#6cc349',64],['#b5503a',64],['#888',12],['#e0c050',1],['#4aa',32],['',0]];
+function drawInv(s){
+  const cell = 18*s.size, pad = 3*s.size;
+  let h = `<div class="card" style="padding:${px(pad)}px">`;
+  for (let r=0;r<2;r++){
+    h += `<div style="display:flex">`;
+    for (let i=0;i<9;i++){
+      const [col,n] = ITEMS[(i+r*4)%9];
+      h += `<div style="position:relative;width:${px(cell)}px;height:${px(cell)}px;box-shadow:inset 0 0 0 ${px(s.size)}px rgba(255,255,255,.18)">`;
+      if (col) h += `<div style="position:absolute;left:${px(s.size)}px;top:${px(s.size)}px;width:${px(16*s.size)}px;height:${px(16*s.size)}px;background:${col};opacity:.9"></div>`;
+      if (n>1) h += `<div style="position:absolute;right:0;bottom:${px(-.5*s.text)}px">${textSpan(n,s.text)}</div>`;
+      h += `</div>`;
+    }
+    h += `</div>`;
+  }
+  return h + `</div>`;
+}
+function drawDur(s){
+  const rows = [['#56c4e8',.82,'1311'],['#a35bc8',.4,'186'],['#8a6a3c',.12,'47']];
+  const rowH = Math.max(18*s.size, 10*s.text), pad = 3*s.size;
+  let h = `<div class="card" style="padding:${px(pad)}px">`;
+  for (const [col,ratio,num] of rows){
+    h += `<div style="display:flex;align-items:center;gap:${px(3*s.size)}px;height:${px(rowH)}px">`;
+    h += `<div style="width:${px(16*s.size)}px;height:${px(16*s.size)}px;background:${col}"></div>`;
+    h += `<div style="width:${px(30*s.size)}px;height:${px(3*s.size)}px;background:#000"><div style="width:${ratio*100}%;height:100%;background:${ratio>.5?'#5c5':ratio>.2?'#cc4':'#c44'}"></div></div>`;
+    h += textSpan(num,s.text);
+    h += `</div>`;
+  }
+  return h + `</div>`;
+}
+function drawInfo(s){
+  const lines = ['XYZ: 123 / 64 / -45','バイオーム: 平原','明るさ: 15','12:40  晴れ'];
+  let h = `<div class="card" style="padding:${px(3*s.text)}px ${px(4*s.text)}px">`;
+  for (const l of lines) h += `<div style="height:${px(11*s.text)}px">${textSpan(l,s.text)}</div>`;
+  return h + `</div>`;
+}
+const DRAW = {map:drawMap, inv:drawInv, dur:drawDur, info:drawInfo};
+
+function place(node, e){
+  const x = px(e.x), y = px(e.y), w = node.offsetWidth, h = node.offsetHeight;
+  node.style.left = (e.anchor.includes('r') ? x - w : x) + 'px';
+  node.style.top = (e.anchor.includes('b') ? y - h : y) + 'px';
+}
+function toolbar(node){
+  const tb = document.createElement('div');
+  tb.className = 'tb';
+  const id = node.dataset.id, s = state.el[id], parts = [];
+  for (const k of controls(id)) {
+    if (k==='follow') parts.push(`<span>${LABEL.follow}: ${s.follow?'オン':'オフ'}</span>`);
+    else if (k==='maptext') parts.push(`<em>（${LABEL.maptext} ${s.text}% は設定画面）</em>`);
+    else parts.push(`<span>${labelFor(k)} ${k==='size'?s.size:s.text}%</span>`);
+  }
+  if (!parts.length) parts.push('<em>文字は設定の「HUD の文字の大きさ」</em>');
+  tb.innerHTML = `<em>配置</em>` + parts.join('');
+  screen.appendChild(tb);
+  const r = node.getBoundingClientRect(), sr = screen.getBoundingClientRect();
+  let top = r.bottom - sr.top + 6;
+  if (top + tb.offsetHeight > screen.clientHeight) top = r.top - sr.top - tb.offsetHeight - 6;
+  let left = Math.min(Math.max(0, r.left - sr.left), screen.clientWidth - tb.offsetWidth);
+  tb.style.top = top + 'px'; tb.style.left = left + 'px';
+}
+function render(){
+  screen.innerHTML = '<div class="cross"></div>';
+  const hb = document.createElement('div');
+  hb.className = 'hotbar';
+  hb.style.bottom = px(1)+'px';
+  hb.innerHTML = Array.from({length:9},()=>`<i style="width:${px(20)}px;height:${px(20)}px"></i>`).join('');
+  screen.appendChild(hb);
+  for (const e of ELEMENTS){
+    const node = document.createElement('div');
+    node.className = 'el' + (state.sel===e.id ? ' sel' : '');
+    node.dataset.id = e.id;
+    node.innerHTML = DRAW[e.id](scales(e.id));
+    node.onclick = ()=>{ state.sel = e.id; update(); };
+    screen.appendChild(node);
+    place(node, e);
+    if (state.sel===e.id) toolbar(node);
+  }
+}
+function slider(label, value, on, set){
+  const row = document.createElement('div');
+  row.className = 'row' + (on ? '' : ' off');
+  row.innerHTML = `<label>${label}</label><input type="range" min="50" max="200" step="5" value="${value}" ${on?'':'disabled'}><output>${value}%</output>`;
+  const input = row.querySelector('input'), out = row.querySelector('output');
+  input.oninput = ()=>{ out.textContent = input.value + '%'; set(+input.value); render(); explain(); };
+  return row;
+}
+function panel(){
+  const p = document.getElementById('panel'), id = state.sel, e = ELEMENTS.find(x=>x.id===id), s = state.el[id];
+  const ctrl = controls(id);
+  p.innerHTML = `<h3>${e.name}${e.graphics ? '' : '（文字だけの要素）'}</h3>`;
+  p.appendChild(slider(labelFor('size'), s.size, ctrl.includes('size'), v=>s.size=v));
+  if (state.model==='now') p.appendChild(slider('地図の文字', s.text, ctrl.includes('maptext'), v=>s.text=v));
+  else p.appendChild(slider('文字', s.text, ctrl.includes('text'), v=>s.text=v));
+  if (state.model==='c3') {
+    const t = document.createElement('label');
+    t.className = 'toggle' + (ctrl.includes('follow') ? '' : ' off');
+    t.innerHTML = `<input type="checkbox" ${s.follow?'checked':''} ${ctrl.includes('follow')?'':'disabled'}> ${LABEL.follow}`;
+    t.querySelector('input').onchange = ev=>{ s.follow = ev.target.checked; update(); };
+    p.appendChild(t);
+  }
+  if (state.model==='c2') {
+    const h = document.createElement('h3'); h.textContent = '設定：HUD の文字の大きさ'; h.style.marginTop = '12px';
+    p.appendChild(h);
+    p.appendChild(slider('全要素の文字', state.global, true, v=>state.global=v));
+  }
+}
+function explain(){
+  const id = state.sel, sc = scales(id), x = document.getElementById('explain');
+  const t = Math.round(sc.text*100), g = Math.round(sc.size*100);
+  let warn = '';
+  if ((id==='inv') && sc.text > sc.size*1.15) warn = '<p class="warn">個数の文字がセルより大きく、隣のスロットにかかっています。</p>';
+  x.innerHTML = `<h3>いまの${ELEMENTS.find(e=>e.id===id).name}</h3>
+    <p>図形 <b>${g}%</b> ／ 文字 <b>${t}%</b></p>${warn}
+    <p style="margin-top:8px">${CANDS[state.model][1]}</p>`;
+}
+function update(){
+  document.querySelectorAll('#models button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===state.model));
+  document.querySelectorAll('.cand').forEach(c=>c.classList.toggle('on', c.dataset.id===state.model));
+  render(); panel(); explain();
+}
+const seg = document.getElementById('models');
+for (const m of MODELS){
+  const b = document.createElement('button');
+  b.dataset.id = m.id; b.textContent = `${m.name}：${m.short}`;
+  b.onclick = ()=>{ state.model = m.id; update(); };
+  seg.appendChild(b);
+}
+const cands = document.getElementById('cands');
+for (const m of MODELS){
+  const [title, body, [plus, minus]] = CANDS[m.id];
+  const d = document.createElement('div');
+  d.className = 'cand'; d.dataset.id = m.id;
+  d.innerHTML = `<h3>${title}</h3><p>${body}</p><ul><li>${plus}</li><li>${minus}</li></ul>`;
+  d.onclick = ()=>{ state.model = m.id; update(); };
+  cands.appendChild(d);
+}
+window.addEventListener('resize', render);
+document.fonts.ready.then(update);
+update();
+</script>
+</html>

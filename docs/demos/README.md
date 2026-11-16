@@ -12,6 +12,7 @@ Text in the demos is Japanese because they were reviewed in Japanese.
 | [shapes.html](shapes.html) | Implemented | Draft → create flow, dock button. "Lines + faces" was dropped after review. |
 | [hud.html](hud.html) | Superseded by hud-editor.html | HUD elements, layout editing, target card, toggle toast. Original L-02 to L-04/L-08 proposal; use DESIGN and the editor demo for later rules. |
 | [hud-editor.html](hud-editor.html) | Implemented; checked locally | Rework after the first editor build: three editing models, three card styles, target card with icons and bars. |
+| [hud-text-size.html](hud-text-size.html) | Open (L-357) | An element's size and its text size apart: today's single scale against three candidates (two values per element, one HUD-wide text size, two values with a "text follows size" switch) on the minimap, inventory grid, durability and info lines. |
 | [hotkey-conflicts.html](hotkey-conflicts.html) | Implemented | Warning style for shared/overlapping bindings in every key cell and a hover tooltip listing every related binding (L-32 follow-up). |
 | [light-overlay.html](light-overlay.html) | Implemented | Light overlay redesign (L-16): what to show, digit orientation and weight, spawn coloring, value and range. |
 | [settings-reset.html](settings-reset.html) | Reviewed, not adopted | Resetting settings to defaults (L-46): per-row ↺, marks + right-click/Backspace, or a "changed settings" view. Per-row and per-feature resets were judged excessive; see BACKLOG L-46. |
