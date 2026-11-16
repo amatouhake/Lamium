@@ -86,10 +86,11 @@ Do not infer game success from a build or unit-test result.
 - Fixes from the 2026-11-16 pre-release review (from `b8cd9142`): the
   shared input paths and the directly opened pages passed on `cd5dce83`
   (VALIDATION-LOG 2026-11-16). Still to see:
-  - Rows and columns off the scroll bar (`4c06ac92`): the settings table
-    lights no row under its bar; in Waypoints, Shapes, the Schematics tabs,
-    Game language, Block highlight, Saved data and the HUD layout contents
-    popover the selection frame clears the switches and numbers.
+  - Rows and columns off the scroll bar: the settings table, Waypoints,
+    Shapes, Schematics (Files, Placed) and Game language passed on
+    `4c06ac92`. Not seen: the world map list, calculator cards and Check
+    item buttons (`b8beb187`); Block highlight, Saved data, Enchantment
+    order and the HUD layout contents popover with a bar.
   - Schematics: an untouched Layer field keeps All layers, and a number
     typed then Esc returns to it; an armed Delete after "Use this data";
     Ignore looked place right after selecting another placement; a rule

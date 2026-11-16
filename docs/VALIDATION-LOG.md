@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Rows and columns off the scroll bar (2026-11-16)
+
+Build `4c06ac92` (main), DLL SHA-256
+`0fb4cc0d42f4543ad4fbba0a98080d738da48f11f8c96c2dbd6c97ab12ccbfe6`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed: the settings table lights no row under its scroll bar and
+its selection frame stops short of it; in Waypoints, Schematics (Files, Placed), Shapes and Game
+language the selection frame clears the switches and numbers. Found: the world map's list still
+lights its rows under its bar (fixed with the calculator cards and the Check item buttons in
+`b8beb187`, not seen yet).
+
 ## Pre-release review fixes: input paths and directly opened pages (2026-11-16)
 
 Build `cd5dce83` (branch `ccr-d537b300-le9q4j`, main plus L-354/L-355), DLL SHA-256
