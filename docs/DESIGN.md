@@ -252,7 +252,8 @@ the same commit. A screen never draws its own variant.
   shows it in the shared notice box above its bottom edge (`drawNotice`,
   2.5 s). A message or warning toast raised while the settings screen is
   open waits and starts when it closes; one older than 60 s is dropped, and
-  an on/off toast never waits (L-339).
+  an on/off toast never waits (L-339). A switch in the schematic radial menu
+  shows its new state on its item, not in a toast.
 - **Footer**: always two description lines; longer text scrolls there (wheel
   or its scrollbar). No "read more", expansion or help panel. White says
   what a setting is (a number's help includes its range); faint says how to

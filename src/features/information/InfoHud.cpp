@@ -89,6 +89,7 @@
 #include "ui/HudLines.h"
 #include <algorithm>
 #include <atomic>
+#include <mutex>
 #include <cmath>
 #include <ctime>
 #include <vector>
@@ -97,12 +98,41 @@ namespace lamium::ui {
 namespace {
 Toast activeToast;
 unsigned toastGroups = 0, toastGroup = 0;
+std::mutex holdMutex;
+ToastHold toastHold;
+bool toastsHeld = false;
+// Holds the toast while the settings screen is open; true when it was held.
+bool held(std::string& message, double seconds, bool warning) {
+    std::lock_guard lock(holdMutex);
+    if (!toastsHeld) return false;
+    toastHold.hold({std::move(message), seconds, warning, toastNow()});
+    return true;
+}
 }
 void showToggleToast(std::string feature, bool on) { activeToast.showToggle(std::move(feature), on, toastNow(), toastGroup); }
 void beginToastGroup() { if (!++toastGroups) ++toastGroups; toastGroup = toastGroups; }
 void endToastGroup() { toastGroup = 0; }
-void showMessageToast(std::string message, double seconds) { activeToast.show(std::move(message), false, toastNow(), true, seconds); }
-void showWarningToast(std::string message, double seconds) { activeToast.show(std::move(message), false, toastNow(), true, seconds, true); }
+void showMessageToast(std::string message, double seconds) {
+    if (held(message, seconds, false)) return;
+    activeToast.show(std::move(message), false, toastNow(), true, seconds);
+}
+void showWarningToast(std::string message, double seconds) {
+    if (held(message, seconds, true)) return;
+    activeToast.show(std::move(message), false, toastNow(), true, seconds, true);
+}
+void holdToasts(bool on) {
+    std::lock_guard lock(holdMutex);
+    toastsHeld = on;
+}
+void releaseHeldToast(double now) {
+    std::optional<ToastHold::Held> next;
+    {
+        std::lock_guard lock(holdMutex);
+        if (toastsHeld || toastHold.empty() || activeToast.current(now)) return;
+        next = toastHold.next(now);
+    }
+    if (next) activeToast.show(std::move(next->text), false, now, true, next->seconds, next->warning);
+}
 std::optional<Toast::Visible> currentToggleToast(double now) { return activeToast.current(now); }
 }
 namespace lamium::information {
@@ -1758,6 +1788,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
                 {{std::format("\u00d7{:.1f}", *level), std::nullopt, ui::palette::dim}});
     }
     {
+        if (!preview) ui::releaseHeldToast(ui::toastNow());
         auto toast = ui::currentToggleToast(ui::toastNow());
         if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
         // The switch is for on/off notices; a message says what an action did (L-338).

@@ -434,6 +434,7 @@ void clear() {
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
     scene.reset(); seen = false; closing = false; pageClosing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
+    holdToasts(false);
     pendingClose = false; pendingRelease = false; pressOrder.clear();
     // The button may go up where the screen no longer sees it.
     scroll_drag::release();
@@ -549,7 +550,9 @@ void commitPrompt() {
     auto const& typed = prompt->name.value();
     if (typed.find_first_not_of(' ') != std::string::npos) waypoint.name = typed;
     bool saved = map::waypoints::add(waypoint, true);
-    showMessageToast(saved ? translated("waypoint.added", waypoint.name) : translated("waypoint.saveError"));
+    auto said = saved ? translated("waypoint.added", waypoint.name) : translated("waypoint.saveError");
+    if (promptOnMap) map::world::notice(std::move(said));
+    else showMessageToast(std::move(said));
     endPrompt();
 }
 void handlePromptKey(int key) {
@@ -649,17 +652,12 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
         schematicMenu->show(menu::moveCategory);
         return;
     }
-    auto toggle = [](char const* id, char const* name) {
-        table_view::adjustOption(id, 1);
-        auto const& now = Runtime::instance().preferences().schematic;
-        bool on = id == std::string_view("schematic.hud") ? now.hud : id == std::string_view("schematic.mistakeMarks") ? now.mistakeMarks
-            : now.enabled;
-        showMessageToast(translated(name) + ": " + translated(on ? "on" : "off"));
-    };
+    // The item shows the new state itself: no toast inside the screen (L-339).
+    auto toggle = [](char const* id) { table_view::adjustOption(id, 1); };
     switch (command) {
-    case C::ToggleHud: toggle("schematic.hud", "schematic.menu.toggleHud"); return;
-    case C::ToggleMarks: toggle("schematic.mistakeMarks", "schematic.menu.toggleMarks"); return;
-    case C::ToggleFeature: toggle("schematic.enabled", "schematic.menu.toggleFeature"); return;
+    case C::ToggleHud: toggle("schematic.hud"); return;
+    case C::ToggleMarks: toggle("schematic.mistakeMarks"); return;
+    case C::ToggleFeature: toggle("schematic.enabled"); return;
     case C::SaveArea: {
         auto state = schematic::selection::current();
         auto area = state.area();
@@ -1429,6 +1427,7 @@ void open(IClientInstance& current) {
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
     scene = current.getSceneFactory().createCommonDialogInfoScreen("Lamium", "");
     if (!scene) return;
+    holdToasts(true);
     client = &current;
     openedAt = std::chrono::steady_clock::now();
     sceneStack(current)->pushScreen(scene, false);

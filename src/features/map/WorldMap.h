@@ -22,6 +22,8 @@ struct Request {
 void open(IClientInstance&, bool resume = false);
 // Releases the screen's textures; also on world exit.
 void close();
+// A passing notice in the map's notice box (DESIGN "Passing notices"), for results of the screen's prompts.
+void notice(std::string text);
 Request press(float x, float y, bool right);
 void release();
 void wheel(int direction);
