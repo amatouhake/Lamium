@@ -97,9 +97,15 @@ struct MapMerge {
     std::vector<File> files;
     size_t next = 0;
     int chunks = 0, skipped = 0;
+    MergeStart start;
     std::unique_ptr<RegionCodec> codec = std::make_unique<RegionCodec>();
+    MergeProgress progress() const {
+        return {next < files.size(), key, static_cast<int>(next), static_cast<int>(files.size()), chunks, skipped,
+                start.waypoints, start.waypointsFull, start.placements, start.placementsFull};
+    }
 };
 std::optional<MapMerge> mapMerge;
+std::optional<MergeProgress> mergeFinished;
 // Reads the server list, lets `edit` change it and saves it when it did. A list that cannot be read is never
 // overwritten: `edit` then works on an empty one and nothing is saved. The caller holds the lock.
 template<class Edit>
@@ -159,6 +165,7 @@ std::optional<std::filesystem::path> resolve(Identity const& who, std::string_vi
 // joined server other data. Everything else follows `joined.world`. The caller holds the lock.
 void attach() {
     mapMerge.reset(); // What was merged is saved; merging again finishes it.
+    mergeFinished.reset();
     set = {};
     destination.reset();
     loadFailed = false;
@@ -237,6 +244,7 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
 void leave() {
     std::lock_guard lock(mutex);
     mapMerge.reset();
+    mergeFinished.reset();
     joined.active = false;
     identity = {};
     fullerFound = {};
@@ -675,6 +683,7 @@ MergeStart mergeData(std::string const& key) {
         }
     }
     start = {true, waypointCounts.taken, waypointCounts.full, placementCounts.taken, placementCounts.full, 0};
+    bool moved = placementCounts.taken > 0; // Followers reload what changed under them.
     // The map: the store saves and lets go of both folders, and records to session files until the merge ends.
     auto const from = config / std::filesystem::u8path(mapFolder) / std::filesystem::path(key);
     if (joined.mapFolder && std::filesystem::is_directory(from, ignored)) {
@@ -687,22 +696,24 @@ MergeStart mergeData(std::string const& key) {
             job.into = *joined.mapFolder;
             job.files = regionFiles(from);
             start.regions = static_cast<int>(job.files.size());
+            job.start = start;
+            moved = true; // The store let go: it attaches again, to session files while the merge runs.
             if (!job.files.empty()) {
                 mapMerge = std::move(job);
+                mergeFinished.reset();
                 joined.mapFolder.reset();
             }
         }
     }
-    // Followers reload: placements from their file, and the store attaches again.
-    ++joined.world;
+    if (moved) ++joined.world;
     log("merged the data under '" + key + "': " + std::to_string(start.waypoints) + " waypoints, "
         + std::to_string(start.placements) + " placements, " + std::to_string(start.regions) + " map regions to go");
     try { suggest(); } catch (...) { fullerFound = {}; }
     return start;
 }
-MergeProgress stepMerge(double budgetMs) {
+void stepMerge(double budgetMs) {
     std::lock_guard lock(mutex);
-    if (!mapMerge) return {};
+    if (!mapMerge) return;
     auto& job = *mapMerge;
     auto const until = std::chrono::steady_clock::now() + std::chrono::duration<double, std::milli>(budgetMs);
     while (job.next < job.files.size() && std::chrono::steady_clock::now() < until) {
@@ -724,10 +735,8 @@ MergeProgress stepMerge(double budgetMs) {
             log("could not merge map region " + relative.string() + ": " + error.what());
         }
     }
-    MergeProgress progress{true, job.key, static_cast<int>(job.next), static_cast<int>(job.files.size()), job.chunks,
-                           job.skipped};
     if (job.next >= job.files.size()) {
-        progress.running = false;
+        mergeFinished = job.progress();
         joined.mapFolder = job.into;
         ++joined.world;
         log("merged the map under '" + job.key + "': " + std::to_string(job.chunks) + " chunks, "
@@ -735,7 +744,14 @@ MergeProgress stepMerge(double budgetMs) {
         mapMerge.reset();
         try { suggest(); } catch (...) { fullerFound = {}; }
     }
-    return progress;
+}
+MergeProgress mergeProgress() {
+    std::lock_guard lock(mutex);
+    return mapMerge ? mapMerge->progress() : MergeProgress{};
+}
+std::optional<MergeProgress> takeFinishedMerge() {
+    std::lock_guard lock(mutex);
+    return std::exchange(mergeFinished, std::nullopt);
 }
 std::string dataName() {
     std::lock_guard lock(mutex);

@@ -64,10 +64,12 @@ void mergeIn() {
     auto start = map::waypoints::mergeData(key);
     reload(key);
     if (!start.ok) { say(translated("savedData.failed"), true); return; }
-    std::string text = translated("savedData.merged", name, start.waypoints, start.placements);
-    if (start.waypointsFull || start.placementsFull)
-        text += "  " + translated("savedData.mergeFull", start.waypointsFull, start.placementsFull);
-    say(std::move(text), start.waypointsFull || start.placementsFull);
+    if (start.regions > 0) return; // The footer follows the map merge and reports it all at the end.
+    map::waypoints::MergeProgress done;
+    done.key = key;
+    done.waypoints = start.waypoints; done.waypointsFull = start.waypointsFull;
+    done.placements = start.placements; done.placementsFull = start.placementsFull;
+    say(mergeReport(done), done.waypointsFull || done.placementsFull);
 }
 // The folder is named from game values a rebuild cannot check: on a game they were not checked on it could be
 // another world's, so nothing is deleted there. Looking and choosing stay.
@@ -132,6 +134,14 @@ bool begin() {
     return true;
 }
 bool opened() { return open; }
+std::string mergeReport(map::waypoints::MergeProgress const& done) {
+    std::string text = translated("savedData.merged", map::servers::shownName(done.key), done.waypoints, done.placements);
+    if (done.total > 0) text += translated("savedData.mergedMap", done.chunks);
+    if (done.waypointsFull || done.placementsFull)
+        text += "  " + translated("savedData.mergeFull", done.waypointsFull, done.placementsFull);
+    if (done.skipped) text += "  " + translated("savedData.mergeSkipped", done.skipped);
+    return text;
+}
 void reset() {
     data_thumb::reset();
     items.clear(); armed.clear(); armedMerge.clear(); notice.clear();
@@ -187,16 +197,13 @@ void wheel(int amount) { first = SettingsTable::clampFirst(first + amount, stati
 void release() {}
 void calm() { armed.clear(); armedMerge.clear(); }
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
-    // A map merge goes on while the page is open (the HUD that also steps it is not drawn under the screen).
-    if (auto progress = map::waypoints::stepMerge(); !progress.key.empty()) {
-        if (progress.running) say(translated("savedData.mergingMap", progress.done, progress.total));
-        else {
-            auto const* now = chosen();
-            reload(now ? now->key : std::string());
-            say(progress.skipped ? translated("savedData.mergedMapSkipped", progress.chunks, progress.skipped)
-                                 : translated("savedData.mergedMap", progress.chunks), progress.skipped > 0);
-        }
-    }
+    // A map merge goes on under the screen (stepped there); the footer shows how far, then the whole result.
+    if (auto done = map::waypoints::takeFinishedMerge()) {
+        auto const* now = chosen();
+        reload(now ? now->key : std::string());
+        say(mergeReport(*done), done->skipped || done->waypointsFull || done->placementsFull);
+    } else if (auto progress = map::waypoints::mergeProgress(); progress.running)
+        say(translated("savedData.mergingMap", progress.done, progress.total));
     auto const* d = chosen();
     bool const server = d && d->kind == Data::Kind::Server;
     std::string const useText = translated("savedData.use"), removeLabel = translated("savedData.delete");

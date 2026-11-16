@@ -103,6 +103,15 @@ void dataMergeTests() {
         mergeRegion(into, from);
         check(colorAt(into, 0, 0) == red && colorAt(into, 0, 1) == blue,
               "a newer partial chunk lays its columns over and keeps the rest");
+        check(into.chunks[0].time == 90 && into.chunks[0].revision == 3,
+              "a mixed chunk keeps the later time and the lower revision");
+        RegionData whole, higher;
+        record(whole, 2, red, 10, 0);
+        record(higher, 2, blue, 20, 0);
+        higher.chunks[2].revision = 9;
+        mergeRegion(whole, higher);
+        check(whole.chunks[2].revision == 9 && whole.chunks[2].time == 20,
+              "a newer chunk replacing everything there takes its whole stamp");
         RegionData older;
         record(older, 0, blue, 10, 2);
         mergeRegion(into, older);

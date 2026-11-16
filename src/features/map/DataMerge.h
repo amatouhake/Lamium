@@ -55,7 +55,7 @@ inline Counts mergePlacements(schematic::PlacementSet& into, std::vector<schemat
 // one); an older or equally old chunk only fills columns nothing was recorded in. The region's own legacy
 // facts and unknown sections stay. Returns how many chunks changed.
 inline int mergeRegion(RegionData& into, RegionData const& from) {
-    std::array<bool, 256> has{}, newer{}, changed{};
+    std::array<bool, 256> has{}, newer{}, changed{}, kept{};
     for (size_t i = 0; i < static_cast<size_t>(regionColumns); ++i) {
         if (from.colors[i] >> 24) has[chunkOfIndex(i)] = true;
     }
@@ -64,8 +64,11 @@ inline int mergeRegion(RegionData& into, RegionData const& from) {
         newer[c] = from.chunks[c].time > into.chunks[c].time;
     }
     for (size_t i = 0; i < static_cast<size_t>(regionColumns); ++i) {
-        if (!(from.colors[i] >> 24)) continue;
         size_t const c = chunkOfIndex(i);
+        if (!(from.colors[i] >> 24)) {
+            if (into.colors[i] >> 24) kept[c] = true; // A column only the data in use has.
+            continue;
+        }
         bool const empty = !(into.colors[i] >> 24);
         if (!newer[c] && !empty) continue;
         if (into.colors[i] == from.colors[i] && into.heights[i] == from.heights[i]) continue;
@@ -77,8 +80,11 @@ inline int mergeRegion(RegionData& into, RegionData const& from) {
     for (size_t c = 0; c < 256; ++c) {
         if (!changed[c]) continue;
         ++count;
-        if (newer[c]) into.chunks[c] = from.chunks[c];
-        else into.chunks[c].revision = std::min(into.chunks[c].revision, from.chunks[c].revision);
+        // The other stamp whole only where nothing of the data in use is left; a mixed chunk, as the scan's
+        // underlay does, keeps the later time and the lower revision.
+        if (newer[c] && !kept[c]) into.chunks[c] = from.chunks[c];
+        else into.chunks[c] = {std::max(into.chunks[c].time, from.chunks[c].time),
+                               std::min(into.chunks[c].revision, from.chunks[c].revision)};
     }
     return count;
 }

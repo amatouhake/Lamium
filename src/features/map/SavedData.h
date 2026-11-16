@@ -66,8 +66,13 @@ struct MergeProgress {
     std::string key;           // The data being merged in.
     int done = 0, total = 0;   // Regions.
     int chunks = 0, skipped = 0; // Chunks changed; regions that could not be read or written.
+    int waypoints = 0, waypointsFull = 0, placements = 0, placementsFull = 0; // From the start.
 };
-// While a map merge runs it goes on for about `budgetMs` per call, from the HUD's frame and from the saved data
-// page; recording meanwhile goes to the session's files, and the map in use comes back when it ends.
-MergeProgress stepMerge(double budgetMs = 6);
+// While a map merge runs it goes on for about `budgetMs` per call, from the HUD's frame and from the settings
+// screen's (every view); recording meanwhile goes to the session's files, and the map in use comes back when it
+// ends.
+void stepMerge(double budgetMs = 6);
+MergeProgress mergeProgress();
+// The map merge that ended since last asked, once: whoever shows it first (the saved data page, else a toast).
+std::optional<MergeProgress> takeFinishedMerge();
 }

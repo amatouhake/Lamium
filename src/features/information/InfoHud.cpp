@@ -72,6 +72,7 @@
 #include "mc/deps/input/RectangleArea.h"
 #include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "ui/SavedDataView.h"
 #include "features/information/PlayerList.h"
 #include "features/information/InventoryHud.h"
 #include "mc/world/actor/player/Inventory.h"
@@ -1604,6 +1605,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         // Waypoints off is all of it off: no death point, nothing reached (L-319).
         map::waypoints::frame(runtime.map.waypoints && runtime.map.waypointsDeath, runtime.map.waypointsDeathTemporary,
                               ui::translated("waypoint.deathName"));
+        // A map merge that ended while playing (L-343): the saved data page would have said it.
+        if (auto merged = map::waypoints::takeFinishedMerge()) ui::showMessageToast(ui::saved_data_view::mergeReport(*merged));
         // The body arrives, not FreeCamera's view.
         if (auto* player = context.mClient.getLocalPlayer(); player && player->isAlive()) {
             auto feet = player->getFeetPos();

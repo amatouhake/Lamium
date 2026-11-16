@@ -1,4 +1,5 @@
 #pragma once
+#include "features/map/SavedData.h"
 #include "ui/SettingsTable.h"
 #include <glm/vec2.hpp>
 #include <string>
@@ -18,4 +19,6 @@ void calm();
 void renderContent(MinecraftUIRenderContext&, SettingsTable const&, glm::vec2 pointer);
 // The joined server's data as its row shows it; empty when there is nothing to choose.
 std::string currentName();
+// What a merge took (L-343 part 4), as one line for the page's footer or a toast.
+std::string mergeReport(map::waypoints::MergeProgress const& done);
 }
