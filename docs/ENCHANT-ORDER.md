@@ -198,8 +198,8 @@ version is verified.
   with the next frame on the client thread. Nothing is taken while an item
   is on the pointer or while the panels fade. The goal is switched there
   only while the choosing column is shown. The wheel scrolls rows or steps;
-  a press on a scrollbar jumps (no dragging yet: the shared drag is decided,
-  L-170; no text search there).
+  both bars are the shared held drag (`ScrollDrag.h`, `dab3c291`). No text
+  search there: it would meet the anvil's name field (maintainer 2026-11-17).
 - At hand at the anvil: the two input slots, the pointer, hotbar and
   inventory.
 - The step whose pair lies in the anvil's slots is tinted, and the last
@@ -376,9 +376,9 @@ Icons and glints (`inspection/render/ItemIcon.cpp`, shared):
 - `EnchantUtils::combineEnchantedItems(first, second, out, book)` links and
   returns an int; it may give the game's own cost for a pair and replace the
   frequency mapping. Not tried.
-- A main-hand item whose anvil uses cannot be read is planned as fresh with
-  no notice yet; a status line (`enchantOrder.heldUnknown`) is decided
-  (L-170).
+- A main-hand item whose anvil uses cannot be read is planned as fresh; with
+  nothing pointed at, the chooser's status line says so
+  (`enchantOrder.heldUnknown`).
 - Unchecked in game: see [VALIDATION.md](VALIDATION.md), row "Enchantment
   order, experimental".
 

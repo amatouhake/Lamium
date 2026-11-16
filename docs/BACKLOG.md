@@ -203,7 +203,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
 - [L-173](backlog/L-173.md) Quick shapes: a beacon's range at a glance, shapes that are not saved (Design): Direction decided (2026-11-06); waiting for the in-game range check.
-- [L-170](backlog/L-170.md) Enchantment order planner (Feature): Built after 0.6.0 (not released) and checked in game step by step; two small additions and runtime checks remain
+- [L-170](backlog/L-170.md) Enchantment order planner (Feature): Built after 0.6.0 (not released) and checked in game step by step; runtime checks remain
 - [L-169](backlog/L-169.md) Item Transfer: remaining gesture and screen extensions (Design): Waiting for the maintainer to choose any extension; none approved
 - [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design): Waiting for the maintainer's choices below; not chosen for building, no release.
 - [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research): Partly done: Game language and Skip server resource packs shipped in 0.2.1; global pack stack work not chosen.

@@ -122,6 +122,9 @@ std::string status(game::View const& v, EnchantLayout::Hit hover) {
             : row.state == game::RowState::Blocked ? translated("enchantOrder.conflict", row.reason)
             : row.state == game::RowState::Full ? translated("enchantOrder.full", order::maxBooks) : row.label;
     }
+    // Nothing pointed at: a held item of the chosen kind whose anvil uses could not be read is planned as a fresh
+    // one, and the line says so (L-170, maintainer 2026-11-17).
+    if (v.inHand && !v.stateKnown) return translated("enchantOrder.heldUnknown");
     return {};
 }
 bool levelStepper(game::View const& v, int row) {
