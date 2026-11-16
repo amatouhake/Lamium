@@ -693,6 +693,14 @@ void settingsStoreTests() {
               "a size outside the old 10-50 % reads as its nearest end");
         check(Map::scaleFromLegacySize(200, 50) == 200 && Map::scaleFromLegacySize(50, 10) == 50,
               "the result stays within 50-200 %");
+        // The inventory grid's slot went from 18 to 20 units (L-357): an older scale keeps the grid's size.
+        auto oldGrid = decodeSettings(R"({"hud":{"inventory":{"scale":100}}})");
+        check(oldGrid.hud.inventory.scale == 90, "an inventory scale saved for the 18-unit slot becomes 90 %");
+        auto newGrid = decodeSettings(R"({"hud":{"inventory":{"scale":100,"cell":20}}})");
+        check(newGrid.hud.inventory.scale == 100, "a scale saved for the 20-unit slot is kept");
+        check(decodeSettings(R"({"hud":{"inventory":{"scale":50}}})").hud.inventory.scale == 50,
+              "the converted scale stays within 50-200 %");
+        check(decodeSettings(R"({"map":{"minimap":true}})").hud.inventory.scale == 100, "no saved grid keeps the default");
         auto none = decodeSettings(R"({"hud":{"minimap":{"scale":120}},"map":{"minimap":true}})");
         check(none.hud.minimap.scale == 120, "a file without map.size keeps its scale");
         { std::ofstream file(path, std::ios::trunc); file << R"({"hud":{"minimap":{"scale":120}},"map":{"size":30}})"; }

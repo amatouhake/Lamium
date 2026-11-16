@@ -14,7 +14,7 @@ void inventoryHudTests() {
     check(all36.used == 5 && all36.total == 36, "with the hotbar, 36 slots");
     occupied.fill(true);
     check(usedSlots(occupied, true).used == 36 && usedSlots(occupied, false).used == 27, "a full inventory uses every slot");
-    check(rowTop(2, 18) == 36 && rowTop(3, 18) == 58 && gridHeight(false, 18) == 54 && gridHeight(true, 18) == 76,
+    check(rowTop(2, slotSize) == 40 && rowTop(3, slotSize) == 64 && gridHeight(false, slotSize) == 60 && gridHeight(true, slotSize) == 84,
           "the hotbar row sits below a gap");
-    check(rowTop(3, 9) == 29, "the gap scales with the slot");
+    check(rowTop(3, slotSize / 2) == 32, "the gap scales with the slot");
 }

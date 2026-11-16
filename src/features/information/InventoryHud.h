@@ -8,7 +8,10 @@ namespace lamium::information::inventoryHud {
 // The inventory grid and used-slot counter (BACKLOG L-127,
 // docs/demos/inventory-hud.html). Pure parts; InfoHud draws.
 inline constexpr int slotCount = 36;      // Player inventory: 0-8 hotbar, 9-35 main.
-inline constexpr float slotSize = 18;     // One slot, as the hotbar at 100 %.
+// One slot as the hotbar's at 100 %: a 16-unit icon and 2 units around it. It was 18 until 2026-11-17 (L-357):
+// matching the hotbar took 111 % and made the counts larger than the game's.
+inline constexpr float slotSize = 20;
+inline constexpr float slotSizeBefore = 18; // What saved scales were set against (SettingsStore converts them once).
 inline constexpr float dividerGap = 4;    // Between the main rows and the hotbar row.
 
 // Container slots row by row: the main 27 as the inventory screen lays them

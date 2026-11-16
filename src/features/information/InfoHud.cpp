@@ -1384,7 +1384,8 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
             // icon; empty ones show only that (look D, 2026-10-11).
             ui::frame(context, x, y, cell, cell, ui::palette::text, .18f);
             if (!sample.occupied[i]) continue;
-            offhand::Box icon{std::round(x + z), std::round(y + z), 16 * z, 16 * z};
+            float const inset = (inv::slotSize - 16) / 2 * z;
+            offhand::Box icon{std::round(x + inset), std::round(y + inset), 16 * z, 16 * z};
             icons.push_back({&sample.stacks[i], icon.x, icon.y, z, sample.frames[i], 1.f, true});
             drawn.push_back({&sample.stacks[i], icon});
         }

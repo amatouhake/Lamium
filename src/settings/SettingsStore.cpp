@@ -1,4 +1,5 @@
 #include "settings/SettingsStore.h"
+#include "features/information/InventoryHud.h"
 #include "settings/SettingsValue.h"
 #include "nlohmann/json.hpp"
 #include <array>
@@ -52,6 +53,12 @@ Json encodeHudElement(ui::HudElement const& element) {
     return {{"anchor", static_cast<int>(element.anchor)}, {"dx", element.dx},
             {"dy", element.dy}, {"scale", element.scale},
             {"background", static_cast<int>(element.background)}, {"shadow", element.shadow}};
+}
+// The inventory grid's slot became the hotbar's 20 units (L-357); "cell" marks a scale set against that.
+Json inventoryElementJson(ui::HudElement const& element) {
+    auto json = encodeHudElement(element);
+    json["cell"] = information::inventoryHud::slotSize;
+    return json;
 }
 void decodeHudElement(Json const& data, ui::HudElement& element, ui::HudElement defaultValue) {
     element.anchor = static_cast<ui::Anchor>(settingsValue(data, "anchor", static_cast<int>(defaultValue.anchor)));
@@ -273,7 +280,7 @@ Json encode(Settings const& settings) {
                    {"minimap", encodeHudElement(settings.hud.minimap)},
                    {"schematic", encodeHudElement(settings.hud.schematic)},
                    {"playerList", encodeHudElement(settings.hud.playerList)},
-                   {"inventory", encodeHudElement(settings.hud.inventory)},
+                   {"inventory", inventoryElementJson(settings.hud.inventory)},
                    {"usedSlots", encodeHudElement(settings.hud.usedSlots)},
                    {"statusEffects", encodeHudElement(settings.hud.statusEffects)},
                    {"chat", encodeHudElement(settings.hud.chat)},
@@ -748,6 +755,10 @@ Settings decodeSettings(std::string_view text) {
         element("schematic", value.hud.schematic, ui::HudElementId::Schematic);
         element("playerList", value.hud.playerList, ui::HudElementId::PlayerList);
         element("inventory", value.hud.inventory, ui::HudElementId::Inventory);
+        // A scale saved for the 18-unit slot keeps the grid's size on screen.
+        if (auto found = hud.find("inventory"); found != hud.end() && found->is_object() && !found->contains("cell"))
+            value.hud.inventory.scale = ui::clampHudScale(value.hud.inventory.scale * information::inventoryHud::slotSizeBefore
+                                                          / information::inventoryHud::slotSize);
         element("usedSlots", value.hud.usedSlots, ui::HudElementId::UsedSlots);
         element("chat", value.hud.chat, ui::HudElementId::Chat);
         element("paperDoll", value.hud.paperDoll, ui::HudElementId::PaperDoll);
