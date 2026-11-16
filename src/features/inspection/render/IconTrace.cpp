@@ -3,23 +3,14 @@
 #include "app/Runtime.h"
 #include "app/TraceLog.h"
 #include "ll/api/memory/Hook.h"
-#include "mc/client/gui/controls/RenderableComponent.h"
 #include "mc/client/gui/controls/renderers/InventoryItemRenderer.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
-#include "mc/client/gui/geometry_atlas/ItemRenderContextImpl.h"
-#include "mc/client/gui/geometry_atlas/RenderContextImpl.h"
-#include "mc/client/gui/geometry_atlas/ItemData.h"
-#include "mc/client/gui/screens/BatchKey.h"
-#include "mc/client/gui/screens/ComponentRenderBatch.h"
-#include "mc/client/gui/screens/UIItemRenderInfo.h"
-#include "mc/client/gui/controls/renderers/InventoryItemRenderOwnerData.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/resource/ResourceLocation.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/level/block/Block.h"
-#include "mc/deps/minecraft_renderer/framebuilder/dragon/RenderMetadata.h"
 #include <mutex>
 #include <set>
 #include <stdexcept>
@@ -31,7 +22,7 @@
 namespace lamium::inspection::iconTrace {
 namespace {
 bool watchedName(std::string const& name) {
-    for (char const* part : {"fence", "door", "sign", "_bed", "stairs", "wall", "leather", "shield"})
+    for (char const* part : {"fence", "door", "sign", "_bed", "stairs", "wall", "leather", "shield", "compass", "clock"})
         if (name.find(part) != std::string::npos) return true;
     return false;
 }
@@ -46,16 +37,11 @@ bool firstTime(std::string const& key) {
     std::lock_guard lock{seenMutex};
     return seen.size() < 600 && seen.insert(key).second;
 }
-TraceBudget passBudget, chunkBudget, newBudget, blitBudget, typeBudget, routeBudget;
+TraceBudget passBudget, chunkBudget, newBudget, blitBudget, typeBudget;
 // The caller of the current icon draw; nested draws happen inside these calls on the render thread.
 thread_local std::string current;
 std::string location(ResourceLocation const& value) {
     try { return const_cast<ResourceLocation&>(value).mPath->get(); } catch (...) { return "?"; }
-}
-void route(std::string const& what) {
-    if (current.empty()) return;
-    auto key = std::format("{} from=[{}]", what, current);
-    if (firstTime(key)) traceLog(routeBudget, 200, "L-119 {}", key);
 }
 
 LL_TYPE_INSTANCE_HOOK(SlotRenderHook, ll::memory::HookPriority::Normal, InventoryItemRenderer,
@@ -101,10 +87,15 @@ LL_TYPE_INSTANCE_HOOK(ChunkHook, ll::memory::HookPriority::Normal, ItemRenderer,
     try { watch = watched(item); } catch (...) {}
     if (!watch) { origin(context, type, item, x, y, light, alpha, scale, frame, animate, zOrder, uv); return; }
     std::string name = item.getTypeName();
-    auto key = std::format("chunk {} type={} scale={:.2f} light={:.2f} alpha={:.2f} z={} uv={} from=[{}]", name,
-        static_cast<int>(type), scale, light, alpha, zOrder, uv.has_value(), current);
+    // L-339: compasses and clocks lose their frame in Lamium's batch; the frame and custom UVs say what vanilla passes.
+    std::string uvText = uv ? std::format("({:.4f},{:.4f})-({:.4f},{:.4f}) tex={}x{}", uv->_u0, uv->_v0, uv->_u1, uv->_v1,
+                                          static_cast<int>(uv->_texSizeW), static_cast<int>(uv->_texSizeH))
+                            : std::string{"none"};
+    auto key = std::format("chunk {} type={} frame={} animate={} scale={:.2f} light={:.2f} alpha={:.2f} z={} uv={} from=[{}]",
+        name, static_cast<int>(type), frame, animate, scale, light, alpha, zOrder, uvText, current.empty() ? "lamium" : current);
     if (firstTime(key)) traceLog(chunkBudget, 200, "L-119 {}", key);
-    auto previous = std::exchange(current, std::format("chunk {} type={}", name, static_cast<int>(type)));
+    auto previous = std::exchange(current, std::format("chunk {} type={} by={}", name, static_cast<int>(type),
+                                                       current.empty() ? "lamium" : "vanilla"));
     origin(context, type, item, x, y, light, alpha, scale, frame, animate, zOrder, uv);
     current = std::move(previous);
 }
@@ -126,86 +117,17 @@ LL_TYPE_INSTANCE_HOOK(NewHook, ll::memory::HookPriority::Normal, ItemRenderer, &
     origin(context, item, frame, x, y, foil, transparency, light, scale, zOrder);
     current = std::move(previous);
 }
-LL_TYPE_INSTANCE_HOOK(BlockTypeHook, ll::memory::HookPriority::Normal, ItemRenderer,
-    &ItemRenderer::_renderGuiBlockTypeItem, void, BaseActorRenderContext& context, ItemStack const& item,
-    BlockGraphics const* graphics, mce::TexturePtr const& texture, float x, float y, float light, float alpha,
-    float scale, float const pop, int const zOrder) {
-    route(std::format("blockType graphics={} scale={:.2f} light={:.2f} alpha={:.2f}", graphics != nullptr, scale, light, alpha));
-    origin(context, item, graphics, texture, x, y, light, alpha, scale, pop, zOrder);
-}
-LL_TYPE_INSTANCE_HOOK(DataDrivenHook, ll::memory::HookPriority::Normal, ItemRenderer,
-    &ItemRenderer::_renderGuiDataDrivenBlockItem, void, BaseActorRenderContext& context, Block const* block, float x,
-    float y, float scale, float const squeeze, int const zOrder) {
-    std::string name = "none";
-    try { if (block) name = block->getTypeName(); } catch (...) { name = "?"; }
-    route(std::format("dataDriven block={} scale={:.2f} squeeze={:.2f}", name, scale, squeeze));
-    origin(context, block, x, y, scale, squeeze, zOrder);
-}
-LL_TYPE_INSTANCE_HOOK(EntityBlockHook, ll::memory::HookPriority::Normal, ItemRenderer,
-    &ItemRenderer::_renderGuiEntityBlockItem, bool, BaseActorRenderContext& context, ItemRenderChunkType type,
-    dragon::RenderMetadata const metadata, ItemStack const& item, float x, float y, float light, float scale) {
-    bool drawn = origin(context, type, metadata, item, x, y, light, scale);
-    route(std::format("entityBlock type={} drawn={} scale={:.2f}", static_cast<int>(type), drawn, scale));
-    return drawn;
-}
-// Vanilla's shared-mesh item batch (round 4, 2026-10-10): whether slots go
-// through it or the geometry atlas, and the batch key per pass.
-std::string rendererItem(InventoryItemRenderer& renderer) {
-    try { return renderer.mItemInstance->getTypeName(); } catch (...) { return "?"; }
-}
-LL_TYPE_INSTANCE_HOOK(BatchKeyHook, ll::memory::HookPriority::Normal, GeometryAtlas::ItemRenderContextImpl,
-    &GeometryAtlas::ItemRenderContextImpl::$createBatchKey, BatchKey, int pass) {
-    auto key = origin(pass);
-    try {
-        auto name = rendererItem(this->mRenderer);
-        if (watchedName(name)) {
-            auto line = std::format("batchKey {} pass={} type={} material={} info={} depth={} alpha={:.2f} tex=[{} | {}]",
-                name, pass, static_cast<int>(key.mBatchType), static_cast<int>(key.mUIMaterialType),
-                static_cast<int>(key.mUIItemRenderInfo->info), static_cast<int>(key.mDepth), static_cast<float>(key.mAlpha),
-                location((*key.mResourceLocations)[0]), location((*key.mResourceLocations)[1]));
-            if (firstTime(line)) traceLog(routeBudget, 200, "L-119 {}", line);
-        }
-    } catch (...) {}
-    return key;
-}
-LL_TYPE_INSTANCE_HOOK(ContextRenderHook, ll::memory::HookPriority::Normal, GeometryAtlas::ItemRenderContextImpl,
-    &GeometryAtlas::ItemRenderContextImpl::$render, void, InventoryItemRenderOwnerData const& data, int pass, float alpha) {
-    std::string name = rendererItem(this->mRenderer);
-    bool watch = watchedName(name);
-    if (watch) {
-        auto line = std::format("contextRender {} pass={} alpha={:.2f} scale={:.2f} z={}", name, pass, alpha, static_cast<float>(data.mScale), static_cast<int>(data.mZOrder));
-        if (firstTime(line)) traceLog(routeBudget, 200, "L-119 {}", line);
-    }
-    auto previous = watch ? std::exchange(current, std::format("context {} pass={}", name, pass)) : current;
-    origin(data, pass, alpha);
-    current = std::move(previous);
-}
-LL_TYPE_INSTANCE_HOOK(SharedBatchHook, ll::memory::HookPriority::Normal, GeometryAtlas::ItemRenderContextImpl,
-    &GeometryAtlas::ItemRenderContextImpl::$beginSharedMeshBatch, void, ComponentRenderBatch const& batch) {
-    auto name = rendererItem(this->mRenderer);
-    if (watchedName(name)) {
-        auto line = std::format("sharedBatch {} pass={} preRender={} instances={}", name, static_cast<int>(batch.mRenderPass),
-            static_cast<bool>(batch.mRequiresPreRenderSetup), batch.mCustomRenderInstances->size());
-        if (firstTime(line)) traceLog(routeBudget, 200, "L-119 {}", line);
-    }
-    origin(batch);
-}
-LL_TYPE_INSTANCE_HOOK(TileHook, ll::memory::HookPriority::Normal, GeometryAtlas::RenderContextImpl,
-    &GeometryAtlas::RenderContextImpl::$renderItemToTile, bool, dragon::atlas::AtlasTileHandle const& tile,
-    GeometryAtlas::ItemData const& data) {
-    bool drawn = origin(tile, data);
-    auto line = std::format("atlasTile drawn={} scale={:.2f}", drawn, static_cast<float>(data.mScale));
-    if (firstTime(line)) traceLog(routeBudget, 50, "L-119 {}", line);
-    return drawn;
-}
+// Hooks on the block-type, data-driven and entity-block routes and on the geometry atlas's batch keys, renders
+// and tiles were here (L-119); 1.26.60's SDK has no symbols for them, so those routes are no longer traced.
 LL_TYPE_INSTANCE_HOOK(BlitHook, ll::memory::HookPriority::Normal, ItemRenderer, &ItemRenderer::iconBlit, void,
     BaseActorRenderContext& context, mce::TexturePtr const& texture, float x, float y, float z,
     TextureUVCoordinateSet const& uv, float w, float h, float light, float alpha, int color, int secondaryColor,
     float xscale, float yscale, IconBlitGlint const glint, bool const multiColor) {
     if (!current.empty()) {
         try {
-            auto key = std::format("blit from=[{}] glint={} multiColor={} uv=({:.4f},{:.4f})-({:.4f},{:.4f}) size={:.1f}x{:.1f} scale={:.2f}",
-                current, static_cast<int>(glint), multiColor, uv._u0, uv._v0, uv._u1, uv._v1, w, h, xscale);
+            auto key = std::format("blit from=[{}] glint={} multiColor={} uv=({:.4f},{:.4f})-({:.4f},{:.4f}) tex={}x{} size={:.1f}x{:.1f} scale={:.2f}",
+                current, static_cast<int>(glint), multiColor, uv._u0, uv._v0, uv._u1, uv._v1,
+                static_cast<int>(uv._texSizeW), static_cast<int>(uv._texSizeH), w, h, xscale);
             if (firstTime(key)) traceLog(blitBudget, 300, "L-119 {}", key);
         } catch (...) {}
     }
@@ -215,9 +137,7 @@ bool hooked = false;
 }
 void start() {
     if (SlotRenderHook::hook(true) != 0 || RenderTypeHook::hook(true) != 0 || ChunkHook::hook(true) != 0
-        || NewHook::hook(true) != 0 || BlockTypeHook::hook(true) != 0 || DataDrivenHook::hook(true) != 0
-        || EntityBlockHook::hook(true) != 0 || BlitHook::hook(true) != 0 || BatchKeyHook::hook(true) != 0
-        || ContextRenderHook::hook(true) != 0 || SharedBatchHook::hook(true) != 0 || TileHook::hook(true) != 0) {
+        || NewHook::hook(true) != 0 || BlitHook::hook(true) != 0) {
         stop();
         throw std::runtime_error("Could not install icon diagnostics");
     }
@@ -225,9 +145,7 @@ void start() {
     Runtime::instance().self().getLogger().warn("Icon diagnostics enabled (L-119)");
 }
 void stop() {
-    SlotRenderHook::unhook(true); RenderTypeHook::unhook(true); ChunkHook::unhook(true); NewHook::unhook(true);
-    BlockTypeHook::unhook(true); DataDrivenHook::unhook(true); EntityBlockHook::unhook(true); BlitHook::unhook(true);
-    BatchKeyHook::unhook(true); ContextRenderHook::unhook(true); SharedBatchHook::unhook(true); TileHook::unhook(true);
+    SlotRenderHook::unhook(true); RenderTypeHook::unhook(true); ChunkHook::unhook(true); NewHook::unhook(true); BlitHook::unhook(true);
     hooked = false;
 }
 }
