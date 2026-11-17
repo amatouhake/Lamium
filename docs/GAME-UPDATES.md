@@ -140,6 +140,7 @@ the package/SDK loader-policy alignment in CI.
 | English Search (enchanted books' enchantments) | `EnglishSearch.cpp` `storedEnchantNames` (`constructItemEnchantsFromUserData`, `Enchant::mEnchants`, `mEnchantType`, `mDescription`, `mStringId`) | Creative search does not find an enchanted book by its enchantments' names | English names and IDs of items, the book's own name |
 | Work penalty line (an item's anvil uses) | `Inspection.cpp` (`ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | item tooltips carry no work penalty line | the game's tooltip, Item details' other lines |
 | World map colors of add-on blocks (block material instances) | `Minimap.cpp` `topMaterial`: the read of the row above, named for the world map's recording | as the row above | as the row above |
+| Schematic raw materials (the client's recipe table) | `recipes/RecipeSnapshot.cpp` (`Level::getRecipes`, `Recipes::mRecipes`, each `Recipe`'s `mMyIngredients`, `mResults`, `mPriority` and `isMultiRecipe`, an ingredient through `ItemDescriptor::mImpl`'s `getType`, `getItem`, `getFullName` and `forEachItemUntil`), asked for by `recipes/RecipeService.cpp` when a screen wants the table | the Materials tab offers no raw materials | the Materials list, its amounts and the calculator link |
 
 ## Playbook for a new Minecraft or LeviLamina version
 

@@ -14,7 +14,7 @@ enum class Id {
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
     NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, BossBarPosition,
-    ItemDetails, MapMaterialInstances, EnglishSearchEnchants, WorkPenalty, WorldMapMaterialInstances, Count
+    ItemDetails, MapMaterialInstances, EnglishSearchEnchants, WorkPenalty, WorldMapMaterialInstances, RecipeTable, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -78,6 +78,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::WorkPenalty, "Work penalty line (an item's anvil uses)", "itemDetails", "capability.WorkPenalty", Impact::Partly, true, true},
     // The world map's recording reads the same colors as the minimap (MapMaterialInstances is the gate).
     {Id::WorldMapMaterialInstances, "World map colors of add-on blocks (block material instances)", "worldMap", "capability.MapMaterialInstances", Impact::Partly, true, true},
+    {Id::RecipeTable, "Schematic raw materials (the client's recipe table)", "schematic", "capability.RecipeTable", Impact::Partly, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

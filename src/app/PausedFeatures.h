@@ -70,7 +70,8 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::NoteBlockSounds: case Id::NoteBlockInstrument:
         return s.information.targetStates || s.schematic.enabled;
     case Id::SchematicBlocks: case Id::SchematicPiston: case Id::SchematicShulker: case Id::SchematicEntities:
-    case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick: return s.schematic.enabled;
+    case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick: case Id::RecipeTable:
+        return s.schematic.enabled;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
     case Id::BookPastePages: return s.ui.bookPaste;
     // The planner screen says so itself when opened; the anvil's list is the standing use.

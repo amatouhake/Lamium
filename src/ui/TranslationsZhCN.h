@@ -36,6 +36,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"capability.MapMaterialInstances", "附加包方块的地图颜色"},
     {"capability.EnglishSearchEnchants", "按附魔名称搜索附魔书"},
     {"capability.WorkPenalty", "物品提示中的累积惩罚"},
+    {"capability.RecipeTable", "原理图材料的原材料"},
     {"capability.FreeCameraHand", "隐藏手部"},
     {"capability.FreeCameraHud", "隐藏整个HUD"},
     {"capability.HideParticles", "粒子的隐藏"},

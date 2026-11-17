@@ -39,6 +39,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.MapMaterialInstances", "Map colors of add-on blocks", "アドオンブロックの地図の色"},
     {"capability.EnglishSearchEnchants", "Enchanted books found by enchantment name", "エンチャント名でのエンチャント本の検索"},
     {"capability.WorkPenalty", "Work penalty in item tooltips", "アイテムツールチップの作業ペナルティ"},
+    {"capability.RecipeTable", "Raw materials of a schematic's materials", "設計図の資材の元の素材"},
     {"capability.FreeCameraHand", "Hide the hand", "手の非表示"},
     {"capability.FreeCameraHud", "Hide the whole HUD", "HUD全体の非表示"},
     {"capability.HideParticles", "Particle visibility", "パーティクルの非表示"},
