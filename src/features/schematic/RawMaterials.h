@@ -9,6 +9,8 @@
 // L-116 groundwork: what a list of wanted items costs in raw materials, given
 // one chosen recipe per craftable item. Which recipe is chosen, and how game
 // items map to the ids, is the caller's business. Not used by any screen yet.
+// `wanted` is everything still to be supplied, held or not: what is held is
+// taken off here, once per item, so a caller must not subtract it first.
 namespace lamium::schematic::rawMaterials {
 using Item = int;
 using Count = std::uint64_t;
@@ -26,12 +28,18 @@ struct Result {
     std::vector<std::pair<Item, Count>> raw; // By item id.
     std::vector<Step> steps;                 // An item comes before the items it is made from.
     std::vector<Item> looped;                // Left raw because their recipes lead back to themselves.
+    std::vector<std::pair<Item, Count>> fromHeld; // What held stock covers, by item id.
 };
 
 // Needs are added up across the whole list before rounding to whole crafts,
 // so two wanted items sharing an intermediate share its spare output.
-inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes const& recipes) {
-    std::map<Item, Count> need;
+// Held stock is used before anything is made or gathered: of the wanted item
+// itself, of an intermediate (which is then not traced further for that
+// part) and of a raw material.
+inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes const& recipes,
+                     std::vector<std::pair<Item, Count>> const& held = {}) {
+    std::map<Item, Count> need, stock;
+    for (auto [item, count] : held) stock[item] += count;
     std::set<Item> asked;
     for (auto [item, count] : wanted) if (count) { need[item] += count; asked.insert(item); }
     auto recipeOf = [&](Item item) -> Recipe const* {
@@ -95,17 +103,20 @@ inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes 
             if (recipe) release(*recipe);
             continue; // Its need is settled once its users are done; collected below.
         }
-        Count const wantedCount = need[next];
         if (!recipe) continue;
         release(*recipe);
+        // Every user of `next` is done, so its need is whole: held stock comes off once.
+        Count const wantedCount = need[next] - std::min(need[next], stock[next]);
         if (!wantedCount) continue;
         Count const crafts = (wantedCount + recipe->makes - 1) / recipe->makes;
         result.steps.push_back({next, crafts, crafts * recipe->makes - wantedCount});
         for (auto const& [part, count] : recipe->uses) if (count) need[part] += crafts * count;
     }
     for (auto const& [item, count] : need) {
+        Count const have = std::min(count, stock[item]);
+        if (have) result.fromHeld.emplace_back(item, have);
         bool const looped = std::find(result.looped.begin(), result.looped.end(), item) != result.looped.end();
-        if (count && (looped || !recipeOf(item))) result.raw.emplace_back(item, count);
+        if (count > have && (looped || !recipeOf(item))) result.raw.emplace_back(item, count - have);
     }
     return result;
 }

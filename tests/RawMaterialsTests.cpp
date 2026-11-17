@@ -49,4 +49,29 @@ void rawMaterialsTests() {
               "a recipe that makes nothing or uses nothing leaves its item raw");
         check(reduce({}, recipes).raw.empty() && reduce({}, recipes).steps.empty(), "nothing wanted, nothing needed");
     }
+    {
+        auto result = reduce({{bricks, 64}}, recipes, {{bricks, 20}, {log, 9}});
+        check(result.steps == std::vector<Step>{{bricks, 11, 0}, {stone, 44, 0}} && result.raw == Raw{{cobble, 44}},
+              "held items of what is wanted are used before any is made");
+        check(result.fromHeld == Raw{{bricks, 20}}, "what held stock covers is reported, unused stock is not");
+        auto enough = reduce({{bricks, 8}}, recipes, {{bricks, 8}});
+        check(enough.steps.empty() && enough.raw.empty() && enough.fromHeld == Raw{{bricks, 8}}, "enough held, nothing to do");
+    }
+    {
+        // Stone is wanted directly (3) and through bricks (4): 7 in all, 5 held, 2 to smelt.
+        auto result = reduce({{stone, 3}, {bricks, 4}}, recipes, {{stone, 5}});
+        check(result.steps == std::vector<Step>{{bricks, 1, 0}, {stone, 2, 0}} && result.raw == Raw{{cobble, 2}},
+              "held stock of an item needed two ways comes off once, from the whole need");
+        check(result.fromHeld == Raw{{stone, 5}}, "all of it is used when the need is larger");
+    }
+    {
+        auto result = reduce({{torch, 8}}, recipes, {{planks, 1}, {coal, 5}, {sticks, 1}});
+        check(result.steps == std::vector<Step>{{torch, 2, 0}, {sticks, 1, 3}, {planks, 1, 3}},
+              "a held intermediate shortens the chain below it; a held part of a batch does not");
+        check(result.raw == Raw{{log, 1}} && result.fromHeld == Raw{{planks, 1}, {sticks, 1}, {coal, 2}},
+              "held raw materials come off the raw total");
+        Recipes loop{{block, {1, {{ingot, 9}}}}, {ingot, {9, {{block, 1}}}}};
+        auto looped = reduce({{block, 2}}, loop, {{ingot, 10}});
+        check(looped.raw == Raw{{ingot, 8}} && looped.fromHeld == Raw{{ingot, 10}}, "an item kept raw by a loop also uses held stock");
+    }
 }
