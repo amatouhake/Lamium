@@ -49,7 +49,7 @@ inline bool fitsSmallGrid(Recipe const& recipe) {
     if (!recipe.width) return recipe.cells.size() <= 4;
     return recipe.width <= 2 && recipe.cells.size() / static_cast<size_t>(recipe.width) <= 2;
 }
-inline bool anyOrder(Recipe const& recipe) { return recipe.station == Station::Crafting && !recipe.width; }
+inline bool anyOrder(Recipe const& recipe) { return recipe.station == Station::Crafting && recipe.anyOrder; }
 
 // One recipe as its station's screen lays it out, from the block's corner.
 // `cell` is a position in Recipe::cells, -1 an empty slot. Marks start at

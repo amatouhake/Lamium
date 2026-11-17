@@ -26,6 +26,7 @@
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <format>
@@ -57,6 +58,20 @@ struct Queued {
     int listTurns = 0, viewTurns = 0;
     bool back = false, close = false;
 } queued;
+// The buttons and keys whose press was kept: only their release is kept too. One the game saw go down
+// must see it come up, or it stays held there.
+std::vector<int> keptButtons, keptKeys;
+bool keep(std::vector<int>& kept, int code, bool down, bool wanted) {
+    auto const had = std::find(kept.begin(), kept.end(), code);
+    if (down) {
+        if (wanted && had == kept.end()) kept.push_back(code);
+        if (!wanted && had != kept.end()) kept.erase(had);
+        return wanted;
+    }
+    if (had == kept.end()) return false;
+    kept.erase(had);
+    return true;
+}
 // Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
 bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono::milliseconds(300); }
 void readNames(LocalPlayer& player) {
@@ -93,27 +108,28 @@ bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size) {
     }
     return false;
 }
-void draw(ll::event::UIRenderEvent& event) {
+// False when nothing was drawn.
+bool drawList(ll::event::UIRenderEvent& event) {
     using namespace lamium::ui;
     auto& screenView = event.screenView();
     std::string const screenName = screenView.mHasFocus && screenView.mController && screenView.mController->_isContainerScreen()
         ? screenView.getScreenName() : std::string();
     if (view::isOpen() && screenName != viewScreen) view::close();
     // The anvil's sides belong to the enchantment order's panels.
-    if (screenName.empty() || screenName == "anvil_screen") return;
+    if (screenName.empty() || screenName == "anvil_screen") return false;
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player) return;
+    if (!player) return false;
     if (forget.exchange(false)) names.clear(), view::close();
     if (names.empty()) readNames(*player);
     glm::vec2 at{}, size{};
-    if (names.empty() || !windowOf(screenView, at, size)) return;
+    if (names.empty() || !windowOf(screenView, at, size)) return false;
     glm::vec2 const screen = *screenView.mSize;
     // The centre keeps the recipe view's two columns free, so the list never moves when it opens.
     auto const viewLayout = recipeViewAt(screen.x, screen.y);
     float const right = std::max(at.x + size.x, viewLayout.left + RecipeViewLayout::width);
     auto const layout = itemListRight(screen.x, screen.y, 0, right);
-    if (!layout.usable()) { view::close(); return; }
+    if (!layout.usable()) { view::close(); return false; }
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
     {
@@ -173,6 +189,14 @@ void draw(ll::event::UIRenderEvent& event) {
         label(context, x + 4, y + 2, w - 8, late.tip);
         context.flushText(0, std::nullopt);
     }
+    return true;
+}
+void draw(ll::event::UIRenderEvent& event) {
+    if (drawList(event)) return;
+    // Gone: the listeners keep nothing more, at once and not after the moment `fresh` allows.
+    std::scoped_lock lock(shownLock);
+    shown.at = {};
+    shown.viewOpen = false;
 }
 }
 bool wheel(int pages) {
@@ -183,9 +207,10 @@ bool wheel(int pages) {
     else return shown.viewOpen; // an open view lies over the game's window: its slots must not scroll
     return true;
 }
-bool press(bool left, bool right, bool down) {
+bool press(int button, bool left, bool right, bool down) {
     std::scoped_lock lock(shownLock);
-    if (!fresh() || !(shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY))) return false;
+    bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY));
+    if (!keep(keptButtons, button, down, ours)) return false;
     if (down && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
 }
@@ -193,7 +218,7 @@ bool key(int code, bool down) {
     // The modifier keys stay the game's: one held while the view opens must still be released.
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(shownLock);
-    if (!fresh() || !shown.viewOpen) return false;
+    if (!keep(keptKeys, code, down, fresh() && shown.viewOpen)) return false;
     if (down && code == 0x1B) queued.close = true;
     if (down && code == 0x08) queued.back = true;
     return true;
@@ -216,7 +241,7 @@ namespace lamium::recipes::itemList {
 void start() {}
 void stop() {}
 bool wheel(int) { return false; }
-bool press(bool, bool, bool) { return false; }
+bool press(int, bool, bool, bool) { return false; }
 bool key(int, bool) { return false; }
 }
 #endif

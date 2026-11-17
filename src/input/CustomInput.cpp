@@ -198,7 +198,7 @@ void startCustomInput() {
         // The item list beside a game screen and the recipe view it opens: the wheel pages them, presses
         // on them stay from the game (L-359).
         if (!event.isCancelled() && (wheel ? recipes::itemList::wheel(event.buttonData() > 0 ? -1 : 1)
-                : recipes::itemList::press(button == MouseAction::ActionLeft, button == MouseAction::ActionRight, down))) {
+                : recipes::itemList::press(button, button == MouseAction::ActionLeft, button == MouseAction::ActionRight, down))) {
             event.cancel();
             return;
         }

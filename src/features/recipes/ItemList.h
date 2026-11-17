@@ -9,8 +9,8 @@ void stop();
 // Input over the list, and all of it while the recipe view is open: true
 // keeps the event from the game. Called from the input listeners, off the
 // client thread; what was kept acts in the next frame. Nothing is kept once
-// the list has not been drawn for a moment.
+// the list is not drawn, and a release only when its press was.
 bool wheel(int pages);
-bool press(bool left, bool right, bool down);
+bool press(int button, bool left, bool right, bool down);
 bool key(int code, bool down);
 }

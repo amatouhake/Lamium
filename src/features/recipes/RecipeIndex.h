@@ -53,6 +53,7 @@ struct SourceRecipe {
     std::vector<std::pair<std::string, Count>> makes;
     std::vector<SourcePart> uses;
     int width = 0, height = 0; // a shaped recipe's grid, `uses` row by row; 0 without one
+    bool shapeless = false;    // the game says the order does not matter
 };
 struct Source {
     std::vector<SourceRecipe> recipes;
@@ -78,6 +79,7 @@ struct Recipe {
     // order, which then does not matter.
     std::vector<Part> cells;
     int width = 0;
+    bool anyOrder = false; // the game says so; not merely a shape that was not read
 };
 // Any one member will do: an item tag, or (without a name) the inputs that smelt to the same item.
 struct Group { std::string name; std::vector<Item> members; };
@@ -140,6 +142,7 @@ inline Index build(Source const& source) {
         bool const shaped = from.width >= 1 && from.width <= 3 && from.height >= 1 && from.height <= 3
             && static_cast<size_t>(from.width * from.height) == from.uses.size();
         recipe.width = shaped ? from.width : 0;
+        recipe.anyOrder = from.shapeless;
         for (auto const& part : from.uses) {
             if (part.name.empty()) {
                 if (shaped) recipe.cells.push_back(Part{false, -1, 0});

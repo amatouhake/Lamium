@@ -53,7 +53,8 @@ void add(HashedString const& tag, std::string const& id, ::Recipe const& recipe,
     guard(results.size(), 64);
     guard(parts.size(), 200);
     SourceRecipe to{tag.getString(), id, recipe.mPriority, {}, {}};
-    if (!recipe.isShapeless()) to.width = recipe.mWidth, to.height = recipe.mHeight;
+    to.shapeless = recipe.isShapeless();
+    if (!to.shapeless) to.width = recipe.mWidth, to.height = recipe.mHeight;
     for (auto const& item : results) {
         if (item.isNull()) continue;
         auto name = item.getTypeName();

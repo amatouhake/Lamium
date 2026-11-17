@@ -15,6 +15,9 @@ struct Target {
     std::string item;
     bool uses = false;
     int tab = 0, page = 0;
+    // Its recipes by station, found once: what uses an item is a walk over the whole table.
+    std::vector<ViewTab> tabs;
+    std::shared_ptr<service::Table const> from;
 };
 std::vector<Target> trail; // the last is shown; Backspace goes one back
 // What the last frame drew that a press acts on: an item, or a tab.
@@ -35,7 +38,7 @@ bool isOpen() { return !trail.empty(); }
 void open(std::string item, bool uses) {
     if (!trail.empty() && trail.back().item == item && trail.back().uses == uses) return;
     if (trail.size() >= 64) trail.erase(trail.begin());
-    trail.push_back({std::move(item), uses});
+    trail.push_back({std::move(item), uses, 0, 0, {}, {}});
 }
 void close() {
     trail.clear();
@@ -74,7 +77,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     }
     auto const& index = table->index;
     Item const id = index.find(at.item);
-    auto const tabs = viewTabs(index, table->choice, id, at.uses);
+    if (at.from != table) at.tabs = viewTabs(index, table->choice, id, at.uses), at.from = table;
+    auto const& tabs = at.tabs;
     if (tabs.empty()) { line(at.uses ? "recipes.none.uses" : "recipes.none.makes"); return; }
     at.tab = std::clamp(at.tab, 0, static_cast<int>(tabs.size()) - 1);
     auto const& tab = tabs[static_cast<size_t>(at.tab)];

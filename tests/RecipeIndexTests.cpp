@@ -175,7 +175,7 @@ void recipeIndexTests() {
         source.recipes.push_back({"crafting_table", "pickaxe", 0, {{"pickaxe", 1}},
             {{"iron", false}, {"iron", false}, {"iron", false}, {"", false}, {"stick", false}, {"", false}, {"", false}, {"stick", false}, {"", false}}, 3, 3});
         source.recipes.push_back({"crafting_table", "stick", 0, {{"stick", 4}}, {{"planks", true}, {"planks", true}}, 1, 2});
-        source.recipes.push_back({"crafting_table", "button", 0, {{"button", 1}}, {{"planks", true}}});
+        source.recipes.push_back({"crafting_table", "button", 0, {{"button", 1}}, {{"planks", true}}, 0, 0, true});
         source.recipes.push_back({"crafting_table", "odd", 0, {{"odd", 1}}, {{"stick", false}, {"iron", false}}, 3, 3});
         source.recipes.push_back({"furnace", "iron_a", 0, {{"iron", 1}}, {{"raw_iron", false}}});
         source.recipes.push_back({"furnace", "iron_b", 0, {{"iron", 1}}, {{"iron_ore", false}}});
@@ -194,7 +194,8 @@ void recipeIndexTests() {
               "a narrow shape sits at the grid's left and fits the 2x2 grid");
         auto const& button = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("button"))].front())];
         auto const& odd = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("odd"))].front())];
-        check(anyOrder(button) && !odd.width && odd.cells.size() == 2 && anyOrder(odd), "no shape, or one that does not fit its cells, is laid out in any order");
+        check(anyOrder(button) && !odd.width && odd.cells.size() == 2 && !anyOrder(odd),
+              "a shape that does not fit its cells is laid out without it, and only the game's word marks any order");
         auto makes = viewTabs(index, choice, index.find("iron"), false);
         check(makes.size() == 2 && makes[0].station == Station::Furnace && makes[0].recipes.size() == 1 && makes[1].station == Station::BlastFurnace,
               "an item's recipes are split by station, smelting alternatives being one recipe");
