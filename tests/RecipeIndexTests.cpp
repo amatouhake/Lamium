@@ -49,6 +49,12 @@ void recipeIndexTests() {
         {"crafting_table", "honey_block", 0, {{"honey_block", 1}}, cells("honey_bottle", 4)},
         {"crafting_table", "honey_bottle", 0, {{"honey_bottle", 4}, {"x", 0}}, both(cells("honey_block", 1), cells("glass_bottle", 4))},
         {"crafting_table", "sugar_from_honey", 0, {{"sugar", 3}}, cells("honey_bottle", 1)},
+        // Ores that drop the item when mined.
+        {"furnace", "furnace_diamond_ore", 100, {{"diamond", 1}}, cells("diamond_ore", 1)},
+        {"furnace", "furnace_deepslate_diamond_ore", 100, {{"diamond", 1}}, cells("deepslate_diamond_ore", 1)},
+        {"crafting_table", "diamond_block", 0, {{"diamond_block", 1}}, cells("diamond", 9)},
+        {"crafting_table", "diamond", 0, {{"diamond", 9}}, cells("diamond_block", 1)},
+        {"furnace", "furnace_quartz_ore", 100, {{"quartz", 1}}, cells("quartz_ore", 1)},
         {"crafting_table", "MapCloningRecipe", 0, {}, {}},
     };
     Index index = build(source);
@@ -101,6 +107,12 @@ void recipeIndexTests() {
         for (Item item = 0; item < static_cast<Item>(index.items.size()); ++item)
             looped = looped || !plan(index, choice, {{{item, 1}}, {}, {}, {}}).looped.empty();
         check(!looped, "no item's plan runs into a loop with the default recipes");
+    }
+    {
+        check(made("diamond").empty() && made("quartz").empty(), "smelting an ore that drops the item is not the default");
+        check(made("diamond_block") == "diamond_block" && choice.base[id("diamond_block")] == id("diamond"), "the mined item is still its loop's base");
+        check(index.makers[id("diamond")].size() == 2 && made("iron_ingot") == "furnace_iron",
+              "the ore recipes stay in the index, and smelting with a raw form among the inputs is still chosen");
     }
     {
         auto result = plan(index, choice, {{{id("stone_bricks"), 64}}, {{id("stone_bricks"), 20}, {id("stone"), 4}}, {}, {}});

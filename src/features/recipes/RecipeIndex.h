@@ -153,6 +153,21 @@ inline Index build(Source const& source) {
     return index;
 }
 
+// Smelting that only undoes mining: every input is an ore block, and mining
+// the ore gives the item itself (diamond, redstone, coal, quartz). The table
+// does not know drops, so the name has to tell. Not chosen unless the player
+// asks; iron and gold have a raw form among their inputs and are not meant.
+inline bool smeltsOreOnly(Index const& index, Recipe const& recipe) {
+    if (!smelts(recipe.station) || recipe.uses.empty()) return false;
+    auto ore = [&](Item item) { return index.items[item].ends_with("_ore"); };
+    for (auto const& part : recipe.uses) {
+        if (!part.group) { if (!ore(part.id)) return false; continue; }
+        auto const& members = index.groups[part.id].members;
+        if (members.empty() || !std::all_of(members.begin(), members.end(), ore)) return false;
+    }
+    return true;
+}
+
 // The recipe each item is made by, unless the player says otherwise.
 struct Choice {
     std::vector<int> recipe; // per item: position in Index::recipes, -1 for none (gathered)
@@ -166,7 +181,8 @@ struct Choice {
 // Next comes the item most recipes outside the loop use, then one a recipe in
 // the loop uses several of, then by name. Among an item's recipes the station
 // and priority decide, then the one closest to the base (white wool and dye,
-// not another color and dye), then `before`.
+// not another color and dye), then `before`. Smelting an ore that drops the
+// item is never the default (`smeltsOreOnly`).
 inline Choice choose(Index const& index) {
     Item const count = static_cast<Item>(index.items.size());
     Choice out{std::vector<int>(count, -1), std::vector<Item>(count, -1)};
@@ -223,8 +239,10 @@ inline Choice choose(Index const& index) {
     for (auto const& group : members) {
         if (group.size() == 1) {
             Item const item = group.front();
-            for (int candidate : index.makers[item])
+            for (int candidate : index.makers[item]) {
+                if (smeltsOreOnly(index, index.recipes[candidate])) continue;
                 if (out.recipe[item] < 0 || before(index, index.recipes[candidate], index.recipes[out.recipe[item]])) out.recipe[item] = candidate;
+            }
             continue;
         }
         auto earlier = [&](Item a, Item b) {
@@ -242,6 +260,7 @@ inline Choice choose(Index const& index) {
                 int best = -1, bestDepth = 0;
                 for (int candidate : index.makers[item]) {
                     auto const& recipe = index.recipes[candidate];
+                    if (smeltsOreOnly(index, recipe)) continue;
                     int far = 0;
                     bool ready = true;
                     for (auto const& part : recipe.uses) {
