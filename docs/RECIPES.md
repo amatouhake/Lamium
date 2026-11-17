@@ -24,16 +24,24 @@ is in the L-item.
 ### The item list
 - Beside the game's window on every screen that handles items (inventory,
   crafting table, furnace, chests), always shown: all items on the right.
-- On the left: favourites at the top, the plan in the lower part.
-- One search field at the bottom centre, under the game's window: closest
-  to the inventory, and where later uses of the same field belong
-  (highlighting the inventory slots that match, calculating).
+- On the left: favourites at the top, the plan in the lower part (its
+  lines carry item icons; what else it shows is decided with the plan).
+- Both side lists lie on a dimmed band that runs to the screen's edge, with
+  no frame and no margin: the game dims the world too little for bare icons.
+- The favourite key puts the hovered item in or takes it out, wherever it
+  is pressed.
+- One search field at the bottom centre of the screen, low enough that it
+  never has to move when the centre shows more: close to the inventory, and
+  where later uses of the same field belong (highlighting the inventory
+  slots that match, calculating).
 - The list can be narrowed, at least to what can be made now. The filters
   have their place from the start, whenever they are built.
 - The list moves aside when the game's own recipe book is switched on.
 
 ### The recipe view
-- Opens in the centre of the screen.
+- Opens in the centre of the screen, looking like one of the game's windows.
+- Shows as many recipes to a page as the screen allows: two were too few
+  for an item with dozens of uses.
 - A recipe is shown as the game shows it, as closely as Lamium can draw it:
   a crafting recipe in the 3x3 grid, a furnace's or another station's in a
   fixed layout that follows that station's own screen. This is the one
