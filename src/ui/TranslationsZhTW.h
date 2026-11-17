@@ -1328,7 +1328,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"difficulty.hard", "困難"},
     {"key.Lamium.debugview", "Lamium: 切換偵錯畫面"},
     {"feature.targetInfo", "高亮顯示"},
-    {"help.targetInfo", "顯示準心指向的方塊或生物：圖示、名稱、生命值、成長階段等。生物會顯示是否為幼年、是否處於求愛狀態；用戶端沒有長大或可再次繁殖所需的時間，因此不顯示。"},
+    {"help.targetInfo", "顯示準心指向的方塊或生物：圖示、名稱、生命值、成長階段等。生物會顯示是否為幼年，成年動物會顯示現在是否因餵食而處於求愛狀態（無法區分是否在繁殖冷卻中）；用戶端沒有長大或可再次繁殖所需的時間，因此不顯示。"},
     {"targetInfo", "高亮顯示: {}"},
     {"targetIdentifier", "顯示識別碼: {}"},
     {"targetStates", "其他詳細資訊: {}"},

@@ -1351,7 +1351,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"difficulty.hard", "Hard", "ハード"},
     {"key.Lamium.debugview", "Lamium: Toggle debug view", "Lamium: デバッグ表示の切り替え"},
     {"feature.targetInfo", "Target Info", "照準先の情報"},
-    {"help.targetInfo", "Show the targeted block or mob: icon, name, health, growth and more. A mob shows whether it is a baby or in love; the time until it grows up or can breed again is not shown, as the client does not have it.", "照準先のブロックやモブのアイコン・名前・体力・成長などを表示。モブは子どもか・繁殖モードかを表示します。大人になるまでや再び繁殖できるまでの時間はクライアントが持っていないため表示しません。"},
+    {"help.targetInfo", "Show the targeted block or mob: icon, name, health, growth and more. A mob shows whether it is a baby; an adult animal whether feeding has put it in love now (a breeding cooldown cannot be told apart). The time until it grows up or can breed again is not shown, as the client does not have it.", "照準先のブロックやモブのアイコン・名前・体力・成長などを表示。モブは子どもかどうか、大人の動物はいま餌で繁殖モードになっているかを表示します（繁殖のクールダウン中かは区別できません）。大人になるまでや再び繁殖できるまでの時間はクライアントが持っていないため表示しません。"},
     {"targetInfo", "Target Info: {}", "照準先の情報: {}"},
     {"targetIdentifier", "Show identifier: {}", "ID を表示: {}"},
     {"targetStates", "Other details: {}", "その他の詳細: {}"},

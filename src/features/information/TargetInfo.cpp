@@ -664,8 +664,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                 result.details.push_back({"target.armor", std::to_string(armor), false,
                                           std::clamp(static_cast<float>(armor) / 20.f, 0.f, 1.f), DetailKind::Armor});
             result.details.push_back({"target.age", entity->isBaby() ? "target.baby" : "target.adult", true, {}});
-            // The synced flag only: the client has no breeding timers (L-33).
-            if (entity->getStatusFlag(ActorFlags::Inlove)) result.details.push_back({"target.inLove", "target.yes", true, {}});
+            // The synced flag only: the client has no breeding timers (L-33). Shown for adult animals, the mobs
+            // feeding can put in love; "no" says only that it is not in love now (a cooldown looks the same).
+            if (entity->hasType(ActorType::Animal) && !entity->isBaby())
+                result.details.push_back({"target.inLove", entity->getStatusFlag(ActorFlags::Inlove) ? "target.yes" : "target.no", true, {}});
             if (entity->isTame()) {
                 std::string owner = "target.yes";
                 bool ownerIsKey = true;
