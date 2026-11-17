@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Chunk and scaled coordinates below the minimap (GitHub #80, 2026-11-17)
+
+Builds `358f5780` (DLL
+`cd39b43479b5e61793cb5f97b3a0a57ce1d68833e5a17c3477dd274bd5d311a3`) and
+`7c75b5c7` (`12c845aec1ffc2858ba29c5cb37904b8572f103cc1af9a1fa6067dd2222e70e3`),
+1.26.60.05 Dev instance, the maintainer. Passed: the two switches add the
+lines below the map, in the Info HUD's order (coordinates, scaled, chunk,
+biome); the scaled coordinates carry the destination's block (grass block in
+the Nether, netherrack in the Overworld), centered on the text at 50 %, 100 %
+and 200 % (it sat high on `f091d061`); the chunk line reads "チャンク 0, 1
+(8, 3)"; the Info HUD's line reads "チャンク座標"; the minimap's Contents
+popover lists the five switches and changes the lines at once. Not checked:
+the other languages, servers.
+
 ## Night work merged (L-33, L-339, L-352, L-356, L-357, 2026-11-17)
 
 Builds of `night/combined` (main with the four night branches) on the
