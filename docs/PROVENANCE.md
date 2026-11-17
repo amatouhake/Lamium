@@ -62,38 +62,6 @@ A future subsystem may incorporate compatible upstream source only after the
 maintainer chooses that path and the exact source/license scope is reviewed.
 Until then, candidate upstream implementations remain reference-only research.
 
-### Chosen, nothing incorporated yet
-
-- [BarelyEnoughItems (BEI)](https://github.com/MiracleForest/BarelyEnoughItems)
-  (README and COPYING.LESSER: LGPL-3.0-or-later, © LeviMC; used under
-  LGPL-3.0). Decided by the maintainer 2026-11-14: its source may be opened
-  for item rendering, starting from upstream commit `2d4facf`. Recipe work
-  is excluded (maintainer 2026-11-17): both projects build recipe features,
-  so Lamium's ([L-359](backlog/L-359.md)) are written from the game and the
-  SDK headers without opening BEI's source, whatever the license allows.
-  It was reference-only before; on 2026-11-13 it was named as a
-  comparison for Lamium's item-icon rendering (L-91), and its source was
-  read only in the maintainer's external research. Lamium's ItemIcon, up to
-  and including Lamium commit `34c55be2`, predates BEI's first release
-  (2026-11-01) and was written independently from the game's own slot
-  rendering. Code written after reading BEI source counts as derived: the
-  change that first brings any in adds a row to the table above (upstream
-  commit, files used, what was changed), keeps BEI's copyright notice in the
-  affected files and adds BEI to THIRD_PARTY_NOTICES.md. Before using a
-  file, check its own copyright/SPDX lines and BEI's docs for code BEI took
-  from elsewhere; the repository-level license does not cover that.
-  History: the L-91 glint trial (`8e00a4b1`, 2026-11-14) brought in, from
-  BEI's `src/ui/gfx/Painter.cpp` (no copyright or SPDX header in the file),
-  the three ways its draw context differs around the same two
-  `renderGuiItemNew` calls (an off-screen white quad flushed with
-  `ui_flush`, zOrder 0, the foil at the icon's alpha). None fixed the
-  shield glint, and the next commit removed that code; nothing from BEI is
-  in the tree. BEI's AGENTS.md says its authors read Lamium for ideas, and
-  its item-icon path (`7ed0718`, 2026-10-20) has the same structure as
-  Lamium's earlier `ItemIcon` (L-119, L-142); the enchanted shield,
-  enchanted leather armor, recovery compass and not-yet-loaded heads fail
-  the same way in BEI (maintainer, 2026-11-14).
-
 ## 3. Reference only
 
 Behavior, UX and feasibility research. Do not copy, translate or closely
@@ -121,6 +89,32 @@ Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION-LOG.md).
 - LeviSchematic (LGPL-3.0). The maintainer decided on 2026-10-03 not to
   incorporate it; Lamium's schematic subsystem (BACKLOG L-93) is written
   independently.
+- [BarelyEnoughItems (BEI)](https://github.com/MiracleForest/BarelyEnoughItems)
+  (README and COPYING.LESSER: LGPL-3.0-or-later, © LeviMC). Reference-only
+  since 2026-11-17 (maintainer): both projects build item and recipe
+  features, so Lamium's item rendering and recipe work
+  ([L-359](backlog/L-359.md)) are written from the game and the SDK headers
+  without opening BEI's source, whatever the license allows. Opening it
+  again takes a new maintainer decision recorded here.
+  Before that: reference-only until 2026-11-14 (named on 2026-11-13 as a
+  comparison for Lamium's item-icon rendering, L-91; its source read only
+  in the maintainer's external research). From 2026-11-14 to 2026-11-17
+  the maintainer allowed its source to be opened, from upstream commit
+  `2d4facf`, for item rendering and at first also recipe work. The only
+  code that came from it was the L-91 glint trial (`8e00a4b1`, 2026-11-14):
+  from BEI's `src/ui/gfx/Painter.cpp` (no copyright or SPDX header in the
+  file), the three ways its draw context differs around the same two
+  `renderGuiItemNew` calls (an off-screen white quad flushed with
+  `ui_flush`, zOrder 0, the foil at the icon's alpha). None fixed the
+  shield glint, and the next commit (`5e248bde`) removed that code; nothing
+  from BEI is in the tree. Lamium's ItemIcon, up to and including Lamium
+  commit `34c55be2`, predates BEI's first release (2026-11-01) and was
+  written independently from the game's own slot rendering. BEI's
+  AGENTS.md says its authors read Lamium for ideas, and its item-icon path
+  (`7ed0718`, 2026-10-20) has the same structure as Lamium's earlier
+  `ItemIcon` (L-119, L-142); the enchanted shield, enchanted leather armor,
+  recovery compass and not-yet-loaded heads fail the same way in BEI
+  (maintainer, 2026-11-14).
 - Current LeviLamina client mods (licenses as checked 2026-09-28): Stipuleroo (GPL-3.0), LHolo (GPL-3.0),
   CoralFans and BedrockServerClientInterface (AGPL-3.0), Playback (AGPL-3.0),
   FastMiner (no license found), CoralMap and Dear-OreUI (CC0-1.0; permissive,
