@@ -74,6 +74,13 @@ is in the L-item.
 - Every station that can do a recipe is named, as icons.
 
 ### The plan
+- Its words name what the player sees. The list the player fills is
+  "wanted" (the panel's title, the window's title and its first tab; the
+  recipe window's button is "add to wanted"); what comes out is "to gather"
+  and "to make". On a row, "gather" moves an item that would be made to the
+  gather list and "make" moves it back. A recipe is marked "in use", and
+  another offers "use this". "Back to any" undoes a picked group member.
+  "Plan" stays the feature's name in settings only.
 - There is one plan: a list of targets in, what to gather and what to make
   out. Several named plans are not built until one proves too few.
 - Targets come from features (a schematic's materials still to place) and
@@ -85,10 +92,16 @@ is in the L-item.
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
-- What counts as held is a setting. Carried items and the shulker boxes
-  among them are in by default; one count serves the plan and the schematic
-  Materials tab. The setting gets a row once a second source (ender chest,
-  placed chests) exists. Enchantment Order keeps counting the inventory.
+- What is held is the sum over the places that are counted: carried items
+  always, the shulker boxes among them by default; later the ender chest
+  and containers the player marks as stores, each counted as last seen
+  open. One count serves the plan and the schematic Materials tab;
+  Enchantment Order keeps counting the inventory. The later places are
+  built after the first version, but their place on screen is fixed now:
+  a "counted places" tab in the plan's window with a switch per place; a
+  "have" column whose hover tells where the items are; a star on a number
+  that includes a last-seen count; and, while a container is open, a
+  "make this a store" control by the plan's short list.
 - Kept between sessions: only what the player enters (recipe choices, group
   picks, "stop here" marks), in one file for all worlds; an entry the
   current world's recipes lack is ignored, not deleted.
