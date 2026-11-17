@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe index filled from the game (L-359, 2026-11-17)
+
+Build `dbf7f73c` with `--recipe_trace=y` (DLL
+`0079bd39514f32387973de015d530d952ec08b655b48a9c4293a8ba9b416fd1a`),
+1.26.60.05 Dev instance, the maintainer: joined a local world for about
+fifteen seconds. No crash. From `lamium.log`:
+- 4755 recipes and 12 tags read in 8 steps of 600, the longest 1.11 ms;
+  1299 items, 37 groups, 4233 recipes kept; index built and recipes chosen
+  in 5.93 ms; each sample plan in 0.14 to 0.18 ms.
+- The counts and the 30 loops with their bases equal a replay of the earlier
+  dump through `RecipeIndex.h` on the host, as do the sample plans replayed
+  there. All 13 sample plans read against the game's recipes by the agent:
+  64 stone bricks from 64 cobblestone (34 with 20 bricks and 10 stone
+  held); an iron block and 5 nuggets from 10 smelted; 16 torches; a chest,
+  sticks and planks against held planks of two kinds; piston; netherite
+  pickaxe; 8 emerald blocks; cake; beacon; smooth stone and oak stairs;
+  observer and dispenser. All as expected.
+- Seen and not wanted: a bed plans as black wool (items go by name);
+  redstone, diamond, emerald, lapis, coal and quartz are traced to their
+  ores to smelt, though mining the ore gives the item.
+
+Not checked: a server (the table was the same there), the shipped build
+(nothing calls the reader yet), a world whose table changes while it is read.
+
 ## The recipe table the client holds (L-116, 2026-11-17)
 
 Build `d3170cdc` with `--recipe_trace=y` (DLL
