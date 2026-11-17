@@ -143,6 +143,8 @@ inline Index build(Source const& source) {
             };
             if (part.group) for (Item id : index.groups[part.id].members) add(id); else add(part.id);
         }
+        // What the player carries first: raw iron before the ores.
+        std::stable_partition(inputs.members.begin(), inputs.members.end(), [&](Item id) { return !index.items[id].ends_with("_ore"); });
         index.groups.push_back(std::move(inputs));
         all[best].uses = {Part{true, static_cast<int>(index.groups.size()) - 1, 1}};
         for (size_t i : list) dropped[i] = i != best;
@@ -304,10 +306,21 @@ struct Request {
     std::set<Item> stops;
 };
 using Result = rawMaterials::Result;
+// A held member that covers part of a group's need.
+struct Cover {
+    int group = 0;
+    Item member = 0;
+    Count count = 0;
+    bool operator==(Cover const&) const = default;
+};
+struct Planned {
+    Result result;
+    std::vector<Cover> covered;
+};
 // Item ids in the result past Index::items are groups (Index::groupItem). A
 // group is covered by what is left of its members after their own needs, so
 // held planks are not counted for planks and for "any planks" both.
-inline Result plan(Index const& index, Choice const& choice, Request const& request) {
+inline Planned planned(Index const& index, Choice const& choice, Request const& request) {
     namespace raw = rawMaterials;
     Item const count = static_cast<Item>(index.items.size());
     raw::Recipes recipes;
@@ -332,16 +345,21 @@ inline Result plan(Index const& index, Choice const& choice, Request const& requ
     for (auto [item, held] : request.held) left[item] += held;
     for (auto [item, used] : first.fromHeld) left[item] -= std::min(left[item], used);
     auto held = request.held;
+    Planned out;
     for (auto [item, need] : first.raw) {
         if (item < count || item - count >= static_cast<Item>(index.groups.size())) continue;
         Count take = 0;
         for (Item member : index.groups[item - count].members) {
             Count const use = std::min(left[member], need - take);
+            if (!use) continue;
             left[member] -= use;
             take += use;
+            out.covered.push_back({item - count, member, use});
         }
         if (take) held.emplace_back(item, take);
     }
-    return held.size() == request.held.size() ? first : raw::reduce(request.wanted, recipes, held);
+    out.result = held.size() == request.held.size() ? std::move(first) : raw::reduce(request.wanted, recipes, held);
+    return out;
 }
+inline Result plan(Index const& index, Choice const& choice, Request const& request) { return planned(index, choice, request).result; }
 }
