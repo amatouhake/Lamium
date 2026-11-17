@@ -2,6 +2,7 @@
 #ifdef LAMIUM_ITEM_SCREEN_PROBE
 #include "app/TraceLog.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "ui/SettingsScreen.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/service/TargetedBedrock.h"
@@ -16,70 +17,88 @@
 #include <algorithm>
 #include <chrono>
 #include <format>
+#include <map>
 #include <string>
 #include <vector>
+#include <windows.h>
+#pragma comment(lib, "user32.lib") // GetAsyncKeyState, probe builds only
 
 namespace lamium::researchTrace::itemScreen {
 namespace {
 ll::event::ListenerPtr renderListener;
-TraceBudget screenBudget, treeBudget, costBudget, failBudget;
-std::string lastSeen;
+TraceBudget screenBudget, treeBudget, costBudget, failBudget, openBudget;
+// One report per screen name, once its layout has stood still for half a second.
+std::map<std::string, std::string> reported;
+std::string settling;
+int stillFrames = 0;
+bool f8Down = false;
 int frames = 0;
 double spent = 0, worst = 0;
-// The controls under `control`, three levels down: name, box, whether shown.
+// Shown controls with a size, down to `depth` levels: name and box. Names with "recipe", "search" or "tab" in them are kept at any depth.
 void describe(UIControl const& control, int depth, std::string& out, int& count) {
-    if (count >= 80 || depth > 3) return;
+    if (count >= 260 || depth > 14) return;
     auto const& children = *control.mChildren;
-    if (children.size() > 400) return; // not a child list
+    if (children.size() > 600) return; // not a child list
     for (auto const& child : children) {
-        if (!child || count >= 80) continue;
+        if (!child || count >= 260) continue;
         std::string const& name = *child->mName;
-        if (name.size() > 120) continue;
+        if (name.size() > 120 || !static_cast<int>(child->mVisible)) continue;
         glm::vec2 const at = *child->mCachedPosition, size = *child->mSize;
-        ++count;
-        out += std::format(" {}{}[{:.0f},{:.0f} {:.0f}x{:.0f}{}]", std::string(static_cast<size_t>(depth), '>'), name, at.x, at.y, size.x, size.y,
-            static_cast<int>(child->mVisible) ? "" : " hidden");
+        bool const named = name.find("recipe") != std::string::npos || name.find("search") != std::string::npos || name.find("tab") != std::string::npos;
+        if ((depth <= 7 && size.x > 0 && size.y > 0) || named) {
+            ++count;
+            out += std::format(" {}:{}[{:.0f},{:.0f} {:.0f}x{:.0f}]", depth, name, at.x, at.y, size.x, size.y);
+        }
         describe(*child, depth + 1, out, count);
     }
 }
 void draw(ll::event::UIRenderEvent& event) {
     auto& view = event.screenView();
-    if (!view.mHasFocus || !view.mController || !view.mController->_isContainerScreen()) { lastSeen.clear(); return; }
+    // Other views (the HUD under the screen) come through here too: they are not this probe's business.
+    if (!view.mHasFocus || !view.mController || !view.mController->_isContainerScreen()) return;
     auto* tree = view.mVisualTree.get();
     if (!tree) return;
-    static std::string const windowName = "root_panel";
-    auto window = tree->getControlByName(windowName, true);
     glm::vec2 const screen = *view.mSize;
     std::string const name = view.getScreenName();
-    if (!window) {
-        if (lastSeen != name + " none") {
-            lastSeen = name + " none";
-            traceLog(screenBudget, 80, "L-359 item screen '{}': no root_panel; view {:.0f}x{:.0f}", name, screen.x, screen.y);
+    // F8 opens Lamium's screen over this one (the settings key is not dispatched while a game screen is open).
+    bool const down = (GetAsyncKeyState(VK_F8) & 0x8000) != 0;
+    if (down && !f8Down)
+        if (auto client = ll::service::getClientInstance()) {
+            traceLog(openBudget, 20, "L-359 opening Lamium's screen over '{}'", name);
+            ui::open(*client);
         }
-        return;
-    }
-    if (window->mCachedPositionDirty) return;
-    glm::vec2 const at = *window->mCachedPosition, size = *window->mSize;
-    if (size.x <= 0 || size.y <= 0 || size.x >= screen.x - 1) return; // not laid out yet
-    std::string const seen = std::format("{} {:.0f},{:.0f} {:.0f}x{:.0f} in {:.0f}x{:.0f}", name, at.x, at.y, size.x, size.y, screen.x, screen.y);
-    if (seen != lastSeen) {
-        lastSeen = seen;
-        traceLog(screenBudget, 80, "L-359 item screen '{}': root_panel at {:.0f},{:.0f} size {:.0f}x{:.0f}; view {:.0f}x{:.0f}; room left {:.0f}, right {:.0f}, "
-                                   "below {:.0f}",
-            name, at.x, at.y, size.x, size.y, screen.x, screen.y, at.x, screen.x - (at.x + size.x), screen.y - (at.y + size.y));
-        // From the top of the tree, so a recipe book beside the window shows up with its box.
+    f8Down = down;
+    static std::string const windowName = "root_panel";
+    auto window = tree->getControlByName(windowName, true);
+    glm::vec2 at{}, size{};
+    if (window && !window->mCachedPositionDirty) { at = *window->mCachedPosition; size = *window->mSize; }
+    bool const laidOut = window && size.x > 0 && size.y > 0 && size.x < screen.x - 1;
+    std::string const now = std::format("{} {:.0f},{:.0f} {:.0f}x{:.0f}", name, at.x, at.y, size.x, size.y);
+    if (now != settling) { settling = now; stillFrames = 0; }
+    else if (++stillFrames == 30 && reported[name] != now) {
+        reported[name] = now;
+        traceLog(screenBudget, 60, "L-359 item screen '{}': root_panel {} at {:.0f},{:.0f} size {:.0f}x{:.0f}; view {:.0f}x{:.0f}", name,
+            window ? "found" : "absent", at.x, at.y, size.x, size.y, screen.x, screen.y);
+        // From the top of the tree: every control that is shown.
         std::shared_ptr<UIControl> top = window;
-        for (int up = 0; up < 12; ++up) {
+        if (!top) {
+            static std::string const anyName = "variables_button_mappings_and_controls";
+            top = tree->getControlByName(anyName, true);
+        }
+        for (int up = 0; top && up < 16; ++up) {
             auto parent = top->mParent.lock();
             if (!parent) break;
             top = parent;
         }
-        std::string controls;
-        int count = 0;
-        describe(*top, 1, controls, count);
-        traceLog(treeBudget, 80, "L-359 item screen '{}' controls ({}, at most 80, from '{}'):{}", name, count, *top->mName,
-            controls.size() > 6000 ? controls.substr(0, 6000) + " ..." : controls);
+        if (top) {
+            std::string controls;
+            int count = 0;
+            describe(*top, 1, controls, count);
+            for (size_t from = 0, part = 1; from < controls.size() && part <= 6; from += 3500, ++part)
+                traceLog(treeBudget, 120, "L-359 item screen '{}' controls, part {} ({} in all):{}", name, part, count, controls.substr(from, 3500));
+        } else traceLog(treeBudget, 120, "L-359 item screen '{}': no control to start from", name);
     }
+    if (!laidOut) return;
     // 300 icons in the room right of the window, 18 units apart: the cost of a full item list.
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
@@ -124,7 +143,7 @@ void stop() {
         ll::event::EventBus::getInstance().removeListener(renderListener);
         renderListener.reset();
     }
-    lastSeen.clear();
+    reported.clear();
 }
 }
 #else
