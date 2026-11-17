@@ -163,7 +163,7 @@ Waypoints also show in the world, with both maps off.
 | All trader levels | Every trade level in the trade screen | — | On |
 | Repeated trades | Shift + right click repeats a trade | — | On |
 | Search English names too | Recipe and creative search by English name or ID | — | On |
-| Inventory sorting | Sort the inventory or an open container | `R` | On |
+| Inventory sorting | Sort the inventory or an open container | — | On |
 | Inventory transfer *Exp.* | Move items with the wheel, modified clicks and drags | — | Off |
 | Tool Switch | Pick the right tool when mining; optionally prefer Fortune or Silk Touch | — | Off |
 | Weapon Switch | Pick the strongest weapon when attacking | — | Off |

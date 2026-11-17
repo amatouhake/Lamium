@@ -25,7 +25,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"settings", "settings", Behavior::Press, 0x4C},
     {"zoom", "zoom", Behavior::Hold, 0x43, Matching::Modifier},
     {"nightvision", "nightVision", Behavior::Toggle},
-    {"sort", "sorting", Behavior::Press, 0x52},
+    {"sort", "sorting", Behavior::Press}, // no key since L-359: R is the recipe key on an item screen
     {"chunkborders", "chunkBorders", Behavior::Toggle},
     {"hideoffhand", "hideOffhand", Behavior::Toggle},
     {"hitboxes", "hitboxes", Behavior::Toggle},

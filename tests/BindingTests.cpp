@@ -33,7 +33,7 @@ void bindingTests() {
         && actions[static_cast<size_t>(Action::Zoom)].defaultKey == 0x43
         && actions[static_cast<size_t>(Action::NightVision)].defaultKey == 0
         && actions[static_cast<size_t>(Action::DebugView)].defaultKey == 0x72
-        && actions[static_cast<size_t>(Action::Sort)].defaultKey == 0x52,
+        && actions[static_cast<size_t>(Action::Sort)].defaultKey == 0,
         "single-key defaults follow the chosen keymap");
     check(defaultChord(Action::Settings) == Chord{Token{Device::Key, 0x4C}}
         && defaultChord(Action::NightVision).empty()

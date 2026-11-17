@@ -32,7 +32,7 @@ settings. Bindings are edited under each feature or in the Hotkeys view.
 - The Settings action cannot be cleared, so the UI cannot be locked out.
 - New actions start unbound.
 - Default keys: `L` settings, `M` world map, `Tab` player list (hold), `C`
-  zoom (hold), `R` sort (in a container), `F` offhand swap, `F3` Debug View,
+  zoom (hold), `F` offhand swap, `F3` Debug View,
   `F3+B` Hitboxes, `F3+G` Chunk Borders and right click for Fake Offhand's
   use, and `Alt+Wheel` to move the schematic target away/closer.
 - `C` replaces Minecraft's "copy coordinates" while Lamium is installed
@@ -372,7 +372,8 @@ English names, on a game version Lamium was checked on.
 
 ### Inventory sorting
 
-Merges and sorts inventory or container slots (`R` in a container). Sorting
+Merges and sorts inventory or container slots (in a container; its key is
+unbound by default). Sorting
 uses ordinary game operations, waits for matching responses between
 operations and revalidates the affected region before continuing. Rejection,
 missing responses or a changed screen stops the plan.

@@ -254,8 +254,8 @@ void settingsRowsTests() {
         });
         check(sort != rows.end() && sort + 1 != rows.end()
             && (sort + 1)->action == input::Action::Sort
-            && input::defaultChord(input::Action::Sort) == input::Chord{{input::Device::Key, 0x52}},
-            "Sort now keeps R as the first child of the sorting switch");
+            && input::defaultChord(input::Action::Sort).empty(),
+            "Sort is the first child of the sorting switch, without a key of its own");
         auto breaking = std::find_if(rows.begin(), rows.end(), [](auto const& row) {
             return row.option && row.option->id == "interaction.breaking";
         });
