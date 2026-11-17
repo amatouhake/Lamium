@@ -39,6 +39,12 @@ option("world_probe")
     set_description("Read-only probes for L-249, L-33 and L-30: log the chunk tick range, nearby actors' age and breeding components and the dragon's part boxes every 5 s")
 option_end()
 
+option("recipe_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-116: write the recipe table the client holds to logs/recipe-table-*.txt (read-only)")
+option_end()
+
 option("slime_trace")
     set_default(false)
     set_showmenu(true)
@@ -282,6 +288,7 @@ target("Lamium")
     if has_config("sneak_trace") then add_defines("LAMIUM_SNEAK_TRACE") end
     if has_config("book_paste_trace") then add_defines("LAMIUM_BOOK_PASTE_TRACE") end
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
+    if has_config("recipe_trace") then add_defines("LAMIUM_RECIPE_TRACE") end
     if has_config("slime_trace") then add_defines("LAMIUM_SLIME_TRACE") end
     if has_config("spawn_area_trace") then add_defines("LAMIUM_SPAWN_AREA_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end

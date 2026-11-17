@@ -188,6 +188,12 @@ no inventory entry: it reads `LevelChunk::mSpawningAreas` and the storages of
 client and on a local world's built-in server, and logs the counts. The
 members' places are not checked by a rebuild; counts too large to be real are
 left out. Its result is in VALIDATION-LOG (2026-11-13).
+`recipe_trace` (L-116, 2026-11-17) has no hook either: it reads
+`Recipes::mRecipes` and `mFurnaceResults` from the client level, each
+recipe's ingredients and results through `ItemDescriptor::mImpl`'s virtual
+functions, and writes the table to `logs/recipe-table-*.txt`. It loads
+nothing; sizes too large to be real stop the walk. Potion mixes are not
+read: the SDK gives `PotionBrewing::Mix` no layout.
 
 ## Inventory
 
