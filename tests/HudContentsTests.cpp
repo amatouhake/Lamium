@@ -1,4 +1,5 @@
 #include "ui/HudContents.h"
+#include "ui/HudLook.h"
 #include "features/information/InfoLines.h"
 #include "settings/Options.h"
 void check(bool, char const*);
@@ -69,4 +70,21 @@ void hudContentsTests() {
     check(scrolled.rows[0].toggle.x + scrolled.rows[0].toggle.w <= scrolled.track->x - 2,
           "a row's switch stops short of the scroll bar");
     check(layoutContents(below, 15, 0, false, 0, 640, 360, 18, 9).rows.empty(), "an empty list has no rows");
+
+    // L-357: the Look popover.
+    auto look = layoutLook(below, 15, true, true, true, 640, 360, 18, 9);
+    check(look.items.size() == 3 && look.box.y == 117 && look.box.h == 3 * 12 + 6 && look.box.w == lookWidth,
+          "Look opens under its toolbar with background, shadow and the text choice");
+    auto const& bg = look.items[0];
+    check(bg.kind == LookRow::Background && bg.stepper.x + bg.stepper.w == 100 + lookWidth - 4 && bg.less.w == lookCell
+              && bg.more.x + bg.more.w == bg.stepper.x + bg.stepper.w && bg.labelAt.x + bg.labelWidth < bg.stepper.x,
+          "the background row: its name, then a stepper whose ends step the choice");
+    check(look.items[1].kind == LookRow::Shadow && look.items[1].toggle.w == lookWidth - 4 && look.items[2].kind == LookRow::StandardText,
+          "the switch rows flip anywhere along them, as Contents rows");
+    auto noText = layoutLook(below, 15, true, true, false, 640, 360, 18, 9);
+    check(noText.items.size() == 2 && noText.items.back().kind == LookRow::Shadow, "an element without the text choice has no such row");
+    check(layoutLook(below, 15, false, false, false, 640, 360, 18, 9).items.empty(), "nothing to choose, no rows");
+    Spot bottom{100, 340, false};
+    auto up = layoutLook(bottom, 15, true, true, true, 640, 360, 18, 9);
+    check(up.box.y + up.box.h <= 340 - 2 + .01f, "near the bottom, Look opens above its toolbar");
 }

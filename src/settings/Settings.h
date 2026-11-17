@@ -188,7 +188,6 @@ struct Settings {
         bool biome = false;
         bool compass = false;
         // L-337: the minimap's text, percent, on top of its HUD scale (50-200, 5 % steps).
-        float textSize = 100;
         bool debugHide = true; // Hide while Debug View is shown.
         bool radar = true;
         bool radarPlayers = true, radarHostile = true, radarPassive = true, radarItems = false;
@@ -478,7 +477,6 @@ struct Settings {
         map.waypointMeasure = std::clamp(map.waypointMeasure, 0, 1);
         map.caveView = std::clamp(map.caveView, 0, 2);
         map.netherView = std::clamp(map.netherView, 0, 3);
-        map.textSize = ui::clampHudScale(std::round(ui::clampHudScale(map.textSize) / ui::hudScaleStep) * ui::hudScaleStep);
         for (auto* shownOn : {&map.marksShownOn, &map.radarShownOn, &map.slimeShownOn}) *shownOn = map::clampShownOn(*shownOn);
         if (!std::isfinite(map.waypointDistance)) map.waypointDistance = 0;
         map.waypointDistance = std::clamp(std::round(map.waypointDistance / 100) * 100, 0.f, 10000.f);

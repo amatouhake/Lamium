@@ -1,5 +1,6 @@
 #include "ui/HudEditor.h"
 #include "ui/HudContents.h"
+#include "ui/HudLook.h"
 #include "ui/HudEditorLayout.h"
 #include "ui/ScrollDrag.h"
 #include "ui/ListViewWidgets.h"
@@ -23,9 +24,10 @@ namespace lamium::ui::hud_editor {
 namespace {
 // Everything clickable is laid out while drawing and hit-tested on the next
 // press, so drawing and hit testing can never disagree.
-enum class Command { Done, Reset, ResetAll, OpenSnap, OpenContents, Snap, ScaleDown, ScaleUp, ScaleEdit, Background, Shadow, ContentSwitch, LineUp, LineDown, Shown };
+enum class Command { Done, Reset, ResetAll, OpenSnap, OpenContents, OpenLook, Snap, ScaleDown, ScaleUp, ScaleEdit, Background, Shadow,
+                     StandardText, ContentSwitch, LineUp, LineDown, Shown };
 struct Control { Box box; Command command; int arg = 0; std::string line; };
-enum class Popover { None, Snap, Contents };
+enum class Popover { None, Snap, Contents, Look };
 // `under` is what lay under the press; `cycle` when the pressed element was
 // already selected, so a click without a move goes to the one below it.
 struct Drag {
@@ -100,17 +102,6 @@ HudElement& layoutElement(Settings::Hud& hud, HudElementId id) {
 settings::Option const* lookOption(HudElementId id, std::string_view field) {
     return settings::find("hud." + std::string(hudElementKey(id)) + "." + std::string(field));
 }
-std::string optionText(settings::Option const& option, Settings const& value) {
-    auto parts = splitLabel(translated(option.label));
-    auto current = option.read(value);
-    try {
-        if (auto choice = std::get_if<settings::ChoiceValue>(&current))
-            return parts.name + ": " + translated(choice->label);
-        if (auto number = std::get_if<float>(&current)) return std::vformat(parts.value, std::make_format_args(*number));
-        if (auto flag = std::get_if<bool>(&current)) return parts.name + ": " + translated(*flag ? "on" : "off");
-    } catch (std::exception const&) {}
-    return parts.name;
-}
 bool save(Settings const& value) { return Runtime::instance().save(value); }
 void moveTo(HudElementId id, float x, float y, Box const& box) {
     auto value = Runtime::instance().preferences();
@@ -136,25 +127,24 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     auto id = *selected;
     auto background = lookOption(id, "background");
     auto shadow = lookOption(id, "shadow");
+    auto standardText = hudTextChoice(id) ? lookOption(id, "standardText") : nullptr;
     auto const& current = settings::hudElement(value, id);
     // Measure first so the spot can be computed from the real width.
     std::string snapText = translated("hudEditor.snap");
     std::string scaleText = std::format("{}%", static_cast<int>(current.scale));
-    std::string backgroundText = background ? optionText(*background, value) : std::string{};
-    std::string shadowText = shadow ? optionText(*shadow, value) : std::string{};
+    std::string lookText = translated("hudEditor.look");
     // What the element shows (L-336); its size follows on the next frame,
     // since every frame measures the HUD from the saved settings.
     auto contents = contentsOf(id, value.information.lineOrder);
     std::string contentsText = translated("hudEditor.contents");
     std::string resetText = translated("resetShort");
     float snapW = textWidth(context, snapText) + 17, scaleW = textWidth(context, "150%") + 24;
-    float backgroundW = background ? textWidth(context, backgroundText) + 8 : 0;
-    float shadowW = shadow ? textWidth(context, shadowText) + 8 : 0;
+    float lookW = background || shadow || standardText ? textWidth(context, lookText) + 17 : 0;
     float contentsW = contents.entries.empty() ? 0 : textWidth(context, contentsText) + 17;
     // The element's reset stands apart from the look controls, behind a divider.
     float resetW = textWidth(context, resetText) + 8;
-    float width = pad + snapW + (scaleW ? gap + scaleW : 0) + (backgroundW ? gap + backgroundW : 0)
-        + (shadowW ? gap + shadowW : 0) + (contentsW ? gap + contentsW : 0) + gap + 1 + gap + resetW + pad;
+    float width = pad + snapW + (scaleW ? gap + scaleW : 0) + (lookW ? gap + lookW : 0)
+        + (contentsW ? gap + contentsW : 0) + gap + 1 + gap + resetW + pad;
     if (!spot || element.overlaps(Box{spot->x, spot->y, width, barHeight}))
         spot = toolbarSpot(element, width, barHeight, screenW, screenH);
     Box bar{spot->x, spot->y, width, barHeight};
@@ -182,14 +172,9 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         if (editingScale) scaleField = Point{scaleBox.x + 11, y};
         x += scaleW + gap;
     }
-    if (background) {
-        auto box = add(backgroundW, Command::Background);
-        button(context, box, backgroundText, hovering(box, px, py));
-    }
-    if (shadow) {
-        // The same "name: value" button as the background (L-321).
-        auto box = add(shadowW, Command::Shadow);
-        button(context, box, shadowText, hovering(box, px, py));
+    if (lookW) {
+        auto box = add(lookW, Command::OpenLook);
+        button(context, box, lookText, hovering(box, px, py), popover == Popover::Look, true);
     }
     if (contentsW) {
         auto box = add(contentsW, Command::OpenContents);
@@ -220,6 +205,27 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
             controls.push_back({cell, Command::Snap, i});
         }
         label(context, at.x + 6, at.y + 6 + 3 * cellH + 2 * cellGap + 3, w - 12, readout, palette::faint);
+    } else if (popover == Popover::Look && lookW) {
+        auto layout = layoutLook(*spot, barHeight, background != nullptr, shadow != nullptr, standardText != nullptr,
+                                 screenW, screenH, switchWidth, switchHeight);
+        popoverBox = layout.box;
+        std::vector<LookPopoverRow> rows;
+        for (auto const& item : layout.items) {
+            settings::Option const* option = item.kind == LookRow::Background ? background
+                : item.kind == LookRow::Shadow ? shadow : standardText;
+            LookPopoverRow row{item, splitLabel(translated(option->label)).name, {}, false};
+            auto now = option->read(value);
+            if (auto choice = std::get_if<settings::ChoiceValue>(&now)) row.value = translated(choice->label);
+            if (auto flag = std::get_if<bool>(&now)) row.on = *flag;
+            if (item.kind == LookRow::Background) {
+                // Presses are tested from the last control back: the end cells go after the whole box.
+                controls.push_back({item.stepper, Command::Background, 1});
+                controls.push_back({item.less, Command::Background, -1});
+                controls.push_back({item.more, Command::Background, 1});
+            } else controls.push_back({item.toggle, item.kind == LookRow::Shadow ? Command::Shadow : Command::StandardText});
+            rows.push_back(std::move(row));
+        }
+        drawLookPopover(context, layout.box, rows, px, py);
     } else if (popover == Popover::Contents && !contents.entries.empty()) {
         auto const& entries = contents.entries;
         if (scroll_drag::holding(&contentsFirst)) scroll_drag::follow(py);
@@ -320,6 +326,7 @@ void run(Control const& control) {
     resetArmed = false;
     if (control.command == Command::OpenSnap) { popover = popover == Popover::Snap ? Popover::None : Popover::Snap; return; }
     if (control.command == Command::OpenContents) { popover = popover == Popover::Contents ? Popover::None : Popover::Contents; return; }
+    if (control.command == Command::OpenLook) { popover = popover == Popover::Look ? Popover::None : Popover::Look; return; }
     // The switch on the selected name tag: the element's own switch (L-334).
     if (control.command == Command::Shown) {
         if (auto* field = settings::hudShownField(value, static_cast<HudElementId>(control.arg))) {
@@ -348,10 +355,13 @@ void run(Control const& control) {
             for (int i = 0, times = screen::heldShift() ? 10 : 1; i < times; ++i) option->adjust(value, control.command == Command::ScaleUp ? 1 : -1);
         break;
     case Command::Background:
-        if (auto option = lookOption(id, "background")) option->adjust(value, 1);
+        if (auto option = lookOption(id, "background")) option->adjust(value, control.arg < 0 ? -1 : 1);
         break;
     case Command::Shadow:
         if (auto option = lookOption(id, "shadow")) option->adjust(value, 1);
+        break;
+    case Command::StandardText:
+        if (auto option = lookOption(id, "standardText")) option->adjust(value, 1);
         break;
     case Command::ContentSwitch:
         if (auto option = settings::find(control.line)) option->adjust(value, 1);

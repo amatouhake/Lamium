@@ -2,6 +2,7 @@
 // Pieces the list-and-detail views (Shapes, Waypoints, Schematics) and the
 // prompts draw with, on top of Widgets.h.
 #include "ui/HudContents.h"
+#include "ui/HudLook.h"
 #include "ui/ListColumns.h"
 #include "ui/NumberInput.h"
 #include "ui/RowSelection.h"
@@ -177,4 +178,9 @@ void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l,
 void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::ContentsLayout const& layout,
                          std::vector<std::string> const& names, std::vector<bool> const& on, float pointerX, float pointerY,
                          bool scrollHot);
+// The HUD layout editor's Look popover (L-357), laid out by hud_editor::layoutLook: the panel, then the
+// background as its name and a `< value >` stepper, and the switches as Contents rows are drawn.
+struct LookPopoverRow { hud_editor::LookItem item; std::string name, value; bool on = false; };
+void drawLookPopover(MinecraftUIRenderContext& context, hud_editor::Box box, std::vector<LookPopoverRow> const& rows,
+                     float pointerX, float pointerY);
 }

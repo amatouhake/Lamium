@@ -1012,7 +1012,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         if (settings.coordinates)
             lines.push_back(std::format("{}, {}, {}", blockFloor(view->x), blockFloor(view->y), blockFloor(view->z)));
         if (settings.biome && !view->biome.empty()) lines.push_back(view->biome);
-        float textScale = minimapTextScale(element.scale, settings.textSize);
+        float textScale = ui::hudTextZoom(ui::HudElementId::Minimap, element);
         std::vector<float> lineWidths;
         float linesWidth = 0;
         for (auto const& line : lines) {

@@ -613,10 +613,19 @@ void shownOn() {
           "the world map's switches say why they cannot be pressed");
 }
 void minimapText() {
-    // L-337: the text size multiplies the element's HUD scale.
-    check(near(minimapTextScale(100, 100), 1) && near(minimapTextScale(150, 50), .75) && near(minimapTextScale(200, 200), 4),
-          "the minimap's text scale is HUD scale times text size");
-    check(near(minimapTextScale(10, 1000), .5 * 2), "both factors are clamped to 50-200 %");
+    // L-357: the text at the standard size, or following the element's scale.
+    using lamium::ui::HudElementId;
+    auto element = lamium::ui::defaultHudElement(HudElementId::Minimap);
+    element.scale = 150;
+    check(element.standardText && near(lamium::ui::hudTextZoom(HudElementId::Minimap, element), 1),
+          "a new minimap's text keeps the standard size when scaled");
+    element.standardText = false;
+    check(near(lamium::ui::hudTextZoom(HudElementId::Minimap, element), 1.5), "switched off, the text follows the scale");
+    auto info = lamium::ui::defaultHudElement(HudElementId::Info);
+    info.scale = 150; info.standardText = true;
+    check(!lamium::ui::defaultHudElement(HudElementId::Info).standardText
+              && near(lamium::ui::hudTextZoom(HudElementId::Info, info), 1.5),
+          "a text-only element keeps its scale as its text");
     auto plain = minimapLayout(100, 1, false, 0, 0);
     check(near(plain.contentW, 100) && near(plain.contentH, 100) && near(plain.margin, 0), "a bare map is its side");
     auto base = minimapLayout(100, 1, true, 2, 50), big = minimapLayout(100, 2, true, 2, 50);

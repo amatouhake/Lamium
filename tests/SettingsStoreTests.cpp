@@ -717,15 +717,26 @@ void settingsStoreTests() {
         check(readSettings(path).hud.minimap.scale == 180, "a converted file does not convert again");
     }
     {
-        // L-337: the minimap's text size.
-        check(decodeSettings(R"({"map":{"minimap":true}})").map.textSize == 100, "a file without map.textSize reads 100 %");
-        check(decodeSettings(R"({"map":{"textSize":500}})").map.textSize == 200
-                  && decodeSettings(R"({"map":{"textSize":72}})").map.textSize == 70,
-              "a saved text size is clamped to 50-200 % and rounded to the 5 % step");
+        // L-357: standard-size text. A saved element without the key follows its scale; a new file starts standard.
+        check(decodeSettings(R"({"hud":{"target":{"scale":150}}})").hud.target.standardText == false
+                  && decodeSettings(R"({"hud":{"target":{"scale":150}}})").hud.minimap.standardText,
+              "a saved element keeps following its scale; one not saved starts at the standard size");
+        check(decodeSettings("{}").hud.durability.standardText && !decodeSettings("{}").hud.info.standardText,
+              "a new install starts the elements with graphics at the standard size, text-only ones not");
         Settings sized;
-        sized.map.textSize = 65;
+        sized.hud.minimap.standardText = false;
+        sized.hud.playerList.standardText = true;
         writeSettings(path, sized);
-        check(readSettings(path).map.textSize == 65, "the minimap text size survives a save");
+        auto back = readSettings(path);
+        check(!back.hud.minimap.standardText && back.hud.playerList.standardText, "the text choice survives a save");
+        // A minimap saved with "Text size": the nearer choice (150 % x 65 % = 0.975, nearer the standard 1).
+        check(decodeSettings(R"({"map":{"textSize":65},"hud":{"minimap":{"scale":150}}})").hud.minimap.standardText
+                  && !decodeSettings(R"({"map":{"textSize":100},"hud":{"minimap":{"scale":150}}})").hud.minimap.standardText
+                  && !decodeSettings(R"({"map":{"textSize":65},"hud":{"minimap":{"scale":150,"standardText":false}}})").hud.minimap.standardText,
+              "an old text size converts once to the nearer text choice");
+        Settings converted = decodeSettings(R"({"map":{"textSize":65},"hud":{"minimap":{"scale":150}}})");
+        writeSettings(path, converted);
+        check(readSettings(path).hud.minimap.standardText, "a converted text choice survives a save and does not convert again");
     }
     {
         Settings target;

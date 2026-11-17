@@ -381,8 +381,11 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     }
 
     float z = elementZoom(element);
+    // Its rows are text with small marks beside them: they all keep the standard size or follow the
+    // scale (L-357); only the card's padding follows the scale always.
+    float const tz = ui::hudTextZoom(ui::HudElementId::Schematic, element);
     bool card = element.background == ui::ElementBackground::Card;
-    float pad = card ? 4 * z : 0, rowH = 10 * z, small = .8f * z, icon = 9 * z, gap = 6 * z;
+    float pad = card ? 4 * z : 0, rowH = 10 * tz, small = .8f * tz, icon = 9 * tz, gap = 6 * tz;
     auto widthOf = [&](std::string_view value, float scale) { return ui::textWidthScaled(context, value, scale); };
     bool verify = prefs.hudVerify || !selected;
 
@@ -408,25 +411,25 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
         {ui::palette::mismatch, ui::translated("schematic.hud.wrong") + " " + std::to_string(tally.wrong + tally.extra)},
         {ui::palette::warning, ui::translated("schematic.kind.state") + " " + std::to_string(tally.state)}}};
     std::string nearText = nearest ? ui::translated("schematic.hud.nearest", *nearest) : std::string{};
-    float mark = 7 * z;
+    float mark = 7 * tz;
     float columnA = std::max(widthOf(cells[0].text, small), widthOf(cells[2].text, small)) + mark;
     float columnB = std::max(widthOf(cells[1].text, small), widthOf(cells[3].text, small)) + mark;
     std::string leftHead = ui::translated("schematic.column.left"), haveHead = ui::translated("schematic.column.carried");
     float numW = std::max(widthOf(leftHead, small), widthOf(haveHead, small)), nameW = widthOf(ui::translated("schematic.hud.left"), small);
     for (auto const& m : materials) {
         numW = std::max({numW, widthOf(std::to_string(m.left), small), widthOf(std::to_string(m.have), small)});
-        nameW = std::max(nameW, icon + 2 * z + widthOf(m.name, small));
+        nameW = std::max(nameW, icon + 2 * tz + widthOf(m.name, small));
     }
-    float contentW = widthOf(name, z) + (layers.empty() ? 0 : gap + widthOf(layers, small));
+    float contentW = widthOf(name, tz) + (layers.empty() ? 0 : gap + widthOf(layers, small));
     if (ready && verify) contentW = std::max({contentW, columnA + gap + columnB, widthOf(nearText, small)});
     if (!materials.empty()) contentW = std::max(contentW, nameW + 2 * (numW + gap));
     if (!ready && selected) contentW = std::max(contentW, widthOf(ui::translated("schematic.counting"), small));
-    contentW = std::clamp(contentW, 80 * z, 170 * z);
+    contentW = std::clamp(contentW, 80 * tz, 170 * tz);
 
-    float h = rowH + 4 * z;
+    float h = rowH + 4 * tz;
     if (!ready && selected) h += rowH;
-    if (ready && verify) h += 2 * rowH + (nearest ? rowH : 0) + 2 * z;
-    if (!materials.empty()) h += 2 * z + rowH * (1 + static_cast<float>(materials.size()));
+    if (ready && verify) h += 2 * rowH + (nearest ? rowH : 0) + 2 * tz;
+    if (!materials.empty()) h += 2 * tz + rowH * (1 + static_cast<float>(materials.size()));
     float boxW = contentW + 2 * pad, boxH = h + 2 * pad;
     auto at = ui::placeElement(width, height, boxW, boxH, element);
     if (measureOnly) return ui::hud_editor::Box{at.x, at.y, boxW, boxH};
@@ -437,12 +440,12 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     };
     auto rule = [&](float ry) { ui::fill(context, x, ry, contentW, 1, ui::palette::white, .14f); };
 
-    float layersW = layers.empty() ? 0 : widthOf(layers, small) + 2 * z;
-    text(x, y, contentW - layersW - (layers.empty() ? 0 : gap), name, ui::palette::text, z);
-    if (!layers.empty()) text(x + contentW - layersW, y + 1 * z, layersW, layers, ui::palette::dim, small, ui::Align::Right);
-    y += rowH + 1 * z;
+    float layersW = layers.empty() ? 0 : widthOf(layers, small) + 2 * tz;
+    text(x, y, contentW - layersW - (layers.empty() ? 0 : gap), name, ui::palette::text, tz);
+    if (!layers.empty()) text(x + contentW - layersW, y + 1 * tz, layersW, layers, ui::palette::dim, small, ui::Align::Right);
+    y += rowH + 1 * tz;
     rule(y);
-    y += 3 * z; // room under the rule before the counts
+    y += 3 * tz; // room under the rule before the counts
     if (!ready && selected) {
         text(x, y, contentW, ui::translated("schematic.counting"), ui::palette::dim, small);
         y += rowH;
@@ -451,7 +454,7 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
         float secondX = x + columnA + gap;
         for (int i = 0; i < 4; ++i) {
             float cx = i % 2 ? secondX : x, cy = y + (i / 2) * rowH;
-            ui::fill(context, cx, cy + 2.5f * z, 4.5f * z, 4.5f * z, cells[static_cast<size_t>(i)].mark);
+            ui::fill(context, cx, cy + 2.5f * tz, 4.5f * tz, 4.5f * tz, cells[static_cast<size_t>(i)].mark);
             text(cx + mark, cy, (i % 2 ? columnB : columnA), cells[static_cast<size_t>(i)].text, ui::palette::text, small);
         }
         y += 2 * rowH;
@@ -459,11 +462,11 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
             text(x, y, contentW, nearText, ui::palette::dim, small);
             y += rowH;
         }
-        y += 2 * z;
+        y += 2 * tz;
     }
     if (!materials.empty()) {
         rule(y);
-        y += 2 * z;
+        y += 2 * tz;
         float haveX = x + contentW - numW, leftX = haveX - gap - numW;
         text(x, y, leftX - x, ui::translated("schematic.hud.left"), ui::palette::dim, small);
         text(leftX, y, numW, leftHead, ui::palette::dim, small, ui::Align::Right);
@@ -473,7 +476,7 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
         for (auto const& m : materials) {
             if (auto const* stack = schematic::items::iconStack(m.icon); stack && renderer)
                 inspection::render::drawItemIcon(context, {stack, std::round(x), std::round(y), icon / 16}, 17);
-            text(x + icon + 2 * z, y, leftX - x - icon - 4 * z, m.name, ui::palette::text, small);
+            text(x + icon + 2 * tz, y, leftX - x - icon - 4 * tz, m.name, ui::palette::text, small);
             text(leftX, y, numW, std::to_string(m.left), ui::palette::text, small, ui::Align::Right);
             text(haveX, y, numW, m.unknown ? "-" : std::to_string(m.have),
                 m.unknown ? ui::palette::dim : m.have >= m.left ? ui::palette::accent : ui::palette::warning, small, ui::Align::Right);
@@ -561,7 +564,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     // 2026-10-12: rows differ more once ammo counts join them).
     bool band = element.background == ui::ElementBackground::Line;
     float padX = card ? 5 * z : band ? ui::lineSidePadding * z : 0, padY = card ? 3 * z : 0;
-    float icon = 16 * z, gap = 4 * z, barW = 32 * z, barH = 3 * z, rowH = 18 * z;
+    // The text keeps the standard size or follows the scale (L-357); a row holds its icon or its text.
+    float const tz = ui::hudTextZoom(ui::HudElementId::Durability, element);
+    float icon = 16 * z, gap = 4 * z, barW = 32 * z, barH = 3 * z, rowH = std::max(18 * z, 11 * tz);
     std::vector<std::string> texts;
     std::vector<float> rowWidths;
     // Ammo sits right of the durability: more space before it, the item icon
@@ -586,10 +591,10 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     for (auto const& row : rows) {
         texts.push_back(dur::showsNumber(look, row) ? dur::numberText(look, row) : std::string{});
         float w = icon + (dur::showsBar(look) ? gap + barW : 0);
-        if (!texts.back().empty()) w += gap + ui::textWidthScaled(context, texts.back(), z);
+        if (!texts.back().empty()) w += gap + ui::textWidthScaled(context, texts.back(), tz);
         auto kinds = ammoOf(row);
         for (size_t k = 0; k < kinds.size(); ++k)
-            w += (k ? ammoKindGap : ammoGap) + icon + gap + ui::textWidthScaled(context, std::to_string(ammo.of(kinds[k])), z);
+            w += (k ? ammoKindGap : ammoGap) + icon + gap + ui::textWidthScaled(context, std::to_string(ammo.of(kinds[k])), tz);
         rowWidths.push_back(w + 2 * z);
         contentW = std::max(contentW, w + 2 * z);
     }
@@ -613,7 +618,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         // Whole GUI units, as in inventory slots: layered icons (dyed
         // leather) show seams between their layers at fractional positions.
         if (renderer) {
-            icons.push_back({&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + z), z,
+            icons.push_back({&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + (rowH - icon) / 2), z,
                              frames[static_cast<size_t>(row.slot)], 1.f, true});
         }
         float cx = x + icon;
@@ -627,9 +632,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
             cx += barW;
         }
         if (!texts[i].empty()) {
-            ui::labelScaled(context, cx + gap, y + (rowH - 10 * z) / 2, contentW, texts[i], z, ui::palette::text,
+            ui::labelScaled(context, cx + gap, y + (rowH - 10 * tz) / 2, contentW, texts[i], tz, ui::palette::text,
                             ui::Align::Left, element.shadow);
-            cx += gap + ui::textWidthScaled(context, texts[i], z);
+            cx += gap + ui::textWidthScaled(context, texts[i], tz);
         }
         auto kinds = ammoOf(row);
         for (size_t k = 0; k < kinds.size(); ++k) {
@@ -637,15 +642,15 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
             cx += k ? ammoKindGap : ammoGap;
             if (renderer) {
                 auto const& stack = ammoIcon(kind);
-                if (!stack.isNull()) icons.push_back({&stack, std::round(cx), std::round(y + z), z});
+                if (!stack.isNull()) icons.push_back({&stack, std::round(cx), std::round(y + (rowH - icon) / 2), z});
             }
             cx += icon + gap;
             int total = ammo.of(kind);
             auto text = std::to_string(total);
             // None left: the warning color, as a full used-slot counter.
-            ui::labelScaled(context, cx, y + (rowH - 10 * z) / 2, contentW, text, z,
+            ui::labelScaled(context, cx, y + (rowH - 10 * tz) / 2, contentW, text, tz,
                             total == 0 ? ui::palette::warning : ui::palette::text, ui::Align::Left, element.shadow);
-            cx += ui::textWidthScaled(context, text, z);
+            cx += ui::textWidthScaled(context, text, tz);
         }
     }
     context.flushText(0, std::nullopt);
@@ -701,7 +706,8 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
     bool card = element.background == ui::ElementBackground::Card;
     bool band = element.background == ui::ElementBackground::Line;
     float padX = card ? 5 * z : band ? ui::lineSidePadding * z : 0, padY = card ? 3 * z : 0;
-    float icon = 16 * z, gap = 4 * z, timeGap = 8 * z, rowH = 18 * z;
+    float const tz = ui::hudTextZoom(ui::HudElementId::StatusEffects, element); // L-357
+    float icon = 16 * z, gap = 4 * z, timeGap = 8 * z, rowH = std::max(18 * z, 11 * tz);
     // Names on: name and level, then the time in its own right-aligned column.
     // Names off: the level before the time.
     // Columns laid out by width, no separators: icon, name (left), level and
@@ -713,9 +719,9 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
         names.push_back(settings.effectsNames ? effect.name : std::string{});
         levels.push_back(fx::levelText(effect.amplifier));
         times.push_back(fx::infinite(effect) ? ui::translated("effectsInfinite") : fx::timeText(effect.ticks));
-        nameW = std::max(nameW, ui::textWidthScaled(context, names.back(), z));
-        levelW = std::max(levelW, ui::textWidthScaled(context, levels.back(), z));
-        timeW = std::max(timeW, ui::textWidthScaled(context, times.back(), z));
+        nameW = std::max(nameW, ui::textWidthScaled(context, names.back(), tz));
+        levelW = std::max(levelW, ui::textWidthScaled(context, levels.back(), tz));
+        timeW = std::max(timeW, ui::textWidthScaled(context, times.back(), tz));
     }
     float nameX = icon + gap, levelX = nameX + (nameW > 0 ? nameW + levelGap : 0);
     float timeX = levelX + (levelW > 0 ? levelW + timeGap : 0);
@@ -726,21 +732,21 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
     float x = placement.x + padX;
     for (size_t i = 0; i < effects.size(); ++i) {
         auto const& effect = effects[i];
-        float y = placement.y + padY + i * rowH, textY = y + (rowH - 10 * z) / 2;
+        float y = placement.y + padY + i * rowH, textY = y + (rowH - 10 * tz) / 2;
         if (band) {
             auto line = ui::lineBox(x, y, rowW, rowH, z);
             ui::fill(context, line.x, line.y, line.width, line.height, ui::palette::panel, cardOpacity);
         }
         if (auto path = fx::iconPath(effect.id); !path.empty())
-            ui::imageUv(context, path, {std::round(x), std::round(y + z), icon, icon}, 0, 0, 1, 1);
+            ui::imageUv(context, path, {std::round(x), std::round(y + (rowH - icon) / 2), icon, icon}, 0, 0, 1, 1);
         if (!names[i].empty())
-            ui::labelScaled(context, x + nameX, textY, nameW, names[i], z,
+            ui::labelScaled(context, x + nameX, textY, nameW, names[i], tz,
                             effect.harmful ? ui::palette::vanilla::heart : ui::palette::text, ui::Align::Left, element.shadow);
         if (!levels[i].empty())
-            ui::labelScaled(context, x + levelX, textY, levelW, levels[i], z, ui::palette::text, ui::Align::Right,
+            ui::labelScaled(context, x + levelX, textY, levelW, levels[i], tz, ui::palette::text, ui::Align::Right,
                             element.shadow);
         bool warn = settings.effectsWarning && fx::runningOut(effect);
-        ui::labelScaled(context, x + timeX, textY, timeW, times[i], z, warn ? ui::palette::warning : ui::palette::text,
+        ui::labelScaled(context, x + timeX, textY, timeW, times[i], tz, warn ? ui::palette::warning : ui::palette::text,
                         ui::Align::Right, element.shadow);
     }
     context.flushText(0, std::nullopt);
@@ -749,6 +755,9 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
 std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& context, float width, float height,
     ui::HudElement const& element, TargetInfo const& target, Settings::Information const& settings, bool animate) {
     float z = elementZoom(element);
+    // The text keeps the standard size or follows the scale (L-357); meters and icons follow the scale.
+    float const tz = ui::hudTextZoom(ui::HudElementId::Target, element);
+    float lineH = 11 * tz, rowH = std::max(12 * tz, 10 * z + 2 * tz);
     bool card = element.background == ui::ElementBackground::Card;
     float padX = card ? 5 * z : 0, padY = card ? 4 * z : 0;
     CardOptions options;
@@ -758,14 +767,13 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     options.health = settings.targetHealth == 1 ? Meter::Bar : settings.targetHealth == 2 ? Meter::Number : Meter::Hearts;
     options.armor = settings.targetArmor == 1 ? Meter::Bar : settings.targetArmor == 2 ? Meter::Number : Meter::Icons;
     options.growth = settings.targetGrowth == 1 ? Meter::Number : Meter::Bar;
-    int capacity = std::max(0, static_cast<int>((height - 40) / (12 * z)));
+    int capacity = std::max(0, static_cast<int>((height - 40) / rowH));
     auto rows = cardRows(target, options, static_cast<size_t>(capacity));
     auto stack = settings.targetIcon ? iconStack(target) : ItemStack();
     bool icon = !stack.isNull();
     bool texture = settings.targetIcon && !icon && target.icon.kind == IconKind::Texture
         && !target.icon.name.empty();
     float iconSize = icon || texture ? 16 * z : 0, iconGap = icon || texture ? 5 * z : 0;
-    float lineH = 11 * z, rowH = 12 * z;
     // A Hearts row grows by one heart line per further ten hearts.
     auto heightOf = [&](CardRow const& row) {
         return row.meter == Meter::Hearts ? rowH + (std::max(heartLines(row.maximum), 1) - 1) * 8 * z : rowH;
@@ -774,7 +782,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         return (std::min(heartSlots(row.maximum), heartsPerLine) * 8 + 1 + 4) * z;
     };
     // A row's item icon (the schematic's expected block), as tall as the text.
-    float rowIcon = 10 * z;
+    float rowIcon = 10 * tz;
     auto rowStack = [](CardRow const& row) {
         return row.icon.empty() ? nullptr : schematic::items::iconStack(row.icon);
     };
@@ -785,18 +793,18 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     for (auto const& row : rows) {
         labels.push_back(row.labelIsKey ? ui::translated(row.label) : row.label);
         values.push_back(row.valueIsKey ? ui::translated(row.value) : row.value);
-        labelW = std::max(labelW, ui::textWidthScaled(context, labels.back(), z));
-        float valueW = ui::textWidthScaled(context, values.back(), z);
+        labelW = std::max(labelW, ui::textWidthScaled(context, labels.back(), tz));
+        float valueW = ui::textWidthScaled(context, values.back(), tz);
         if (row.progress && row.meter == Meter::Bar) valueW += (barUnits + 4) * z;
         if (row.progress && row.meter == Meter::Hearts) valueW += heartsWidth(row);
         if (row.progress && row.meter == Meter::Icons) valueW += (10 * 8 + 1 + 4) * z;
         if (rowStack(row)) valueW += rowIcon + 2 * z;
         if (!row.before.empty())
-            valueW += ui::textWidthScaled(context, row.before, z) + (ui::changeArrowWidth + 6) * z;
+            valueW += ui::textWidthScaled(context, row.before, tz) + (ui::changeArrowWidth + 3) * tz + 3 * z;
         valuesW = std::max(valuesW, valueW);
     }
-    float nameW = ui::textWidthScaled(context, target.name, z);
-    float idW = settings.targetIdentifier ? ui::textWidthScaled(context, target.identifier, z) : 0;
+    float nameW = ui::textWidthScaled(context, target.name, tz);
+    float idW = settings.targetIdentifier ? ui::textWidthScaled(context, target.identifier, tz) : 0;
     float headerTextH = (settings.targetIdentifier ? 2 : 1) * lineH;
     float headerH = std::max(iconSize, headerTextH);
     float headerW = iconSize + iconGap + std::max(nameW, idW);
@@ -810,7 +818,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     // text, instead of the card cutting the rest away (L-300).
     std::vector<std::vector<std::string>> valueLines(rows.size());
     float wrapWidth = std::max(40.f * z, contentW - labelW - 6 * z + 2);
-    auto measureText = [&](std::string_view part) { return ui::textWidthScaled(context, part, z); };
+    auto measureText = [&](std::string_view part) { return ui::textWidthScaled(context, part, tz); };
     for (size_t i = 0; i < rows.size(); ++i) {
         bool plain = !rows[i].progress && !rowStack(rows[i]) && rows[i].before.empty();
         if (plain && measureText(values[i]) > wrapWidth)
@@ -867,19 +875,20 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     float textX = left + iconSize + iconGap, textW = contentW - iconSize - iconGap;
     float textTop = top + (headerH - headerTextH) / 2;
     // A ghost's name in the ghost's light blue: a block to place, not one that is there.
-    ui::labelScaled(context, textX, textTop, textW + 2, target.name, z,
+    ui::labelScaled(context, textX, textTop, textW + 2, target.name, tz,
                     target.ghost ? ui::palette::info : ui::palette::text, ui::Align::Left, element.shadow);
     if (settings.targetIdentifier)
-        ui::labelScaled(context, textX, textTop + lineH, textW + 2, target.identifier, z, ui::palette::faint,
+        ui::labelScaled(context, textX, textTop + lineH, textW + 2, target.identifier, tz, ui::palette::faint,
                         ui::Align::Left, element.shadow);
     float y = top + headerH + 3 * z;
     float valueX = left + labelW + 6 * z;
     for (size_t i = 0; i < rows.size(); y += rowHeight(i), ++i) {
         auto const& row = rows[i];
-        ui::labelScaled(context, left, y, labelW + 2, labels[i], z, ui::palette::faint, ui::Align::Left, element.shadow);
+        ui::labelScaled(context, left, y, labelW + 2, labels[i], tz, ui::palette::faint, ui::Align::Left, element.shadow);
         float x = valueX;
         if (row.progress && row.meter == Meter::Bar) {
-            float barY = y + 3 * z, barH = 5 * z, barW = barUnits * z;
+            // Centered on the text line (as y + 3 at 100 %).
+            float barH = 5 * z, barY = y + 5 * tz - barH / 2 + .5f * z, barW = barUnits * z;
             ui::fill(context, x, barY, barW, barH, ui::palette::white, .12f);
             bool health = row.label == "target.health";
             bool armor = row.label == "target.armor";
@@ -887,10 +896,10 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
                      health ? ui::palette::vanilla::heart : armor ? ui::palette::vanilla::armor : ui::palette::accent);
             x += barW + 4 * z;
         } else if (row.progress && row.meter == Meter::Hearts) {
-            heartRows(context, x, y + 1 * z, z, healthHearts(row.current, row.maximum));
+            heartRows(context, x, y + 5 * tz - 4 * z, z, healthHearts(row.current, row.maximum));
             x += heartsWidth(row);
         } else if (row.progress && row.meter == Meter::Icons) {
-            armorRow(context, x, y + 1 * z, z, hearts(*row.progress));
+            armorRow(context, x, y + 5 * tz - 4 * z, z, hearts(*row.progress));
             x += (10 * 8 + 1 + 4) * z;
         }
         if (auto const* stack = rowStack(row)) {
@@ -902,17 +911,17 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         auto color = row.tone == Tone::Wrong ? ui::palette::mismatch : row.tone == Tone::State ? ui::palette::warning
             : row.tone == Tone::Missing ? ui::palette::info : row.tone == Tone::Ignored ? ui::palette::dim : ui::palette::text;
         if (!row.before.empty()) {
-            float w = ui::textWidthScaled(context, row.before, z);
-            ui::labelScaled(context, x, y, w + 2, row.before, z, color, ui::Align::Left, element.shadow);
+            float w = ui::textWidthScaled(context, row.before, tz);
+            ui::labelScaled(context, x, y, w + 2, row.before, tz, color, ui::Align::Left, element.shadow);
             x += w + 3 * z;
-            ui::changeArrow(context, x, y + (1.5f + ui::shapeTextDrop()) * z, z, color);
-            x += (ui::changeArrowWidth + 3) * z;
+            ui::changeArrow(context, x, y + (1.5f + ui::shapeTextDrop()) * tz, tz, color);
+            x += (ui::changeArrowWidth + 3) * tz;
         }
-        ui::labelScaled(context, x, y, left + contentW - x + 2, valueLines[i][0], z, color, ui::Align::Left,
+        ui::labelScaled(context, x, y, left + contentW - x + 2, valueLines[i][0], tz, color, ui::Align::Left,
                         element.shadow);
         for (size_t line = 1; line < valueLines[i].size(); ++line)
             ui::labelScaled(context, valueX, y + static_cast<float>(line) * lineH, left + contentW - valueX + 2,
-                            valueLines[i][line], z, color, ui::Align::Left, element.shadow);
+                            valueLines[i][line], tz, color, ui::Align::Left, element.shadow);
     }
     context.flushText(0, std::nullopt);
     return finalBox;
@@ -1447,10 +1456,12 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
     auto rows = list::collect(context.mClient);
     if (rows.empty()) return std::nullopt;
     float zoom = elementZoom(element);
-    float rowHeight = std::max(rowUnits, 10.f) * zoom, icon = 8 * zoom, gap = 3 * zoom, columnGap = 10 * zoom;
+    // Names and numbers keep the standard size or follow the scale (L-357); faces and marks follow the scale.
+    float const tz = ui::hudTextZoom(ui::HudElementId::PlayerList, element);
+    float rowHeight = std::max(rowUnits, 10.f) * std::max(zoom, tz), icon = 8 * zoom, gap = 3 * zoom, columnGap = 10 * zoom;
     bool card = element.background == ui::ElementBackground::Card, band = element.background == ui::ElementBackground::Line;
     float padX = card ? 5 * zoom : band ? ui::lineSidePadding * zoom : 0, padY = card ? 3 * zoom : 0;
-    auto measure = [&](std::string const& text) { return ui::labelWidth(context, text, zoom); };
+    auto measure = [&](std::string const& text) { return ui::labelWidth(context, text, tz); };
     float platformWidth = 0, distanceWidth = 0, longestName = 0;
     for (auto const& row : rows) {
         longestName = std::max(longestName, measure(row.name));
@@ -1470,10 +1481,10 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
     };
     // Names stop at about 16 characters; 10 when even one column does not fit.
     float available = std::max(0.f, width - 8 - 2 * padX);
-    float nameWidth = std::min(longestName, 96 * zoom);
+    float nameWidth = std::min(longestName, 96 * tz);
     auto grid = list::plan(static_cast<int>(rows.size()), columnWidth(nameWidth), columnGap, available);
     if (grid.columns == 1 && columnWidth(nameWidth) > available) {
-        nameWidth = std::min(longestName, 60 * zoom);
+        nameWidth = std::min(longestName, 60 * tz);
         grid = list::plan(static_cast<int>(rows.size()), columnWidth(nameWidth), columnGap, available);
     }
     float colWidth = columnWidth(nameWidth);
@@ -1487,14 +1498,14 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
     if (measureOnly) return ui::hud_editor::Box{at.x, at.y, boxWidth, boxHeight};
     if (card) ui::card(context, at.x, at.y, boxWidth, boxHeight, cardOpacity);
     float left = at.x + padX, top = at.y + padY;
-    auto textTop = [&](float y) { return ui::lineTextTop(y, rowHeight, zoom, band); };
+    auto textTop = [&](float y) { return ui::lineTextTop(y, rowHeight, tz, band); };
     auto bandAt = [&](float x, float y, float w) {
         if (!band) return;
         auto line = ui::lineBox(x, y, w, rowHeight, zoom);
         ui::fill(context, line.x, line.y, line.width, line.height, ui::palette::panel, cardOpacity);
     };
     bandAt(left, top, measure(header));
-    ui::labelScaled(context, left, textTop(top), measure(header) + 2, header, zoom, ui::palette::dim, ui::Align::Left,
+    ui::labelScaled(context, left, textTop(top), measure(header) + 2, header, tz, ui::palette::dim, ui::Align::Left,
                     element.shadow);
     static char const* const dimensionBlocks[] = {"minecraft:grass_block", "minecraft:netherrack", "minecraft:end_stone"};
     for (int i = 0; i < grid.shown; ++i) {
@@ -1502,12 +1513,12 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
         float x = left + (i / grid.perColumn) * (colWidth + columnGap);
         float y = top + (1 + i % grid.perColumn) * rowHeight;
         // Icons share the text's line (8 units tall), not the row's middle.
-        float iconTop = textTop(y);
+        float iconTop = textTop(y) + (8 * tz - icon) / 2;
         bandAt(x, y, colWidth);
         if (row.face >= 0) map::faces::draw(context, row.face, x + icon / 2, iconTop + icon / 2, icon, 1);
         x += icon + gap;
         auto name = list::fitName(row.name, nameWidth, measure);
-        ui::labelScaled(context, x, textTop(y), nameWidth + 2, name, zoom, row.self ? ui::palette::accent : ui::palette::text,
+        ui::labelScaled(context, x, textTop(y), nameWidth + 2, name, tz, row.self ? ui::palette::accent : ui::palette::text,
                         ui::Align::Left, element.shadow);
         x += nameWidth + gap;
         if (auto mark = list::permissionTexture(row.permission, settings.playerListMembers); !mark.empty())
@@ -1515,7 +1526,7 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
         x += icon;
         if (settings.playerListPlatform) {
             x += gap;
-            ui::labelScaled(context, x, textTop(y), platformWidth + 2, std::string(list::platformText(row.platform)), zoom,
+            ui::labelScaled(context, x, textTop(y), platformWidth + 2, std::string(list::platformText(row.platform)), tz,
                             row.platform < 0 ? ui::palette::faint : ui::palette::dim, ui::Align::Left, element.shadow);
             x += platformWidth;
         }
@@ -1537,7 +1548,7 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
             // Players in another dimension or unknown ones: no distance, a dash only in yours.
             std::string text = row.distance ? list::distanceText(*row.distance) : row.dimensionCurrent ? std::string("-") : std::string();
             if (!text.empty())
-                ui::labelScaled(context, x, textTop(y), distanceWidth, text, zoom,
+                ui::labelScaled(context, x, textTop(y), distanceWidth, text, tz,
                                 row.distance ? ui::palette::dim : ui::palette::faint, ui::Align::Right, element.shadow);
         }
     }
@@ -1545,7 +1556,7 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
         auto rest = ui::translated("playerList.more", static_cast<int>(rows.size()) - grid.shown);
         float y = top + (1 + firstColumnRows) * rowHeight;
         bandAt(left, y, measure(rest));
-        ui::labelScaled(context, left, textTop(y), measure(rest) + 2, rest, zoom, ui::palette::dim, ui::Align::Left,
+        ui::labelScaled(context, left, textTop(y), measure(rest) + 2, rest, tz, ui::palette::dim, ui::Align::Left,
                         element.shadow);
     }
     context.flushText(0, std::nullopt);
