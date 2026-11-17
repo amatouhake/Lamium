@@ -1240,19 +1240,8 @@ schematic::items::Shown rawShown(RawGather const& line) {
 }
 // A station by the name of its block's item, so it reads as the game names it.
 std::string stationName(recipes::Station station) {
-    char const* item = "";
-    switch (station) {
-    case recipes::Station::Crafting: item = "minecraft:crafting_table"; break;
-    case recipes::Station::Stonecutter: item = "minecraft:stonecutter_block"; break;
-    case recipes::Station::Furnace: item = "minecraft:furnace"; break;
-    case recipes::Station::BlastFurnace: item = "minecraft:blast_furnace"; break;
-    case recipes::Station::Smoker: item = "minecraft:smoker"; break;
-    case recipes::Station::Campfire: item = "minecraft:campfire"; break;
-    case recipes::Station::SoulCampfire: item = "minecraft:soul_campfire"; break;
-    case recipes::Station::Smithing: item = "minecraft:smithing_table"; break;
-    case recipes::Station::Other: return "-";
-    }
-    return schematic::items::shown(item).name;
+    auto const item = recipes::stationItem(station);
+    return item.empty() ? std::string("-") : schematic::items::shown(std::string(item)).name;
 }
 // The raw view's rows from the materials left and what is carried. The plan
 // is worked out again only when one of them, or the recipe table, changed.

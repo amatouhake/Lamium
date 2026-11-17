@@ -3,9 +3,10 @@
 Looking recipes up in the game and planning what to gather, inside Lamium:
 an item list beside the inventory, a recipe view, and a plan that traces
 what features and the player want down to what must be gathered. The design
-is being agreed with mockups ([L-359](backlog/L-359.md)); there are no
-settings rows or keys yet. The one built screen part is the schematic
-Materials tab's raw view ([SCHEMATIC.md](SCHEMATIC.md)).
+is agreed with mockups and built in steps ([L-359](backlog/L-359.md));
+there are no settings rows or keys yet. Built: the schematic Materials
+tab's raw view ([SCHEMATIC.md](SCHEMATIC.md)) and, only in builds made with
+`xmake f --item_list=y`, the item list and the recipe view opened from it.
 
 ## Behavior
 
@@ -129,6 +130,11 @@ is in the L-item.
   recipes a call, keeping no game pointer. `RecipeService.cpp` runs it each
   time a screen asks and publishes the index until the world is left, behind
   the RecipeTable capability ([GAME-UPDATES.md](GAME-UPDATES.md)).
+- `ItemListLayout.h`, `RecipeView.h` (pure): where the list and the view
+  sit, an item's recipes by station, a recipe's slots. `ItemList.cpp` draws
+  the list after a game screen and keeps input from the game (the listeners
+  in `input/CustomInput.cpp` ask it); `RecipeViewDraw.cpp` draws the view
+  and does not know its host.
 - `src/ui/SchematicsView.cpp` (`refreshRaw`): the Materials tab's raw view.
 - `recipe_trace` (`src/features/research/RecipeTrace.cpp`) writes the table
   to a file and logs sample plans.
@@ -138,6 +144,11 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
+- The recipe view so far: opened from the list only; no "place", no
+  changing the recipe in use, no favourite or "add to wanted" buttons; a
+  group's members show in the table's order, not held ones first; what a
+  recipe leaves besides its product is not shown; recipes that use their
+  own product are left out with the index.
 - Items go by name: variants told apart by an aux value are one item (a bed
   plans as its first color).
 - Potion mixes are not read (the SDK gives them no layout); trades and

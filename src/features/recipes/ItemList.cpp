@@ -3,6 +3,9 @@
 #include "app/Runtime.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "features/recipes/ItemListLayout.h"
+#include "features/recipes/RecipeService.h"
+#include "features/recipes/RecipeView.h"
+#include "features/recipes/RecipeViewDraw.h"
 #include "features/schematic/SchematicItems.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -21,6 +24,7 @@
 #include "mc/world/item/registry/ItemRegistryRef.h"
 #include "mc/world/level/Level.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include <atomic>
 #include <chrono>
@@ -37,14 +41,24 @@ ll::event::ListenerPtr renderListener, exitListener;
 std::vector<std::string> names;
 std::atomic<bool> forget{false};
 int page = 0;
-std::atomic<int> turned{0}; // wheel turns waiting for the next frame
-// What the last frame showed, for the mouse listener: the band and the pointer.
+std::string viewScreen; // the screen the recipe view was opened on; it closes with it
+// What the last frame showed, for the input listeners, and what they kept from the game for the next frame.
+// The listeners run off the client thread: they only decide whether the game gets the event, and queue it.
 std::mutex shownLock;
 struct Shown {
     std::chrono::steady_clock::time_point at{};
-    ItemListLayout layout;
+    ItemListLayout list;
+    RecipeViewLayout view;
+    bool viewOpen = false;
     float pointerX = -1, pointerY = -1;
 } shown;
+struct Queued {
+    std::vector<bool> clicks; // true: the left button
+    int listTurns = 0, viewTurns = 0;
+    bool back = false, close = false;
+} queued;
+// Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
+bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono::milliseconds(300); }
 void readNames(LocalPlayer& player) {
     names.clear();
     auto const* registry = player.getLevel().getItemRegistry().getCreativeItemRegistry().get();
@@ -81,57 +95,107 @@ bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size) {
 }
 void draw(ll::event::UIRenderEvent& event) {
     using namespace lamium::ui;
-    auto& view = event.screenView();
-    if (!view.mHasFocus || !view.mController || !view.mController->_isContainerScreen()) return;
+    auto& screenView = event.screenView();
+    std::string const screenName = screenView.mHasFocus && screenView.mController && screenView.mController->_isContainerScreen()
+        ? screenView.getScreenName() : std::string();
+    if (view::isOpen() && screenName != viewScreen) view::close();
     // The anvil's sides belong to the enchantment order's panels.
-    if (view.getScreenName() == "anvil_screen") return;
+    if (screenName.empty() || screenName == "anvil_screen") return;
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return;
-    if (forget.exchange(false)) names.clear();
+    if (forget.exchange(false)) names.clear(), view::close();
     if (names.empty()) readNames(*player);
     glm::vec2 at{}, size{};
-    if (names.empty() || !windowOf(view, at, size)) return;
-    glm::vec2 const screen = *view.mSize;
-    auto const layout = itemListRight(screen.x, screen.y, at.x, size.x);
-    if (!layout.usable()) return;
-    int const count = static_cast<int>(names.size()), pages = layout.pages(count);
-    page = std::clamp(page + turned.exchange(0), 0, pages - 1);
-    float const px = view.mPointerLocationPrevious->x, py = view.mPointerLocationPrevious->y;
+    if (names.empty() || !windowOf(screenView, at, size)) return;
+    glm::vec2 const screen = *screenView.mSize;
+    // The centre keeps the recipe view's two columns free, so the list never moves when it opens.
+    auto const viewLayout = recipeViewAt(screen.x, screen.y);
+    float const right = std::max(at.x + size.x, viewLayout.left + RecipeViewLayout::width);
+    auto const layout = itemListRight(screen.x, screen.y, 0, right);
+    if (!layout.usable()) { view::close(); return; }
+    float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
+    Queued input;
     {
         std::scoped_lock lock(shownLock);
-        shown = {std::chrono::steady_clock::now(), layout, px, py};
+        // What was queued before a pause belongs to a screen that is gone.
+        if (fresh()) input = std::move(queued);
+        queued = {};
+    }
+    // The table is read while the list shows, a part a frame, so the first recipe opens at once.
+    service::want();
+    int const count = static_cast<int>(names.size()), pages = layout.pages(count);
+    page = std::clamp(page + input.listTurns, 0, pages - 1);
+    int const first = page * layout.perPage(), hovered = layout.hit(px, py);
+    bool const wasOpen = view::isOpen();
+    if (!wasOpen && !input.clicks.empty() && hovered >= 0 && first + hovered < count) {
+        view::open(names[static_cast<size_t>(first + hovered)], !input.clicks.front());
+        viewScreen = screenName;
+        input.clicks.clear();
     }
     auto& context = event.uiRenderContext();
     // A dimmed band to the screen's edge: the game dims the world too little for bare icons.
     fill(context, layout.left, layout.top, layout.width, layout.height, palette::panel, .5f);
     label(context, layout.left, layout.top + 3, layout.width - 4, std::format("{} / {}", page + 1, pages), palette::dim, Align::Right);
-    std::vector<inspection::render::IconAt> icons;
-    int const first = page * layout.perPage(), hovered = layout.hit(px, py);
-    std::string tip;
+    view::Late late;
     for (int i = 0; i < layout.perPage() && first + i < count; ++i) {
         auto const& item = schematic::items::shown(names[static_cast<size_t>(first + i)]);
         float const x = layout.cellX(i), y = layout.cellY(i);
         if (i == hovered) {
             fill(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::white, .14f);
-            tip = item.name;
+            late.tip = item.name;
         }
-        if (auto const* stack = schematic::items::iconStack(item.icon)) icons.push_back({stack, x + 1, y + 1});
+        if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
+    }
+    if (wasOpen && hovered >= 0 && first + hovered < count && !input.clicks.empty()) {
+        // The list stays usable beside an open view: a press there shows that item.
+        view::open(names[static_cast<size_t>(first + hovered)], !input.clicks.front());
+        input.clicks.clear();
+    }
+    view::draw(context,
+               {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
+    // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
+    bool const open = view::isOpen();
+    if (open || viewLayout.hintY() >= at.y + size.y + 2)
+        label(context, viewLayout.left, viewLayout.hintY(), RecipeViewLayout::width, translated(open ? "recipes.hint.open" : "recipes.hint"),
+              palette::dim, Align::Center);
+    {
+        std::scoped_lock lock(shownLock);
+        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py};
     }
     context.flushText(0, std::nullopt);
-    if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
-    if (!tip.empty()) {
-        float const w = textWidth(context, tip) + 8, x = std::min(px + 8, screen.x - w - 2), y = std::min(py + 8, screen.y - 14);
+    if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
+    for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
+    if (!late.counts.empty()) context.flushText(0, std::nullopt);
+    if (!late.tip.empty()) {
+        float const w = textWidth(context, late.tip) + 8, x = std::min(px + 8, screen.x - w - 2), y = std::min(py + 8, screen.y - 14);
         drawTipBox(context, x, y, w, 12);
-        label(context, x + 4, y + 2, w - 8, tip);
+        label(context, x + 4, y + 2, w - 8, late.tip);
         context.flushText(0, std::nullopt);
     }
 }
 }
 bool wheel(int pages) {
     std::scoped_lock lock(shownLock);
-    if (std::chrono::steady_clock::now() - shown.at > std::chrono::milliseconds(300) || !shown.layout.has(shown.pointerX, shown.pointerY)) return false;
-    turned += pages;
+    if (!fresh()) return false;
+    if (shown.viewOpen && shown.view.has(shown.pointerX, shown.pointerY)) queued.viewTurns += pages;
+    else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
+    else return shown.viewOpen; // an open view lies over the game's window: its slots must not scroll
+    return true;
+}
+bool press(bool left, bool right, bool down) {
+    std::scoped_lock lock(shownLock);
+    if (!fresh() || !(shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY))) return false;
+    if (down && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
+    return true;
+}
+bool key(int code, bool down) {
+    // The modifier keys stay the game's: one held while the view opens must still be released.
+    if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
+    std::scoped_lock lock(shownLock);
+    if (!fresh() || !shown.viewOpen) return false;
+    if (down && code == 0x1B) queued.close = true;
+    if (down && code == 0x08) queued.back = true;
     return true;
 }
 void start() {
@@ -148,5 +212,11 @@ void stop() {
 }
 }
 #else
-namespace lamium::recipes::itemList { void start() {} void stop() {} bool wheel(int) { return false; } }
+namespace lamium::recipes::itemList {
+void start() {}
+void stop() {}
+bool wheel(int) { return false; }
+bool press(bool, bool, bool) { return false; }
+bool key(int, bool) { return false; }
+}
 #endif

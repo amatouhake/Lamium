@@ -28,6 +28,21 @@ inline Station stationOf(std::string_view tag) {
     return Station::Other;
 }
 
+// The item of a station's block, to name it as the game does; empty for a station without one.
+inline std::string_view stationItem(Station station) {
+    switch (station) {
+    case Station::Crafting: return "minecraft:crafting_table";
+    case Station::Stonecutter: return "minecraft:stonecutter_block";
+    case Station::Furnace: return "minecraft:furnace";
+    case Station::BlastFurnace: return "minecraft:blast_furnace";
+    case Station::Smoker: return "minecraft:smoker";
+    case Station::Campfire: return "minecraft:campfire";
+    case Station::SoulCampfire: return "minecraft:soul_campfire";
+    case Station::Smithing: return "minecraft:smithing_table";
+    case Station::Other: break;
+    }
+    return {};
+}
 // The table as the game holds it, by name. `uses` has one entry per grid cell
 // or ingredient; an empty name is an empty cell. The first of `makes` is the
 // product, the rest come with it (a cake's buckets).
@@ -37,6 +52,7 @@ struct SourceRecipe {
     int priority = 0;
     std::vector<std::pair<std::string, Count>> makes;
     std::vector<SourcePart> uses;
+    int width = 0, height = 0; // a shaped recipe's grid, `uses` row by row; 0 without one
 };
 struct Source {
     std::vector<SourceRecipe> recipes;
@@ -57,6 +73,11 @@ struct Recipe {
     Count count = 1;
     std::vector<std::pair<Item, Count>> extra; // by-products
     std::vector<Part> uses;                    // each item or group once, with how many
+    // As it is laid out, for showing it: with a width, one per grid cell row
+    // by row (id -1: an empty cell); without, the ingredients in the table's
+    // order, which then does not matter.
+    std::vector<Part> cells;
+    int width = 0;
 };
 // Any one member will do: an item tag, or (without a name) the inputs that smelt to the same item.
 struct Group { std::string name; std::vector<Item> members; };
@@ -115,9 +136,17 @@ inline Index build(Source const& source) {
         for (size_t i = 1; i < from.makes.size(); ++i)
             if (!from.makes[i].first.empty() && from.makes[i].second) recipe.extra.emplace_back(item(from.makes[i].first), from.makes[i].second);
         bool own = false;
+        // A shape that does not fit its cells is not trusted: the recipe is laid out as one without.
+        bool const shaped = from.width >= 1 && from.width <= 3 && from.height >= 1 && from.height <= 3
+            && static_cast<size_t>(from.width * from.height) == from.uses.size();
+        recipe.width = shaped ? from.width : 0;
         for (auto const& part : from.uses) {
-            if (part.name.empty()) continue;
+            if (part.name.empty()) {
+                if (shaped) recipe.cells.push_back(Part{false, -1, 0});
+                continue;
+            }
             Part const next{part.tag, part.tag ? group(part.name) : item(part.name), 1};
+            recipe.cells.push_back(next);
             own = own || (!next.group && next.id == recipe.makes);
             auto same = std::find_if(recipe.uses.begin(), recipe.uses.end(),
                                      [&](Part const& other) { return other.group == next.group && other.id == next.id; });
@@ -147,6 +176,8 @@ inline Index build(Source const& source) {
         std::stable_partition(inputs.members.begin(), inputs.members.end(), [&](Item id) { return !index.items[id].ends_with("_ore"); });
         index.groups.push_back(std::move(inputs));
         all[best].uses = {Part{true, static_cast<int>(index.groups.size()) - 1, 1}};
+        all[best].cells = all[best].uses;
+        all[best].width = 0;
         for (size_t i : list) dropped[i] = i != best;
     }
     for (size_t i = 0; i < all.size(); ++i) if (!dropped[i]) index.recipes.push_back(std::move(all[i]));

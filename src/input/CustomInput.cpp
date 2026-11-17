@@ -155,6 +155,8 @@ void startCustomInput() {
     listeners[0] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
         // L-359 probe: a focused field under a game screen keeps the keys from it.
         if (researchTrace::itemScreen::key(event.keyCode(), event.isDown())) { event.cancel(); return; }
+        // An open recipe view beside a game screen keeps the keys from it (L-359).
+        if (recipes::itemList::key(event.keyCode(), event.isDown())) { event.cancel(); return; }
         // Auto-repeat of a held key (Shift for Shift + right click) is not new input.
         static std::vector<int> physical;
         if (!event.isDown()) std::erase(physical, event.keyCode());
@@ -193,8 +195,10 @@ void startCustomInput() {
             event.cancel();
             return;
         }
-        // The item list beside a game screen pages with the wheel over it (L-359).
-        if (wheel && !event.isCancelled() && recipes::itemList::wheel(event.buttonData() > 0 ? -1 : 1)) {
+        // The item list beside a game screen and the recipe view it opens: the wheel pages them, presses
+        // on them stay from the game (L-359).
+        if (!event.isCancelled() && (wheel ? recipes::itemList::wheel(event.buttonData() > 0 ? -1 : 1)
+                : recipes::itemList::press(button == MouseAction::ActionLeft, button == MouseAction::ActionRight, down))) {
             event.cancel();
             return;
         }

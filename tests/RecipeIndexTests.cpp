@@ -1,5 +1,6 @@
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/RawView.h"
+#include "features/recipes/RecipeView.h"
 void check(bool, char const*);
 void recipeIndexTests() {
     using namespace lamium::recipes;
@@ -161,11 +162,54 @@ void recipeIndexTests() {
     {
         // The item list right of a 176-wide window at x 232 on a 640x360 screen.
         auto list = itemListRight(640, 360, 232, 176);
-        check(list.left == 416 && list.width == 224 && list.columns == 12 && list.rows == 19, "the band runs from the window to the screen's edge in whole cells");
+        check(list.left == 412 && list.width == 228 && list.columns == 12 && list.rows == 19, "the band runs from the window to the screen's edge in whole cells");
         check(list.perPage() == 228 && list.pages(229) == 2 && list.pages(0) == 1, "pages hold whole screens of cells, and there is always one");
         check(list.hit(list.cellX(13) + 1, list.cellY(13) + 1) == 13 && list.hit(416, 2) == -1 && list.hit(400, 100) == -1,
               "a point is in the cell drawn there, and in none on the bar or outside");
         check(!itemListRight(640, 360, 157, 480).usable(), "no list where the window leaves no room");
+    }
+    {
+        // The recipe view: a shaped pickaxe, planks in any order, iron smelted two ways.
+        Source source;
+        source.tags["planks"] = {"oak_planks", "birch_planks"};
+        source.recipes.push_back({"crafting_table", "pickaxe", 0, {{"pickaxe", 1}},
+            {{"iron", false}, {"iron", false}, {"iron", false}, {"", false}, {"stick", false}, {"", false}, {"", false}, {"stick", false}, {"", false}}, 3, 3});
+        source.recipes.push_back({"crafting_table", "stick", 0, {{"stick", 4}}, {{"planks", true}, {"planks", true}}, 1, 2});
+        source.recipes.push_back({"crafting_table", "button", 0, {{"button", 1}}, {{"planks", true}}});
+        source.recipes.push_back({"crafting_table", "odd", 0, {{"odd", 1}}, {{"stick", false}, {"iron", false}}, 3, 3});
+        source.recipes.push_back({"furnace", "iron_a", 0, {{"iron", 1}}, {{"raw_iron", false}}});
+        source.recipes.push_back({"furnace", "iron_b", 0, {{"iron", 1}}, {{"iron_ore", false}}});
+        source.recipes.push_back({"blast_furnace", "iron_c", 0, {{"iron", 1}}, {{"raw_iron", false}}});
+        Index index = build(source);
+        Choice choice = choose(index);
+        auto const& pickaxe = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("pickaxe"))].front())];
+        check(pickaxe.width == 3 && pickaxe.cells.size() == 9 && pickaxe.cells[3].id < 0 && pickaxe.cells[4].id == index.find("stick"),
+              "a shaped recipe keeps its grid, empty cells and all");
+        auto block = viewBlock(pickaxe);
+        check(block.slots.size() == 9 && block.slots[4].cell == 4 && block.slots[3].cell == -1 && !anyOrder(pickaxe) && !fitsSmallGrid(pickaxe),
+              "a 3x3 recipe fills the grid as it is shaped");
+        auto const& stick = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("stick"))].front())];
+        auto stickBlock = viewBlock(stick);
+        check(stickBlock.slots[0].cell == 0 && stickBlock.slots[3].cell == 1 && stickBlock.slots[1].cell == -1 && fitsSmallGrid(stick),
+              "a narrow shape sits at the grid's left and fits the 2x2 grid");
+        auto const& button = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("button"))].front())];
+        auto const& odd = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("odd"))].front())];
+        check(anyOrder(button) && !odd.width && odd.cells.size() == 2 && anyOrder(odd), "no shape, or one that does not fit its cells, is laid out in any order");
+        auto makes = viewTabs(index, choice, index.find("iron"), false);
+        check(makes.size() == 2 && makes[0].station == Station::Furnace && makes[0].recipes.size() == 1 && makes[1].station == Station::BlastFurnace,
+              "an item's recipes are split by station, smelting alternatives being one recipe");
+        check(index.recipes[static_cast<size_t>(makes[0].recipes[0])].cells.size() == 1 && index.recipes[static_cast<size_t>(makes[0].recipes[0])].cells[0].group,
+              "merged smelting shows its inputs as one slot");
+        auto uses = viewTabs(index, choice, index.find("birch_planks"), true);
+        check(uses.size() == 1 && uses[0].recipes.size() == 2, "an item is used where a group it belongs to is");
+        check(viewTabs(index, choice, index.find("iron_ore"), true).size() == 1 && viewTabs(index, choice, -1, false).empty(),
+              "a merged input counts as used, and an item the table lacks has no tabs");
+        auto view = recipeViewAt(640, 360);
+        check(view.left == 210 && view.top == 4 && view.height == 337 && view.hintY() == 330, "the view is centred, two columns wide, down to the search field's place");
+        check(view.rows(Station::Crafting) == 5 && view.columns(Station::Crafting, 5) == 1 && view.columns(Station::Crafting, 6) == 2
+              && view.pages(Station::Crafting, 11) == 2, "rows fill the height; a second column and page come when needed");
+        check(view.blockX(Station::Crafting, 3, 1) == 270 && view.blockX(Station::Crafting, 8, 1) == 325 && view.blockY(Station::Crafting, 8, 3) == 4 + 29 + 59,
+              "one column sits in the middle; two fill left to right, then down");
     }
     {
         Index empty = build({});

@@ -119,6 +119,12 @@ void panel(MinecraftUIRenderContext&, float left, float top, float width, float 
 void card(MinecraftUIRenderContext&, float left, float top, float width, float height, float opacity = .72f);
 void rowBackground(MinecraftUIRenderContext&, float left, float top, float width, float height,
                    bool selected, bool hovered);
+// An item's slot, 18 units: its 16x16 icon area filled, as the container
+// preview's cells are, and lighter under the pointer. The icon and the count
+// are the caller's, drawn after the fills: slotCount puts a stack's count at
+// the slot's lower right, over the icon.
+void slot(MinecraftUIRenderContext&, float x, float y, bool hovered = false);
+void slotCount(MinecraftUIRenderContext&, float x, float y, std::string text);
 // Bedrock-style switch: the knob position carries the state as well as color.
 // `scale` sizes it with a HUD element (the toggle toast); the edge stays one unit.
 void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on, float scale = 1);

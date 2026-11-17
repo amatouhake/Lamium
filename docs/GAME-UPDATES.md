@@ -206,8 +206,11 @@ lets Lamium's scene open over any game screen.
 `item_list` (L-359) builds the item list in (`features/recipes/ItemList.cpp`)
 until it has a setting. No hook: it draws after a container screen, finds
 the window by the control names `root_panel`, `content_stack_panel`,
-`screen_stack_panel`, and takes the items from
-`CreativeItemRegistry::mCreativeItems`.
+`screen_stack_panel` (`player_inventory` inside the second), and takes the
+items from `CreativeItemRegistry::mCreativeItems`. Its recipe view lays a
+recipe out by `Recipe::mWidth`, `mHeight` and `isShapeless`, which
+`RecipeSnapshot.cpp` reads with the table; a shape that does not fit the
+ingredient count is ignored, and the log says how many did.
 
 ## Inventory
 

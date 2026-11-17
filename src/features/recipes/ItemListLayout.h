@@ -4,7 +4,7 @@
 // L-359: where the item list sits beside a game window, in GUI units. Pure.
 namespace lamium::recipes {
 struct ItemListLayout {
-    static constexpr float cell = 18, bar = 14, gap = 8, pad = 2;
+    static constexpr float cell = 18, bar = 14, gap = 4, pad = 2;
     float left = 0, top = 0, width = 0, height = 0;
     int columns = 0, rows = 0;
     bool usable() const { return columns > 0 && rows > 0; }

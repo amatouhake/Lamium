@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The item list follows the closed recipe book (L-359 step 2, 2026-11-18)
+
+Build `54ea5a67` with `--item_list=y` (DLL
+`6af85f562e4fee09beaf894fffadda1431b29c4d4dbbf1a5e1590eb4ef372fe3`),
+1.26.60.05 Dev instance, the maintainer:
+- On the inventory and the crafting table the band moved to the window's
+  right side when the recipe book closed and back when it opened; the chest
+  and the furnace as before.
+- The band does not follow the game window's fade in and out: it is there
+  at once and gone at once.
+
 ## The item list beside the game's window (L-359 step 2, 2026-11-18)
 
 Build `06f4b60e` with `--item_list=y` (DLL

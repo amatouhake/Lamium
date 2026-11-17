@@ -43,6 +43,16 @@ void advance() noexcept {
             auto table = std::make_shared<Table>();
             table->index = build(snapshot.source());
             table->choice = choose(table->index);
+            // How many recipes came with a grid, and how many of those fit their cells (L-359: the view lays out by it).
+            int shaped = 0, fits = 0;
+            for (auto const& recipe : snapshot.source().recipes) {
+                if (!recipe.width) continue;
+                ++shaped;
+                fits += recipe.width >= 1 && recipe.width <= 3 && recipe.height >= 1 && recipe.height <= 3
+                    && static_cast<size_t>(recipe.width * recipe.height) == recipe.uses.size();
+            }
+            Runtime::instance().self().getLogger().info("Recipe table read: {} recipes, {} with a grid, {} of them fit their cells",
+                snapshot.source().recipes.size(), shaped, fits);
             std::lock_guard lock(mutex);
             built = std::move(table);
             state = State::Ready;

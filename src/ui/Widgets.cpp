@@ -292,6 +292,13 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
     context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});
     return true;
 }
+void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
+    fill(context, x + 1, y + 1, 16, 16, palette::keyFill, .9f);
+    if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .14f);
+}
+void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string text) {
+    label(context, x, y + 9, 18, std::move(text), palette::text, Align::Right);
+}
 void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on, float scale) {
     if (!(scale > 0)) scale = 1;
     float const w = switchWidth * scale, h = switchHeight * scale;
