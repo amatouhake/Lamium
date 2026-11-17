@@ -39,6 +39,12 @@ option("world_probe")
     set_description("Read-only probes for L-249, L-33 and L-30: log the chunk tick range, nearby actors' age and breeding components and the dragon's part boxes every 5 s")
 option_end()
 
+option("item_list")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-359 step 2: the item list beside the game's item screens, until it has a setting")
+option_end()
+
 option("item_screen_probe")
     set_default(false)
     set_showmenu(true)
@@ -294,6 +300,7 @@ target("Lamium")
     if has_config("sneak_trace") then add_defines("LAMIUM_SNEAK_TRACE") end
     if has_config("book_paste_trace") then add_defines("LAMIUM_BOOK_PASTE_TRACE") end
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
+    if has_config("item_list") then add_defines("LAMIUM_ITEM_LIST") end
     if has_config("item_screen_probe") then add_defines("LAMIUM_ITEM_SCREEN_PROBE") end
     if has_config("recipe_trace") then add_defines("LAMIUM_RECIPE_TRACE") end
     if has_config("slime_trace") then add_defines("LAMIUM_SLIME_TRACE") end

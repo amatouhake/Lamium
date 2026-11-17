@@ -1,3 +1,4 @@
+#include "features/recipes/ItemListLayout.h"
 #include "features/recipes/RawView.h"
 void check(bool, char const*);
 void recipeIndexTests() {
@@ -156,6 +157,15 @@ void recipeIndexTests() {
                   && usersOf(index, request, view, planks) == std::vector<std::pair<Item, Count>>{{id("chest"), 8}}
                   && usersOf(index, request, view, id("oak_planks")).empty(),
               "an item's users are the steps that take it; one only placed has none");
+    }
+    {
+        // The item list right of a 176-wide window at x 232 on a 640x360 screen.
+        auto list = itemListRight(640, 360, 232, 176);
+        check(list.left == 416 && list.width == 224 && list.columns == 12 && list.rows == 19, "the band runs from the window to the screen's edge in whole cells");
+        check(list.perPage() == 228 && list.pages(229) == 2 && list.pages(0) == 1, "pages hold whole screens of cells, and there is always one");
+        check(list.hit(list.cellX(13) + 1, list.cellY(13) + 1) == 13 && list.hit(416, 2) == -1 && list.hit(400, 100) == -1,
+              "a point is in the cell drawn there, and in none on the bar or outside");
+        check(!itemListRight(640, 360, 157, 480).usable(), "no list where the window leaves no room");
     }
     {
         Index empty = build({});

@@ -1,3 +1,4 @@
+#include "features/recipes/ItemList.h"
 #include "features/research/ItemScreenProbe.h"
 #include "input/CustomInput.h"
 #include "features/camera/CameraSessions.h"
@@ -189,6 +190,11 @@ void startCustomInput() {
                 return;
             }
         } else if (wheel && !event.isCancelled() && inventory::enchantOrder::game::anvilWheel(event.buttonData() > 0 ? -3 : 3)) {
+            event.cancel();
+            return;
+        }
+        // The item list beside a game screen pages with the wheel over it (L-359).
+        if (wheel && !event.isCancelled() && recipes::itemList::wheel(event.buttonData() > 0 ? -1 : 1)) {
             event.cancel();
             return;
         }

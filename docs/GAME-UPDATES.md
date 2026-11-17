@@ -203,6 +203,11 @@ it reads the screen's name, `root_panel`'s box and the controls from the
 top of the visual tree (`UIControl::mChildren`, `mName`, `mCachedPosition`,
 `mSize`, `mVisible`), draws 300 icons beside the window to time them, and
 lets Lamium's scene open over any game screen.
+`item_list` (L-359) builds the item list in (`features/recipes/ItemList.cpp`)
+until it has a setting. No hook: it draws after a container screen, finds
+the window by the control names `root_panel`, `content_stack_panel`,
+`screen_stack_panel`, and takes the items from
+`CreativeItemRegistry::mCreativeItems`.
 
 ## Inventory
 
