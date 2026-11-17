@@ -14,8 +14,8 @@ screen opener); menu and Repeat rows (SCHEMATIC-CONTROLS); `ghostTint`
 0-100% in 5% steps (70); `ghostLines` Thin / Normal / Thick / None (Normal);
 `outlineDistance` 0-192 in 16s (48, 0 draws all); Schematic HUD `hud` (off)
 with `hudVerify`, `hudMaterials` (on). Check heading: `mistakeMarks` (on),
-`ignoreSignal`, `litAsState`, `ignoreGrowth`, `ignoreBlockEntities`,
-`ignoreSignText` (off), each with an optional key. Target Info: "Show
+`ignoreSignal`, `ignoreGrowth`, `ignoreBlockEntities`, `ignoreSignText`,
+then `litAsState` (off), each with an optional key. Target Info: "Show
 schematic information" (`information.targetSchematic`, on).
 
 ## Behavior
