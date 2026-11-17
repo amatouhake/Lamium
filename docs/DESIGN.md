@@ -243,7 +243,9 @@ the same commit. A screen never draws its own variant.
   share their header (`drawToolHeader`) and, docked, their frame
   (`drawDockedFrame`).
 - **Passing notices**: a toast is for what the player did outside a Lamium
-  screen (keys, the schematic menu) or what came from outside (a death
+  screen (keys, and the schematic radial menu, whose items are the same
+  actions as their keys: every item toasts as its key would, seen once the
+  menu closes) or what came from outside (a death
   layout restored, a waypoint reached, a background save finished). Inside
   a Lamium screen a result of the player's own action goes to that screen's
   status line (the settings footer, the tool views' footers, the anvil
@@ -253,8 +255,7 @@ the same commit. A screen never draws its own variant.
   2.5 s). A message or warning toast from outside raised while the settings
   screen is open waits and starts when it closes; one older than 60 s is
   dropped. The screen's own results (its menus and prompts) and on/off
-  toasts never wait (L-339). A switch in the schematic radial menu
-  shows its new state on its item, not in a toast.
+  toasts never wait (L-339).
 - **Footer**: always two description lines; longer text scrolls there (wheel
   or its scrollbar). No "read more", expansion or help panel. White says
   what a setting is (a number's help includes its range); faint says how to

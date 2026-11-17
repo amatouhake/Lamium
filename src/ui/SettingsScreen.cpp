@@ -641,7 +641,6 @@ void openSchematicTab(schematics_view::Tab tab) {
     schematics_view::refresh(true);
     schematics_view::show(tab);
 }
-std::string menuValue(schematic::menu::Item const& item);
 void runMenuItem(schematic::menu::Item const& item, int amount) {
     namespace menu = schematic::menu;
     using C = menu::Command;
@@ -659,12 +658,18 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
         schematicMenu->show(menu::moveCategory);
         return;
     }
-    // The item shows the new state itself: no toast inside the screen (L-339).
-    auto toggle = [](char const* id) { table_view::adjustOption(id, 1); };
+    // As the item's key would: a toast says the new state, seen once the menu closes (L-339).
+    auto toggle = [](char const* id, char const* name) {
+        table_view::adjustOption(id, 1);
+        auto const& now = Runtime::instance().preferences().schematic;
+        bool on = id == std::string_view("schematic.hud") ? now.hud : id == std::string_view("schematic.mistakeMarks") ? now.mistakeMarks
+            : now.enabled;
+        showMessageToast(translated(name) + ": " + translated(on ? "on" : "off"));
+    };
     switch (command) {
-    case C::ToggleHud: toggle("schematic.hud"); return;
-    case C::ToggleMarks: toggle("schematic.mistakeMarks"); return;
-    case C::ToggleFeature: toggle("schematic.enabled"); return;
+    case C::ToggleHud: toggle("schematic.hud", "schematic.menu.toggleHud"); return;
+    case C::ToggleMarks: toggle("schematic.mistakeMarks", "schematic.menu.toggleMarks"); return;
+    case C::ToggleFeature: toggle("schematic.enabled", "schematic.menu.toggleFeature"); return;
     case C::SaveArea: {
         auto state = schematic::selection::current();
         auto area = state.area();
@@ -685,13 +690,7 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
         schematic::actions::run(*client, command);
         close();
         return;
-    default: {
-        // A switch whose state the item shows under its name says nothing else (L-339).
-        std::optional<QuietToasts> quiet;
-        if (!menuValue(item).empty()) quiet.emplace();
-        schematic::actions::run(*client, command);
-        return;
-    }
+    default: schematic::actions::run(*client, command); return;
     }
 }
 // `hit` is the item under the click itself: the pointer may have moved since.

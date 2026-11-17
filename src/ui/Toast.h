@@ -117,14 +117,7 @@ struct ScreenToasts {
     ScreenToasts(ScreenToasts const&) = delete;
     ScreenToasts& operator=(ScreenToasts const&) = delete;
 };
-// Around an action whose result the screen shows itself (a radial menu switch's state under its name): its
-// message toasts are dropped, so none appears when the menu closes. Warnings still show.
-struct QuietToasts {
-    QuietToasts();
-    ~QuietToasts();
-    QuietToasts(QuietToasts const&) = delete;
-    QuietToasts& operator=(QuietToasts const&) = delete;
-};
+
 // Called by the HUD each frame it draws: starts the next waiting toast once the shown one has ended.
 void releaseHeldToast(double now);
 }

@@ -59,6 +59,11 @@ is fixed to the screen edges and is not an element.
   when there is no room): snap-to 3x3, scale, a "Look" popover (below), a
   "Contents" popover where the element has content switches (below), then a
   divider and Reset. Game parts keep position and scale only.
+- Look and Contents rows read as settings rows: the name on the left, the
+  switch (or Look's background stepper) at the right end; the Info lines'
+  arrows sit before the switch. A scale handle follows the box drawn at the
+  scale being tried, so an element whose text keeps its size still grows
+  under the pointer.
 - Look (L-357): background (a `< value >` stepper), text shadow, and for an
   element with graphics beside its text (minimap, durability, status
   effects, target, schematic HUD, player list) "Standard text size": on,

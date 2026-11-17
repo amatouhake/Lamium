@@ -173,7 +173,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Bugs
 
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
-- [L-339](backlog/L-339.md) Toasts and the settings screen (Design): Built 2026-11-17 on `night/L-339`, not checked in game
+- [L-339](backlog/L-339.md) Toasts and the settings screen (Ready): Built on `night/combined`; checked in game except the radial menu change of 2026-11-17
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
@@ -219,7 +219,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-71](backlog/L-71.md) Start an elytra glide from the mod (Research): Open; headers read 2026-11-12, next trace not run
 - [L-93](backlog/L-93.md) Schematic: load, place, project, verify and list materials (experimental) (Follow-up tracking; each L-item below owns its kind and open choices): Initial scope shipped in 0.1.7, 0.1.8 rendering/compatibility work done; follow-ups open
 - [L-30](backlog/L-30.md) Ender Dragon multipart hitboxes on Bedrock (Research): Probed: parts are readable on the client; waiting for a real End dragon check, a server check and the color choice
-- [L-33](backlog/L-33.md) Mob growth and breeding states in the target card (Ready): Built 2026-11-17 on `night/L-33` (states only), not checked in game
+- [L-33](backlog/L-33.md) Mob growth and breeding states in the target card (Ready): Built on `night/combined` (Yes / No for adult animals), not checked in game
 - [L-114](backlog/L-114.md) 3D previews in the schematic screen (Research): Partly done: Files and Check tab previews shipped (0.1.8); the Check tab's mistake look, see-through emphasis and moving the zoomed view are open
 - [L-115](backlog/L-115.md) Entity ghosts drawn as models (Research): A compromise version shipped in 0.1.8; the limits below are open
 - [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): Pure calculation built and tested, not wired to the Materials tab; what the client holds is unchecked in game
