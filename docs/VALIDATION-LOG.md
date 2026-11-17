@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A text field under a game screen (L-359 step 1, 2026-11-18)
+
+Build `103c7795` with `--item_screen_probe=y` (DLL
+`24a136d9a3eff268b42fed6940510f1aa332fe628c085f81b6e576b8355a0eec`),
+1.26.60.05 Dev instance, the maintainer, a local world, on the inventory
+and a chest. (A first deploy of this commit, DLL `9cfeb828...`, was built
+without the option by mistake and showed nothing.) From `lamium.log` and
+what the maintainer saw:
+- With the probe's field focused, every key was kept from the game by
+  cancelling its `KeyInputEvent`: E did not close the inventory; 1 and Q
+  did nothing; Esc left the field and not the screen.
+- Text reached `UIScene::handleTextChar` only with the platform keyboard
+  claimed and enabled (`KeyboardManager::tryClaimKeyboardOwnership`,
+  `tryEnableKeyboard`): one text event per key then, none without.
+- The probe's box showed as a dark band, its text did not (the probe's own
+  drawing; not looked into).
+
+Not checked: Japanese input and its composition, pasting, a server.
+
 ## The game's item screens, probed (L-359 step 1, 2026-11-18)
 
 Builds `fe7e97f0` (DLL `8a7b93401dcdb352a867b302c1baa8af872c6b92a3ad0144ebf6de9dd9df4ba7`)
