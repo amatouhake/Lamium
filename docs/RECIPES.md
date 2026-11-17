@@ -39,9 +39,14 @@ is in the L-item.
 - The list moves aside when the game's own recipe book is switched on.
 
 ### The recipe view
-- Opens in the centre of the screen, looking like one of the game's windows.
-- Shows as many recipes to a page as the screen allows: two were too few
-  for an item with dozens of uses.
+- Opens in the centre of the screen.
+- Shows as many recipes to a page as the screen allows (two were too few
+  for an item with dozens of uses), in a window no wider than the recipes
+  shown need: one column where one is enough.
+- Each recipe carries one control, "place" (with Shift: craft many, Mass
+  Craft), and the marks "default" (press to make it the item's default),
+  "any order" for a shapeless recipe and "2x2" for one the inventory's own
+  grid can make.
 - A recipe is shown as the game shows it, as closely as Lamium can draw it:
   a crafting recipe in the 3x3 grid, a furnace's or another station's in a
   fixed layout that follows that station's own screen. This is the one
