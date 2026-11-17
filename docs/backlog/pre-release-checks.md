@@ -7,6 +7,12 @@ server case are not release gates. [VALIDATION.md](../VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
+## Since 0.7.0
+
+- Schematic Materials, "Show raw materials" (L-359): seen in game with layout
+  faults and due to be cut back to the gather list (VALIDATION-LOG
+  2026-11-17). Finish it as agreed or hide the switch before a release.
+
 ## Left from 0.7.0
 
 The tag (VALIDATION-LOG 2026-11-16; release published the same day): the
