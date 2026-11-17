@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe keys on mouse buttons and the back key (L-359 step 3, 2026-11-18)
+
+Build `3cf4d2f5` (DLL
+`5084c14d5ebca706d3059a1b7f8ebf6a63c54e7da87418bf455d52dcb7e8d110`),
+1.26.60.05 Dev instance, the maintainer:
+- The recipe keys bound to a side button or the middle button opened the
+  view over the list, the view and the inventory's slots; a side button
+  together with another key worked too.
+- Backspace went back in the view; bound to another key, that key did and
+  the hints' line named it. With the view closed Backspace was the game's.
+
 ## Recipes as a setting (L-359 step 3, 2026-11-18)
 
 Build `27f72d2e`, no build option (DLL
