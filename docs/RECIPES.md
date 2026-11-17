@@ -34,6 +34,14 @@ is in the L-item.
 
 ### The recipe view
 - Opens in the centre of the screen.
+- A recipe is shown as the game shows it, as closely as Lamium can draw it:
+  a crafting recipe in the 3x3 grid, a furnace's or another station's in a
+  fixed layout that follows that station's own screen. This is the one
+  form: no short form beside it and no line of totals under it. A smaller
+  form is thought about when a place needs one.
+- Placing a recipe into the grid and crafting it many times (Mass Craft,
+  [L-165](backlog/L-165.md)) start from the recipe view: their controls are
+  part of its layout from the start, and they are researched together.
 - An ingredient any one of several items satisfies (any planks) shows its
   members in turn, the icon changing every few seconds; members the player
   holds come first, then older items. All members appear as a grid of icons

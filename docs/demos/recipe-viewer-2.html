@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Viewer 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --panel:rgba(16,17,19,.88); --edge:rgba(255,255,255,.14); --hover:rgba(255,255,255,.14);
+  --text:#fff; --dim:#b4b8b6; --faint:#7f8583; --key:#2b2c2d; --key-edge:#5a5b5c; --warn:#ffc24a;
+  --font:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 17px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:80ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.ctrl{display:flex;gap:10px 22px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+.grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.grp button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:12.5px;padding:3px 9px}
+.grp button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.grp button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* The game's screen at 1920x1080, halved. */
+.stage-outer{border:1px solid var(--line);background:#0b0d0e;overflow-x:auto}
+.fit{position:relative;width:100%;min-width:640px;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--font);color:var(--text);overflow:hidden}
+.stage.dark{background:linear-gradient(160deg,#1d3328 0%,#2f3a2c 40%,#40392b 70%,#232d36 100%)}
+.stage.bright{background:linear-gradient(180deg,#9cc4f2 0%,#cfe2f5 45%,#f1f4f6 46%,#dfe7ea 100%)}
+.stage::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.28)}
+.abs{position:absolute}
+/* The game's own windows and slots: plain stand-ins, not the game's art. */
+.van{background:#c6c6c6;color:#3f3f3f;box-shadow:inset 2px 2px #fff,inset -2px -2px #555,0 0 0 2px #000;font-size:14px}
+.slot{position:absolute;width:36px;height:36px;background:#8b8b8b;box-shadow:inset 2px 2px #373737,inset -2px -2px #fff}
+.slot.big{width:52px;height:52px}
+.slot i,.cell i{position:absolute;inset:5px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),inset 3px 3px 0 rgba(255,255,255,.18)}
+.slot.big i{inset:13px}
+.slot b,.cell b{position:absolute;right:2px;bottom:-1px;font-weight:400;font-size:13px;color:#fff;text-shadow:1.5px 1.5px #3f3f3f}
+.slot.match{outline:2px solid var(--accent);outline-offset:-2px}
+.slot.focus{outline:2px solid var(--warn);outline-offset:-2px}
+.rslot{cursor:pointer}
+.rslot:hover{box-shadow:inset 0 0 0 36px rgba(255,255,255,.28)}
+/* Lamium's side lists: three ways to sit on the dimmed world. */
+.side{font-size:12px}
+.side.frame{background:var(--panel);border:1px solid var(--edge)}
+.side.band{background:rgba(0,0,0,.5)}
+.side .label{position:absolute;left:6px;color:var(--dim);white-space:nowrap;text-shadow:1px 1px #000}
+.side .bar{position:absolute;left:0;right:0;height:20px;display:flex;align-items:center;gap:5px;padding:0 6px;color:var(--dim);white-space:nowrap;overflow:hidden;text-shadow:1px 1px #000}
+.side .bar .sp{flex:1}
+.cell{position:absolute;width:36px;height:36px;cursor:pointer}
+.cell:hover{background:var(--hover);outline:1px solid rgba(255,255,255,.5);outline-offset:-1px}
+.cell.fav::after{content:"";position:absolute;left:3px;top:3px;width:5px;height:5px;background:var(--warn)}
+.cell.dim i{opacity:.28}
+.btn{border:1px solid var(--key-edge);background:var(--key);padding:0 6px;height:15px;line-height:14px;font-size:11px;color:var(--dim);white-space:nowrap;cursor:pointer;text-shadow:none}
+.btn.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.btn.off{opacity:.4;cursor:default}
+.plan{position:absolute;left:6px;right:6px;color:var(--dim);font-size:11.5px;line-height:17px;text-shadow:1px 1px #000}
+.plan .f{color:var(--faint)}
+.search{position:absolute;height:22px;background:#0c0d0e;border:1px solid var(--key-edge);color:#fff;font:13px var(--font);padding:0 6px;outline:none}
+.search:focus{border-color:var(--accent)}
+/* The recipe window, over the game's own. */
+.rec{font-size:12px}
+.rec.game{background:#c6c6c6;color:#3f3f3f;box-shadow:inset 2px 2px #fff,inset -2px -2px #555,0 0 0 2px #000}
+.rec.lamium{background:rgba(16,17,19,.96);border:1px solid var(--edge);color:#fff}
+.rec .top{position:absolute;left:8px;right:8px;top:6px;height:18px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.rec .top .sp{flex:1}
+.rec .top .nm{font-size:13px;overflow:hidden;text-overflow:ellipsis}
+.rec.game .btn{background:#8b8b8b;border-color:#373737;color:#fff}
+.rec.game .btn.on{background:var(--accent-deep);border-color:#1f4d12}
+.rec .tabs{position:absolute;left:8px;top:28px;display:flex;gap:3px;align-items:center}
+.tab{width:28px;height:20px;border:1px solid var(--key-edge);background:var(--key);position:relative;cursor:pointer}
+.rec.game .tab{background:#8b8b8b;border-color:#373737}
+.tab.on{background:var(--accent-deep);border-color:var(--accent)}
+.tab i{position:absolute;inset:3px 7px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
+.tab.all{width:auto;padding:0 6px;font-size:11px;line-height:18px;color:#fff}
+.blk{position:absolute;left:8px;right:8px;height:134px}
+.blk + .blk{border-top:1px solid rgba(128,128,128,.5)}
+.blk .cap{position:absolute;left:4px;top:3px;font-size:11.5px;white-space:nowrap}
+.blk .cap .m{margin-left:8px;opacity:.75}
+.blk .arrow{position:absolute;font-size:24px;line-height:36px}
+.blk .flame{position:absolute;width:16px;height:16px;background:linear-gradient(#ffd75e,#e2571a)}
+.blk .ops{position:absolute;right:0;top:22px;width:92px;display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.blk .ops .btn{text-align:center}
+.blk .ops .n{font-size:10.5px;opacity:.8;text-align:center}
+.rec .empty{position:absolute;left:12px;top:60px;opacity:.8}
+.tip{position:absolute;background:rgba(16,0,16,.95);border:1px solid #2a0a5c;padding:3px 6px;font-size:12px;white-space:nowrap;pointer-events:none;z-index:9;color:#fff}
+.tip .g{display:grid;grid-template-columns:repeat(8,16px);gap:2px;margin-top:4px}
+.tip .g i{width:16px;height:16px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.45)}
+.tip .f{color:var(--faint);font-size:11px}
+.qa{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.qa ul,.qa ol{margin:6px 0 0;padding-left:20px;color:var(--ink-2)} .qa li{margin:4px 0}
+.qa b{color:var(--ink)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">BACKLOG L-359 · レシピを見る画面 · モック 2（2026-11-18）</div>
+  <h1>中央にレシピ、右に一覧、左にお気に入りと計画、下に検索欄</h1>
+  <p class="lede">モック 1 への回答を反映しました。レシピはゲームの画面に近い並べ方で中央に出し、1 ページに 2 つまで並びます。検索欄はインベントリの下、一覧の絞り込み（すべて・作れる物）は一覧の上です。「並べる」「まとめて作る」は置き場所だけで、動きません。画面内のアイテムは押せます（クリック: レシピ、右クリック: 使い道、ホバー中に R / U / A）。ゲームの画面とアイテムは仮の絵です。</p>
+</header>
+
+<div class="ctrl" id="ctrl"></div>
+
+<div class="stage-outer"><div class="fit" id="fit"><div class="stage dark" id="stage"></div></div></div>
+
+<div class="two">
+<section class="qa">
+  <h2>決まったことの反映</h2>
+  <ul>
+    <li><b>レシピは中央</b>に、ゲームの窓を覆って出ます（ゲームの画面は下で開いたまま）。</li>
+    <li><b>並べ方はゲームに近く。</b>作業台は 3×3、かまどと溶鉱炉は入力・炎・燃料・矢印・出力、石切台は入力と出力。形は 1 種類だけで、合計の行や小さい表示はありません。</li>
+    <li><b>左</b>は上がお気に入り、下が計画（中身は次のモック）。</li>
+    <li><b>検索欄は中央の下。</b>打つと一覧が絞られ、インベントリの中の一致するスロットにも枠が出ます（将来の使い方の例）。</li>
+    <li><b>一覧の絞り込み</b>は「すべて」と「作れる物」。作れない物を薄くするだけにもできます。</li>
+    <li><b>使い道</b>も同じ表示です。見出しの「作る・使う」で切り替わり、対象のアイテムに枠が付きます。</li>
+    <li><b>並べる・まとめて作る</b>は各レシピの右に場所を取ってあります（L-165 Mass Craft と一緒に調査）。</li>
+  </ul>
+</section>
+<section class="qa">
+  <h2>決めたい所（上の切り替えで比べられます）</h2>
+  <ol>
+    <li><b>左右の一覧の描き方。</b>何も敷かない、画面の端まで暗い帯を敷く、余白と枠のあるパネルにする。「背景」を明るい場所にすると読みやすさの差が出ます。</li>
+    <li><b>レシピの窓の見た目。</b>ゲームの窓に寄せる（明るい灰色）か、Lamium の画面に寄せる（暗い）か。</li>
+    <li><b>一覧でお気に入り済みのアイテムに A。</b>外すか、いちばん新しい位置へ移すか。お気に入り側で押したときはどちらも外します。</li>
+    <li><b>並べ方を問わないレシピ</b>の印（「並べ方自由」）と、手元の 2×2 で作れる印（「手元で作れる」）の出し方。</li>
+    <li><b>1 ページに 2 つ</b>でよいか。使い道が多いアイテム（板材など）で送りやすさを見てください。</li>
+  </ol>
+</section>
+</div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+// --- Stand-in items -------------------------------------------------------------
+const items = [], byName = {};
+const add = (name, color) => { const it = {id:items.length, name, color}; items.push(it); byName[name] = it; return it; };
+const shade = (hex, k) => '#' + [1,3,5].map(i => Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * k))).toString(16).padStart(2, '0')).join('');
+const woods = [['オーク','#b8945f'],['トウヒ','#7a5a34'],['シラカバ','#d7c98f'],['ジャングル','#b1805c'],['アカシア','#ba6337'],['ダークオーク','#4f3218'],
+  ['マングローブ','#773934'],['サクラ','#e7b3ad'],['竹','#c9b34c'],['真紅','#7b3953'],['歪んだ','#2b6d67'],['ペールオーク','#e3d9d5']];
+const woodForms = [['原木',.6],['板材',1],['階段',.95],['ハーフブロック',.9],['フェンス',.85],['ドア',.8],['トラップドア',.75],['ボタン',1.05],['感圧板',1.1],['看板',1.15]];
+for (const [form, k] of woodForms) for (const [w, c] of woods) add(`${w}の${form}`, shade(c, k));
+const stones = [['石','#9a9a9a'],['丸石','#7c7c7c'],['石レンガ','#8a8a86'],['安山岩','#888c8a'],['閃緑岩','#bfbfc0'],['花崗岩','#9a6b5a'],['深層岩','#505053'],
+  ['凝灰岩','#6d6f66'],['砂岩','#dbd3a0'],['赤い砂岩','#c06a2b'],['ブラックストーン','#2c2a31'],['レンガ','#97583f']];
+for (const [s, c] of stones) add(s, c);
+for (const [form, k] of [['階段',.92],['ハーフブロック',.86],['塀',.8]]) for (const [s, c] of stones) add(`${s}の${form}`, shade(c, k));
+const colors = [['白','#e9ecec'],['橙','#f07613'],['赤紫','#bd44b3'],['空','#3aafd9'],['黄','#f8c627'],['黄緑','#70b919'],['桃','#ed8dac'],['灰','#3e4447'],
+  ['薄灰','#8e8e86'],['青緑','#158991'],['紫','#792aac'],['青','#35399d'],['茶','#724728'],['緑','#546d1b'],['赤','#a12722'],['黒','#141519']];
+for (const [form, k] of [['羊毛',1],['カーペット',.93],['コンクリート',.85],['テラコッタ',.7],['ガラス',1.1],['ベッド',.78]]) for (const [c, h] of colors) add(`${c}色の${form}`, shade(h, k));
+for (const [n, c] of [['棒','#8a6a3b'],['松明','#ffd75e'],['石炭','#2e2e2e'],['木炭','#4a4038'],['チェスト','#a9772f'],['作業台','#9c6b3a'],['かまど','#6f6f6f'],
+  ['溶鉱炉','#55585c'],['石切台','#8d8d8d'],['砂','#dbd3a0'],['赤い砂','#c06a2b'],['ガラス','#bfe6ee'],['鉄の原石','#d8af93'],['鉄鉱石','#b89f8f'],['深層鉄鉱石','#74706f'],
+  ['鉄インゴット','#e2e2e2'],['鉄ナゲット','#cfcfcf'],['鉄ブロック','#dcdcdc'],['ランタン','#f0b23c'],['バケツ','#c9c9c9'],['はさみ','#b9b9b9'],['ホッパー','#4b4b4b'],
+  ['ピストン','#9f8c66'],['レッドストーン','#c81e0a'],['金インゴット','#f9d949'],['ダイヤモンド','#6aecde'],['エメラルド','#41d976'],['糸','#eeeeee'],['羽根','#f4f4f4'],
+  ['火打石','#3a3a3a'],['矢','#bdbdbd'],['弓','#8b5a2b'],['紙','#f2f2ea'],['本','#7a4b2a'],['本棚','#a07a48'],['革','#9c4f2c'],['骨粉','#e8e8e8'],['小麦','#d9c05e'],['パン','#b9853a'],
+  ['火打石と打ち金','#6c6c6c']]) add(n, c);
+const I = n => byName[n].id;
+// --- Groups and sample recipes ---------------------------------------------------
+const groups = {
+  planks:{name:'板材', members:woods.map(([w]) => I(`${w}の板材`))},
+  logs:{name:'原木', members:woods.map(([w]) => I(`${w}の原木`))},
+  coals:{name:'石炭・木炭', members:[I('石炭'), I('木炭')]},
+  cobbles:{name:'丸石の仲間', members:[I('丸石'), I('深層岩'), I('ブラックストーン')]},
+  sands:{name:'砂', members:[I('砂'), I('赤い砂')]},
+  irons:{name:'鉄の原石・鉱石', members:[I('鉄の原石'), I('鉄鉱石'), I('深層鉄鉱石')]},
+};
+const G = k => ({g:k});
+const recipes = [];
+const fix = c => typeof c === 'string' ? I(c) : c;
+const craft = (out, n, w, h, cells, free) => recipes.push({st:'craft', out:I(out), n, w, h, cells:cells.map(fix), free:!!free});
+const one = (st, out, n, input) => recipes.push({st, out:I(out), n, w:1, h:1, cells:[fix(input)]});
+for (const [w] of woods) {
+  const p = `${w}の板材`, _ = null;
+  craft(p, 4, 1, 1, [`${w}の原木`], true);
+  craft(`${w}の階段`, 4, 3, 3, [p,_,_, p,p,_, p,p,p]);
+  craft(`${w}のハーフブロック`, 6, 3, 1, [p,p,p]);
+  craft(`${w}のフェンス`, 3, 3, 2, [p,'棒',p, p,'棒',p]);
+  craft(`${w}のドア`, 3, 2, 3, [p,p, p,p, p,p]);
+  craft(`${w}のトラップドア`, 2, 3, 2, [p,p,p, p,p,p]);
+  craft(`${w}のボタン`, 1, 1, 1, [p], true);
+  craft(`${w}の感圧板`, 1, 2, 1, [p,p]);
+  craft(`${w}の看板`, 3, 3, 3, [p,p,p, p,p,p, null,'棒',null]);
+}
+for (const [s] of stones) {
+  const _ = null;
+  craft(`${s}の階段`, 4, 3, 3, [s,_,_, s,s,_, s,s,s]); one('stone', `${s}の階段`, 1, s);
+  craft(`${s}のハーフブロック`, 6, 3, 1, [s,s,s]); one('stone', `${s}のハーフブロック`, 2, s);
+  craft(`${s}の塀`, 6, 3, 2, [s,s,s, s,s,s]); one('stone', `${s}の塀`, 1, s);
+}
+for (const [c] of colors) {
+  craft(`${c}色のカーペット`, 3, 2, 1, [`${c}色の羊毛`, `${c}色の羊毛`]);
+  craft(`${c}色のベッド`, 1, 3, 2, [`${c}色の羊毛`,`${c}色の羊毛`,`${c}色の羊毛`, G('planks'),G('planks'),G('planks')]);
+}
+{
+  const P = G('planks'), C = G('cobbles'), _ = null, fe = '鉄インゴット';
+  craft('棒', 4, 1, 2, [P, P]);
+  craft('松明', 4, 1, 2, [G('coals'), '棒']);
+  craft('チェスト', 1, 3, 3, [P,P,P, P,_,P, P,P,P]);
+  craft('作業台', 1, 2, 2, [P,P, P,P]);
+  craft('かまど', 1, 3, 3, [C,C,C, C,_,C, C,C,C]);
+  craft('溶鉱炉', 1, 3, 3, [fe,fe,fe, fe,'かまど',fe, '石','石','石']);
+  craft('石切台', 1, 3, 2, [_,fe,_, '石','石','石']);
+  one('furnace', '石', 1, '丸石');
+  craft('石レンガ', 4, 2, 2, ['石','石', '石','石']); one('stone', '石レンガ', 1, '石');
+  one('furnace', 'ガラス', 1, G('sands'));
+  one('furnace', '鉄インゴット', 1, G('irons')); recipes[recipes.length - 1].def = true; one('blast', '鉄インゴット', 1, G('irons'));
+  craft('鉄インゴット', 9, 1, 1, ['鉄ブロック'], true);
+  craft('鉄インゴット', 1, 3, 3, Array(9).fill('鉄ナゲット'));
+  craft('鉄ブロック', 1, 3, 3, Array(9).fill(fe));
+  craft('鉄ナゲット', 9, 1, 1, [fe], true);
+  craft('ランタン', 1, 3, 3, ['鉄ナゲット','鉄ナゲット','鉄ナゲット', '鉄ナゲット','松明','鉄ナゲット', '鉄ナゲット','鉄ナゲット','鉄ナゲット']);
+  craft('バケツ', 1, 3, 2, [fe,_,fe, _,fe,_]);
+  craft('はさみ', 1, 2, 2, [_,fe, fe,_]);
+  craft('火打石と打ち金', 1, 2, 1, [fe, '火打石'], true);
+  craft('ホッパー', 1, 3, 3, [fe,_,fe, fe,'チェスト',fe, _,fe,_]);
+  craft('ピストン', 1, 3, 3, [P,P,P, C,fe,C, C,'レッドストーン',C]);
+  craft('矢', 4, 1, 3, ['火打石', '棒', '羽根']);
+  craft('弓', 1, 3, 3, [_,'棒','糸', '棒',_,'糸', _,'棒','糸']);
+  craft('紙', 3, 3, 1, ['小麦','小麦','小麦']);
+  craft('本', 1, 2, 2, ['紙','紙', '紙','革'], true);
+  craft('本棚', 1, 3, 3, [P,P,P, '本','本','本', P,P,P]);
+  craft('パン', 1, 3, 1, ['小麦','小麦','小麦']);
+  one('furnace', '木炭', 1, G('logs'));
+}
+const stations = {craft:['作業台', I('作業台')], stone:['石切台', I('石切台')], furnace:['かまど', I('かまど')], blast:['溶鉱炉', I('溶鉱炉')]};
+const order = ['craft', 'stone', 'furnace', 'blast'];
+const membersOf = c => typeof c === 'number' ? [c] : groups[c.g].members;
+const usesItem = (r, id) => r.cells.some(c => c !== null && membersOf(c).includes(id));
+const recipesOf = id => recipes.filter(r => r.out === id).sort((a, b) => (b.def ? 1 : 0) - (a.def ? 1 : 0) || order.indexOf(a.st) - order.indexOf(b.st));
+const usesOf = id => recipes.filter(r => usesItem(r, id));
+// What the stand-in inventory holds, and how many times a recipe can be made from it.
+const held = [[I('オークの板材'), 20], [I('丸石'), 64], [I('石'), 12], [I('棒'), 2], [I('鉄インゴット'), 3], [I('石炭'), 3], [I('シラカバの原木'), 6], [I('松明'), 16]];
+const have = id => held.filter(h => h[0] === id).reduce((a, h) => a + h[1], 0);
+function times(r){
+  const need = new Map();
+  for (const c of r.cells) if (c !== null) { const k = typeof c === 'number' ? 'i' + c : 'g' + c.g; need.set(k, (need.get(k) || 0) + 1); }
+  let n = Infinity;
+  for (const [k, count] of need) {
+    const got = k[0] === 'i' ? have(+k.slice(1)) : groups[k.slice(1)].members.reduce((a, m) => a + have(m), 0);
+    n = Math.min(n, Math.floor(got / count));
+  }
+  return n === Infinity ? 0 : n;
+}
+const craftable = id => recipes.some(r => r.out === id && (r.st === 'craft') && times(r) > 0);
+
+// --- State and layout --------------------------------------------------------------
+const state = {book:false, sides:'band', look:'game', akey:'remove', scene:'dark', filter:'all', q:'', page:0, view:null, back:[],
+  favs:[I('松明'), I('石レンガ'), I('鉄インゴット'), I('チェスト')], tick:0};
+let hoverItem = null, hoverFav = false;
+function controls(){
+  const list = [['左右の一覧','sides',[['none','何も敷かない'],['band','端まで暗い帯'],['frame','余白と枠のパネル']]],['背景','scene',[['dark','暗い場所'],['bright','明るい場所']]],
+    ['レシピの窓','look',[['game','ゲームに寄せる'],['lamium','Lamium に寄せる']]],['一覧で済みのアイテムに A','akey',[['remove','外す'],['bump','新しい位置へ']]],
+    ['ゲームのレシピブック','book',[[false,'オフ'],[true,'オン']]]];
+  $('#ctrl').innerHTML = list.map(([label, key, opts]) => `<span class="grp">${label}：${opts.map(([v, t]) =>
+    `<button data-k="${key}" data-v="${v}" aria-pressed="${String(state[key]) === String(v)}">${t}</button>`).join('')}</span>`).join('');
+}
+const icon = (id, n) => `<i style="background:${items[id].color}"></i>${n > 1 ? `<b>${n}</b>` : ''}`;
+const member = c => typeof c === 'number' ? c : groups[c.g].members[state.tick % groups[c.g].members.length];
+function layout(){
+  const W = 352, H = 332, bookW = 296, y = 84;
+  const x = state.book ? (960 - (bookW + W)) / 2 + bookW : 304;
+  const framed = state.sides === 'frame', m = framed ? 8 : 0;
+  const right = {x:x + W + 8, y:m, w:960 - (x + W + 8) - m, h:540 - 2 * m};
+  const left = {x:m, y:m, w:(state.book ? x - bookW : x) - 8 - m, h:540 - 2 * m};
+  return {W, H, y, x, bookX:x - bookW, bookW, right, left};
+}
+function vanilla(l){
+  const q = state.q.trim();
+  let h = `<div class="abs van" style="left:${l.x}px;top:${l.y}px;width:${l.W}px;height:${l.H}px"><span class="abs" style="left:14px;top:8px">インベントリ</span>`;
+  for (let i = 0; i < 4; ++i) h += `<span class="slot" style="left:14px;top:${14 + i * 36}px"></span>`;
+  h += `<span class="abs" style="left:52px;top:14px;width:104px;height:144px;background:#000"></span><span class="slot" style="left:158px;top:122px"></span>`;
+  for (let i = 0; i < 4; ++i) h += `<span class="slot" style="left:${212 + (i % 2) * 36}px;top:${32 + Math.floor(i / 2) * 36}px"></span>`;
+  h += `<span class="abs" style="left:290px;top:42px;font-size:20px">→</span><span class="slot" style="left:302px;top:50px"></span>`;
+  for (let i = 0; i < 27; ++i) {
+    const it = held[i], match = it && q && items[it[0]].name.includes(q);
+    h += `<span class="slot ${match ? 'match' : ''}" ${it ? `data-item="${it[0]}" data-inv="1"` : ''} style="left:${14 + (i % 9) * 36}px;top:${166 + Math.floor(i / 9) * 36}px">${it ? icon(...it) : ''}</span>`;
+  }
+  for (let i = 0; i < 9; ++i) h += `<span class="slot" style="left:${14 + i * 36}px;top:282px"></span>`;
+  h += `</div>`;
+  if (state.book) {
+    h += `<div class="abs van" style="left:${l.bookX}px;top:${l.y}px;width:${l.bookW}px;height:${l.H}px"><span class="abs" style="left:12px;top:8px;font-size:13px">レシピブック（ゲームの物）</span>
+      <span class="abs" style="left:12px;top:30px;width:${l.bookW - 24}px;height:22px;background:#373737"></span>`;
+    for (let i = 0; i < 35; ++i) h += `<span class="slot" style="left:${14 + (i % 7) * 38}px;top:${62 + Math.floor(i / 7) * 38}px"></span>`;
+    h += `</div>`;
+  }
+  return h + `<input class="search" id="q" placeholder="検索（アイテム名）" value="${state.q.replace(/"/g, '&quot;')}" style="left:${l.x}px;top:${l.y + l.H + 10}px;width:${l.W}px">`;
+}
+function listSide(l){
+  const r = l.right, cols = Math.max(1, Math.floor((r.w - 4) / 36)), top = 22, rows = Math.floor((r.h - top - 4) / 36), per = cols * rows;
+  const q = state.q.trim();
+  const found = items.filter(it => (!q || it.name.includes(q)) && (state.filter !== 'can' || craftable(it.id)));
+  const pages = Math.max(1, Math.ceil(found.length / per));
+  state.page = Math.min(state.page, pages - 1);
+  const pad = Math.floor((r.w - cols * 36) / 2), wide = r.w >= 200;
+  let h = `<div class="abs side ${state.sides}" id="list" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px">
+    <div class="bar" style="top:1px">${wide ? `<span class="btn ${state.filter === 'all' ? 'on' : ''}" data-filter="all">すべて</span><span class="btn ${state.filter === 'can' ? 'on' : ''}" data-filter="can">作れる物</span>` : `<span class="btn ${state.filter === 'can' ? 'on' : ''}" data-filter="${state.filter === 'can' ? 'all' : 'can'}">作れる</span>`}
+      <span class="sp"></span><span class="btn" data-page="-1">◀</span><span>${state.page + 1}/${pages}</span><span class="btn" data-page="1">▶</span></div>`;
+  found.slice(state.page * per, state.page * per + per).forEach((it, i) => {
+    h += `<span class="cell ${state.favs.includes(it.id) ? 'fav' : ''}" data-item="${it.id}" style="left:${pad + (i % cols) * 36}px;top:${top + Math.floor(i / cols) * 36}px">${icon(it.id, 1)}</span>`;
+  });
+  if (!found.length) h += `<span class="label" style="top:${top + 8}px">見つかりません</span>`;
+  return h + `</div>`;
+}
+function leftSide(l){
+  const r = l.left;
+  if (r.w < 60) return '';
+  const cols = Math.max(1, Math.floor((r.w - 4) / 36)), pad = Math.floor((r.w - cols * 36) / 2), planTop = Math.floor(r.h * .58);
+  let h = `<div class="abs side ${state.sides}" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"><span class="label" style="top:3px">お気に入り</span>`;
+  state.favs.forEach((id, i) => {
+    if (22 + Math.floor(i / cols) * 36 + 36 <= planTop) h += `<span class="cell fav" data-item="${id}" data-fav="1" style="left:${pad + (i % cols) * 36}px;top:${22 + Math.floor(i / cols) * 36}px">${icon(id, 1)}</span>`;
+  });
+  h += `<span class="abs" style="left:6px;right:6px;top:${planTop}px;height:1px;background:rgba(255,255,255,.2)"></span><span class="label" style="top:${planTop + 5}px">計画</span>
+    <div class="plan" style="top:${planTop + 24}px">${r.w >= 200 ? '石レンガ ×64<br>ランタン ×4<br>チェスト ×2<br><span class="f">集める: 丸石 34、鉄 4 …</span><br>' : ''}<span class="f">（中身は次のモック）</span></div></div>`;
+  return h;
+}
+// One recipe, laid out as its station's own screen lays it out.
+function block(r, top, focus){
+  const t = times(r), can = r.st === 'craft' && t > 0;
+  const slot = (c, x, y, big) => c === null ? `<span class="slot ${big ? 'big' : ''}" style="left:${x}px;top:${y}px"></span>`
+    : `<span class="slot rslot ${big ? 'big' : ''} ${focus !== null && membersOf(c).includes(focus) ? 'focus' : ''}" style="left:${x}px;top:${y}px" ${typeof c === 'number' ? `data-item="${c}"` : `data-group="${c.g}" data-item="${member(c)}"`}>${icon(member(c), 1)}</span>`;
+  const out = (x, y) => `<span class="slot rslot big ${focus === null ? '' : ''}" style="left:${x}px;top:${y}px" data-item="${r.out}">${icon(r.out, r.n)}</span>`;
+  const marks = [r.def ? '既定' : '', r.free ? '並べ方自由' : '', r.st === 'craft' && r.w <= 2 && r.h <= 2 ? '手元で作れる' : ''].filter(Boolean).join(' · ');
+  let h = `<div class="blk" style="top:${top}px"><span class="cap">${stations[r.st][0]}${marks ? `<span class="m">${marks}</span>` : ''}</span>`;
+  if (r.st === 'craft') {
+    // Shapeless recipes are packed from the top left; shaped ones keep their place in the 3x3 grid.
+    const grid = Array(9).fill(null);
+    if (r.free) r.cells.filter(c => c !== null).forEach((c, i) => { grid[i] = c; });
+    else r.cells.forEach((c, i) => { grid[Math.floor(i / r.w) * 3 + (i % r.w)] = c; });
+    grid.forEach((c, i) => { h += slot(c, 12 + (i % 3) * 36, 22 + Math.floor(i / 3) * 36); });
+    h += `<span class="arrow" style="left:132px;top:58px">→</span>${out(166, 50)}`;
+  } else if (r.st === 'stone') {
+    h += slot(r.cells[0], 48, 58) + `<span class="arrow" style="left:104px;top:58px">→</span>${out(146, 50)}`;
+  } else {
+    h += slot(r.cells[0], 48, 22) + `<span class="flame" style="left:58px;top:64px"></span>` + slot(null, 48, 86)
+      + `<span class="arrow" style="left:104px;top:54px">→</span>${out(146, 46)}`;
+  }
+  h += `<div class="ops"><span class="btn ${can ? '' : 'off'}" data-tip="${can ? '材料をゲームのマスに並べます（後で実装）' : r.st === 'craft' ? '手持ちの材料が足りません' : '作業台のレシピだけ（後で実装）'}">並べる</span>
+    <span class="btn ${can ? '' : 'off'}" data-tip="${can ? '材料が無くなるまで作ります（L-165 Mass Craft、後で実装）' : '作れません'}">まとめて作る</span>
+    <span class="n">${r.st === 'craft' ? `手持ちで ${t} 回` : '&nbsp;'}</span>
+    <span class="btn" data-tip="このアイテムを作るときに使うレシピにします">既定にする</span><span class="btn" data-tip="計画の目標に加えます（次のモック）">計画に追加</span></div></div>`;
+  return h;
+}
+function recipeWindow(l){
+  const v = state.view;
+  if (!v) return '';
+  const it = items[v.item], all = v.mode === 'uses' ? usesOf(v.item) : recipesOf(v.item);
+  const sts = [...new Set(all.map(r => r.st))];
+  if (v.st && !sts.includes(v.st)) v.st = null;
+  const list = v.st ? all.filter(r => r.st === v.st) : all;
+  const pages = Math.max(1, Math.ceil(list.length / 2));
+  v.i = Math.min(v.i, pages - 1);
+  let h = `<div class="abs rec ${state.look}" id="recipe" style="left:${l.x}px;top:${l.y}px;width:${l.W}px;height:${l.H}px">
+    <div class="top"><span class="btn ${state.back.length ? '' : 'off'}" data-act="back">戻る</span>
+      <span style="display:inline-block;width:14px;height:14px;flex:none;background:${it.color};box-shadow:inset 0 0 0 1px rgba(0,0,0,.45)"></span><span class="nm">${it.name}</span>
+      <span class="btn ${v.mode === 'recipe' ? 'on' : ''}" data-act="recipe">作る</span><span class="btn ${v.mode === 'uses' ? 'on' : ''}" data-act="uses">使う</span>
+      <span class="sp"></span><span class="btn" data-act="close">閉じる</span></div>
+    <div class="tabs">${sts.length > 1 ? `<span class="tab all ${v.st ? '' : 'on'}" data-st="">すべて</span>` : ''}${sts.map(s => `<span class="tab ${s === v.st || sts.length === 1 ? 'on' : ''}" data-st="${s}" data-tip="${stations[s][0]}"><i style="background:${items[stations[s][1]].color}"></i></span>`).join('')}
+      <span style="margin-left:8px;white-space:nowrap">${list.length ? `${list.length} 件` : ''}</span>
+      ${pages > 1 ? `<span class="btn" data-rec="-1" style="margin-left:6px">◀</span><span>${v.i + 1}/${pages}</span><span class="btn" data-rec="1">▶</span>` : ''}</div>`;
+  if (!list.length) h += `<div class="empty">${v.mode === 'uses' ? 'このアイテムを使うレシピはありません。' : '作るレシピはありません（集めるアイテムです）。'}</div>`;
+  list.slice(v.i * 2, v.i * 2 + 2).forEach((r, i) => { h += block(r, 54 + i * 136, v.mode === 'uses' ? v.item : null); });
+  return h + `</div>`;
+}
+function render(keepFocus){
+  controls();
+  const l = layout();
+  const focused = keepFocus && document.activeElement && document.activeElement.id === 'q', at = focused ? document.activeElement.selectionStart : 0;
+  const stage = $('#stage');
+  stage.className = 'stage ' + state.scene;
+  stage.innerHTML = vanilla(l) + listSide(l) + leftSide(l) + recipeWindow(l) + `<div class="tip" id="tip" hidden></div>`;
+  if (focused) { const q = $('#q'); q.focus(); q.setSelectionRange(at, at); }
+}
+function open(id, mode){
+  if (state.view) state.back.push({...state.view});
+  state.view = {item:id, mode, st:null, i:0};
+  render();
+}
+function favourite(id, inFavs){
+  const has = state.favs.includes(id);
+  if (!has) state.favs = [...state.favs, id];
+  else if (inFavs || state.akey === 'remove') state.favs = state.favs.filter(x => x !== id);
+  else state.favs = [...state.favs.filter(x => x !== id), id];
+  render();
+}
+// --- Input ---------------------------------------------------------------------------
+document.addEventListener('click', e => {
+  const k = e.target.closest('[data-k]');
+  if (k) { const v = k.dataset.v; state[k.dataset.k] = v === 'true' ? true : v === 'false' ? false : v; render(); return; }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    const a = act.dataset.act;
+    if (a === 'close') { state.view = null; state.back = []; }
+    else if (a === 'back') { if (state.back.length) state.view = state.back.pop(); }
+    else { state.view.mode = a; state.view.i = 0; state.view.st = null; }
+    render(); return;
+  }
+  const filter = e.target.closest('[data-filter]');
+  if (filter) { state.filter = filter.dataset.filter; state.page = 0; render(); return; }
+  const page = e.target.closest('[data-page]');
+  if (page) { state.page = Math.max(0, state.page + +page.dataset.page); render(); return; }
+  const rec = e.target.closest('[data-rec]');
+  if (rec) { state.view.i = Math.max(0, state.view.i + +rec.dataset.rec); render(); return; }
+  const st = e.target.closest('[data-st]');
+  if (st) { state.view.st = st.dataset.st || null; state.view.i = 0; render(); return; }
+  const it = e.target.closest('[data-item]');
+  // The game's own slots keep their clicks: only the keys work there.
+  if (it && !it.dataset.inv) open(+it.dataset.item, 'recipe');
+});
+document.addEventListener('contextmenu', e => {
+  const it = e.target.closest('[data-item]');
+  if (it && !it.dataset.inv) { e.preventDefault(); open(+it.dataset.item, 'uses'); }
+});
+document.addEventListener('input', e => { if (e.target.id === 'q') { state.q = e.target.value; state.page = 0; render(true); } });
+document.addEventListener('wheel', e => {
+  const inList = e.target.closest('#list'), inRec = e.target.closest('#recipe');
+  if (!inList && !inRec) return;
+  e.preventDefault();
+  if (inList) state.page = Math.max(0, state.page + (e.deltaY > 0 ? 1 : -1));
+  else state.view.i = Math.max(0, state.view.i + (e.deltaY > 0 ? 1 : -1));
+  render(true);
+}, {passive:false});
+document.addEventListener('keydown', e => {
+  if (e.target.id === 'q') { if (e.key === 'Escape') e.target.blur(); return; }
+  if (e.key === 'Escape' && state.view) { state.view = null; state.back = []; render(); }
+  else if (e.key === 'Backspace' && state.back.length) { state.view = state.back.pop(); render(); }
+  else if (hoverItem !== null && (e.key === 'r' || e.key === 'u')) open(hoverItem, e.key === 'r' ? 'recipe' : 'uses');
+  else if (hoverItem !== null && e.key === 'a') favourite(hoverItem, hoverFav);
+});
+document.addEventListener('mousemove', e => {
+  const tip = $('#tip'); if (!tip) return;
+  const it = e.target.closest('[data-item]'), other = e.target.closest('[data-tip]');
+  hoverItem = it ? +it.dataset.item : null;
+  hoverFav = !!(it && it.dataset.fav);
+  if (!it && !other) { tip.hidden = true; return; }
+  const box = $('#stage').getBoundingClientRect(), s = box.width / 960;
+  const group = it && it.dataset.group ? groups[it.dataset.group] : null;
+  tip.innerHTML = other && !it ? other.dataset.tip : group
+    ? `${group.name}（どれでも ${group.members.length} 種）<div class="g">${group.members.map(m => `<i style="background:${items[m].color}"></i>`).join('')}</div><div class="f">今: ${items[+it.dataset.item].name}</div>`
+    : items[+it.dataset.item].name;
+  tip.hidden = false;
+  const x = (e.clientX - box.left) / s + 12, y = (e.clientY - box.top) / s + 12;
+  tip.style.left = Math.min(x, 960 - tip.offsetWidth - 4) + 'px';
+  tip.style.top = Math.min(y, 540 - tip.offsetHeight - 4) + 'px';
+});
+// "Any of" slots show their members in turn.
+setInterval(() => {
+  ++state.tick;
+  document.querySelectorAll('[data-group]').forEach(el => {
+    const g = groups[el.dataset.group], m = g.members[state.tick % g.members.length];
+    el.dataset.item = m;
+    el.innerHTML = icon(m, 1);
+  });
+}, 1400);
+function fit(){ const s = $('#fit').clientWidth / 960; $('#stage').style.transform = `scale(${s})`; $('#fit').style.height = 540 * s + 'px'; }
+addEventListener('resize', fit);
+render(); fit();
+</script>
+</body>
+</html>
