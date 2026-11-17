@@ -89,8 +89,12 @@ is in the L-item.
   be edited; it looks like the others and says where it comes from.
 - The plan's short list on the left shows either what is left to gather or
   the targets, switched in place.
-- A key (W by default, beside A for favourites; both rebindable) acts on
-  the hovered item's place in "wanted" wherever the favourite key works.
+- A key (W by default, beside A for favourites; both rebindable) puts the
+  hovered item into "wanted" or takes it out, wherever the favourite key
+  works. An item taken out keeps its count until the world is left, so
+  putting it back restores it.
+- A wanted item's count is changed with the shared stepper (- N +), on the
+  short list and in the window alike; nothing else changes it.
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
