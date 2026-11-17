@@ -1,3 +1,4 @@
+#include "features/research/ItemScreenProbe.h"
 #include "input/CustomInput.h"
 #include "features/camera/CameraSessions.h"
 #include "features/interaction/PermanentSneak.h"
@@ -151,6 +152,8 @@ void startCustomInput() {
     installed = true;
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
+        // L-359 probe: a focused field under a game screen keeps the keys from it.
+        if (researchTrace::itemScreen::key(event.keyCode(), event.isDown())) { event.cancel(); return; }
         // Auto-repeat of a held key (Shift for Shift + right click) is not new input.
         static std::vector<int> physical;
         if (!event.isDown()) std::erase(physical, event.keyCode());

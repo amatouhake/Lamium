@@ -1,3 +1,4 @@
+#include "features/research/ItemScreenProbe.h"
 #include "ui/PausedNotice.h"
 #include "features/camera/FreeCameraHide.h"
 #include "ui/SettingsScreen.h"
@@ -415,6 +416,7 @@ void logControlText(std::string const& text) {
 }
 LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
+    if (researchTrace::itemScreen::type(text)) return; // L-359 probe: a field under a game screen
     std::lock_guard lock(mutex);
     ScreenToasts screenToasts;
     if (scene.get() == this && ownsTop()) {
