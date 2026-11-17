@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The game's item screens, probed (L-359 step 1, 2026-11-18)
+
+Builds `fe7e97f0` (DLL `8a7b93401dcdb352a867b302c1baa8af872c6b92a3ad0144ebf6de9dd9df4ba7`)
+and `8dfa3183` (`ace9dcfe0b69c9cea24f0f968eed694bd4b7a6ecfb61980c57aca1a2b264b7eb`),
+both with `--item_screen_probe=y`, 1.26.60.05 Dev instance, the maintainer,
+a local world, GUI 640x360. From `lamium.log` and what the maintainer saw:
+- Screen names: `inventory_screen`, `small_chest_screen`, `crafting_screen`,
+  `furnace_screen`.
+- The window: the chest has `root_panel` (176x166, as the anvil). The
+  inventory and crafting table have none: their window is
+  `content_stack_panel` (326x166 with the recipe book open) holding
+  `recipe_book` (146 wide), `center_fold` (4) and `player_inventory` (176).
+  The furnace has `screen_stack_panel` holding `recipe_book_panel` (0x0
+  when closed) and `right_panel` (176x166).
+- 228 icons beside the chest's window: 0.63 to 0.73 ms a frame on average,
+  1.8 ms at worst.
+- Lamium's screen opened over the inventory and the chest (F8): the game's
+  window is not drawn meanwhile; Esc returns with the items in place and
+  the chest still open; the window fades in from below again, as at the
+  anvil.
+- The settings key does nothing while a game screen is open.
+
+Not checked: the recipe book closed on the inventory and crafting table
+(reported once, with it open), other containers, other GUI sizes, a server.
+
 ## Raw materials in the Materials tab (L-116 / L-359, 2026-11-17)
 
 Build `44d92e34` (DLL
