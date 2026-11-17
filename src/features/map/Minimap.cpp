@@ -1091,7 +1091,8 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         for (size_t i = 0; i < lines.size(); ++i) {
             float x = center - lineWidths[i] / 2, y = mapY + size + margin + 2 + i * lineHeight;
             if (lines[i].icon) {
-                icons.push_back({lines[i].icon, std::round(x), std::round(y), lineIcon / 16});
+                // Centered on the 10-unit text line, as the durability HUD centers its icons on their text.
+                icons.push_back({lines[i].icon, std::round(x), std::round(y + (10 * textScale - lineIcon) / 2), lineIcon / 16});
                 x += lineIcon + iconGap;
             }
             ui::labelScaled(context, x, y, lineWidths[i] + 2, lines[i].text, textScale, ui::palette::text, ui::Align::Left,
