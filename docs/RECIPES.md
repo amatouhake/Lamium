@@ -88,10 +88,9 @@ is in the L-item.
   waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
   be edited; it looks like the others and says where it comes from.
 - The plan's short list on the left shows either what is left to gather or
-  the targets, switched in place. On a hand-added target there, the wheel
-  changes the count (never below one) and Delete removes it.
-- A key adds the hovered item to "wanted", one a press and a stack with
-  Shift; it works wherever the favourite key does.
+  the targets, switched in place.
+- A key (W by default, beside A for favourites; both rebindable) acts on
+  the hovered item's place in "wanted" wherever the favourite key works.
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
