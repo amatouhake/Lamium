@@ -74,9 +74,17 @@ is in the L-item.
 - Every station that can do a recipe is named, as icons.
 
 ### The plan
+- There is one plan: a list of targets in, what to gather and what to make
+  out. Several named plans are not built until one proves too few.
 - Targets come from features (a schematic's materials still to place) and
   can be added by hand. Hand-added targets are saved per world, under the
-  waypoints' key ([MAP.md](MAP.md)).
+  waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
+  be edited; it looks like the others and says where it comes from.
+- The plan's short list on the left shows either what is left to gather or
+  the targets, switched in place.
+- Picking a member for a group and saying that an item is gathered, not
+  made, are done inside the plan.
+- The plan is lists; no tree view for now.
 - What counts as held is a setting. Carried items and the shulker boxes
   among them are in by default; one count serves the plan and the schematic
   Materials tab. The setting gets a row once a second source (ender chest,
