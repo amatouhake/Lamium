@@ -67,8 +67,11 @@ Until then, candidate upstream implementations remain reference-only research.
 - [BarelyEnoughItems (BEI)](https://github.com/MiracleForest/BarelyEnoughItems)
   (README and COPYING.LESSER: LGPL-3.0-or-later, © LeviMC; used under
   LGPL-3.0). Decided by the maintainer 2026-11-14: its source may be opened
-  for item rendering and recipe work, starting from upstream commit
-  `2d4facf`. It was reference-only before; on 2026-11-13 it was named as a
+  for item rendering, starting from upstream commit `2d4facf`. Recipe work
+  is excluded (maintainer 2026-11-17): both projects build recipe features,
+  so Lamium's ([L-359](backlog/L-359.md)) are written from the game and the
+  SDK headers without opening BEI's source, whatever the license allows.
+  It was reference-only before; on 2026-11-13 it was named as a
   comparison for Lamium's item-icon rendering (L-91), and its source was
   read only in the maintainer's external research. Lamium's ItemIcon, up to
   and including Lamium commit `34c55be2`, predates BEI's first release
