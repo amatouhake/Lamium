@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe view, first seen (L-359 step 3, 2026-11-18)
+
+Build `967d7efe` with `--item_list=y` (DLL
+`1ba1cc78cc367f5854c50d26acb2bceb6f1d8023b7e6f094529f865ce554c08f`),
+1.26.60.05 Dev instance, the maintainer, with screenshots:
+- The wheel paged the band; a press opened an item's recipes and a right
+  press what it is used in. In the view a press on an ingredient moved to
+  it, Backspace went back, Esc closed the view alone, E did nothing.
+  Afterwards the game's window worked as before.
+- Recipes showed in their grid with the "in use" and "2x2" marks, tabs and
+  pages; an ingredient any planks satisfy changed its icon in turn.
+- Faults: the game's slot highlight and tooltip showed faintly through the
+  view; the key hints' line was cut at its end.
+- Remarks: all beds are one item, the white bed, in the list and the view;
+  asked what oak planks are used in, slots for any planks showed other
+  woods in turn while a recipe that names oak planks stood still; having to
+  press Esc where E closes the inventory felt wrong.
+
+Not reported: the furnace's tabs, the "any order" mark, a server.
+
 ## The recipe view's second build took no input either (L-359 step 3, 2026-11-18)
 
 Build `8778e963` with `--item_list=y` (DLL

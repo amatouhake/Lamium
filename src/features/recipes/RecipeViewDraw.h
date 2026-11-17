@@ -21,6 +21,7 @@ struct Late {
     std::vector<inspection::render::IconAt> icons;
     std::vector<Count> counts;
     std::string tip;
+    std::string hovered; // the item under the pointer, by its id
 };
 bool isOpen();
 // Shows an item's recipes, or what it is used in; the item shown before stays one step back.

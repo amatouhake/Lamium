@@ -62,6 +62,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     auto& at = trail.back();
     at.page += input.wheel;
     auto const l = recipeViewAt(input.screenWidth, input.screenHeight);
+    // The game's window lies under the view and still answers the pointer: nothing of it may show through.
+    fill(context, l.left, l.top, l.width, l.height, palette::panel);
     panel(context, l.left, l.top, l.width, l.height, opacity::floating);
     label(context, l.left + 6, l.top + 5, l.width - 12,
           translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
@@ -118,7 +120,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             auto const& shown = schematic::items::shown(region.item);
             if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, sx + 1, sy + 1});
             if (amount > 1) late.counts.push_back({sx, sy, std::to_string(amount)});
-            if (hovered) late.tip = shown.name;
+            if (hovered) late.tip = shown.name, late.hovered = region.item;
             regions.push_back(std::move(region));
         };
         for (auto const& part : block.slots) {
@@ -128,7 +130,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                 item = cell.id;
                 if (cell.group) {
                     auto const& members = index.groups[static_cast<size_t>(cell.id)].members;
-                    item = members.empty() ? -1 : members[turn % members.size()];
+                    // Asked what an item is used in, a slot it fits shows it and not the others in turn.
+                    bool const asked = at.uses && std::find(members.begin(), members.end(), id) != members.end();
+                    item = members.empty() ? -1 : asked ? id : members[turn % members.size()];
                 }
             }
             place(bx + part.x, by + part.y, item, 1);

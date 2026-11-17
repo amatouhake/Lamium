@@ -1,6 +1,7 @@
 #include "features/recipes/ItemList.h"
 #ifdef LAMIUM_ITEM_LIST
 #include "app/Runtime.h"
+#include "features/inspection/hover/HoverTracker.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/RecipeService.h"
@@ -16,6 +17,9 @@
 #include "mc/client/gui/controls/VisualTree.h"
 #include "mc/client/gui/screens/ScreenController.h"
 #include "mc/client/gui/screens/ScreenView.h"
+#include "mc/client/input/KeyboardRemappingLayout.h"
+#include "mc/client/input/Keymapping.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/item/ItemInstance.h"
 #include "mc/world/item/ItemStack.h"
@@ -52,9 +56,13 @@ struct Shown {
     RecipeViewLayout view;
     bool viewOpen = false;
     float pointerX = -1, pointerY = -1;
+    std::string hoverItem;          // the item under the pointer: in the list, the view or a slot of the game's
+    std::vector<int> inventoryKeys; // the game's own key for the inventory, which stays the game's
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
+    std::string openItem;     // asked for by key over an item
+    bool openUses = false;
     int listTurns = 0, viewTurns = 0;
     bool back = false, close = false;
 } queued;
@@ -150,7 +158,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
     int const count = static_cast<int>(names.size()), pages = layout.pages(count);
     page = std::clamp(page + input.listTurns, 0, pages - 1);
     int const first = page * layout.perPage(), hovered = layout.hit(px, py);
+    if (!input.openItem.empty()) {
+        view::open(std::move(input.openItem), input.openUses);
+        viewScreen = screenName;
+    }
     bool const wasOpen = view::isOpen();
+    std::string hoverItem;
+    if (hovered >= 0 && first + hovered < count) hoverItem = names[static_cast<size_t>(first + hovered)];
     if (!wasOpen && !input.clicks.empty() && hovered >= 0 && first + hovered < count) {
         view::open(names[static_cast<size_t>(first + hovered)], !input.clicks.front());
         viewScreen = screenName;
@@ -179,12 +193,32 @@ bool drawList(ll::event::UIRenderEvent& event) {
                {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = view::isOpen();
-    if (open || viewLayout.hintY() >= at.y + size.y + 2)
-        label(context, viewLayout.left, viewLayout.hintY(), RecipeViewLayout::width, translated(open ? "recipes.hint.open" : "recipes.hint"),
-              palette::dim, Align::Center);
+    if (open || viewLayout.hintY() >= at.y + size.y + 2) {
+        // One line whatever the language: shrunk to the window's width where it is longer.
+        std::string hint = translated(open ? "recipes.hint.open" : "recipes.hint");
+        float const room = RecipeViewLayout::width - 8, wide = textWidth(context, hint), scale = wide > room ? room / wide : 1.f;
+        labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room / scale, std::move(hint), scale, palette::dim, Align::Center);
+    }
+    if (hoverItem.empty()) hoverItem = late.hovered;
+    if (hoverItem.empty() && !(open && viewLayout.has(px, py))) {
+        // A slot of the game's own window, as its hover callbacks last said.
+        if (auto const* stack = inspection::hover::HoverTracker::getInstance().resolveItem(*screenView.mController); stack && !stack->isNull()) {
+            hoverItem = stack->getTypeName();
+            if (hoverItem.size() > 200) hoverItem.clear();
+        }
+    }
+    static std::vector<int> inventoryKeys;
+    static std::chrono::steady_clock::time_point keysRead;
+    if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
+        keysRead = now;
+        if (auto keyboard = client->getOptions().getCurrentKeyboardRemapping()) {
+            auto const& mapped = keyboard->getKeymappingByAction("key.inventory").mKeys.get();
+            if (mapped.size() <= 4) inventoryKeys = mapped;
+        }
+    }
     {
         std::scoped_lock lock(shownLock);
-        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py};
+        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys};
     }
     context.flushText(0, std::nullopt);
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
@@ -229,7 +263,15 @@ bool key(int code, bool down) {
     // The modifier keys stay the game's: one held while the view opens must still be released.
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(shownLock);
-    if (!keep(keptKeys, code, down, fresh() && shown.viewOpen)) return false;
+    // R and U over an item: its recipes, what it is used in. Fixed keys until the feature has its settings.
+    if ((code == 0x52 || code == 0x55) && fresh() && !shown.hoverItem.empty()) {
+        if (!keep(keptKeys, code, down, true)) return false;
+        if (down) queued.openItem = shown.hoverItem, queued.openUses = code == 0x55;
+        return true;
+    }
+    // The inventory's key closes the screen as it always does, and the view with it.
+    bool const games = std::find(shown.inventoryKeys.begin(), shown.inventoryKeys.end(), code) != shown.inventoryKeys.end();
+    if (!keep(keptKeys, code, down, fresh() && shown.viewOpen && !games)) return false;
     if (down && code == 0x1B) queued.close = true;
     if (down && code == 0x08) queued.back = true;
     return true;

@@ -59,6 +59,12 @@ is in the L-item.
   place whether a recipe is open (the window's last line) or not: click
   for recipes, right click for uses, the favourite key, and Backspace for
   back while a recipe is open.
+- The game's inventory key closes the screen with the view open as it
+  does without it; every other key is kept from the game meanwhile.
+- Asked what an item is used in, an ingredient it is one of several for
+  shows that item, not the others in turn.
+- R over an item shows its recipes and U what it is used in, in the lists,
+  the view and the game's own slots. Sorting therefore has no default key.
 - Each recipe carries one control, "place" (with Shift: craft many, Mass
   Craft), and the marks "default" (press to make it the item's default),
   "any order" for a shapeless recipe and "2x2" for one the inventory's own
@@ -144,7 +150,8 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
-- The recipe view so far: opened from the list only; no "place", no
+- The recipe view so far: R and U over an item are fixed keys, not
+  actions; no "place", no
   changing the recipe in use, no favourite or "add to wanted" buttons; a
   group's members show in the table's order, not held ones first; what a
   recipe leaves besides its product is not shown; recipes that use their
