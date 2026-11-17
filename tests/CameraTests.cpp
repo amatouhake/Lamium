@@ -45,6 +45,8 @@ int main() try {
     opposingKeysTests();
     extern void rawMaterialsTests();
     rawMaterialsTests();
+    extern void recipeIndexTests();
+    recipeIndexTests();
     extern void sectionLayersTests();
     sectionLayersTests();
     extern void checkIgnoresTests();

@@ -1,0 +1,100 @@
+#include "features/recipes/RecipeIndex.h"
+void check(bool, char const*);
+void recipeIndexTests() {
+    using namespace lamium::recipes;
+    using Raw = std::vector<std::pair<Item, Count>>;
+    // The shapes the client's table has (L-116, read in game 2026-11-17), cut down.
+    auto cells = [](std::string const& name, int times, bool tag = false) { return std::vector<SourcePart>(times, SourcePart{name, tag}); };
+    auto both = [](std::vector<SourcePart> a, std::vector<SourcePart> const& b) { a.insert(a.end(), b.begin(), b.end()); return a; };
+    Source source;
+    source.tags = {{"planks", {"oak_planks", "birch_planks"}}, {"coals", {"coal", "charcoal"}}};
+    source.recipes = {
+        {"crafting_table", "stick", -1, {{"stick", 4}}, cells("planks", 2, true)},
+        {"crafting_table", "stick_from_bamboo", 2, {{"stick", 1}}, cells("bamboo", 2)},
+        {"crafting_table", "oak_planks_from_wood", 0, {{"oak_planks", 4}}, cells("oak_wood", 1)},
+        {"crafting_table", "oak_planks", 0, {{"oak_planks", 4}}, cells("oak_log", 1)},
+        {"crafting_table", "chest", 0, {{"chest", 1}}, both(cells("planks", 4, true), both(cells("", 1), cells("planks", 4, true)))},
+        {"crafting_table", "torch", -1, {{"torch", 4}}, both(cells("coals", 1, true), cells("stick", 1))},
+        {"crafting_table", "stonebrick", 0, {{"stone_bricks", 4}}, cells("stone", 4)},
+        {"stonecutter", "stonecutter_stonebrick", 4, {{"stone_bricks", 1}}, cells("stone", 1)},
+        {"furnace", "furnace_cobblestone", 360, {{"stone", 1}}, cells("cobblestone", 1)},
+        {"crafting_table", "iron_block", 0, {{"iron_block", 1}}, cells("iron_ingot", 9)},
+        {"crafting_table", "iron_ingot_from_block", 0, {{"iron_ingot", 9}}, cells("iron_block", 1)},
+        {"crafting_table", "iron_ingot_from_nuggets", 0, {{"iron_ingot", 1}}, cells("iron_nugget", 9)},
+        {"crafting_table", "iron_nugget", 0, {{"iron_nugget", 9}}, cells("iron_ingot", 1)},
+        {"furnace", "furnace_iron", 100, {{"iron_ingot", 1}}, cells("raw_iron", 1)},
+        {"furnace", "furnace_iron_ore", 100, {{"iron_ingot", 1}}, cells("iron_ore", 1)},
+        {"blast_furnace", "furnace_iron", 100, {{"iron_ingot", 1}}, cells("raw_iron", 1)},
+        {"furnace", "furnace_iron_axe", 110, {{"iron_nugget", 1}}, cells("iron_axe", 1)},
+        {"crafting_table", "bucket", 0, {{"bucket", 1}}, cells("iron_ingot", 3)},
+        {"crafting_table", "emerald_block", 0, {{"emerald_block", 1}}, cells("emerald", 9)},
+        {"crafting_table", "emerald", 0, {{"emerald", 9}}, cells("emerald_block", 1)},
+        {"crafting_table", "cake", 0, {{"cake", 1}, {"bucket", 3}}, both(cells("milk_bucket", 3), cells("wheat", 3))},
+        {"crafting_table", "tipped_arrow", 0, {{"arrow", 8}}, both(cells("arrow", 8), cells("lingering_potion", 1))},
+        {"crafting_table", "arrow", 0, {{"arrow", 4}}, both(cells("flint", 1), both(cells("stick", 1), cells("feather", 1)))},
+        {"deprecated", "old_barrel", -1, {{"barrel", 1}}, cells("stick", 2)},
+        {"crafting_table", "MapCloningRecipe", 0, {}, {}},
+    };
+    Index index = build(source);
+    Choice choice = choose(index);
+    auto id = [&](char const* name) { return index.find(name); };
+    auto made = [&](char const* name) { Item item = id(name); return item < 0 || choice.recipe[item] < 0 ? std::string{} : index.recipes[choice.recipe[item]].id; };
+    auto groupOf = [&](char const* name) {
+        for (size_t i = 0; i < index.groups.size(); ++i) if (index.groups[i].name == name) return index.groupItem(static_cast<int>(i));
+        return -1;
+    };
+    {
+        check(id("barrel") < 0 || index.makers[id("barrel")].empty(), "a superseded recipe is not in the index");
+        check(index.makers[id("arrow")].size() == 1 && made("arrow") == "arrow", "a recipe that uses its own product is left out");
+        auto const& chest = index.recipes[choice.recipe[id("chest")]];
+        check(chest.uses.size() == 1 && chest.uses[0].group && chest.uses[0].count == 8, "grid cells of one tag add up, empty cells are skipped");
+        auto const& cake = index.recipes[choice.recipe[id("cake")]];
+        check(cake.count == 1 && cake.extra == Raw{{id("bucket"), 3}}, "what comes with the product is kept apart from it");
+        check(index.groups[chest.uses[0].id].members == std::vector<Item>{id("oak_planks"), id("birch_planks")}, "a tag lists its members");
+    }
+    {
+        check(made("stick") == "stick", "the lowest priority wins among crafting recipes");
+        check(made("oak_planks") == "oak_planks", "on equal priority the recipe named after its product wins");
+        check(made("stone_bricks") == "stonebrick", "the crafting table comes before the stonecutter whatever the priority");
+        check(made("stone") == "furnace_cobblestone", "smelting is used when nothing else makes the item");
+    }
+    {
+        check(choice.base[id("iron_block")] == id("iron_ingot") && choice.base[id("iron_nugget")] == id("iron_ingot"),
+              "the form most other recipes use is the base of a group of convertible items");
+        check(made("iron_block") == "iron_block" && made("iron_nugget") == "iron_nugget", "the other forms are made from the base");
+        check(made("iron_ingot") == "furnace_iron", "the base is made only by recipes outside its group, the furnace before the blast furnace");
+        auto const& smelt = index.recipes[choice.recipe[id("iron_ingot")]];
+        check(smelt.uses.size() == 1 && smelt.uses[0].group && index.groups[smelt.uses[0].id].name.empty()
+                  && index.groups[smelt.uses[0].id].members == std::vector<Item>{id("raw_iron"), id("iron_ore")},
+              "smelting recipes that differ only in their input become one nameless group");
+        check(choice.base[id("emerald_block")] == id("emerald") && made("emerald").empty() && made("emerald_block") == "emerald_block",
+              "when nothing else uses either form, the one a conversion uses several of is the base");
+        check(choice.base[id("stick")] == -1, "an item outside any group has no base");
+    }
+    {
+        auto result = plan(index, choice, {{{id("stone_bricks"), 64}}, {{id("stone_bricks"), 20}, {id("stone"), 4}}, {}, {}});
+        check(result.raw == Raw{{id("cobblestone"), 40}}, "a plan follows the chosen recipes down, held items first");
+        auto blocks = plan(index, choice, {{{id("iron_block"), 2}, {id("iron_nugget"), 1}}, {}, {}, {}});
+        Item const smelted = index.groupItem(index.recipes[choice.recipe[id("iron_ingot")]].uses[0].id);
+        check(blocks.raw == Raw{{smelted, 19}} && blocks.looped.empty(), "a group of convertible items is traced through its base without a loop");
+        auto stopped = plan(index, choice, {{{id("iron_block"), 1}}, {}, {}, {id("iron_ingot")}});
+        check(stopped.raw == Raw{{id("iron_ingot"), 9}}, "an item the player stops at is gathered, not made");
+    }
+    {
+        Item const planks = groupOf("planks");
+        // 4 sticks need 2 of any planks, a chest 8; oak planks are also wanted as themselves.
+        auto result = plan(index, choice, {{{id("stick"), 4}, {id("chest"), 1}, {id("oak_planks"), 3}}, {{id("oak_planks"), 5}, {id("birch_planks"), 4}}, {}, {}});
+        check(result.raw == Raw{{planks, 4}}, "a group is covered by what its members have left after their own needs");
+        check(std::find(result.fromHeld.begin(), result.fromHeld.end(), std::pair<Item, Count>{planks, 6}) != result.fromHeld.end()
+                  && std::find(result.fromHeld.begin(), result.fromHeld.end(), std::pair<Item, Count>{id("oak_planks"), 3}) != result.fromHeld.end(),
+              "held members are counted once, for the item first and the group after");
+        auto picked = plan(index, choice, {{{id("chest"), 1}}, {}, {{planks - static_cast<Item>(index.items.size()), id("oak_planks")}}, {}});
+        check(picked.raw == Raw{{id("oak_log"), 2}}, "a picked member stands for its group and is traced further");
+        auto torches = plan(index, choice, {{{id("torch"), 4}}, {{id("charcoal"), 1}}, {}, {}});
+        check(torches.raw == Raw{{planks, 2}}, "a held member covers a group that is not picked");
+    }
+    {
+        Index empty = build({});
+        check(empty.items.empty() && choose(empty).recipe.empty() && plan(empty, choose(empty), {}).raw.empty(), "an empty table gives an empty index");
+    }
+}
