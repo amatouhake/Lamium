@@ -398,6 +398,9 @@ void say(std::string text) {
     state.notice = std::move(text);
     state.noticeAt = now();
 }
+}
+void notice(std::string text) { say(std::move(text)); }
+namespace {
 
 void toggleInfo(Target target);
 void toggleRecording();

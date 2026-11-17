@@ -69,6 +69,33 @@ public:
         return Visible{message, state, std::clamp(opacity, 0.f, 1.f), plain, warning, rows, dropped};
     }
 };
+// Message and warning toasts raised while the settings screen is open (L-339,
+// DESIGN "Passing notices"): the HUD is not drawn then, so they wait and are
+// shown one after another once it closes, each from then on. One that waited
+// longer than `maxAge` is dropped; on/off toasts never wait.
+class ToastHold {
+public:
+    struct Held { std::string text; double seconds = Toast::duration; bool warning = false; double raisedAt = 0; };
+    static constexpr double maxAge = 60;
+    static constexpr size_t maxHeld = 8;
+private:
+    std::vector<Held> queue;
+public:
+    void hold(Held held) {
+        if (queue.size() >= maxHeld) queue.erase(queue.begin());
+        queue.push_back(std::move(held));
+    }
+    // The next one to show, oldest first; those past `maxAge` at `now` go first.
+    std::optional<Held> next(double now) {
+        std::erase_if(queue, [now](Held const& h) { return !(now - h.raisedAt <= maxAge); });
+        if (queue.empty()) return std::nullopt;
+        auto front = std::move(queue.front());
+        queue.erase(queue.begin());
+        return front;
+    }
+    bool empty() const { return queue.empty(); }
+    void clear() { queue.clear(); }
+};
 inline double toastNow() {
     return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
@@ -80,4 +107,16 @@ void endToastGroup();
 void showMessageToast(std::string message, double seconds = Toast::duration);
 void showWarningToast(std::string message, double seconds = 6);
 std::optional<Toast::Visible> currentToggleToast(double now);
+// The settings screen says when it opens and closes: message and warning toasts wait meanwhile (ToastHold).
+void holdToasts(bool held);
+// Around what the settings screen itself does (its input, its menus, its prompts): the toasts raised there are
+// its own results and never wait; they replace the shown toast as before (L-339).
+struct ScreenToasts {
+    ScreenToasts();
+    ~ScreenToasts();
+    ScreenToasts(ScreenToasts const&) = delete;
+    ScreenToasts& operator=(ScreenToasts const&) = delete;
+};
+// Called by the HUD each frame it draws: starts the next waiting toast once the shown one has ended.
+void releaseHeldToast(double now);
 }

@@ -55,5 +55,20 @@ void toastTests() {
         stack.showToggle("I", true, 52, 0);
         check(stack.current(52)->text == "I" && !stack.current(52)->plain, "a toggle replaces a message");
     }
+    {
+        ToastHold hold;
+        check(!hold.next(0), "nothing held, nothing to show");
+        hold.hold({"Restored", 1.5, false, 10});
+        hold.hold({"Too many pages", 6, true, 20});
+        auto first = hold.next(30);
+        check(first && first->text == "Restored" && hold.next(30)->warning && hold.empty(),
+              "held toasts come back oldest first, keeping their kind (L-339)");
+        hold.hold({"Old", 1.5, false, 0});
+        hold.hold({"New", 1.5, false, 50});
+        auto kept = hold.next(ToastHold::maxAge + 1);
+        check(kept && kept->text == "New" && hold.empty(), "a toast that waited longer than a minute is dropped");
+        for (int i = 0; i < 10; ++i) hold.hold({std::to_string(i), 1.5, false, 0});
+        check(hold.next(0)->text == "2", "only the latest few wait");
+    }
     check(toastNow() > 0, "toast clock advances");
 }

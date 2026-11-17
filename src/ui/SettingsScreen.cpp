@@ -359,6 +359,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneRender, ll::memory::HookPriority::Normal, UIS
     } restore{settingsRenderView};
     {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         settingsRenderView = scene.get() == this ? mScreenView.get() : nullptr;
     }
     origin(context, object);
@@ -366,6 +367,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneRender, ll::memory::HookPriority::Normal, UIS
 LL_TYPE_INSTANCE_HOOK(SettingsWorldBackground, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$renderGameBehind, bool) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene.get() == this) return true;
     return origin();
 }
@@ -375,6 +377,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneExit, ll::memory::HookPriority::Normal, UISce
     bool owned;
     {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         owned = scene.get() == this;
     }
     // The native dialog is only our focus owner; its visual exit animation is
@@ -384,6 +387,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneExit, ll::memory::HookPriority::Normal, UISce
     // even if it never rendered, so hotkeys do not stay blocked.
     if (owned && isPopping) {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         // Keep our reference until the next frame: the stack may still be
         // using this scene after the callback returns.
         if (scene.get() == this) { retired = scene; clear(); }
@@ -394,6 +398,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneEntrance, ll::memory::HookPriority::Normal, U
     bool owned;
     {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         owned = scene.get() == this;
     }
     origin(revisiting, owned ? false : transitions);
@@ -411,6 +416,7 @@ void logControlText(std::string const& text) {
 LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene.get() == this && ownsTop()) {
         // Coalesce native text events before persisting the whole workspace.
         // Never flush the world sidecar from inside a text callback.
@@ -434,6 +440,7 @@ void clear() {
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
     scene.reset(); seen = false; closing = false; pageClosing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
+    holdToasts(false);
     pendingClose = false; pendingRelease = false; pressOrder.clear();
     // The button may go up where the screen no longer sees it.
     scroll_drag::release();
@@ -549,7 +556,9 @@ void commitPrompt() {
     auto const& typed = prompt->name.value();
     if (typed.find_first_not_of(' ') != std::string::npos) waypoint.name = typed;
     bool saved = map::waypoints::add(waypoint, true);
-    showMessageToast(saved ? translated("waypoint.added", waypoint.name) : translated("waypoint.saveError"));
+    auto said = saved ? translated("waypoint.added", waypoint.name) : translated("waypoint.saveError");
+    if (promptOnMap) map::world::notice(std::move(said));
+    else showMessageToast(std::move(said));
     endPrompt();
 }
 void handlePromptKey(int key) {
@@ -649,17 +658,12 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
         schematicMenu->show(menu::moveCategory);
         return;
     }
-    auto toggle = [](char const* id, char const* name) {
-        table_view::adjustOption(id, 1);
-        auto const& now = Runtime::instance().preferences().schematic;
-        bool on = id == std::string_view("schematic.hud") ? now.hud : id == std::string_view("schematic.mistakeMarks") ? now.mistakeMarks
-            : now.enabled;
-        showMessageToast(translated(name) + ": " + translated(on ? "on" : "off"));
-    };
+    // The item shows the new state itself: no toast inside the screen (L-339).
+    auto toggle = [](char const* id) { table_view::adjustOption(id, 1); };
     switch (command) {
-    case C::ToggleHud: toggle("schematic.hud", "schematic.menu.toggleHud"); return;
-    case C::ToggleMarks: toggle("schematic.mistakeMarks", "schematic.menu.toggleMarks"); return;
-    case C::ToggleFeature: toggle("schematic.enabled", "schematic.menu.toggleFeature"); return;
+    case C::ToggleHud: toggle("schematic.hud"); return;
+    case C::ToggleMarks: toggle("schematic.mistakeMarks"); return;
+    case C::ToggleFeature: toggle("schematic.enabled"); return;
     case C::SaveArea: {
         auto state = schematic::selection::current();
         auto area = state.area();
@@ -1053,6 +1057,7 @@ bool hudView(ScreenView const& view) {
 }
 void render(ll::event::UIRenderEvent& event) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     auto& context = event.uiRenderContext();
     auto& current = context.mClient;
     auto& view = event.screenView();
@@ -1408,6 +1413,7 @@ void showSavedData() {
 bool overAnvilScreen = false;
 void open(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene || !(gameplayScreen(current.getScreenName())
         || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr)
         || (overAnvilScreen && current.getScreenName() == "anvil_screen"))) return;
@@ -1429,12 +1435,14 @@ void open(IClientInstance& current) {
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
     scene = current.getSceneFactory().createCommonDialogInfoScreen("Lamium", "");
     if (!scene) return;
+    holdToasts(true);
     client = &current;
     openedAt = std::chrono::steady_clock::now();
     sceneStack(current)->pushScreen(scene, false);
 }
 void openShapes(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1443,6 +1451,7 @@ void openShapes(IClientInstance& current) {
 }
 void openWaypointPrompt(IClientInstance& current, map::Waypoint draft) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene) return; // Only from gameplay; the open settings screen keeps its own work.
     open(current);
     if (!scene) return;
@@ -1454,6 +1463,7 @@ void openWaypointPrompt(IClientInstance& current, map::Waypoint draft) {
 }
 void openWaypoints(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1462,6 +1472,7 @@ void openWaypoints(IClientInstance& current) {
 }
 void openSchematics(IClientInstance& current, int tab) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1480,6 +1491,7 @@ void openSchematics(IClientInstance& current, int tab) {
 }
 void openSchematicKeys(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1488,6 +1500,7 @@ void openSchematicKeys(IClientInstance& current) {
 }
 void openSchematicSave(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene) return; // Only from gameplay, like the waypoint prompt.
     auto state = schematic::selection::current();
     auto area = state.area();
@@ -1515,6 +1528,7 @@ void enterSchematicMenu() {
 }
 void openSchematicMenu(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene) return; // From gameplay only.
     open(current);
     if (!scene) return;
@@ -1525,6 +1539,7 @@ void openSchematicMenu(IClientInstance& current) {
 }
 void openCalculator(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene) return; // From gameplay only; over container screens is a later step (L-171).
     open(current);
     if (!scene) return;
@@ -1533,6 +1548,7 @@ void openCalculator(IClientInstance& current) {
 }
 void openBlockHighlight(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1544,6 +1560,7 @@ void openBlockHighlight(IClientInstance& current) {
 }
 void openEnchantOrder(IClientInstance& current, bool overAnvil) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) {
         overAnvilScreen = overAnvil;
@@ -1559,6 +1576,7 @@ void openEnchantOrder(IClientInstance& current, bool overAnvil) {
 }
 void openSavedData(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1570,6 +1588,7 @@ void openSavedData(IClientInstance& current) {
 }
 void openGameLanguage(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1581,6 +1600,7 @@ void openGameLanguage(IClientInstance& current) {
 }
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     if (scene) return;
     open(current);
     if (!scene) return;
@@ -1588,6 +1608,7 @@ void openWorldMap(IClientInstance& current) {
 }
 void openHotkeys(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1596,6 +1617,7 @@ void openHotkeys(IClientInstance& current) {
 }
 void openHudLayout(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     bool const openedNow = !scene;
     if (!scene) open(current);
     if (!scene) return;
@@ -1610,6 +1632,7 @@ namespace screen {
 // the table with the radial menu over the same world.
 void openTool(input::Action action) {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     auto* current = client();
     if (!scene || !current) return;
     finishEditing();
@@ -1632,10 +1655,12 @@ void openTool(input::Action action) {
 }
 bool ownsInput() {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     return scene != nullptr;
 }
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     // Pages that replace the rows stay where they are: looking at another window to compare, then coming back (L-343).
     row_pages::calmAll();
     // The button may go up in another window.
@@ -1663,6 +1688,7 @@ void start() {
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         retired.reset();
         if (scene && &event.uiRenderContext().mClient == client && !ownsTop()) {
             // A push can also be dropped by a screen transition without an exit
@@ -1673,6 +1699,7 @@ void start() {
     });
     listeners[4] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         if (!scene || settingsRenderView != &event.screenView()) return;
         // Only replace our focus-owning dialog's drawing. Other native screens
         // and the world keep their normal rendering and resource-pack behavior.
@@ -1681,6 +1708,7 @@ void start() {
     });
     listeners[1] = bus.emplaceListener<ll::event::input::MouseInputEvent>([](auto& event) {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         if (!scene && titleEntry.shown && event.actionButtonId() == MouseAction::ActionLeft
             && event.buttonData() == MouseAction::DataDown && titleEntry.inverseScale > 0) {
             float x = event.x() * titleEntry.inverseScale, y = event.y() * titleEntry.inverseScale;
@@ -1768,6 +1796,7 @@ void start() {
     });
     listeners[2] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
         std::lock_guard lock(mutex);
+        ScreenToasts screenToasts;
         if (!ownsTop()) return;
         input::Token token{input::Device::Key, event.keyCode()};
         bool const repeat = event.isDown() && std::find(uiHeld.begin(), uiHeld.end(), token) != uiHeld.end();
@@ -1930,6 +1959,7 @@ void start() {
 }
 void stop() {
     std::lock_guard lock(mutex);
+    ScreenToasts screenToasts;
     close();
     schematic::preview::reset();
     clear();
