@@ -7,7 +7,8 @@ is agreed with mockups and built in steps ([L-359](backlog/L-359.md)).
 Built: the schematic Materials tab's raw view ([SCHEMATIC.md](SCHEMATIC.md))
 and the item list with the recipe view, behind the Recipes switch
 (Inventory, experimental, off by default) with the keys R (recipes of the
-item under the pointer) and U (its uses), both rebindable.
+item under the pointer), U (its uses) and Backspace (back, while the view
+is open), all rebindable, mouse buttons included.
 
 ## Behavior
 

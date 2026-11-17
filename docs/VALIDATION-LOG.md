@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Recipes as a setting (L-359 step 3, 2026-11-18)
+
+Build `27f72d2e`, no build option (DLL
+`a6f9a9c0db7ca038e57b9bd8d473da3f5d2591fca201d700367aaf2909c0f307`),
+1.26.60.05 Dev instance, the maintainer:
+- The Recipes row and its two keys were in settings; off, no band showed;
+  Sort had no key. On, the band, presses, R and U worked as before, also
+  inside the open view.
+- With the view open, E closed the view alone and a second E the inventory.
+- R bound to another key opened recipes with that key.
+- Fault: a binding with a mouse side button or the middle button could be
+  set but did nothing.
+
 ## The recipe keys and the view's faults mended (L-359 step 3, 2026-11-18)
 
 Build `0f2bb4f9` with `--item_list=y` (DLL

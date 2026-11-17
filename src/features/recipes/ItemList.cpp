@@ -8,6 +8,8 @@
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
 #include "features/schematic/SchematicItems.h"
+#include "input/Actions.h"
+#include "input/Binding.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
@@ -195,9 +197,21 @@ bool drawList(ll::event::UIRenderEvent& event) {
                {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = view::isOpen();
+    static std::vector<int> inventoryKeys;
+    static std::string backKey; // the back action's key as the keymap names it; empty when it has none
+    static std::chrono::steady_clock::time_point keysRead;
+    if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
+        keysRead = now;
+        if (auto keyboard = client->getOptions().getCurrentKeyboardRemapping()) {
+            auto const& mapped = keyboard->getKeymappingByAction("key.inventory").mKeys.get();
+            if (mapped.size() <= 4) inventoryKeys = mapped;
+        }
+        backKey = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::RecipeBack).empty()
+            ? std::string() : actionBindingName(*client, input::Action::RecipeBack);
+    }
     if (open || viewLayout.hintY() >= at.y + size.y + 2) {
         // One line whatever the language: shrunk to the window's width where it is longer.
-        std::string hint = translated(open ? "recipes.hint.open" : "recipes.hint");
+        std::string hint = open && !backKey.empty() ? translated("recipes.hint.open", backKey) : translated("recipes.hint");
         float const room = RecipeViewLayout::width - 8, wide = textWidth(context, hint), scale = wide > room ? room / wide : 1.f;
         labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room / scale, std::move(hint), scale, palette::dim, Align::Center);
     }
@@ -207,15 +221,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (auto const* stack = inspection::hover::HoverTracker::getInstance().resolveItem(*screenView.mController); stack && !stack->isNull()) {
             hoverItem = stack->getTypeName();
             if (hoverItem.size() > 200) hoverItem.clear();
-        }
-    }
-    static std::vector<int> inventoryKeys;
-    static std::chrono::steady_clock::time_point keysRead;
-    if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
-        keysRead = now;
-        if (auto keyboard = client->getOptions().getCurrentKeyboardRemapping()) {
-            auto const& mapped = keyboard->getKeymappingByAction("key.inventory").mKeys.get();
-            if (mapped.size() <= 4) inventoryKeys = mapped;
         }
     }
     {
@@ -259,12 +264,15 @@ bool key(int code, bool down) {
     // closes the inventory closes what is on top first.
     bool const games = std::find(shown.inventoryKeys.begin(), shown.inventoryKeys.end(), code) != shown.inventoryKeys.end();
     if (down && (code == 0x1B || games)) queued.close = true;
-    if (down && code == 0x08) queued.back = true;
     return true;
 }
 bool viewOpen() {
     std::scoped_lock lock(shownLock);
     return fresh() && shown.viewOpen;
+}
+void back() {
+    std::scoped_lock lock(shownLock);
+    if (fresh() && shown.viewOpen) queued.back = true;
 }
 void show(bool uses) {
     std::string item;

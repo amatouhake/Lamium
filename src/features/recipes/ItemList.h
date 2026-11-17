@@ -18,4 +18,6 @@ bool viewOpen();
 // The recipe keys: shows the item under the pointer (in the list, the view
 // or a slot of the game's), its recipes or what it is used in. Client thread.
 void show(bool uses);
+// The back key: the item the view showed before.
+void back();
 }

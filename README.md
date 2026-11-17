@@ -171,7 +171,7 @@ Waypoints also show in the world, with both maps off.
 | Fake Offhand | Use a hotbar block or item as if it were in the offhand | Right click | Off |
 | Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
-| Recipes *Exp.* | List every item beside item screens and show recipes and uses | `R` recipes, `U` uses | Off |
+| Recipes *Exp.* | List every item beside item screens and show recipes and uses | `R` recipes, `U` uses, `Backspace` back | Off |
 | Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
 | Paste across book pages | A long paste into a book continues on new pages | — | On |
 

@@ -55,6 +55,12 @@ void bindingTests() {
         && defaultChord(Action::ShowRecipes) == Chord{Token{Device::Key, 0x52}} && defaultChord(Action::ShowUses) == Chord{Token{Device::Key, 0x55}}
         && actionAllowed(Action::ToggleRecipes, true, false),
         "the recipe keys are R and U on item screens only, where they share the context with Sort");
+    check(defaultChord(Action::RecipeBack) == Chord{Token{Device::Key, 0x08}} && actionAllowed(Action::RecipeBack, false, true)
+        && recipeKeyAllowed(Action::ShowRecipes, true, false) && recipeKeyAllowed(Action::ShowRecipes, true, true)
+        && !recipeKeyAllowed(Action::RecipeBack, true, false) && recipeKeyAllowed(Action::RecipeBack, true, true)
+        && !recipeKeyAllowed(Action::ShowUses, false, false) && !recipeKeyAllowed(Action::RecipeBack, false, true)
+        && recipeKeyAllowed(Action::Sort, false, false) && !recipeKeyAllowed(Action::Sort, true, true),
+        "back is a key only while the view is open, which lets no other action through; off, the recipe keys are the game's");
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)
         && !actionAllowed(Action::Settings, false, false), "outside a world only the settings key opens (L-175)");
     check(lamium::outsideWorldMenu("ui://./hbui/index.html", false) && !lamium::outsideWorldMenu("ui://./hbui/index.html", true)

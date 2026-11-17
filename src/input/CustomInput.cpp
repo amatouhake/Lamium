@@ -119,8 +119,7 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false, b
     bool const recipeKeys = Runtime::instance().preferences().inventory.recipes;
     for (size_t i = 0; i < allowed.size(); ++i)
         if (actionAllowed(static_cast<Action>(i), gameplay, container, freeCamera, outside)
-            && (recipeKeys || (i != static_cast<size_t>(Action::ShowRecipes) && i != static_cast<size_t>(Action::ShowUses)))
-            && (!recipeKeysOnly || i == static_cast<size_t>(Action::ShowRecipes) || i == static_cast<size_t>(Action::ShowUses)))
+            && recipeKeyAllowed(static_cast<Action>(i), recipeKeys, recipeKeysOnly))
             allowed[i] = previous[i];
     // A different consumer (notably Zoom's wheel adjustment) may own this
     // event. Preserve held inputs, but always observe key-up releases.
@@ -202,13 +201,18 @@ void startCustomInput() {
             return;
         }
         // The item list beside a game screen and the recipe view it opens: the wheel pages them, presses
-        // on them stay from the game (L-359).
-        if (!event.isCancelled() && (wheel ? recipes::itemList::wheel(event.buttonData() > 0 ? -1 : 1)
-                : recipes::itemList::press(button, button == MouseAction::ActionLeft, button == MouseAction::ActionRight, down))) {
+        // on them stay from the game (L-359). A button bound to an action acts first, so the recipe keys
+        // work on mouse buttons over the list and the view too.
+        if (wheel && !event.isCancelled() && recipes::itemList::wheel(event.buttonData() > 0 ? -1 : 1)) {
             event.cancel();
             return;
         }
-        bool consumed = process(token, down, event.isCancelled());
+        bool consumed = process(token, down, event.isCancelled(), false, recipes::itemList::viewOpen());
+        if (!wheel && !event.isCancelled() && !(consumed && down)
+            && recipes::itemList::press(button, button == MouseAction::ActionLeft, button == MouseAction::ActionRight, down)) {
+            event.cancel();
+            return;
+        }
         auto const& keys = held.value();
         bool shift = contains(keys, Token{Device::Key, 0x10}) || contains(keys, Token{Device::Key, 0xA0})
             || contains(keys, Token{Device::Key, 0xA1});
