@@ -112,9 +112,10 @@ p{margin:0}
 .prow .n{margin-left:auto;color:var(--dim)}
 /* Lamium's own look for the recipe window: the shared panel, buttons and plain framed cells. */
 .rec.lamium{background:rgba(16,17,19,.8);border:1px solid var(--edge);color:#fff;box-shadow:none}
-.rec.lamium .slot{background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+/* The cells Lamium's container preview already draws: dark, opaque, in the game's grid. */
+.rec.lamium .slot{background:#3b3b3b;box-shadow:inset 0 0 0 1px #17181a}
 .rec.lamium .slot.focus{outline-color:var(--warn)}
-.rec.lamium .rslot:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.6);background:rgba(255,255,255,.14)}
+.rec.lamium .rslot:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.7);background:#555}
 .rec.lamium .chip{border-color:rgba(255,255,255,.28);color:var(--dim)}
 .rec.lamium .chip.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
 .rec.lamium .mtab{background:var(--key);border-color:var(--key-edge);color:var(--dim);box-shadow:none}
@@ -122,6 +123,13 @@ p{margin:0}
 .rec.lamium .vr{background:rgba(255,255,255,.2)}
 .rec.lamium .tab{background:var(--key);border-color:var(--key-edge)}
 .rec.lamium .tab.on{background:var(--accent-deep);border-color:var(--accent)}
+.rec.hybrid .blk{isolation:isolate;color:#3f3f3f}
+.rec.hybrid .blk::before{content:"";position:absolute;inset:-5px -3px -3px -5px;background:#c6c6c6;box-shadow:inset 2px 2px #fff,inset -2px -2px #555;z-index:-1}
+.rec.hybrid .blk .slot{background:#8b8b8b;box-shadow:inset 2px 2px #373737,inset -2px -2px #fff}
+.rec.hybrid .blk .rslot:hover{box-shadow:inset 0 0 0 36px rgba(255,255,255,.28)}
+.rec.hybrid .blk .chip{border-color:#6b6b6b;color:#3f3f3f}
+.rec.hybrid .blk .chip.on{background:var(--accent-deep);border-color:#1f4d12;color:#fff}
+.rec.hybrid .blk .btn{background:#8b8b8b;border-color:#373737;color:#fff}
 .rec .where{white-space:nowrap;margin-left:6px;opacity:.85}
 .rec .hint{position:absolute;left:8px;right:8px;bottom:5px;font-size:10.5px;white-space:nowrap;overflow:hidden;opacity:.6}
 </style>
@@ -142,7 +150,8 @@ p{margin:0}
 <section class="qa">
   <h2>このモックで変えた所</h2>
   <ul>
-    <li><b>見た目は Lamium。</b>暗い半透明のパネル、Lamium のボタンとタブ、枠だけのマス。Lamium の既存の部品で足り、例外を作りません。</li>
+    <li><b>見た目は Lamium。</b>暗い半透明のパネル、Lamium のボタンとタブ。マスは、Lamium がシュルカーボックスなどの中身のプレビューですでに描いている暗いマスと同じです。既存の部品で足り、例外を作りません。</li>
+    <li><b>折衷案</b>も切り替えで見られます。枠と操作は Lamium、レシピ 1 つずつをゲーム風の明るい札に載せた形です。</li>
     <li><b>透けの心配について。</b>金床の計画画面は、ゲームの画面の上に Lamium の画面を重ねている間、ゲームの窓を描いていません（Esc で戻ると金床のスロットはそのまま）。同じ仕組みなら、レシピの後ろに見えるのはワールドだけで、インベントリのアイテムは透けません。インベントリやチェストで同じことができるかは、実装前の調査項目です。</li>
     <li><b>「作る・使う」</b>は Lamium のタブ（選んだ側が緑）にしました。</li>
     <li><b>作業場所はタブ。</b>作業台・石切台・かまど・溶鉱炉を混ぜずに分け、今どの場所かを名前と件数で出します。レシピごとの場所アイコンは無くしました。同じ場所にレシピが複数あれば、そのタブの中に並びます。</li>
@@ -153,7 +162,7 @@ p{margin:0}
 <section class="qa">
   <h2>決めたい所</h2>
   <ol>
-    <li><b>見た目。</b>Lamium の見た目でよいか、ゲーム寄りに戻すか。</li>
+    <li><b>見た目。</b>Lamium の見た目、折衷（レシピの札だけゲーム風）、全部ゲーム寄りの 3 つから。</li>
     <li><b>2 列ぶんの場所。</b>中央をいつも空けておく（一覧は左右 1 列ずつ狭い。推奨）か、普段は一覧を全幅にして必要なときだけ窓を重ねるか。重ねると、内側の 1 列と「すべて・作れる物」のボタンが隠れるので、ボタンが横へずれます。</li>
     <li><b>作業場所のタブ。</b>かまどと溶鉱炉のように同じレシピが別のタブに出ます。1 つにまとめて「かまど・溶鉱炉」と出す手もあります。</li>
     <li><b>キーの案内。</b>出す・出さない、文言。</li>
@@ -279,7 +288,7 @@ const state = {book:false, style:'lamium', overlap:'narrow', hint:true, scene:'d
   favs:[I('松明'), I('石レンガ'), I('鉄インゴット'), I('チェスト')], plan:[[I('石レンガ'), 64], [I('ランタン'), 4]], defaults:{}, tick:0};
 let hoverItem = null, cover = 0; // cover: how far an open recipe window reaches over each side list
 function controls(){
-  const list = [['見た目','style',[['lamium','Lamium の見た目'],['game','ゲームに寄せる']]],['2 列ぶんの場所','overlap',[['narrow','中央をいつも空けておく'],['cover','必要なとき一覧に重ねる']]],
+  const list = [['見た目','style',[['lamium','Lamium の見た目'],['hybrid','折衷（枠は Lamium、レシピはゲーム風）'],['game','ゲームに寄せる']]],['2 列ぶんの場所','overlap',[['narrow','中央をいつも空けておく'],['cover','必要なとき一覧に重ねる']]],
     ['キーの案内','hint',[[true,'出す'],[false,'出さない']]],['背景','scene',[['dark','暗い場所'],['bright','明るい場所']]],['ゲームのレシピブック','book',[[false,'オフ'],[true,'オン']]]];
   $('#ctrl').innerHTML = list.map(([label, key, opts]) => `<span class="grp">${label}：${opts.map(([v, t]) =>
     `<button data-k="${key}" data-v="${v}" aria-pressed="${String(state[key]) === String(v)}">${t}</button>`).join('')}</span>`).join('');
@@ -301,7 +310,7 @@ function layout(){
 }
 function vanilla(l){
   // With Lamium's screen pushed over it the game's window is not drawn (as the planner over the anvil does).
-  if (state.view && state.style === 'lamium') return '';
+  if (state.view && state.style !== 'game') return '';
   const q = state.q.trim();
   let h = `<div class="abs van" style="left:${l.x}px;top:${l.y}px;width:${l.W}px;height:${l.H}px"><span class="abs" style="left:14px;top:8px">インベントリ</span>`;
   for (let i = 0; i < 4; ++i) h += `<span class="slot" style="left:14px;top:${14 + i * 36}px"></span>`;
@@ -398,7 +407,7 @@ function recipeWindow(l){
   const box = {x:(960 - width) / 2, y:top, w:width, h:height}, colW = (box.w - 16) / cols, per = perCol * cols;
   const pages = Math.max(1, Math.ceil(list.length / per));
   v.i = Math.min(v.i, pages - 1);
-  let h = `<div class="abs rec ${state.style}" id="recipe" style="left:${box.x}px;top:${box.y}px;width:${box.w}px;height:${box.h}px;z-index:3">
+  let h = `<div class="abs rec ${state.style === 'hybrid' ? 'lamium hybrid' : state.style}" id="recipe" style="left:${box.x}px;top:${box.y}px;width:${box.w}px;height:${box.h}px;z-index:3">
     <div class="top"><span class="btn ${state.back.length ? '' : 'off'}" data-act="back">戻る</span>
       <span style="display:inline-block;width:14px;height:14px;flex:none;background:${it.color};box-shadow:inset 0 0 0 1px rgba(0,0,0,.45)"></span><span class="nm">${it.name}</span>
       <span class="sp"></span>${pager('rec', v.i, pages)}<span class="btn" data-act="close">閉じる</span></div>
