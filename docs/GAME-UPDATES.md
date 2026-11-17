@@ -210,7 +210,13 @@ the window by the control names `root_panel`, `content_stack_panel`,
 `screen_stack_panel` (`player_inventory` inside the second), and takes the
 items from `CreativeItemRegistry::mCreativeItems`. Its recipe view lays a
 recipe out by `Recipe::mWidth`, `mHeight` and `isShapeless`, which
-`RecipeSnapshot.cpp` reads with the table; a shape that does not fit the
+`RecipeSnapshot.cpp` reads with the table, as it does each product's
+`getAuxValue` and each ingredient's `mAuxValue` (32767: any); the list
+keys items by name and aux. The left band stays clear of the game's
+recipe book by the control `recipe_book` and its `mVisible`; the search
+field claims the platform keyboard (`KeyboardManager`) while focused and
+takes its text from the `UIScene::handleTextChar` hook; the game's
+inventory key is read from the keymapping `key.inventory`. A shape that does not fit the
 ingredient count is ignored, and the log says how many did.
 
 ## Inventory

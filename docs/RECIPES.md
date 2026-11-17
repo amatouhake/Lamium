@@ -5,10 +5,12 @@ an item list beside the inventory, a recipe view, and a plan that traces
 what features and the player want down to what must be gathered. The design
 is agreed with mockups and built in steps ([L-359](backlog/L-359.md)).
 Built: the schematic Materials tab's raw view ([SCHEMATIC.md](SCHEMATIC.md))
-and the item list with the recipe view, behind the Recipes switch
-(Inventory, experimental, off by default) with the keys R (recipes of the
-item under the pointer), U (its uses) and Backspace (back, while the view
-is open), all rebindable, mouse buttons included.
+and, behind the Recipes switch (Inventory, experimental, off by default),
+the item list with its search field and filter, the recipe view,
+favourites and the wanted items with their window. Keys, all rebindable,
+mouse buttons included: R (recipes of the item under the pointer), U (its
+uses), A (favourite), W (wanted) and Backspace (back, while the recipe view
+is open). What of this nobody has seen in game is under "Limits".
 
 ## Behavior
 
@@ -41,7 +43,14 @@ is in the L-item.
   where later uses of the same field belong (highlighting the inventory
   slots that match, calculating).
 - The list can be narrowed, at least to what can be made now. The filters
-  have their place from the start, whenever they are built.
+  have their place from the start: the list's bar, "All" and "Can be made"
+  (one switch where the band is narrow).
+- The agent's choices while building, to confirm: the search takes the
+  name as the game shows it or the item's id, every word typed must be in
+  one of them, letters match in either case; "can be made" is a crafting
+  recipe that what is carried (shulker boxes included) makes once, without
+  making anything first; a favourite carries a small accent mark on its
+  cell in the list; the left band is halved between favourites and wanted.
 - The list moves aside when the game's own recipe book is switched on.
 
 ### The recipe view
@@ -101,7 +110,10 @@ is in the L-item.
   waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
   be edited; it looks like the others and says where it comes from.
 - The plan's short list on the left shows either what is left to gather or
-  the targets, switched in place.
+  the targets, switched in place; a press on a line or on "Open" opens the
+  window on that list. The window has the tabs wanted, to gather and to
+  make, and sits where the recipe view does; the recipe view opens over it
+  (a press on an item's name) and gives it back when closed.
 - A key (W by default, beside A for favourites; both rebindable) puts the
   hovered item into "wanted" or takes it out, wherever the favourite key
   works. An item taken out keeps its count until the world is left, so
@@ -139,11 +151,22 @@ is in the L-item.
   recipes a call, keeping no game pointer. `RecipeService.cpp` runs it each
   time a screen asks and publishes the index until the world is left, behind
   the RecipeTable capability ([GAME-UPDATES.md](GAME-UPDATES.md)).
-- `ItemListLayout.h`, `RecipeView.h` (pure): where the list and the view
-  sit, an item's recipes by station, a recipe's slots. `ItemList.cpp` draws
-  the list after a game screen and keeps input from the game (the listeners
-  in `input/CustomInput.cpp` ask it); `RecipeViewDraw.cpp` draws the view
-  and does not know its host.
+- `ItemKey.h`: an item's key, the name plus the aux where the table tells
+  variants apart; `settled()` in `RecipeIndex.h` decides where.
+- `ItemListLayout.h`, `RecipeView.h`, `ListFilter.h` (pure): where the
+  lists, the search field and the view sit, an item's recipes by station, a
+  recipe's slots, the search and "can be made". `ItemList.cpp` is the host:
+  it draws both bands and the field after a game screen and keeps input
+  from the game (the listeners in `input/CustomInput.cpp` and the text hook
+  in `ui/SettingsScreen.cpp` ask it; what they keep acts in the next
+  frame). `RecipeViewDraw.cpp` and `PlanViewDraw.cpp` draw the two windows
+  and do not know their host.
+- `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favourites,
+  chosen recipes, picked members and items marked as gathered, for all
+  worlds in the config folder's `recipes.json`; the wanted items per world
+  in `wanted.json` beside its waypoints. `RecipeState.cpp` loads and saves
+  them and works the plan out. A file that cannot be read is left as it is
+  and the changes are kept for the session only.
 - `src/ui/SchematicsView.cpp` (`refreshRaw`): the Materials tab's raw view.
 - `recipe_trace` (`src/features/research/RecipeTrace.cpp`) writes the table
   to a file and logs sample plans.
@@ -153,13 +176,21 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
-- The recipe view so far: no "place", no
-  changing the recipe in use, no favourite or "add to wanted" buttons; a
-  group's members show in the table's order, not held ones first; what a
-  recipe leaves besides its product is not shown; recipes that use their
-  own product are left out with the index.
-- Items go by name: variants told apart by an aux value are one item (a bed
-  plans as its first color).
+- Not seen in game by anyone (built while the maintainer was away, and the
+  agent could not drive the game): items told apart by aux, the search
+  field and the filter, favourites, the wanted items and their window, the
+  A and W keys, "use this" on a recipe. Japanese input in the search field
+  was never checked; it takes no pasted text.
+- Not built: "place" and Mass Craft; the schematic handing its materials
+  over and the Materials tab cut back to its gather list; counted places
+  beyond what is carried; a typed number in the wanted stepper; held
+  members first in a group's turn; what a recipe leaves besides its
+  product; recipes that use their own product are left out with the index.
+- Items are told apart by name and aux. Items that differ only in their
+  data (enchanted books, a filled map) are one item. The schematic
+  Materials tab still counts what is carried by name alone.
+- The wanted items' file is not listed or removed by the Saved data
+  screen ([L-358](backlog/L-358.md)).
 - Potion mixes are not read (the SDK gives them no layout); trades and
   drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated

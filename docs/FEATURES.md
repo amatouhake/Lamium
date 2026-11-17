@@ -443,8 +443,11 @@ bottles, empty buckets) and refills an offhand totem after it saves you.
 Lists every item beside the inventory and other item screens (not the
 anvil). Click an item for its recipes, right click for what it is used in;
 `R` and `U` do the same for the item under the pointer, also in the game's
-own slots. Off by default; details and what is still to come in
-[RECIPES.md](RECIPES.md).
+own slots. A search field at the bottom narrows the list, as does "Can be
+made". `A` keeps an item as a favourite and `W` puts it on the list of
+wanted items, both on the left; the wanted items' window shows what to
+gather and what to make for them. Off by default; details and what is
+still to come in [RECIPES.md](RECIPES.md).
 
 ### Death layout restore (experimental)
 

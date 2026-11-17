@@ -70,8 +70,9 @@ append-only action ids and default keys in `src/input/Binding.h`.
   Lamium's default. The Settings action cannot be cleared.
 - Default keys exist only where a convention exists or the action is used
   constantly; defaults are decided per feature, there is no general policy.
-  Current defaults: `L` settings (L-01, replacing F8), `C` zoom, `R` and `U`
-  for an item's recipes and uses on item screens (L-359; Sort lost `R`),
+  Current defaults: `L` settings (L-01, replacing F8), `C` zoom, `R`, `U`,
+  `A` and `W` for an item's recipes, uses, favourite and wanted on item
+  screens and `Backspace` for back in the recipe view (L-359; Sort lost `R`),
   `M` world map, `Tab` player list (hold), `F3` Debug View, `F3+B` Hitboxes,
   `F3+G` Chunk Borders (Java's debug keys, 2026-09-27), right button Fake
   Offhand use, `F` swap with offhand (2026-10-06, Java's key; Bedrock has

@@ -13,9 +13,11 @@ Do not infer game success from a build or unit-test result.
   faults and due to be cut back to the gather list (VALIDATION-LOG
   2026-11-17). Finish it as agreed or hide the switch before a release.
 
-- Recipes (L-359, experimental, off by default): the list and the view as
-  built so far; all beds are one item; Sort no longer has a default key,
-  which the release notes must say.
+- Recipes (L-359, experimental, off by default): the search field, the
+  filter, favourites, the wanted items and items told apart by aux were
+  built without a check in game (RECIPES.md "Limits"); check them, Japanese
+  input in the field included. Sort no longer has a default key, which the
+  release notes must say.
 
 ## Left from 0.7.0
 
