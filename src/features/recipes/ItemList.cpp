@@ -5,6 +5,7 @@
 #include "features/inspection/render/ItemIcon.h"
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemListLayout.h"
+#include "features/recipes/ListFilter.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
@@ -20,10 +21,12 @@
 #include "mc/client/gui/controls/VisualTree.h"
 #include "mc/client/gui/screens/ScreenController.h"
 #include "mc/client/gui/screens/ScreenView.h"
+#include "mc/client/input/KeyboardManager.h"
 #include "mc/client/input/KeyboardRemappingLayout.h"
 #include "mc/client/input/Keymapping.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/deps/core/math/Vec2.h"
 #include "mc/world/item/ItemInstance.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/registry/CreativeItemEntry.h"
@@ -32,6 +35,7 @@
 #include "mc/world/level/Level.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
+#include "ui/TextEdit.h"
 #include "ui/Widgets.h"
 #include <algorithm>
 #include <atomic>
@@ -51,6 +55,21 @@ std::vector<std::string> names;
 std::set<std::string, std::less<>> listed; // the same keys, to look one up
 std::atomic<bool> forget{false};
 int page = 0;
+// The list narrowed: by the search field's text and to what can be made from what is carried.
+enum class Filter { All, CanMake };
+Filter filter = Filter::All;
+ui::TextEdit search{64};
+bool searchFocus = false, keyboardOwned = false;
+// The items' names as the game shows them, lowered, for searching: read a part a frame (each asks the game).
+std::vector<std::string> lowNames;
+std::vector<int> visible; // positions in `names`
+struct VisibleFor {
+    bool valid = false;
+    std::string query;
+    Filter filter = Filter::All;
+    size_t named = 0;
+    std::chrono::steady_clock::time_point at{};
+} visibleFor;
 std::string viewScreen; // the screen the recipe view was opened on; it closes with it
 std::string lastScreen; // the item screen drawn last
 // What the last frame showed, for the input listeners, and what they kept from the game for the next frame.
@@ -64,12 +83,18 @@ struct Shown {
     float pointerX = -1, pointerY = -1;
     std::string hoverItem;          // the item under the pointer: in the list, the view or a slot of the game's
     std::vector<int> inventoryKeys; // the game's own key for the inventory, which stays the game's
+    ListBox field;                  // the search field
+    bool searchFocus = false;
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
     int listTurns = 0, viewTurns = 0;
     bool back = false, close = false;
+    std::vector<int> fieldKeys; // keys pressed while the search field has the focus; 0x10000 set with Ctrl
+    std::string text;           // text the game handed the focused field
+    bool outside = false;       // a press the game kept, which takes the focus from the field
 } queued;
+bool ctrlHeld = false; // the listeners' own
 // The buttons and keys whose press was kept: only their release is kept too. One the game saw go down
 // must see it come up, or it stays held there.
 std::vector<int> keptButtons, keptKeys;
@@ -86,9 +111,51 @@ bool keep(std::vector<int>& kept, int code, bool down, bool wanted) {
 }
 // Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
 bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono::milliseconds(300); }
+void releaseKeyboard() {
+    if (!keyboardOwned) return;
+    keyboardOwned = false;
+    if (auto client = ll::service::getClientInstance()) {
+        auto& keyboard = client->getKeyboardManager();
+        keyboard.disableKeyboard();
+        keyboard.releaseKeyboardOwnership();
+    }
+}
+// The list as narrowed now. What can be made changes with the inventory, so it is asked again twice a second.
+void narrow(LocalPlayer& player) {
+    for (int budget = 150; budget > 0 && lowNames.size() < names.size(); --budget)
+        lowNames.push_back(lowered(schematic::items::shown(names[lowNames.size()]).name));
+    std::string query = lowered(search.value());
+    auto const now = std::chrono::steady_clock::now();
+    if (visibleFor.valid && query == visibleFor.query && filter == visibleFor.filter && lowNames.size() == visibleFor.named
+        && (filter != Filter::CanMake || now - visibleFor.at < std::chrono::milliseconds(500)))
+        return;
+    std::shared_ptr<service::Table const> table;
+    std::vector<bool> can;
+    if (filter == Filter::CanMake && (table = service::table())) {
+        std::map<Item, Count> held;
+        for (auto const& stack : schematic::items::carriedStacks(player))
+            if (Item const id = table->index.find(stack.name, stack.aux); id >= 0) held[id] += stack.count;
+        can = canMakeNow(table->index, held);
+    }
+    visible.clear();
+    for (size_t i = 0; i < names.size(); ++i) {
+        if (!query.empty() && !searchMatches(query, i < lowNames.size() ? std::string_view(lowNames[i]) : std::string_view(), names[i])) continue;
+        if (filter == Filter::CanMake) {
+            if (!table) continue; // not read yet
+            auto const key = splitItemKey(names[i]);
+            Item const id = table->index.find(key.name, key.aux);
+            if (id < 0 || !can[static_cast<size_t>(id)]) continue;
+        }
+        visible.push_back(static_cast<int>(i));
+    }
+    if (query != visibleFor.query || filter != visibleFor.filter) page = 0;
+    visibleFor = {true, std::move(query), filter, lowNames.size(), now};
+}
 void readNames(LocalPlayer& player) {
     names.clear();
     listed.clear();
+    lowNames.clear();
+    visibleFor = {};
     auto const* registry = player.getLevel().getItemRegistry().getCreativeItemRegistry().get();
     if (!registry) return;
     auto const& entries = registry->mCreativeItems.get();
@@ -147,7 +214,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return false;
-    if (forget.exchange(false)) names.clear(), view::close();
+    if (forget.exchange(false)) names.clear(), view::close(), search.clear(), searchFocus = false;
     if (names.empty()) readNames(*player);
     glm::vec2 at{}, size{};
     if (names.empty() || !windowOf(screenView, at, size)) return false;
@@ -167,24 +234,63 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // The table is read while the list shows, a part a frame, so the first recipe opens at once.
     service::want();
-    int const count = static_cast<int>(names.size()), pages = layout.pages(count);
+    // The search field: what was typed since the last frame, then where this frame's press went.
+    auto const field = searchFieldAt(screen.x, screen.y);
+    if (searchFocus) {
+        for (int pressed : input.fieldKeys) {
+            int const code = pressed & 0xFFFF;
+            bool const ctrl = (pressed & 0x10000) != 0;
+            if (code == 0x1B || code == 0x0D) searchFocus = false;
+            else if (code == 0x08) search.backspace();
+            else if (code == 0x2E) search.erase();
+            else if (code == 0x25) search.left(ctrl);
+            else if (code == 0x27) search.right(ctrl);
+            else if (code == 0x24) search.home();
+            else if (code == 0x23) search.end();
+            else if (ctrl && code == 0x41) search.selectAll();
+        }
+        if (!input.text.empty()) search.type(input.text);
+    }
+    // One press a frame. Each control asks whether it was on it; what none takes goes to the recipe view.
+    bool pressed = !input.clicks.empty();
+    bool const leftPress = pressed && input.clicks.front();
+    auto took = [&](ListBox const& box) {
+        if (!pressed || !box.has(px, py)) return false;
+        pressed = false;
+        return true;
+    };
+    bool caretPress = false;
+    if (pressed || input.outside) searchFocus = false;
+    if (took(field)) searchFocus = caretPress = true;
+    narrow(*player);
+    int const count = static_cast<int>(visible.size()), pages = layout.pages(count);
     page = std::clamp(page + input.listTurns, 0, pages - 1);
     int const first = page * layout.perPage(), hovered = layout.hit(px, py);
-    bool const wasOpen = view::isOpen();
+    auto nameAt = [&](int cell) -> std::string const& { return names[static_cast<size_t>(visible[static_cast<size_t>(first + cell)])]; };
     std::string hoverItem;
-    if (hovered >= 0 && first + hovered < count) hoverItem = names[static_cast<size_t>(first + hovered)];
-    if (!wasOpen && !input.clicks.empty() && hovered >= 0 && first + hovered < count) {
-        view::open(names[static_cast<size_t>(first + hovered)], !input.clicks.front());
-        viewScreen = screenName;
-        input.clicks.clear();
-    }
+    if (hovered >= 0 && first + hovered < count) hoverItem = nameAt(hovered);
     auto& context = event.uiRenderContext();
     // A dimmed band to the screen's edge: the game dims the world too little for bare icons.
     fill(context, layout.left, layout.top, layout.width, layout.height, palette::panel, .5f);
     label(context, layout.left, layout.top + 3, layout.width - 4, std::format("{} / {}", page + 1, pages), palette::dim, Align::Right);
+    // The filters keep the bar's left end: both where the band is wide, one switch where it is not.
+    float barX = layout.left + 2;
+    auto barButton = [&](std::string text, bool on) {
+        ListBox const box{barX, layout.top + 1, textWidth(context, text) + 10, 11};
+        drawButton(context, box.x, box.y, box.w, box.h, std::move(text), box.has(px, py), on ? ButtonKind::Primary : ButtonKind::Plain);
+        barX += box.w + 2;
+        return leftPress && took(box);
+    };
+    if (layout.width >= 130) {
+        if (barButton(translated("recipes.filter.all"), filter == Filter::All)) filter = Filter::All;
+        if (barButton(translated("recipes.filter.canMake"), filter == Filter::CanMake)) filter = Filter::CanMake;
+    } else if (barButton(translated("recipes.filter.canMakeShort"), filter == Filter::CanMake))
+        filter = filter == Filter::CanMake ? Filter::All : Filter::CanMake;
+    if (!count) label(context, layout.left + 4, layout.top + ItemListLayout::bar + 4, layout.width - 8,
+                      translated(filter == Filter::CanMake && !service::table() ? "schematic.raw.reading" : "recipes.notFound"), palette::dim);
     view::Late late;
     for (int i = 0; i < layout.perPage() && first + i < count; ++i) {
-        auto const& item = schematic::items::shown(names[static_cast<size_t>(first + i)]);
+        auto const& item = schematic::items::shown(nameAt(i));
         float const x = layout.cellX(i), y = layout.cellY(i);
         if (i == hovered) {
             fill(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::white, .14f);
@@ -192,11 +298,25 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
         if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
     }
-    if (wasOpen && hovered >= 0 && first + hovered < count && !input.clicks.empty()) {
-        // The list stays usable beside an open view: a press there shows that item.
-        view::open(names[static_cast<size_t>(first + hovered)], !input.clicks.front());
-        input.clicks.clear();
+    // A press on an item shows its recipes, a right press what it is used in, also beside an open view.
+    if (pressed && hovered >= 0 && first + hovered < count) {
+        view::open(nameAt(hovered), !leftPress);
+        viewScreen = screenName;
+        pressed = false;
     }
+    if (!pressed) input.clicks.clear();
+    drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
+    if (caretPress) placeCaret(context, search, px, py);
+    // Typing needs the platform's keyboard: claimed while the field has the focus, given back with it.
+    if (searchFocus && !keyboardOwned) {
+        auto& keyboard = client->getKeyboardManager();
+        if (keyboard.tryClaimKeyboardOwnership()) {
+            if (keyboard.tryEnableKeyboard({}, 128, true, false, false, Vec2{field.x, field.y}, 20.0f)) keyboardOwned = true;
+            else keyboard.releaseKeyboardOwnership();
+        }
+        if (!keyboardOwned) searchFocus = false;
+    }
+    if (!searchFocus) releaseKeyboard();
     view::draw(context,
                {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
@@ -234,7 +354,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     {
         std::scoped_lock lock(shownLock);
-        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys};
+        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, searchFocus};
     }
     context.flushText(0, std::nullopt);
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
@@ -259,20 +379,38 @@ bool wheel(int pages) {
 }
 bool press(int button, bool left, bool right, bool down) {
     std::scoped_lock lock(shownLock);
-    bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY));
+    bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY) || shown.field.has(shown.pointerX, shown.pointerY));
+    if (!ours && down && fresh() && shown.searchFocus) queued.outside = true;
     if (!keep(keptButtons, button, down, ours)) return false;
     if (down && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
 }
 bool key(int code, bool down) {
     // The modifier keys stay the game's: one held while the view opens must still be released.
+    if (code == 0x11 || code == 0xA2 || code == 0xA3) ctrlHeld = down;
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(shownLock);
+    // The focused search field takes every key: letters are text, which the game hands over itself.
+    if (fresh() && shown.searchFocus) {
+        if (!keep(keptKeys, code, down, true)) return false;
+        if (down && queued.fieldKeys.size() < 64) queued.fieldKeys.push_back(code | (ctrlHeld ? 0x10000 : 0));
+        return true;
+    }
     if (!keep(keptKeys, code, down, fresh() && shown.viewOpen)) return false;
     // Esc and the game's inventory key close the view and leave the screen under it open: the key that
     // closes the inventory closes what is on top first.
     bool const games = std::find(shown.inventoryKeys.begin(), shown.inventoryKeys.end(), code) != shown.inventoryKeys.end();
     if (down && (code == 0x1B || games)) queued.close = true;
+    return true;
+}
+bool typing() {
+    std::scoped_lock lock(shownLock);
+    return fresh() && shown.searchFocus;
+}
+bool type(std::string const& text) {
+    std::scoped_lock lock(shownLock);
+    if (!fresh() || !shown.searchFocus) return false;
+    if (queued.text.size() + text.size() <= 256) queued.text += text;
     return true;
 }
 bool viewOpen() {
@@ -295,7 +433,18 @@ void show(bool uses) {
 }
 void start() {
     auto& bus = ll::event::EventBus::getInstance();
-    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawList(event); } catch (...) {} });
+    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
+        try {
+            if (drawList(event) || !keyboardOwned) return;
+            // The list is gone with the field focused (the screen closed, the switch went off): the keyboard goes back.
+            bool gone = false;
+            {
+                std::scoped_lock lock(shownLock);
+                gone = !fresh();
+            }
+            if (gone) searchFocus = false, releaseKeyboard();
+        } catch (...) {}
+    });
     // The names belong to the world's items: read them again in the next world.
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { forget = true; });
 }

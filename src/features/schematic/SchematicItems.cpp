@@ -28,7 +28,9 @@ ItemStack const* iconStack(std::string const& icon) {
     if (icon.empty()) return nullptr;
     auto found = stacks.find(icon);
     if (found == stacks.end()) {
-        if (stacks.size() > 512) stacks.clear();
+        // Never emptied within a world: a caller draws from pointers it took earlier in the frame, and the
+        // item list alone shows a couple of thousand items over its pages (L-359).
+        if (stacks.size() > 16384) return nullptr;
         ItemStack stack;
         if (auto tag = CompoundTag::fromBinaryNbt(icon)) {
             try {
@@ -48,7 +50,7 @@ Shown const& shown(std::string const& item) {
         seenShown = now;
     }
     if (auto found = shownItems.find(item); found != shownItems.end()) return found->second;
-    if (shownItems.size() > 2048) shownItems.clear();
+    if (shownItems.size() > 16384) shownItems.clear();
     Shown out{item, {}, 64};
     // A variant's key carries its aux ("minecraft:bed@14", recipes/ItemKey.h).
     auto const parts = recipes::splitItemKey(item);
@@ -68,11 +70,16 @@ Shown const& shown(std::string const& item) {
 }
 std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {
     std::map<std::string, std::uint64_t> out;
+    for (auto const& stack : carriedStacks(player)) out[stack.name] += stack.count;
+    return out;
+}
+std::vector<Carried> carriedStacks(LocalPlayer& player) {
+    std::vector<Carried> out;
     auto& inventory = player.getInventory();
     for (int slot = 0; slot < inventory.getContainerSize(); ++slot) {
         auto const& stack = inventory.getItem(slot);
         if (stack.isNull()) continue;
-        out[stack.getTypeName()] += stack.mCount;
+        out.push_back({stack.getTypeName(), stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount)});
         if (!stack.getTypeName().ends_with("shulker_box")) continue;
         auto const* data = stack.mUserData.get();
         if (!data) continue;
@@ -82,7 +89,7 @@ std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {
             if (!entry || entry->getId() != Tag::Type::Compound) continue;
             try {
                 auto inner = ItemStack::fromTag(entry->as<CompoundTag>());
-                if (!inner.isNull()) out[inner.getTypeName()] += inner.mCount;
+                if (!inner.isNull()) out.push_back({inner.getTypeName(), inner.getAuxValue(), static_cast<std::uint64_t>(inner.mCount)});
             } catch (...) {}
         }
     }

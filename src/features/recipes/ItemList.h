@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 // L-359: every item in a band right of the game's window on the item
 // screens, in pages, with the name under the pointer; a press shows the
 // item's recipes, a right press what it is used in (RecipeViewDraw.h).
@@ -13,6 +14,10 @@ void stop();
 bool wheel(int pages);
 bool press(int button, bool left, bool right, bool down);
 bool key(int code, bool down);
+// The search field: whether it is being typed in (keys are text then, not actions), and the text the
+// game hands a focused field; true keeps it from the screen under the list.
+bool typing();
+bool type(std::string const& text);
 // Whether the recipe view is open and drawn, for the key listener.
 bool viewOpen();
 // The recipe keys: shows the item under the pointer (in the list, the view

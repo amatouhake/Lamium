@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <map>
+#include <vector>
 #include <string>
 class ItemStack;
 class LocalPlayer;
@@ -25,4 +26,11 @@ struct Shown {
 Shown const& shown(std::string const& item);
 // Items carried: the inventory and the contents of shulker boxes in it.
 std::map<std::string, std::uint64_t> carried(LocalPlayer& player);
+// The same stacks one by one, with the aux a recipe may tell them apart by (a bed's color).
+struct Carried {
+    std::string name;
+    int aux = 0;
+    std::uint64_t count = 0;
+};
+std::vector<Carried> carriedStacks(LocalPlayer& player);
 }

@@ -168,7 +168,8 @@ void startCustomInput() {
             inventory::repeatTrades::cancel();
         }
         bool consumed = process({Device::Key, event.keyCode()}, event.isDown(), event.isCancelled(),
-            event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected, recipes::itemList::viewOpen());
+            event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected || recipes::itemList::typing(),
+            recipes::itemList::viewOpen());
         if (!event.isDown() && (event.keyCode() == 0x10 || event.keyCode() == 0x11
             || event.keyCode() == 0xA0 || event.keyCode() == 0xA1
             || event.keyCode() == 0xA2 || event.keyCode() == 0xA3))

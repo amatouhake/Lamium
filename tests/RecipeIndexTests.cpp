@@ -1,4 +1,5 @@
 #include "features/recipes/ItemListLayout.h"
+#include "features/recipes/ListFilter.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/RecipeView.h"
 void check(bool, char const*);
@@ -240,6 +241,25 @@ void recipeIndexTests() {
         check(!hopper.uses[0].group && hopper.uses[0].id == index.find("chest"), "any aux of a name without variants is the item");
         check(splitItemKey("a:b@14").aux == 14 && splitItemKey("a:b@*").aux == anyAux && splitItemKey("a:b").aux == 0 && splitItemKey("a@b").name == "a@b"
               && itemKey("a:b", 0) == "a:b" && itemKey("a:b", 3) == "a:b@3", "a key is the name, with the aux after an @ when it is not 0");
+    }
+    {
+        // Narrowing the list: by words, and to what the held items make at once.
+        check(searchMatches("", "oak planks", "minecraft:oak_planks") && searchMatches("oak pl", "oak planks", "minecraft:oak_planks")
+              && searchMatches("oak_", "オークの板材", "minecraft:oak_planks") && !searchMatches("oak iron", "oak planks", "minecraft:oak_planks")
+              && searchMatches(lowered("OAK"), lowered("Oak Planks"), "") && searchMatches("板材", "オークの板材", "minecraft:oak_planks"),
+              "every word of the query is in the name or the key; letters match whatever their case");
+        Source source;
+        source.tags["planks"] = {"oak_planks", "birch_planks"};
+        source.recipes.push_back({"crafting_table", "stick", 0, {{"stick", 4}}, {{"planks", true}, {"planks", true}}, 1, 2});
+        source.recipes.push_back({"crafting_table", "torch", 0, {{"torch", 4}}, {{"coal", false}, {"stick", false}}, 1, 2});
+        source.recipes.push_back({"furnace", "glass", 0, {{"glass", 1}}, {{"sand", false}}});
+        Index index = build(source);
+        auto can = canMakeNow(index, {{index.find("oak_planks"), 1}, {index.find("birch_planks"), 1}, {index.find("coal"), 5}, {index.find("sand"), 9}});
+        check(can[static_cast<size_t>(index.find("stick"))] && !can[static_cast<size_t>(index.find("torch"))] && !can[static_cast<size_t>(index.find("glass"))],
+              "made now: the members of a group count together, nothing is made first, and only crafting counts");
+        check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
+        auto field = searchFieldAt(640, 360);
+        check(field.x == 232 && field.y == 345 && field.w == 176 && field.has(300, 350) && !field.has(300, 340), "the search field sits at the bottom centre");
     }
     {
         Index empty = build({});

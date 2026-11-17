@@ -20,6 +20,14 @@ struct ItemListLayout {
         return column < columns && row < rows ? row * columns + column : -1;
     }
 };
+// A rectangle of the screen.
+struct ListBox {
+    float x = 0, y = 0, w = 0, h = 0;
+    bool has(float px, float py) const { return w > 0 && px >= x && px < x + w && py >= y && py < y + h; }
+};
+// The search field: at the bottom centre, as wide as the game's inventory window and low enough that
+// nothing above it ever has to move.
+inline ListBox searchFieldAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - 15, 176, 11}; }
 // The band from the window's right side to the screen's edge, top to bottom:
 // a bar for the pager, then as many whole cells as fit.
 inline ItemListLayout itemListRight(float screenWidth, float screenHeight, float windowLeft, float windowWidth) {
