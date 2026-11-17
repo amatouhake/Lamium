@@ -108,15 +108,22 @@ bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size) {
     }
     return false;
 }
-// False when nothing was drawn.
+// False when nothing was drawn. The listeners then keep nothing once `fresh` runs out.
 bool drawList(ll::event::UIRenderEvent& event) {
     using namespace lamium::ui;
     auto& screenView = event.screenView();
-    std::string const screenName = screenView.mController && screenView.mController->_isContainerScreen()
+    // Several screens are drawn a frame (the HUD under a container); any but a focused item screen is not
+    // this list's business and changes nothing here.
+    std::string const screenName = screenView.mHasFocus && screenView.mController && screenView.mController->_isContainerScreen()
         ? screenView.getScreenName() : std::string();
-    if (view::isOpen() && screenName != viewScreen) view::close();
+    if (screenName.empty()) return false;
+    {
+        // Another item screen, or the same one after a pause: the view belonged to the one that is gone.
+        std::scoped_lock lock(shownLock);
+        if (view::isOpen() && (screenName != viewScreen || !fresh())) view::close();
+    }
     // The anvil's sides belong to the enchantment order's panels.
-    if (screenName.empty() || screenName == "anvil_screen") return false;
+    if (screenName == "anvil_screen") return false;
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return false;
@@ -191,18 +198,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     return true;
 }
-void draw(ll::event::UIRenderEvent& event) {
-    // Several screens are drawn a frame (the HUD under a container): only the one with the focus says
-    // whether the list is there.
-    if (!event.screenView().mHasFocus || drawList(event)) return;
-    // Gone: the listeners keep nothing more, at once and not after the moment `fresh` allows.
-    std::scoped_lock lock(shownLock);
-    shown.at = {};
-    shown.viewOpen = false;
+// What the listeners decided for the first inputs, in the log: they run where nothing can be seen.
+std::atomic<int> said{0};
+void say(char const* what, bool kept) {
+    if (said++ >= 40) return;
+    try {
+        Runtime::instance().self().getLogger().info("L-359 list {}: kept={} fresh={} open={} pointer={:.0f},{:.0f} list={:.0f},{:.0f} {:.0f}x{:.0f}",
+            what, kept, fresh(), shown.viewOpen, shown.pointerX, shown.pointerY, shown.list.left, shown.list.top, shown.list.width, shown.list.height);
+    } catch (...) {}
 }
 }
 bool wheel(int pages) {
     std::scoped_lock lock(shownLock);
+    say("wheel", fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY)));
     if (!fresh()) return false;
     if (shown.viewOpen && shown.view.has(shown.pointerX, shown.pointerY)) queued.viewTurns += pages;
     else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
@@ -212,6 +220,7 @@ bool wheel(int pages) {
 bool press(int button, bool left, bool right, bool down) {
     std::scoped_lock lock(shownLock);
     bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY));
+    if (down) say("press", ours);
     if (!keep(keptButtons, button, down, ours)) return false;
     if (down && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
@@ -227,7 +236,7 @@ bool key(int code, bool down) {
 }
 void start() {
     auto& bus = ll::event::EventBus::getInstance();
-    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { draw(event); } catch (...) {} });
+    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawList(event); } catch (...) {} });
     // The names belong to the world's items: read them again in the next world.
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { forget = true; });
     Runtime::instance().self().getLogger().warn("L-359 item list enabled (build option)");

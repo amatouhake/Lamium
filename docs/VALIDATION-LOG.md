@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe view's second build took no input either (L-359 step 3, 2026-11-18)
+
+Build `8778e963` with `--item_list=y` (DLL
+`2f3dd5bb6eff8c1c668e204b60397e5248f7f71fad8812bad9b5f436207bb52e`),
+1.26.60.05 Dev instance, the maintainer:
+- Fault, unchanged: presses, right presses and the wheel over the band did
+  nothing; the game's window worked. Letting only focused screens mark the
+  list as gone was not enough.
+- `lamium.log`: "Recipe table read: 4755 recipes, 1219 with a grid, 1219 of
+  them fit their cells".
+
 ## The recipe view's first build took no input (L-359 step 3, 2026-11-18)
 
 Build `ad592114` with `--item_list=y` (DLL
