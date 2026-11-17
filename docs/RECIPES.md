@@ -24,6 +24,9 @@ is in the L-item.
 ### The item list
 - Beside the game's window on every screen that handles items (inventory,
   crafting table, furnace, chests), always shown: all items on the right.
+  Not at the anvil for now, where Enchantment Order's panels are.
+- A store can only be a storage block (chest, barrel, shulker box, ender
+  chest): what a furnace or hopper holds changes by itself.
 - On the left: favourites at the top, the plan in the lower part (its
   lines carry item icons; what else it shows is decided with the plan).
 - Both side lists lie on a dimmed band that runs to the screen's edge, with
