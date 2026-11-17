@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Raw materials in the Materials tab (L-116 / L-359, 2026-11-17)
+
+Build `44d92e34` (DLL
+`d2f96a061d9da41f40b75834c5e6973ee40c245a985337da5d3548f1aca2cc70`),
+1.26.60.05 Dev instance, the maintainer, a local world. Passed: with the
+switch on, the reading line gives way to the list without closing the
+screen; the gather and make counts and the selected line's breakdown, on a
+placement checked by hand. Faults seen:
+- UI 100 %: in the make rows the station's name lies over the icon and the
+  item's name is not shown (the fixed columns leave the name no room).
+- The pane's detail is cut off and cannot be scrolled; a group with many
+  members (wooden slabs) shows only a few of them at 75 % as well.
+- A group's icon is an arbitrary member (a warped slab for wooden slabs, red
+  sand for the sand pair).
+- The "makes" tip reads "1 stack" for one white bed (stack size 1).
+- A step names the furnace alone where a blast furnace also works.
+
+Not checked: servers, the paused switch, other languages.
+
 ## The recipe index filled from the game (L-359, 2026-11-17)
 
 Build `dbf7f73c` with `--recipe_trace=y` (DLL
