@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-339](backlog/done/L-339.md) Toasts and the settings screen
 - [L-324](backlog/done/L-324.md) Map: custom blocks are drawn in a dirt-like brown
 - [L-344](backlog/done/L-344.md) English Search does not find enchanted books by enchantment name
 - [L-335](backlog/done/L-335.md) Rows under a switched-off feature are dimmed only in the middle
@@ -92,6 +93,10 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-357](backlog/done/L-357.md) HUD elements: their size and their text size apart
+- [L-356](backlog/done/L-356.md) Save shapes per server, like waypoints and placements
+- [L-33](backlog/done/L-33.md) Mob growth and breeding states in the target card
+- [L-352](backlog/done/L-352.md) More on and off forms as a wrong state
 - [L-338](backlog/done/L-338.md) When a death layout ends
 - [L-355](backlog/done/L-355.md) Color tokens for the schematic check's wrong state and not placed
 - [L-354](backlog/done/L-354.md) Drags that outlive a quick click or a focus loss in the settings

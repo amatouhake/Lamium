@@ -396,5 +396,5 @@ Under `src/features/map/` unless stated; pure parts tested in
   [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/L-343.md);
   [L-243 Large terrain gaps that only reload when the player comes near](backlog/L-243.md);
   [L-249 Show the chunks within simulation distance](backlog/L-249.md);
-  map findings in [L-339 Smaller bugs found by the 2026-11-14 code review](backlog/L-339.md)
+  map findings in [L-339 Smaller bugs found by the 2026-11-14 code review](backlog/done/L-339.md)
   and [L-342 Lower findings of the 2026-11-14 review, kept for later](backlog/L-342.md).

@@ -15,6 +15,13 @@ LeviLauncher) are not checked. The smoke used the commit's CI package
 (`b9d35a5f`). What follows was written before the release; what it calls
 not seen was still not seen in 0.7.0.
 
+- Night work of 2026-11-17 (VALIDATION-LOG, `7ddc0df7`): the other lit
+  pairs and the inverted daylight detector (L-352); a toast held while the
+  settings are open, such as the death layout restore's (L-339); a friend's
+  world's shapes and deleting a local world's data, which now deletes its
+  shapes (L-356); the old minimap text size conversion and the schematic
+  HUD, durability, status effects and player list with standard-size text
+  (L-357); servers for all of them.
 
 - L-327: the "restore ended" toast was confirmed on `786424c4`; the help
   text naming 32 blocks was not looked at.

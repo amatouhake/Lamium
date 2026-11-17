@@ -202,7 +202,7 @@ long as the button is).
   Next).
 - The stew's effect line is left out when the tooltip already contains the
   effect's text anywhere, e.g. a renamed stew
-  ([L-339 Smaller bugs found by the 2026-11-14 code review](backlog/L-339.md)).
+  ([L-339 Smaller bugs found by the 2026-11-14 code review](backlog/done/L-339.md)).
 - The toggle keys work outside screens only, so a key is pressed before the
   inventory is opened (known and left).
 - Unchecked in game: the "Item details in item tooltips (L-319)" and "Work

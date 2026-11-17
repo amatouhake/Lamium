@@ -12,6 +12,37 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Night work merged (L-33, L-339, L-352, L-356, L-357, 2026-11-17)
+
+Builds of `night/combined` (main with the four night branches) on the
+1.26.60.05 Dev instance, the maintainer, in three rounds: `a0a376da` (DLL
+`26fd7aa2c0bdcaa794a47903601919e62c40de064ccaec3e9a1718f19949dd0b`),
+`25aec0f0` (`d3c09b036667b72228214bda705d3a8117956f079ec78d6d04452b2b54465c19`),
+`7ddc0df7` (`f9379c0883baee86dfccdd68fcb5d562e87c9308d7b74b87d94f6a1b86617959`).
+Passed:
+- L-352: the Check rows read mistake marks, the wrong-state switch, then
+  the four Ignore switches; a furnace lit in the world where the schematic
+  has it unlit is yellow with the switch on, red with it off.
+- L-33: an adult cow reads "In love: No", "Yes" once fed; a calf and a
+  zombie have no such row. (The first round showed the row only when fed.)
+- L-339: a waypoint added from the world map's prompt says so on the map;
+  a radial menu switch toasts once the menu closes. (The first round had
+  dropped the switch toasts; the maintainer chose all toasts.)
+- L-356: a shape made on a local server is there after a rejoin; the Saved
+  data page shows "Shapes: n"; merging another data with one shape each
+  kept both.
+- L-357: the Look popover lists background, shadow and "Standard text
+  size", its switches at the right end (as the Contents popover's); the
+  minimap and the target at 50 % and 200 % change only their text size with
+  the switch; an existing layout looked as before; scale handles follow the
+  pointer with standard-size text (better than the first round, still less
+  direct than plain scaling, accepted).
+Not checked: the other lit pairs (blast furnace, smoker, redstone ore, the
+inverted daylight detector); a toast held while the settings are open
+(death layout restore); a friend's world's shapes and deleting a local
+world's data with shapes; the old `map.textSize` conversion; the schematic
+HUD, durability, status effects and player list at 50 % and 200 %; servers.
+
 ## Inventory grid slot as the hotbar's (L-357, 2026-11-17)
 
 Build `87c48e2a`, DLL SHA-256

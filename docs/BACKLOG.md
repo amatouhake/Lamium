@@ -145,9 +145,8 @@ from the file); never restate them here.
    below the map work and needs a scope conversation first.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-116 raw materials, L-184
-   inspect ghost data, L-185 instant load, L-186 ghost legibility, L-352
-   on and off forms as a wrong state, and the remaining L-117 schematic name
-   tags.
+   inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
+   remaining L-117 schematic name tags.
    The initial feature and 0.1.8 work are complete, not new tasks.
 4. **Placement/breaking:** L-15 breaking and placement restrictions
    (breaking redesign before placement); L-59 held placement style waits for the maintainer's go-ahead.
@@ -173,7 +172,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Bugs
 
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
-- [L-339](backlog/L-339.md) Toasts and the settings screen (Ready): Built on `night/combined`; checked in game except the radial menu change of 2026-11-17
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
@@ -197,9 +195,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
-- [L-352](backlog/L-352.md) More on and off forms as a wrong state (Ready): Built 2026-11-17, not checked in game
-- [L-356](backlog/L-356.md) Save shapes per server, like waypoints and placements (Ready): Built 2026-11-17 on `night/L-356`, not checked in game
-- [L-357](backlog/L-357.md) HUD elements: their size and their text size apart (Ready): Built 2026-11-17 on `night/L-357`, not checked in game
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
@@ -219,7 +214,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-71](backlog/L-71.md) Start an elytra glide from the mod (Research): Open; headers read 2026-11-12, next trace not run
 - [L-93](backlog/L-93.md) Schematic: load, place, project, verify and list materials (experimental) (Follow-up tracking; each L-item below owns its kind and open choices): Initial scope shipped in 0.1.7, 0.1.8 rendering/compatibility work done; follow-ups open
 - [L-30](backlog/L-30.md) Ender Dragon multipart hitboxes on Bedrock (Research): Probed: parts are readable on the client; waiting for a real End dragon check, a server check and the color choice
-- [L-33](backlog/L-33.md) Mob growth and breeding states in the target card (Ready): Built on `night/combined` (Yes / No for adult animals), not checked in game
 - [L-114](backlog/L-114.md) 3D previews in the schematic screen (Research): Partly done: Files and Check tab previews shipped (0.1.8); the Check tab's mistake look, see-through emphasis and moving the zoomed view are open
 - [L-115](backlog/L-115.md) Entity ghosts drawn as models (Research): A compromise version shipped in 0.1.8; the limits below are open
 - [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): Pure calculation built and tested, not wired to the Materials tab; what the client holds is unchecked in game
