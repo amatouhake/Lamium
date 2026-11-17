@@ -641,6 +641,7 @@ void openSchematicTab(schematics_view::Tab tab) {
     schematics_view::refresh(true);
     schematics_view::show(tab);
 }
+std::string menuValue(schematic::menu::Item const& item);
 void runMenuItem(schematic::menu::Item const& item, int amount) {
     namespace menu = schematic::menu;
     using C = menu::Command;
@@ -684,7 +685,13 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
         schematic::actions::run(*client, command);
         close();
         return;
-    default: schematic::actions::run(*client, command); return;
+    default: {
+        // A switch whose state the item shows under its name says nothing else (L-339).
+        std::optional<QuietToasts> quiet;
+        if (!menuValue(item).empty()) quiet.emplace();
+        schematic::actions::run(*client, command);
+        return;
+    }
     }
 }
 // `hit` is the item under the click itself: the pointer may have moved since.

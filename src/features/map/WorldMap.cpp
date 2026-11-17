@@ -2343,7 +2343,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
             ui::data_notice::Kind::Map, pointer, true);
     else ui::data_notice::hide();
     if (!state.notice.empty() && now() - state.noticeAt < ui::noticeSeconds)
-        ui::drawNotice(context, size.x / 2, size.y - bottomHeight - 16, size.x - 8, state.notice);
+        // Over the map's terrain, as over the world (DESIGN "Colors").
+        ui::drawNotice(context, size.x / 2, size.y - bottomHeight - 16, size.x - 8, state.notice, false, true);
     context.flushText(0, std::nullopt);
 }
 }

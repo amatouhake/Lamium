@@ -101,7 +101,7 @@ unsigned toastGroups = 0, toastGroup = 0;
 std::mutex holdMutex;
 ToastHold toastHold;
 bool toastsHeld = false;
-thread_local int screenDepth = 0;
+thread_local int screenDepth = 0, quietDepth = 0;
 // Holds a toast from outside while the settings screen is open; true when it was held.
 bool held(std::string& message, double seconds, bool warning) {
     if (screenDepth > 0) return false;
@@ -115,13 +115,15 @@ void showToggleToast(std::string feature, bool on) { activeToast.showToggle(std:
 void beginToastGroup() { if (!++toastGroups) ++toastGroups; toastGroup = toastGroups; }
 void endToastGroup() { toastGroup = 0; }
 void showMessageToast(std::string message, double seconds) {
-    if (held(message, seconds, false)) return;
+    if (quietDepth > 0 || held(message, seconds, false)) return;
     activeToast.show(std::move(message), false, toastNow(), true, seconds);
 }
 void showWarningToast(std::string message, double seconds) {
     if (held(message, seconds, true)) return;
     activeToast.show(std::move(message), false, toastNow(), true, seconds, true);
 }
+QuietToasts::QuietToasts() { ++quietDepth; }
+QuietToasts::~QuietToasts() { --quietDepth; }
 ScreenToasts::ScreenToasts() { ++screenDepth; }
 ScreenToasts::~ScreenToasts() { --screenDepth; }
 void holdToasts(bool on) {
