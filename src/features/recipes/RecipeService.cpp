@@ -5,7 +5,6 @@
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/client/ClientStartJoinLevelEvent.h"
-#include "ll/api/event/world/ClientLevelTickEvent.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
@@ -14,31 +13,30 @@
 
 namespace lamium::recipes::service {
 namespace {
-constexpr int recipesPerTick = 600; // about a millisecond; a world has four to five thousand
-ll::event::ListenerPtr tickListener, joinListener, exitListener;
+constexpr int recipesPerCall = 600; // about a millisecond; a world has four to five thousand
+ll::event::ListenerPtr joinListener, exitListener;
 std::mutex mutex;
 std::shared_ptr<Table const> built;
-std::atomic<bool> wanted{false};
 std::atomic<State> state{State::Idle};
-game::Snapshot snapshot; // the client tick's alone
+game::Snapshot snapshot; // the client thread's alone
 void reset() {
     {
         std::lock_guard lock(mutex);
         built.reset();
     }
-    wanted = false;
     state = State::Idle;
     snapshot.reset();
 }
-void tick() noexcept {
+// One more part of the table. Driven by the screen that asks, not by the
+// client tick: a screen can be open while the world's tick stands still.
+void advance() noexcept {
     try {
-        if (!wanted.load() || state.load() == State::Ready || state.load() == State::Unreadable) return;
-        if (!versionSensitiveAllowed(capabilities::Id::RecipeTable)) { state = State::Paused; return; }
+        if (state.load() == State::Ready || state.load() == State::Unreadable) return;
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (!player) return;
         state = State::Reading;
-        if (!snapshot.step(player->getLevel(), recipesPerTick)) return;
+        if (!snapshot.step(player->getLevel(), recipesPerCall)) return;
         if (snapshot.failed() || snapshot.source().recipes.empty()) {
             state = State::Unreadable;
         } else {
@@ -55,7 +53,7 @@ void tick() noexcept {
 }
 State want() {
     if (!versionSensitiveAllowed(capabilities::Id::RecipeTable)) return State::Paused;
-    wanted = true;
+    advance();
     return state.load();
 }
 std::shared_ptr<Table const> table() {
@@ -66,10 +64,9 @@ void start() {
     auto& bus = ll::event::EventBus::getInstance();
     joinListener = bus.emplaceListener<ll::event::ClientStartJoinLevelEvent>([](auto&) { reset(); });
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { reset(); });
-    tickListener = bus.emplaceListener<ll::event::ClientLevelTickEvent>([](auto&) { tick(); });
 }
 void stop() {
-    for (auto* listener : {&tickListener, &joinListener, &exitListener})
+    for (auto* listener : {&joinListener, &exitListener})
         if (*listener) { ll::event::EventBus::getInstance().removeListener(*listener); listener->reset(); }
     reset();
 }
