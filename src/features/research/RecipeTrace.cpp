@@ -1,6 +1,7 @@
 #include "features/research/RecipeTrace.h"
 #ifdef LAMIUM_RECIPE_TRACE
 #include "app/TraceLog.h"
+#include "features/recipes/RecipeSnapshot.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/client/ClientStartJoinLevelEvent.h"
@@ -35,7 +36,7 @@ namespace {
 // walk stops there. Potion mixes are left out: the SDK gives `Mix<T>` no
 // layout.
 ll::event::ListenerPtr tickListener, joinListener, exitListener;
-TraceBudget summaryBudget, failBudget;
+TraceBudget summaryBudget, failBudget, indexBudget;
 bool local = false;
 unsigned ticks = 0, steady = 0, written = 0;
 long long seen = -1, dumped = -1;
@@ -207,14 +208,119 @@ void dump(Level& level, Recipes const& recipes) {
         local ? "local" : "remote", counts, shaped, shapeless, multi, loaded, unloaded, noResult, furnace, path.filename().string(),
         file.fail() ? " (write failed)" : "");
 }
-void reset() { ticks = steady = 0; seen = dumped = -1; }
+// L-359: after the dump the same table is read into the recipe index, a few
+// hundred recipes a tick, and a handful of plans are logged to compare with
+// what the game's own screens ask for.
+recipes::game::Snapshot snapshot;
+bool indexing = false;
+int indexSteps = 0;
+double longestStep = 0;
+double since(std::chrono::steady_clock::time_point start) {
+    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+}
+std::string shortName(std::string const& name) { return name.starts_with("minecraft:") ? name.substr(10) : name; }
+std::string nameOf(recipes::Index const& index, recipes::Item item) {
+    auto const count = static_cast<recipes::Item>(index.items.size());
+    if (item < 0) return "?";
+    if (item < count) return shortName(index.items[item]);
+    if (item - count >= static_cast<recipes::Item>(index.groups.size())) return "?";
+    auto const& group = index.groups[item - count];
+    if (!group.name.empty()) return "#" + shortName(group.name);
+    std::string out = "{";
+    for (size_t i = 0; i < group.members.size() && i < 4; ++i) out += (i ? "|" : "") + shortName(index.items[group.members[i]]);
+    return out + (group.members.size() > 4 ? "|...}" : "}");
+}
+void report() {
+    using namespace recipes;
+    auto const started = std::chrono::steady_clock::now();
+    Index const index = build(snapshot.source());
+    Choice const choice = choose(index);
+    traceLog(indexBudget, 60, "L-359 recipe index ({}): {} recipes and {} tags read in {} steps (longest {:.2f} ms); {} items, {} groups, {} "
+                              "recipes kept; built and chosen in {:.2f} ms{}",
+        local ? "local" : "remote", snapshot.source().recipes.size(), snapshot.source().tags.size(), indexSteps, longestStep,
+        index.items.size(), index.groups.size(), index.recipes.size(), since(started), snapshot.failed() ? " (table unreadable)" : "");
+    std::string chosen;
+    for (char const* name : {"stick", "torch", "oak_planks", "chest", "iron_ingot", "gold_ingot", "copper_ingot", "iron_nugget", "bone_meal",
+             "redstone", "slime_ball", "emerald", "dried_kelp", "resin_clump", "white_wool", "glass", "charcoal", "bed", "arrow", "paper",
+             "stone", "smooth_stone", "stone_bricks", "netherite_ingot", "netherite_pickaxe", "honey_block"}) {
+        Item const item = index.find(std::string{"minecraft:"} + name);
+        chosen += std::format(" {}={}", name, item < 0 ? "absent" : choice.recipe[item] < 0 ? "none" : index.recipes[choice.recipe[item]].id);
+    }
+    traceLog(indexBudget, 60, "L-359 chosen recipes:{}", chosen);
+    std::map<Item, std::string> bases;
+    for (Item item = 0; item < static_cast<Item>(index.items.size()); ++item)
+        if (choice.base[item] >= 0 && choice.base[item] != item) bases[choice.base[item]] += " " + nameOf(index, item);
+    std::string families;
+    for (auto const& [base, members] : bases) families += std::format(" [{}:{}]", nameOf(index, base), members);
+    traceLog(indexBudget, 60, "L-359 convertible groups ({}):{}", bases.size(), families);
+    struct Sample { std::vector<std::pair<char const*, Count>> wanted, held; };
+    Sample const samples[]{
+        {{{"stone_bricks", 64}}, {}},
+        {{{"stone_bricks", 64}}, {{"stone_bricks", 20}, {"stone", 10}}},
+        {{{"iron_block", 1}, {"iron_nugget", 5}}, {}},
+        {{{"torch", 16}}, {}},
+        {{{"chest", 1}, {"stick", 4}, {"oak_planks", 3}}, {{"oak_planks", 5}, {"birch_planks", 4}}},
+        {{{"piston", 1}}, {}},
+        {{{"netherite_pickaxe", 1}}, {}},
+        {{{"emerald_block", 8}}, {}},
+        {{{"cake", 1}}, {}},
+        {{{"beacon", 1}}, {}},
+        {{{"bed", 1}}, {}},
+        {{{"smooth_stone", 16}, {"oak_stairs", 64}}, {}},
+        {{{"observer", 1}, {"dispenser", 1}}, {}},
+    };
+    for (auto const& sample : samples) {
+        Request request;
+        std::string text = "want";
+        auto named = [&](std::vector<std::pair<char const*, Count>> const& from, std::vector<std::pair<Item, Count>>& to) {
+            for (auto [name, count] : from) {
+                Item const item = index.find(std::string{"minecraft:"} + name);
+                text += std::format(" {}x{}{}", count, name, item < 0 ? "(absent)" : "");
+                if (item >= 0) to.emplace_back(item, count);
+            }
+        };
+        named(sample.wanted, request.wanted);
+        if (!sample.held.empty()) { text += "; held"; named(sample.held, request.held); }
+        auto const planned = std::chrono::steady_clock::now();
+        Result const result = plan(index, choice, request);
+        double const took = since(planned);
+        text += " -> gather";
+        for (auto [item, count] : result.raw) text += std::format(" {}x{}", count, nameOf(index, item));
+        text += "; make";
+        for (auto const& step : result.steps)
+            text += std::format(" {}:{}{}", nameOf(index, step.item), step.crafts, step.spare ? std::format("(+{})", step.spare) : "");
+        if (!result.fromHeld.empty()) {
+            text += "; from held";
+            for (auto [item, count] : result.fromHeld) text += std::format(" {}x{}", count, nameOf(index, item));
+        }
+        if (!result.looped.empty()) {
+            text += "; looped";
+            for (Item item : result.looped) text += " " + nameOf(index, item);
+        }
+        traceLog(indexBudget, 60, "L-359 plan: {} ({:.2f} ms)", text.size() > 1500 ? text.substr(0, 1500) + " ..." : text, took);
+    }
+}
+void reset() {
+    ticks = steady = 0;
+    seen = dumped = -1;
+    indexing = false;
+    snapshot.reset();
+}
 void tick() noexcept {
     try {
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (!player) { reset(); return; }
-        if (++ticks % 20 || written >= 6) return;
         auto& level = player->getLevel();
+        if (indexing) {
+            auto const started = std::chrono::steady_clock::now();
+            bool const finished = snapshot.step(level, 600);
+            ++indexSteps;
+            longestStep = std::max(longestStep, since(started));
+            if (finished) { indexing = false; report(); }
+            return;
+        }
+        if (++ticks % 20 || written >= 6) return;
         auto const& recipes = level.getRecipes();
         long long const size = sizeOf(recipes);
         if (size != seen) { seen = size; steady = 0; return; }
@@ -222,6 +328,10 @@ void tick() noexcept {
         dumped = size;
         ++written;
         dump(level, recipes);
+        snapshot.reset();
+        indexSteps = 0;
+        longestStep = 0;
+        indexing = true;
     } catch (Unreadable const& error) {
         written = 6;
         traceLog(failBudget, 4, "L-116 recipe table unreadable: {}", error.what);
