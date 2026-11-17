@@ -88,7 +88,10 @@ is in the L-item.
   waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
   be edited; it looks like the others and says where it comes from.
 - The plan's short list on the left shows either what is left to gather or
-  the targets, switched in place.
+  the targets, switched in place. On a hand-added target there, the wheel
+  changes the count (never below one) and Delete removes it.
+- A key adds the hovered item to "wanted", one a press and a stack with
+  Shift; it works wherever the favourite key does.
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
@@ -100,8 +103,9 @@ is in the L-item.
   built after the first version, but their place on screen is fixed now:
   a "counted places" tab in the plan's window with a switch per place; a
   "have" column whose hover tells where the items are; a star on a number
-  that includes a last-seen count; and, while a container is open, a
-  "make this a store" control by the plan's short list.
+  that includes a last-seen count, in a gutter of its own so the digits
+  stay aligned; and, while a container is open, a "make this a store"
+  button on the last line of the left band, which is kept free for it.
 - Kept between sessions: only what the player enters (recipe choices, group
   picks, "stop here" marks), in one file for all worlds; an entry the
   current world's recipes lack is ignored, not deleted.
