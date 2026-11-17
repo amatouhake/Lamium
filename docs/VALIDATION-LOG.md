@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The item list beside the game's window (L-359 step 2, 2026-11-18)
+
+Build `06f4b60e` with `--item_list=y` (DLL
+`9d5b5de94fd20fe45be0cd4415ff54103fd8a38144170bb4fb9f7c6d2c589fc7`),
+1.26.60.05 Dev instance, the maintainer, on the inventory, a chest, a
+crafting table, a furnace and the anvil:
+- The band showed right of the window with icons, Lamium's own name box
+  under the pointer (the game's tooltip does not show there), and the wheel
+  paging it. At the furnace it followed the recipe book opening and closing.
+- Fault: on the inventory and the crafting table the band stayed where it
+  is with the recipe book open, also with the book closed.
+- The list is the creative one: no water, lava or lit furnace; blocks an
+  add-on adds come last.
+
+Not reported: the anvil, clicks over the band, a server.
+
 ## A text field under a game screen (L-359 step 1, 2026-11-18)
 
 Build `103c7795` with `--item_screen_probe=y` (DLL

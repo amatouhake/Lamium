@@ -64,8 +64,12 @@ void readNames(LocalPlayer& player) {
 bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size) {
     auto* tree = view.mVisualTree.get();
     if (!tree) return false;
-    static std::string const windows[]{"root_panel", "content_stack_panel", "screen_stack_panel"};
+    // `content_stack_panel` keeps the recipe book's width while the book is closed (seen in game), so
+    // its right part, which is what is drawn then, is asked first: only the right side matters here.
+    static std::string const windows[]{"root_panel", "player_inventory", "content_stack_panel", "screen_stack_panel"};
+    bool const stacked = static_cast<bool>(tree->getControlByName(windows[2], true));
     for (auto const& name : windows) {
+        if (&name == &windows[1] && !stacked) continue;
         auto window = tree->getControlByName(name, true);
         if (!window || window->mCachedPositionDirty) continue;
         at = *window->mCachedPosition;
