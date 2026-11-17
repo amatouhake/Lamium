@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe view's first build took no input (L-359 step 3, 2026-11-18)
+
+Build `ad592114` with `--item_list=y` (DLL
+`46f84ad2d40e9aaae418b194f3f7370a0b0c733565d401803446f8b869ba5018`),
+1.26.60.05 Dev instance, the maintainer:
+- Fault: presses, right presses and the wheel over the band did nothing, so
+  the recipe view never opened; the game's window worked as always.
+
+Not seen: anything of the recipe view.
+
 ## The item list follows the closed recipe book (L-359 step 2, 2026-11-18)
 
 Build `54ea5a67` with `--item_list=y` (DLL

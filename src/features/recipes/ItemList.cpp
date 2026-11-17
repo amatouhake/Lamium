@@ -112,7 +112,7 @@ bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size) {
 bool drawList(ll::event::UIRenderEvent& event) {
     using namespace lamium::ui;
     auto& screenView = event.screenView();
-    std::string const screenName = screenView.mHasFocus && screenView.mController && screenView.mController->_isContainerScreen()
+    std::string const screenName = screenView.mController && screenView.mController->_isContainerScreen()
         ? screenView.getScreenName() : std::string();
     if (view::isOpen() && screenName != viewScreen) view::close();
     // The anvil's sides belong to the enchantment order's panels.
@@ -192,7 +192,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     return true;
 }
 void draw(ll::event::UIRenderEvent& event) {
-    if (drawList(event)) return;
+    // Several screens are drawn a frame (the HUD under a container): only the one with the focus says
+    // whether the list is there.
+    if (!event.screenView().mHasFocus || drawList(event)) return;
     // Gone: the listeners keep nothing more, at once and not after the moment `fresh` allows.
     std::scoped_lock lock(shownLock);
     shown.at = {};
