@@ -272,6 +272,8 @@ void storage() {
             check(best.waypoints == 2 && best.placements == 0 && best.map == 1, "each kind names the candidate holding the most of it");
             auto none = sv::fuller({12, 3, 9000}, {{12, 3, 100}, {1, 0, 9000}});
             check(none.waypoints < 0 && none.placements < 0 && none.map < 0, "data that holds as much is not second-guessed");
+            auto shapes = sv::fuller({0, 0, 0, 2}, {{0, 0, 0, 1}, {0, 0, 0, 5}});
+            check(shapes.shapes == 1 && shapes.waypoints < 0, "shapes are a kind of their own in the notice (L-356)");
             auto keys = sv::candidates(wide, "realm.example.net_30001");
             check(std::find(keys.begin(), keys.end(), "realm.example.net_30002") != keys.end()
                   && std::find(keys.begin(), keys.end(), "realm.example.net_30001") == keys.end(),

@@ -21,7 +21,7 @@ constexpr float buttonHeight = 12, pad = 5, lineHeight = 12, buttonGap = 4;
 constexpr size_t maxLines = 4;
 // What the notice needed when it was drawn last, per kind: a screen leaves that much room on the next frame.
 // The words and the room for them differ by screen and language, so the height is measured, not assumed.
-std::array<float, 3> needed{bandHeight, bandHeight, bandHeight};
+std::array<float, 4> needed{bandHeight, bandHeight, bandHeight, bandHeight};
 double now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 bool over(Button const& b, float x, float y) { return b.w > 0 && x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + buttonHeight; }
 }
@@ -32,6 +32,7 @@ void draw(MinecraftUIRenderContext& context, float x, float y, float width, Kind
     if (!data || width < 120) { hide(); return; }
     std::string const what = kind == Kind::Waypoints ? translated("savedData.waypoints", data->waypoints)
         : kind == Kind::Placements ? translated("savedData.placements", data->placements)
+        : kind == Kind::Shapes ? translated("savedData.shapes", data->shapes)
         : translated("savedData.map", sizeText(data->mapBytes, data->mapMore));
     std::string const name = data->name.empty() ? translated("savedData.unnamed") : data->name;
     std::string const text = translated("savedData.notice", name, what);

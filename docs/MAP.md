@@ -296,7 +296,7 @@ Decided by the maintainer 2026-10-19 (L-228); the controls are mockup D
 - Storage per dimension (`overworld`, `nether/y<N>`, `end`, `overworld/y<Y>`):
   a local world's `lamium/map/` and `lamium/waypoints.json`; a server's or
   friend's world's data under its key in Lamium's config folder
-  (`map/<key>/`, `waypoints/<key>.json`; which key: L-343 A server's map,
+  (`map/<key>/`, `waypoints/<key>.json`, `shapes/<key>.json`; which key: L-343 A server's map,
   waypoints and placements are lost when its address changes). Lobby servers
   with several worlds share one set. A waypoint file that fails to load is
   never overwritten.

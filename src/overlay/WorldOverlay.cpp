@@ -10,7 +10,7 @@
 #include "overlay/LightOverlay.h"
 #include "overlay/ShapeSession.h"
 #include "overlay/ShapeWorkspace.h"
-#include "overlay/LocalShapePath.h"
+#include "features/map/WaypointSession.h"
 #include "features/interaction/BreakingRestriction.h"
 #include "features/visuals/BlockHighlightHooks.h"
 #include "app/Capabilities.h"
@@ -71,6 +71,11 @@ auto const& shapeCollection = shapeWorkspace.collection();
 ll::event::ListenerPtr exitListener;
 ll::event::ListenerPtr startJoinListener, joinListener;
 std::atomic<bool> joiningLocal{false};
+// The joined world the shapes were loaded for (map::waypoints::place().world, L-356): a local world's
+// Lamium folder or a server's file in the config folder, as the waypoints and placements.
+unsigned shapeWorld = 0;
+// World exit (or a reload of the shapes) asks the next frame to release the uploaded meshes.
+std::atomic<bool> releaseMeshes{false};
 // The latest feet block per dimension, under shapeMutex (L-311): a following
 // shape stays where the player left its dimension.
 std::map<int, Cell> followFeet;
@@ -98,20 +103,21 @@ void joinWorld(ll::event::ClientJoinLevelEvent& event) noexcept {
 #ifdef LAMIUM_SHAPE_TRACE
     traceIdentity(event);
 #endif
-    try {
-        if (event.self().getLocalPlayer() != &event.player()) return;
-        std::lock_guard lock(shapeMutex);
-        shapeWorkspace.leave();
-        identityFailed = false;
-        if (!joiningLocal) return;
-        try {
-            auto paths = event.self().getMinecraftGame_DEPRECATED().getFilePathManager();
-            auto path = localShapePath(std::filesystem::u8path(paths->mWorlds->value),
-                event.player().getLevel().getLevelId());
-            if (path) shapeWorkspace.enter(*path);
-        } catch (...) { identityFailed = true; throw; }
-    } catch (std::exception const& error) {
-        Runtime::instance().self().getLogger().error("Shape workspace load failed: {}", error.what());
+    (void)event;
+}
+// Loads the shapes of the joined world when it changed (a join, other server data chosen, a merge). The
+// caller holds shapeMutex. Without a file the shapes are kept for the session only.
+void followWorld() {
+    auto place = map::waypoints::place();
+    if (place.world == shapeWorld) return;
+    shapeWorld = place.world;
+    shapeWorkspace.leave();
+    releaseMeshes = true; // Reloaded shapes get new ids; the old ids' meshes go.
+    identityFailed = false;
+    if (!place.active || !place.shapeFile) return;
+    try { shapeWorkspace.enter(*place.shapeFile); }
+    catch (std::exception const& error) {
+        try { Runtime::instance().self().getLogger().error("Shape workspace load failed: {}", error.what()); } catch (...) {}
     } catch (...) {}
 }
 // A shape being created is previewed as lines and never persisted.
@@ -119,6 +125,7 @@ ShapeCollection draftCollection(1);
 constexpr ShapeId draftKey = ~ShapeId{0};
 bool hasShapes() {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     return !shapeCollection.entries().empty() || !draftCollection.entries().empty();
 }
 
@@ -147,7 +154,6 @@ std::map<ShapeId, CellMesh> shapeMeshes;
 // The breaking region of the press in progress (L-15): white faces with a
 // faint grid, like a face-style shape.
 CellMesh restrictionMesh;
-std::atomic<bool> releaseMeshes{false};
 struct EyeTrack { EyeOffsetInterpolator offset; uint64_t seenFrame = 0; };
 thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
 thread_local uint64_t eyeFrame = 0;
@@ -758,6 +764,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
 namespace shapes {
 std::vector<Summary> list() {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     std::vector<Summary> result;
     result.reserve(shapeCollection.entries().size());
     for (auto const& [id, shape] : shapeCollection.entries()) result.push_back({id, shape.definition});
@@ -765,47 +772,57 @@ std::vector<Summary> list() {
 }
 std::optional<ShapeDefinition> find(ShapeId id) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     auto shape = shapeCollection.find(id);
     return shape ? std::optional(shape->definition) : std::nullopt;
 }
 ShapeId add(ShapeDefinition definition) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     if (identityFailed) throw std::runtime_error("Shape workspace unavailable");
     return shapeWorkspace.change([&](auto& values) { return values.add(std::move(definition)); });
 }
 void edit(ShapeId id, ShapeDefinition definition) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { values.edit(id, std::move(definition)); });
 }
 void setVisible(ShapeId id, bool visible) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { values.setVisible(id, visible); });
 }
 void rename(ShapeId id, std::string name) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { values.rename(id,std::move(name)); });
 }
 bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
 void setVisible(std::vector<ShapeId> const& ids, bool visible) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) {
         for (auto id : ids) if (values.find(id)) values.setVisible(id, visible);
     });
 }
 void remove(std::vector<ShapeId> const& ids) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     shapeWorkspace.change([&](auto& values) { for (auto id : ids) values.remove(id); });
 }
 std::optional<Cell> lastFeet(int dimension) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     auto found = followFeet.find(dimension);
     return found == followFeet.end() ? std::nullopt : std::optional(found->second);
 }
 std::vector<Footprint> footprints(int dimension) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     // Boxes by shape and the revision they were computed for.
     static std::map<ShapeId, std::pair<uint64_t, std::optional<ShapeFootprint>>> cache;
     std::erase_if(cache, [](auto const& entry) { return !shapeCollection.find(entry.first); });
@@ -827,6 +844,7 @@ std::vector<Footprint> footprints(int dimension) {
 }
 void setDraft(std::optional<ShapeDefinition> definition) {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     draftCollection.clear();
     if (definition) draftCollection.add(std::move(*definition));
 }
@@ -842,8 +860,9 @@ void clear() {
 }
 Storage storage() {
     std::lock_guard lock(shapeMutex);
+    followWorld();
     return identityFailed || shapeWorkspace.failedToLoad() ? Storage::LoadFailed
-        : shapeWorkspace.persistent() ? Storage::LocalWorld : Storage::Session;
+        : shapeWorkspace.persistent() ? Storage::Saved : Storage::Session;
 }
 }
 void start() {

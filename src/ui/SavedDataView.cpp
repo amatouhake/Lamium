@@ -69,7 +69,8 @@ void mergeIn() {
     done.key = key;
     done.waypoints = start.waypoints; done.waypointsFull = start.waypointsFull;
     done.placements = start.placements; done.placementsFull = start.placementsFull;
-    say(mergeReport(done), done.waypointsFull || done.placementsFull);
+    done.shapes = start.shapes; done.shapesFull = start.shapesFull;
+    say(mergeReport(done), done.waypointsFull || done.placementsFull || done.shapesFull);
 }
 // The folder is named from game values a rebuild cannot check: on a game they were not checked on it could be
 // another world's, so nothing is deleted there. Looking and choosing stay.
@@ -136,9 +137,11 @@ bool begin() {
 bool opened() { return open; }
 std::string mergeReport(map::waypoints::MergeProgress const& done) {
     std::string text = translated("savedData.merged", map::servers::shownName(done.key), done.waypoints, done.placements);
+    if (done.shapes > 0) text += translated("savedData.mergedShapes", done.shapes);
     if (done.total > 0) text += translated("savedData.mergedMap", done.chunks);
     if (done.waypointsFull || done.placementsFull)
         text += "  " + translated("savedData.mergeFull", done.waypointsFull, done.placementsFull);
+    if (done.shapesFull) text += "  " + translated("savedData.mergeFullShapes", done.shapesFull);
     if (done.skipped) text += "  " + translated("savedData.mergeSkipped", done.skipped);
     return text;
 }
@@ -201,7 +204,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     if (auto done = map::waypoints::takeFinishedMerge()) {
         auto const* now = chosen();
         reload(now ? now->key : std::string());
-        say(mergeReport(*done), done->skipped || done->waypointsFull || done->placementsFull);
+        say(mergeReport(*done), done->skipped || done->waypointsFull || done->placementsFull || done->shapesFull);
     } else if (auto progress = map::waypoints::mergeProgress(); progress.running)
         say(translated("savedData.mergingMap", progress.done, progress.total));
     auto const* d = chosen();
@@ -297,6 +300,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             beside(translated("savedData.more", d->waypoints - static_cast<int>(named)), palette::faint, 10);
         if (pictured) y = below;
         row(translated("savedData.placements", d->placements));
+        row(translated("savedData.shapes", d->shapes));
         row(translated("savedData.map", sizeText(d->mapBytes, d->mapMore)));
         row(translated("savedData.used", dateText(d->used)));
         if (!d->levelId.empty() && d->kind == Data::Kind::Server) row(translated("savedData.levelId", d->levelId), palette::faint);

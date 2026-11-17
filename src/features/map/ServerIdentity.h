@@ -323,8 +323,8 @@ inline std::vector<std::string> candidates(std::vector<Entry> const& entries, st
 // The notice on the tool screens (L-343): per kind of data, the candidate that holds more of it than the
 // data in use, the fullest one; none where the data in use holds as much. Not while the map is only what
 // was recorded since joining: a screen says "your waypoints may be elsewhere" when elsewhere has more.
-struct Amounts { int waypoints = 0, placements = 0; long long map = 0; };
-struct Fuller { int waypoints = -1, placements = -1, map = -1; }; // Indices into the candidates, -1 none.
+struct Amounts { int waypoints = 0, placements = 0; long long map = 0; int shapes = 0; };
+struct Fuller { int waypoints = -1, placements = -1, map = -1, shapes = -1; }; // Indices into the candidates, -1 none.
 inline Fuller fuller(Amounts const& current, std::vector<Amounts> const& others) {
     Fuller best;
     Amounts most = current;
@@ -333,6 +333,7 @@ inline Fuller fuller(Amounts const& current, std::vector<Amounts> const& others)
         if (o.waypoints > most.waypoints) { most.waypoints = o.waypoints; best.waypoints = i; }
         if (o.placements > most.placements) { most.placements = o.placements; best.placements = i; }
         if (o.map > most.map) { most.map = o.map; best.map = i; }
+        if (o.shapes > most.shapes) { most.shapes = o.shapes; best.shapes = i; }
     }
     return best;
 }

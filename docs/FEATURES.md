@@ -197,7 +197,8 @@ feature on or off.
 ### Shapes
 
 Boxes, cones, pyramids, ellipsoids, domes and more drawn in the world, saved
-per world. Create and edit them from Shapes in the sidebar.
+per world and per server (under the same saved data as its waypoints).
+Create and edit them from Shapes in the sidebar.
 A shape can follow the player, to judge its size while moving.
 
 ## Map (experimental)

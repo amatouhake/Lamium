@@ -7,7 +7,7 @@
 #include <vector>
 
 // The saved data page (BACKLOG L-343 part 3): what every world and server
-// has saved (waypoints, schematic placements, the map, the death layout),
+// has saved (waypoints, schematic placements, shapes, the map, the death layout),
 // which of it the joined server uses, and the player's choice of another.
 // Implemented with the session (WaypointSession.cpp), which owns the files.
 namespace lamium::map::waypoints {
@@ -19,7 +19,7 @@ struct SavedData {
     std::string name;    // As shown: "host:port", or the world's name.
     std::string host;    // A server's address without the port, for the any-port switch.
     std::string levelId;
-    int waypoints = 0, placements = 0;
+    int waypoints = 0, placements = 0, shapes = 0;
     struct Mark { std::string name; int color = 0; };
     std::vector<Mark> marks; // The first few waypoints, to tell whose data it is.
     struct Dot { int x = 0, z = 0, color = 0; };
@@ -41,7 +41,7 @@ inline constexpr size_t savedMarks = 5, savedDots = 64, savedDataLimit = 300;
 std::vector<SavedData> savedData();
 // The joined server uses this server data from now on; everything reloads at once.
 bool useData(std::string const& key);
-// Deletes the data's waypoints, placements, map and death layout. Never the data in use.
+// Deletes the data's waypoints, placements, shapes, map and death layout. Never the data in use.
 bool removeData(SavedData const&);
 // On: the address's other ports follow too (how many is returned; below zero on failure), at once for the joined server.
 int setDataAnyPort(std::string const& key, bool on);
@@ -49,15 +49,15 @@ int setDataAnyPort(std::string const& key, bool on);
 std::string dataName();
 // The notice on the tool screens: other data that may be the joined server's and holds more of one kind than
 // the data in use. Worked out at a join and after a change, so asking every frame is cheap.
-enum class DataKind { Waypoints, Placements, Map };
+enum class DataKind { Waypoints, Placements, Map, Shapes };
 std::optional<SavedData> fullerData(DataKind kind);
 // "Do not show again": no such notice for the joined server from now on.
 void quietFullerData();
-// Merges a server data into the data in use (L-343 part 4, DataMerge.h): waypoints and placements at once, the
+// Merges a server data into the data in use (L-343 part 4, DataMerge.h): waypoints, placements and shapes at once, the
 // map after, a few regions per frame (stepMerge). The other data stays as it was; the death layout in use stays.
 struct MergeStart {
     bool ok = false;
-    int waypoints = 0, waypointsFull = 0, placements = 0, placementsFull = 0;
+    int waypoints = 0, waypointsFull = 0, placements = 0, placementsFull = 0, shapes = 0, shapesFull = 0;
     int regions = 0; // Map regions to merge; 0 when there is no map to merge.
 };
 MergeStart mergeData(std::string const& key);
@@ -66,7 +66,7 @@ struct MergeProgress {
     std::string key;           // The data being merged in.
     int done = 0, total = 0;   // Regions.
     int chunks = 0, skipped = 0; // Chunks changed; regions that could not be read or written.
-    int waypoints = 0, waypointsFull = 0, placements = 0, placementsFull = 0; // From the start.
+    int waypoints = 0, waypointsFull = 0, placements = 0, placementsFull = 0, shapes = 0, shapesFull = 0; // From the start.
 };
 // While a map merge runs it goes on for about `budgetMs` per call, from the HUD's frame and from the settings
 // screen's (every view); recording meanwhile goes to the session's files, and the map in use comes back when it
