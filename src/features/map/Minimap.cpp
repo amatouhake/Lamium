@@ -14,6 +14,8 @@
 #include "features/map/MapView.h"
 #include "features/map/MapSlime.h"
 #include "features/information/InfoLines.h"
+#include "features/inspection/render/ItemIcon.h"
+#include "mc/world/item/ItemStack.h"
 #include "ui/Localization.h"
 #include "features/information/SlimeChunk.h"
 #include "features/information/InfoHud.h"
@@ -1010,23 +1012,34 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
 
         // Layout: the map, compass letters straddling its frame, then the
         // optional lines centered under it.
-        std::vector<std::string> lines;
+        // In the Info HUD's order (coordinates, scaled, chunk, then biome), short forms (GitHub #80): the scaled
+        // coordinates behind the destination dimension's block, as the player list marks dimensions.
+        struct Line { std::string text; ItemStack const* icon = nullptr; };
+        static ItemStack overworldIcon, netherIcon;
+        for (auto [stack, name] : {std::pair{&overworldIcon, "minecraft:grass_block"}, std::pair{&netherIcon, "minecraft:netherrack"}})
+            if (stack->isNull()) {
+                try { stack->reinit(name, 1, 0); } catch (...) { *stack = ItemStack(); }
+                stack->mShowPickUp = false; // A new stack would play the pickup pop.
+                stack->mWasPickedUp = false;
+            }
+        std::vector<Line> lines;
         if (settings.coordinates)
-            lines.push_back(std::format("{}, {}, {}", blockFloor(view->x), blockFloor(view->y), blockFloor(view->z)));
-        if (settings.biome && !view->biome.empty()) lines.push_back(view->biome);
-        // As the Info HUD's lines word them (GitHub #80).
-        if (settings.chunk)
-            lines.push_back(ui::translated("hudChunk", information::formatChunk(information::chunkPosition(view->x, view->z))));
+            lines.push_back({std::format("{}, {}, {}", blockFloor(view->x), blockFloor(view->y), blockFloor(view->z))});
         if (settings.scaledCoordinates)
             if (auto scaled = information::scaledPosition(view->x, view->y, view->z, view->dimension)) {
-                auto dimension = scaled->destination == information::ScaledDimension::Nether ? "dimension.nether" : "dimension.overworld";
-                lines.push_back(ui::translated("hudScaledCoordinates", ui::translated(dimension), scaled->x, scaled->y, scaled->z));
+                auto const& icon = scaled->destination == information::ScaledDimension::Nether ? netherIcon : overworldIcon;
+                lines.push_back({std::format("{}, {}, {}", blockFloor(scaled->x), blockFloor(scaled->y), blockFloor(scaled->z)),
+                                 icon.isNull() ? nullptr : &icon});
             }
+        if (settings.chunk)
+            lines.push_back({ui::translated("mapChunkLine", information::formatChunk(information::chunkPosition(view->x, view->z)))});
+        if (settings.biome && !view->biome.empty()) lines.push_back({view->biome});
         float textScale = ui::hudTextZoom(ui::HudElementId::Minimap, element);
+        float const lineIcon = 8 * textScale, iconGap = 2 * textScale;
         std::vector<float> lineWidths;
         float linesWidth = 0;
         for (auto const& line : lines) {
-            lineWidths.push_back(ui::textWidthScaled(context, line, textScale));
+            lineWidths.push_back(ui::textWidthScaled(context, line.text, textScale) + (line.icon ? lineIcon + iconGap : 0));
             linesWidth = std::max(linesWidth, lineWidths.back());
         }
         auto layout = minimapLayout(size, textScale, settings.compass, lines.size(), linesWidth);
@@ -1074,10 +1087,18 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
                             ui::Align::Left, true);
         }
         float center = mapX + size / 2;
-        for (size_t i = 0; i < lines.size(); ++i)
-            ui::labelScaled(context, center - lineWidths[i] / 2, mapY + size + margin + 2 + i * lineHeight,
-                            lineWidths[i] + 2, lines[i], textScale, ui::palette::text, ui::Align::Left, element.shadow);
+        std::vector<inspection::render::IconAt> icons;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            float x = center - lineWidths[i] / 2, y = mapY + size + margin + 2 + i * lineHeight;
+            if (lines[i].icon) {
+                icons.push_back({lines[i].icon, std::round(x), std::round(y), lineIcon / 16});
+                x += lineIcon + iconGap;
+            }
+            ui::labelScaled(context, x, y, lineWidths[i] + 2, lines[i].text, textScale, ui::palette::text, ui::Align::Left,
+                            element.shadow);
+        }
         context.flushText(0, std::nullopt);
+        if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
         return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};
     } catch (std::exception const& error) {
         // Fail open: no minimap for the rest of the session, the game unaffected.

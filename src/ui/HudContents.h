@@ -37,6 +37,8 @@ inline Contents contentsOf(HudElementId id, std::vector<std::string> const& line
              "information.durabilityAmmo"});
         break;
     case HudElementId::Inventory: add({"information.inventoryHotbar"}); break;
+    // Map text (GitHub #80): in the order it is drawn, under the map.
+    case HudElementId::Minimap: add({"map.compass", "map.coordinates", "map.scaledCoordinates", "map.chunk", "map.biome"}); break;
     case HudElementId::UsedSlots: add({"information.usedSlotsHotbar"}); break;
     default: break;
     }

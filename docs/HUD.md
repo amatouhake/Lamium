@@ -83,7 +83,8 @@ is fixed to the screen edges and is not an element.
   each with the settings row's own switch (same saved field; the settings
   rows stay). Info lines: every line, switch plus up/down, the only list
   that reorders. Target: icon, ID, other details. Durability: main hand
-  (on by default, L-349), offhand, armor, elytra, ammo. Inventory and Used slots HUD: the hotbar. Look
+  (on by default, L-349), offhand, armor, elytra, ammo. Inventory and Used slots HUD: the hotbar.
+  Minimap: compass, coordinates, scaled coordinates, chunk coordinates, biome (#80). Look
   choices (Durability's look, Target's meters) and behavior settings stay
   in the settings table only; Target's health, armor and growth have no off
   state, so no switch. The element is measured every frame, so it takes its

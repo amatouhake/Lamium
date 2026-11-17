@@ -361,6 +361,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"mapBiome", "Biome below the map: {}", "地図の下にバイオーム: {}"},
     {"mapChunk", "Chunk below the map: {}", "地図の下にチャンク座標: {}"},
     {"mapScaledCoordinates", "Scaled coordinates below the map: {}", "地図の下に換算座標: {}"},
+    {"mapChunkLine", "Chunk {}", "チャンク {}"},
     {"mapCompass", "Compass letters: {}", "方角の文字: {}"},
     {"mapDebugHide", "Hide the minimap while Debug View is open: {}", "デバッグ表示中はミニマップを隠す: {}"},
     {"help.map.debugHide", "While Lamium's Debug View is open, the minimap is not drawn. Off: the minimap stays on screen with it.", "Lamium のデバッグ表示を開いている間はミニマップを表示しません。オフ: デバッグ表示中もミニマップを表示します。"},

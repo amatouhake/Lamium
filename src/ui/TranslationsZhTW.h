@@ -357,6 +357,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"mapBiome", "在地圖下方顯示生態域: {}"},
     {"mapChunk", "在地圖下方顯示區塊座標: {}"},
     {"mapScaledCoordinates", "在地圖下方顯示換算座標: {}"},
+    {"mapChunkLine", "區塊 {}"},
     {"mapCompass", "顯示方位: {}"},
     {"mapDebugHide", "開啟偵錯畫面時隱藏小地圖: {}"},
     {"help.map.debugHide", "開啟 Lamium 的偵錯畫面時不繪製小地圖。關: 偵錯畫面開啟時小地圖也保持顯示。"},

@@ -16,8 +16,12 @@ void hudContentsTests() {
         check(!contents.reorder && !contents.entries.empty(), "other elements get switches only");
         for (auto const& entry : contents.entries) check(entry.line.empty(), "only Info entries carry a line to reorder");
     }
-    for (auto id : {HudElementId::Status, HudElementId::Minimap, HudElementId::Chat, HudElementId::Toast})
+    for (auto id : {HudElementId::Status, HudElementId::Chat, HudElementId::Toast})
         check(contentsOf(id, order).entries.empty(), "an element without content switches has no Contents button");
+    auto minimap = contentsOf(HudElementId::Minimap, order);
+    check(minimap.entries.size() == 5 && minimap.entries.front().option == "map.compass" && minimap.entries.back().option == "map.biome"
+              && !minimap.reorder,
+          "the minimap's Contents are the Map text switches in their drawn order (#80)");
     auto durability = contentsOf(HudElementId::Durability, order);
     check(durability.entries.size() == 5 && durability.entries[0].option == "information.durabilityMainHand"
           && durability.entries[1].option == "information.durabilityOffhand"

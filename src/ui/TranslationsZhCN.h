@@ -357,6 +357,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"mapBiome", "在地图下方显示生物群系: {}"},
     {"mapChunk", "在地图下方显示区块坐标: {}"},
     {"mapScaledCoordinates", "在地图下方显示换算坐标: {}"},
+    {"mapChunkLine", "区块 {}"},
     {"mapCompass", "方位字母: {}"},
     {"mapDebugHide", "打开调试视图时隐藏小地图: {}"},
     {"help.map.debugHide", "打开 Lamium 的调试视图时不绘制小地图。关: 调试视图打开时小地图也保持显示。"},
