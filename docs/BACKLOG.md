@@ -146,8 +146,7 @@ from the file); never restate them here.
    L-359 material plan (with L-116 raw materials) runs beside this list,
    neither ahead of it nor behind it.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
-   previews, L-115 entity ghosts as models, L-116 raw materials, L-184
-   inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
+   previews, L-115 entity ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
    remaining L-117 schematic name tags.
    The initial feature and 0.1.8 work are complete, not new tasks.
 4. **Placement/breaking:** L-15 breaking and placement restrictions
