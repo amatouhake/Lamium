@@ -65,15 +65,21 @@ Wanted decodeWanted(std::string_view document) {
     }
     return out;
 }
-std::optional<std::string> readDocument(std::filesystem::path const& path) {
+bool documentReadable(std::string_view document) { return parsed(document).is_object(); }
+std::optional<std::string> readDocument(std::filesystem::path const& path, bool& unreadable) {
+    unreadable = false;
     std::error_code failed;
-    if (!std::filesystem::exists(path, failed)) return std::nullopt;
+    bool const there = std::filesystem::exists(path, failed);
+    if (failed) { unreadable = true; return std::nullopt; }
+    if (!there) return std::nullopt;
+    unreadable = true;
     std::ifstream file(path, std::ios::binary);
     if (!file) return std::nullopt;
     std::string out(maxDocument + 1, '\0');
     file.read(out.data(), static_cast<std::streamsize>(out.size()));
     if (file.bad()) return std::nullopt;
     out.resize(static_cast<size_t>(file.gcount()));
+    unreadable = false;
     return out;
 }
 }

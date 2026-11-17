@@ -189,8 +189,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Items are told apart by name and aux. Items that differ only in their
   data (enchanted books, a filled map) are one item. The schematic
   Materials tab still counts what is carried by name alone.
-- The wanted items' file is not listed or removed by the Saved data
-  screen ([L-358](backlog/L-358.md)).
+- The wanted items' file goes when a world's or a server's saved data is
+  deleted, but the Saved data screen does not count or show it, and moving
+  a server's data to another key leaves it ([L-358](backlog/L-358.md)).
 - Potion mixes are not read (the SDK gives them no layout); trades and
   drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated

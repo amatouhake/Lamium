@@ -322,6 +322,16 @@ void recipeIndexTests() {
         check(both.wanted.size() == 1 && view.gather.size() == 1 && view.gather[0].id == index.find("oak_planks") && view.gather[0].left == 4 && view.steps.size() == 1,
               "the plan makes sticks from the picked planks and gathers those, as they are marked");
         check(groupKey(index, 0) == "planks", "a tag is noted by its name");
+        check(index.findKey("stick@7") == index.find("stick") && index.findKey("stick") == index.find("stick") && index.findKey("none@2") < 0,
+              "a key that carries an aux the table does not tell apart finds the item all the same");
+        check(documentReadable(encodeNotes(notes)) && !documentReadable("{\"version\": 1,}") && !documentReadable("[]") && !documentReadable(""),
+              "a document that does not parse is told apart from an empty one");
+        KeptPresses presses;
+        bool first = false;
+        check(presses.decide(27, true, true, &first) && first && presses.decide(27, true, false, &first) && !first && presses.decide(27, false, false)
+              && !presses.decide(27, false, false), "a kept press stays kept through its repeats and release, whatever closed meanwhile");
+        check(!presses.decide(69, true, false) && !presses.decide(69, true, true, &first) && !first && !presses.decide(69, false, true)
+              && presses.decide(69, true, true, &first) && first, "a press the game saw is the game's until its release; the next one is decided anew");
     }
     {
         Index empty = build({});

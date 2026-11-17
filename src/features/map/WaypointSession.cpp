@@ -595,7 +595,7 @@ bool removeData(SavedData const& item) {
         try {
             // localWorldFile checks that the folder is a world of the game's own worlds folder.
             std::vector<std::filesystem::path> files;
-            for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json", "shapes.json"})
+            for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json", "shapes.json", "wanted.json"})
                 if (auto file = overlay::localWorldFile(identity.worlds, item.key, name)) files.push_back(*file);
             if (!remove(files, overlay::localWorldFile(identity.worlds, item.key, "map"))) return false;
         } catch (std::exception const& error) { log(std::string("could not delete a world's data: ") + error.what()); return false; }
@@ -608,7 +608,7 @@ bool removeData(SavedData const& item) {
     try {
         auto config = configFolder();
         std::vector<std::filesystem::path> files;
-        for (auto folder : {waypointFolder, schematicFolder, deathFolder, shapeFolder})
+        for (auto folder : {waypointFolder, schematicFolder, deathFolder, shapeFolder, wantedFolder})
             files.push_back(config / folder / (item.key + ".json"));
         // The same path as resolve() gives the store.
         removed = remove(files, config / std::filesystem::u8path(mapFolder) / std::filesystem::path(item.key));

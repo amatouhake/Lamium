@@ -114,7 +114,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 state::setWanted(key, wheel < 0 ? amount + step : amount > step ? amount - step : 1);
                 wheel = 0;
             }
-            Item const id = index.find(key);
+            Item const id = index.findKey(key);
             if (id >= 0) lead(y, id, sx - 4);
             else {
                 // Not in this world's table: shown by what the game calls it, kept as it is.

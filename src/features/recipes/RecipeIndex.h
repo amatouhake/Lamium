@@ -100,6 +100,11 @@ struct Index {
     Item find(std::string_view name, int aux) const {
         return variantNames.contains(name) ? find(itemKey(name, aux)) : find(name);
     }
+    // An item by a key from anywhere (the item list keys every aux, the table only where it tells variants apart).
+    Item findKey(std::string_view key) const {
+        auto const parts = splitItemKey(key);
+        return find(parts.name, parts.aux);
+    }
     // The key of a game item as this table names it, known to it or not.
     std::string keyOf(std::string_view name, int aux) const {
         return variantNames.contains(name) ? itemKey(name, aux == anyAux ? 0 : aux) : std::string(name);

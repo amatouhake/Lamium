@@ -107,20 +107,7 @@ void closeViews() {
     planView::close();
 }
 bool anyView() { return view::isOpen() || planView::isOpen(); }
-// The buttons and keys whose press was kept: only their release is kept too. One the game saw go down
-// must see it come up, or it stays held there.
-std::vector<int> keptButtons, keptKeys;
-bool keep(std::vector<int>& kept, int code, bool down, bool wanted) {
-    auto const had = std::find(kept.begin(), kept.end(), code);
-    if (down) {
-        if (wanted && had == kept.end()) kept.push_back(code);
-        if (!wanted && had != kept.end()) kept.erase(had);
-        return wanted;
-    }
-    if (had == kept.end()) return false;
-    kept.erase(had);
-    return true;
-}
+KeptPresses keptButtons, keptKeys; // under shownLock
 // Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
 bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono::milliseconds(300); }
 void releaseKeyboard() {
@@ -529,8 +516,9 @@ bool press(int button, bool left, bool right, bool down) {
     bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY) || shown.field.has(shown.pointerX, shown.pointerY)
         || shown.side.has(shown.pointerX, shown.pointerY));
     if (!ours && down && fresh() && shown.searchFocus) queued.outside = true;
-    if (!keep(keptButtons, button, down, ours)) return false;
-    if (down && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
+    bool first = false;
+    if (!keptButtons.decide(button, down, ours, &first)) return false;
+    if (first && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
 }
 bool key(int code, bool down) {
@@ -540,16 +528,19 @@ bool key(int code, bool down) {
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(shownLock);
     // The focused search field takes every key: letters are text, which the game hands over itself.
+    bool first = false;
     if (fresh() && shown.searchFocus) {
-        if (!keep(keptKeys, code, down, true)) return false;
-        if (down && queued.fieldKeys.size() < 64) queued.fieldKeys.push_back(code | (ctrlHeld ? 0x10000 : 0));
+        if (!keptKeys.decide(code, down, true, &first)) return false;
+        // Editing keys repeat while held; leaving the field happens once.
+        if (down && (first || (code != 0x1B && code != 0x0D)) && queued.fieldKeys.size() < 64)
+            queued.fieldKeys.push_back(code | (ctrlHeld ? 0x10000 : 0));
         return true;
     }
-    if (!keep(keptKeys, code, down, fresh() && shown.viewOpen)) return false;
+    if (!keptKeys.decide(code, down, fresh() && shown.viewOpen, &first)) return false;
     // Esc and the game's inventory key close the view and leave the screen under it open: the key that
     // closes the inventory closes what is on top first.
     bool const games = std::find(shown.inventoryKeys.begin(), shown.inventoryKeys.end(), code) != shown.inventoryKeys.end();
-    if (down && (code == 0x1B || games)) queued.close = true;
+    if (first && (code == 0x1B || games)) queued.close = true;
     return true;
 }
 bool typing() {
@@ -612,6 +603,8 @@ void start() {
 void stop() {
     for (auto* listener : {&renderListener, &exitListener})
         if (*listener) { ll::event::EventBus::getInstance().removeListener(*listener); listener->reset(); }
+    searchFocus = false;
+    releaseKeyboard();
     forget = true;
 }
 }

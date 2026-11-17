@@ -38,11 +38,12 @@ void readNotes() {
     if (notesRead) return;
     notesRead = true;
     try {
-        auto document = readDocument(notesPath());
-        if (!document) return;
-        held = decodeNotes(*document);
-        // A file that says nothing we understand is left alone, not replaced by an empty one.
-        notesKeep = held == Notes{} && document->find("\"version\"") == std::string::npos;
+        // A file that is there and cannot be read or understood is left alone, not replaced by an empty one.
+        auto document = readDocument(notesPath(), notesKeep);
+        if (document) {
+            notesKeep = !documentReadable(*document);
+            if (!notesKeep) held = decodeNotes(*document);
+        }
         if (notesKeep) log("recipes.json could not be read; changes are kept for this session only");
     } catch (...) { notesKeep = true; }
 }
@@ -67,10 +68,12 @@ void followWorld() {
     ++revision;
     if (!listFile) return;
     try {
-        auto document = readDocument(*listFile);
-        if (!document) return;
-        list = decodeWanted(*document);
-        listKeep = list.targets.empty() && document->find("\"version\"") == std::string::npos;
+        auto document = readDocument(*listFile, listKeep);
+        if (document) {
+            listKeep = !documentReadable(*document);
+            if (!listKeep) list = decodeWanted(*document);
+        }
+        if (listKeep) log("the wanted items' file could not be read; changes are kept for this session only");
     } catch (...) { listKeep = true; }
 }
 void writeWanted() {

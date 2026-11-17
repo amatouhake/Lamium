@@ -46,7 +46,7 @@ struct Notes {
 // The default choice with the player's recipes put in, where the table still has them.
 inline Choice chosen(Index const& index, Choice choice, Notes const& notes) {
     for (auto const& [key, recipe] : notes.choices) {
-        Item const item = index.find(key);
+        Item const item = index.findKey(key);
         if (item < 0) continue;
         for (int maker : index.makers[static_cast<size_t>(item)])
             if (index.recipes[static_cast<size_t>(maker)].id == recipe) choice.recipe[static_cast<size_t>(item)] = maker;
@@ -58,11 +58,11 @@ inline void apply(Index const& index, Notes const& notes, Request& request) {
     for (size_t group = 0; group < index.groups.size(); ++group) {
         auto picked = notes.picks.find(groupKey(index, static_cast<int>(group)));
         if (picked == notes.picks.end()) continue;
-        Item const member = index.find(picked->second);
+        Item const member = index.findKey(picked->second);
         auto const& members = index.groups[group].members;
         if (member >= 0 && std::find(members.begin(), members.end(), member) != members.end()) request.picks[static_cast<int>(group)] = member;
     }
-    for (auto const& key : notes.stops) if (Item const item = index.find(key); item >= 0) request.stops.insert(item);
+    for (auto const& key : notes.stops) if (Item const item = index.findKey(key); item >= 0) request.stops.insert(item);
 }
 
 struct Wanted {
@@ -96,7 +96,7 @@ struct Wanted {
 };
 // The wanted items as a request's targets for this table; what it lacks is left out.
 inline void apply(Index const& index, Wanted const& wanted, Request& request) {
-    for (auto const& [key, amount] : wanted.targets) if (Item const item = index.find(key); item >= 0) request.wanted.emplace_back(item, amount);
+    for (auto const& [key, amount] : wanted.targets) if (Item const item = index.findKey(key); item >= 0) request.wanted.emplace_back(item, amount);
 }
 
 // The documents. Reading tolerates anything: what is not understood is left out.
@@ -104,5 +104,8 @@ std::string encodeNotes(Notes const& notes);
 Notes decodeNotes(std::string_view text);
 std::string encodeWanted(Wanted const& wanted);
 Wanted decodeWanted(std::string_view text);
-std::optional<std::string> readDocument(std::filesystem::path const& path);
+// Whether a document is one of these at all; one that is not is left alone, never replaced.
+bool documentReadable(std::string_view text);
+// Empty when the file is not there. `unreadable`: it is there and could not be read.
+std::optional<std::string> readDocument(std::filesystem::path const& path, bool& unreadable);
 }
