@@ -49,7 +49,12 @@ is in the L-item.
   for an item with dozens of uses).
 - Stations are tabs: one station's recipes to a view, each the same size.
 - The item's own actions sit together in the heading: a favourite button
-  (the key works too) and "add to plan".
+  (the key works too) and "add to plan". Recipes carry no favourite button
+  of their own: any item in a recipe can be opened, and the key is there.
+- One line of key hints sits just above the search field, in the same
+  place whether a recipe is open (the window's last line) or not: click
+  for recipes, right click for uses, the favourite key, and Backspace for
+  back while a recipe is open.
 - Each recipe carries one control, "place" (with Shift: craft many, Mass
   Craft), and the marks "default" (press to make it the item's default),
   "any order" for a shapeless recipe and "2x2" for one the inventory's own
