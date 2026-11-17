@@ -16,6 +16,7 @@
 #include "mc/world/item/crafting/Recipe.h"
 #include "mc/world/item/crafting/RecipeIngredient.h"
 #include "mc/world/item/crafting/Recipes.h"
+#include "mc/world/item/registry/ItemRegistryRef.h"
 #include "mc/world/level/Level.h"
 #include <chrono>
 #include <ctime>
@@ -60,7 +61,8 @@ struct Walk {
         if (!item) return "null";
         int const id = item->mId;
         auto const& name = item->mFullName->getString();
-        guard(name.size(), 200, "an item name");
+        // Never throws: the tag walk below calls this from inside the game's own loop.
+        if (name.size() > 200) return std::format("unreadable#{}:{}", id, aux);
         names.emplace(id, name);
         return std::format("{}#{}:{}", name, id, aux);
     }
@@ -72,8 +74,10 @@ struct Walk {
         for (int answer = 0; answer < 2; ++answer) {
             std::string list;
             int count = 0;
-            auto each = [&](Item const& item, short aux) {
-                if (++count <= 80) list += (count > 1 ? "," : "") + itemOf(&item, aux);
+            auto each = [&](Item const& item, short aux) noexcept {
+                try {
+                    if (++count <= 80) list += (count > 1 ? "," : "") + itemOf(&item, aux);
+                } catch (...) { return true; }
                 return answer == 1 || count >= 2000;
             };
             impl.forEachItemUntil(each);
@@ -124,7 +128,7 @@ long long sizeOf(Recipes const& recipes) {
     for (auto const& [tag, byId] : table) total += static_cast<long long>(byId.size());
     return total;
 }
-void dump(Recipes const& recipes) {
+void dump(Level& level, Recipes const& recipes) {
     Walk walk;
     std::string body, counts;
     int shaped = 0, shapeless = 0, multi = 0, loaded = 0, unloaded = 0, noResult = 0;
@@ -180,6 +184,17 @@ void dump(Recipes const& recipes) {
     }
     head += "\n# R: tag, id, shape, sizes, priority, results loaded, results, results not loaded, ingredients (item:name#id:aux*count, "
             "tag:name{n=members counted two ways, members})\n# F: outer key, inner key, result\n# I: item id, name\n";
+    // Every registered item, so the furnace keys can be named: smelted inputs are often in no recipe.
+    size_t registered = 0;
+    if (auto registry = level.getItemRegistry(); !registry.mWeakRegistry.expired()) {
+        auto const& all = registry.getNameToItemMap();
+        guard(all.size(), 100000, "the item registry");
+        registered = all.size();
+        for (auto const& [name, weak] : all)
+            if (auto const* item = weak.get(); item && item->mFullName->getString().size() <= 200)
+                walk.names.emplace(static_cast<int>(item->mId), item->mFullName->getString());
+    }
+    head += std::format("# {} names in the item registry\n", registered);
     std::string items;
     for (auto const& [id, name] : walk.names) items += std::format("I\t{}\t{}\n", id, name);
     auto const path = Runtime::instance().self().getModDir() / "logs"
@@ -199,13 +214,14 @@ void tick() noexcept {
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (!player) { reset(); return; }
         if (++ticks % 20 || written >= 6) return;
-        auto const& recipes = player->getLevel().getRecipes();
+        auto& level = player->getLevel();
+        auto const& recipes = level.getRecipes();
         long long const size = sizeOf(recipes);
         if (size != seen) { seen = size; steady = 0; return; }
         if (++steady < 5 || size == dumped) return;
         dumped = size;
         ++written;
-        dump(recipes);
+        dump(level, recipes);
     } catch (Unreadable const& error) {
         written = 6;
         traceLog(failBudget, 4, "L-116 recipe table unreadable: {}", error.what);
