@@ -39,10 +39,17 @@ is in the L-item.
 - The list moves aside when the game's own recipe book is switched on.
 
 ### The recipe view
-- Opens in the centre of the screen.
-- Shows as many recipes to a page as the screen allows (two were too few
-  for an item with dozens of uses), in a window no wider than the recipes
-  shown need: one column where one is enough.
+- Opens in the centre of the screen, in Lamium's own look: its panel,
+  buttons and tabs, and the cells the container preview already draws. The
+  arrangement follows the game; the game's look can come later if wanted.
+- The window keeps one size, two recipe columns wide, so nothing changes
+  between items; where one column is enough it sits in the middle. The
+  centre keeps that room free, so the side lists never move.
+- Shows as many recipes to a page as the window holds (two were too few
+  for an item with dozens of uses).
+- Stations are tabs: one station's recipes to a view, each the same size.
+- The item's own actions sit together in the heading: a favourite button
+  (the key works too) and "add to plan".
 - Each recipe carries one control, "place" (with Shift: craft many, Mass
   Craft), and the marks "default" (press to make it the item's default),
   "any order" for a shapeless recipe and "2x2" for one the inventory's own
