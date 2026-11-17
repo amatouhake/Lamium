@@ -169,6 +169,12 @@ Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION-LOG.md).
 - Tweakeroo (Java, listed above): its fake-sneak placement, named by the
   maintainer 2026-11-01 as the closest prior art, is the source of the L-293
   idea. Its source and description text are not opened.
+- JEI (Just Enough Items) and EMI (Java recipe viewers; both MIT per their
+  GitHub repositories, checked 2026-11-17): named by the maintainer
+  2026-11-17 as the source of the L-359 idea, from what they do as the
+  player sees it (looking up an item's recipes and uses; tracing an item
+  down to its base materials with a recipe chosen per step). Their source
+  is not opened; no code, strings, assets or screen layout are used.
 - The Bedrock slime chunk rule (L-232, `features/information/SlimeChunk.h`):
   MT19937 seeded with `uint32(chunkX) * 0x1f1f1f1f ^ uint32(chunkZ)`, slime
   chunk when the first output `% 10 == 0`. It is a fact about the game, as
