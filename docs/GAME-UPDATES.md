@@ -193,7 +193,8 @@ left out. Its result is in VALIDATION-LOG (2026-11-13).
 recipe's ingredients and results through `ItemDescriptor::mImpl`'s virtual
 functions, and writes the table to `logs/recipe-table-*.txt`. It loads
 nothing; sizes too large to be real stop the walk. Potion mixes are not
-read: the SDK gives `PotionBrewing::Mix` no layout.
+read: the SDK gives `PotionBrewing::Mix` no layout. Its result is in
+VALIDATION-LOG (2026-11-17).
 
 ## Inventory
 

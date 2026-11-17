@@ -12,6 +12,37 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe table the client holds (L-116, 2026-11-17)
+
+Build `d3170cdc` with `--recipe_trace=y` (DLL
+`2b9ae30ecfdeb3393c3cd5f2b781182d57c79f2b225f6fb8ecbb92f514c1bae9`),
+1.26.60.05 Dev instance, the maintainer: joined a local world, then an
+Endstone server, about ten seconds each. No crash; one file each
+(`recipe-table-20261117-214351-local.txt`, `-214423-remote.txt`, 1.6 MB).
+Read by the agent with scripts outside the repository:
+- The two tables are the same line for line (7102 lines; only the order
+  inside tag member lists differs): 4770 recipes (1219 shaped, 3537
+  shapeless, 14 multi), 252 furnace results, 2080 item names.
+- Per tag: crafting_table 4140, stonecutter 354, furnace 134, blast_furnace
+  62, smoker, campfire and soul_campfire 9 each, smithing_table 13,
+  cartography_table 6, deprecated 34. Results loaded on all; none on 15
+  (the multi recipes and armor trim).
+- Ingredients: 12945 items (aux 32767 on 10228) and 262 tags of 15 kinds;
+  no other descriptor kind. Tag members list with the callback returning
+  false (planks 13, logs 48); returning true stops after one.
+- The furnace table's outer key is the tag's hash as an int, the inner key
+  `id << 16 | aux`; all 252 inputs named. 222 of its entries are also
+  recipes; the other 30 spell out the one tag recipe (logs_that_burn to
+  charcoal).
+- Three recipes have a by-product as a further result (cake, honey block,
+  honey bottle to sugar).
+- Priorities, tied recipes and convertible groups: as in L-116's Known.
+
+Not checked: a server that is not Bedrock Dedicated Server underneath, a
+server with its own recipes, Realms; potion mixes are not read. Which
+recipe the game takes when two match one grid was not observed, only read
+from the values.
+
 ## Chunk and scaled coordinates below the minimap (GitHub #80, 2026-11-17)
 
 Builds `358f5780` (DLL
