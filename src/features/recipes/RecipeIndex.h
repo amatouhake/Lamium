@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
-#include <numeric>
 #include <set>
 #include <string>
 #include <string_view>
@@ -156,71 +155,124 @@ inline Index build(Source const& source) {
 
 // The recipe each item is made by, unless the player says otherwise.
 struct Choice {
-    std::vector<int> recipe; // per item: position in Index::recipes, -1 for none
-    std::vector<Item> base;  // per item: the base form of its group of convertible items, -1 outside one
+    std::vector<int> recipe; // per item: position in Index::recipes, -1 for none (gathered)
+    std::vector<Item> base;  // per item: the base of its loop of items, -1 outside one
 };
-// Items that convert into each other (nugget, ingot, block) form a group: the
-// base is the form most recipes outside the group use, on a tie the form a
-// conversion uses several of, then the name. The others are made from the
-// base, step by step; the base only by recipes that do not come from the group.
+// Items whose recipes lead back to each other form a loop: nugget, ingot and
+// block; stone and cobblestone; the wool colors. The choice never follows a
+// loop round. Inside one, items are settled one at a time, an item only by a
+// recipe whose parts from the loop are settled already. The first, the base,
+// therefore has a recipe from outside the loop (smelting ore) or is gathered.
+// Next comes the item most recipes outside the loop use, then one a recipe in
+// the loop uses several of, then by name. Among an item's recipes the station
+// and priority decide, then the one closest to the base (white wool and dye,
+// not another color and dye), then `before`.
 inline Choice choose(Index const& index) {
-    size_t const count = index.items.size();
+    Item const count = static_cast<Item>(index.items.size());
     Choice out{std::vector<int>(count, -1), std::vector<Item>(count, -1)};
-    // (made, from): the crafting recipe that makes one item from nothing but another.
-    std::map<std::pair<Item, Item>, int> conversion;
-    for (size_t i = 0; i < index.recipes.size(); ++i) {
-        auto const& recipe = index.recipes[i];
-        if (recipe.station != Station::Crafting || recipe.uses.size() != 1 || recipe.uses[0].group) continue;
-        auto [slot, fresh] = conversion.emplace(std::pair{recipe.makes, recipe.uses[0].id}, static_cast<int>(i));
-        if (!fresh && before(index, recipe, index.recipes[slot->second])) slot->second = static_cast<int>(i);
-    }
-    std::vector<Item> root(count);
-    std::iota(root.begin(), root.end(), 0);
-    auto find = [&](Item item) {
-        while (root[item] != item) item = root[item] = root[root[item]];
-        return item;
-    };
-    std::vector<bool> grouped(count, false);
-    for (auto const& [key, recipe] : conversion)
-        if (conversion.contains({key.second, key.first})) {
-            root[find(key.first)] = find(key.second);
-            grouped[key.first] = grouped[key.second] = true;
-        }
-    std::vector<int> used(count, 0);       // recipes outside the item's group that use it
-    std::vector<bool> several(count, false); // a conversion uses more than one of it
+    std::vector<std::vector<Item>> uses(count);
     for (auto const& recipe : index.recipes)
-        for (auto const& part : recipe.uses)
-            if (!part.group && grouped[part.id] && find(part.id) != find(recipe.makes)) ++used[part.id];
-    for (auto const& [key, recipe] : conversion)
-        if (grouped[key.first] && grouped[key.second] && index.recipes[recipe].uses[0].count > 1) several[key.second] = true;
-    std::map<Item, std::vector<Item>> families;
-    for (Item item = 0; item < static_cast<Item>(count); ++item) if (grouped[item]) families[find(item)].push_back(item);
-    for (auto const& [key, members] : families) {
-        Item const base = *std::min_element(members.begin(), members.end(), [&](Item a, Item b) {
+        for (auto const& part : recipe.uses) if (!part.group) uses[recipe.makes].push_back(part.id);
+    // Strongly connected components (Tarjan, without recursion).
+    std::vector<int> order(count, -1), low(count, 0), loop(count, -1);
+    std::vector<bool> stacked(count, false);
+    std::vector<Item> stack;
+    std::vector<std::pair<Item, size_t>> frames;
+    int next = 0, loops = 0;
+    for (Item start = 0; start < count; ++start) {
+        if (order[start] >= 0) continue;
+        auto enter = [&](Item item) {
+            order[item] = low[item] = next++;
+            stack.push_back(item);
+            stacked[item] = true;
+            frames.emplace_back(item, 0);
+        };
+        enter(start);
+        while (!frames.empty()) {
+            Item const at = frames.back().first;
+            if (frames.back().second < uses[at].size()) {
+                Item const to = uses[at][frames.back().second++];
+                if (order[to] < 0) enter(to);
+                else if (stacked[to]) low[at] = std::min(low[at], order[to]);
+                continue;
+            }
+            frames.pop_back();
+            if (!frames.empty()) low[frames.back().first] = std::min(low[frames.back().first], low[at]);
+            if (low[at] != order[at]) continue;
+            for (;;) {
+                Item const member = stack.back();
+                stack.pop_back();
+                stacked[member] = false;
+                loop[member] = loops;
+                if (member == at) break;
+            }
+            ++loops;
+        }
+    }
+    std::vector<std::vector<Item>> members(loops);
+    for (Item item = 0; item < count; ++item) members[loop[item]].push_back(item);
+    std::vector<int> used(count, 0);
+    std::vector<bool> several(count, false);
+    for (auto const& recipe : index.recipes)
+        for (auto const& part : recipe.uses) {
+            if (part.group) continue;
+            if (loop[part.id] != loop[recipe.makes]) ++used[part.id];
+            else if (part.count > 1) several[part.id] = true;
+        }
+    std::vector<int> depth(count, -1); // settled when >= 0
+    for (auto const& group : members) {
+        if (group.size() == 1) {
+            Item const item = group.front();
+            for (int candidate : index.makers[item])
+                if (out.recipe[item] < 0 || before(index, index.recipes[candidate], index.recipes[out.recipe[item]])) out.recipe[item] = candidate;
+            continue;
+        }
+        auto earlier = [&](Item a, Item b) {
             if (used[a] != used[b]) return used[a] > used[b];
             if (several[a] != several[b]) return several[a] > several[b];
             return index.items[a] < index.items[b];
-        });
-        for (Item member : members) out.base[member] = base;
-        std::vector<Item> open{base};
-        std::set<Item> reached{base};
-        for (size_t at = 0; at < open.size(); ++at)
-            for (Item member : members) {
-                auto made = conversion.find({member, open[at]});
-                if (made == conversion.end() || !reached.insert(member).second) continue;
-                out.recipe[member] = made->second;
-                open.push_back(member);
+        };
+        Item base = -1;
+        for (size_t settled = 0; settled < group.size(); ++settled) {
+            Item pick = -1;
+            int pickRecipe = -1, pickDepth = 0;
+            bool pickReady = false;
+            for (Item item : group) {
+                if (depth[item] >= 0) continue;
+                int best = -1, bestDepth = 0;
+                for (int candidate : index.makers[item]) {
+                    auto const& recipe = index.recipes[candidate];
+                    int far = 0;
+                    bool ready = true;
+                    for (auto const& part : recipe.uses) {
+                        if (part.group || loop[part.id] != loop[item]) continue;
+                        ready = ready && depth[part.id] >= 0;
+                        if (ready) far = std::max(far, depth[part.id] + 1);
+                    }
+                    if (!ready) continue;
+                    bool better = best < 0;
+                    if (!better) {
+                        auto const& held = index.recipes[best];
+                        if (recipe.station != held.station) better = recipe.station < held.station;
+                        else if (recipe.priority != held.priority) better = recipe.priority < held.priority;
+                        else if (far != bestDepth) better = far < bestDepth;
+                        else better = before(index, recipe, held);
+                    }
+                    if (better) { best = candidate; bestDepth = far; }
+                }
+                bool const ready = best >= 0;
+                if (pick < 0 || (ready != pickReady ? ready : earlier(item, pick))) {
+                    pick = item;
+                    pickRecipe = best;
+                    pickDepth = bestDepth;
+                    pickReady = ready;
+                }
             }
-    }
-    for (Item item = 0; item < static_cast<Item>(count); ++item) {
-        if (out.base[item] >= 0 && out.base[item] != item) continue;
-        for (int candidate : index.makers[item]) {
-            auto const& recipe = index.recipes[candidate];
-            bool const fromGroup = out.base[item] == item
-                && std::all_of(recipe.uses.begin(), recipe.uses.end(), [&](Part const& part) { return !part.group && out.base[part.id] == item; });
-            if (fromGroup) continue;
-            if (out.recipe[item] < 0 || before(index, recipe, index.recipes[out.recipe[item]])) out.recipe[item] = candidate;
+            out.recipe[pick] = pickRecipe;
+            depth[pick] = pickRecipe < 0 ? 0 : pickDepth;
+            if (base < 0) base = pick;
         }
+        for (Item item : group) out.base[item] = base;
     }
     return out;
 }

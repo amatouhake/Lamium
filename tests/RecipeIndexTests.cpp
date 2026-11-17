@@ -33,6 +33,22 @@ void recipeIndexTests() {
         {"crafting_table", "tipped_arrow", 0, {{"arrow", 8}}, both(cells("arrow", 8), cells("lingering_potion", 1))},
         {"crafting_table", "arrow", 0, {{"arrow", 4}}, both(cells("flint", 1), both(cells("stick", 1), cells("feather", 1)))},
         {"deprecated", "old_barrel", -1, {{"barrel", 1}}, cells("stick", 2)},
+        // Loops longer than a pair, across stations, and with a second ingredient.
+        {"crafting_table", "waxed_block", 0, {{"waxed_block", 1}}, both(cells("iron_block", 1), cells("honeycomb", 1))},
+        {"crafting_table", "ingots_from_waxed", 0, {{"iron_ingot", 9}}, cells("waxed_block", 1)},
+        {"stonecutter", "cobblestone_from_stone", 0, {{"cobblestone", 1}}, cells("stone", 1)},
+        {"crafting_table", "furnace", -1, {{"furnace", 1}}, cells("cobblestone", 8)},
+        {"crafting_table", "lever", 0, {{"lever", 1}}, both(cells("cobblestone", 1), cells("stick", 1))},
+        {"crafting_table", "dropper", 0, {{"dropper", 1}}, both(cells("cobblestone", 7), cells("redstone", 1))},
+        {"crafting_table", "string_to_wool", 0, {{"white_wool", 1}}, cells("string", 4)},
+        {"crafting_table", "wool_white_from_black", 50, {{"white_wool", 1}}, both(cells("bone_meal", 1), cells("black_wool", 1))},
+        {"crafting_table", "wool_black_from_red", 50, {{"black_wool", 1}}, both(cells("ink_sac", 1), cells("red_wool", 1))},
+        {"crafting_table", "wool_black_from_white", 50, {{"black_wool", 1}}, both(cells("ink_sac", 1), cells("white_wool", 1))},
+        {"crafting_table", "wool_red_from_black", 50, {{"red_wool", 1}}, both(cells("red_dye", 1), cells("black_wool", 1))},
+        {"crafting_table", "wool_red_from_white", 50, {{"red_wool", 1}}, both(cells("red_dye", 1), cells("white_wool", 1))},
+        {"crafting_table", "honey_block", 0, {{"honey_block", 1}}, cells("honey_bottle", 4)},
+        {"crafting_table", "honey_bottle", 0, {{"honey_bottle", 4}, {"x", 0}}, both(cells("honey_block", 1), cells("glass_bottle", 4))},
+        {"crafting_table", "sugar_from_honey", 0, {{"sugar", 3}}, cells("honey_bottle", 1)},
         {"crafting_table", "MapCloningRecipe", 0, {}, {}},
     };
     Index index = build(source);
@@ -69,7 +85,22 @@ void recipeIndexTests() {
               "smelting recipes that differ only in their input become one nameless group");
         check(choice.base[id("emerald_block")] == id("emerald") && made("emerald").empty() && made("emerald_block") == "emerald_block",
               "when nothing else uses either form, the one a conversion uses several of is the base");
-        check(choice.base[id("stick")] == -1, "an item outside any group has no base");
+        check(choice.base[id("stick")] == -1, "an item outside any loop has no base");
+    }
+    {
+        check(made("iron_ingot") == "furnace_iron" && made("waxed_block") == "waxed_block" && choice.base[id("waxed_block")] == id("iron_ingot"),
+              "a loop of three is not followed round: the base still comes from outside it");
+        check(made("cobblestone").empty() && made("stone") == "furnace_cobblestone",
+              "in a loop across stations the item more recipes use is gathered");
+        check(made("white_wool") == "string_to_wool" && choice.base[id("red_wool")] == id("white_wool"),
+              "an item with a recipe from outside the loop is its base");
+        check(made("black_wool") == "wool_black_from_white" && made("red_wool") == "wool_red_from_white",
+              "among equal recipes the one closest to the base wins, not the first by name");
+        check(made("honey_bottle").empty() && made("honey_block") == "honey_block", "a loop with a second ingredient is cut the same way");
+        bool looped = false;
+        for (Item item = 0; item < static_cast<Item>(index.items.size()); ++item)
+            looped = looped || !plan(index, choice, {{{item, 1}}, {}, {}, {}}).looped.empty();
+        check(!looped, "no item's plan runs into a loop with the default recipes");
     }
     {
         auto result = plan(index, choice, {{{id("stone_bricks"), 64}}, {{id("stone_bricks"), 20}, {id("stone"), 4}}, {}, {}});
