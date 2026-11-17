@@ -1,10 +1,12 @@
 #include "features/schematic/SchematicItems.h"
+#include "features/schematic/Nbt.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/ListTag.h"
 #include "mc/deps/nbt/Tag.h"
 #include "mc/world/actor/player/Inventory.h"
 #include "mc/world/item/ItemStack.h"
+#include <algorithm>
 #include <atomic>
 
 namespace lamium::schematic::items {
@@ -13,6 +15,8 @@ std::map<std::string, ItemStack> stacks;
 // Bumped from the exit event; the drawing thread clears on its next use.
 std::atomic<unsigned> generation{0};
 unsigned seen = 0;
+std::map<std::string, Shown> shownItems;
+unsigned seenShown = 0;
 }
 void forget() { ++generation; }
 ItemStack const* iconStack(std::string const& icon) {
@@ -36,6 +40,28 @@ ItemStack const* iconStack(std::string const& icon) {
         found = stacks.emplace(icon, std::move(stack)).first;
     }
     return found->second.isNull() ? nullptr : &found->second;
+}
+Shown const& shown(std::string const& item) {
+    if (unsigned now = generation.load(); now != seenShown) {
+        shownItems.clear();
+        seenShown = now;
+    }
+    if (auto found = shownItems.find(item); found != shownItems.end()) return found->second;
+    if (shownItems.size() > 2048) shownItems.clear();
+    Shown out{item, {}, 64};
+    nbt::Root tag;
+    tag.compound.set("Name", {item});
+    tag.compound.set("Count", {std::int8_t{1}});
+    tag.compound.set("Damage", {std::int16_t{0}});
+    std::string icon = nbt::write(tag);
+    if (auto const* stack = iconStack(icon)) {
+        try {
+            out.name = stack->getName();
+            out.stack = std::max(1, static_cast<int>(stack->getMaxStackSize()));
+            out.icon = std::move(icon);
+        } catch (...) { out.name = item; }
+    }
+    return shownItems.emplace(item, std::move(out)).first->second;
 }
 std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {
     std::map<std::string, std::uint64_t> out;

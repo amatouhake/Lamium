@@ -182,9 +182,9 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   stack sizes respected) on hover and in the right pane. The right pane shows
   the missing materials as slots, "Show on the schematic HUD", and "Open in
   ResourceCalculator" with what is missing in the URL fragment.
-- ResourceCalculator's results are never parsed or its data used: it has no
-  API and its code and recipe data are GPL-3.0 (Lamium is LGPL-3.0). Raw
-  materials come from the game's own recipes ([L-116 Raw materials from the game's recipes](backlog/L-116.md)).
+- "Show raw materials" (a switch, not saved) lists what to gather and what
+  to make from the game's recipes ([L-359](backlog/L-359.md)). ResourceCalculator
+  is only linked to; its data is never used (GPL-3.0; Lamium is LGPL-3.0).
 - One material identity for the list, the check and later placing assistance.
 
 ### Target card and ghost pick

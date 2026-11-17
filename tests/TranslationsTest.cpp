@@ -112,6 +112,14 @@ void translationTests() {
                 || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed" || entry.key == "edgeMargin"
                 || entry.key == "mapWaypointDistance" || entry.key == "mapWaypointArrival" || entry.key == "schematicOutlineDistance")
                 rendered = std::vformat(pattern, std::make_format_args(number));
+            // The Materials tab's raw view (L-359): counts, names and amounts as text.
+            else if (entry.key == "schematic.raw.summary") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
+            else if (entry.key == "schematic.raw.needHeld") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
+            else if (entry.key == "schematic.raw.usedForOne" || entry.key == "recipes.andOthers")
+                rendered = std::vformat(pattern, std::make_format_args(key, remaining));
+            else if (entry.key == "schematic.raw.step") rendered = std::vformat(pattern, std::make_format_args(key, remaining, key));
+            else if (entry.key == "schematic.raw.stepSpare") rendered = std::vformat(pattern, std::make_format_args(key, remaining, key, remaining));
+            else if (entry.key == "schematic.raw.partAmount") rendered = std::vformat(pattern, std::make_format_args(remaining, key));
             else if (pattern.find("{}") != std::string_view::npos)
                 rendered = std::vformat(pattern, std::make_format_args(on));
             else rendered = std::vformat(pattern, std::make_format_args());

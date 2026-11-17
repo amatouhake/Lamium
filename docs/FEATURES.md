@@ -294,7 +294,9 @@ build them.
   placement ("Hinge" on every door), before it even differs, from Ignore
   settings in the Check tab. Kept with the placement; undo one or all.
 - **Materials:** count the materials left against what you carry, Shulker
-  Boxes included, in chests and stacks.
+  Boxes included, in chests and stacks. A switch shows them as raw materials
+  instead: what to gather and what to craft or smelt, from the game's
+  recipes.
 - **Save:** save an area of the world as a schematic, also larger than the
   render distance, by walking along it. Saved files use the game's current
   format and load in a structure block.

@@ -14,6 +14,14 @@ ItemStack const* iconStack(std::string const& icon);
 // world's items, which the game rebuilds (for example after a language
 // change), and drawing an old one crashed.
 void forget();
+// An item by its id as the game names and draws it (for items no schematic
+// line names: what a recipe uses or makes). Cached with the icon stacks. The
+// id as the name and no icon when the game does not know it.
+struct Shown {
+    std::string name, icon;
+    int stack = 64;
+};
+Shown const& shown(std::string const& item);
 // Items carried: the inventory and the contents of shulker boxes in it.
 std::map<std::string, std::uint64_t> carried(LocalPlayer& player);
 }

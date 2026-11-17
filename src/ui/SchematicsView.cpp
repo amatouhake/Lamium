@@ -31,6 +31,8 @@
 #include "app/Desktop.h"
 #include "features/information/SchematicTarget.h"
 #include "features/schematic/SchematicItems.h"
+#include "features/recipes/RawView.h"
+#include "features/recipes/RecipeService.h"
 #include "features/schematic/Selection.h"
 #include "features/schematic/MenuModel.h"
 #include "mc/deps/nbt/CompoundTag.h"
@@ -303,6 +305,33 @@ std::vector<schematic::MaterialLine const*> materialRows; // blocks first, then 
 // index into materialRows. Headings only when both kinds are present.
 std::vector<int> materialListRows;
 int materialSelected = -1; // index into materialRows
+// The Materials tab's raw view (L-359): what is left as things to gather and
+// things to make, from the game's recipes. A switch in the pane, not saved;
+// the list falls back to the materials when the recipes cannot be read.
+bool materialsRaw = false;
+struct RawRow {
+    enum class Kind { GatherHead, Gather, Nothing, MakeHead, Step, Reading } kind;
+    int index = -1; // into rawGather or rawView.steps
+    bool selectable() const { return kind == Kind::Gather || kind == Kind::Step; }
+};
+struct RawGather {
+    std::string item;      // empty for a group
+    int group = -1;        // position in the index's groups
+    recipes::Item id = -1; // -1 for an item the recipes do not know
+    std::uint64_t need = 0, held = 0, left = 0;
+};
+std::vector<RawRow> rawRows;
+std::vector<RawGather> rawGather;
+recipes::RawView rawView;
+recipes::Request rawRequest;
+std::shared_ptr<recipes::service::Table const> rawTable;
+recipes::service::State rawState = recipes::service::State::Idle;
+int rawSelected = -1; // index into rawRows
+bool rawShowing() {
+    return schematicTab == SchematicTab::Materials && materialsRaw && rawState != recipes::service::State::Paused
+        && rawState != recipes::service::State::Unreadable;
+}
+void refreshRaw();
 
 // The last pass's row for a place, if it listed one.
 schematic::Mismatch const* rowAt(schematic::IgnoreEntry const& e) {
@@ -384,6 +413,7 @@ void refreshSchematics(bool files) {
         materialListRows.push_back(i);
     }
     if (materialSelected >= static_cast<int>(materialRows.size())) materialSelected = -1;
+    refreshRaw();
     // The selected rows follow their cells when the rows change (a new pass,
     // a filter): the same index would be another cell.
     if (!checkRows.keys.empty()) {
@@ -489,7 +519,7 @@ int schematicRowCount() {
     case SchematicTab::Placements: return static_cast<int>(schematicSet.placements.size());
     case SchematicTab::Files: return static_cast<int>(schematicFileRows.size());
     case SchematicTab::Verify: return static_cast<int>(ignoreView ? ignoreList.size() : verifyRows.size());
-    default: return static_cast<int>(materialListRows.size());
+    default: return static_cast<int>(rawShowing() ? rawRows.size() : materialListRows.size());
     }
 }
 schematic::SavedPlacement const* selectedPlacement() {
@@ -667,7 +697,7 @@ void showSelectedMismatch() {
 int schematicFieldCount() {
     switch (schematicTab) {
     case SchematicTab::Placements: return selectedPlacement() ? static_cast<int>(schematicFields.size()) : 0;
-    case SchematicTab::Materials: return 2;
+    case SchematicTab::Materials: return 3;
     default: return 0;
     }
 }
@@ -680,6 +710,11 @@ void activateSchematicField(int index, int part) {
             refreshSchematics(false);
         } else if (index == 1) {
             screen::toggleOption("schematic.hud");
+        } else if (index == 2 && versionSensitiveAllowed(capabilities::Id::RecipeTable)) {
+            materialsRaw = !materialsRaw;
+            rawSelected = -1;
+            schematicListFirst = 0;
+            refreshSchematics(false);
         }
         return;
     }
@@ -1003,6 +1038,10 @@ void handleSchematicClick(float x, float y, bool right) {
             } else selectCheckRow(row);
             return;
         default:
+            if (rawShowing()) {
+                if (row >= 0 && row < static_cast<int>(rawRows.size()) && rawRows[static_cast<size_t>(row)].selectable()) rawSelected = row;
+                return;
+            }
             if (row >= 0 && row < static_cast<int>(materialListRows.size()) && materialListRows[static_cast<size_t>(row)] >= 0)
                 materialSelected = materialListRows[static_cast<size_t>(row)];
             return;
@@ -1179,6 +1218,90 @@ std::map<std::string, std::uint64_t> carriedItems() {
     auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
     return player ? schematic::items::carried(*player) : std::map<std::string, std::uint64_t>{};
 }
+// A group as one name: a known tag as "Planks (any)", else its first member and how many more.
+std::string rawGroupName(recipes::Index const& index, int group) {
+    auto const& entry = index.groups[static_cast<size_t>(group)];
+    if (!entry.name.empty()) {
+        std::string const key = "recipes.tag." + (entry.name.starts_with("minecraft:") ? entry.name.substr(10) : entry.name);
+        if (std::string text = translated(key); text != key) return translated("recipes.anyOf", text);
+    }
+    if (entry.members.empty()) return entry.name;
+    auto const& first = schematic::items::shown(index.items[static_cast<size_t>(entry.members.front())]).name;
+    return entry.members.size() == 1 ? first : translated("recipes.andOthers", first, entry.members.size() - 1);
+}
+// What a gather line (or a recipe's part) shows: an item as the game names it, a group under its first member's icon.
+schematic::items::Shown rawShown(RawGather const& line) {
+    if (line.group < 0 || !rawTable) return schematic::items::shown(line.item);
+    auto const& entry = rawTable->index.groups[static_cast<size_t>(line.group)];
+    schematic::items::Shown out;
+    if (!entry.members.empty()) out = schematic::items::shown(rawTable->index.items[static_cast<size_t>(entry.members.front())]);
+    out.name = rawGroupName(rawTable->index, line.group);
+    return out;
+}
+// A station by the name of its block's item, so it reads as the game names it.
+std::string stationName(recipes::Station station) {
+    char const* item = "";
+    switch (station) {
+    case recipes::Station::Crafting: item = "minecraft:crafting_table"; break;
+    case recipes::Station::Stonecutter: item = "minecraft:stonecutter_block"; break;
+    case recipes::Station::Furnace: item = "minecraft:furnace"; break;
+    case recipes::Station::BlastFurnace: item = "minecraft:blast_furnace"; break;
+    case recipes::Station::Smoker: item = "minecraft:smoker"; break;
+    case recipes::Station::Campfire: item = "minecraft:campfire"; break;
+    case recipes::Station::SoulCampfire: item = "minecraft:soul_campfire"; break;
+    case recipes::Station::Smithing: item = "minecraft:smithing_table"; break;
+    case recipes::Station::Other: return "-";
+    }
+    return schematic::items::shown(item).name;
+}
+// The raw view's rows from the materials left and what is carried. The plan
+// is worked out again only when one of them, or the recipe table, changed.
+void refreshRaw() {
+    rawRows.clear();
+    if (schematicTab != SchematicTab::Materials || !materialsRaw) {
+        rawTable.reset();
+        return;
+    }
+    rawState = recipes::service::want();
+    auto table = recipes::service::table();
+    if (!table) {
+        rawTable.reset();
+        rawSelected = -1;
+        if (rawShowing()) rawRows.push_back({RawRow::Kind::Reading});
+        return;
+    }
+    rawState = recipes::service::State::Ready;
+    auto carried = carriedItems();
+    recipes::Request request;
+    rawGather.clear();
+    for (auto const* line : materialRows) {
+        bool noItem = line->item.empty() || (line->entity && !schematic::items::iconStack(line->icon));
+        if (noItem || !line->remaining()) continue;
+        if (auto id = table->index.find(line->item); id >= 0) { request.wanted.emplace_back(id, line->remaining()); continue; }
+        // An item no recipe makes or uses: gathered as it is.
+        auto held = carried.find(line->item);
+        std::uint64_t have = std::min<std::uint64_t>(held == carried.end() ? 0 : held->second, line->remaining());
+        if (have < line->remaining()) rawGather.push_back({line->item, -1, -1, line->remaining(), have, line->remaining() - have});
+    }
+    for (auto const& [name, count] : carried)
+        if (auto id = table->index.find(name); id >= 0 && count) request.held.emplace_back(id, count);
+    if (table != rawTable || request.wanted != rawRequest.wanted || request.held != rawRequest.held) {
+        rawTable = table;
+        rawRequest = std::move(request);
+        rawView = recipes::rawView(table->index, table->choice, rawRequest);
+    }
+    auto const items = static_cast<recipes::Item>(table->index.items.size());
+    for (auto const& line : rawView.gather)
+        rawGather.push_back({line.id < items ? table->index.items[static_cast<size_t>(line.id)] : std::string{}, line.id < items ? -1 : line.id - items,
+                             line.id, line.need, line.held, line.left});
+    std::stable_sort(rawGather.begin(), rawGather.end(), [](RawGather const& a, RawGather const& b) { return a.left > b.left; });
+    rawRows.push_back({RawRow::Kind::GatherHead});
+    for (int i = 0; i < static_cast<int>(rawGather.size()); ++i) rawRows.push_back({RawRow::Kind::Gather, i});
+    if (rawGather.empty()) rawRows.push_back({RawRow::Kind::Nothing});
+    rawRows.push_back({RawRow::Kind::MakeHead});
+    for (int i = 0; i < static_cast<int>(rawView.steps.size()); ++i) rawRows.push_back({RawRow::Kind::Step, i});
+    if (rawSelected >= static_cast<int>(rawRows.size()) || (rawSelected >= 0 && !rawRows[static_cast<size_t>(rawSelected)].selectable())) rawSelected = -1;
+}
 Rgb mismatchColor(schematic::CellState state) {
     switch (state) {
     case schematic::CellState::Wrong: case schematic::CellState::Extra: return palette::mismatch;
@@ -1299,6 +1422,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         break;
     }
     case SchematicTab::Materials:
+        if (rawShowing()) { heading(left + 14, listRight - left - 16, "schematic.raw.column"); break; }
         heading(left + 14, neededX - left - 16, "schematic.column.material");
         heading(neededX, numW, "schematic.column.needed", Align::Right);
         if (showPlaced) heading(placedX, numW, "schematic.column.placed", Align::Right);
@@ -1388,9 +1512,11 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             : schematicTab == SchematicTab::Files ? schematicPick == SchematicPick::File
                 && schematicFileRows[static_cast<size_t>(i)].file == schematicIndex : false;
         bool heading = (schematicTab == SchematicTab::Files && schematicFileRows[static_cast<size_t>(i)].file < 0)
-            || (schematicTab == SchematicTab::Materials && materialListRows[static_cast<size_t>(i)] < 0)
+            || (schematicTab == SchematicTab::Materials
+                && (rawShowing() ? !rawRows[static_cast<size_t>(i)].selectable() : materialListRows[static_cast<size_t>(i)] < 0))
             || (schematicTab == SchematicTab::Verify && ignoreView && !ignoreList[static_cast<size_t>(i)].selectable());
-        if (schematicTab == SchematicTab::Materials && !heading) chosen = materialListRows[static_cast<size_t>(i)] == materialSelected;
+        if (schematicTab == SchematicTab::Materials && !heading)
+            chosen = rawShowing() ? i == rawSelected : materialListRows[static_cast<size_t>(i)] == materialSelected;
         if (!heading) rowBackground(context,l.listLeft+1,y,l.rowWidth(),ShapesLayout::rowHeight,chosen,over(ShapeZone::ListRow,i));
         switch (schematicTab) {
         case SchematicTab::Placements: {
@@ -1488,6 +1614,55 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             break;
         }
         case SchematicTab::Materials: {
+            if (rawShowing()) {
+                auto const& row = rawRows[static_cast<size_t>(i)];
+                // Steps: where, how many times, how many that makes, what is left over.
+                float madeW = 44, stationW = 52, spareX = carriedX, madeX = spareX - madeW - 2, craftsX = madeX - numW - 2;
+                float stationX = craftsX - stationW - 2;
+                switch (row.kind) {
+                case RawRow::Kind::Reading:
+                    label(context,left,y+3,listRight-left-ShapesLayout::pad,translated("schematic.raw.reading"),palette::dim);
+                    break;
+                case RawRow::Kind::Nothing:
+                    label(context,left,y+3,listRight-left-ShapesLayout::pad,translated("schematic.raw.nothing"),palette::accent);
+                    break;
+                case RawRow::Kind::GatherHead:
+                    label(context,left,y+3,carriedX-left-2,translated("schematic.raw.gather"),palette::faint);
+                    label(context,carriedX,y+3,numW,translated("schematic.raw.left"),palette::faint,Align::Right);
+                    break;
+                case RawRow::Kind::MakeHead:
+                    label(context,left,y+3,stationX-left-2,translated("schematic.raw.make"),palette::faint);
+                    label(context,stationX,y+3,stationW,translated("schematic.raw.station"),palette::faint,Align::Right);
+                    label(context,craftsX,y+3,numW,translated("schematic.raw.crafts"),palette::faint,Align::Right);
+                    label(context,madeX,y+3,madeW,translated("schematic.raw.made"),palette::faint,Align::Right);
+                    label(context,spareX,y+3,numW,translated("schematic.raw.spare"),palette::faint,Align::Right);
+                    break;
+                case RawRow::Kind::Gather: {
+                    auto const& line = rawGather[static_cast<size_t>(row.index)];
+                    auto const shown = rawShown(line);
+                    if (tabHover < 0 && hover.zone == ShapeZone::ListRow && hover.index == i && pointer.x >= carriedX)
+                        listTip = {translated("schematic.raw.left") + ": " + amountText(line.left, shown.stack), pointer.x, pointer.y};
+                    drawItemIcon(context, shown.icon, left, y + 1, 12);
+                    label(context,left+14,y+3,carriedX-left-16,shown.name,palette::text);
+                    label(context,carriedX,y+3,numW,std::to_string(line.left),palette::warning,Align::Right);
+                    break;
+                }
+                case RawRow::Kind::Step: {
+                    auto const& step = rawView.steps[static_cast<size_t>(row.index)];
+                    auto const& shown = schematic::items::shown(rawTable->index.items[static_cast<size_t>(step.item)]);
+                    if (tabHover < 0 && hover.zone == ShapeZone::ListRow && hover.index == i && pointer.x >= madeX && pointer.x < spareX)
+                        listTip = {translated("schematic.raw.made") + ": " + amountText(step.made, shown.stack), pointer.x, pointer.y};
+                    drawItemIcon(context, shown.icon, left, y + 1, 12);
+                    label(context,left+14,y+3,stationX-left-16,shown.name,palette::text);
+                    label(context,stationX,y+3,stationW,stationName(rawTable->index.recipes[static_cast<size_t>(step.recipe)].station),palette::dim,Align::Right);
+                    label(context,craftsX,y+3,numW,std::to_string(step.crafts),palette::text,Align::Right);
+                    label(context,madeX,y+3,madeW,std::to_string(step.made),palette::dim,Align::Right);
+                    label(context,spareX,y+3,numW,step.spare ? std::to_string(step.spare) : "-",step.spare ? palette::dim : palette::faint,Align::Right);
+                    break;
+                }
+                }
+                break;
+            }
             int index = materialListRows[static_cast<size_t>(i)];
             if (index < 0) {
                 label(context,left,y+3,l.listWidth-2*ShapesLayout::pad,translated(index == -1 ? "schematic.section.blocks"
@@ -2144,8 +2319,85 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         label(context,dx,l.previewY+35,dw,layersText(*checked),palette::faint);
         stepperRow(0, "schematic.shownLayersOnly", {}, true, materialsShownOnly);
         stepperRow(1, "schematic.materials.hud", {}, true, Runtime::instance().preferences().schematic.hud);
-        float y = l.fieldY(1) + ShapesLayout::rowHeight + 6;
-        if (materialSelected >= 0 && materialSelected < static_cast<int>(materialRows.size())) {
+        bool const rawPaused = !versionSensitiveAllowed(capabilities::Id::RecipeTable);
+        stepperRow(2, rawPaused ? "schematic.materials.rawPaused" : "schematic.materials.raw", {}, true, rawShowing());
+        float y = l.fieldY(2) + ShapesLayout::rowHeight + 6;
+        if (rawShowing()) {
+            // What fits above the buttons is drawn; the rest is left out.
+            float const bottom = l.actionsY - 4;
+            auto line = [&](std::string text, Rgb color) {
+                if (y + 10 <= bottom) label(context,dx,y,dw,std::move(text),color);
+                y += 11;
+            };
+            auto itemRow = [&](schematic::items::Shown const& shown, std::string right) {
+                if (y + 12 <= bottom) {
+                    drawItemIcon(context, shown.icon, dx, y - 2, 12);
+                    float const rightW = right.empty() ? 0 : dw * .55f;
+                    label(context,dx+14,y,dw-14-rightW,shown.name);
+                    if (!right.empty()) label(context,dx+dw-rightW,y,rightW,std::move(right),palette::dim,Align::Right);
+                }
+                y += 13;
+            };
+            if (!rawTable) line(translated("schematic.raw.reading"), palette::dim);
+            else {
+                auto const& index = rawTable->index;
+                line(translated("schematic.raw.summary", rawGather.size(), rawView.steps.size(), rawView.heldKinds), palette::dim);
+                y += 4;
+                RawRow const* row = rawSelected >= 0 && rawSelected < static_cast<int>(rawRows.size()) ? &rawRows[static_cast<size_t>(rawSelected)] : nullptr;
+                if (row && row->kind == RawRow::Kind::Gather) {
+                    auto const& gather = rawGather[static_cast<size_t>(row->index)];
+                    auto const shown = rawShown(gather);
+                    itemRow(shown, {});
+                    line(translated("schematic.raw.leftAmount", amountText(gather.left, shown.stack)), palette::warning);
+                    line(gather.held ? translated("schematic.raw.needHeld", gather.need, gather.held) : translated("schematic.raw.needOnly", gather.need),
+                         palette::dim);
+                    std::string users;
+                    if (gather.id >= 0) {
+                        int listed = 0;
+                        for (auto [product, count] : recipes::usersOf(index, rawRequest, rawView, gather.id)) {
+                            if (listed == 3) { users += " ..."; break; }
+                            users += (listed++ ? ", " : "")
+                                + translated("schematic.raw.usedForOne", schematic::items::shown(index.items[static_cast<size_t>(product)]).name, count);
+                        }
+                    }
+                    line(translated("schematic.raw.usedFor", users.empty() ? translated("schematic.raw.placed") : users), palette::dim);
+                    if (gather.group >= 0) {
+                        y += 3;
+                        line(translated("schematic.raw.members"), palette::faint);
+                        for (recipes::Item member : index.groups[static_cast<size_t>(gather.group)].members) {
+                            std::uint64_t covered = 0;
+                            for (auto const& cover : rawView.covered) if (cover.group == gather.group && cover.member == member) covered += cover.count;
+                            itemRow(schematic::items::shown(index.items[static_cast<size_t>(member)]),
+                                    covered ? translated("schematic.raw.fromHeld", covered) : std::string{});
+                        }
+                    }
+                } else if (row && row->kind == RawRow::Kind::Step) {
+                    auto const& step = rawView.steps[static_cast<size_t>(row->index)];
+                    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+                    auto const& shown = schematic::items::shown(index.items[static_cast<size_t>(step.item)]);
+                    itemRow(shown, {});
+                    std::string const made = amountText(step.made, shown.stack);
+                    line(step.spare ? translated("schematic.raw.stepSpare", stationName(recipe.station), step.crafts, made, step.spare)
+                                    : translated("schematic.raw.step", stationName(recipe.station), step.crafts, made), palette::dim);
+                    if (step.held) line(translated("schematic.raw.alsoHeld", step.held), palette::dim);
+                    y += 3;
+                    line(translated("schematic.raw.recipe", recipe.count), palette::faint);
+                    for (auto const& part : recipe.uses) {
+                        RawGather as;
+                        if (part.group) as.group = part.id; else as.item = index.items[static_cast<size_t>(part.id)];
+                        auto const partShown = rawShown(as);
+                        itemRow(partShown, translated("schematic.raw.partAmount", part.count, amountText(part.count * step.crafts, partShown.stack)));
+                    }
+                }
+            }
+        } else if (materialsRaw && !rawPaused && rawState == recipes::service::State::Unreadable) {
+            paragraph(context,dx,y,dw,translated("schematic.raw.unreadable"),2,palette::faint);
+            y += 24;
+        } else if (rawPaused) {
+            paragraph(context,dx,y,dw,translated("schematic.raw.paused"),2,palette::faint);
+            y += 24;
+        }
+        if (!rawShowing() && materialSelected >= 0 && materialSelected < static_cast<int>(materialRows.size())) {
             auto const& line = *materialRows[static_cast<size_t>(materialSelected)];
             drawItemIcon(context, line.icon, dx, y - 2, 12);
             label(context,dx+14,y,dw-14,line.name);
@@ -2153,7 +2405,6 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 amountText(line.remaining(), stackSizeOf(line))),palette::dim);
             y += 26;
         }
-        // The rest of the pane is kept for raw materials from the game's recipes (L-116).
         bool missing = !missingMaterials().empty();
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.openCalculator"),
