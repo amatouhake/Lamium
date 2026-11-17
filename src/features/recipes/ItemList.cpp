@@ -3,6 +3,7 @@
 #include "app/Versions.h"
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeView.h"
@@ -44,8 +45,10 @@
 namespace lamium::recipes::itemList {
 namespace {
 ll::event::ListenerPtr renderListener, exitListener;
-// The item names in the creative inventory's order, each once (items go by name, L-359). Read again after a world exit.
+// The items in the creative inventory's order, each once, by their keys (ItemKey.h: the name, with the aux
+// where it is not 0, so every bed color and potion is listed). Read again after a world exit.
 std::vector<std::string> names;
+std::set<std::string, std::less<>> listed; // the same keys, to look one up
 std::atomic<bool> forget{false};
 int page = 0;
 std::string viewScreen; // the screen the recipe view was opened on; it closes with it
@@ -85,16 +88,17 @@ bool keep(std::vector<int>& kept, int code, bool down, bool wanted) {
 bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono::milliseconds(300); }
 void readNames(LocalPlayer& player) {
     names.clear();
+    listed.clear();
     auto const* registry = player.getLevel().getItemRegistry().getCreativeItemRegistry().get();
     if (!registry) return;
-    auto const& listed = registry->mCreativeItems.get();
-    if (listed.size() > 20000) return; // not a list of items
-    std::set<std::string> seen;
-    for (auto const& entry : listed) {
+    auto const& entries = registry->mCreativeItems.get();
+    if (entries.size() > 20000) return; // not a list of items
+    for (auto const& entry : entries) {
         auto const& item = entry.mItemInstance.get();
         if (item.isNull()) continue;
-        std::string name = item.getTypeName();
-        if (name.size() <= 200 && seen.insert(name).second) names.push_back(std::move(name));
+        int const aux = item.getAuxValue();
+        std::string name = itemKey(item.getTypeName(), aux == anyAux ? 0 : aux);
+        if (name.size() <= 200 && listed.insert(name).second) names.push_back(std::move(name));
     }
 }
 // The game's window on this screen: the chest's and anvil's panel, the inventory's and crafting table's
@@ -219,8 +223,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (hoverItem.empty() && !(open && viewLayout.has(px, py))) {
         // A slot of the game's own window, as its hover callbacks last said.
         if (auto const* stack = inspection::hover::HoverTracker::getInstance().resolveItem(*screenView.mController); stack && !stack->isNull()) {
-            hoverItem = stack->getTypeName();
-            if (hoverItem.size() > 200) hoverItem.clear();
+            // Its aux counts where it tells items apart (a red bed, a potion), not where it is wear.
+            std::string const name = stack->getTypeName();
+            int const aux = stack->getAuxValue();
+            auto const table = service::table();
+            if (name.size() > 200) {}
+            else if (std::string key = itemKey(name, aux == anyAux ? 0 : aux); listed.contains(key)) hoverItem = std::move(key);
+            else hoverItem = table ? table->index.keyOf(name, aux) : name;
         }
     }
     {

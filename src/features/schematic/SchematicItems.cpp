@@ -1,3 +1,4 @@
+#include "features/recipes/ItemKey.h"
 #include "features/schematic/SchematicItems.h"
 #include "features/schematic/Nbt.h"
 #include "mc/client/player/LocalPlayer.h"
@@ -49,10 +50,12 @@ Shown const& shown(std::string const& item) {
     if (auto found = shownItems.find(item); found != shownItems.end()) return found->second;
     if (shownItems.size() > 2048) shownItems.clear();
     Shown out{item, {}, 64};
+    // A variant's key carries its aux ("minecraft:bed@14", recipes/ItemKey.h).
+    auto const parts = recipes::splitItemKey(item);
     nbt::Root tag;
-    tag.compound.set("Name", {item});
+    tag.compound.set("Name", {std::string(parts.name)});
     tag.compound.set("Count", {std::int8_t{1}});
-    tag.compound.set("Damage", {std::int16_t{0}});
+    tag.compound.set("Damage", {static_cast<std::int16_t>(parts.aux == recipes::anyAux ? 0 : parts.aux)});
     std::string icon = nbt::write(tag);
     if (auto const* stack = iconStack(icon)) {
         try {

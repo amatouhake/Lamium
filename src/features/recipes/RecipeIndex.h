@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/ItemKey.h"
 #include "features/recipes/RawMaterials.h"
 #include <algorithm>
 #include <cstdint>
@@ -12,8 +13,8 @@
 
 // L-359 / L-116: the game's recipes as a snapshot without game types, the
 // recipe used for each item unless the player chooses another, and what a
-// list of wanted items costs. Items go by name alone: an aux value is not
-// kept, so variants of one name (bed colors, tipped arrows) are one item.
+// list of wanted items costs. Items go by their key (ItemKey.h): the name,
+// with the aux value where the table tells variants of one name apart.
 namespace lamium::recipes {
 using Item = int; // position in Index::items
 using Count = std::uint64_t;
@@ -43,8 +44,9 @@ inline std::string_view stationItem(Station station) {
     }
     return {};
 }
-// The table as the game holds it, by name. `uses` has one entry per grid cell
-// or ingredient; an empty name is an empty cell. The first of `makes` is the
+// The table as the game holds it, names with their aux as ItemKey.h writes
+// them ("name@*" for an ingredient of any aux). `uses` has one entry per grid
+// cell or ingredient; an empty name is an empty cell. The first of `makes` is the
 // product, the rest come with it (a cake's buckets).
 struct SourcePart { std::string name; bool tag = false; };
 struct SourceRecipe {
@@ -89,9 +91,18 @@ struct Index {
     std::vector<Group> groups;
     std::vector<Recipe> recipes;
     std::vector<std::vector<int>> makers; // per item: the recipes whose product it is
-    Item find(std::string_view name) const {
-        auto found = ids.find(name);
+    std::set<std::string, std::less<>> variantNames; // names whose aux tells items apart
+    Item find(std::string_view key) const {
+        auto found = ids.find(key);
         return found == ids.end() ? -1 : found->second;
+    }
+    // An item of the game's: its aux counts only where the table tells variants apart (a worn tool's does not).
+    Item find(std::string_view name, int aux) const {
+        return variantNames.contains(name) ? find(itemKey(name, aux)) : find(name);
+    }
+    // The key of a game item as this table names it, known to it or not.
+    std::string keyOf(std::string_view name, int aux) const {
+        return variantNames.contains(name) ? itemKey(name, aux == anyAux ? 0 : aux) : std::string(name);
     }
     // A group nobody picked a member for stands in calculations as an item past the real ones.
     Item groupItem(int group) const { return static_cast<Item>(items.size()) + group; }
@@ -107,12 +118,57 @@ inline bool before(Index const& index, Recipe const& a, Recipe const& b) {
     return a.id < b.id;
 }
 
+// The table with every name settled into its key. An aux value tells items
+// apart only where the table shows several for one name, as products or as
+// named ingredients (bed colors; not a chest's facing, which is its one aux).
+// There an ingredient of any aux becomes a group of the variants, named
+// "name@*"; everywhere else the aux is dropped.
+inline Source settled(Source const& given, std::set<std::string, std::less<>>* variantNames = nullptr) {
+    std::map<std::string, std::set<int>, std::less<>> seen;
+    auto note = [&](std::string const& key) {
+        auto const parts = splitItemKey(key);
+        if (!parts.name.empty() && parts.aux != anyAux) seen[std::string(parts.name)].insert(parts.aux);
+    };
+    for (auto const& recipe : given.recipes) {
+        if (recipe.station == "deprecated") continue;
+        for (auto const& made : recipe.makes) note(made.first);
+        for (auto const& part : recipe.uses) if (!part.tag) note(part.name);
+    }
+    auto variant = [&](std::string_view name) {
+        auto found = seen.find(name);
+        return found != seen.end() && found->second.size() > 1;
+    };
+    auto key = [&](std::string const& from) {
+        auto const parts = splitItemKey(from);
+        return variant(parts.name) ? itemKey(parts.name, parts.aux) : std::string(parts.name);
+    };
+    Source out;
+    out.tags = given.tags;
+    out.recipes = given.recipes;
+    for (auto& recipe : out.recipes) {
+        for (auto& made : recipe.makes) made.first = key(made.first);
+        for (auto& part : recipe.uses) {
+            if (part.tag || part.name.empty()) continue;
+            auto const parts = splitItemKey(part.name);
+            if (parts.aux != anyAux || !variant(parts.name)) { part.name = key(part.name); continue; }
+            part.name = itemKey(parts.name, anyAux);
+            part.tag = true;
+            auto& members = out.tags[part.name];
+            if (members.empty()) for (int aux : seen.find(parts.name)->second) members.push_back(itemKey(parts.name, aux));
+        }
+    }
+    if (variantNames) for (auto const& [name, auxes] : seen) if (auxes.size() > 1) variantNames->insert(name);
+    return out;
+}
+
 // Left out: superseded recipes (the game's "deprecated" tag), recipes without
-// a product or ingredients, and recipes that use their own product (dyeing a
-// bed, tipping arrows). Smelting recipes that differ only in their one input
-// become one recipe with a nameless group (raw iron or either ore).
-inline Index build(Source const& source) {
+// a product or ingredients, and recipes that use their own product (an
+// ingredient that is the product, or any variant of its name: dyeing a
+// shulker box, copying a banner). Smelting recipes that differ only in their
+// one input become one recipe with a nameless group (raw iron or either ore).
+inline Index build(Source const& given) {
     Index index;
+    Source const source = settled(given, &index.variantNames);
     auto item = [&](std::string const& name) {
         auto [slot, fresh] = index.ids.emplace(name, static_cast<Item>(index.items.size()));
         if (fresh) index.items.push_back(name);
@@ -150,7 +206,9 @@ inline Index build(Source const& source) {
             }
             Part const next{part.tag, part.tag ? group(part.name) : item(part.name), 1};
             recipe.cells.push_back(next);
-            own = own || (!next.group && next.id == recipe.makes);
+            own = own || (!next.group && next.id == recipe.makes)
+                || (part.tag && splitItemKey(part.name).aux == anyAux
+                    && splitItemKey(part.name).name == splitItemKey(index.items[static_cast<size_t>(recipe.makes)]).name);
             auto same = std::find_if(recipe.uses.begin(), recipe.uses.end(),
                                      [&](Part const& other) { return other.group == next.group && other.id == next.id; });
             if (same != recipe.uses.end()) ++same->count; else recipe.uses.push_back(next);

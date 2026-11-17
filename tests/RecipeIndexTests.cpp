@@ -213,6 +213,35 @@ void recipeIndexTests() {
               "one column sits in the middle; two fill left to right, then down");
     }
     {
+        // Variants by aux: beds by color, made from wool or dyed from the white one; a chest's one aux is no variant.
+        Source source;
+        source.recipes.push_back({"crafting_table", "bed_white", 0, {{"bed", 1}}, {{"white_wool", false}, {"planks", false}}});
+        source.recipes.push_back({"crafting_table", "bed_red", 0, {{"bed@14", 1}}, {{"red_wool", false}, {"planks", false}}});
+        source.recipes.push_back({"crafting_table", "bed_red_dye", 1, {{"bed@14", 1}}, {{"bed", false}, {"red_dye", false}}});
+        source.recipes.push_back({"crafting_table", "bed_any", 0, {{"bunk", 1}}, {{"bed@*", false}, {"bed@*", false}}});
+        source.recipes.push_back({"crafting_table", "bed_copy", 0, {{"bed@14", 2}}, {{"bed@*", false}, {"paper", false}}});
+        source.recipes.push_back({"crafting_table", "chest", 0, {{"chest@2", 1}}, {{"planks@*", false}}});
+        source.recipes.push_back({"crafting_table", "hopper", 0, {{"hopper", 1}}, {{"chest@*", false}, {"iron", false}}});
+        Index index = build(source);
+        Choice choice = choose(index);
+        check(index.find("bed") >= 0 && index.find("bed@14") >= 0 && index.find("bed", 14) == index.find("bed@14") && index.find("bed", 0) == index.find("bed"),
+              "a name with several aux values in the table is several items");
+        check(index.find("chest") >= 0 && index.find("chest@2") < 0 && index.find("chest", 2) == index.find("chest") && index.find("planks", 37) == index.find("planks"),
+              "a name with one aux value is one item, whatever aux a stack of it has");
+        check(index.keyOf("bed", 14) == "bed@14" && index.keyOf("chest", 2) == "chest" && index.keyOf("bed", 0) == "bed" && index.keyOf("sword", 120) == "sword",
+              "a game item's key carries its aux only for a name with variants");
+        auto const& red = index.recipes[static_cast<size_t>(choice.recipe[static_cast<size_t>(index.find("bed@14"))])];
+        check(red.id == "bed_red" && index.makers[static_cast<size_t>(index.find("bed@14"))].size() == 2,
+              "a variant has its own recipes; one that uses any variant of its own name is left out");
+        auto const& bunk = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("bunk"))].front())];
+        check(bunk.uses.size() == 1 && bunk.uses[0].group && bunk.uses[0].count == 2 && index.groups[static_cast<size_t>(bunk.uses[0].id)].members.size() == 2,
+              "an ingredient of any aux is a group of the variants");
+        auto const& hopper = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("hopper"))].front())];
+        check(!hopper.uses[0].group && hopper.uses[0].id == index.find("chest"), "any aux of a name without variants is the item");
+        check(splitItemKey("a:b@14").aux == 14 && splitItemKey("a:b@*").aux == anyAux && splitItemKey("a:b").aux == 0 && splitItemKey("a@b").name == "a@b"
+              && itemKey("a:b", 0) == "a:b" && itemKey("a:b", 3) == "a:b@3", "a key is the name, with the aux after an @ when it is not 0");
+    }
+    {
         Index empty = build({});
         check(empty.items.empty() && choose(empty).recipe.empty() && plan(empty, choose(empty), {}).raw.empty(), "an empty table gives an empty index");
     }

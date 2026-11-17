@@ -24,7 +24,7 @@ bool partOf(ItemDescriptor const& descriptor, Source& source, SourcePart& out) {
         if (!entry.mItem) return false;
         auto const& name = entry.mItem->mFullName->getString();
         guard(name.size(), 200);
-        out = {name, false};
+        out = {itemKey(name, entry.mAuxValue), false};
         return true;
     }
     if (type != ItemDescriptor::InternalType::ItemTag) return false;
@@ -59,7 +59,8 @@ void add(HashedString const& tag, std::string const& id, ::Recipe const& recipe,
         if (item.isNull()) continue;
         auto name = item.getTypeName();
         guard(name.size(), 200);
-        to.makes.emplace_back(std::move(name), static_cast<Count>(item.mCount));
+        int const aux = item.getAuxValue();
+        to.makes.emplace_back(itemKey(name, aux == anyAux ? 0 : aux), static_cast<Count>(item.mCount));
     }
     if (to.makes.empty()) return;
     to.uses.reserve(parts.size());

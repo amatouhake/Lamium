@@ -14,7 +14,8 @@ ItemStack const* iconStack(std::string const& icon);
 // world's items, which the game rebuilds (for example after a language
 // change), and drawing an old one crashed.
 void forget();
-// An item by its id as the game names and draws it (for items no schematic
+// An item by its id, or its key where an aux tells variants apart
+// (recipes/ItemKey.h), as the game names and draws it (for items no schematic
 // line names: what a recipe uses or makes). Cached with the icon stacks. The
 // id as the name and no icon when the game does not know it.
 struct Shown {

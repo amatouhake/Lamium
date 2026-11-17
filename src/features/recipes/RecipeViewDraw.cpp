@@ -78,7 +78,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         return;
     }
     auto const& index = table->index;
-    Item const id = index.find(at.item);
+    auto const key = splitItemKey(at.item);
+    Item const id = index.find(key.name, key.aux);
     if (at.from != table) at.tabs = viewTabs(index, table->choice, id, at.uses), at.from = table;
     auto const& tabs = at.tabs;
     if (tabs.empty()) { line(at.uses ? "recipes.none.uses" : "recipes.none.makes"); return; }
