@@ -11,7 +11,7 @@
 // items map to the ids, is the caller's business. Not used by any screen yet.
 // `wanted` is everything still to be supplied, held or not: what is held is
 // taken off here, once per item, so a caller must not subtract it first.
-namespace lamium::schematic::rawMaterials {
+namespace lamium::recipes::rawMaterials {
 using Item = int;
 using Count = std::uint64_t;
 struct Recipe {

@@ -274,7 +274,7 @@ Under `src/features/schematic/` unless stated.
   (`withLiquid`, `stateDifferences`), `CheckRules.h`, `CheckIgnores.h`, `BlockEntityCheck.h`,
   `Verification.h` (`maxMismatches`), `GhostFaces.h`, `LiquidShape.h`,
   `PlacementOverlap.h`, `RayCells.h`, `PickRay.h`, `SectionLayers.h`,
-  `PreviewView.h`, `MaterialAmount.h`, `RawMaterials.h`,
+  `PreviewView.h`, `MaterialAmount.h`,
   `src/ui/SchematicFiles.h`, `src/features/information/SchematicTarget.h`.
 - Ghost pass: `GhostRenderer.cpp` (sections to build and draw, the blended
   mesh, lifecycle); `GhostMesh.*` (8-block sections, `cullAgainstGhosts`,
@@ -287,7 +287,7 @@ Under `src/features/schematic/` unless stated.
   `Preview.cpp`. Screen: `src/ui/SchematicsView.cpp`. Lines:
   `src/overlay/LineColor.h`.
 - Tests: `tests/SchematicTests.cpp` (`structureWrittenShape` and the rest),
-  `BlockEntityCheckTests.cpp`, `RawMaterialsTests.cpp`, `CheckIgnoresTests.cpp`,
+  `BlockEntityCheckTests.cpp`, `CheckIgnoresTests.cpp`,
   `SectionLayersTests.cpp`. `LAMIUM_SAMPLE_STRUCTURES` (a folder or
   `;`-separated files) reads real exports, writes them back and checks layers,
   version and layer count. Traces: `schematic_perf_trace`,

@@ -1,7 +1,7 @@
-#include "features/schematic/RawMaterials.h"
+#include "features/recipes/RawMaterials.h"
 void check(bool, char const*);
 void rawMaterialsTests() {
-    using namespace lamium::schematic::rawMaterials;
+    using namespace lamium::recipes::rawMaterials;
     using Raw = std::vector<std::pair<Item, Count>>;
     enum : Item { bricks = 1, stone, cobble, planks, log, sticks, block, ingot, torch, coal };
     Recipes recipes{

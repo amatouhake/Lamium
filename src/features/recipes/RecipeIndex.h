@@ -1,5 +1,5 @@
 #pragma once
-#include "features/schematic/RawMaterials.h"
+#include "features/recipes/RawMaterials.h"
 #include <algorithm>
 #include <cstdint>
 #include <map>
@@ -232,12 +232,12 @@ struct Request {
     std::map<int, Item> picks; // group -> member
     std::set<Item> stops;
 };
-using Result = schematic::rawMaterials::Result;
+using Result = rawMaterials::Result;
 // Item ids in the result past Index::items are groups (Index::groupItem). A
 // group is covered by what is left of its members after their own needs, so
 // held planks are not counted for planks and for "any planks" both.
 inline Result plan(Index const& index, Choice const& choice, Request const& request) {
-    namespace raw = schematic::rawMaterials;
+    namespace raw = rawMaterials;
     Item const count = static_cast<Item>(index.items.size());
     raw::Recipes recipes;
     for (Item item = 0; item < count; ++item) {
