@@ -50,7 +50,10 @@ is in the L-item.
   one of them, letters match in either case; "can be made" is a crafting
   recipe that what is carried (shulker boxes included) makes once, without
   making anything first; a favourite carries a small accent mark on its
-  cell in the list; the left band is halved between favourites and wanted.
+  cell in the list; the left band is halved between favourites and wanted;
+  favourites are kept with the notes for all worlds; a recipe that is not
+  the one in use offers "use this" in the recipe view, kept by station and
+  id; deleting a world's or a server's saved data removes its wanted items.
 - The list moves aside when the game's own recipe book is switched on.
 
 ### The recipe view

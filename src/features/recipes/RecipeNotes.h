@@ -30,9 +30,15 @@ inline std::string groupKey(Index const& index, int group) {
     for (auto const& member : members) out += member + ",";
     return out;
 }
+// A recipe as notes name it: where it is made and its id. The game gives one id to the same smelting at
+// the furnace, the smoker and the campfires, so the id alone does not say which.
+inline std::string choiceKey(Recipe const& recipe) {
+    constexpr std::string_view stations[]{"crafting", "stonecutter", "furnace", "blast_furnace", "smoker", "campfire", "soul_campfire", "smithing", "other"};
+    return std::string(stations[static_cast<size_t>(recipe.station)]) + "|" + recipe.id;
+}
 struct Notes {
     std::vector<std::string> favourites;          // item keys, oldest first
-    std::map<std::string, std::string> choices;   // item key -> recipe id
+    std::map<std::string, std::string> choices;   // item key -> the recipe's choiceKey
     std::map<std::string, std::string> picks;     // group key -> member's item key
     std::set<std::string> stops;                  // item keys
     bool operator==(Notes const&) const = default;
@@ -49,7 +55,7 @@ inline Choice chosen(Index const& index, Choice choice, Notes const& notes) {
         Item const item = index.findKey(key);
         if (item < 0) continue;
         for (int maker : index.makers[static_cast<size_t>(item)])
-            if (index.recipes[static_cast<size_t>(maker)].id == recipe) choice.recipe[static_cast<size_t>(item)] = maker;
+            if (choiceKey(index.recipes[static_cast<size_t>(maker)]) == recipe) choice.recipe[static_cast<size_t>(item)] = maker;
     }
     return choice;
 }

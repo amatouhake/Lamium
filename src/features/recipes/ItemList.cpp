@@ -99,7 +99,7 @@ struct Queued {
     bool outside = false;       // a press the game kept, which takes the focus from the field
 } queued;
 bool ctrlHeld = false; // the listeners' own
-std::atomic<bool> shiftHeld{false};
+std::atomic<bool> shiftHeld{false}, dropFocus{false};
 bool sideGather = true; // the left band's short list: what is left to gather, or the wanted items
 // The recipe view lies over the window of what is wanted; both go with the screen they were opened on.
 void closeViews() {
@@ -246,6 +246,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // The table is read while the list shows, a part a frame, so the first recipe opens at once.
     service::want();
+    if (dropFocus.exchange(false)) searchFocus = false;
     // The search field: what was typed since the last frame, then where this frame's press went.
     auto const field = searchFieldAt(screen.x, screen.y);
     if (searchFocus) {
@@ -542,6 +543,15 @@ bool key(int code, bool down) {
     bool const games = std::find(shown.inventoryKeys.begin(), shown.inventoryKeys.end(), code) != shown.inventoryKeys.end();
     if (first && (code == 0x1B || games)) queued.close = true;
     return true;
+}
+void focusLost() {
+    std::scoped_lock lock(shownLock);
+    keptKeys = {};
+    keptButtons = {};
+    queued = {};
+    ctrlHeld = false;
+    shiftHeld = false;
+    dropFocus = true;
 }
 bool typing() {
     std::scoped_lock lock(shownLock);

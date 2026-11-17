@@ -297,7 +297,8 @@ void recipeIndexTests() {
         source.recipes.push_back({"crafting_table", "oak_planks", 0, {{"oak_planks", 4}}, {{"oak_log", false}}});
         Index index = build(source);
         Choice base = choose(index);
-        notes.choices["stick"] = "stick_bamboo";
+        notes.choices["stick"] = "crafting|stick_bamboo";
+        notes.choices["oak_planks"] = "furnace|oak_planks";
         notes.choices["gone"] = "whatever";
         notes.picks["planks"] = "oak_planks";
         notes.picks["no_such_group"] = "oak_planks";
@@ -308,6 +309,8 @@ void recipeIndexTests() {
         check(index.recipes[static_cast<size_t>(base.recipe[static_cast<size_t>(index.find("stick"))])].id == "stick"
               && index.recipes[static_cast<size_t>(mine.recipe[static_cast<size_t>(index.find("stick"))])].id == "stick_bamboo",
               "a recipe the player chose replaces the default; one the table lacks is ignored");
+        check(mine.recipe[static_cast<size_t>(index.find("oak_planks"))] == base.recipe[static_cast<size_t>(index.find("oak_planks"))],
+              "a choice names the station too: the same id at another station is another recipe");
         Request request;
         apply(index, notes, request);
         check(request.picks.size() == 1 && request.picks.begin()->second == index.find("oak_planks") && request.stops.contains(index.find("oak_planks")),

@@ -84,6 +84,7 @@ LL_TYPE_INSTANCE_HOOK(CustomInputFocusLost, ll::memory::HookPriority::Normal, Mi
     &MinecraftGame::$onAppFocusLost, void) {
     invalidate();
     ui::cancelInputCapture();
+    recipes::itemList::focusLost();
     origin();
 }
 void sync(IClientInstance& client) {

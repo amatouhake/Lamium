@@ -25,6 +25,9 @@ bool viewOpen();
 void show(bool uses);
 // The back key: the item the view showed before.
 void back();
+// The game's window lost the focus: releases that were on their way will not come, so nothing stays
+// kept, and the search field gives up the keyboard. Any thread.
+void focusLost();
 // The favourite and wanted keys: the item under the pointer goes in, or out when it is in.
 void favourite();
 void want();

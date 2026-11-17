@@ -29,7 +29,7 @@ enum class Act { Item, Tab, Favourite, Wanted, Use };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
-    std::string item; // Item: its key; Use: the recipe's id
+    std::string item; // Item: its key; Use: the recipe, as notes name it
     int tab = -1;
     bool has(float px, float py) const { return px >= x && px < x + w && py >= y && py < y + h; }
 };
@@ -177,7 +177,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             std::string text = translated("recipes.mark.use");
             float const w = std::min(textWidth(context, text) + 8, marksEnd - bx - block.marksX);
             wrap(w);
-            Region region{mx, my, w, 10, Act::Use, recipe.id, -1};
+            Region region{mx, my, w, 10, Act::Use, choiceKey(recipe), -1};
             drawButton(context, mx, my, w, 10, std::move(text), region.has(input.pointerX, input.pointerY));
             regions.push_back(std::move(region));
             mx += w + 2;
