@@ -143,6 +143,8 @@ from the file); never restate them here.
    and L-265 placement assist.
    Agree open choices before building. L-165 Mass Craft stays
    below the map work and needs a scope conversation first.
+   L-359 material plan (with L-116 raw materials) runs beside this list,
+   neither ahead of it nor behind it.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-116 raw materials, L-184
    inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
@@ -189,6 +191,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
+- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; scope conversation under way, the agent's recommendations below wait for the maintainer
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature): Built 2026-11-13 after 0.6.0 (not released) and checked in game; unchecked cases remain
