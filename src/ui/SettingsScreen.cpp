@@ -1422,7 +1422,12 @@ void open(IClientInstance& current) {
     ScreenToasts screenToasts;
     if (scene || !(gameplayScreen(current.getScreenName())
         || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr)
-        || (overAnvilScreen && current.getScreenName() == "anvil_screen"))) return;
+        || (overAnvilScreen && current.getScreenName() == "anvil_screen")
+#ifdef LAMIUM_ITEM_SCREEN_PROBE
+        // L-359 probe: over any game screen, to see whether its window stays undrawn and its items stay put.
+        || current.getLocalPlayer() != nullptr
+#endif
+        )) return;
     CameraSessions::instance().suspendInput();
     error.clear(); rangeWarning.reset(); seen = false; closing = false; pageClosing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
     pendingClose = false; pendingRelease = false; pressOrder.clear();

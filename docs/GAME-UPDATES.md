@@ -198,6 +198,11 @@ read: the SDK gives `PotionBrewing::Mix` no layout. Its result is in
 VALIDATION-LOG (2026-11-17). The same build fills the
 recipe index (`features/recipes/RecipeSnapshot.cpp`, L-359) from that table
 and logs sample plans; the shipped build does not call it yet.
+`item_screen_probe` (L-359, 2026-11-18) has no hook: on a container screen
+it reads the screen's name, `root_panel`'s box and the controls from the
+top of the visual tree (`UIControl::mChildren`, `mName`, `mCachedPosition`,
+`mSize`, `mVisible`), draws 300 icons beside the window to time them, and
+lets Lamium's scene open over any game screen.
 
 ## Inventory
 
