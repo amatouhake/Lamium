@@ -141,8 +141,7 @@ from the file); never restate them here.
    resource packs, L-168 trade finder, L-169 transfer extensions, L-173
    quick shapes, L-163 a Lamium inventory screen, L-249 simulation distance
    and L-265 placement assist.
-   Agree open choices before building. L-165 Mass Craft stays
-   below the map work and needs a scope conversation first.
+   Agree open choices before building.
    L-359 material plan (with L-116 raw materials) runs beside this list,
    neither ahead of it nor behind it.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
@@ -190,7 +189,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; scope conversation under way, the agent's recommendations below wait for the maintainer
+- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; scope and build order decided 2026-11-17, nothing built; waits on L-116's in-game check
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature): Built 2026-11-13 after 0.6.0 (not released) and checked in game; unchecked cases remain
@@ -207,7 +206,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design): Waiting for the maintainer's choices below; not chosen for building, no release.
 - [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research): Partly done: Game language and Skip server resource packs shipped in 0.2.1; global pack stack work not chosen.
 - [L-166](backlog/L-166.md) Villager trade helpers: favourites and assisted trading (Design): Part 1 (Shift + right-click repeated trading) shipped in 0.2.1; part 2 is candidates waiting for the maintainer, not approved to build
-- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Open, not chosen for building; needs the purpose-and-scope conversation a larger feature starts with. No release.
+- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Open; priority raised 2026-11-17 without a place in the execution order; needs the purpose-and-scope conversation a larger feature starts with. No release.
 - [L-163](backlog/L-163.md) A Lamium-drawn inventory screen (Research): Open, not started; recorded for later.
 - [L-132](backlog/L-132.md) Move while the inventory screen is open (Research): Parked 2026-10-10 after eight trial rounds without smooth movement; resume from Next
 - [L-59](backlog/L-59.md) Held placement style: vanilla, Java-like or fast (Design done; Research first): Planned, nothing built; no step starts until the maintainer says so
@@ -219,7 +218,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-30](backlog/L-30.md) Ender Dragon multipart hitboxes on Bedrock (Research): Probed: parts are readable on the client; waiting for a real End dragon check, a server check and the color choice
 - [L-114](backlog/L-114.md) 3D previews in the schematic screen (Research): Partly done: Files and Check tab previews shipped (0.1.8); the Check tab's mistake look, see-through emphasis and moving the zoomed view are open
 - [L-115](backlog/L-115.md) Entity ghosts drawn as models (Research): A compromise version shipped in 0.1.8; the limits below are open
-- [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): Pure calculation built and tested, not wired to the Materials tab; what the client holds is unchecked in game
+- [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): Choices decided 2026-11-17; pure calculation built and tested without held stock, not wired to any screen; what the client holds is unchecked in game
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
 
