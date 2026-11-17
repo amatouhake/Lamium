@@ -1,8 +1,8 @@
 #pragma once
 // L-359: every item in a band right of the game's window on the item
 // screens, in pages, with the name under the pointer; a press shows the
-// item's recipes, a right press what it is used in (RecipeViewDraw.h). Not a
-// setting yet: only in builds made with `xmake f --item_list=y`.
+// item's recipes, a right press what it is used in (RecipeViewDraw.h).
+// Settings::Inventory::recipes, off by default.
 namespace lamium::recipes::itemList {
 void start();
 void stop();
@@ -13,4 +13,9 @@ void stop();
 bool wheel(int pages);
 bool press(int button, bool left, bool right, bool down);
 bool key(int code, bool down);
+// Whether the recipe view is open and drawn, for the key listener.
+bool viewOpen();
+// The recipe keys: shows the item under the pointer (in the list, the view
+// or a slot of the game's), its recipes or what it is used in. Client thread.
+void show(bool uses);
 }

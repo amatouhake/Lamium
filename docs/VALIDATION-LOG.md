@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe keys and the view's faults mended (L-359 step 3, 2026-11-18)
+
+Build `0f2bb4f9` with `--item_list=y` (DLL
+`4292629fc3124ee1750cbb24a3b7195ef03cc316e29520ae66f6eabe642e3f7a`),
+1.26.60.05 Dev instance, the maintainer:
+- R opened the recipes and U the uses of the item under the pointer, in
+  the game's slots, the list and the view.
+- With the view open, E closed the whole screen; opened again, the view was
+  closed. The maintainer found this wrong in use: the key should close the
+  view first and the screen with a second press.
+- The key hints' line showed whole, and nothing of the game's window showed
+  through the view.
+- Asked what oak planks are used in, the planks' slots stayed oak planks.
+
 ## The recipe view, first seen (L-359 step 3, 2026-11-18)
 
 Build `967d7efe` with `--item_list=y` (DLL

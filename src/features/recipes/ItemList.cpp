@@ -1,6 +1,6 @@
 #include "features/recipes/ItemList.h"
-#ifdef LAMIUM_ITEM_LIST
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "features/recipes/ItemListLayout.h"
@@ -47,6 +47,7 @@ std::vector<std::string> names;
 std::atomic<bool> forget{false};
 int page = 0;
 std::string viewScreen; // the screen the recipe view was opened on; it closes with it
+std::string lastScreen; // the item screen drawn last
 // What the last frame showed, for the input listeners, and what they kept from the game for the next frame.
 // The listeners run off the client thread: they only decide whether the game gets the event, and queue it.
 std::mutex shownLock;
@@ -61,8 +62,6 @@ struct Shown {
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
-    std::string openItem;     // asked for by key over an item
-    bool openUses = false;
     int listTurns = 0, viewTurns = 0;
     bool back = false, close = false;
 } queued;
@@ -125,6 +124,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
     std::string const screenName = screenView.mHasFocus && screenView.mController && screenView.mController->_isContainerScreen()
         ? screenView.getScreenName() : std::string();
     if (screenName.empty()) return false;
+    // Off, or reading the game's item and recipe tables not confirmed for this version: nothing of it shows.
+    if (!Runtime::instance().enabled() || !Runtime::instance().snapshot()->inventory.recipes
+        || !versionSensitiveAllowed(capabilities::Id::RecipeTable)) {
+        view::close();
+        return false;
+    }
+    lastScreen = screenName;
     {
         // Another item screen, or the same one after a pause: the view belonged to the one that is gone.
         std::scoped_lock lock(shownLock);
@@ -158,10 +164,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
     int const count = static_cast<int>(names.size()), pages = layout.pages(count);
     page = std::clamp(page + input.listTurns, 0, pages - 1);
     int const first = page * layout.perPage(), hovered = layout.hit(px, py);
-    if (!input.openItem.empty()) {
-        view::open(std::move(input.openItem), input.openUses);
-        viewScreen = screenName;
-    }
     bool const wasOpen = view::isOpen();
     std::string hoverItem;
     if (hovered >= 0 && first + hovered < count) hoverItem = names[static_cast<size_t>(first + hovered)];
@@ -232,19 +234,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     return true;
 }
-// What the listeners decided for the first inputs, in the log: they run where nothing can be seen.
-std::atomic<int> said{0};
-void say(char const* what, bool kept) {
-    if (said++ >= 40) return;
-    try {
-        Runtime::instance().self().getLogger().info("L-359 list {}: kept={} fresh={} open={} pointer={:.0f},{:.0f} list={:.0f},{:.0f} {:.0f}x{:.0f}",
-            what, kept, fresh(), shown.viewOpen, shown.pointerX, shown.pointerY, shown.list.left, shown.list.top, shown.list.width, shown.list.height);
-    } catch (...) {}
-}
 }
 bool wheel(int pages) {
     std::scoped_lock lock(shownLock);
-    say("wheel", fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY)));
     if (!fresh()) return false;
     if (shown.viewOpen && shown.view.has(shown.pointerX, shown.pointerY)) queued.viewTurns += pages;
     else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
@@ -254,7 +246,6 @@ bool wheel(int pages) {
 bool press(int button, bool left, bool right, bool down) {
     std::scoped_lock lock(shownLock);
     bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY));
-    if (down) say("press", ours);
     if (!keep(keptButtons, button, down, ours)) return false;
     if (down && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
@@ -263,25 +254,33 @@ bool key(int code, bool down) {
     // The modifier keys stay the game's: one held while the view opens must still be released.
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(shownLock);
-    // R and U over an item: its recipes, what it is used in. Fixed keys until the feature has its settings.
-    if ((code == 0x52 || code == 0x55) && fresh() && !shown.hoverItem.empty()) {
-        if (!keep(keptKeys, code, down, true)) return false;
-        if (down) queued.openItem = shown.hoverItem, queued.openUses = code == 0x55;
-        return true;
-    }
-    // The inventory's key closes the screen as it always does, and the view with it.
+    if (!keep(keptKeys, code, down, fresh() && shown.viewOpen)) return false;
+    // Esc and the game's inventory key close the view and leave the screen under it open: the key that
+    // closes the inventory closes what is on top first.
     bool const games = std::find(shown.inventoryKeys.begin(), shown.inventoryKeys.end(), code) != shown.inventoryKeys.end();
-    if (!keep(keptKeys, code, down, fresh() && shown.viewOpen && !games)) return false;
-    if (down && code == 0x1B) queued.close = true;
+    if (down && (code == 0x1B || games)) queued.close = true;
     if (down && code == 0x08) queued.back = true;
     return true;
+}
+bool viewOpen() {
+    std::scoped_lock lock(shownLock);
+    return fresh() && shown.viewOpen;
+}
+void show(bool uses) {
+    std::string item;
+    {
+        std::scoped_lock lock(shownLock);
+        if (!fresh() || shown.hoverItem.empty()) return;
+        item = shown.hoverItem;
+    }
+    view::open(std::move(item), uses);
+    viewScreen = lastScreen;
 }
 void start() {
     auto& bus = ll::event::EventBus::getInstance();
     renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawList(event); } catch (...) {} });
     // The names belong to the world's items: read them again in the next world.
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { forget = true; });
-    Runtime::instance().self().getLogger().warn("L-359 item list enabled (build option)");
 }
 void stop() {
     for (auto* listener : {&renderListener, &exitListener})
@@ -289,12 +288,3 @@ void stop() {
     forget = true;
 }
 }
-#else
-namespace lamium::recipes::itemList {
-void start() {}
-void stop() {}
-bool wheel(int) { return false; }
-bool press(int, bool, bool, bool) { return false; }
-bool key(int, bool) { return false; }
-}
-#endif

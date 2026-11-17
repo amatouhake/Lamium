@@ -438,6 +438,14 @@ Tops up consumed items in the same hand slot from the inventory or hotbar,
 with a threshold and a source order. Swaps container remainders (bowls,
 bottles, empty buckets) and refills an offhand totem after it saves you.
 
+### Recipes (experimental)
+
+Lists every item beside the inventory and other item screens (not the
+anvil). Click an item for its recipes, right click for what it is used in;
+`R` and `U` do the same for the item under the pointer, also in the game's
+own slots. Off by default; details and what is still to come in
+[RECIPES.md](RECIPES.md).
+
 ### Death layout restore (experimental)
 
 Picking up your dropped items puts the hotbar, armor and offhand, optionally

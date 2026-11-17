@@ -50,6 +50,11 @@ void bindingTests() {
         && !actionAllowed(Action::Transfer, false, false)
         && actionAllowed(Action::Sort, false, true) && !actionAllowed(Action::Sort, true, false),
         "transfer toggle works in gameplay and containers while sort remains container-only");
+    check(actionAllowed(Action::ShowRecipes, false, true) && !actionAllowed(Action::ShowUses, true, false)
+        && sameInputContext(Action::ShowRecipes, Action::Sort) && !sameInputContext(Action::ShowRecipes, Action::Zoom)
+        && defaultChord(Action::ShowRecipes) == Chord{Token{Device::Key, 0x52}} && defaultChord(Action::ShowUses) == Chord{Token{Device::Key, 0x55}}
+        && actionAllowed(Action::ToggleRecipes, true, false),
+        "the recipe keys are R and U on item screens only, where they share the context with Sort");
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)
         && !actionAllowed(Action::Settings, false, false), "outside a world only the settings key opens (L-175)");
     check(lamium::outsideWorldMenu("ui://./hbui/index.html", false) && !lamium::outsideWorldMenu("ui://./hbui/index.html", true)

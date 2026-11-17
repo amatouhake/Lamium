@@ -37,6 +37,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleSorting: field = &value.inventory.sorting; break;
     case Action::ToggleOffhandSwap: field = &value.inventory.offhandSwap; break;
     case Action::ToggleDeathRestore: field = &value.inventory.deathRestore; break;
+    case Action::ToggleRecipes: field = &value.inventory.recipes; break;
     case Action::ToggleHideEffects: field = &value.visuals.hideEffects; break;
     case Action::ToggleConnectedTextures: field = &value.visuals.connectedTextures; break;
     case Action::ToggleBlockHighlight: field = &value.visuals.blockHighlight; break;

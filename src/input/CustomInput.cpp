@@ -99,7 +99,8 @@ void sync(IClientInstance& client) {
         previous = std::move(chords);
     }
 }
-bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
+// `recipeKeysOnly`: an open recipe view takes every key but the two that show another item's recipes.
+bool process(Token token, bool down, bool cancelled, bool textEditing = false, bool recipeKeysOnly = false) {
     auto current = ll::service::getClientInstance();
     if (!current) { invalidate(); return false; }
     sync(*current);
@@ -115,7 +116,9 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
     ChordSet allowed;
     bool const freeCamera = CameraSessions::instance().blocksPerspective();
     for (size_t i = 0; i < allowed.size(); ++i)
-        if (actionAllowed(static_cast<Action>(i), gameplay, container, freeCamera, outside)) allowed[i] = previous[i];
+        if (actionAllowed(static_cast<Action>(i), gameplay, container, freeCamera, outside)
+            && (!recipeKeysOnly || i == static_cast<size_t>(Action::ShowRecipes) || i == static_cast<size_t>(Action::ShowUses)))
+            allowed[i] = previous[i];
     // A different consumer (notably Zoom's wheel adjustment) may own this
     // event. Preserve held inputs, but always observe key-up releases.
     auto result = dispatch.update(allowed, held.value(), down && !cancelled ? std::optional<Token>(token) : std::nullopt, fresh);
@@ -155,8 +158,6 @@ void startCustomInput() {
     listeners[0] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
         // L-359 probe: a focused field under a game screen keeps the keys from it.
         if (researchTrace::itemScreen::key(event.keyCode(), event.isDown())) { event.cancel(); return; }
-        // An open recipe view beside a game screen keeps the keys from it (L-359).
-        if (recipes::itemList::key(event.keyCode(), event.isDown())) { event.cancel(); return; }
         // Auto-repeat of a held key (Shift for Shift + right click) is not new input.
         static std::vector<int> physical;
         if (!event.isDown()) std::erase(physical, event.keyCode());
@@ -165,12 +166,14 @@ void startCustomInput() {
             inventory::repeatTrades::cancel();
         }
         bool consumed = process({Device::Key, event.keyCode()}, event.isDown(), event.isCancelled(),
-            event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected);
+            event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected, recipes::itemList::viewOpen());
         if (!event.isDown() && (event.keyCode() == 0x10 || event.keyCode() == 0x11
             || event.keyCode() == 0xA0 || event.keyCode() == 0xA1
             || event.keyCode() == 0xA2 || event.keyCode() == 0xA3))
             inventory::game::TransferSession::modifierReleased();
         if (consumed && event.isDown()) event.cancel();
+        // An open recipe view beside a game screen keeps the other keys from it (L-359).
+        else if (!event.isCancelled() && recipes::itemList::key(event.keyCode(), event.isDown())) event.cancel();
     });
     listeners[1] = bus.emplaceListener<ll::event::input::MouseInputEvent>([](auto& event) {
         int button = event.actionButtonId();

@@ -18,6 +18,7 @@
 #include "mc/world/level/dimension/Dimension.h"
 #include "features/information/PlayerList.h"
 #include "features/inventory/Inventory.h"
+#include "features/recipes/ItemList.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/map/MapView.h"
 #include "features/map/Minimap.h"
@@ -191,6 +192,10 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (!runtime.enabled() || ui::ownsInput()) return;
     // Sorting validates its container/text-input context in requestSort.
     if (action == input::Action::Sort) { inventory::requestSort(client); return; }
+    if (action == input::Action::ShowRecipes || action == input::Action::ShowUses) {
+        recipes::itemList::show(action == input::Action::ShowUses);
+        return;
+    }
     if (action == input::Action::Settings && outsideWorldMenu(client.getScreenName(), client.getLocalPlayer() != nullptr)) {
         ui::open(client);
         return;

@@ -3,10 +3,11 @@
 Looking recipes up in the game and planning what to gather, inside Lamium:
 an item list beside the inventory, a recipe view, and a plan that traces
 what features and the player want down to what must be gathered. The design
-is agreed with mockups and built in steps ([L-359](backlog/L-359.md));
-there are no settings rows or keys yet. Built: the schematic Materials
-tab's raw view ([SCHEMATIC.md](SCHEMATIC.md)) and, only in builds made with
-`xmake f --item_list=y`, the item list and the recipe view opened from it.
+is agreed with mockups and built in steps ([L-359](backlog/L-359.md)).
+Built: the schematic Materials tab's raw view ([SCHEMATIC.md](SCHEMATIC.md))
+and the item list with the recipe view, behind the Recipes switch
+(Inventory, experimental, off by default) with the keys R (recipes of the
+item under the pointer) and U (its uses), both rebindable.
 
 ## Behavior
 
@@ -59,8 +60,9 @@ is in the L-item.
   place whether a recipe is open (the window's last line) or not: click
   for recipes, right click for uses, the favourite key, and Backspace for
   back while a recipe is open.
-- The game's inventory key closes the screen with the view open as it
-  does without it; every other key is kept from the game meanwhile.
+- The game's inventory key closes the view like Esc and leaves the screen
+  under it open; a second press closes that. Every key but the two recipe
+  keys is kept from the game while the view is open.
 - Asked what an item is used in, an ingredient it is one of several for
   shows that item, not the others in turn.
 - R over an item shows its recipes and U what it is used in, in the lists,
@@ -150,8 +152,7 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
-- The recipe view so far: R and U over an item are fixed keys, not
-  actions; no "place", no
+- The recipe view so far: no "place", no
   changing the recipe in use, no favourite or "add to wanted" buttons; a
   group's members show in the table's order, not held ones first; what a
   recipe leaves besides its product is not shown; recipes that use their

@@ -13,6 +13,10 @@ Do not infer game success from a build or unit-test result.
   faults and due to be cut back to the gather list (VALIDATION-LOG
   2026-11-17). Finish it as agreed or hide the switch before a release.
 
+- Recipes (L-359, experimental, off by default): the list and the view as
+  built so far; all beds are one item; Sort no longer has a default key,
+  which the release notes must say.
+
 ## Left from 0.7.0
 
 The tag (VALIDATION-LOG 2026-11-16; release published the same day): the
