@@ -300,6 +300,7 @@ Json encode(Settings const& settings) {
                  {"netherView", settings.map.netherView},
                  {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
+                 {"chunk", settings.map.chunk}, {"scaledCoordinates", settings.map.scaledCoordinates},
                  {"debugHide", settings.map.debugHide}, {"radar", settings.map.radar},
                  {"radarPlayers", settings.map.radarPlayers}, {"radarHostile", settings.map.radarHostile},
                  {"radarPassive", settings.map.radarPassive}, {"radarItems", settings.map.radarItems},
@@ -600,6 +601,8 @@ Settings decodeSettings(std::string_view text) {
         value.map.netherView = std::clamp(settingsValue(map, "netherView", value.map.netherView), 0, 3);
         value.map.coordinates = settingsValue(map, "coordinates", value.map.coordinates);
         value.map.biome = settingsValue(map, "biome", value.map.biome);
+        value.map.chunk = settingsValue(map, "chunk", value.map.chunk);
+        value.map.scaledCoordinates = settingsValue(map, "scaledCoordinates", value.map.scaledCoordinates);
         value.map.compass = settingsValue(map, "compass", value.map.compass);
         value.map.debugHide = settingsValue(map, "debugHide", value.map.debugHide);
         // Before L-297 one switch hid the marks on the minimap ("minimapLayers",

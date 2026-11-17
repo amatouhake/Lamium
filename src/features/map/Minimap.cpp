@@ -13,6 +13,8 @@
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
 #include "features/map/MapSlime.h"
+#include "features/information/InfoLines.h"
+#include "ui/Localization.h"
 #include "features/information/SlimeChunk.h"
 #include "features/information/InfoHud.h"
 #include "features/camera/CameraSessions.h"
@@ -1012,6 +1014,14 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         if (settings.coordinates)
             lines.push_back(std::format("{}, {}, {}", blockFloor(view->x), blockFloor(view->y), blockFloor(view->z)));
         if (settings.biome && !view->biome.empty()) lines.push_back(view->biome);
+        // As the Info HUD's lines word them (GitHub #80).
+        if (settings.chunk)
+            lines.push_back(ui::translated("hudChunk", information::formatChunk(information::chunkPosition(view->x, view->z))));
+        if (settings.scaledCoordinates)
+            if (auto scaled = information::scaledPosition(view->x, view->y, view->z, view->dimension)) {
+                auto dimension = scaled->destination == information::ScaledDimension::Nether ? "dimension.nether" : "dimension.overworld";
+                lines.push_back(ui::translated("hudScaledCoordinates", ui::translated(dimension), scaled->x, scaled->y, scaled->z));
+            }
         float textScale = ui::hudTextZoom(ui::HudElementId::Minimap, element);
         std::vector<float> lineWidths;
         float linesWidth = 0;

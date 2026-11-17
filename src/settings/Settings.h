@@ -186,6 +186,8 @@ struct Settings {
         int netherView = 0;
         bool coordinates = false;
         bool biome = false;
+        // Below the map too (GitHub #80): the chunk line and the coordinates scaled to the other dimension.
+        bool chunk = false, scaledCoordinates = false;
         bool compass = false;
         // L-337: the minimap's text, percent, on top of its HUD scale (50-200, 5 % steps).
         bool debugHide = true; // Hide while Debug View is shown.

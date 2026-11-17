@@ -566,6 +566,8 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::compass>("map.compass", "mapText", "mapCompass"),
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),
+    toggle<&Settings::map, &Settings::Map::chunk>("map.chunk", "mapText", "mapChunk"),
+    toggle<&Settings::map, &Settings::Map::scaledCoordinates>("map.scaledCoordinates", "mapText", "mapScaledCoordinates"),
     toggle<&Settings::map, &Settings::Map::debugHide>("map.debugHide", "minimap", "mapDebugHide"),
     // L-297: three headings of one shape, each with a "Shown on" row.
     toggle<&Settings::map, &Settings::Map::mapMarks>("map.mapMarks", "mapMarks", "mapMarks"),

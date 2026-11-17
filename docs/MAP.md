@@ -14,8 +14,8 @@ group 3).
 
 Settings (category "Map", `Settings::Map`): "Minimap" (switch, key; range,
 heading up, round, Cave view, Nether view, Debug View hiding, zoom/enlarge keys,
-layout link); "Map text" heading (compass letters, coordinates, biome);
-"Radar" (switch, one row per kind, invisible ones, faces); "Waypoints"
+layout link); "Map text" (compass; below the map coordinates, biome, and off
+chunk and scaled coordinates, #80); "Radar" (switch, kinds, invisible, faces); "Waypoints"
 (switch, add key, Show in the world with its key, Distance, Show up to, Show on the
 minimap, Record the death point, Temporary death point, cross-dimension
 scale, arrival distance, open-screen key); "World map" (switch = Record, open
