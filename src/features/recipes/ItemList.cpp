@@ -6,6 +6,9 @@
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ListFilter.h"
+#include "features/recipes/PlanViewDraw.h"
+#include "features/recipes/RecipeState.h"
+#include "features/recipes/RecipeText.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
@@ -84,17 +87,26 @@ struct Shown {
     std::string hoverItem;          // the item under the pointer: in the list, the view or a slot of the game's
     std::vector<int> inventoryKeys; // the game's own key for the inventory, which stays the game's
     ListBox field;                  // the search field
+    SideLayout side;                // the band left of the game's window
     bool searchFocus = false;
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
-    int listTurns = 0, viewTurns = 0;
+    int listTurns = 0, viewTurns = 0, sideTurns = 0;
     bool back = false, close = false;
     std::vector<int> fieldKeys; // keys pressed while the search field has the focus; 0x10000 set with Ctrl
     std::string text;           // text the game handed the focused field
     bool outside = false;       // a press the game kept, which takes the focus from the field
 } queued;
 bool ctrlHeld = false; // the listeners' own
+std::atomic<bool> shiftHeld{false};
+bool sideGather = true; // the left band's short list: what is left to gather, or the wanted items
+// The recipe view lies over the window of what is wanted; both go with the screen they were opened on.
+void closeViews() {
+    view::close();
+    planView::close();
+}
+bool anyView() { return view::isOpen() || planView::isOpen(); }
 // The buttons and keys whose press was kept: only their release is kept too. One the game saw go down
 // must see it come up, or it stays held there.
 std::vector<int> keptButtons, keptKeys;
@@ -170,7 +182,8 @@ void readNames(LocalPlayer& player) {
 }
 // The game's window on this screen: the chest's and anvil's panel, the inventory's and crafting table's
 // (recipe book and all), the furnace's. Seen in game on 1.26.60 (VALIDATION-LOG 2026-11-18).
-bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size) {
+// `left`: where the window begins, the game's recipe book included while it shows.
+bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size, float& left) {
     auto* tree = view.mVisualTree.get();
     if (!tree) return false;
     // `content_stack_panel` keeps the recipe book's width while the book is closed (seen in game), so
@@ -184,7 +197,17 @@ bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size) {
         at = *window->mCachedPosition;
         size = *window->mSize;
         glm::vec2 const screen = *view.mSize;
-        if (size.x > 0 && size.y > 0 && size.x < screen.x - 1) return true; // else not laid out yet
+        if (!(size.x > 0 && size.y > 0 && size.x < screen.x - 1)) continue; // not laid out yet
+        left = at.x;
+        if (stacked) {
+            // Left of the inventory's panel: the recipe book, unless it is switched off. In doubt it counts,
+            // so the left band never lies over it.
+            static std::string const book = "recipe_book";
+            auto shown = tree->getControlByName(book, true);
+            if (shown && (static_cast<int>(shown->mVisible) & 1) && !shown->mCachedPositionDirty && shown->mSize->x > 0)
+                left = std::min(left, shown->mCachedPosition->x);
+        }
+        return true;
     }
     return false;
 }
@@ -200,30 +223,32 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // Off, or reading the game's item and recipe tables not confirmed for this version: nothing of it shows.
     if (!Runtime::instance().enabled() || !Runtime::instance().snapshot()->inventory.recipes
         || !versionSensitiveAllowed(capabilities::Id::RecipeTable)) {
-        view::close();
+        closeViews();
         return false;
     }
     lastScreen = screenName;
     {
         // Another item screen, or the same one after a pause: the view belonged to the one that is gone.
         std::scoped_lock lock(shownLock);
-        if (view::isOpen() && (screenName != viewScreen || !fresh())) view::close();
+        if (anyView() && (screenName != viewScreen || !fresh())) closeViews();
     }
     // The anvil's sides belong to the enchantment order's panels.
     if (screenName == "anvil_screen") return false;
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return false;
-    if (forget.exchange(false)) names.clear(), view::close(), search.clear(), searchFocus = false;
+    if (forget.exchange(false)) names.clear(), closeViews(), search.clear(), searchFocus = false;
     if (names.empty()) readNames(*player);
     glm::vec2 at{}, size{};
-    if (names.empty() || !windowOf(screenView, at, size)) return false;
+    float windowLeft = 0;
+    if (names.empty() || !windowOf(screenView, at, size, windowLeft)) return false;
     glm::vec2 const screen = *screenView.mSize;
     // The centre keeps the recipe view's two columns free, so the list never moves when it opens.
     auto const viewLayout = recipeViewAt(screen.x, screen.y);
     float const right = std::max(at.x + size.x, viewLayout.left + RecipeViewLayout::width);
     auto const layout = itemListRight(screen.x, screen.y, 0, right);
-    if (!layout.usable()) { view::close(); return false; }
+    if (!layout.usable()) { closeViews(); return false; }
+    auto const side = itemListLeft(screen.y, std::min(windowLeft, viewLayout.left));
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
     {
@@ -289,6 +314,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!count) label(context, layout.left + 4, layout.top + ItemListLayout::bar + 4, layout.width - 8,
                       translated(filter == Filter::CanMake && !service::table() ? "schematic.raw.reading" : "recipes.notFound"), palette::dim);
     view::Late late;
+    std::vector<ImageRect> dots; // a favourite's mark, drawn over its icon
     for (int i = 0; i < layout.perPage() && first + i < count; ++i) {
         auto const& item = schematic::items::shown(nameAt(i));
         float const x = layout.cellX(i), y = layout.cellY(i);
@@ -297,12 +323,116 @@ bool drawList(ll::event::UIRenderEvent& event) {
             late.tip = item.name;
         }
         if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
+        if (state::notes().favourite(nameAt(i))) dots.push_back({x + 13, y + 1, 4, 4});
     }
     // A press on an item shows its recipes, a right press what it is used in, also beside an open view.
-    if (pressed && hovered >= 0 && first + hovered < count) {
-        view::open(nameAt(hovered), !leftPress);
+    auto show = [&](std::string const& item) {
+        view::open(item, !leftPress);
         viewScreen = screenName;
         pressed = false;
+    };
+    if (pressed && hovered >= 0 && first + hovered < count) show(nameAt(hovered));
+    // The left band: favourites above, what is wanted below.
+    constexpr float smallIcon = .625f;
+    if (side.usable()) {
+        fill(context, side.left, side.top, side.width, side.height, palette::panel, .5f);
+        label(context, side.left + 4, side.top + 3, side.width - 8, translated("recipes.favourites"), palette::dim);
+        auto const favourites = state::notes().favourites;
+        int const favouriteHover = side.hitFavourite(px, py), favouriteCount = std::min(static_cast<int>(favourites.size()), side.favourites());
+        for (int i = 0; i < favouriteCount; ++i) {
+            auto const& item = schematic::items::shown(favourites[static_cast<size_t>(i)]);
+            float const x = side.cellX(i), y = side.cellY(i);
+            if (i == favouriteHover) {
+                fill(context, x, y, SideLayout::cell, SideLayout::cell, palette::white, .14f);
+                late.tip = item.name;
+                hoverItem = favourites[static_cast<size_t>(i)];
+            }
+            if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
+        }
+        if (pressed && favouriteHover >= 0 && favouriteHover < favouriteCount) show(favourites[static_cast<size_t>(favouriteHover)]);
+        fill(context, side.left + 3, side.top + side.split(), side.width - 6, 1, palette::white, .2f);
+        // The bar: the list's name, which of the two it shows, and the window. Buttons from the right end.
+        float barEnd = side.left + side.width - 2;
+        auto sideButton = [&](std::string text, bool on) {
+            float const w = textWidth(context, text) + 8;
+            barEnd -= w;
+            ListBox const box{barEnd, side.barY(), w, 11};
+            drawButton(context, box.x, box.y, box.w, box.h, std::move(text), box.has(px, py), on ? ButtonKind::Primary : ButtonKind::Plain);
+            barEnd -= 2;
+            return leftPress && took(box);
+        };
+        auto openPlan = [&](planView::Tab tab) {
+            planView::open(tab);
+            viewScreen = screenName;
+        };
+        if (sideButton(translated("recipes.open"), false)) openPlan(sideGather ? planView::Tab::Gather : planView::Tab::Wanted);
+        if (side.wide()) {
+            if (sideButton(translated("recipes.wanted"), !sideGather)) sideGather = false;
+            if (sideButton(translated("recipes.gather"), sideGather)) sideGather = true;
+        }
+        if (std::string title = translated("recipes.wanted"); barEnd - side.left - 4 >= textWidth(context, title))
+            label(context, side.left + 4, side.barY() + 2, barEnd - side.left - 4, std::move(title), palette::dim);
+        // The short list: an icon, the name where there is room, and how many; a wanted item's count has the stepper.
+        struct SideRow {
+            std::string key, name;
+            Count count = 0;
+        };
+        std::vector<SideRow> rows;
+        auto const* plan = state::plan(*player);
+        if (!sideGather) {
+            for (auto const& [key, amount] : state::wanted().targets) rows.push_back({key, schematic::items::shown(key).name, amount});
+        } else if (plan) {
+            auto const& index = plan->table->index;
+            Item const items = static_cast<Item>(index.items.size());
+            auto const turn = static_cast<size_t>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
+            for (auto const& line : plan->view.gather) {
+                if (!line.left) continue;
+                if (line.id < items) {
+                    auto const& key = index.items[static_cast<size_t>(line.id)];
+                    rows.push_back({key, schematic::items::shown(key).name, line.left});
+                } else {
+                    auto const& members = index.groups[static_cast<size_t>(line.id - items)].members;
+                    rows.push_back({members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])],
+                                    groupName(index, line.id - items), line.left});
+                }
+            }
+        }
+        int const fits = side.rows(), total = static_cast<int>(rows.size());
+        int const drawn = total > fits ? std::max(0, fits - 1) : total;
+        constexpr float stepperWidth = 46;
+        for (int i = 0; i < drawn; ++i) {
+            auto const& row = rows[static_cast<size_t>(i)];
+            float const y = side.rowY(i), end = side.left + side.width - 3;
+            ListBox const whole{side.left, y, side.width, SideLayout::row};
+            if (!row.key.empty())
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon)) late.icons.push_back({stack, side.left + 3, y + 1, smallIcon});
+            float nameEnd = end - 30;
+            if (!sideGather) {
+                float const sx = end - stepperWidth;
+                drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(row.count), {.lowEnabled = row.count > 1, .pointerX = px, .pointerY = py});
+                Count const step = shiftHeld.load() ? 16 : 1;
+                if (leftPress && took({sx, y + 1, 11, 10})) state::setWanted(row.key, row.count > step ? row.count - step : 1);
+                else if (leftPress && took({sx + stepperWidth - 11, y + 1, 11, 10})) state::setWanted(row.key, row.count + step);
+                else if (took({sx, y + 1, stepperWidth, 10})) {}
+                else if (input.sideTurns && ListBox{sx, y + 1, stepperWidth, 10}.has(px, py))
+                    state::setWanted(row.key, input.sideTurns < 0 ? row.count + step : row.count > step ? row.count - step : 1);
+                nameEnd = sx - 3;
+            } else label(context, end - 40, y + 2, 40, std::to_string(row.count), palette::text, Align::Right);
+            if (side.wide()) label(context, side.left + 16, y + 2, nameEnd - side.left - 16, row.name, palette::dim);
+            if (whole.has(px, py)) {
+                if (hoverItem.empty()) hoverItem = row.key;
+                if (!side.wide()) late.tip = row.name;
+            }
+            if (leftPress && took(whole)) openPlan(sideGather ? planView::Tab::Gather : planView::Tab::Wanted);
+        }
+        if (total > drawn && fits > 0)
+            label(context, side.left + 4, side.rowY(drawn) + 2, side.width - 8, translated("recipes.more", total - drawn), palette::faint);
+        if (!total)
+            label(context, side.left + 4, side.rowY(0) + 2, side.width - 8,
+                  translated(!sideGather ? "recipes.nothingWanted" : plan ? "schematic.raw.nothing" : "schematic.raw.reading"), palette::faint);
+        // A press on the band that nothing took stays there: it must not reach the view under the pointer's line.
+        if (pressed && side.has(px, py)) pressed = false;
     }
     if (!pressed) input.clicks.clear();
     drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
@@ -317,12 +447,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (!keyboardOwned) searchFocus = false;
     }
     if (!searchFocus) releaseKeyboard();
-    view::draw(context,
-               {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
+    // The recipe view is on top; under it, the window of what is wanted.
+    if (view::isOpen())
+        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
+    else if (planView::isOpen()) {
+        std::string showItem;
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close}, late, *player,
+                       shiftHeld.load(), showItem);
+        if (!showItem.empty()) view::open(std::move(showItem), false), viewScreen = screenName;
+    }
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
-    bool const open = view::isOpen();
+    bool const open = anyView();
     static std::vector<int> inventoryKeys;
-    static std::string backKey; // the back action's key as the keymap names it; empty when it has none
+    static std::string backKey, favouriteKey, wantedKey; // the actions' keys as the keymap names them; empty without one
     static std::chrono::steady_clock::time_point keysRead;
     if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
         keysRead = now;
@@ -330,12 +467,20 @@ bool drawList(ll::event::UIRenderEvent& event) {
             auto const& mapped = keyboard->getKeymappingByAction("key.inventory").mKeys.get();
             if (mapped.size() <= 4) inventoryKeys = mapped;
         }
-        backKey = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::RecipeBack).empty()
-            ? std::string() : actionBindingName(*client, input::Action::RecipeBack);
+        auto const bindings = Runtime::instance().preferences().bindings;
+        auto keyOf = [&](input::Action action) {
+            return input::effectiveChord(bindings, action).empty() ? std::string() : actionBindingName(*client, action);
+        };
+        backKey = keyOf(input::Action::RecipeBack);
+        favouriteKey = keyOf(input::Action::RecipeFavourite);
+        wantedKey = keyOf(input::Action::RecipeWanted);
     }
     if (open || viewLayout.hintY() >= at.y + size.y + 2) {
         // One line whatever the language: shrunk to the window's width where it is longer.
-        std::string hint = open && !backKey.empty() ? translated("recipes.hint.open", backKey) : translated("recipes.hint");
+        std::string hint = translated("recipes.hint");
+        if (!favouriteKey.empty()) hint += " | " + translated("recipes.hint.favourite", favouriteKey);
+        if (!wantedKey.empty()) hint += " | " + translated("recipes.hint.wanted", wantedKey);
+        if (view::isOpen() && !backKey.empty()) hint += " | " + translated("recipes.hint.back", backKey);
         float const room = RecipeViewLayout::width - 8, wide = textWidth(context, hint), scale = wide > room ? room / wide : 1.f;
         labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room / scale, std::move(hint), scale, palette::dim, Align::Center);
     }
@@ -354,10 +499,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     {
         std::scoped_lock lock(shownLock);
-        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, searchFocus};
+        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, side, searchFocus};
     }
     context.flushText(0, std::nullopt);
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
+    fills(context, dots, palette::accent);
     for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
     if (!late.counts.empty()) context.flushText(0, std::nullopt);
     if (!late.tip.empty()) {
@@ -374,12 +520,14 @@ bool wheel(int pages) {
     if (!fresh()) return false;
     if (shown.viewOpen && shown.view.has(shown.pointerX, shown.pointerY)) queued.viewTurns += pages;
     else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
+    else if (shown.side.has(shown.pointerX, shown.pointerY)) queued.sideTurns += pages;
     else return shown.viewOpen; // an open view lies over the game's window: its slots must not scroll
     return true;
 }
 bool press(int button, bool left, bool right, bool down) {
     std::scoped_lock lock(shownLock);
-    bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY) || shown.field.has(shown.pointerX, shown.pointerY));
+    bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY) || shown.field.has(shown.pointerX, shown.pointerY)
+        || shown.side.has(shown.pointerX, shown.pointerY));
     if (!ours && down && fresh() && shown.searchFocus) queued.outside = true;
     if (!keep(keptButtons, button, down, ours)) return false;
     if (down && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
@@ -388,6 +536,7 @@ bool press(int button, bool left, bool right, bool down) {
 bool key(int code, bool down) {
     // The modifier keys stay the game's: one held while the view opens must still be released.
     if (code == 0x11 || code == 0xA2 || code == 0xA3) ctrlHeld = down;
+    if (code == 0x10 || code == 0xA0 || code == 0xA1) shiftHeld = down;
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(shownLock);
     // The focused search field takes every key: letters are text, which the game hands over itself.
@@ -420,6 +569,18 @@ bool viewOpen() {
 void back() {
     std::scoped_lock lock(shownLock);
     if (fresh() && shown.viewOpen) queued.back = true;
+}
+namespace {
+std::string hovered() {
+    std::scoped_lock lock(shownLock);
+    return fresh() ? shown.hoverItem : std::string();
+}
+}
+void favourite() {
+    if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
+}
+void want() {
+    if (auto item = hovered(); !item.empty()) state::toggleWanted(item);
 }
 void show(bool uses) {
     std::string item;

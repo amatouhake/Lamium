@@ -193,6 +193,8 @@ void executeAction(IClientInstance& client, input::Action action) {
     // Sorting validates its container/text-input context in requestSort.
     if (action == input::Action::Sort) { inventory::requestSort(client); return; }
     if (action == input::Action::RecipeBack) { recipes::itemList::back(); return; }
+    if (action == input::Action::RecipeFavourite) { recipes::itemList::favourite(); return; }
+    if (action == input::Action::RecipeWanted) { recipes::itemList::want(); return; }
     if (action == input::Action::ShowRecipes || action == input::Action::ShowUses) {
         recipes::itemList::show(action == input::Action::ShowUses);
         return;

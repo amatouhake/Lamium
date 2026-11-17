@@ -61,6 +61,10 @@ void bindingTests() {
         && !recipeKeyAllowed(Action::ShowUses, false, false) && !recipeKeyAllowed(Action::RecipeBack, false, true)
         && recipeKeyAllowed(Action::Sort, false, false) && !recipeKeyAllowed(Action::Sort, true, true),
         "back is a key only while the view is open, which lets no other action through; off, the recipe keys are the game's");
+    check(defaultChord(Action::RecipeFavourite) == Chord{Token{Device::Key, 0x41}} && defaultChord(Action::RecipeWanted) == Chord{Token{Device::Key, 0x57}}
+        && actionAllowed(Action::RecipeFavourite, false, true) && !actionAllowed(Action::RecipeWanted, true, false)
+        && recipeKeyAllowed(Action::RecipeFavourite, true, true) && !recipeKeyAllowed(Action::RecipeWanted, false, false),
+        "A and W over an item, on item screens and in the open view, while Recipes is on");
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)
         && !actionAllowed(Action::Settings, false, false), "outside a world only the settings key opens (L-175)");
     check(lamium::outsideWorldMenu("ui://./hbui/index.html", false) && !lamium::outsideWorldMenu("ui://./hbui/index.html", true)

@@ -25,4 +25,7 @@ bool viewOpen();
 void show(bool uses);
 // The back key: the item the view showed before.
 void back();
+// The favourite and wanted keys: the item under the pointer goes in, or out when it is in.
+void favourite();
+void want();
 }

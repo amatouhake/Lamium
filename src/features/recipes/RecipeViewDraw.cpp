@@ -1,5 +1,7 @@
 #include "features/recipes/RecipeViewDraw.h"
 #include "features/recipes/RecipeService.h"
+#include "features/recipes/RecipeState.h"
+#include "features/recipes/RecipeText.h"
 #include "features/recipes/RecipeView.h"
 #include "features/schematic/SchematicItems.h"
 #include "ui/ListViewWidgets.h"
@@ -18,27 +20,26 @@ struct Target {
     // Its recipes by station, found once: what uses an item is a walk over the whole table.
     std::vector<ViewTab> tabs;
     std::shared_ptr<service::Table const> from;
+    std::shared_ptr<Choice const> chosen;
 };
-std::vector<Target> trail; // the last is shown; Backspace goes one back
-// What the last frame drew that a press acts on: an item, or a tab.
+std::vector<Target> trail; // the last is shown; the back key goes one back
+// What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, or a
+// recipe's "use this".
+enum class Act { Item, Tab, Favourite, Wanted, Use };
 struct Region {
     float x, y, w, h;
-    std::string item;
+    Act act = Act::Item;
+    std::string item; // Item: its key; Use: the recipe's id
     int tab = -1;
     bool has(float px, float py) const { return px >= x && px < x + w && py >= y && py < y + h; }
 };
 std::vector<Region> regions;
-// A station by the name of its block's item, so it reads as the game names it.
-std::string stationName(Station station) {
-    auto const item = stationItem(station);
-    return item.empty() ? std::string("-") : schematic::items::shown(std::string(item)).name;
-}
 }
 bool isOpen() { return !trail.empty(); }
 void open(std::string item, bool uses) {
     if (!trail.empty() && trail.back().item == item && trail.back().uses == uses) return;
     if (trail.size() >= 64) trail.erase(trail.begin());
-    trail.push_back({std::move(item), uses, 0, 0, {}, {}});
+    trail.push_back({std::move(item), uses, 0, 0, {}, {}, {}});
 }
 void close() {
     trail.clear();
@@ -51,10 +52,16 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     if (input.back && trail.size() > 1) trail.pop_back();
     else if (!input.clicks.empty()) {
         // One press a frame: it acts on what the last frame drew, which the next press no longer sees.
+        bool const left = input.clicks.front();
         for (auto const& region : regions) {
             if (!region.has(input.pointerX, input.pointerY)) continue;
-            if (region.tab >= 0) trail.back().tab = region.tab, trail.back().page = 0;
-            else open(std::string(region.item), !input.clicks.front());
+            std::string const shownItem = trail.back().item; // open() below may move the trail
+            if (region.act == Act::Item) open(std::string(region.item), !left);
+            else if (!left) {}
+            else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
+            else if (region.act == Act::Favourite) state::toggleFavourite(shownItem);
+            else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
+            else if (region.act == Act::Use) state::setChoice(shownItem, region.item);
             break;
         }
     }
@@ -65,22 +72,36 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     // The game's window lies under the view and still answers the pointer: nothing of it may show through.
     fill(context, l.left, l.top, l.width, l.height, palette::panel);
     panel(context, l.left, l.top, l.width, l.height, opacity::floating);
-    label(context, l.left + 6, l.top + 5, l.width - 12,
+    // The item's own actions keep the heading's right end; its name takes what is left.
+    float headEnd = l.left + l.width - 5;
+    auto headButton = [&](std::string text, bool on, Act act) {
+        float const w = textWidth(context, text) + 10;
+        Region const region{headEnd - w, l.top + 3, w, 11, act, {}, -1};
+        drawButton(context, region.x, region.y, region.w, region.h, std::move(text), region.has(input.pointerX, input.pointerY),
+                   on ? ButtonKind::Primary : ButtonKind::Plain);
+        regions.push_back(region);
+        headEnd -= w + 2;
+    };
+    bool const wanted = state::wanted().has(at.item);
+    headButton(translated(wanted ? "recipes.wanted" : "recipes.addWanted"), wanted, Act::Wanted);
+    headButton(translated("recipes.favourite"), state::notes().favourite(at.item), Act::Favourite);
+    label(context, l.left + 6, l.top + 5, headEnd - l.left - 8,
           translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {
         label(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), palette::dim);
     };
-    auto const state = service::want();
+    auto const reading = service::want();
     auto const table = service::table();
     if (!table) {
-        line(state == service::State::Paused ? "schematic.raw.paused"
-             : state == service::State::Unreadable ? "schematic.raw.unreadable" : "schematic.raw.reading");
+        line(reading == service::State::Paused ? "schematic.raw.paused"
+             : reading == service::State::Unreadable ? "schematic.raw.unreadable" : "schematic.raw.reading");
         return;
     }
     auto const& index = table->index;
     auto const key = splitItemKey(at.item);
     Item const id = index.find(key.name, key.aux);
-    if (at.from != table) at.tabs = viewTabs(index, table->choice, id, at.uses), at.from = table;
+    auto const choice = state::choice(table);
+    if (at.from != table || at.chosen != choice) at.tabs = viewTabs(index, *choice, id, at.uses), at.from = table, at.chosen = choice;
     auto const& tabs = at.tabs;
     if (tabs.empty()) { line(at.uses ? "recipes.none.uses" : "recipes.none.makes"); return; }
     at.tab = std::clamp(at.tab, 0, static_cast<int>(tabs.size()) - 1);
@@ -95,7 +116,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         std::string name = stationName(tabs[i].station);
         float const w = textWidth(context, name) + 10;
         if (x + w > tabEnd) break;
-        Region const region{x, tabY, w, 11, {}, static_cast<int>(i)};
+        Region const region{x, tabY, w, 11, Act::Tab, {}, static_cast<int>(i)};
         drawButton(context, x, tabY, w, 11, std::move(name), region.has(input.pointerX, input.pointerY),
                    static_cast<int>(i) == at.tab ? ButtonKind::Primary : ButtonKind::Plain);
         regions.push_back(region);
@@ -105,6 +126,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
+    bool const several = !at.uses && id >= 0 && index.makers[static_cast<size_t>(id)].size() > 1;
     int const first = at.page * l.perPage(station);
     for (int i = 0; i < l.perPage(station) && first + i < count; ++i) {
         int const number = tab.recipes[static_cast<size_t>(first + i)];
@@ -112,7 +134,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         float const bx = l.blockX(station, count, i), by = l.blockY(station, count, i);
         auto const block = viewBlock(recipe);
         auto place = [&](float sx, float sy, Item item, Count amount) {
-            Region region{sx, sy, 18, 18, {}, -1};
+            Region region{sx, sy, 18, 18, Act::Item, {}, -1};
             bool const named = item >= 0 && item < static_cast<Item>(index.items.size());
             bool const hovered = named && region.has(input.pointerX, input.pointerY);
             slot(context, sx, sy, hovered);
@@ -142,13 +164,24 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
         float mx = bx + block.marksX, my = by + block.marksY;
         float const marksEnd = bx + RecipeViewLayout::block;
+        auto wrap = [&](float w) {
+            if (mx > bx + block.marksX && mx + w > marksEnd) mx = bx + block.marksX, my += 11;
+        };
         auto mark = [&](std::string text) {
-            if (mx > bx + block.marksX && mx + tagWidth(context, text) > marksEnd) mx = bx + block.marksX, my += 11;
+            wrap(tagWidth(context, text));
             mx += drawTag(context, mx, my, std::move(text), marksEnd - mx) + 2;
         };
-        // The recipe the item is made by, where it has several; changing it comes with the plan.
-        if (!at.uses && count + static_cast<int>(tabs.size()) > 2 && table->choice.recipe[static_cast<size_t>(id)] == number)
-            mark(translated("recipes.mark.default"));
+        // Where an item has several recipes: the one it is made by says so, the others offer themselves.
+        if (several && choice->recipe[static_cast<size_t>(id)] == number) mark(translated("recipes.mark.default"));
+        else if (several) {
+            std::string text = translated("recipes.mark.use");
+            float const w = std::min(textWidth(context, text) + 8, marksEnd - bx - block.marksX);
+            wrap(w);
+            Region region{mx, my, w, 10, Act::Use, recipe.id, -1};
+            drawButton(context, mx, my, w, 10, std::move(text), region.has(input.pointerX, input.pointerY));
+            regions.push_back(std::move(region));
+            mx += w + 2;
+        }
         if (anyOrder(recipe)) mark(translated("recipes.mark.anyOrder"));
         if (fitsSmallGrid(recipe)) mark(translated("recipes.mark.small"));
     }

@@ -56,7 +56,7 @@ void log(std::string const& text) {
 }
 // The data kinds kept per server, each in its own folder of the config folder.
 constexpr std::string_view mapFolder = "map", waypointFolder = "waypoints", schematicFolder = "schematics",
-    deathFolder = "death-layouts", shapeFolder = "shapes";
+    deathFolder = "death-layouts", shapeFolder = "shapes", wantedFolder = "wanted";
 // How much a key holds (servers::choose): its documents first, then the size of its map, counted up to a limit
 // so that a large map costs a bounded walk at join. Below zero: nothing is there.
 long long held(std::filesystem::path const& config, std::string const& key) {
@@ -183,6 +183,8 @@ void attach() {
     catch (std::exception const& error) { log(std::string("no file for the death layout: ") + error.what()); }
     try { joined.shapeFile = resolve(identity, "shapes.json", shapeFolder, true); }
     catch (std::exception const& error) { log(std::string("no file for shapes: ") + error.what()); }
+    try { joined.wantedFile = resolve(identity, "wanted.json", wantedFolder, true); }
+    catch (std::exception const& error) { log(std::string("no file for wanted items: ") + error.what()); }
     try {
         destination = resolve(identity, "waypoints.json", waypointFolder, true);
         if (destination && std::filesystem::exists(*destination)) set = readWaypoints(*destination);

@@ -1,6 +1,7 @@
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ListFilter.h"
 #include "features/recipes/RawView.h"
+#include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeView.h"
 void check(bool, char const*);
 void recipeIndexTests() {
@@ -258,8 +259,69 @@ void recipeIndexTests() {
         check(can[static_cast<size_t>(index.find("stick"))] && !can[static_cast<size_t>(index.find("torch"))] && !can[static_cast<size_t>(index.find("glass"))],
               "made now: the members of a group count together, nothing is made first, and only crafting counts");
         check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
+        auto side = itemListLeft(360, 210);
+        check(side.width == 206 && side.columns == 11 && side.split() == 180 && side.favouriteRows() == 9 && side.usable() && side.wide(),
+              "the left band runs from the screen's edge to the room the centre keeps, halved between favourites and wanted");
+        check(side.hitFavourite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavourite(100, 178) == -1 && side.rows() == 12
+              && side.hitRow(50, side.rowY(3) + 1) == 3 && side.hitRow(50, 350) == -1 && side.hitRow(50, 100) == -1,
+              "favourites are cells above the middle; the wanted rows end a line short of the bottom");
+        check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
         check(field.x == 232 && field.y == 345 && field.w == 176 && field.has(300, 350) && !field.has(300, 340), "the search field sits at the bottom centre");
+    }
+    {
+        // What the player enters: favourites, wanted items, and the notes a plan follows.
+        Notes notes;
+        notes.toggleFavourite("torch");
+        notes.toggleFavourite("stick");
+        notes.toggleFavourite("torch");
+        check(notes.favourites == std::vector<std::string>{"stick"} && notes.favourite("stick") && !notes.favourite("torch"), "a favourite goes in and out");
+        Wanted wanted;
+        wanted.toggle("lantern");
+        wanted.set("lantern", 4);
+        wanted.toggle("lantern");
+        check(!wanted.has("lantern") && wanted.remembered["lantern"] == 4, "a wanted item taken out remembers its count");
+        wanted.toggle("lantern");
+        wanted.set("hopper", 0);
+        wanted.set("bucket", 5000000);
+        check(wanted.count("lantern") == 4 && wanted.count("hopper") == 1 && wanted.count("bucket") == Wanted::most && wanted.targets.front().first == "lantern",
+              "put back it has that count again; a count stays between one and the most");
+        Wanted read = decodeWanted(encodeWanted(wanted));
+        check(read.targets == wanted.targets && read.remembered.empty(), "the wanted items are saved in order, the remembered counts are not");
+        check(decodeWanted("not json").targets.empty() && decodeWanted("{\"wanted\":[{\"item\":\"a\",\"count\":-3},{\"item\":7,\"count\":1},{\"item\":\"b\",\"count\":2}]}").targets
+              == std::vector<std::pair<std::string, Count>>{{"b", 2}}, "a document is read as far as it makes sense");
+        Source source;
+        source.tags["planks"] = {"oak_planks", "birch_planks"};
+        source.recipes.push_back({"crafting_table", "stick", 0, {{"stick", 4}}, {{"planks", true}, {"planks", true}}, 1, 2});
+        source.recipes.push_back({"crafting_table", "stick_bamboo", 0, {{"stick", 1}}, {{"bamboo", false}, {"bamboo", false}}, 1, 2});
+        source.recipes.push_back({"crafting_table", "oak_planks", 0, {{"oak_planks", 4}}, {{"oak_log", false}}});
+        Index index = build(source);
+        Choice base = choose(index);
+        notes.choices["stick"] = "stick_bamboo";
+        notes.choices["gone"] = "whatever";
+        notes.picks["planks"] = "oak_planks";
+        notes.picks["no_such_group"] = "oak_planks";
+        notes.stops.insert("oak_planks");
+        Notes same = decodeNotes(encodeNotes(notes));
+        check(same == notes, "notes come back as they were written");
+        Choice mine = chosen(index, base, notes);
+        check(index.recipes[static_cast<size_t>(base.recipe[static_cast<size_t>(index.find("stick"))])].id == "stick"
+              && index.recipes[static_cast<size_t>(mine.recipe[static_cast<size_t>(index.find("stick"))])].id == "stick_bamboo",
+              "a recipe the player chose replaces the default; one the table lacks is ignored");
+        Request request;
+        apply(index, notes, request);
+        check(request.picks.size() == 1 && request.picks.begin()->second == index.find("oak_planks") && request.stops.contains(index.find("oak_planks")),
+              "picks and stops reach the plan by name");
+        Wanted list;
+        list.set("stick", 8);
+        list.set("unknown_item", 3);
+        Request both;
+        apply(index, list, both);
+        apply(index, notes, both);
+        auto view = rawView(index, base, both);
+        check(both.wanted.size() == 1 && view.gather.size() == 1 && view.gather[0].id == index.find("oak_planks") && view.gather[0].left == 4 && view.steps.size() == 1,
+              "the plan makes sticks from the picked planks and gathers those, as they are marked");
+        check(groupKey(index, 0) == "planks", "a tag is noted by its name");
     }
     {
         Index empty = build({});

@@ -44,6 +44,8 @@ struct Place {
     std::optional<std::filesystem::path> deathLayoutFile;
     // The shapes (L-356), same rules.
     std::optional<std::filesystem::path> shapeFile;
+    // The hand-filled wanted items of the recipes (L-359), same rules.
+    std::optional<std::filesystem::path> wantedFile;
 };
 Place place();
 }

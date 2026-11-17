@@ -1,0 +1,164 @@
+#include "features/recipes/RecipeState.h"
+#include "app/AtomicFile.h"
+#include "app/Runtime.h"
+#include "features/map/WaypointSession.h"
+#include "features/schematic/SchematicItems.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/client/ClientExitLevelEvent.h"
+#include <atomic>
+#include <chrono>
+
+namespace lamium::recipes::state {
+namespace {
+ll::event::ListenerPtr exitListener;
+std::atomic<bool> left{false}; // the world was left: the wanted list is another world's next time
+Notes held;
+bool notesRead = false, notesKeep = false; // keep: the file was there and could not be read, so it is not written over
+Wanted list;
+unsigned listWorld = 0;
+std::optional<std::filesystem::path> listFile;
+bool listKeep = false;
+unsigned revision = 1;
+std::chrono::steady_clock::time_point placeAsked{};
+struct Chosen {
+    std::shared_ptr<service::Table const> table;
+    unsigned revision = 0;
+    std::shared_ptr<Choice const> choice;
+} chosenNow;
+struct Planned {
+    unsigned revision = 0;
+    std::chrono::steady_clock::time_point at{};
+    Plan plan;
+} plannedNow;
+void log(std::string const& text) {
+    try { Runtime::instance().self().getLogger().warn("Recipes: {}", text); } catch (...) {}
+}
+std::filesystem::path notesPath() { return Runtime::instance().self().getConfigDir() / "recipes.json"; }
+void readNotes() {
+    if (notesRead) return;
+    notesRead = true;
+    try {
+        auto document = readDocument(notesPath());
+        if (!document) return;
+        held = decodeNotes(*document);
+        // A file that says nothing we understand is left alone, not replaced by an empty one.
+        notesKeep = held == Notes{} && document->find("\"version\"") == std::string::npos;
+        if (notesKeep) log("recipes.json could not be read; changes are kept for this session only");
+    } catch (...) { notesKeep = true; }
+}
+void writeNotes() {
+    ++revision;
+    if (notesKeep) return;
+    try { writeFileReplacing(notesPath(), encodeNotes(held), "recipe notes"); }
+    catch (std::exception const& error) { log(std::string("could not save recipes.json: ") + error.what()); }
+}
+// The wanted list follows the joined world; asked a few times a second, not every frame.
+void followWorld() {
+    auto const now = std::chrono::steady_clock::now();
+    bool const gone = left.exchange(false);
+    if (!gone && now - placeAsked < std::chrono::milliseconds(400)) return;
+    placeAsked = now;
+    auto const place = map::waypoints::place();
+    if (!gone && place.world == listWorld) return;
+    listWorld = place.world;
+    list = {};
+    listFile = place.active ? place.wantedFile : std::nullopt;
+    listKeep = false;
+    ++revision;
+    if (!listFile) return;
+    try {
+        auto document = readDocument(*listFile);
+        if (!document) return;
+        list = decodeWanted(*document);
+        listKeep = list.targets.empty() && document->find("\"version\"") == std::string::npos;
+    } catch (...) { listKeep = true; }
+}
+void writeWanted() {
+    ++revision;
+    if (!listFile || listKeep) return;
+    try {
+        std::error_code ignored;
+        std::filesystem::create_directories(listFile->parent_path(), ignored);
+        writeFileReplacing(*listFile, encodeWanted(list), "wanted items");
+    } catch (std::exception const& error) { log(std::string("could not save the wanted items: ") + error.what()); }
+}
+}
+Notes const& notes() {
+    readNotes();
+    return held;
+}
+Wanted const& wanted() {
+    followWorld();
+    return list;
+}
+void toggleFavourite(std::string const& key) {
+    readNotes();
+    held.toggleFavourite(key);
+    writeNotes();
+}
+void toggleWanted(std::string const& key) {
+    followWorld();
+    list.toggle(key);
+    writeWanted();
+}
+void setWanted(std::string const& key, Count amount) {
+    followWorld();
+    list.set(key, amount);
+    writeWanted();
+}
+void removeWanted(std::string const& key) {
+    followWorld();
+    list.remove(key);
+    writeWanted();
+}
+void setChoice(std::string const& item, std::string const& recipe) {
+    readNotes();
+    if (recipe.empty()) held.choices.erase(item); else held.choices[item] = recipe;
+    writeNotes();
+}
+void setPick(std::string const& group, std::string const& member) {
+    readNotes();
+    if (member.empty()) held.picks.erase(group); else held.picks[group] = member;
+    writeNotes();
+}
+void setStop(std::string const& item, bool gathered) {
+    readNotes();
+    if (gathered) held.stops.insert(item); else held.stops.erase(item);
+    writeNotes();
+}
+std::shared_ptr<Choice const> choice(std::shared_ptr<service::Table const> const& table) {
+    if (!table) return nullptr;
+    readNotes();
+    if (chosenNow.table != table || chosenNow.revision != revision || !chosenNow.choice)
+        chosenNow = {table, revision, std::make_shared<Choice const>(chosen(table->index, table->choice, held))};
+    return chosenNow.choice;
+}
+Plan const* plan(LocalPlayer& player) {
+    auto table = service::table();
+    if (!table) return nullptr;
+    followWorld();
+    auto const now = std::chrono::steady_clock::now();
+    auto& plan = plannedNow.plan;
+    if (plan.table == table && plannedNow.revision == revision && now - plannedNow.at < std::chrono::milliseconds(500)) return &plan;
+    plan.table = table;
+    plan.choice = choice(table);
+    plan.held.clear();
+    for (auto const& stack : schematic::items::carriedStacks(player))
+        if (Item const id = table->index.find(stack.name, stack.aux); id >= 0) plan.held[id] += stack.count;
+    plan.request = {};
+    apply(table->index, list, plan.request);
+    apply(table->index, held, plan.request);
+    plan.request.held.assign(plan.held.begin(), plan.held.end());
+    plan.view = rawView(table->index, *plan.choice, plan.request);
+    plannedNow.revision = revision;
+    plannedNow.at = now;
+    return &plan;
+}
+void start() {
+    exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { left = true; });
+}
+void stop() {
+    if (exitListener) { ll::event::EventBus::getInstance().removeListener(exitListener); exitListener.reset(); }
+    left = true;
+}
+}

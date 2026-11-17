@@ -1,3 +1,4 @@
+#include "features/recipes/RecipeText.h"
 #include "ui/DataNotice.h"
 #include "ui/SchematicsView.h"
 #include "ui/ScreenParts.h"
@@ -1219,16 +1220,7 @@ std::map<std::string, std::uint64_t> carriedItems() {
     return player ? schematic::items::carried(*player) : std::map<std::string, std::uint64_t>{};
 }
 // A group as one name: a known tag as "Planks (any)", else its first member and how many more.
-std::string rawGroupName(recipes::Index const& index, int group) {
-    auto const& entry = index.groups[static_cast<size_t>(group)];
-    if (!entry.name.empty()) {
-        std::string const key = "recipes.tag." + (entry.name.starts_with("minecraft:") ? entry.name.substr(10) : entry.name);
-        if (std::string text = translated(key); text != key) return translated("recipes.anyOf", text);
-    }
-    if (entry.members.empty()) return entry.name;
-    auto const& first = schematic::items::shown(index.items[static_cast<size_t>(entry.members.front())]).name;
-    return entry.members.size() == 1 ? first : translated("recipes.andOthers", first, entry.members.size() - 1);
-}
+std::string rawGroupName(recipes::Index const& index, int group) { return recipes::groupName(index, group); }
 // What a gather line (or a recipe's part) shows: an item as the game names it, a group under its first member's icon.
 schematic::items::Shown rawShown(RawGather const& line) {
     if (line.group < 0 || !rawTable) return schematic::items::shown(line.item);
@@ -1237,11 +1229,6 @@ schematic::items::Shown rawShown(RawGather const& line) {
     if (!entry.members.empty()) out = schematic::items::shown(rawTable->index.items[static_cast<size_t>(entry.members.front())]);
     out.name = rawGroupName(rawTable->index, line.group);
     return out;
-}
-// A station by the name of its block's item, so it reads as the game names it.
-std::string stationName(recipes::Station station) {
-    auto const item = recipes::stationItem(station);
-    return item.empty() ? std::string("-") : schematic::items::shown(std::string(item)).name;
 }
 // The raw view's rows from the materials left and what is carried. The plan
 // is worked out again only when one of them, or the recipe table, changed.
@@ -1643,7 +1630,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                         listTip = {translated("schematic.raw.made") + ": " + amountText(step.made, shown.stack), pointer.x, pointer.y};
                     drawItemIcon(context, shown.icon, left, y + 1, 12);
                     label(context,left+14,y+3,stationX-left-16,shown.name,palette::text);
-                    label(context,stationX,y+3,stationW,stationName(rawTable->index.recipes[static_cast<size_t>(step.recipe)].station),palette::dim,Align::Right);
+                    label(context,stationX,y+3,stationW,recipes::stationName(rawTable->index.recipes[static_cast<size_t>(step.recipe)].station),palette::dim,Align::Right);
                     label(context,craftsX,y+3,numW,std::to_string(step.crafts),palette::text,Align::Right);
                     label(context,madeX,y+3,madeW,std::to_string(step.made),palette::dim,Align::Right);
                     label(context,spareX,y+3,numW,step.spare ? std::to_string(step.spare) : "-",step.spare ? palette::dim : palette::faint,Align::Right);
@@ -2366,8 +2353,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     auto const& shown = schematic::items::shown(index.items[static_cast<size_t>(step.item)]);
                     itemRow(shown, {});
                     std::string const made = amountText(step.made, shown.stack);
-                    line(step.spare ? translated("schematic.raw.stepSpare", stationName(recipe.station), step.crafts, made, step.spare)
-                                    : translated("schematic.raw.step", stationName(recipe.station), step.crafts, made), palette::dim);
+                    line(step.spare ? translated("schematic.raw.stepSpare", recipes::stationName(recipe.station), step.crafts, made, step.spare)
+                                    : translated("schematic.raw.step", recipes::stationName(recipe.station), step.crafts, made), palette::dim);
                     if (step.held) line(translated("schematic.raw.alsoHeld", step.held), palette::dim);
                     y += 3;
                     line(translated("schematic.raw.recipe", recipe.count), palette::faint);
