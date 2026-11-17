@@ -413,7 +413,10 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         if (!settings::hudInEditor(value, id)) preview.hidden[static_cast<size_t>(id)] = true;
     scaleField.reset();
     if (resize) {
-        resize->scale = dragScale(resize->start, resize->anchor, resize->handle, {pointerX, pointerY});
+        // From the box drawn at the scale being tried, so a box that does not grow in proportion still follows.
+        if (auto const& box = lastBoxes[static_cast<size_t>(resize->id)])
+            resize->scale = followScale(resize->scale, resize->anchor, *box, resize->handle, {pointerX, pointerY});
+        else resize->scale = dragScale(resize->start, resize->anchor, resize->handle, {pointerX, pointerY});
         layoutElement(preview.layout, resize->id).scale = resize->scale;
     }
     if (drag) {

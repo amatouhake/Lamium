@@ -112,6 +112,23 @@ inline float dragScale(float startScale, Point anchor, Point handle, Point point
     if (!std::isfinite(ratio) || !(ratio > 0)) return clampHudScale(startScale);
     return clampHudScale(std::round(clampHudScale(startScale) * ratio / hudScaleStep) * hudScaleStep);
 }
+// While a handle is dragged, the scale whose box puts the handle's corner
+// under the pointer. An element whose text keeps the standard size (L-357)
+// does not grow in proportion to its scale, so the start-based ratio of
+// dragScale runs ahead of or behind the pointer; this one looks at the box
+// drawn at the current scale each frame and moves toward the pointer, which
+// settles where the corner meets it. A move under 0.6 of a step is ignored,
+// so the scale does not flicker between two steps.
+inline float followScale(float current, Point anchor, Box box, Point handle, Point pointer) {
+    current = clampHudScale(current);
+    Point corner{handle.x >= anchor.x ? box.x + box.w : box.x, handle.y >= anchor.y ? box.y + box.h : box.y};
+    float dx = std::abs(corner.x - anchor.x), dy = std::abs(corner.y - anchor.y);
+    float ratio = std::max(dx > 0 ? std::abs(pointer.x - anchor.x) / dx : 0.f, dy > 0 ? std::abs(pointer.y - anchor.y) / dy : 0.f);
+    if (!std::isfinite(ratio) || !(ratio > 0)) return current;
+    float target = clampHudScale(current * ratio);
+    if (std::abs(target - current) < .6f * hudScaleStep) return current;
+    return clampHudScale(std::round(target / hudScaleStep) * hudScaleStep);
+}
 // "Reset layout" and "Done" sit in a small titled panel above the crosshair,
 // shown only while nothing is selected (L-321): the screen's middle is where
 // elements rarely are.

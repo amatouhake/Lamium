@@ -49,10 +49,10 @@ inline LookLayout layoutLook(Spot toolbar, float toolbarH, bool background, bool
             item.labelAt = {at.x + 5, ry + 1};
             item.labelWidth = item.stepper.x - item.labelAt.x - 3;
         } else {
-            // As a Contents row: the whole row flips the switch.
-            item.switchAt = {at.x + 5, ry + (rowH - switchH) / 2};
-            item.labelAt = {at.x + 8 + switchW, ry + 1};
-            item.labelWidth = w - switchW - 14;
+            // As a settings row: the name, then the switch at the right end, where the stepper ends.
+            item.switchAt = {at.x + w - 4 - switchW, ry + (rowH - switchH) / 2};
+            item.labelAt = {at.x + 5, ry + 1};
+            item.labelWidth = item.switchAt.x - item.labelAt.x - 3;
             item.toggle = item.row;
         }
         out.items.push_back(item);

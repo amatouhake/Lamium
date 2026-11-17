@@ -48,16 +48,18 @@ void hudContentsTests() {
           "the popover opens under its toolbar, sized to its rows");
     check(layout.rows.size() == 3 && !layout.track, "rows that fit need no scroll bar");
     auto const& top = layout.rows[0];
-    check(top.toggle.x == 102 && top.toggle.w == 100 && top.up && top.up->x == 204 && top.down && top.down->x == 215,
-          "a reorderable row: the switch then up and down cells");
+    check(top.toggle.x == 102 && top.toggle.w == 130 && top.switchAt.x == 100 + 136 - 4 - 18
+              && top.up && top.down && top.down->x + top.down->w == top.switchAt.x - 4 && top.up->x + top.up->w == top.down->x,
+          "a reorderable row: the name, up and down cells, then the switch at the right end (L-357)");
     check(!top.canUp && top.canDown && layout.rows[1].canUp && layout.rows[1].canDown && !layout.rows[2].canDown,
           "the first row cannot move up and the last cannot move down");
-    check(top.switchAt.x == 105 && top.switchAt.y == 120 + 1.5f && top.labelAt.x == 126 && top.labelWidth == 136 - 18 - 36,
-          "switch and name sit where the Lines popover drew them");
+    check(top.switchAt.y == 120 + 1.5f && top.labelAt.x == 105 && top.labelAt.x + top.labelWidth < top.up->x,
+          "the name starts the row and stops before the arrows");
     auto plain = layoutContents(below, 15, 4, false, 0, 640, 360, 18, 9);
     check(plain.rows.size() == 4 && !plain.rows[0].up && !plain.rows[0].down, "a switch-only row has no arrows");
-    check(plain.rows[0].toggle.w == 136 - 9 && plain.rows[0].labelWidth == 136 - 18 - 14,
-          "a switch-only row flips anywhere along it and its name takes the arrows' room");
+    check(plain.rows[0].toggle.w == 136 - 6 && plain.rows[0].switchAt.x == top.switchAt.x
+              && plain.rows[0].labelAt.x + plain.rows[0].labelWidth < plain.rows[0].switchAt.x,
+          "a switch-only row flips anywhere along it; its name runs up to the switch");
 
     // Too little room: the list scrolls and keeps its first row in range.
     Spot low{100, 300, true};
@@ -79,8 +81,9 @@ void hudContentsTests() {
     check(bg.kind == LookRow::Background && bg.stepper.x + bg.stepper.w == 100 + lookWidth - 4 && bg.less.w == lookCell
               && bg.more.x + bg.more.w == bg.stepper.x + bg.stepper.w && bg.labelAt.x + bg.labelWidth < bg.stepper.x,
           "the background row: its name, then a stepper whose ends step the choice");
-    check(look.items[1].kind == LookRow::Shadow && look.items[1].toggle.w == lookWidth - 4 && look.items[2].kind == LookRow::StandardText,
-          "the switch rows flip anywhere along them, as Contents rows");
+    check(look.items[1].kind == LookRow::Shadow && look.items[1].toggle.w == lookWidth - 4 && look.items[2].kind == LookRow::StandardText
+              && look.items[1].switchAt.x + 18 == bg.stepper.x + bg.stepper.w && look.items[1].labelAt.x == bg.labelAt.x,
+          "the switch rows flip anywhere along them; names and right ends line up with the background row");
     auto noText = layoutLook(below, 15, true, true, false, 640, 360, 18, 9);
     check(noText.items.size() == 2 && noText.items.back().kind == LookRow::Shadow, "an element without the text choice has no such row");
     check(layoutLook(below, 15, false, false, false, 640, 360, 18, 9).items.empty(), "nothing to choose, no rows");

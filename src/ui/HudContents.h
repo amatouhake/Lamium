@@ -44,8 +44,9 @@ inline Contents contentsOf(HudElementId id, std::vector<std::string> const& line
 }
 
 // Rows are 12 units in a 136-unit popover; the scroll bar has its own strip
-// on the right. Reorderable rows end in up and down arrows, the first row's
-// up and the last row's down drawn off.
+// on the right. As a settings row: the name on the left, the switch at the
+// right end; reorderable rows put up and down arrows before the switch, the
+// first row's up and the last row's down drawn off.
 inline constexpr float contentsWidth = 136, contentsRowHeight = 12;
 struct ContentsRow {
     int index = 0;           // into Contents::entries
@@ -78,28 +79,27 @@ inline ContentsLayout layoutContents(Spot toolbar, float toolbarH, int count, bo
     out.first = std::clamp(first, 0, std::max(0, count - out.visible));
     if (out.visible < count && out.visible > 0) out.track = ContentsTrack{at.x + w - 5, listTop, listH};
     // Rows and their columns end short of the bar while it shows.
-    float gutter = out.track ? rowBarGutter : 0.f, rw = w - 6 - gutter;
+    float gutter = out.track ? rowBarGutter : 0.f, right = at.x + w - 4 - gutter;
     for (int i = 0; i < out.visible; ++i) {
         ContentsRow row;
         row.index = out.first + i;
         float ry = listTop + i * rowH;
         row.row = {at.x + 2, ry, w - 4 - gutter, rowH};
-        row.switchAt = {at.x + 5, ry + (rowH - switchH) / 2};
-        row.labelAt = {at.x + 8 + switchW, ry + 1};
+        // The whole row flips the switch; the arrows, tested first, take their own cells.
+        row.toggle = {at.x + 2, ry, right - at.x - 2, rowH}; // to the switch's end, short of the scroll bar
+        row.switchAt = {right - switchW, ry + (rowH - switchH) / 2};
+        row.labelAt = {at.x + 5, ry + 1};
+        float nameEnd = row.switchAt.x;
         if (reorder) {
-            row.labelWidth = w - switchW - 36;
-            row.toggle = {at.x + 2, ry, rw - 30, rowH};
-            row.up = Box{at.x + rw - 26, ry, 11, rowH};
-            row.down = Box{at.x + rw - 15, ry, 13, rowH};
+            row.up = Box{row.switchAt.x - 28, ry, 11, rowH};
+            row.down = Box{row.switchAt.x - 17, ry, 13, rowH};
             row.canUp = row.index > 0;
             row.canDown = row.index + 1 < count;
-            row.upAt = {at.x + rw - 22, ry + 4};
-            row.downAt = {at.x + rw - 11, ry + 4};
-        } else {
-            // The whole row flips the switch, short of the scroll bar's strip.
-            row.labelWidth = w - switchW - 14;
-            row.toggle = {at.x + 2, ry, w - 9, rowH};
+            row.upAt = {row.up->x + 4, ry + 4};
+            row.downAt = {row.down->x + 4, ry + 4};
+            nameEnd = row.up->x;
         }
+        row.labelWidth = nameEnd - row.labelAt.x - 3;
         out.rows.push_back(row);
     }
     return out;

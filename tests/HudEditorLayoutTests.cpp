@@ -94,6 +94,16 @@ void hudEditorLayoutTests() {
     check(tag.x == 99 && tag.y == 27 && tag.w == 40 && tag.h == nameTagHeight, "a name tag hangs above the left corner");
     check(nameTag(Box{100, 4, 60, 30}, 40, 640, 360).y == 36, "at the top of the screen the tag goes below");
     {
+        // L-357: a box of 40 fixed units plus 0.6 per scale percent, anchored top left, dragged by its bottom right.
+        auto boxAt = [](float scale) { float side = 40 + .6f * scale; return Box{0, 0, side, side}; };
+        float scale = 100;
+        Point anchor{0, 0}, handle{100, 100}, pointer{160, 160}; // the corner of the box at 200 %
+        for (int frame = 0; frame < 40; ++frame) scale = followScale(scale, anchor, boxAt(scale), handle, pointer);
+        check(scale == 200, "followed frame by frame, the handle's corner settles under the pointer");
+        float still = followScale(scale, anchor, boxAt(scale), handle, {161, 161});
+        check(still == scale, "a pointer a little past the corner does not move the scale");
+    }
+    {
         // L-342: the selected tag's name stays at the element's corner, the switch takes the far end.
         Box element{100, 100, 60, 30};
         auto left = splitTag(Box{99, 87, 62, 11}, element, 40);
