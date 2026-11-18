@@ -7,7 +7,7 @@
 class ScreenView;
 
 // L-359 step 9, L-165: a crafting recipe laid into the game's grid, and all of
-// it crafted, through the slot calls Item transfer uses (take an amount onto
+// it crafted where asked, through the slot calls Item transfer uses (take an amount onto
 // the pointer, place it, Shift-take the output): the game sends its own
 // requests and the server checks each. Behind the slot routes' capability.
 // Client thread only; the screen is the focused item screen of this frame.
@@ -17,11 +17,13 @@ int gridSide(ScreenView& screen);
 // What the player carries, slot by slot (0-8 the hotbar, 9-35 the inventory), as PlacePlan wants it, and
 // what lies in the grid (from 100), which goes back to the inventory before a recipe is laid in.
 std::vector<PlaceSource> carried(ScreenView& screen, Index const& index);
-// Lays the recipe in now: one of each ingredient, or with `all` as many as divide evenly, then takes all
-// the grid makes and goes on, a round every few frames, while ingredients are left outside the grid.
+// Lays the recipe in now: one of each ingredient, or with `many` as many as divide evenly. With `craft`
+// it then takes all the grid makes and goes on, a round every few frames, while ingredients are left
+// outside the grid (Mass Craft, L-165: no control starts it yet).
 // What lay in the grid goes back first; the recipe is then laid in once the grid reads empty.
 // False when nothing was done (something on the pointer, an ingredient missing).
-bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool all);
+bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many,
+         bool craft = false);
 // The next round of a run, if one is going; called every frame the item screen is drawn.
 void tick(ScreenView& screen);
 // Ends a run: the screen went, the player pressed something, the window lost the focus.

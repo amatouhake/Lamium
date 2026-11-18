@@ -22,7 +22,7 @@ struct Run {
     int recipe = -1, rounds = 0, wait = 0;
     std::map<int, Item> picks;
     std::string screen;
-    bool all = false;
+    bool many = false, craft = false;
     int tries = 0; // frames waited for the grid to read empty
 } going;
 constexpr int mostRounds = 64, framesBetween = 3, mostTries = 20;
@@ -65,11 +65,11 @@ std::vector<PlaceSource> carriedOf(ContainerManagerController& manager, Index co
     add(inventory, 27, 9);
     return out;
 }
-// One round, into an empty grid: the recipe laid in and, with `all`, the output taken.
-bool round(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool all) {
+// One round, into an empty grid: the recipe laid in and, with `craft`, the output taken.
+bool round(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many, bool craft) {
     auto& manager = *controller.mContainerManagerController;
     if (held(manager) || !gridEmpty(manager)) return false;
-    auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, all);
+    auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, many);
     if (!plan.ready()) return false;
     for (auto const& move : plan.moves) {
         bool const top = move.slot < 9;
@@ -79,7 +79,7 @@ bool round(CraftingScreenController& controller, Index const& index, Recipe cons
         controller._handlePlaceAll(grid, move.cell);
         if (held(manager)) return false;
     }
-    if (!all) return true;
+    if (!craft) return true;
     // The output slot reads empty while the game shows a product (seen 2026-11-18): the recipe the grid makes tells.
     if (!static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) return false;
     // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
@@ -110,7 +110,7 @@ std::vector<PlaceSource> carried(ScreenView& screen, Index const& index) {
     } catch (...) {}
     return {};
 }
-bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool all) {
+bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many, bool craft) {
     going = {};
     try {
         auto* controller = crafting(screen);
@@ -121,12 +121,12 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             controller->_evacuateCraftingGrid();
             // Not read as empty at once: the recipe is laid in when it is, a few frames on.
             if (!gridEmpty(manager)) {
-                going = {table, recipe, 0, 0, picks, screen.getScreenName(), all, 0};
+                going = {table, recipe, 0, 0, picks, screen.getScreenName(), many, craft, 0};
                 return true;
             }
         }
-        if (!round(*controller, table->index, table->index.recipes[static_cast<size_t>(recipe)], picks, all)) return false;
-        if (all) going = {table, recipe, 1, framesBetween, picks, screen.getScreenName(), true, 0};
+        if (!round(*controller, table->index, table->index.recipes[static_cast<size_t>(recipe)], picks, many, craft)) return false;
+        if (craft) going = {table, recipe, 1, framesBetween, picks, screen.getScreenName(), many, true, 0};
         return true;
     } catch (...) {
         try { Runtime::instance().self().getLogger().warn("Recipes: placing a recipe failed"); } catch (...) {}
@@ -144,14 +144,14 @@ void tick(ScreenView& screen) {
         if (!going.rounds) {
             // Waiting for what lay in the grid to be back in the inventory (no room for it: given up).
             if (!gridEmpty(manager)) { if (++going.tries > mostTries) going = {}; return; }
-            if (!round(*controller, going.table->index, recipe, going.picks, going.all) || !going.all) { going = {}; return; }
+            if (!round(*controller, going.table->index, recipe, going.picks, going.many, going.craft) || !going.craft) { going = {}; return; }
             going.rounds = 1;
             going.wait = framesBetween;
             return;
         }
         // What the last take left in the grid found no room: the run ends there, the grid as it is.
         if (going.rounds >= mostRounds || held(manager) || !gridEmpty(manager)
-            || !round(*controller, going.table->index, recipe, going.picks, true)) {
+            || !round(*controller, going.table->index, recipe, going.picks, going.many, true)) {
             going = {};
             return;
         }

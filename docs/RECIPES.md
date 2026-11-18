@@ -106,15 +106,14 @@ after using the first build. What is still open is in the L-item.
   form is thought about when a place needs one.
 - "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): on the
   inventory and the crafting table, a crafting recipe that fits the grid
-  has the button. A press lays one of each ingredient into the grid and
-  closes the view; with Shift it lays in as many as divide evenly from
-  every stack carried and crafts them all at once, again while
-  ingredients are left, the view staying open. What lay in the grid goes
-  back to the inventory first. An ingredient that is missing disables the
+  has the button. A press lays one of each ingredient into the grid, with
+  Shift as many as divide evenly from every stack carried, and closes the
+  view. Crafting is the player's: laying in and crafting at one press was
+  tried and is not what a recipe view is expected to do. What lay in the
+  grid goes back to the inventory first. An ingredient that is missing disables the
   button and frames its cell in the warning color. Any of several items:
   the member picked in the wanted window while it lasts, else the one most
-  carried. Any press of the player's, leaving the screen and losing the
-  focus end a run; a product that finds no room stays in the grid.
+  carried.
 - An ingredient any one of several items satisfies (any planks) shows its
   members in turn, the icon changing every few seconds; members the player
   holds come first, then older items. All members appear as a grid of icons
@@ -199,7 +198,7 @@ after using the first build. What is still open is in the L-item.
   and do not know their host. `CountEdit.h`: the count being typed.
 - `PlacePlan.h` (pure): which carried stacks go into which grid cell.
   `RecipePlace.cpp` does it with the slot calls Item transfer uses, behind
-  its capability, and runs "craft all" a round every few frames.
+  its capability; its "craft all" run has no control yet (L-165).
 - `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favourites,
   chosen recipes, picked members and items marked as gathered, for all
   worlds in the config folder's `recipes.json`; the wanted items per world
@@ -218,9 +217,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Not seen in game: a server. The search field takes no pasted text.
 - The look as a whole is reviewed once the feature is complete
   (maintainer 2026-11-18); until then only faults are fixed.
-- "Place" and crafting all are built and not seen in game; a server is
-  unchecked, and stations other than the two crafting grids have no
-  "place".
+- "Place": a server is unchecked, and stations other than the two
+  crafting grids have none. Shift + place with Item transfer on and an
+  inventory slot under the pointer was not tried.
 - Not built: the schematic handing its materials
   over and the Materials tab cut back to its gather list; counted places
   beyond what is carried; held members first in a group's turn. Their own

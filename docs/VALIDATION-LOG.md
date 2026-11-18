@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## "Place" in the recipe view (L-359 step 9, L-165, 2026-11-18)
+
+Build `94c53d97` (DLL
+`52629cc5ef1c6b4576e48285728c7d74fca7b67054ea0c4feb0934699e4dd66c`),
+1.26.60.05 Dev instance, a local world, the maintainer:
+- "Place" laid one of each ingredient into the grid and closed the view,
+  also from the inventory's rows and into the inventory's 2x2 grid; a
+  recipe that needs 3x3 had no button there.
+- Shift + "place" laid in as many as divide evenly, gathered from every
+  stack of the item, and crafted them all, the view staying open.
+- A missing ingredient disabled the button and framed its cell in yellow.
+- What lay in the grid went back to the inventory before the new recipe
+  was laid in.
+- Not tried: Shift + "place" with Item transfer on and an inventory slot
+  under the pointer.
+- Decided from it: Shift + "place" lays in and does not craft, and closes
+  the view like a plain press. Changed in the next build, not seen.
+
 ## A recipe laid into the grid and taken by Lamium (L-165, L-359, 2026-11-18)
 
 Builds `42f79d98` and `31ee25e5` with `craft_trace` (DLL of the second

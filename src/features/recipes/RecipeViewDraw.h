@@ -11,7 +11,7 @@ class MinecraftUIRenderContext;
 // what must lie over the item icons afterwards. Client thread only.
 namespace lamium::recipes::view {
 // The screen's crafting grid, as the host reaches it: whether a recipe can be laid into it from what
-// is carried, and doing so. `many`: as many as divide evenly, and all of it crafted.
+// is carried, and doing so. `many`: as many as divide evenly.
 struct Placer {
     virtual ~Placer() = default;
     virtual PlacePlan preview(Recipe const& recipe, bool many) const = 0;
@@ -23,7 +23,7 @@ struct Input {
     std::vector<bool> clicks; // presses since the last frame; true: the left button
     int wheel = 0;            // pages to turn
     bool back = false, close = false;
-    bool shift = false;       // held: "place" lays in as many as divide evenly and crafts them all
+    bool shift = false;       // held: "place" lays in as many as divide evenly
     Placer* placer = nullptr; // null where the screen has no crafting grid
 };
 // Drawn by the host after its own: item icons, then counts and the name under the pointer on top of them.
