@@ -189,12 +189,12 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favourites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed; what was agreed is being built (RECIPES.md "The look")
+- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favourites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed and what was agreed is built, much of it not seen in game (RECIPES.md "The look")
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-361](backlog/L-361.md) Brewing in the recipe view (Research): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
-- [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Open, not started
-- [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Open, not started
+- [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text, not seen in game
+- [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built 2026-11-19, not seen in game
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature): Built 2026-11-13 after 0.6.0 (not released) and checked in game; unchecked cases remain

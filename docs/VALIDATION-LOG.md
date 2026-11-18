@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Bundles counted, the open container's line (L-359, 2026-11-19)
+
+Build `9fc142b9` (DLL
+`6ca968a6ee443c8bc94ec25346867e12265a8a762671f07580b7ad24d27a854d`),
+1.26.60.05 Dev instance, the maintainer:
+- What a bundle holds counted in "to gather", and after the inventory
+  was closed in the schematic's Materials tab and its HUD.
+- The open container's line read well with its text centred; its frame
+  was a stronger division than the one between the favourites and the
+  plan and was asked to go, for a rule like that one.
+
 ## One of several on the dark panels, the framed switch, joined buttons (L-359, 2026-11-19)
 
 Build `716c08fa` (DLL

@@ -162,6 +162,9 @@ void setCarriedCounted(bool carried) {
     writePlaces();
 }
 std::map<std::string, std::uint64_t> heldByName(LocalPlayer& player) {
+    // The stores and the switch for what is carried belong to the plan: without it, what is carried counts.
+    auto const settings = Runtime::instance().snapshot();
+    if (!settings->inventory.recipes || !settings->inventory.recipesPlan) return schematic::items::carried(player);
     auto out = places().carried ? schematic::items::carried(player) : std::map<std::string, std::uint64_t>{};
     for (auto const& item : placeTotals(places())) out[item.name] += item.count;
     return out;
@@ -263,7 +266,11 @@ Plan const* plan(LocalPlayer& player) {
     return &plan;
 }
 void start() {
-    exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { left = true; });
+    // The stores' outlines are the world's: none in the next one until its places are read.
+    exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
+        left = true;
+        marks.store(nullptr);
+    });
 }
 void stop() {
     if (exitListener) { ll::event::EventBus::getInstance().removeListener(exitListener); exitListener.reset(); }

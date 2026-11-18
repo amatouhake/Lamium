@@ -149,9 +149,12 @@ after using the first build. What is still open is in the L-item.
   the right end, the numbers left of it.
 - A key (W by default, beside A for favourites; both rebindable) puts the
   hovered item into "wanted" or takes it out, wherever the favourite key
-  works. An item taken out keeps its count until the world is left, so
-  putting it back restores it. The short list then shows the wanted items,
-  so what went in is seen.
+  works. While it is held the wheel changes how many are wanted, so the
+  count is set where the item was added; an item that was wanted goes
+  out when the key is released without the wheel having turned (a key
+  of several inputs or a mouse button takes it out at once, and has no
+  wheel). An item taken out keeps its count until the world is left.
+  The short list then shows the wanted items, so what went in is seen.
 - A wanted item's count is changed with the shared stepper (- N +), on the
   short list and in the window alike: minus at one takes the item out (the
   wheel and a Shift step stop at one; Shift steps to the next multiple
@@ -255,40 +258,43 @@ A setting of its own, off by default, and it works with Recipes off
   and what it sees.
 
 ### The look, reviewed with the maintainer (2026-11-19)
-What bothered is in VALIDATION-LOG of that day. Agreed, built: "one of several" as DESIGN "Controls" has it, on the
-recipe view's stations, the plan's window, the band's lists (pictures
-where the band is narrow) and the item list's "all / can be made";
-the open container's switch in a frame of its own (a name and a
-switch; a button if it still reads poorly with its text centred); the recipe view's slots as the game draws its
-own, a missing ingredient on the game's red; "favourite" and "wanted"
-at the right end of the stations' line, so the heading has its line to
-itself: as two joined buttons, green when on (each on or off, like the world
-map's layers; chosen over a name and a switch each after seeing both;
-icon toggles were turned down as depending on the icon); a Lamium window's grey covers the
-whole span between the two bands, so the game's window with its recipe
-book out does not show beside it; a row of the plan's window says its whole name and its count
-in chests and stacks under the pointer; the Stores tab and the band's
-switch as above. Agreed, not built:
-- The band's and the windows' lists scroll with the shared scrollbar
-  (`ScrollBar.h`, `ScrollDrag.h`, `drawScrollbar`; the panels beside the
-  anvil use them); the item list on the right keeps its pages. Decided
-  from [demos/recipe-look.html](demos/recipe-look.html).
-- A hovered item drawn by Lamium gets a tooltip near the game's, in its
-  frame, with Lamium's item details ([L-363](backlog/L-363.md)); the details are
-  filled inside the hover-text hook today (`Inspection.cpp`), so either
-  the game's own hover text is asked for or that part is made a function.
-- Lamium's parts follow the game's window as it opens and closes, as the
-  panels beside the anvil do by its rest position and slide
-  (`EnchantOrderGame.cpp` `drawBeside`); those still flicker on opening,
-  which is to be looked at with it.
-- The window's title is "Plan"; a switch for the schematic's materials on
-  the wanted tab; W held with the wheel over an item of the list changes
-  its wanted count; settings for the left band and for using Recipes
-  without the plan; "Open in ResourceCalculator" as a plain button.
-- A store marked in the world, with what Lamium draws there already
-  (`overlay/CellSurface.h` and `CellMesh.h` as the breaking region uses
-  them, or the schematic's "show in world" point); a feature has to hook
-  the world render itself, there is no shared registration.
+What bothered is in VALIDATION-LOG of that day; what was agreed is built:
+- "One of several" as DESIGN "Controls" has it: the recipe view's
+  stations, the plan's window, the band's lists (pictures where the band
+  is narrow), the item list's "all / can be made".
+- The recipe view's slots as the game draws its own, a missing
+  ingredient on the game's red. "Favourite" and "wanted" at the right end
+  of the stations' line as two joined buttons, green when on (each on or
+  off, like the world map's layers; chosen over a name and a switch
+  after seeing both; icon toggles were turned down as depending on the
+  icon). The heading has its line to itself.
+- A Lamium window's grey covers the whole span between the two bands, so
+  the game's window with its recipe book out does not show beside it.
+  The plan's window is titled "Plan".
+- The band's list and the plan window's lists scroll: the wheel, and the
+  shared bar (`listScrollbar`). The item list on the right keeps pages.
+- The open container's switch is the band's last line under a rule like
+  the one above the plan, no stronger a division than that.
+- An item Lamium draws says under its name what the game says of it,
+  with Lamium's item details, in a frame like the game's tooltip. The
+  text is the stack's own hover text, which Lamium's hook has added to,
+  without the name, the color codes and lines of icon glyphs
+  (`hoverLines`). A row of the plan's window also says its count in
+  chests and stacks.
+- Lamium's parts fade with the game's window as it slides in and out, by
+  how far it is from where it rests (its highest place seen; a screen
+  seen before is known from its first frame, the first opening of a
+  session is not; a window that stood still for 20 frames is at rest).
+- The wanted tab has "Include what the schematic still needs", the
+  switch of the schematic's Materials tab, while Schematics is on.
+- The stores are outlined in the world within 48 blocks, in the accent
+  color, by the world overlay (`WorldOverlay.cpp`, from `storeMarks`).
+  They show once the world's places were read, which the first item
+  screen does.
+- Settings (agent's choices, all on by default): "Left band", "Plan"
+  (off: no wanted items, plan lists, stores or W; the favourites stay)
+  and "Outline stores in the world". With the band off and the plan on,
+  W still works and nothing opens the plan's window.
 
 ## Code
 - `src/features/recipes/RecipeIndex.h`: the game's table by name, the
@@ -344,9 +350,10 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Stores: not seen are a store replaced by another block, shulker boxes
-  inside one, the Materials tab and the Schematic HUD counting them, and
-  what bundles hold being counted (built, not seen in game).
+- Not seen in game: the scrolling lists, the tooltip with the game's
+  text, the fading, the wanted key with the wheel, the schematic's
+  switch on the wanted tab, the three settings, the stores' outlines; a
+  store replaced by another block, shulker boxes inside a store.
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what

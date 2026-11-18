@@ -136,8 +136,8 @@ the same commit. A screen never draws its own variant.
   window of the game's grey, where that face does not sit well, it is
   dark over a thick accent line and the names are divided by thin lines.
   Where the names do not fit, each is an item's picture, named under the
-  pointer. Built in Recipes; the Schematics screen's tabs and the world
-  map's dimensions follow ([L-364](backlog/L-364.md)). The Check tab's
+  pointer. Used in Recipes, on the Schematics screen's tabs and for the
+  world map's dimensions. The Check tab's
   filters, also one of several, stay outlined pills: the same look twice
   in the same direction, right under the tabs, would be hard to read.
 - **Each on or off**: a name and a switch. Where several are packed into
@@ -146,6 +146,9 @@ the same commit. A screen never draws its own variant.
   view). A single switch that is not a row of a
   list (the open container's in the band of Recipes) stands in a frame
   of its own.
+- **A list's scrollbar** (`listScrollbar`): a view without a layout of
+  its own draws the shared bar, takes a press on it and follows the drag
+  in one call; the rows leave it a gutter.
 - **Slots on a window of the game's grey** (`windowSlot`): as the game
   draws its own, dark upper-left and light lower-right edges on its slot
   grey; what the player lacks stands on the game's red.

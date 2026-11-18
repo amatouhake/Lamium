@@ -541,7 +541,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
         static int sideFirst[3]{};
         int& first = sideFirst[listNow];
         float const rowsEnd = side.left + side.width - 3 - (total > fits ? rowBarGutter : 0.f);
-        if (input.sideTurns && side.has(px, py) && !(sideList == SideList::Wanted && px >= rowsEnd - stepperWidth)) first += input.sideTurns;
+        {
+            int const under = side.hitRow(px, py) < 0 ? -1 : first + side.hitRow(px, py);
+            bool const onStepper = sideList == SideList::Wanted && under >= 0 && under < total && rows[static_cast<size_t>(under)].source.empty()
+                && px >= rowsEnd - stepperWidth;
+            if (input.sideTurns && side.has(px, py) && !onStepper) first += input.sideTurns;
+        }
         {
             bool onBar = pressed && leftPress;
             listScrollbar(context, side.left + side.width - 3, side.rowY(0), static_cast<float>(fits) * SideLayout::row, total, fits, first, px, py, onBar,
@@ -682,7 +687,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                     open ? palette::vanilla::windowFaint : palette::dim, Align::Center, !open);
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
-    if (hoverItem.empty() && !(open && viewLayout.has(px, py))) {
+    // Under an open window, as wide as it is drawn, the game's slots are covered: they name no item.
+    if (hoverItem.empty() && !(open && px >= coverLeft && px < right && py >= viewLayout.top && py < viewLayout.top + viewLayout.height)) {
         // A slot of the game's own window, as its hover callbacks last said.
         if (auto const* stack = inspection::hover::HoverTracker::getInstance().resolveItem(*screenView.mController); stack && !stack->isNull()) {
             // Its aux counts where it tells items apart (a red bed, a potion), not where it is wear.

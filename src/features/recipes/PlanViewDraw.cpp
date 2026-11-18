@@ -180,8 +180,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         for (auto const& [key, amount] : state::wanted().targets) targets.push_back({key, amount, {}});
         for (auto const& given : state::handed()) targets.push_back({given.key, given.count, given.source});
         if (targets.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
-        offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(targets.size()) - fits));
-        wheel = 0;
+        // The wheel scrolls the list only after the rows: a stepper under the pointer takes it for itself.
+        offset = std::clamp(offset, 0, std::max(0, static_cast<int>(targets.size()) - fits));
         bar(static_cast<int>(targets.size()), offset);
         for (int row = 0; row < fits && offset + row < static_cast<int>(targets.size()); ++row) {
             auto const& [key, amount, source] = targets[static_cast<size_t>(offset + row)];
