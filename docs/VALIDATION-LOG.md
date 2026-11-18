@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft leaving logs on the ground (L-165, 2026-11-18)
+
+Trace build of `fed66ae1` (`craft_trace`, DLL
+`198125aebe57fc5acd2e710fb2b35356cbc747bdb8b413e271c237f833dec392`),
+1.26.60.05 Dev instance, a local world, the maintainer:
+- The key pressed Shift first started a run over the game's recipe
+  book; nothing landed on the pointer.
+- Logs turned up in the inventory after their run into planks had come
+  to rest (maintainer: the inventory fills with planks and logs are not
+  picked up). The log agrees: each planks run ended waiting for an
+  ingredient with the grid empty, 36 slots filled and none free, 0 of
+  the product to keep. The planks thrown out were picked up again while
+  the run waited and were only thrown out before a take.
+
 ## A Mass Craft press that crafted one stack onto the pointer (L-165, 2026-11-18)
 
 Trace build of `a9ad7804` (`craft_trace`, DLL

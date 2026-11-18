@@ -515,6 +515,10 @@ void advance(CraftingScreenController& controller) {
         if (!gridEmpty(manager)) { run.wait = "the grid is not empty"; run.phase = Phase::Take; run.since = now; return; }
         if (run.laid) return;
         run.laid = true;
+        // While a round waits for its ingredients, the product that was thrown out and is picked up again
+        // would fill the inventory and leave no slot for them (seen: 36 slots of planks, logs on the ground).
+        if (int const thrown = throwExcess(controller, index, recipe.makes, budget); thrown < 0) { finish("throwing the product out failed"); return; }
+        else if (thrown) run.thrown += thrown, run.stalls = 0;
         auto const carried = carriedOf(manager, index);
         auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }

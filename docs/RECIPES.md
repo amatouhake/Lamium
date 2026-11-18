@@ -211,7 +211,9 @@ A setting of its own, off by default, and it works with Recipes off
   the pointer craft by craft and thrown from there: by presses on the
   output where the pointer is over it, else by the slot call that
   takes an amount.
-- A round that cannot be laid in waits for more to arrive. With no slot
+- A round that cannot be laid in waits for more to arrive, and goes on
+  throwing out the product that is picked up again meanwhile, so the
+  inventory keeps room for the ingredients. With no slot
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its
   fullest stacks, and the other slots are thrown out whole. A recipe of
