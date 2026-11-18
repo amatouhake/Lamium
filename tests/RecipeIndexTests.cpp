@@ -256,6 +256,9 @@ void recipeIndexTests() {
         check(surplusSlots(index, pickaxe, {{0, iron, 64}}).empty() && surplusSlots(index, stick, {{0, oak, 64}, {1, birch, 64}, {2, oak, 64}}).empty()
               && surplusSlots(index, pickaxe, {{0, iron, 64}, {1, sticks, 64}, {2, sticks, 64}, {3, sticks, 64}, {4, sticks, 3}}) == std::vector<int>{3, 4},
               "an ingredient is never thrown out altogether, and a recipe of one ingredient throws nothing");
+        check(surplusSlots(index, pickaxe, {{0, iron, 1, 1}, {1, iron, 1, 1}, {2, iron, 1, 1}, {3, iron, 1, 1}}).empty()
+              && recipeInGrid(index, 2, {-1, -1, -1, birch}, "none") == at(button) && recipeInGrid(index, 2, {-1, -1, -1, birch}, button.id) == at(button),
+              "what does not stack is never thrown, and the recipe the game names is taken where it fits");
         check(view.blockX(Station::Crafting, 3, 1) == 270 && view.blockX(Station::Crafting, 8, 1) == 325 && view.blockY(Station::Crafting, 8, 3) == 4 + 29 + 59,
               "one column sits in the middle; two fill left to right, then down");
     }

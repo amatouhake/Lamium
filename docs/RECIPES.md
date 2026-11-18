@@ -193,11 +193,13 @@ A setting of its own, off by default, and it works with Recipes off
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its
   fullest stacks, and the other slots are thrown out whole. A recipe of
-  one ingredient throws nothing.
+  one ingredient throws nothing, and what does not stack (a filled
+  shulker box to dye) is never thrown.
 - It ends when the key is released, the pointer leaves the output slot,
   the pointer holds an item, the product finds no room or the grid holds
   what is not the recipe (a bucket a recipe gave back). Each run writes
-  one line to the log: rounds, takes, stacks thrown, time.
+  its recipe and, at its end, rounds, takes, stacks thrown and time to
+  the log.
 
 ## Code
 - `src/features/recipes/RecipeIndex.h`: the game's table by name, the

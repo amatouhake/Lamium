@@ -2,6 +2,7 @@
 #include "features/recipes/PlacePlan.h"
 #include <algorithm>
 #include <map>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -17,8 +18,9 @@ inline bool serves(Index const& index, Part const& part, Item item) {
 }
 // The crafting recipe the grid's items lay out, -1 for none. `grid`: side x
 // side items row by row, -1 an empty cell. A shape may sit anywhere in the
-// grid and mirrored, as the game takes it.
-inline int recipeInGrid(Index const& index, int side, std::vector<Item> const& grid) {
+// grid and mirrored, as the game takes it. Of several that fit, the one
+// with the id the game names for the grid, else the first.
+inline int recipeInGrid(Index const& index, int side, std::vector<Item> const& grid, std::string_view named = {}) {
     if (side < 2 || side > 3 || static_cast<int>(grid.size()) != side * side) return -1;
     int left = side, right = -1, top = side, bottom = -1;
     std::vector<Item> loose;
@@ -30,6 +32,11 @@ inline int recipeInGrid(Index const& index, int side, std::vector<Item> const& g
     }
     if (loose.empty()) return -1;
     int const wide = right - left + 1, high = bottom - top + 1;
+    int first = -1;
+    auto fits = [&](size_t at) {
+        if (first < 0) first = static_cast<int>(at);
+        return index.recipes[at].id == named;
+    };
     for (size_t at = 0; at < index.recipes.size(); ++at) {
         auto const& recipe = index.recipes[at];
         if (recipe.station != Station::Crafting) continue;
@@ -45,7 +52,7 @@ inline int recipeInGrid(Index const& index, int side, std::vector<Item> const& g
                         bool const empty = cell >= cells || recipe.cells[static_cast<size_t>(cell)].id < 0;
                         same = empty ? item < 0 : serves(index, recipe.cells[static_cast<size_t>(cell)], item);
                     }
-                if (same) return static_cast<int>(at);
+                if (same) { if (fits(at)) return static_cast<int>(at); break; }
             }
             continue;
         }
@@ -61,9 +68,9 @@ inline int recipeInGrid(Index const& index, int side, std::vector<Item> const& g
             if (found == rest.end()) { same = false; break; }
             rest.erase(found);
         }
-        if (same) return static_cast<int>(at);
+        if (same && fits(at)) return static_cast<int>(at);
     }
-    return -1;
+    return first;
 }
 // What a take left in a slot beyond what it held of the product before.
 struct Gain { int slot = 0, amount = 0; bool whole = false; bool operator==(Gain const&) const = default; };
@@ -79,7 +86,8 @@ inline std::vector<Gain> gains(std::vector<int> const& before, std::vector<std::
 // inventory is full: of the slots the recipe's ingredients fill, each
 // ingredient keeps the share its cells are of the recipe (one slot at least),
 // and the slots beyond it go, so the others can be picked up. An ingredient
-// is never thrown out altogether, and a recipe of one ingredient throws nothing.
+// is never thrown out altogether, a recipe of one ingredient throws nothing,
+// and what does not stack (a filled shulker box to dye) is never thrown.
 inline std::vector<int> surplusSlots(Index const& index, Recipe const& recipe, std::vector<PlaceSource> const& carried) {
     std::vector<std::pair<Part, int>> kinds; // ingredient, its cells
     int cells = 0;
@@ -93,7 +101,7 @@ inline std::vector<int> surplusSlots(Index const& index, Recipe const& recipe, s
     std::vector<std::vector<PlaceSource>> held(kinds.size());
     int filled = 0;
     for (auto const& source : carried) {
-        if (source.count <= 0) continue;
+        if (source.count <= 0 || source.stack <= 1) continue;
         for (size_t kind = 0; kind < kinds.size(); ++kind)
             if (serves(index, kinds[kind].first, source.item)) { held[kind].push_back(source); ++filled; break; }
     }

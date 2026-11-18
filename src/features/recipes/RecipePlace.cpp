@@ -11,10 +11,12 @@
 #include "mc/client/gui/screens/ScreenView.h"
 #include "mc/client/gui/screens/controllers/ContainerScreenController.h"
 #include "mc/client/gui/screens/controllers/CraftingScreenController.h"
+#include "mc/deps/shared_types/legacy/ContainerType.h"
 #include "mc/world/containers/SlotData.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/world/containers/managers/controllers/CraftingContainerManagerController.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/item/crafting/Recipe.h"
 #include <atomic>
 #include <chrono>
 #include <climits>
@@ -153,8 +155,10 @@ namespace {
 using Clock = std::chrono::steady_clock;
 // Between two steps of a run, so a fast frame rate does not send requests faster; and how long a
 // round that cannot be laid in waits for more to arrive, or for what it threw out to be gone.
-constexpr auto step = std::chrono::milliseconds(50), idle = std::chrono::milliseconds(250), afterSurplus = std::chrono::milliseconds(1000);
-constexpr int slots = 36, mostWaits = 10;
+// `patience`: how long a take's result or a product may take to show before the run gives up.
+constexpr auto step = std::chrono::milliseconds(50), idle = std::chrono::milliseconds(250), afterSurplus = std::chrono::milliseconds(1000),
+               patience = std::chrono::milliseconds(500);
+constexpr int slots = 36;
 enum class Phase { Lay, Take, Throw };
 struct Run {
     bool on = false, over = false; // over: this press of the key does nothing more
@@ -163,8 +167,7 @@ struct Run {
     std::map<int, Item> picks;
     Phase phase = Phase::Take;
     std::vector<int> before; // per slot, what it held of the product before the take
-    int waits = 0;
-    Clock::time_point next, began;
+    Clock::time_point next, began, since; // since: when the current step began
     int rounds = 0, takes = 0, thrown = 0, surplus = 0;
 } run;
 std::atomic<bool> keyHeld{false};
@@ -180,9 +183,12 @@ void finish(char const* why) {
     run = {};
     run.over = keyHeld;
 }
+// As Item transfer reads the slot under the pointer: the inventory screen's own record of it is not kept
+// up, so the hover tracker tells there.
 bool overOutput(CraftingScreenController& controller) {
     auto const& native = controller.mHoveredSlotData.get();
-    if (!native.mCollectionName->empty()) return native.mCollectionName.get() == output;
+    if (controller.mContainerManagerController->getContainerType() != SharedTypes::Legacy::ContainerType::Inventory && !native.mCollectionName->empty())
+        return native.mCollectionName.get() == output;
     auto const& current = inspection::hover::HoverTracker::getInstance().current();
     return current && current->controller == &controller && current->collectionName == output;
 }
@@ -213,7 +219,9 @@ void begin(CraftingScreenController& controller) {
         auto const& stack = manager.getItemStack(grid, i);
         cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
     }
-    int const recipe = recipeInGrid(table->index, side, cells);
+    std::string named;
+    if (::Recipe const* made = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) named = *made->mRecipeId;
+    int const recipe = recipeInGrid(table->index, side, cells, named);
     if (recipe < 0) {
         try { Runtime::instance().self().getLogger().info("Mass Craft: the grid lays out no recipe of the table"); } catch (...) {}
         run.over = true;
@@ -226,7 +234,10 @@ void begin(CraftingScreenController& controller) {
     run.table = std::move(table);
     run.recipe = recipe;
     run.picks = std::move(request.picks);
-    run.next = run.began = Clock::now();
+    run.next = run.began = run.since = Clock::now();
+    try {
+        Runtime::instance().self().getLogger().info("Mass Craft: started with {} (the game names {})", run.table->index.recipes[static_cast<size_t>(recipe)].id, named);
+    } catch (...) {}
 }
 void advance(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
@@ -239,9 +250,9 @@ void advance(CraftingScreenController& controller) {
     switch (run.phase) {
     case Phase::Take: {
         if (!makes(manager)) {
-            if (gridEmpty(manager)) { run.phase = Phase::Lay; run.waits = 0; return; }
+            if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; return; }
             // What a recipe leaves behind (a bucket), or a product not shown yet.
-            if (++run.waits > mostWaits) finish("the grid holds something that is not the recipe");
+            if (now - run.since > patience) finish("the grid holds something that is not the recipe");
             return;
         }
         auto const now36 = slotsOf(manager, index, anyFree);
@@ -252,14 +263,14 @@ void advance(CraftingScreenController& controller) {
         controller._handleAutoPlace(INT_MAX, output, 0);
         ++run.takes;
         run.phase = Phase::Throw;
-        run.waits = 0;
+        run.since = now;
         run.next = now + step;
         return;
     }
     case Phase::Throw: {
         auto const found = gains(run.before, slotsOf(manager, index, anyFree), recipe.makes);
         if (found.empty()) {
-            if (++run.waits > mostWaits) finish("the product found no room");
+            if (now - run.since > patience) finish("the product found no room");
             return;
         }
         for (auto const& gain : found) {
@@ -269,12 +280,12 @@ void advance(CraftingScreenController& controller) {
             ++run.thrown;
         }
         run.phase = Phase::Take;
-        run.waits = 0;
+        run.since = now;
         run.next = now + step;
         return;
     }
     case Phase::Lay: {
-        if (!gridEmpty(manager)) { run.phase = Phase::Take; run.waits = 0; return; }
+        if (!gridEmpty(manager)) { run.phase = Phase::Take; run.since = now; return; }
         auto const carried = carriedOf(manager, index);
         auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
@@ -282,7 +293,7 @@ void advance(CraftingScreenController& controller) {
             if (!lay(controller, index, recipe, run.picks, true)) { finish("laying the recipe in failed"); return; }
             ++run.rounds;
             run.phase = Phase::Take;
-            run.waits = 0;
+            run.since = now;
             run.next = now + step;
             return;
         }
