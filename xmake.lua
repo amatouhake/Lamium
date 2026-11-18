@@ -111,6 +111,12 @@ option("trade_trace")
     set_description("Enable L-129 diagnostics: dump the trade data the server sends when a trade screen opens")
 option_end()
 
+option("craft_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-359/L-165 read-only diagnostics: recipe book picks, craft requests and answers, item screens' controls")
+option_end()
+
 option("repeat_trade_trace")
     set_default(false)
     set_showmenu(true)
@@ -301,6 +307,7 @@ target("Lamium")
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end
+    if has_config("craft_trace") then add_defines("LAMIUM_CRAFT_TRACE") end
     if has_config("language_trace") then add_defines("LAMIUM_LANGUAGE_TRACE") end
     if has_config("server_pack_skip") then add_defines("LAMIUM_SERVER_PACK_SKIP") end
     if has_config("playerlist_trace") then add_defines("LAMIUM_PLAYERLIST_TRACE") end

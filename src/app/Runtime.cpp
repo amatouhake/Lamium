@@ -13,6 +13,7 @@
 #include "features/research/ResearchTrace.h"
 #include "features/research/WorldProbe.h"
 #include "features/research/RecipeTrace.h"
+#include "features/research/CraftTrace.h"
 #include "features/research/ItemScreenProbe.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/ItemList.h"
@@ -192,6 +193,7 @@ Feature const features[] = {
     {"Recipe table diagnostics", started<researchTrace::recipeTable::start>, researchTrace::recipeTable::stop},
     {"Item screen probe", started<researchTrace::itemScreen::start>, researchTrace::itemScreen::stop},
     {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},
+    {"Craft diagnostics", started<researchTrace::craft::start>, researchTrace::craft::stop},
     {"Ghost probe", started<schematic::ghostProbe::start>, schematic::ghostProbe::stop},
     {"Player location diagnostics", started<map::locationTrace::start>, map::locationTrace::stop},
     {"Slime chunk diagnostics", started<information::slimeTrace::start>, information::slimeTrace::stop},

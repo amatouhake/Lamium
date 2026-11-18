@@ -750,6 +750,10 @@ slot contents and `AnvilContainerManagerController::mCost` (L-170, a class-layou
 Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`
 Trace.
 
+### `src/features/research/CraftTrace.cpp`
+Hooks: `CraftSlotHovered`, `CraftAutoPlace`, `CraftTakePlace`, `CraftPlaceOne`, `CraftEvacuate`, `CraftServerAction`, `CraftTick`, `CraftResponse`
+Trace (L-359 and L-165, read-only; `craft_trace`).
+
 ### `src/features/research/RepeatTradeTrace.cpp`
 Hooks: `RepeatOffer`, `RepeatButton`, `RepeatSlotPressed`, `RepeatTick`, `RepeatLeave`, `RepeatRequestBatch`, `RepeatResponse`, `RepeatInventorySlot`, `RepeatInventoryContent`, `RepeatNotify`, `RepeatActorEvent`, `RepeatAutoPlace`, `RepeatViewButton`, `RepeatComponentButton`, `RepeatPressedMapping`
 Trace (L-166, read-only; `repeat_trade_trace`, independent of `trade_trace`).
