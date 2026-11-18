@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Open over the recipe view, a typed count's line (L-359, 2026-11-18)
+
+Build `03d467dc` (DLL
+`cfbe575e48e1fb477b29497111c86fea6a3532682651be52bbee3f2d82b33ada`),
+1.26.60.05 Dev instance, the maintainer:
+- "Open" on the left band closed the recipe view and showed the wanted
+  items' window.
+- A count typed on the left band stayed on its line.
+- Faults seen: a typed 0 became 1 (neither 0 nor taken out), and the
+  hints named the back key "back: back" in Japanese, where the game calls
+  Backspace by the same word. Both changed in the next build, not seen.
+
 ## The recipe screens reworked, a level typed beside the anvil (L-359, 2026-11-18)
 
 Build `b3a8deb1` (DLL

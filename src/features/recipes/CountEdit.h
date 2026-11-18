@@ -17,11 +17,14 @@ inline void begin(std::string key, Count now) {
     typed.beginPrecise(static_cast<double>(now));
 }
 inline void cancel() { item.clear(); }
-// Keeps what was typed, as near as a count can be; what is no number changes nothing.
+// Keeps what was typed, as near as a count can be: 0 takes the item out, as minus at one does; what is
+// no number changes nothing.
 inline void commit() {
     if (!active()) return;
-    if (auto value = typed.committedPrecise(1, static_cast<double>(Wanted::most), true); value && state::wanted().has(item))
-        state::setWanted(item, static_cast<Count>(*value));
+    if (auto value = typed.committedPrecise(0, static_cast<double>(Wanted::most), true); value && state::wanted().has(item)) {
+        if (*value >= 1) state::setWanted(item, static_cast<Count>(*value));
+        else state::removeWanted(item);
+    }
     item.clear();
 }
 }

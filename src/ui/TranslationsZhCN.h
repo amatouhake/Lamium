@@ -1029,7 +1029,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.mark.use", "使用"},
     {"recipes.hint.favourite", "{}: 收藏"},
     {"recipes.hint.wanted", "{}: 想要"},
-    {"recipes.hint.back", "{}: 返回"},
+    {"recipes.hint.back", "{}: 上一个配方"},
     {"recipes.reading", "正在读取配方..."},
     {"schematic.raw.recipe", "每次产出 {}"},
     {"schematic.raw.partAmount", "每次 {}，共 {}"},

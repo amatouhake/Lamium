@@ -146,7 +146,8 @@ after using the first build. What is still open is in the L-item.
 - A wanted item's count is changed with the shared stepper (- N +), on the
   short list and in the window alike: minus at one takes the item out (the
   wheel and a Shift step stop at one), and a press on the number types it
-  (Enter or a press elsewhere keeps it, Esc does not).
+  (Enter or a press elsewhere keeps it, Esc does not; 0 takes the item
+  out).
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
