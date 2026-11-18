@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A recipe cell pressed by Lamium crafts nothing (L-165, 2026-11-19)
+
+Trace build of `12997bd6` (`craft_trace`, DLL
+`c8c920a3de209cb614eecaf838e2ea07b01369b97354617efd851ca786701a6f`),
+1.26.60.05 Dev instance, a local world, the maintainer at a crafting
+table with the game's recipe book open, logs and then planks carried:
+- The virtual `_onContainerSlotPressed` on `recipe_search:0` (planks) and
+  `recipe_search:8` (chest), with and without Shift held: nothing moved,
+  the log has no request after it.
+- `_handleAutoPlace` for all on the same cells, with and without Shift:
+  the same.
+- So the game's request that crafts many straight from the inventory
+  cannot be made with the calls the SDK links.
+
 ## Mass Craft throwing the returning product out every step (L-165, 2026-11-19)
 
 Trace build of `71c25de9` (`craft_trace`, DLL
