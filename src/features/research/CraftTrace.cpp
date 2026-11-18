@@ -259,7 +259,9 @@ void experiment(CraftingScreenController& screen, ContainerManagerController& ma
         wait = 1;
         return;
     }
-    bool const output = !manager.getItemStack("crafting_output_items", 0).isNull();
+    // The output slot reads empty even while the game shows a product (seen 2026-11-18): the recipe the
+    // grid makes says whether there is one.
+    bool const output = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe != nullptr;
     if (once || (takes > 0 && output)) {
         if (!output) { log(callBudget, 400, "take: no output"); return; }
         if (takes > 0) --takes;
