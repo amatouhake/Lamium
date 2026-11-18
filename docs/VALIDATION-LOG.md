@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe view's heading and switches after the move (L-359, 2026-11-19)
+
+Build `4f99f863` (DLL
+`f7ed807c90732d1eadea4ce94017440069db9d9e45138fc35670e8a76d278a53`),
+1.26.60.05 Dev instance, the maintainer, one screenshot: the item's whole
+name shows on the heading's line; "favourite" and "wanted" stand at the
+right of the stations' line, each switch on its words' line. Not said:
+whether the window covers the game's with its recipe book out.
+
 ## The trial tab strip, game-like slots and the two switches (L-359, 2026-11-19)
 
 Build `2202d09c` (DLL

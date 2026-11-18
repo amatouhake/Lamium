@@ -128,16 +128,17 @@ the same commit. A screen never draws its own variant.
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.
-- **Tabs** are not settled. Lamium switches things in three ways, all
-  drawn as buttons today, Primary when selected: a view (the Schematics
-  screen's four tabs; the settings sidebar is a list), one value of
-  several (the world map's dimensions, joined in one border), and layers
-  each on or off (the world map's, as pictures where they do not fit;
-  the Check tab's outlined pills). Recipes carries a trial of a strip
-  for views (`drawTab`, `tabRule`: divided labels over a rule, a thick
-  accent line under the selected one); whether views get a look of their
-  own, and which, is decided for all of Lamium at once
-  ([demos/switching-controls.html](demos/switching-controls.html)).
+- **Switching controls** are not settled. They are sorted by two things
+  (maintainer 2026-11-19): whether one of several is chosen (the
+  Schematics screen's tabs, the settings sidebar, the world map's
+  dimensions, the item list's "all / can be made", the plan's tabs, a
+  recipe's stations) or each is on or off (the world map's layers, the
+  Check tab's filters, "favourite" and "wanted"), and whether they stand
+  on a dark Lamium panel or on a window of the game's grey. Today all but
+  the sidebar are buttons, Primary when chosen or on. Recipes carries a
+  trial for "one of several" (`drawTab`, `tabRule`: divided labels over a
+  rule, a thick accent line under the chosen one). The four cases are set
+  out in [demos/switching-controls-2.html](demos/switching-controls-2.html).
 - **Slots on a window of the game's grey** (`windowSlot`): as the game
   draws its own, dark upper-left and light lower-right edges on its slot
   grey; what the player lacks stands on the game's red.
