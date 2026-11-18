@@ -765,7 +765,7 @@ Trace.
 
 ### `src/features/research/CraftTrace.cpp`
 Hooks: `CraftSlotHovered`, `CraftAutoPlace`, `CraftTakePlace`, `CraftPlaceOne`, `CraftEvacuate`, `CraftServerAction`, `CraftTick`, `CraftResponse`
-Trace (L-359 and L-165; `craft_trace`). Its F7, F8 and F9 move items on a crafting screen through `_handleTakeAmount`, `_handlePlaceAll`, `_handleAutoPlace` and `_evacuateCraftingGrid`.
+Trace (L-359 and L-165; `craft_trace`). Its F7, F8 and F9 move items on a crafting screen through `_handleTakeAmount`, `_handlePlaceAll`, `_handleAutoPlace` and `_evacuateCraftingGrid`; F6 and F10 call the virtual `_onContainerSlotPressed` and `_handleAutoPlace` on the recipe-book cell hovered last.
 
 ### `src/features/research/RepeatTradeTrace.cpp`
 Hooks: `RepeatOffer`, `RepeatButton`, `RepeatSlotPressed`, `RepeatTick`, `RepeatLeave`, `RepeatRequestBatch`, `RepeatResponse`, `RepeatInventorySlot`, `RepeatInventoryContent`, `RepeatNotify`, `RepeatActorEvent`, `RepeatAutoPlace`, `RepeatViewButton`, `RepeatComponentButton`, `RepeatPressedMapping`

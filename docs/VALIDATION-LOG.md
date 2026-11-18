@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft throwing the returning product out every step (L-165, 2026-11-19)
+
+Trace build of `71c25de9` (`craft_trace`, DLL
+`f4a598bf3e067a7b25182931b60bee4fd2fd81acc0d8088c36c14454f86347b0`),
+1.26.60.05 Dev instance, a local world, the maintainer where what is
+thrown out is picked up again: fewer logs were left over than before.
+
 ## Mass Craft throwing the product out while it waits (L-165, 2026-11-19)
 
 Trace build of `3824c807` (`craft_trace`, DLL

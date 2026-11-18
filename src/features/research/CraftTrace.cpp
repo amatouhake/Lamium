@@ -52,11 +52,12 @@
 namespace lamium::researchTrace::craft {
 namespace {
 using Clock = std::chrono::steady_clock;
-TraceBudget callBudget, stateBudget, requestBudget, responseBudget, refusedBudget, screenBudget, pressBudget;
+TraceBudget callBudget, stateBudget, requestBudget, responseBudget, refusedBudget, screenBudget, pressBudget, experimentBudget;
 std::atomic<int64_t> observedAt{0};
 std::atomic<unsigned> sequence{0};
 std::mutex seenMutex;
-std::string lastState, lastHover;
+std::string lastState, lastHover, hoverCollection;
+int hoverIndex = -1;
 std::map<std::string, int> screenFrames; // per item screen: frames seen; reported once it has stood a moment
 std::set<std::string> reported;
 ll::event::ListenerPtr renderListener;
@@ -126,6 +127,7 @@ LL_TYPE_INSTANCE_HOOK(CraftSlotHovered, ll::memory::HookPriority::Normal, Crafti
             auto const& stack = _getVisualItemStack(collection, index);
             log(pressBudget, 400, "slot-hovered {} item={}", cell, stack.isNull() ? std::string("-") : stack.getTypeName());
             lastHover = std::move(cell);
+            hoverCollection = collection, hoverIndex = index;
         }
     } catch (...) {}
     return origin(collection, index);
@@ -172,8 +174,7 @@ struct Step { int amount; std::string from; int index; int cell; };
 std::vector<Step> steps;
 size_t stepAt = 0;
 int wait = 0, takes = 0, idle = 0;
-bool f7Down = false, f8Down = false, f9Down = false, f6Down = false;
-int held10 = 0, drops10 = 0; // F10 held: ticks so far, and outputs dropped
+bool f7Down = false, f8Down = false, f9Down = false, f6Down = false, f10Down = false;
 bool edge(int key, bool& was) {
     bool const down = (GetAsyncKeyState(key) & 0x8000) != 0, pressed = down && !was;
     was = down;
@@ -248,19 +249,26 @@ void experiment(CraftingScreenController& screen, ContainerManagerController& ma
     bool const shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
     if (edge(VK_F7, f7Down)) layOut(screen, manager, shift);
     bool const once = edge(VK_F8, f8Down);
-    // F6: the drop key's request on the output slot, the whole stack (with Shift: one item). F10 held: the same
-    // every tick while the grid makes something, to see how fast the server takes it.
-    bool const makes = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe != nullptr;
-    if (edge(VK_F6, f6Down)) {
-        bool const sent = makes && inventory::game::transferRoutes::drop(screen, "crafting_output_items", 0, shift);
-        log(callBudget, 400, "drop: the output, {}: makes={} sent={}", shift ? "one" : "all", makes, sent);
-    }
-    if ((GetAsyncKeyState(VK_F10) & 0x8000) != 0) {
-        ++held10;
-        if (makes && inventory::game::transferRoutes::drop(screen, "crafting_output_items", 0, false)) ++drops10;
-    } else if (held10) {
-        log(callBudget, 400, "drop run: {} outputs dropped in {} ticks", drops10, held10);
-        held10 = drops10 = 0;
+    // Crafting without laying in (L-165): the game's own request that crafts many straight from the
+    // inventory comes from a Shift click on a recipe of its book, through calls the SDK does not link.
+    // F6: the screen's virtual "slot pressed" on the recipe-book cell hovered last. F10: the slot call
+    // that takes all, on that cell. Both with and without Shift held, which the game may read itself.
+    bool const press = edge(VK_F6, f6Down), take = edge(VK_F10, f10Down);
+    if (press || take) {
+        std::string collection;
+        int index = -1;
+        {
+            std::lock_guard lock{seenMutex};
+            collection = hoverCollection, index = hoverIndex;
+        }
+        if (!collection.starts_with("recipe_") || index < 0)
+            log(experimentBudget, 400, "recipe cell: none hovered last ({}:{})", collection, index);
+        else {
+            log(experimentBudget, 400, "recipe cell {}:{} {} shift={} before:{}", collection, index, press ? "slot-pressed" : "take-all", shift, slotsText(manager));
+            if (press) screen._onContainerSlotPressed(collection, index);
+            else screen._handleAutoPlace(INT_MAX, collection, index);
+            log(experimentBudget, 400, "recipe cell return after:{}", slotsText(manager));
+        }
     }
     if (edge(VK_F9, f9Down)) takes = takes ? 0 : 40, idle = 0;
     if (wait > 0) { --wait; return; }
