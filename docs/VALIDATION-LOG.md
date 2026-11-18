@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft's first run (L-165, 2026-11-18)
+
+Trace build of `07ac9654` (`craft_trace`, DLL
+`a0a13aaa97adba28595d7b034a1288e78918a052560c7b85b9af3adf4de7f761`),
+1.26.60.05 Dev instance, a local world, the maintainer:
+- Logs laid in the crafting table's grid, the key held over the output:
+  planks were thrown out until the logs were gone; the same in the
+  inventory's 2x2 grid. Planks carried before stayed.
+- The log: runs of 9, 8 and 9 rounds in 2.2 to 2.5 s (about four rounds
+  a second), every take and drop answered with success; the recipe found
+  from the grid had the id the game named each time.
+- With the inventory full the run did nothing ("the product found no
+  room"): a Shift take needs a slot. The surplus could not be tried
+  because of it.
+- In the log only: ten runs on a chest recipe within 1.5 s, each ended by
+  the key's release after one take and nothing thrown; why the key read
+  as released is not known.
+
 ## The output slot throws nothing (L-165, 2026-11-18)
 
 Trace build of `f8955751` (`craft_trace`, DLL

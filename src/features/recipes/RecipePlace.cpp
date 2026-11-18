@@ -159,7 +159,9 @@ using Clock = std::chrono::steady_clock;
 constexpr auto step = std::chrono::milliseconds(50), idle = std::chrono::milliseconds(250), afterSurplus = std::chrono::milliseconds(1000),
                patience = std::chrono::milliseconds(500);
 constexpr int slots = 36;
-enum class Phase { Lay, Take, Throw };
+// Hand: the inventory has no room for the product, so it is taken onto the pointer and thrown from there.
+enum class Phase { Lay, Take, Throw, Hand };
+constexpr int mostClicks = 8;
 struct Run {
     bool on = false, over = false; // over: this press of the key does nothing more
     std::shared_ptr<service::Table const> table;
@@ -168,7 +170,9 @@ struct Run {
     Phase phase = Phase::Take;
     std::vector<int> before; // per slot, what it held of the product before the take
     Clock::time_point next, began, since; // since: when the current step began
-    int rounds = 0, takes = 0, thrown = 0, surplus = 0;
+    bool clicked = false; // Hand: a press on the output is out
+    int handSeen = 0;     // Hand: what the pointer held before that press
+    int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0;
 } run;
 std::atomic<bool> keyHeld{false};
 ll::event::ListenerPtr renderListener, exitListener;
@@ -176,8 +180,8 @@ void finish(char const* why) {
     if (run.on) {
         auto const ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - run.began).count();
         try {
-            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} surplus stacks in {} ms ({})",
-                                                       run.rounds, run.takes, run.thrown, run.surplus, ms, why);
+            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} thrown from the pointer, {} surplus stacks in {} ms ({})",
+                                                       run.rounds, run.takes, run.thrown, run.hands, run.surplus, ms, why);
         } catch (...) {}
     }
     run = {};
@@ -205,6 +209,16 @@ std::vector<std::pair<Item, int>> slotsOf(ContainerManagerController& manager, I
         out[static_cast<size_t>(slot)] = {index.find(stack.getTypeName(), stack.getAuxValue()), static_cast<int>(stack.mCount)};
     }
     return out;
+}
+// A free slot, or a stack of the product that takes more: a Shift take has somewhere to go.
+bool roomFor(ContainerManagerController& manager, Index const& index, Item product) {
+    if (manager.getContainerSize(hotbar) < 9 || manager.getContainerSize(inventory) < 27) return false;
+    for (int slot = 0; slot < slots; ++slot) {
+        auto const& stack = manager.getItemStack(collectionOf(slot), indexOf(slot));
+        if (stack.isNull() || stack.mCount <= 0) return true;
+        if (stack.mCount < stack.getMaxStackSize() && index.find(stack.getTypeName(), stack.getAuxValue()) == product) return true;
+    }
+    return false;
 }
 bool makes(ContainerManagerController& manager) { return static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe != nullptr; }
 void begin(CraftingScreenController& controller) {
@@ -245,7 +259,7 @@ void advance(CraftingScreenController& controller) {
     auto const& recipe = index.recipes[static_cast<size_t>(run.recipe)];
     auto const now = Clock::now();
     if (now < run.next) return;
-    if (held(manager)) { finish("the pointer holds an item"); return; }
+    if (run.phase != Phase::Hand && held(manager)) { finish("the pointer holds an item"); return; }
     bool anyFree = false;
     switch (run.phase) {
     case Phase::Take: {
@@ -255,6 +269,7 @@ void advance(CraftingScreenController& controller) {
             if (now - run.since > patience) finish("the grid holds something that is not the recipe");
             return;
         }
+        if (!roomFor(manager, index, recipe.makes)) { run.phase = Phase::Hand; run.since = now; run.clicked = false; return; }
         auto const now36 = slotsOf(manager, index, anyFree);
         run.before.assign(slots, 0);
         for (int slot = 0; slot < slots; ++slot)
@@ -281,6 +296,39 @@ void advance(CraftingScreenController& controller) {
         }
         run.phase = Phase::Take;
         run.since = now;
+        run.next = now + step;
+        return;
+    }
+    case Phase::Hand: {
+        int const have = held(manager);
+        int most = 64;
+        if (have) {
+            auto const& stack = manager.getItemStack(pointer, 0);
+            if (index.find(stack.getTypeName(), stack.getAuxValue()) != recipe.makes) { finish("the pointer holds an item"); return; }
+            most = static_cast<int>(stack.getMaxStackSize());
+        }
+        auto more = [&](int count) { return makes(manager) && count + static_cast<int>(recipe.count) <= most; };
+        // A press on the output, where the pointer is, crafts once onto the pointer; again while the last one showed.
+        if (more(have) && (!run.clicked || have > run.handSeen)) {
+            for (int i = 0; i < mostClicks; ++i) {
+                run.handSeen = held(manager);
+                if (!more(run.handSeen)) break;
+                if (!inventory::game::transferRoutes::pressAsPlainClick(controller)) { finish("pressing the output failed"); return; }
+                run.clicked = true;
+                if (held(manager) <= run.handSeen) break;
+            }
+            run.next = now + step;
+            return;
+        }
+        if (!have) {
+            if (now - run.since > patience) finish("the product could not be taken");
+            return;
+        }
+        if (!inventory::game::transferRoutes::dropCursor(controller)) { finish("throwing the product out failed"); return; }
+        ++run.hands;
+        run.phase = Phase::Take;
+        run.since = now;
+        run.clicked = false;
         run.next = now + step;
         return;
     }

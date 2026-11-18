@@ -232,7 +232,8 @@ product shows), and reads `CraftingContainerManagerController::mCraftingRecipe`
 (a class-layout read) to tell that the grid makes something. Mass Craft
 (the same file) also reads `ContainerScreenController::mHoveredSlotData`
 and the hover tracker for the output slot and throws slots out with the
-slot routes' `drop` and `dropAmount`. After a game update: lay a chest in,
+slot routes' `drop`, `dropAmount` and `dropCursor`, after `pressAsPlainClick`
+on the output when the inventory is full. After a game update: lay a chest in,
 Shift-place a stack of logs, and hold the Mass Craft key over the output.
 
 ## Inventory

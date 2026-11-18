@@ -192,7 +192,10 @@ bool dropAmount(ContainerScreenController& controller, std::string const& collec
     if (!supported(controller) || amount <= 0 || game::cursorHasItems(controller)) return false;
     controller._handleTakeAmount(amount, collection, index);
     // Not taken onto the cursor: nothing to drop.
-    if (!game::cursorHasItems(controller)) return false;
+    return dropCursor(controller);
+}
+bool dropCursor(ContainerScreenController& controller) {
+    if (!supported(controller) || !game::cursorHasItems(controller)) return false;
     auto bytes = transfer::dropAmountBytes(false);
     ownDrop = true;
     try {

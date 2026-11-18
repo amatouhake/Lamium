@@ -188,7 +188,9 @@ A setting of its own, off by default, and it works with Recipes off
 - A round: all the grid makes is taken into the inventory, what the take
   added of the product is thrown out (what was carried of it before
   stays), and the recipe is laid in again as many times as divide evenly.
-  A step every 50 ms.
+  A step every 50 ms. With no room in the inventory for the product, it
+  is taken onto the pointer by presses on the output and thrown from
+  there.
 - A round that cannot be laid in waits for more to arrive. With no slot
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its
@@ -243,7 +245,8 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Not seen in game: a server. The search field takes no pasted text.
 - The look as a whole is reviewed once the feature is complete
   (maintainer 2026-11-18); until then only faults are fixed.
-- Mass Craft is built and not seen in game.
+- Mass Craft: seen in a local world (VALIDATION-LOG 2026-11-18); the
+  throw from the pointer and the surplus are not, nor a server.
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
