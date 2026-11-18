@@ -166,7 +166,7 @@ constexpr int mostStalls = 20;
 constexpr int slots = 36;
 // Hand: the inventory has no room for the product, so it is taken onto the pointer and thrown from there.
 enum class Phase { Lay, Take, Throw, Hand };
-constexpr int mostClicks = 16, mostPasses = 6;
+constexpr int mostClicks = 16, mostPasses = 10;
 struct Run {
     bool on = false, over = false; // over: this press of the key does nothing more
     bool fromGrid = false;         // started over the output slot: it goes on only while the pointer stays there
@@ -174,7 +174,8 @@ struct Run {
     int recipe = -1;
     std::map<int, Item> picks;
     Phase phase = Phase::Take;
-    std::vector<int> before; // per slot, what it held of the product before the take
+    int keep = 0;      // of the product, what the player carried when the run began: it stays
+    bool laid = false; // this step laid a round in: one a step
     Clock::time_point next, began, since; // since: when the current step began
     bool clicked = false; // Hand: a press on the output is out
     int handSeen = 0;     // Hand: what the pointer held before that press
@@ -288,6 +289,9 @@ void begin(CraftingScreenController& controller) {
     run.fromGrid = fromGrid;
     run.phase = fromGrid ? Phase::Take : Phase::Lay;
     run.next = run.began = run.since = Clock::now();
+    bool anyFree = false;
+    for (auto const& [item, count] : slotsOf(manager, run.table->index, anyFree))
+        if (item == run.table->index.recipes[static_cast<size_t>(recipe)].makes) run.keep += count;
     try {
         Runtime::instance().self().getLogger().info("Mass Craft: started with {} (the game names {})", run.table->index.recipes[static_cast<size_t>(recipe)].id, named);
     } catch (...) {}
@@ -323,6 +327,19 @@ bool clearPointer(CraftingScreenController& controller, Index const& index, Item
     if (held(manager)) inventory::game::transferRoutes::dropCursor(controller);
     return !held(manager);
 }
+// Throws out what the inventory holds of the product beyond what was carried at the start: how many
+// throws, -1 when one could not be sent.
+int throwExcess(CraftingScreenController& controller, Index const& index, Item product) {
+    bool anyFree = false;
+    int thrown = 0;
+    for (auto const& out : excess(slotsOf(*controller.mContainerManagerController, index, anyFree), product, run.keep)) {
+        bool const sent = out.whole ? inventory::game::transferRoutes::drop(controller, collectionOf(out.slot), indexOf(out.slot), false)
+                                    : inventory::game::transferRoutes::dropAmount(controller, collectionOf(out.slot), indexOf(out.slot), out.amount);
+        if (!sent) return -1;
+        ++thrown;
+    }
+    return thrown;
+}
 void advance(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
     auto const& index = run.table->index;
@@ -336,10 +353,16 @@ void advance(CraftingScreenController& controller) {
         return;
     }
     bool anyFree = false;
-    // What the game shows at once goes on in the same frame: a round is laid in, taken and thrown out in one.
+    run.next = now + step;
+    run.laid = false;
+    // What the game shows at once goes on in the same frame: a round is laid in, taken and thrown out in one,
+    // and a take that found room for a part only is followed by the next.
     for (int pass = 0; pass < mostPasses; ++pass)
     switch (run.phase) {
     case Phase::Take: {
+        // Also what came back: thrown out and picked up again, or a throw the server refused.
+        if (int const thrown = throwExcess(controller, index, recipe.makes); thrown < 0) { finish("throwing the product out failed"); return; }
+        else if (thrown) run.thrown += thrown, run.stalls = 0;
         if (!makes(manager)) {
             if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; continue; }
             // What a recipe leaves behind (a bucket), or a product not shown yet.
@@ -351,10 +374,6 @@ void advance(CraftingScreenController& controller) {
             return;
         }
         if (!roomFor(manager, index, recipe.makes)) { run.phase = Phase::Hand; run.since = now; run.clicked = false; continue; }
-        auto const now36 = slotsOf(manager, index, anyFree);
-        run.before.assign(slots, 0);
-        for (int slot = 0; slot < slots; ++slot)
-            if (now36[static_cast<size_t>(slot)].first == recipe.makes) run.before[static_cast<size_t>(slot)] = now36[static_cast<size_t>(slot)].second;
         // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
         controller._handleAutoPlace(INT_MAX, output, 0);
         ++run.takes;
@@ -363,22 +382,17 @@ void advance(CraftingScreenController& controller) {
         continue;
     }
     case Phase::Throw: {
-        auto const found = gains(run.before, slotsOf(manager, index, anyFree), recipe.makes);
-        if (found.empty()) {
+        int const thrown = throwExcess(controller, index, recipe.makes);
+        if (thrown < 0) { finish("throwing the product out failed"); return; }
+        if (!thrown) {
             if (now - run.since > patience) again("the product found no room", now);
             return;
         }
-        for (auto const& gain : found) {
-            bool const sent = gain.whole ? inventory::game::transferRoutes::drop(controller, collectionOf(gain.slot), indexOf(gain.slot), false)
-                                         : inventory::game::transferRoutes::dropAmount(controller, collectionOf(gain.slot), indexOf(gain.slot), gain.amount);
-            if (!sent) { finish("throwing the product out failed"); return; }
-            ++run.thrown;
-        }
+        run.thrown += thrown;
         run.stalls = 0;
         run.phase = Phase::Take;
         run.since = now;
-        run.next = now + step;
-        return;
+        continue;
     }
     case Phase::Hand: {
         int have = held(manager);
@@ -416,11 +430,12 @@ void advance(CraftingScreenController& controller) {
         run.phase = Phase::Take;
         run.since = now;
         run.clicked = false;
-        run.next = now + step;
-        return;
+        continue;
     }
     case Phase::Lay: {
         if (!gridEmpty(manager)) { run.phase = Phase::Take; run.since = now; return; }
+        if (run.laid) return;
+        run.laid = true;
         auto const carried = carriedOf(manager, index);
         auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }

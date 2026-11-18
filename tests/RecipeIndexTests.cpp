@@ -247,8 +247,9 @@ void recipeIndexTests() {
               "the grid's items name the shaped recipe they lay out, and nothing else does");
         check(recipeInGrid(index, 3, {-1, -1, oak, -1, -1, birch, -1, -1, -1}) == at(stick) && recipeInGrid(index, 2, {-1, -1, -1, birch}) == at(button),
               "a shape is found anywhere in the grid with any member of its group, an any-order recipe by its items");
-        check(gains({0, 5, 0, 0}, {{oak, 64}, {oak, 9}, {iron, 3}, {-1, 0}}, oak) == std::vector<Gain>{{0, 64, true}, {1, 4, false}},
-              "a take's gain is what a slot holds of the product beyond before, whole where it held none");
+        check(excess({{oak, 64}, {oak, 9}, {iron, 3}, {-1, 0}}, oak, 5) == std::vector<Throw>{{1, 9, true}, {0, 59, false}}
+              && excess({{oak, 5}, {iron, 3}}, oak, 5).empty() && excess({{oak, 5}}, oak, 0) == std::vector<Throw>{{0, 5, true}},
+              "the product beyond what was carried at the start is thrown out, whole stacks from the last slot back");
         std::vector<PlaceSource> full;
         for (int slot = 0; slot < 10; ++slot) full.push_back({slot, iron, slot == 2 ? 7 : 64});
         check(surplusSlots(index, pickaxe, full) == std::vector<int>{2, 7, 8, 9},

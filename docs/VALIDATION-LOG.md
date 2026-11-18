@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft with the pointer cleared (L-165, 2026-11-18)
+
+Trace build of `badf3ce3` (`craft_trace`, DLL
+`6882df22169413068e540967ed11c50f39fc52725e37cd8856fa2390ddb49dd3`),
+1.26.60.05 Dev instance, a local world, the maintainer picking the logs
+up while it ran:
+- The run no longer ended with logs on the pointer (the log: the
+  pointer cleared 11 times in a run of 72 rounds and 24 s).
+- Planks stayed in the inventory and not all logs became planks. Read
+  as: planks thrown out and picked up again counted as carried before
+  the take and were kept, filling the slots.
+- Slow with few free slots (maintainer): a stack of logs makes four of
+  planks, and each take waited for the next step.
+
 ## A Mass Craft round in one frame (L-165, 2026-11-18)
 
 Trace build of `5bb1fbd6` (`craft_trace`, DLL

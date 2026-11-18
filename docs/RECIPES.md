@@ -193,14 +193,16 @@ A setting of its own, off by default, and it works with Recipes off
 - Over the output slot the recipe is the one lying in the grid, found in
   the table by the grid's items, and the run ends when the pointer leaves
   the slot. A grid the table has no recipe for does nothing.
-- A round: all the grid makes is taken into the inventory, what the take
-  added of the product is thrown out (what was carried of it before
-  stays), and the recipe is laid in again as many times as divide evenly.
-  A round goes out in one frame where the game shows each part at once,
-  the next 50 ms later. With no room in the inventory for the product, it
-  is taken onto the pointer and thrown from there: by presses on the
-  output where the pointer is over it, else by the slot call that takes
-  an amount.
+- A round: all the grid makes is taken into the inventory, the product
+  is thrown out and the recipe is laid in again as many times as divide
+  evenly. What the inventory held of the product when the run began
+  stays; everything beyond it goes, also what was thrown out and picked
+  up again. A round goes out in one frame where the game shows each
+  part at once, the next 50 ms later; a take that found room for a part
+  only is followed by the next in the same frame. With no room in the
+  inventory for the product, it is taken onto the pointer and thrown
+  from there: by presses on the output where the pointer is over it,
+  else by the slot call that takes an amount.
 - A round that cannot be laid in waits for more to arrive. With no slot
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its

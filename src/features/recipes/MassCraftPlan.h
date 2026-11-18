@@ -7,7 +7,7 @@
 #include <vector>
 
 // L-165: what a mass craft decides without the game: which recipe lies in the
-// grid, what a take added to the inventory, and which stacks of an ingredient
+// grid, what of the product is thrown out, and which stacks of an ingredient
 // are more than the recipe's share of the inventory. Pure.
 namespace lamium::recipes {
 inline bool serves(Index const& index, Part const& part, Item item) {
@@ -72,14 +72,22 @@ inline int recipeInGrid(Index const& index, int side, std::vector<Item> const& g
     }
     return first;
 }
-// What a take left in a slot beyond what it held of the product before.
-struct Gain { int slot = 0, amount = 0; bool whole = false; bool operator==(Gain const&) const = default; };
-// `before`: per slot, how many of the product it held. `now`: per slot, its item and count.
-inline std::vector<Gain> gains(std::vector<int> const& before, std::vector<std::pair<Item, int>> const& now, Item product) {
-    std::vector<Gain> out;
-    for (size_t slot = 0; slot < now.size() && slot < before.size(); ++slot)
-        if (now[slot].first == product && now[slot].second > before[slot])
-            out.push_back({static_cast<int>(slot), now[slot].second - before[slot], before[slot] == 0});
+// What is thrown out of a slot: all of it, or `amount` of a stack that stays.
+struct Throw { int slot = 0, amount = 0; bool whole = false; bool operator==(Throw const&) const = default; };
+// The product beyond the `keep` the player carried when the run began, from
+// the last slot back: what a take added, and what was thrown out and came
+// back (picked up again, or a throw the server refused). `now`: per slot,
+// its item and count.
+inline std::vector<Throw> excess(std::vector<std::pair<Item, int>> const& now, Item product, int keep) {
+    int over = -keep;
+    for (auto const& [item, count] : now) if (item == product) over += count;
+    std::vector<Throw> out;
+    for (size_t slot = now.size(); slot-- > 0 && over > 0;) {
+        if (now[slot].first != product || now[slot].second <= 0) continue;
+        int const amount = std::min(over, now[slot].second);
+        out.push_back({static_cast<int>(slot), amount, amount == now[slot].second});
+        over -= amount;
+    }
     return out;
 }
 // The slots to throw out whole when a round cannot be laid in and the
