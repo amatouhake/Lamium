@@ -2,6 +2,7 @@
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/ListFilter.h"
 #include "features/recipes/PlacePlan.h"
+#include "features/recipes/Places.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeView.h"
@@ -341,6 +342,33 @@ void recipeIndexTests() {
         wanted.set("bucket", 5000000);
         check(wanted.count("lantern") == 4 && wanted.count("hopper") == 1 && wanted.count("bucket") == Wanted::most && wanted.targets.front().first == "lantern",
               "put back it has that count again; a count stays between one and the most");
+        // Counted places (step 8): the ender chest from its first sight on, stores once marked.
+        Places places;
+        Spot const left{0, 17, 74, 151}, right{0, 18, 74, 151}, far{0, 40, 74, 151};
+        check(!places.see(false, left, right, "minecraft:chest", {{"minecraft:stone", 0, 9}}, 100) && places.list.empty(),
+              "an open container that is no store is not kept");
+        check(places.mark(left, right, "minecraft:chest", {{"minecraft:stone", 0, 9}}, 100) && !places.mark(right, left, "minecraft:chest", {}, 101)
+              && places.store(right) == 0 && places.store(far) < 0,
+              "a double chest is one store by either half, and is marked once");
+        check(places.see(true, {}, {}, "minecraft:ender_chest", {{"minecraft:stone", 0, 3}, {"minecraft:bed", 14, 1}}, 110) && places.ender() == 0
+              && places.store(left) == 1 && !places.unmark(0),
+              "the ender chest is kept once seen, stands first and is not taken out");
+        check(places.see(false, right, left, "minecraft:chest", {{"minecraft:stone", 0, 20}}, 120) && places.list[1].at == left && places.list[1].seen == 120
+              && !places.see(false, right, left, "minecraft:chest", {{"minecraft:stone", 0, 20}}, 130),
+              "a store opened again holds what it holds now, opened by either half");
+        check(placeTotals(places) == std::vector<Stored>{{"minecraft:stone", 0, 23}, {"minecraft:bed", 14, 1}},
+              "the counted places add up by name and aux");
+        places.list[0].counted = false;
+        check(placeTotals(places) == std::vector<Stored>{{"minecraft:stone", 0, 20}}, "a place switched off is not counted");
+        {
+            Places const read = decodePlaces(encodePlaces(places));
+            check(read.list == places.list && decodePlaces("nonsense").list.empty()
+                  && decodePlaces(R"({"places":[{"at":[0,1,2]},{"at":[0,1,2,3],"items":[{"item":"a","count":2},{"item":"a","count":3},{"item":"b","count":0}]},{"at":[0,1,2,3]}]})").list
+                         == std::vector<Place>{{false, {0, 1, 2, 3}, {}, "", true, {{"a", 0, 5}}, 0}},
+                  "places survive their document; what is not understood is left out and a position stands once");
+        }
+        check(places.see(false, left, right, "minecraft:barrel", {}, 140) && places.store(left) < 0 && places.unmark(0) == false && places.list.size() == 1,
+              "a store where another block stands now is no store any more");
         Wanted read = decodeWanted(encodeWanted(wanted));
         check(read.targets == wanted.targets && read.remembered.empty(), "the wanted items are saved in order, the remembered counts are not");
         check(decodeWanted("not json").targets.empty() && decodeWanted("{\"wanted\":[{\"item\":\"a\",\"count\":-3},{\"item\":7,\"count\":1},{\"item\":\"b\",\"count\":2}]}").targets

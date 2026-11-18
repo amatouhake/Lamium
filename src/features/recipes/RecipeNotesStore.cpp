@@ -1,4 +1,5 @@
 #include "features/recipes/RecipeNotes.h"
+#include "features/recipes/Places.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 
@@ -62,6 +63,63 @@ Wanted decodeWanted(std::string_view document) {
         if (key.empty() || out.has(key) || !amount.is_number_unsigned()) continue;
         Count const count = amount.get<Count>();
         if (count >= 1 && out.targets.size() < 512) out.targets.emplace_back(std::move(key), std::min(count, Wanted::most));
+    }
+    return out;
+}
+namespace {
+Json spotJson(Spot const& spot) { return Json::array({spot.dimension, spot.x, spot.y, spot.z}); }
+std::optional<Spot> spotOf(Json const& value) {
+    if (!value.is_array() || value.size() != 4) return std::nullopt;
+    for (auto const& part : value) if (!part.is_number_integer()) return std::nullopt;
+    return Spot{value[0].get<int>(), value[1].get<int>(), value[2].get<int>(), value[3].get<int>()};
+}
+}
+std::string encodePlaces(Places const& places) {
+    Json list = Json::array();
+    for (auto const& place : places.list) {
+        Json items = Json::array();
+        for (auto const& item : place.items) items.push_back({{"item", item.name}, {"aux", item.aux}, {"count", item.count}});
+        Json entry{{"block", place.block}, {"counted", place.counted}, {"seen", place.seen}, {"items", std::move(items)}};
+        if (place.ender) entry["ender"] = true;
+        else {
+            entry["at"] = spotJson(place.at);
+            if (place.pair) entry["pair"] = spotJson(*place.pair);
+        }
+        list.push_back(std::move(entry));
+    }
+    return Json{{"version", 1}, {"places", std::move(list)}}.dump(2);
+}
+Places decodePlaces(std::string_view document) {
+    Places out;
+    Json const root = parsed(document);
+    if (!root.is_object()) return out;
+    auto list = root.find("places");
+    if (list == root.end() || !list->is_array()) return out;
+    for (auto const& entry : *list) {
+        if (!entry.is_object() || out.list.size() >= Places::most) continue;
+        Place place;
+        place.ender = entry.value("ender", Json()).is_boolean() && entry["ender"].get<bool>();
+        if (place.ender) {
+            if (out.ender() >= 0) continue;
+        } else {
+            auto const at = spotOf(entry.value("at", Json()));
+            if (!at || out.store(*at) >= 0) continue;
+            place.at = *at;
+            place.pair = spotOf(entry.value("pair", Json()));
+            if (place.pair && out.store(*place.pair) >= 0) continue;
+        }
+        place.block = text(entry.value("block", Json()));
+        if (auto const counted = entry.value("counted", Json()); counted.is_boolean()) place.counted = counted.get<bool>();
+        if (auto const seen = entry.value("seen", Json()); seen.is_number_integer()) place.seen = seen.get<std::int64_t>();
+        if (auto items = entry.find("items"); items != entry.end() && items->is_array())
+            for (auto const& item : *items) {
+                if (!item.is_object() || place.items.size() >= Places::mostItems) continue;
+                auto name = text(item.value("item", Json()));
+                auto const aux = item.value("aux", Json()), count = item.value("count", Json());
+                if (name.empty() || !count.is_number_unsigned() || !count.get<Count>()) continue;
+                addStored(place.items, name, aux.is_number_integer() ? aux.get<int>() : 0, count.get<Count>());
+            }
+        if (place.ender) out.list.insert(out.list.begin(), std::move(place)); else out.list.push_back(std::move(place));
     }
     return out;
 }

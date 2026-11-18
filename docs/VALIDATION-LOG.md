@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## How an opened container is told apart (L-359 step 8, 2026-11-19)
+
+Trace build of `259f43e4` (`craft_trace`, DLL
+`3d817f413952d8af182ff244faf7423a605c3eba8eaf8c2216aacd10db2c4e98`),
+1.26.60.05 Dev instance, a local world, the maintainer opening each:
+- The screen's `mBlockPos` is the block opened, also on the client:
+  chest (`small_chest_screen`), barrel (`barrel_screen`), ender chest
+  (`ender_chest_screen`, block `minecraft:ender_chest`), a placed shulker
+  box (`shulker_box_screen`), trapped chest; container type 0 and
+  `container_items` 27 for all.
+- A double chest (`large_chest_screen`, 54) gives the half that was
+  opened: 18,74,151 and 17,74,151 for the two halves of one.
+- A chest minecart: position 0,0,0 with the placeholder block, and an
+  entity id; a block gives entity -1.
+- The inventory: its own type (-1), no `container_items`, the player's
+  position.
+- Not learned: when the items show. Every container read as empty at
+  opening and no later change was logged, so they were either empty or
+  the read does not see them.
+
 ## The hand-over's switch and the raw view's heading (L-359, 2026-11-19)
 
 Build `78559093` (DLL
