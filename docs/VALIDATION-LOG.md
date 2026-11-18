@@ -12,6 +12,34 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## What the game's recipe book and item screens do (L-165, L-359, 2026-11-18)
+
+Build `d5456178` with `craft_trace` (DLL
+`6f367718f9ca3a5f0e3ee8da7244e548d95c118bf4cabe8c19b0b7711b274855`),
+1.26.60.05 Dev instance, a local world, the maintainer played and the
+agent read the log:
+- A recipe clicked in the game's book: the grid filled with what divides
+  evenly (one cell of 64 logs; six cells of 10 ingots from 64; nine of 7
+  redstone), one request per cell, all accepted; the manager's selected
+  and crafting recipe were that recipe.
+- The output taken by a click: the server was asked for `CraftRecipe`
+  (type 12) with one craft. `CraftRecipeAuto` (type 13) was asked with 16
+  crafts of planks, in the inventory's grid and at the crafting table (the
+  cell went from 64 logs to 48, and from 47 to 31), and with 7 crafts of
+  iron blocks while the grid was empty, one ingot lying in it afterwards.
+  The presses behind those were not recorded.
+- An item taken from the creative list: `_handleAutoPlace` on
+  `recipe_nature`, the server asked for `CraftCreative` (type 14).
+- Collections: `crafting_input_items` (4 or 9) and
+  `crafting_output_items`; the furnaces' `furnace_ingredient_items`,
+  `furnace_fuel_items`, `furnace_output_items`; `stonecutter_input_items`
+  and `_result_items`; the smithing table's template, input, material and
+  result; `brewing_input_item`, `brewing_fuel_item`, `brewing_result_items`
+  (3); loom, grindstone, cartography and trade each their own; chest,
+  barrel, shulker box and ender chest all `container_items` (27).
+- Not learned: the screens' window controls. The trace listed only the
+  loading bars, so it walked the tree wrongly.
+
 ## Open over the recipe view, a typed count's line (L-359, 2026-11-18)
 
 Build `03d467dc` (DLL
