@@ -258,7 +258,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     float const right = std::max(at.x + size.x, viewLayout.left + RecipeViewLayout::width);
     auto const layout = itemListRight(screen.x, screen.y, 0, right);
     if (!layout.usable()) { closeViews(); return false; }
-    auto const side = itemListLeft(screen.y, std::min(windowLeft, viewLayout.left));
+    // Between the two bands: what a Lamium window covers, so the game's window does not show beside it.
+    float const coverLeft = std::min(windowLeft, viewLayout.left);
+    auto const side = itemListLeft(screen.y, coverLeft);
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
     {
@@ -560,12 +562,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
         view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(),
-                             placer ? &*placer : nullptr}, late);
+                             placer ? &*placer : nullptr, coverLeft, right}, late);
     }
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, nullptr}, late, *player,
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, nullptr, coverLeft, right}, late, *player,
                        shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
@@ -630,7 +632,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         auto over = [&](float bx, float by, float bw, float bh) { return bw > 0 && x < bx + bw && x + w > bx && y < by + bh && y + h > by; };
         return over(layout.left, layout.top, layout.width, layout.height) || over(field.x, field.y, field.w, field.h)
             || (side.usable() && over(side.left, side.top, side.width, side.height))
-            || (open && over(viewLayout.left, viewLayout.top, RecipeViewLayout::width, viewLayout.height));
+            || (open && over(coverLeft, viewLayout.top, right - coverLeft, viewLayout.height));
     });
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
     // In a call of its own: within one call the batched icons, which the lists' are, are drawn after a direct one.

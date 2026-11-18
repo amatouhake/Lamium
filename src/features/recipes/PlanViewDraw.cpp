@@ -44,7 +44,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     };
     auto const l = recipeViewAt(input.screenWidth, input.screenHeight);
     // In the recipe view's place and look: the game's window under it must not show.
-    windowPanel(context, l.left, l.top, l.width, l.height);
+    float const coverLeft = input.coverRight > input.coverLeft ? std::min(l.left, input.coverLeft) : l.left;
+    float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
+    windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
     windowLabel(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.wanted"));
     float x = l.left + 5;
     Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::Places};

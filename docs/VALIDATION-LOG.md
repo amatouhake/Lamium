@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The trial tab strip, game-like slots and the two switches (L-359, 2026-11-19)
+
+Build `2202d09c` (DLL
+`9122379e401bd697f36eb9686384b65f6098e0e70a49623e250b4353e06de5e4`),
+1.26.60.05 Dev instance, the maintainer, four screenshots:
+- The tab strip on the plan's window, the recipe view's stations and the
+  band (names, and pictures with the recipe book out), the slots drawn
+  as the game's with red under a missing ingredient, and "favourite" and
+  "wanted" as switches: solid and easy to read (maintainer).
+- Bothered: whether these tabs sit well with the rest of Lamium, which
+  switches with buttons (the Schematics tabs, the Check filters, the world
+  map's dimensions and its layers, pictures where they do not fit); the
+  switches stand higher than their words; the heading shows only a few
+  letters of the item's name; with the game's recipe book out the
+  windows do not cover the game's window.
+- The tab strip's look is taken back to discussion with all of Lamium's
+  switching controls in view.
+
 ## The first fixes from the look review (L-359, 2026-11-19)
 
 Build `910258a9` (DLL

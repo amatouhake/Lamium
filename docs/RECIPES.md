@@ -251,12 +251,15 @@ A setting of its own, off by default, and it works with Recipes off
   and what it sees.
 
 ### The look, reviewed with the maintainer (2026-11-19)
-What bothered is in VALIDATION-LOG of that day. Agreed, built: the shared tab strip (DESIGN "Controls") on the recipe
-view's stations, the plan's window and the band's lists, as pictures
-where the band is narrow; the recipe view's slots as the game draws its
+What bothered is in VALIDATION-LOG of that day. Built as a trial, its look not settled (DESIGN "Controls"): a tab strip
+on the recipe view's stations, the plan's window and the band's lists,
+as pictures where the band is narrow. Agreed, built: the recipe view's slots as the game draws its
 own, a missing ingredient on the game's red; "favourite" and "wanted"
 there as a name and a switch each (icon toggles depend too much on the
-icon; a common style first); a row of the plan's window says its whole name and its count
+icon; a common style first), at the right end of the stations' line so
+the heading has its line to itself; a Lamium window's grey covers the
+whole span between the two bands, so the game's window with its recipe
+book out does not show beside it; a row of the plan's window says its whole name and its count
 in chests and stacks under the pointer; the Stores tab and the band's
 switch as above. Agreed, not built:
 - The band's and the windows' lists scroll with the shared scrollbar
@@ -271,8 +274,6 @@ switch as above. Agreed, not built:
   panels beside the anvil do by its rest position and slide
   (`EnchantOrderGame.cpp` `drawBeside`); those still flicker on opening,
   which is to be looked at with it.
-- With the game's recipe book open, Lamium's windows cover the whole of
-  the game's window.
 - The window's title is "Plan"; a switch for the schematic's materials on
   the wanted tab; W held with the wheel over an item of the list changes
   its wanted count; settings for the left band and for using Recipes
@@ -338,9 +339,10 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
   inventory slot under the pointer was not tried.
 - Open: whether the switch for the shulker boxes carried goes, or
   becomes one for all shulker boxes. What bundles hold is not counted:
-  it lives in a container of the client's that is read through an open
-  item screen (`BundlePreviewProvider.cpp`), so the HUD and the
-  Materials tab could only use what was last seen there.
+  the one call the SDK links for it (`BundleHelper::getItemStackFromBundle`)
+  takes an open item screen's controller. The plan is only shown on item
+  screens and could count it as it is; the HUD and the Materials tab,
+  which have no such screen, could only use what was last seen on one.
 - Stores: not seen are a store replaced by another block, shulker boxes
   inside one, the Materials tab and the Schematic HUD counting them, and
   the switches for what is carried.

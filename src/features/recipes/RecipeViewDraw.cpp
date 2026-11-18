@@ -74,16 +74,20 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     at.page += input.wheel;
     auto const l = recipeViewAt(input.screenWidth, input.screenHeight);
     // The game's window lies under the view and still answers the pointer: nothing of it may show through.
-    windowPanel(context, l.left, l.top, l.width, l.height);
-    // The item's own actions keep the heading's right end; its name takes what is left.
+    float const coverLeft = input.coverRight > input.coverLeft ? std::min(l.left, input.coverLeft) : l.left;
+    float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
+    windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
+    // The heading has the first line to itself: the item's name is what the view is about. The item's two
+    // switches stand at the right end of the stations' line, the pager left of them.
     float headEnd = l.left + l.width - 5;
     // A name and its switch, as Lamium's rows are (decided 2026-11-19): the item is a favourite or not,
     // wanted or not. A press anywhere on the pair switches it.
     auto headButton = [&](std::string text, float w, bool on, Act act) {
-        Region const region{headEnd - w, l.top + 3, w, 11, act, {}, -1};
+        Region const region{headEnd - w, l.top + 15, w, 11, act, {}, -1};
         if (region.has(input.pointerX, input.pointerY)) fill(context, region.x - 1, region.y, region.w + 2, region.h, palette::shade, .08f);
+        // The switch sits on the text's line: its 9 units centred on the glyphs, which stand low in their box.
         windowLabel(context, region.x, region.y + 2, w - switchWidth - 3, std::move(text));
-        toggleSwitch(context, region.x + w - switchWidth, region.y + 1, on);
+        toggleSwitch(context, region.x + w - switchWidth, region.y + 2, on);
         regions.push_back(region);
         headEnd -= w + 6;
     };
@@ -92,7 +96,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
     headButton(in, textWidth(context, in) + 3 + switchWidth, wanted, Act::Wanted);
     headButton(favourite, textWidth(context, favourite) + 3 + switchWidth, state::notes().favourite(at.item), Act::Favourite);
-    windowLabel(context, l.left + 6, l.top + 5, headEnd - l.left - 8,
+    windowLabel(context, l.left + 6, l.top + 5, l.width - 12,
                 translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {
         windowLabel(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), true);
@@ -118,7 +122,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     at.page = std::clamp(at.page, 0, pages - 1);
     // Stations are tabs, each by its block's icon and named under the pointer; the pager keeps the line's right end.
     float x = l.left + 5;
-    float const tabY = l.top + 16, tabEnd = l.left + l.width - 40;
+    float const tabY = l.top + 16, tabEnd = headEnd - 36;
     for (size_t i = 0; i < tabs.size(); ++i) {
         std::string name = stationName(tabs[i].station);
         auto const picture = stationItem(tabs[i].station);
@@ -137,7 +141,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         x += w;
     }
     tabRule(context, l.left + 5, tabY + tabHeight, l.width - 10, true);
-    if (pages > 1) windowLabel(context, l.left, tabY + 2, l.width - 6, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
+    if (pages > 1) windowLabel(context, headEnd - 40, tabY + 2, 36, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);

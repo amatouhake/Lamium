@@ -25,6 +25,9 @@ struct Input {
     bool back = false, close = false;
     bool shift = false;       // held: "place" lays in as many as divide evenly
     Placer* placer = nullptr; // null where the screen has no crafting grid
+    // The span between the two bands. The window's grey covers all of it, so a game window wider than
+    // the view (its recipe book out) does not show at the view's sides; what the view shows keeps its place.
+    float coverLeft = 0, coverRight = 0;
 };
 // Drawn by the host after its own: item icons, then counts and the name under the pointer on top of them.
 struct Late {

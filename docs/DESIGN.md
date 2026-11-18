@@ -128,16 +128,16 @@ the same commit. A screen never draws its own variant.
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.
-- **Tabs** (`drawTab`, `tabRule`; decided 2026-11-19 from
-  [demos/tab-strip.html](demos/tab-strip.html)): a strip of names side by
-  side with no gap, divided by thin lines, over a rule as wide as what
-  they switch. The selected tab is bright over a thick accent line, the
-  others dim and lighter under the pointer; none is a filled button, so
-  a strip is not read as actions. Where the names do not fit, each tab
-  is an item's picture, named under the pointer. Built for Recipes;
-  screens that still set buttons side by side for this (Schematics) move
-  to it when they are next worked on. A choice among values in one
-  bordered control (the world map's dimensions) stays what it is.
+- **Tabs** are not settled. Lamium switches things in three ways, all
+  drawn as buttons today, Primary when selected: a view (the Schematics
+  screen's four tabs; the settings sidebar is a list), one value of
+  several (the world map's dimensions, joined in one border), and layers
+  each on or off (the world map's, as pictures where they do not fit;
+  the Check tab's outlined pills). Recipes carries a trial of a strip
+  for views (`drawTab`, `tabRule`: divided labels over a rule, a thick
+  accent line under the selected one); whether views get a look of their
+  own, and which, is decided for all of Lamium at once
+  ([demos/switching-controls.html](demos/switching-controls.html)).
 - **Slots on a window of the game's grey** (`windowSlot`): as the game
   draws its own, dark upper-left and light lower-right edges on its slot
   grey; what the player lacks stands on the game's red.
