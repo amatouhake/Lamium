@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## One of several on the dark panels, the framed switch, joined buttons (L-359, 2026-11-19)
+
+Build `716c08fa` (DLL
+`c2575891622f7dd0334aeb3eb759108ef3acace8c91172b33c85d4aa1199da24`),
+1.26.60.05 Dev instance, the maintainer, one screenshot:
+- The band's lists and the item list's two filters on the faint accent
+  face over a bar read well and sit with the settings sidebar.
+- "Favourite" and "wanted" as two joined buttons read better than the
+  switches did: kept.
+- The open container's switch can be told apart in its frame, but its
+  Japanese text stands low in the frame and it is still not easy to
+  read; whether to go on in this direction or make it a button is open.
+
 ## The recipe view's heading and switches after the move (L-359, 2026-11-19)
 
 Build `4f99f863` (DLL
