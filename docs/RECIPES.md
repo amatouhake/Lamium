@@ -14,8 +14,8 @@ is open). What of this nobody has seen in game is under "Limits".
 
 ## Behavior
 
-Decided by the maintainer on 2026-11-17 and 2026-11-18. What is still open
-is in the L-item.
+Decided by the maintainer on 2026-11-17 and 2026-11-18, the second day
+after using the first build. What is still open is in the L-item.
 
 ### Principles
 - Lamium alone: no link to another mod's recipe data or screens. Recipes
@@ -39,35 +39,43 @@ is in the L-item.
 - The favourite key puts the hovered item in or takes it out, wherever it
   is pressed.
 - One search field at the bottom centre of the screen, low enough that it
-  never has to move when the centre shows more: close to the inventory, and
+  never has to move when the centre shows more and high enough for
+  Japanese and letters that reach under the line: close to the inventory, and
   where later uses of the same field belong (highlighting the inventory
   slots that match, calculating).
 - The list can be narrowed, at least to what can be made now. The filters
   have their place from the start: the list's bar, "All" and "Can be made"
   (one switch where the band is narrow).
+- In the lists a favourite's cell is framed in the accent color; a wanted
+  item carries how many are wanted where a stack has its count.
+- An item held on the pointer is drawn over the bands and the windows, as
+  beside the anvil.
 - The agent's choices while building, to confirm: the search takes the
   name as the game shows it or the item's id, every word typed must be in
   one of them, letters match in either case; "can be made" is a crafting
   recipe that what is carried (shulker boxes included) makes once, without
-  making anything first; a favourite carries a small accent mark on its
-  cell in the list; the left band is halved between favourites and wanted;
-  favourites are kept with the notes for all worlds; a recipe that is not
-  the one in use offers "use this" in the recipe view, kept by station and
-  id; deleting a world's or a server's saved data removes its wanted items.
+  making anything first; the wanted mark being the count; the left band is
+  halved between favourites and wanted; favourites are kept with the notes
+  for all worlds; a chosen recipe is kept by station and id; deleting a
+  world's or a server's saved data removes its wanted items; "any order"
+  is a small mark of three squares, named under the pointer.
 - The list moves aside when the game's own recipe book is switched on.
 
 ### The recipe view
-- Opens in the centre of the screen, in Lamium's own look: its panel,
-  buttons and tabs, and the cells the container preview already draws. The
-  arrangement follows the game; the game's look can come later if wanted.
+- Opens in the centre of the screen as a window in the game's grey, opaque
+  (a dark one read badly over the game's window, and a translucent one let
+  it show through), with dark text; its buttons, tabs and cells are
+  Lamium's shared ones. The arrangement follows the game.
 - The window keeps one size, two recipe columns wide, so nothing changes
   between items; where one column is enough it sits in the middle. The
   centre keeps that room free, so the side lists never move.
 - Shows as many recipes to a page as the window holds (two were too few
   for an item with dozens of uses).
 - Stations are tabs: one station's recipes to a view, each the same size.
+  A tab is the station's block as an icon, named under the pointer.
 - The item's own actions sit together in the heading: a favourite button
-  (the key works too) and "add to plan". Recipes carry no favourite button
+  (the key works too) and "add to wanted", which keeps its width when it
+  turns into "wanted". Recipes carry no favourite button
   of their own: any item in a recipe can be opened, and the key is there.
 - One line of key hints sits just above the search field, in the same
   place whether a recipe is open (the window's last line) or not: click
@@ -81,9 +89,15 @@ is in the L-item.
 - R over an item shows its recipes and U what it is used in, in the lists,
   the view and the game's own slots. Sorting therefore has no default key.
 - Each recipe carries one control, "place" (with Shift: craft many, Mass
-  Craft), and the marks "default" (press to make it the item's default),
-  "any order" for a shapeless recipe and "2x2" for one the inventory's own
-  grid can make.
+  Craft), and one small mark, "any order" for a shapeless recipe. That a
+  recipe fits the inventory's own grid is seen from its shape. Which recipe
+  makes an item is chosen only where it matters: opened from the list of
+  what to make, an item with several recipes shows "in use" on one and
+  "use" on the others.
+- The arrow and the product stand at the middle of the ingredients.
+- A recipe that uses its own product (copying a smithing template, dyeing
+  a shulker box) is shown after the others and is never the recipe a plan
+  makes the item by.
 - A recipe is shown as the game shows it, as closely as Lamium can draw it:
   a crafting recipe in the 3x3 grid, a furnace's or another station's in a
   fixed layout that follows that station's own screen. This is the one
@@ -112,17 +126,26 @@ is in the L-item.
   can be added by hand. Hand-added targets are saved per world, under the
   waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
   be edited; it looks like the others and says where it comes from.
-- The plan's short list on the left shows either what is left to gather or
-  the targets, switched in place; a press on a line or on "Open" opens the
-  window on that list. The window has the tabs wanted, to gather and to
-  make, and sits where the recipe view does; the recipe view opens over it
-  (a press on an item's name) and gives it back when closed.
+- The plan's short list on the left shows the wanted items, what is left
+  to gather or what to make, switched in place and named as the window's
+  tabs (one button going round where the three do not fit); a press on a
+  line or on "Open" opens the window on that list. The window has the tabs
+  wanted, to gather and to make, and sits where the recipe view does, in
+  its look; the recipe view opens over it (a press on an item's name) and
+  gives it back when closed.
+- A line of what to make says, under the pointer, what its crafts take and
+  how many, on the short list and in the window.
+- On both of the window's lists the row's button ("gather", "make") keeps
+  the right end, the numbers left of it.
 - A key (W by default, beside A for favourites; both rebindable) puts the
   hovered item into "wanted" or takes it out, wherever the favourite key
   works. An item taken out keeps its count until the world is left, so
-  putting it back restores it.
+  putting it back restores it. The short list then shows the wanted items,
+  so what went in is seen.
 - A wanted item's count is changed with the shared stepper (- N +), on the
-  short list and in the window alike; nothing else changes it.
+  short list and in the window alike: minus at one takes the item out (the
+  wheel and a Shift step stop at one), and a press on the number types it
+  (Enter or a press elsewhere keeps it, Esc does not).
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
@@ -163,7 +186,7 @@ is in the L-item.
   from the game (the listeners in `input/CustomInput.cpp` and the text hook
   in `ui/SettingsScreen.cpp` ask it; what they keep acts in the next
   frame). `RecipeViewDraw.cpp` and `PlanViewDraw.cpp` draw the two windows
-  and do not know their host.
+  and do not know their host. `CountEdit.h`: the count being typed.
 - `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favourites,
   chosen recipes, picked members and items marked as gathered, for all
   worlds in the config folder's `recipes.json`; the wanted items per world
@@ -179,24 +202,26 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
-- Not seen in game by anyone (built while the maintainer was away, and the
-  agent could not drive the game): items told apart by aux, the search
-  field and the filter, favourites, the wanted items and their window, the
-  A and W keys, "use this" on a recipe. Japanese input in the search field
-  was never checked; it takes no pasted text.
+- Not seen in game: everything decided after the first build (the grey
+  window, icon tabs, the make list on the band, typed counts, the marks in
+  the list, the held item over the bands, recipes that use their own
+  product), "use" on a recipe, a server. The search field takes no pasted
+  text.
 - Not built: "place" and Mass Craft; the schematic handing its materials
   over and the Materials tab cut back to its gather list; counted places
-  beyond what is carried; a typed number in the wanted stepper; held
-  members first in a group's turn; what a recipe leaves besides its
-  product; recipes that use their own product are left out with the index.
+  beyond what is carried; held members first in a group's turn. Their own
+  items: taking an item out of the list in creative
+  ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what
+  a recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), and
+  the game's tooltip and Lamium's item details for a listed item
+  ([L-363](backlog/L-363.md)): today the lists name an item and no more.
 - Items are told apart by name and aux. Items that differ only in their
   data (enchanted books, a filled map) are one item. The schematic
   Materials tab still counts what is carried by name alone.
 - The wanted items' file goes when a world's or a server's saved data is
   deleted, but the Saved data screen does not count or show it, and moving
   a server's data to another key leaves it ([L-358](backlog/L-358.md)).
-- Potion mixes are not read (the SDK gives them no layout); trades and
-  drops are not recipes.
+- Trades and drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated
   Server; other servers and Realms are not.
 - Mockups: [demos/recipe-viewer.html](demos/recipe-viewer.html),

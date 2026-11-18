@@ -111,7 +111,9 @@ anvil.
   reads name, level stepper (`-` level `+`), switch at the right edge; the
   level stays in one column whatever the row's state. Off: the level it
   would turn on at, faint, without buttons. One level only: the switch
-  alone. A press turns a row on or off; `-` below level 1 turns it off.
+  alone. A press turns a row on or off; `-` below level 1 turns it off; a
+  press on the level types it (Enter or a press elsewhere keeps it, Esc
+  does not), on the planner screen and beside the anvil alike.
 - A row conflicting with something chosen or carried is faint and says
   "Conflicts with <name>" (no level) in place of stepper and switch. With
   nine books chosen the other rows cannot be turned on ("At most 9 books").

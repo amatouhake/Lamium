@@ -217,7 +217,11 @@ recipe book by the control `recipe_book` and its `mVisible`; the search
 field claims the platform keyboard (`KeyboardManager`) while focused and
 takes its text from the `UIScene::handleTextChar` hook; the game's
 inventory key is read from the keymapping `key.inventory`. A shape that does not fit the
-ingredient count is ignored, and the log says how many did.
+ingredient count is ignored, and the log says how many did. The item held
+on the pointer is drawn again over the bands and the windows as beside the
+anvil (`inspection/render/HeldItem.cpp`: the container manager's
+`cursor_items`, the controls `selected_item_icon` and
+`selected_stack_size_text`); a screen without those controls shows nothing.
 
 ## Inventory
 
