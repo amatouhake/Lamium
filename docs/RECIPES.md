@@ -196,10 +196,11 @@ A setting of its own, off by default, and it works with Recipes off
 - A round: all the grid makes is taken into the inventory, what the take
   added of the product is thrown out (what was carried of it before
   stays), and the recipe is laid in again as many times as divide evenly.
-  A step every 50 ms. With no room in the inventory for the product, it
+  A round goes out in one frame where the game shows each part at once,
+  the next 50 ms later. With no room in the inventory for the product, it
   is taken onto the pointer and thrown from there: by presses on the
   output where the pointer is over it, else by the slot call that takes
-  an amount, which was not seen to craft.
+  an amount.
 - A round that cannot be laid in waits for more to arrive. With no slot
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its
@@ -209,7 +210,7 @@ A setting of its own, off by default, and it works with Recipes off
 - It ends when the key is released or the pointer holds an item that is
   not the product. A step that shows nothing (the server refuses a
   request when items were picked up meanwhile and its inventory is not
-  the client's) is tried again after 0.3 s, the grid's contents going
+  the client's) is tried again after 0.15 s, the grid's contents going
   back first where the run started from an item; twenty such steps in a
   row end the run. Each run writes
   its recipe and, at its end, rounds, takes, stacks thrown and time to

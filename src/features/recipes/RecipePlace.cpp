@@ -154,18 +154,19 @@ void stop() { going = {}; }
 namespace massCraft {
 namespace {
 using Clock = std::chrono::steady_clock;
-// Between two steps of a run, so a fast frame rate does not send requests faster; and how long a
+// Between two steps of a run, so a fast frame rate does not send requests faster (a step is a whole
+// round where everything shows at once: laid in, taken, thrown out); and how long a
 // round that cannot be laid in waits for more to arrive, or for what it threw out to be gone.
 // `patience`: how long a take's result or a product may take to show before the step is tried again. A
 // request is refused when the server's inventory is not the client's (items picked up meanwhile), so a
 // step that shows nothing is tried again, `mostStalls` times in a row before the run gives up.
 constexpr auto step = std::chrono::milliseconds(50), idle = std::chrono::milliseconds(250), afterSurplus = std::chrono::milliseconds(1000),
-               patience = std::chrono::milliseconds(300);
+               patience = std::chrono::milliseconds(150);
 constexpr int mostStalls = 20;
 constexpr int slots = 36;
 // Hand: the inventory has no room for the product, so it is taken onto the pointer and thrown from there.
 enum class Phase { Lay, Take, Throw, Hand };
-constexpr int mostClicks = 8;
+constexpr int mostClicks = 16, mostPasses = 6;
 struct Run {
     bool on = false, over = false; // over: this press of the key does nothing more
     bool fromGrid = false;         // started over the output slot: it goes on only while the pointer stays there
@@ -298,7 +299,7 @@ void again(char const* why, Clock::time_point now) {
     run.phase = Phase::Take;
     run.since = now;
     run.clicked = false;
-    run.next = now + idle;
+    run.next = now + step;
 }
 void advance(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
@@ -308,10 +309,12 @@ void advance(CraftingScreenController& controller) {
     if (now < run.next) return;
     if (run.phase != Phase::Hand && held(manager)) { finish("the pointer holds an item"); return; }
     bool anyFree = false;
+    // What the game shows at once goes on in the same frame: a round is laid in, taken and thrown out in one.
+    for (int pass = 0; pass < mostPasses; ++pass)
     switch (run.phase) {
     case Phase::Take: {
         if (!makes(manager)) {
-            if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; return; }
+            if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; continue; }
             // What a recipe leaves behind (a bucket), or a product not shown yet.
             if (now - run.since <= patience) return;
             // Started from an item, the grid is this run's: what stays in it goes back and it is laid in anew.
@@ -320,7 +323,7 @@ void advance(CraftingScreenController& controller) {
             again("the grid holds something that is not the recipe", now);
             return;
         }
-        if (!roomFor(manager, index, recipe.makes)) { run.phase = Phase::Hand; run.since = now; run.clicked = false; return; }
+        if (!roomFor(manager, index, recipe.makes)) { run.phase = Phase::Hand; run.since = now; run.clicked = false; continue; }
         auto const now36 = slotsOf(manager, index, anyFree);
         run.before.assign(slots, 0);
         for (int slot = 0; slot < slots; ++slot)
@@ -330,8 +333,7 @@ void advance(CraftingScreenController& controller) {
         ++run.takes;
         run.phase = Phase::Throw;
         run.since = now;
-        run.next = now + step;
-        return;
+        continue;
     }
     case Phase::Throw: {
         auto const found = gains(run.before, slotsOf(manager, index, anyFree), recipe.makes);
@@ -352,14 +354,17 @@ void advance(CraftingScreenController& controller) {
         return;
     }
     case Phase::Hand: {
-        int const have = held(manager);
-        int most = 64;
-        if (have) {
+        int have = held(manager);
+        auto more = [&](int count) {
+            int most = 64;
+            if (count) most = static_cast<int>(manager.getItemStack(pointer, 0).getMaxStackSize());
+            return makes(manager) && count + static_cast<int>(recipe.count) <= most;
+        };
+        auto product = [&] {
             auto const& stack = manager.getItemStack(pointer, 0);
-            if (index.find(stack.getTypeName(), stack.getAuxValue()) != recipe.makes) { finish("the pointer holds an item"); return; }
-            most = static_cast<int>(stack.getMaxStackSize());
-        }
-        auto more = [&](int count) { return makes(manager) && count + static_cast<int>(recipe.count) <= most; };
+            return index.find(stack.getTypeName(), stack.getAuxValue()) == recipe.makes;
+        };
+        if (have && !product()) { finish("the pointer holds an item"); return; }
         // A press on the output crafts once onto the pointer; again while the last one showed. Away from the
         // output slot the product is taken onto the pointer by the slot call instead (not seen to craft yet).
         if (more(have) && (!run.clicked || have > run.handSeen)) {
@@ -371,8 +376,8 @@ void advance(CraftingScreenController& controller) {
                 run.clicked = true;
                 if (held(manager) <= run.handSeen) break;
             }
-            run.next = now + step;
-            return;
+            have = held(manager);
+            if (have && !product()) { finish("the pointer holds an item"); return; }
         }
         if (!have) {
             if (now - run.since > patience) again("the product could not be taken", now);
@@ -398,8 +403,7 @@ void advance(CraftingScreenController& controller) {
             ++run.rounds;
             run.phase = Phase::Take;
             run.since = now;
-            run.next = now + step;
-            return;
+            continue;
         }
         // Not enough of an ingredient: more may arrive while the key is held. With no slot free for it,
         // what the others fill beyond their share goes out.

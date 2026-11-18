@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft going on through refused steps (L-165, 2026-11-18)
+
+Trace build of `2d20fdc0` (`craft_trace`, DLL
+`4430df90cebff53423439aadb4ac01d33d551b1e5d74b5f0e1781c203cc20f6d`),
+1.26.60.05 Dev instance, a local world, the maintainer standing where
+what is thrown out is picked up again:
+- Logs and levers: the run went on with the inventory full; a chest run
+  did not stop by itself.
+- Too slow (maintainer): the log has 72 rounds of planks in 55 s and 35
+  of chests in 36 s, 24 and 20 steps tried again, 144 and 32 throws
+  from the pointer; 165 of 565 responses refused. The throw from the
+  pointer worked away from the output slot too (the slot call that takes
+  an amount crafts).
+
 ## Mass Craft from an item and with a full inventory (L-165, 2026-11-18)
 
 Trace build of `73ad8976` (`craft_trace`, DLL
