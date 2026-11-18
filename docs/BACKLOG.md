@@ -189,7 +189,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favourites, the wanted items and placing are built behind the Recipes setting and were seen in game; so was the schematic hand-over. Counted places are not built; the look is reviewed once the feature is complete
+- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favourites, the wanted items and placing are built behind the Recipes setting and were seen in game; so was the schematic hand-over. Counted places are built and not seen; the look is reviewed once the feature is complete
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-361](backlog/L-361.md) Brewing in the recipe view (Research): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started

@@ -160,17 +160,23 @@ after using the first build. What is still open is in the L-item.
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
-- What is held is the sum over the places that are counted: carried items
-  always, the shulker boxes among them by default; later the ender chest
-  and containers the player marks as stores, each counted as last seen
-  open. One count serves the plan and the schematic Materials tab;
-  Enchantment Order keeps counting the inventory. The later places are
-  built after the first version, but their place on screen is fixed now:
-  a "counted places" tab in the plan's window with a switch per place; a
-  "have" column whose hover tells where the items are; a star on a number
-  that includes a last-seen count, in a gutter of its own so the digits
-  stay aligned; and, while a container is open, a "make this a store"
-  button on the last line of the left band, which is kept free for it.
+- What is held is the sum over the places that are counted: what is
+  carried, always, with the shulker boxes carried; the ender chest from
+  the first time it is seen open; and the containers the player marks as
+  stores (a chest, barrel or placed shulker box; a double chest is one
+  store by either half; a minecart's chest is none). A place counts what
+  it held when it was last seen open, the contents of shulker boxes in it
+  included, and is noted while it is open and Recipes is on. One count
+  serves the plan, the schematic Materials tab and the Schematic HUD;
+  Enchantment Order and "can be made" keep counting what is carried.
+- While a container is open, the last line of the left band has "Make
+  this a store", which turns into taking it out again. The plan's window
+  has a "Places" tab: what is carried (always), then the ender chest and
+  the stores, each with a switch, a store also with "Remove". A store
+  where another block stands is dropped when that is seen.
+- In "to gather", a "have" number that includes a place's last-seen count
+  carries a star in a gutter of its own, and says under the pointer how
+  many are carried and how many each place holds.
 - Kept between sessions: only what the player enters (recipe choices, group
   picks, "stop here" marks), in one file for all worlds; an entry the
   current world's recipes lack is ignored, not deleted.
@@ -265,7 +271,9 @@ A setting of its own, off by default, and it works with Recipes off
 - `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favourites,
   chosen recipes, picked members and items marked as gathered, for all
   worlds in the config folder's `recipes.json`; the wanted items per world
-  in `wanted.json` beside its waypoints. `RecipeState.cpp` loads and saves
+  in `wanted.json` beside its waypoints, the counted places (`Places.h`,
+  pure) in `places.json` there; `RecipePlaces.cpp` reads the open
+  container behind the CountedPlaces capability. `RecipeState.cpp` loads and saves
   them and works the plan out. A file that cannot be read is left as it is
   and the changes are kept for the session only.
 - `src/ui/SchematicsView.cpp` (`refreshRaw`): the Materials tab's raw view,
@@ -290,8 +298,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Not built: counted places
-  beyond what is carried; held members first in a group's turn. Their own
+- Counted places are built and not seen in game; whether an open
+  container's items are read is the first thing to see.
+- Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what
   a recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), and
@@ -300,8 +309,8 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Items are told apart by name and aux. Items that differ only in their
   data (enchanted books, a filled map) are one item. The schematic
   Materials tab still counts what is carried by name alone.
-- The wanted items' file goes when a world's or a server's saved data is
-  deleted, but the Saved data screen does not count or show it, and moving
+- The wanted items' and the counted places' files go when a world's or a
+  server's saved data is deleted, but the Saved data screen does not count or show it, and moving
   a server's data to another key leaves it ([L-358](backlog/L-358.md)).
 - Trades and drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated

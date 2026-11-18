@@ -9,7 +9,7 @@ class MinecraftUIRenderContext;
 // the recipe view does and is hosted the same way; the recipe view opens over
 // it and gives it back when closed. Client thread only.
 namespace lamium::recipes::planView {
-enum class Tab { Wanted, Gather, Make };
+enum class Tab { Wanted, Gather, Make, Places };
 bool isOpen();
 void open(Tab tab);
 void close();

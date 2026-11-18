@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/Places.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeService.h"
@@ -34,6 +35,16 @@ void setChoice(std::string const& item, std::string const& recipe);
 // The member used for a group; an empty member gives it back to "any".
 void setPick(std::string const& group, std::string const& member);
 void setStop(std::string const& item, bool gathered);
+// The counted places of this world (Places.h), kept beside the wanted items. `seePlace`: what an open
+// container holds now; it is kept if the container is the ender chest or a store.
+Places const& places();
+void seePlace(bool ender, Spot const& spot, std::optional<Spot> const& pair, std::string const& block, std::vector<Stored> items);
+bool markStore(Spot const& spot, std::optional<Spot> const& pair, std::string const& block, std::vector<Stored> items);
+void unmarkStore(int index);
+void setPlaceCounted(int index, bool counted);
+// What is held, by item name: what is carried and what the counted places held when last seen. The one
+// count for the plan, the schematic's Materials tab and its HUD.
+std::map<std::string, std::uint64_t> heldByName(LocalPlayer& player);
 // The recipe table with the player's choices put in. The pointer holds until
 // the notes change or the world is left.
 std::shared_ptr<Choice const> choice(std::shared_ptr<service::Table const> const& table);
@@ -45,6 +56,7 @@ struct Plan {
     Request request;
     RawView view;
     std::map<Item, Count> held; // carried, by item
+    std::map<Item, Count> stored; // in the counted places as last seen, by item; the plan counts both
 };
 // Null until the recipe table is read.
 Plan const* plan(LocalPlayer& player);

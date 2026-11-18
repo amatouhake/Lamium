@@ -43,6 +43,7 @@ void translationTests() {
                 check(rendered.ends_with(chords));
             }
             else if (entry.key == "hudXYZ" || entry.key == "hudExactPosition") rendered = std::vformat(pattern, std::make_format_args(number,number,number));
+            else if (entry.key == "recipes.place.at") rendered = std::vformat(pattern, std::make_format_args(key,remaining,remaining,remaining));
             else if (entry.key == "hudScaledCoordinates") rendered = std::vformat(pattern, std::make_format_args(key,number,number,number));
             else if (entry.key == "targetBlockPosition" || entry.key == "worldMap.teleported") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
             else if (entry.key == "bindingRow" || entry.key == "numberInput" || entry.key == "worldMap.layerShown") rendered = std::vformat(pattern, std::make_format_args(key, zoom));
@@ -53,7 +54,7 @@ void translationTests() {
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "autoInterval" || entry.key == "autoClicks")
                 rendered = std::vformat(pattern, std::make_format_args(number, number));
-            else if (entry.key == "hudEditor.anchorReadout") rendered = std::vformat(pattern, std::make_format_args(key, key));
+            else if (entry.key == "hudEditor.anchorReadout" || entry.key == "recipes.place.tipPlace") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "worldMap.layer" || entry.key == "schematic.layerValue" || entry.key == "calc.history" || entry.key == "schematic.summary.correct"
                 || entry.key == "schematic.materials.left" || entry.key == "list.shownHidden")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));

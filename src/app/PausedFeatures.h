@@ -75,6 +75,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
         return s.schematic.enabled;
     // The Materials tab's raw view and the item list with its recipe view (L-359).
     case Id::RecipeTable: return s.schematic.enabled || s.inventory.recipes || s.inventory.massCraft;
+    case Id::CountedPlaces: return s.inventory.recipes;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
     case Id::BookPastePages: return s.ui.bookPaste;
     // The planner screen says so itself when opened; the anvil's list is the standing use.

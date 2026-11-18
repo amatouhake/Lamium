@@ -33,4 +33,6 @@ struct Carried {
     std::uint64_t count = 0;
 };
 std::vector<Carried> carriedStacks(LocalPlayer& player);
+// One stack, and with a shulker box what it holds.
+void addStack(ItemStack const& stack, std::vector<Carried>& out);
 }

@@ -19,6 +19,9 @@ unsigned listWorld = 0;
 std::optional<std::filesystem::path> listFile;
 bool listKeep = false;
 unsigned revision = 1;
+Places placed;
+std::optional<std::filesystem::path> placedFile;
+bool placedKeep = false;
 std::map<std::string, Provider> providers;
 std::vector<Handed> handedNow;
 std::chrono::steady_clock::time_point handedAt{};
@@ -68,6 +71,9 @@ void followWorld() {
     list = {};
     listFile = place.active ? place.wantedFile : std::nullopt;
     listKeep = false;
+    placed = {};
+    placedFile.reset();
+    placedKeep = false;
     ++revision;
     if (!listFile) return;
     try {
@@ -78,6 +84,28 @@ void followWorld() {
         }
         if (listKeep) log("the wanted items' file could not be read; changes are kept for this session only");
     } catch (...) { listKeep = true; }
+    // The counted places are the world's too, in a file beside it.
+    placedFile = listFile->parent_path() / "places.json";
+    try {
+        auto document = readDocument(*placedFile, placedKeep);
+        if (document) {
+            placedKeep = !documentReadable(*document);
+            if (!placedKeep) placed = decodePlaces(*document);
+        }
+        if (placedKeep) log("the counted places' file could not be read; changes are kept for this session only");
+    } catch (...) { placedKeep = true; }
+}
+void writePlaces() {
+    ++revision;
+    if (!placedFile || placedKeep) return;
+    try {
+        std::error_code ignored;
+        std::filesystem::create_directories(placedFile->parent_path(), ignored);
+        writeFileReplacing(*placedFile, encodePlaces(placed), "counted places");
+    } catch (std::exception const& error) { log(std::string("could not save the counted places: ") + error.what()); }
+}
+std::int64_t nowSeconds() {
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 void writeWanted() {
     ++revision;
@@ -96,6 +124,35 @@ Notes const& notes() {
 Wanted const& wanted() {
     followWorld();
     return list;
+}
+Places const& places() {
+    followWorld();
+    return placed;
+}
+void seePlace(bool ender, Spot const& spot, std::optional<Spot> const& pair, std::string const& block, std::vector<Stored> items) {
+    followWorld();
+    if (placed.see(ender, spot, pair, block, std::move(items), nowSeconds())) writePlaces();
+}
+bool markStore(Spot const& spot, std::optional<Spot> const& pair, std::string const& block, std::vector<Stored> items) {
+    followWorld();
+    if (!placed.mark(spot, pair, block, std::move(items), nowSeconds())) return false;
+    writePlaces();
+    return true;
+}
+void unmarkStore(int index) {
+    followWorld();
+    if (placed.unmark(index)) writePlaces();
+}
+void setPlaceCounted(int index, bool counted) {
+    followWorld();
+    if (index < 0 || index >= static_cast<int>(placed.list.size()) || placed.list[static_cast<size_t>(index)].counted == counted) return;
+    placed.list[static_cast<size_t>(index)].counted = counted;
+    writePlaces();
+}
+std::map<std::string, std::uint64_t> heldByName(LocalPlayer& player) {
+    auto out = schematic::items::carried(player);
+    for (auto const& item : placeTotals(places())) out[item.name] += item.count;
+    return out;
 }
 void provide(std::string const& source, Provider provider) {
     if (provider) providers[source] = provider; else providers.erase(source);
@@ -180,7 +237,12 @@ Plan const* plan(LocalPlayer& player) {
     plan.request = {};
     apply(table->index, list, given, plan.request);
     apply(table->index, held, plan.request);
-    plan.request.held.assign(plan.held.begin(), plan.held.end());
+    plan.stored.clear();
+    for (auto const& item : placeTotals(placed))
+        if (Item const id = table->index.find(item.name, item.aux); id >= 0) plan.stored[id] += item.count;
+    auto both = plan.held;
+    for (auto const& [id, count] : plan.stored) both[id] += count;
+    plan.request.held.assign(both.begin(), both.end());
     plan.view = rawView(table->index, *plan.choice, plan.request);
     plannedNow.revision = revision;
     plannedNow.at = now;

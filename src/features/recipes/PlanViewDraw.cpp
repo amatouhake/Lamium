@@ -15,7 +15,7 @@ namespace lamium::recipes::planView {
 namespace {
 bool opened = false;
 Tab tab = Tab::Wanted;
-int scroll[3]{};
+int scroll[4]{};
 int expanded = -1; // the group whose members are shown, to pick one
 constexpr float rowHeight = 12, headTop = 29, rowsTop = 41, iconScale = .625f, stepperWidth = 50;
 }
@@ -47,9 +47,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     windowPanel(context, l.left, l.top, l.width, l.height);
     windowLabel(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.wanted"));
     float x = l.left + 5;
-    Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make};
-    char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make"};
-    for (int i = 0; i < 3; ++i) {
+    Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::Places};
+    char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.places"};
+    for (int i = 0; i < 4; ++i) {
         std::string name = translated(names[i]);
         float const w = textWidth(context, name) + 10;
         drawButton(context, x, l.top + 16, w, 11, std::move(name), over(x, l.top + 16, w, 11), tab == tabs[i] ? ButtonKind::Primary : ButtonKind::Plain);
@@ -59,6 +59,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     auto const* plan = state::plan(player);
     float const left = l.left + 6, right = l.left + l.width - 6, top = l.top + rowsTop;
     int const fits = std::max(1, static_cast<int>((l.height - rowsTop - RecipeViewLayout::foot) / rowHeight));
+    // A place by what it is: the ender chest, or a store's block and where it stands.
+    auto placeName = [&](Place const& place) {
+        std::string name = schematic::items::shown(place.block).name;
+        return place.ender ? name : translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);
+    };
     auto note = [&](std::string text) { windowLabel(context, left, top + 2, right - left, std::move(text), true); };
     if (!plan) { note(translated("schematic.raw.reading")); return; }
     auto const& index = plan->table->index;
@@ -97,6 +102,32 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (took(end - w, y + 1, w, 10)) act();
         return end - w - 3;
     };
+    if (tab == Tab::Places) {
+        // What counts as held: what is carried, always; then the ender chest and the stores, each with
+        // its switch, as they were when last seen open.
+        auto const places = state::places().list; // a copy: the controls below change the list
+        int& first = scroll[static_cast<int>(tab)];
+        first = std::clamp(first + input.wheel, 0, std::max(0, static_cast<int>(places.size()) + 1 - fits));
+        for (int row = 0; row < fits && first + row <= static_cast<int>(places.size()); ++row) {
+            float const y = top + static_cast<float>(row) * rowHeight;
+            int const at = first + row - 1;
+            if (at < 0) {
+                windowLabel(context, left, y + 2, right - left - 60, translated("recipes.place.carried"));
+                windowLabel(context, right - 60, y + 2, 60, translated("recipes.place.always"), true, Align::Right);
+                continue;
+            }
+            auto const& place = places[static_cast<size_t>(at)];
+            float end = right;
+            if (!place.ender) end = rowButton(right, y, translated("recipes.remove"), [&] { state::unmarkStore(at); }) - 2;
+            float const sx = end - switchWidth;
+            toggleSwitch(context, sx, y + 1.5f, place.counted);
+            if (took(sx - 2, y, switchWidth + 4, rowHeight)) state::setPlaceCounted(at, !place.counted);
+            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(place.block).icon)) late.icons.push_back({stack, left, y + 1, iconScale});
+            windowLabel(context, left + 13, y + 2, sx - left - 17, placeName(place), !place.counted);
+        }
+        if (places.empty() && fits > 1) paragraph(context, left, top + rowHeight + 4, right - left, translated("recipes.place.how"), 3, palette::vanilla::windowFaint);
+        return;
+    }
     int& offset = scroll[static_cast<int>(tab)];
     int wheel = input.wheel;
     if (tab == Tab::Wanted) {
@@ -167,6 +198,24 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             auto const& [line, stopped] = lines[at];
             number(columns, y, std::to_string(line.left), false);
             number(columns - 40, y, std::to_string(line.held));
+            // A count that includes what a place held when last seen is starred, in a gutter of its own, and
+            // says under the pointer where the items are.
+            if (line.id < itemCount) {
+                auto const stored = plan->stored.find(line.id);
+                if (stored != plan->stored.end() && stored->second) {
+                    windowLabel(context, columns - 39, y + 2, 5, "*", true);
+                    if (over(columns - 74, y, 40, rowHeight)) {
+                        auto const carried = plan->held.find(line.id);
+                        late.tip = translated("recipes.place.tipCarried", carried == plan->held.end() ? Count{0} : carried->second);
+                        for (auto const& place : state::places().list) {
+                            if (!place.counted) continue;
+                            Count here = 0;
+                            for (auto const& item : place.items) if (index.find(item.name, item.aux) == line.id) here += item.count;
+                            if (here) late.tipLines.push_back(translated("recipes.place.tipPlace", placeName(place), here));
+                        }
+                    }
+                }
+            }
             number(columns - 80, y, std::to_string(line.need));
             float const end = columns - 118;
             if (line.id >= itemCount) {

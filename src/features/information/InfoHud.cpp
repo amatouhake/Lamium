@@ -1,4 +1,5 @@
 #include "features/information/InfoHud.h"
+#include "features/recipes/RecipeState.h"
 #include "features/camera/FreeCameraHide.h"
 #include "features/information/ChatPosition.h"
 #include "features/information/ScoreboardPosition.h"
@@ -370,7 +371,7 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     struct Material { std::string icon, name; std::uint64_t left, have; bool unknown; };
     std::vector<Material> materials;
     if (prefs.hudMaterials && ready) {
-        auto have = player ? schematic::items::carried(*player) : std::map<std::string, std::uint64_t>{};
+        auto have = player ? recipes::state::heldByName(*player) : std::map<std::string, std::uint64_t>{};
         for (auto const& line : result->visibleMaterials) {
             if (!line.remaining()) continue;
             // An entity counts as carried only when an item places it (armor stand).

@@ -73,26 +73,26 @@ std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {
     for (auto const& stack : carriedStacks(player)) out[stack.name] += stack.count;
     return out;
 }
+void addStack(ItemStack const& stack, std::vector<Carried>& out) {
+    if (stack.isNull()) return;
+    out.push_back({stack.getTypeName(), stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount)});
+    if (!stack.getTypeName().ends_with("shulker_box")) return;
+    auto const* data = stack.mUserData.get();
+    if (!data) return;
+    auto items = data->mTags.find("Items");
+    if (items == data->mTags.end() || !items->second.is_array()) return;
+    for (auto const& entry : items->second.get<ListTag>()) {
+        if (!entry || entry->getId() != Tag::Type::Compound) continue;
+        try {
+            auto inner = ItemStack::fromTag(entry->as<CompoundTag>());
+            if (!inner.isNull()) out.push_back({inner.getTypeName(), inner.getAuxValue(), static_cast<std::uint64_t>(inner.mCount)});
+        } catch (...) {}
+    }
+}
 std::vector<Carried> carriedStacks(LocalPlayer& player) {
     std::vector<Carried> out;
     auto& inventory = player.getInventory();
-    for (int slot = 0; slot < inventory.getContainerSize(); ++slot) {
-        auto const& stack = inventory.getItem(slot);
-        if (stack.isNull()) continue;
-        out.push_back({stack.getTypeName(), stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount)});
-        if (!stack.getTypeName().ends_with("shulker_box")) continue;
-        auto const* data = stack.mUserData.get();
-        if (!data) continue;
-        auto items = data->mTags.find("Items");
-        if (items == data->mTags.end() || !items->second.is_array()) continue;
-        for (auto const& entry : items->second.get<ListTag>()) {
-            if (!entry || entry->getId() != Tag::Type::Compound) continue;
-            try {
-                auto inner = ItemStack::fromTag(entry->as<CompoundTag>());
-                if (!inner.isNull()) out.push_back({inner.getTypeName(), inner.getAuxValue(), static_cast<std::uint64_t>(inner.mCount)});
-            } catch (...) {}
-        }
-    }
+    for (int slot = 0; slot < inventory.getContainerSize(); ++slot) addStack(inventory.getItem(slot), out);
     return out;
 }
 }

@@ -12,6 +12,7 @@
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
 #include "features/recipes/RecipePlace.h"
+#include "features/recipes/RecipePlaces.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
@@ -503,6 +504,21 @@ bool drawList(ll::event::UIRenderEvent& event) {
             label(context, side.left + 4, side.rowY(0) + 2, side.width - 8,
                   translated(sideList == SideList::Wanted || (plan && sideList == SideList::Make) ? "recipes.nothingWanted"
                              : plan ? "schematic.raw.nothing" : "schematic.raw.reading"), palette::faint);
+        // The band's last line, kept free for it: the open container made a store, or taken out again
+        // (L-359 step 8). What it holds is noted while it is open, for the ender chest and for stores.
+        if (auto const& open = placesGame::open(screenView)) {
+            state::seePlace(open->ender, open->spot, open->pair, open->block, open->items);
+            if (!open->ender) {
+                int const store = state::places().store(open->spot);
+                ListBox const box{side.left + 2, side.top + side.height - 12, side.width - 4, 11};
+                drawButton(context, box.x, box.y, box.w, box.h, translated(store < 0 ? "recipes.place.mark" : "recipes.place.unmark"), box.has(px, py),
+                           store < 0 ? ButtonKind::Plain : ButtonKind::Primary);
+                if (leftPress && took(box)) {
+                    if (store < 0) state::markStore(open->spot, open->pair, open->block, open->items);
+                    else state::unmarkStore(store);
+                }
+            }
+        }
         // A press on the band that nothing took stays there: it must not reach the view under the pointer's line.
         if (pressed && side.has(px, py)) pressed = false;
     }

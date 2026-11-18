@@ -446,7 +446,8 @@ anvil). Click an item for its recipes, right click for what it is used in;
 own slots. A search field at the bottom narrows the list, as does "Can be
 made". `A` keeps an item as a favourite and `W` puts it on the list of
 wanted items, both on the left; the wanted items' window shows what to
-gather and what to make for them. Off by default; details and what is
+gather and what to make for them, counting what you carry, your ender
+chest and the containers you mark as stores. Off by default; details and what is
 still to come in [RECIPES.md](RECIPES.md).
 
 ### Mass Craft (experimental)

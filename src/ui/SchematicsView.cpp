@@ -34,6 +34,7 @@
 #include "features/schematic/SchematicItems.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/RecipeService.h"
+#include "features/recipes/RecipeState.h"
 #include "features/schematic/Selection.h"
 #include "features/schematic/MenuModel.h"
 #include "mc/deps/nbt/CompoundTag.h"
@@ -1219,7 +1220,8 @@ void drawItemIcon(MinecraftUIRenderContext& context, std::string const& icon, fl
 }
 std::map<std::string, std::uint64_t> carriedItems() {
     auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
-    return player ? schematic::items::carried(*player) : std::map<std::string, std::uint64_t>{};
+    // With what the counted places of Recipes hold: one count for the plan and for this tab (L-359).
+    return player ? recipes::state::heldByName(*player) : std::map<std::string, std::uint64_t>{};
 }
 // A group as one name: a known tag as "Planks (any)", else its first member and how many more.
 std::string rawGroupName(recipes::Index const& index, int group) { return recipes::groupName(index, group); }
