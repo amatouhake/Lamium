@@ -324,6 +324,9 @@ void recipeIndexTests() {
         check(steppedWanted(1, false, 1, true) == 0 && steppedWanted(1, false, 16, false) == 1 && steppedWanted(5, false, 1, true) == 4
               && steppedWanted(9, false, 16, true) == 1 && steppedWanted(Wanted::most, true, 16, true) == Wanted::most,
               "only the minus button at one takes a wanted item out; steps stop at one and at the most");
+        check(hoverLines("Shield\n\xC2\xA7" "7Durability: 336 / 336\n\n\xEE\x84\x80\xEE\x84\x80\n\xC2\xA7" "8minecraft:shield") == std::vector<std::string>{"Durability: 336 / 336", "minecraft:shield"}
+              && hoverLines("Name only").empty() && hoverLines("a\nb\nc\nd", 2).size() == 2,
+              "an item's hover text gives its lines under the name, without color codes, empty lines and icon glyphs");
         check(steppedWanted(1, true, 64, true) == 64 && steppedWanted(64, true, 64, true) == 128 && steppedWanted(70, false, 64, true) == 64
               && steppedWanted(64, false, 64, true) == 1 && steppedWanted(20, false, 16, true) == 16 && steppedWanted(3, true, 1, true) == 4,
               "a step of several lands on its multiples, so Shift gives whole stacks");

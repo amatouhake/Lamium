@@ -52,4 +52,39 @@ inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> co
     }
     return out;
 }
+// The lines of an item's hover text as the game gives it, under its name: what the game says of the
+// item and what Lamium's item details add to it (L-363). The first line, the name, is left out; so are
+// the game's color codes, empty lines and lines of icon glyphs (private-use characters), which a
+// tooltip of plain text cannot show. At most `most` lines, each cut to 120 bytes at a character's end.
+inline std::vector<std::string> hoverLines(std::string_view text, size_t most = 12) {
+    std::vector<std::string> out;
+    bool first = true;
+    while (!text.empty() && out.size() < most) {
+        auto const end = text.find('\n');
+        std::string_view line = text.substr(0, end);
+        text = end == std::string_view::npos ? std::string_view() : text.substr(end + 1);
+        if (first) { first = false; continue; }
+        std::string plain;
+        bool glyphs = false;
+        for (size_t i = 0; i < line.size(); ++i) {
+            auto const c = static_cast<unsigned char>(line[i]);
+            // The section sign and the character after it are a color or style code.
+            if (c == 0xC2 && i + 1 < line.size() && static_cast<unsigned char>(line[i + 1]) == 0xA7) {
+                i += 2;
+                while (i + 1 < line.size() && (static_cast<unsigned char>(line[i + 1]) & 0xC0) == 0x80) ++i;
+                continue;
+            }
+            if (c == 0xEE || (c == 0xEF && i + 1 < line.size() && static_cast<unsigned char>(line[i + 1]) < 0xA4)) glyphs = true;
+            if (c != '\r') plain += line[i];
+        }
+        if (glyphs || plain.find_first_not_of(' ') == std::string::npos) continue;
+        if (plain.size() > 120) {
+            size_t cut = 120;
+            while (cut > 0 && (static_cast<unsigned char>(plain[cut]) & 0xC0) == 0x80) --cut;
+            plain.resize(cut);
+        }
+        out.push_back(std::move(plain));
+    }
+    return out;
+}
 }

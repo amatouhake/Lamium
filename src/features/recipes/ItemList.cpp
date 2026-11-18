@@ -691,14 +691,36 @@ bool drawList(ll::event::UIRenderEvent& event) {
     for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
     if (!late.counts.empty()) context.flushText(0, std::nullopt);
     if (!late.tip.empty()) {
+        // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
+        // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.
+        bool const item = !hoverItem.empty();
+        static std::string detailsOf;
+        static std::vector<std::string> details;
+        if (item && hoverItem != detailsOf) {
+            detailsOf = hoverItem;
+            details.clear();
+            try {
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(hoverItem).icon))
+                    details = hoverLines(stack->getFormattedHovertext(player->getLevel(), false).mUnredactedString);
+            } catch (...) { details.clear(); }
+        }
+        std::vector<std::string> const none;
+        auto const& more = item ? details : none;
         float w = textWidth(context, late.tip);
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
-        w += 8;
-        float const h = 12 + 10 * static_cast<float>(late.tipLines.size());
-        float const x = std::min(px + 8, screen.x - w - 2), y = std::min(py + 8, screen.y - h - 2);
-        drawTipBox(context, x, y, w, h);
+        for (auto const& line : more) w = std::max(w, textWidth(context, line));
+        w = std::min(w + 8, screen.x - 4);
+        float const h = 12 + 10 * static_cast<float>(late.tipLines.size() + more.size());
+        float const x = std::max(2.f, std::min(px + 8, screen.x - w - 2)), y = std::max(2.f, std::min(py + 8, screen.y - h - 2));
+        if (item) {
+            context.flushText(0, std::nullopt);
+            fill(context, x, y, w, h, palette::panel, .94f);
+            frame(context, x, y, w, h, palette::vanilla::tooltipBorder);
+        } else drawTipBox(context, x, y, w, h);
         label(context, x + 4, y + 2, w - 8, late.tip);
-        for (size_t i = 0; i < late.tipLines.size(); ++i) label(context, x + 4, y + 12 + 10 * static_cast<float>(i), w - 8, late.tipLines[i], palette::dim);
+        float line = y + 12;
+        for (auto const& text : late.tipLines) label(context, x + 4, line, w - 8, text, palette::dim), line += 10;
+        for (auto const& text : more) label(context, x + 4, line, w - 8, text, palette::faint), line += 10;
         context.flushText(0, std::nullopt);
     }
     return true;
