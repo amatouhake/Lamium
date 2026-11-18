@@ -350,10 +350,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Not seen in game: the scrolling lists, the tooltip with the game's
-  text, the fading, the wanted key with the wheel, the schematic's
-  switch on the wanted tab, the three settings, the stores' outlines; a
-  store replaced by another block, shulker boxes inside a store.
+- Not seen in game: the tooltip with the game's text, the schematic's
+  switch on the wanted tab, the three settings; a store replaced by
+  another block, shulker boxes inside a store.
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what

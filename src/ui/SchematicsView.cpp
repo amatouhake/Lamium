@@ -848,8 +848,9 @@ void moveSchematicField(int step) {
 void openSchematicKeySettings() { screen::showFeatureKeys("schematic"); }
 // The tab strip sits in the list pane's toolbar.
 constexpr int schematicTabCount = 4;
-float schematicTabWidth(ShapesLayout const& l) { return (l.listWidth - 2 * ShapesLayout::pad - 3 * 2) / schematicTabCount; }
-float schematicTabX(ShapesLayout const& l, int tab) { return l.listLeft + ShapesLayout::pad + tab * (schematicTabWidth(l) + 2); }
+// Tabs stand side by side with no gap (DESIGN "Controls").
+float schematicTabWidth(ShapesLayout const& l) { return (l.listWidth - 2 * ShapesLayout::pad) / schematicTabCount; }
+float schematicTabX(ShapesLayout const& l, int tab) { return l.listLeft + ShapesLayout::pad + tab * schematicTabWidth(l); }
 int schematicTabAt(ShapesLayout const& l, float x, float y) {
     if (!l.usable() || y < l.toolbarTop || y >= l.toolbarTop + ShapesLayout::toolbarHeight) return -1;
     for (int i = 0; i < schematicTabCount; ++i)

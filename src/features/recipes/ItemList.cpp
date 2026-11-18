@@ -687,6 +687,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                     open ? palette::vanilla::windowFaint : palette::dim, Align::Center, !open);
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
+    std::string tipItem;
     // Under an open window, as wide as it is drawn, the game's slots are covered: they name no item.
     if (hoverItem.empty() && !(open && px >= coverLeft && px < right && py >= viewLayout.top && py < viewLayout.top + viewLayout.height)) {
         // A slot of the game's own window, as its hover callbacks last said.
@@ -702,6 +703,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     {
         std::scoped_lock lock(shownLock);
+        tipItem = hoverItem; // kept for the tooltip: what is shown takes the string
         shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, side, searchFocus,
                  countEdit::active()};
     }
@@ -726,14 +728,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!late.tip.empty()) {
         // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
         // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.
-        bool const item = !hoverItem.empty();
+        bool const item = !tipItem.empty();
         static std::string detailsOf;
         static std::vector<std::string> details;
-        if (item && hoverItem != detailsOf) {
-            detailsOf = hoverItem;
+        if (item && tipItem != detailsOf) {
+            detailsOf = tipItem;
             details.clear();
             try {
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(hoverItem).icon))
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(tipItem).icon))
                     details = hoverLines(stack->getFormattedHovertext(player->getLevel(), false).mUnredactedString);
             } catch (...) { details.clear(); }
         }

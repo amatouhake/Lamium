@@ -1383,7 +1383,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     float dimsW = 8;
     for (int d = 0; d < 3; ++d) {
         dimTexts[static_cast<size_t>(d)] = (spot && spot->dimension == d ? "* " : "") + ui::translated(dims[static_cast<size_t>(d)].second);
-        dimsW += widthOf(dimTexts[static_cast<size_t>(d)]) - 1;
+        dimsW += widthOf(dimTexts[static_cast<size_t>(d)]);
     }
     auto centerText = ui::translated("worldMap.center"), waypointsText = ui::translated("worldMap.list");
     float closeW = 13, rightW = widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
@@ -1429,7 +1429,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     std::array<float, 3> dimX{};
     for (int d = 0; d < 3; ++d) {
         dimX[static_cast<size_t>(d)] = x;
-        x += widthOf(dimTexts[static_cast<size_t>(d)]) - 1;
+        x += widthOf(dimTexts[static_cast<size_t>(d)]);
     }
     // One of several: tabs, as DESIGN "Controls" has them on a dark panel.
     for (int d = 0; d < 3; ++d) {

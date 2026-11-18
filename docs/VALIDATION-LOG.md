@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## What the look review built, first look (L-359, L-363, L-364, 2026-11-19)
+
+Build `e0aac46a` (DLL
+`a52018c59e6a8f2971c5a2c91f5ef4ed845c7e0a635647f1c2d1089d91645af6`),
+1.26.60.05 Dev instance, the maintainer:
+- The band's last line under its rule, with its room: right. The band's
+  list and the plan window's lists scroll by the wheel and the bar.
+- The wanted key held with the wheel changed the count; pressed and
+  released over an item that was wanted, it took the item out.
+- Lamium's parts came and went with the game's window. Stores were
+  outlined in green.
+- The tabs on the Schematics screen and the world map look right, but
+  their spacing was left as the buttons': the world map's overlap by a
+  unit, the Schematics screen's stand two apart.
+- The tooltip of an item Lamium draws was the old one: grey, the name
+  only. (The hovered item's key had been moved away before the tooltip
+  was drawn.)
+
 ## Bundles counted, the open container's line (L-359, 2026-11-19)
 
 Build `9fc142b9` (DLL
