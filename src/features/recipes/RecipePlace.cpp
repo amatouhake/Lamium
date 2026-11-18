@@ -517,8 +517,9 @@ void advance(CraftingScreenController& controller) {
         run.laid = true;
         // While a round waits for its ingredients, the product that was thrown out and is picked up again
         // would fill the inventory and leave no slot for them (seen: 36 slots of planks, logs on the ground).
-        if (int const thrown = throwExcess(controller, index, recipe.makes, budget); thrown < 0) { finish("throwing the product out failed"); return; }
-        else if (thrown) run.thrown += thrown, run.stalls = 0;
+        int const back = throwExcess(controller, index, recipe.makes, budget);
+        if (back < 0) { finish("throwing the product out failed"); return; }
+        if (back) run.thrown += back, run.stalls = 0;
         auto const carried = carriedOf(manager, index);
         auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
@@ -537,7 +538,9 @@ void advance(CraftingScreenController& controller) {
         // Not enough of an ingredient: more may arrive while the key is held. With no slot free for it,
         // what the others fill beyond their share goes out.
         run.wait = "an ingredient is missing";
-        run.next = now + idle;
+        // While the product keeps coming back the wait is a step, so the slots are open for the ingredients
+        // most of the time; else it is longer.
+        run.next = now + (back ? step : idle);
         slotsOf(manager, index, anyFree);
         if (anyFree) return;
         for (int slot : surplusSlots(index, recipe, carried)) {

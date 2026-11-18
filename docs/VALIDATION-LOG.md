@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft throwing the product out while it waits (L-165, 2026-11-19)
+
+Trace build of `3824c807` (`craft_trace`, DLL
+`9136f7a907fbe3533e5a5592f7ae71597c2426f3b03f2ec453a7ada043b6a3da`),
+1.26.60.05 Dev instance, a local world, the maintainer where what is
+thrown out is picked up again:
+- Logs on the ground were picked up and seemed all to become planks;
+  hardly any turned up later.
+- With most turned into planks and many lying around, the planks took
+  the freed slots again and a few logs were still found later
+  (maintainer). The wait between throws was 250 ms.
+
 ## Mass Craft leaving logs on the ground (L-165, 2026-11-18)
 
 Trace build of `fed66ae1` (`craft_trace`, DLL

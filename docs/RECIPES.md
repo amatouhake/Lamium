@@ -212,8 +212,10 @@ A setting of its own, off by default, and it works with Recipes off
   output where the pointer is over it, else by the slot call that
   takes an amount.
 - A round that cannot be laid in waits for more to arrive, and goes on
-  throwing out the product that is picked up again meanwhile, so the
-  inventory keeps room for the ingredients. With no slot
+  throwing out the product that is picked up again meanwhile, every
+  step while it keeps coming back, so the inventory keeps room for the
+  ingredients. Where much of the product lies around, it still wins
+  most of the slots, and ingredients on the ground come in slowly. With no slot
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its
   fullest stacks, and the other slots are thrown out whole. A recipe of
