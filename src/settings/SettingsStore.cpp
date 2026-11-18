@@ -322,6 +322,7 @@ Json encode(Settings const& settings) {
                  {"mapMarks", settings.map.mapMarks}, {"marksShownOn", settings.map.marksShownOn},
                  {"radarShownOn", settings.map.radarShownOn}, {"slimeShownOn", settings.map.slimeShownOn}}},
         {"schematic", {{"enabled", settings.schematic.enabled}, {"hud", settings.schematic.hud},
+                       {"planMaterials", settings.schematic.planMaterials},
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
                        {"menuBackground", settings.schematic.menuBackground}, {"menuSmall", settings.schematic.menuSmall},
                        {"repeatAllSteps", settings.schematic.repeatAllSteps},
@@ -650,6 +651,7 @@ Settings decodeSettings(std::string_view text) {
         auto const& schematic = data.at("schematic");
         value.schematic.enabled = settingsValue(schematic, "enabled", value.schematic.enabled);
         value.schematic.hud = settingsValue(schematic, "hud", value.schematic.hud);
+        value.schematic.planMaterials = settingsValue(schematic, "planMaterials", value.schematic.planMaterials);
         value.schematic.hudVerify = settingsValue(schematic, "hudVerify", value.schematic.hudVerify);
         value.schematic.hudMaterials = settingsValue(schematic, "hudMaterials", value.schematic.hudMaterials);
         value.schematic.menuBackground = settingsValue(schematic, "menuBackground", value.schematic.menuBackground);

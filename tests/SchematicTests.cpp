@@ -1290,6 +1290,9 @@ void verificationOrder() {
     sortMismatches(list, 0, 0, 0);
     check(list[0].state == CellState::State && list[1].state == CellState::Wrong && list[2].position == Point{0, 0, 0}
           && list[3].position == Point{1, 0, 0}, "mistakes come before missing blocks, each nearest first");
+    check(planTargets({{"a", "Stone", "", 10, 10}, {"b", "Planks", "", 5, 1}, {"", "Air", "", 4, 0}, {"b", "Planks", "", 3, 0}})
+              == std::vector<std::pair<std::string, std::uint64_t>>{{"b", 7}},
+          "the plan gets what is still to place, item by item, without finished lines and lines no item places");
     std::vector<MaterialLine> lines{{"a", "Stone", "", 10, 10}, {"b", "Planks", "", 5, 1}, {"c", "Glass", "", 9, 1}};
     sortMaterials(lines);
     check(lines[0].name == "Glass" && lines[1].name == "Planks" && lines[2].name == "Stone" && lines[2].remaining() == 0,

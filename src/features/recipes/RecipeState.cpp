@@ -19,6 +19,9 @@ unsigned listWorld = 0;
 std::optional<std::filesystem::path> listFile;
 bool listKeep = false;
 unsigned revision = 1;
+std::map<std::string, Provider> providers;
+std::vector<Handed> handedNow;
+std::chrono::steady_clock::time_point handedAt{};
 std::chrono::steady_clock::time_point placeAsked{};
 struct Chosen {
     std::shared_ptr<service::Table const> table;
@@ -94,6 +97,24 @@ Wanted const& wanted() {
     followWorld();
     return list;
 }
+void provide(std::string const& source, Provider provider) {
+    if (provider) providers[source] = provider; else providers.erase(source);
+    handedAt = {};
+}
+std::vector<Handed> const& handed() {
+    auto const now = std::chrono::steady_clock::now();
+    if (now - handedAt < std::chrono::milliseconds(500)) return handedNow;
+    handedAt = now;
+    std::vector<Handed> next;
+    for (auto const& [source, provider] : providers) {
+        try {
+            for (auto& [key, count] : provider())
+                if (!key.empty() && count && next.size() < 2048) next.push_back({std::move(key), std::min<Count>(count, Wanted::most), source});
+        } catch (...) {}
+    }
+    if (next != handedNow) handedNow = std::move(next), ++revision;
+    return handedNow;
+}
 void toggleFavourite(std::string const& key) {
     readNotes();
     held.toggleFavourite(key);
@@ -147,6 +168,7 @@ Plan const* plan(LocalPlayer& player) {
     auto table = service::table();
     if (!table) return nullptr;
     followWorld();
+    auto const& given = handed(); // first: a change of it is a new revision
     auto const now = std::chrono::steady_clock::now();
     auto& plan = plannedNow.plan;
     if (plan.table == table && plannedNow.revision == revision && now - plannedNow.at < std::chrono::milliseconds(500)) return &plan;
@@ -156,7 +178,7 @@ Plan const* plan(LocalPlayer& player) {
     for (auto const& stack : schematic::items::carriedStacks(player))
         if (Item const id = table->index.find(stack.name, stack.aux); id >= 0) plan.held[id] += stack.count;
     plan.request = {};
-    apply(table->index, list, plan.request);
+    apply(table->index, list, given, plan.request);
     apply(table->index, held, plan.request);
     plan.request.held.assign(plan.held.begin(), plan.held.end());
     plan.view = rawView(table->index, *plan.choice, plan.request);

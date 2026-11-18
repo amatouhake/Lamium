@@ -224,6 +224,7 @@ struct Settings {
     struct Schematic {
         bool enabled = false; // Ghosts and outlines of the placements (L-93, experimental).
         bool hud = false; // The Schematic HUD element; only the player turns it on.
+        bool planMaterials = false; // What is still to place stands among the plan's wanted items (L-359)
         bool hudVerify = true, hudMaterials = true; // Its two sections.
         int menuBackground = 1;   // The menu's dimming: 0 none, 1 light, 2 dark.
         bool menuSmall = true;    // Small in the lower right instead of centered.

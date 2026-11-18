@@ -107,9 +107,25 @@ inline Count steppedWanted(Count now, bool up, Count step, bool button) {
     if (now <= 1) return button ? 0 : 1;
     return now > step ? now - step : 1;
 }
-// The wanted items as a request's targets for this table; what it lacks is left out.
-inline void apply(Index const& index, Wanted const& wanted, Request& request) {
-    for (auto const& [key, amount] : wanted.targets) if (Item const item = index.findKey(key); item >= 0) request.wanted.emplace_back(item, amount);
+// A target a feature handed over (a schematic's materials still to place): what, how many and whose it
+// is. It stands among the wanted items and is not the player's to edit.
+struct Handed {
+    std::string key;
+    Count count = 0;
+    std::string source; // the feature's name for it, a translation key's last part ("schematic")
+    bool operator==(Handed const&) const = default;
+};
+// The wanted items and what features handed over as a request's targets for this table, an item wanted
+// by both once with the sum; what the table lacks is left out.
+inline void apply(Index const& index, Wanted const& wanted, std::vector<Handed> const& handed, Request& request) {
+    auto add = [&](std::string const& key, Count amount) {
+        Item const item = index.findKey(key);
+        if (item < 0 || !amount) return;
+        auto found = std::find_if(request.wanted.begin(), request.wanted.end(), [&](auto const& target) { return target.first == item; });
+        if (found == request.wanted.end()) request.wanted.emplace_back(item, amount); else found->second += amount;
+    };
+    for (auto const& [key, amount] : wanted.targets) add(key, amount);
+    for (auto const& target : handed) add(target.key, target.count);
 }
 
 // The documents. Reading tolerates anything: what is not understood is left out.

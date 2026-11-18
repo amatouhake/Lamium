@@ -100,15 +100,28 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     int& offset = scroll[static_cast<int>(tab)];
     int wheel = input.wheel;
     if (tab == Tab::Wanted) {
-        auto const targets = state::wanted().targets; // a copy: the controls below change the list
+        // A copy: the controls below change the list. What features handed over follows, named by its
+        // source where the player's own rows have their controls.
+        struct Target { std::string key; Count amount = 0; std::string source; };
+        std::vector<Target> targets;
+        for (auto const& [key, amount] : state::wanted().targets) targets.push_back({key, amount, {}});
+        for (auto const& given : state::handed()) targets.push_back({given.key, given.count, given.source});
         if (targets.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
         offset = std::clamp(offset, 0, std::max(0, static_cast<int>(targets.size()) - fits));
         for (int row = 0; row < fits && offset + row < static_cast<int>(targets.size()); ++row) {
-            auto const& [key, amount] = targets[static_cast<size_t>(offset + row)];
+            auto const& [key, amount, source] = targets[static_cast<size_t>(offset + row)];
             float const y = top + static_cast<float>(row) * rowHeight;
+            float sx = right;
+            if (!source.empty()) {
+                std::string from = translated("recipes.from." + source);
+                float const w = textWidth(context, from) + 4;
+                windowLabel(context, right - w, y + 2, w, std::move(from), true, Align::Right);
+                number(right - w - 2, y, std::to_string(amount), false);
+                sx = right - w - 38;
+            } else {
             float end = rowButton(right, y, translated("recipes.remove"), [&] { state::removeWanted(key); });
             // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
-            float const sx = end - stepperWidth;
+            sx = end - stepperWidth;
             drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(amount),
                         {.editing = countEdit::editing(key), .pointerX = px, .pointerY = py, .backed = true});
             if (took(sx, y + 1, 11, 10)) state::stepWanted(key, false, shift, true);
@@ -118,6 +131,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 // The wheel over a stepper steps it: up is more.
                 state::stepWanted(key, wheel < 0, shift, false);
                 wheel = 0;
+            }
             }
             Item const id = index.findKey(key);
             if (id >= 0) lead(y, id, sx - 4);

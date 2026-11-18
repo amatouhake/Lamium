@@ -341,6 +341,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     std::map<std::string_view, Count> wantedCounts;
     for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
     for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
+    // What a feature handed over is wanted too.
+    auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
+    for (auto const& target : handed) wantedCounts[target.key] += target.count;
     auto mark = [&](std::string const& key, float x, float y, bool framed) {
         if (framed && favouriteKeys.contains(key)) frame(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::accent, .9f);
         auto wanted = wantedCounts.find(key);
@@ -429,11 +432,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
             std::string key, name;
             Count count = 0;
             int step = -1; // a row of what to make: its place among the plan's steps
+            std::string source; // a wanted item a feature handed over: whose it is; not edited here
         };
         std::vector<SideRow> rows;
         auto const* plan = state::plan(*player);
         if (sideList == SideList::Wanted) {
             for (auto const& [key, amount] : state::wanted().targets) rows.push_back({key, schematic::items::shown(key).name, amount});
+            for (auto const& target : handed) rows.push_back({target.key, schematic::items::shown(target.key).name, target.count, -1, target.source});
         } else if (plan && sideList == SideList::Gather) {
             auto const& index = plan->table->index;
             Item const items = static_cast<Item>(index.items.size());
@@ -468,7 +473,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             if (!row.key.empty())
                 if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon)) late.icons.push_back({stack, side.left + 3, y + 1, smallIcon});
             float nameEnd = end - 30;
-            if (sideList == SideList::Wanted) {
+            if (sideList == SideList::Wanted && row.source.empty()) {
                 // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
                 float const sx = end - stepperWidth;
                 ListBox const box{sx, y + 1, stepperWidth, 10};
@@ -486,6 +491,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 if (hoverItem.empty()) hoverItem = row.key;
                 // A row of what to make says what its crafts take.
                 if (row.step >= 0 && plan) late.tip = row.name, late.tipLines = stepInputLines(plan->table->index, plan->request, plan->view.steps[static_cast<size_t>(row.step)]);
+                // A row a feature handed over says whose it is.
+                else if (!row.source.empty()) late.tip = row.name, late.tipLines = {translated("recipes.from." + row.source)};
                 else if (!side.wide()) late.tip = row.name;
             }
             if (leftPress && took(whole)) openPlan();

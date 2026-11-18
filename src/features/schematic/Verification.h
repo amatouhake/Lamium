@@ -100,6 +100,17 @@ inline void sortMismatches(std::vector<Mismatch>& list, double x, double y, doub
         return distance(a) < distance(b);
     });
 }
+// What is still to place, item by item, as the plan takes it (L-359): a line
+// without an item (a block nothing places) is left out, lines of one item add up.
+inline std::vector<std::pair<std::string, std::uint64_t>> planTargets(std::vector<MaterialLine> const& lines) {
+    std::vector<std::pair<std::string, std::uint64_t>> out;
+    for (auto const& line : lines) {
+        if (line.item.empty() || !line.remaining()) continue;
+        auto found = std::find_if(out.begin(), out.end(), [&](auto const& target) { return target.first == line.item; });
+        if (found == out.end()) out.emplace_back(line.item, line.remaining()); else found->second += line.remaining();
+    }
+    return out;
+}
 // Blocks before entities; then by remaining count, then name, so finished
 // lines go last within each group.
 inline void sortMaterials(std::vector<MaterialLine>& lines) {

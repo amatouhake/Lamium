@@ -17,6 +17,12 @@ void start();
 void stop();
 Notes const& notes();
 Wanted const& wanted();
+// What features hand over to the plan. A feature gives a function that says what it needs now (item
+// key and count), or nothing while it is off; it is asked with the plan, twice a second. nullptr takes
+// the feature out again.
+using Provider = std::vector<std::pair<std::string, Count>> (*)();
+void provide(std::string const& source, Provider provider);
+std::vector<Handed> const& handed();
 void toggleFavourite(std::string const& key);
 void toggleWanted(std::string const& key);
 void setWanted(std::string const& key, Count amount);

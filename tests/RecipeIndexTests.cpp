@@ -374,8 +374,12 @@ void recipeIndexTests() {
         list.set("stick", 8);
         list.set("unknown_item", 3);
         Request both;
-        apply(index, list, both);
+        apply(index, list, {}, both);
         apply(index, notes, both);
+        Request handed;
+        apply(index, list, {{"stick", 4, "schematic"}, {"oak_planks", 2, "schematic"}, {"unknown_item", 9, "schematic"}}, handed);
+        check(handed.wanted == std::vector<std::pair<Item, Count>>{{index.find("stick"), 12}, {index.find("oak_planks"), 2}},
+              "what a feature hands over joins the wanted items, an item of both once with the sum");
         auto view = rawView(index, base, both);
         check(both.wanted.size() == 1 && view.gather.size() == 1 && view.gather[0].id == index.find("oak_planks") && view.gather[0].left == 4 && view.steps.size() == 1,
               "the plan makes sticks from the picked planks and gathers those, as they are marked");

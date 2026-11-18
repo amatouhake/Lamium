@@ -16,6 +16,7 @@
 #include "features/research/CraftTrace.h"
 #include "features/research/ItemScreenProbe.h"
 #include "features/recipes/RecipeService.h"
+#include "features/schematic/PlanHandOver.h"
 #include "features/recipes/ItemList.h"
 #include "features/recipes/RecipePlace.h"
 #include "features/recipes/RecipeState.h"
@@ -179,6 +180,7 @@ Feature const features[] = {
     {"Schematic ghosts", started<schematic::ghosts::start>, schematic::ghosts::stop},
     {"Schematic pick block", started<schematic::ghosts::startPick>, schematic::ghosts::stopPick},
     {"Schematic adjust key", started<schematic::actions::startAdjust>, schematic::actions::stopAdjust},
+    {"Schematic plan targets", started<schematic::planHandOver::start>, schematic::planHandOver::stop},
     {"Breaking Restriction", started<interaction::breaking::start>, interaction::breaking::stop},
     {"Edge guard", started<interaction::edgeGuard::start>, interaction::edgeGuard::stop},
     {"Sneak placement", started<interaction::sneakPlacement::start>, interaction::sneakPlacement::stop},

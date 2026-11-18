@@ -130,8 +130,10 @@ after using the first build. What is still open is in the L-item.
   "Plan" stays the feature's name in settings only.
 - There is one plan: a list of targets in, what to gather and what to make
   out. Several named plans are not built until one proves too few.
-- Targets come from features (a schematic's materials still to place) and
-  can be added by hand. Hand-added targets are saved per world, under the
+- Targets come from features (a schematic's materials still to place,
+  while "Put what is left into the plan" on its Materials tab is on: a
+  saved switch, off unless the player turns it on) and can be added by
+  hand. Hand-added targets are saved per world, under the
   waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
   be edited; it looks like the others and says where it comes from.
 - The plan's short list on the left shows the wanted items, what is left
@@ -266,7 +268,12 @@ A setting of its own, off by default, and it works with Recipes off
   in `wanted.json` beside its waypoints. `RecipeState.cpp` loads and saves
   them and works the plan out. A file that cannot be read is left as it is
   and the changes are kept for the session only.
-- `src/ui/SchematicsView.cpp` (`refreshRaw`): the Materials tab's raw view.
+- `src/ui/SchematicsView.cpp` (`refreshRaw`): the Materials tab's raw view,
+  what to gather only.
+- Features hand targets over through `state::provide` (a function the
+  plan asks twice a second); `schematic/PlanHandOver.cpp` is the
+  schematic's, from the last check's material lines
+  (`Verification.h` `planTargets`).
 - `recipe_trace` (`src/features/research/RecipeTrace.cpp`) writes the table
   to a file and logs sample plans.
 
@@ -283,8 +290,11 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Not built: the schematic handing its materials
-  over and the Materials tab cut back to its gather list; counted places
+- Built and not seen in game: the schematic handing its materials over
+  (they follow the player's own wanted items, named "Schematic" where
+  those have their controls) and the Materials tab cut back to its
+  gather list.
+- Not built: counted places
   beyond what is carried; held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what
