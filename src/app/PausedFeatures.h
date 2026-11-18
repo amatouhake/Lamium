@@ -57,8 +57,8 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::ScoreboardPosition: return s.information.placesScoreboard();
     case Id::BossBarPosition: return s.information.placesBossBars();
     case Id::RepeatedTrades: return s.inventory.repeatTrades;
-    // Item transfer's routes, and the recipe view's "place", which lays a recipe in with the same slot calls (L-165).
-    case Id::TransferRoutes: return s.inventory.transfer || s.inventory.recipes;
+    // Item transfer's routes, and the recipe view's "place" and Mass Craft, which use the same slot calls (L-165).
+    case Id::TransferRoutes: return s.inventory.transfer || s.inventory.recipes || s.inventory.massCraft;
     case Id::SkipServerPacks: return v.skipServerPacks;
     case Id::HideFog: return v.hideEffects && (v.hideWater || v.hideLava || v.hidePowderSnow || v.hideDistanceFog);
     case Id::HideWeather: return v.hideEffects && v.hideWeather;
@@ -74,7 +74,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick:
         return s.schematic.enabled;
     // The Materials tab's raw view and the item list with its recipe view (L-359).
-    case Id::RecipeTable: return s.schematic.enabled || s.inventory.recipes;
+    case Id::RecipeTable: return s.schematic.enabled || s.inventory.recipes || s.inventory.massCraft;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
     case Id::BookPastePages: return s.ui.bookPaste;
     // The planner screen says so itself when opened; the anvil's list is the standing use.

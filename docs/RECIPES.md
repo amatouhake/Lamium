@@ -89,8 +89,8 @@ after using the first build. What is still open is in the L-item.
   shows that item, not the others in turn.
 - R over an item shows its recipes and U what it is used in, in the lists,
   the view and the game's own slots. Sorting therefore has no default key.
-- Each recipe carries one control, "place" (with Shift: craft many, Mass
-  Craft), and one small mark, "any order" for a shapeless recipe. That a
+- Each recipe carries one control, "place" (with Shift: as many as divide
+  evenly), and one small mark, "any order" for a shapeless recipe. That a
   recipe fits the inventory's own grid is seen from its shape. Which recipe
   makes an item is chosen only where it matters: opened from the list of
   what to make, an item with several recipes shows "in use" on one and
@@ -177,6 +177,28 @@ after using the first build. What is still open is in the L-item.
 - Which recipe makes an item by default, groups, fuel, spare output and
   held items: the rules in [L-116](backlog/L-116.md).
 
+### Mass Craft
+A setting of its own, off by default, and it works with Recipes off
+([L-165](backlog/L-165.md), maintainer 2026-11-18).
+- It runs while its key is held with the pointer over the output slot of
+  the inventory's or the crafting table's grid. The key has no default.
+- The recipe is the one lying in the grid when the key goes down, found
+  in the table by the grid's items; a grid the table has no recipe for
+  does nothing.
+- A round: all the grid makes is taken into the inventory, what the take
+  added of the product is thrown out (what was carried of it before
+  stays), and the recipe is laid in again as many times as divide evenly.
+  A step every 50 ms.
+- A round that cannot be laid in waits for more to arrive. With no slot
+  free, of the slots the recipe's ingredients fill each ingredient keeps
+  the share its cells are of the recipe, one slot at least and its
+  fullest stacks, and the other slots are thrown out whole. A recipe of
+  one ingredient throws nothing.
+- It ends when the key is released, the pointer leaves the output slot,
+  the pointer holds an item, the product finds no room or the grid holds
+  what is not the recipe (a bucket a recipe gave back). Each run writes
+  one line to the log: rounds, takes, stacks thrown, time.
+
 ## Code
 - `src/features/recipes/RecipeIndex.h`: the game's table by name, the
   default recipe per item, groups and `plan()`. `RawView.h`: a plan as
@@ -198,7 +220,9 @@ after using the first build. What is still open is in the L-item.
   and do not know their host. `CountEdit.h`: the count being typed.
 - `PlacePlan.h` (pure): which carried stacks go into which grid cell.
   `RecipePlace.cpp` does it with the slot calls Item transfer uses, behind
-  its capability; its "craft all" run has no control yet (L-165).
+  its capability. `MassCraftPlan.h` (pure): the recipe a grid lays out,
+  what a take added, the stacks beyond an ingredient's share; the run is
+  `massCraft` in `RecipePlace.cpp`.
 - `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favourites,
   chosen recipes, picked members and items marked as gathered, for all
   worlds in the config folder's `recipes.json`; the wanted items per world
@@ -217,6 +241,7 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Not seen in game: a server. The search field takes no pasted text.
 - The look as a whole is reviewed once the feature is complete
   (maintainer 2026-11-18); until then only faults are fixed.
+- Mass Craft is built and not seen in game.
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.

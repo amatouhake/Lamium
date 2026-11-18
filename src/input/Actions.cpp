@@ -19,6 +19,7 @@
 #include "features/information/PlayerList.h"
 #include "features/inventory/Inventory.h"
 #include "features/recipes/ItemList.h"
+#include "features/recipes/RecipePlace.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/map/MapView.h"
 #include "features/map/Minimap.h"
@@ -195,6 +196,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::RecipeBack) { recipes::itemList::back(); return; }
     if (action == input::Action::RecipeFavourite) { recipes::itemList::favourite(); return; }
     if (action == input::Action::RecipeWanted) { recipes::itemList::want(); return; }
+    if (action == input::Action::MassCraft) { recipes::massCraft::setHeld(true); return; }
     if (action == input::Action::ShowRecipes || action == input::Action::ShowUses) {
         recipes::itemList::show(action == input::Action::ShowUses);
         return;
@@ -430,5 +432,6 @@ void releaseAction(input::Action action) {
     if (action == input::Action::TargetPosition) information::setCardFlip(information::CardFlip::Position, false);
     if (action == input::Action::HideWaypoints) map::markers::setHidden(false);
     if (action == input::Action::AdjustSchematic) schematic::actions::setAdjustHeld(false);
+    if (action == input::Action::MassCraft) recipes::massCraft::setHeld(false);
 }
 }

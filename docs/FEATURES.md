@@ -449,6 +449,17 @@ wanted items, both on the left; the wanted items' window shows what to
 gather and what to make for them. Off by default; details and what is
 still to come in [RECIPES.md](RECIPES.md).
 
+### Mass Craft (experimental)
+
+Hold its key (unbound by default) with the pointer over the output slot of
+the inventory's or the crafting table's grid: the recipe lying in the grid
+is crafted, the products are thrown out and the recipe is laid in again as
+many times as divide evenly, for as long as the key is held. When the
+inventory is full and an ingredient is missing, stacks of the other
+ingredients beyond the recipe's share are thrown out too. Off by default;
+a server may limit how fast requests come. Details in
+[RECIPES.md](RECIPES.md).
+
 ### Death layout restore (experimental)
 
 Picking up your dropped items puts the hotbar, armor and offhand, optionally

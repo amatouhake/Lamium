@@ -1,4 +1,5 @@
 #include "features/recipes/ItemListLayout.h"
+#include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/ListFilter.h"
 #include "features/recipes/PlacePlan.h"
 #include "features/recipes/RawView.h"
@@ -239,6 +240,22 @@ void recipeIndexTests() {
         check(placePlan(index, stick, 2, {{0, oak, 3}, {1, birch, 10}}, {{planksGroup, oak}}, false).moves == Moves{{0, 1, 0}, {0, 1, 2}},
               "the member the player picked comes first");
         check(placePlan(index, stick, 2, {{0, oak, 9}, {1, birch, 10}}, {}, true).crafts == 9, "laying many, several kinds add up");
+        // A mass craft (L-165): the recipe the grid lays out, what a take added, what is too much of an ingredient.
+        auto at = [&](Recipe const& recipe) { return static_cast<int>(&recipe - index.recipes.data()); };
+        check(recipeInGrid(index, 3, {iron, iron, iron, -1, sticks, -1, -1, sticks, -1}) == at(pickaxe)
+              && recipeInGrid(index, 3, {iron, iron, -1, -1, sticks, -1, -1, sticks, -1}) < 0 && recipeInGrid(index, 3, std::vector<Item>(9, -1)) < 0,
+              "the grid's items name the shaped recipe they lay out, and nothing else does");
+        check(recipeInGrid(index, 3, {-1, -1, oak, -1, -1, birch, -1, -1, -1}) == at(stick) && recipeInGrid(index, 2, {-1, -1, -1, birch}) == at(button),
+              "a shape is found anywhere in the grid with any member of its group, an any-order recipe by its items");
+        check(gains({0, 5, 0, 0}, {{oak, 64}, {oak, 9}, {iron, 3}, {-1, 0}}, oak) == std::vector<Gain>{{0, 64, true}, {1, 4, false}},
+              "a take's gain is what a slot holds of the product beyond before, whole where it held none");
+        std::vector<PlaceSource> full;
+        for (int slot = 0; slot < 10; ++slot) full.push_back({slot, iron, slot == 2 ? 7 : 64});
+        check(surplusSlots(index, pickaxe, full) == std::vector<int>{2, 7, 8, 9},
+              "an ingredient keeps its share of the slots the recipe's ingredients fill, the fullest stacks, though the other is not carried at all");
+        check(surplusSlots(index, pickaxe, {{0, iron, 64}}).empty() && surplusSlots(index, stick, {{0, oak, 64}, {1, birch, 64}, {2, oak, 64}}).empty()
+              && surplusSlots(index, pickaxe, {{0, iron, 64}, {1, sticks, 64}, {2, sticks, 64}, {3, sticks, 64}, {4, sticks, 3}}) == std::vector<int>{3, 4},
+              "an ingredient is never thrown out altogether, and a recipe of one ingredient throws nothing");
         check(view.blockX(Station::Crafting, 3, 1) == 270 && view.blockX(Station::Crafting, 8, 1) == 325 && view.blockY(Station::Crafting, 8, 3) == 4 + 29 + 59,
               "one column sits in the middle; two fill left to right, then down");
     }

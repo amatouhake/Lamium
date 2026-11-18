@@ -17,6 +17,7 @@
 #include "features/research/ItemScreenProbe.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/ItemList.h"
+#include "features/recipes/RecipePlace.h"
 #include "features/recipes/RecipeState.h"
 #include "features/schematic/GhostProbe.h"
 #include "features/schematic/GhostRenderer.h"
@@ -190,6 +191,7 @@ Feature const features[] = {
     {"Recipe table", started<recipes::service::start>, recipes::service::stop},
     {"Recipe notes", started<recipes::state::start>, recipes::state::stop},
     {"Item list", started<recipes::itemList::start>, recipes::itemList::stop},
+    {"Mass Craft", started<recipes::massCraft::start>, recipes::massCraft::stop},
     {"Recipe table diagnostics", started<researchTrace::recipeTable::start>, researchTrace::recipeTable::stop},
     {"Item screen probe", started<researchTrace::itemScreen::start>, researchTrace::itemScreen::stop},
     {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},

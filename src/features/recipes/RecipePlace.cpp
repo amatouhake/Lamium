@@ -1,31 +1,39 @@
 #include "features/recipes/RecipePlace.h"
 #include "app/Runtime.h"
+#include "features/inspection/hover/HoverTracker.h"
 #include "features/inventory/game/TransferRoutes.h"
+#include "features/recipes/MassCraftPlan.h"
+#include "features/recipes/RecipeState.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/client/ClientExitLevelEvent.h"
+#include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/gui/screens/ScreenController.h"
 #include "mc/client/gui/screens/ScreenView.h"
 #include "mc/client/gui/screens/controllers/ContainerScreenController.h"
 #include "mc/client/gui/screens/controllers/CraftingScreenController.h"
+#include "mc/world/containers/SlotData.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/world/containers/managers/controllers/CraftingContainerManagerController.h"
 #include "mc/world/item/ItemStack.h"
+#include <atomic>
+#include <chrono>
 #include <climits>
 #include <string>
 
-namespace lamium::recipes::place {
+namespace lamium::recipes {
 namespace {
 std::string const grid = "crafting_input_items", output = "crafting_output_items", pointer = "cursor_items", hotbar = "hotbar_items",
     inventory = "inventory_items";
-// A run of "craft all": the recipe again each round while ingredients are left outside the grid.
-// Also a recipe waiting to be laid in: what lay in the grid is on its way back to the inventory.
-struct Run {
+// A recipe waiting to be laid in: what lay in the grid is on its way back to the inventory.
+struct Waiting {
     std::shared_ptr<service::Table const> table;
-    int recipe = -1, rounds = 0, wait = 0;
+    int recipe = -1;
     std::map<int, Item> picks;
     std::string screen;
-    bool many = false, craft = false;
+    bool many = false;
     int tries = 0; // frames waited for the grid to read empty
 } going;
-constexpr int mostRounds = 64, framesBetween = 3, mostTries = 20;
+constexpr int mostTries = 20;
 // The crafting screens: the inventory's 2x2 and the crafting table's 3x3 (seen with craft_trace, 2026-11-18).
 CraftingScreenController* crafting(ScreenView& screen) {
     if (!screen.mController || !screen.mController->_isContainerScreen()) return nullptr;
@@ -65,8 +73,8 @@ std::vector<PlaceSource> carriedOf(ContainerManagerController& manager, Index co
     add(inventory, 27, 9);
     return out;
 }
-// One round, into an empty grid: the recipe laid in and, with `craft`, the output taken.
-bool round(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many, bool craft) {
+// The recipe laid into an empty grid.
+bool lay(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many) {
     auto& manager = *controller.mContainerManagerController;
     if (held(manager) || !gridEmpty(manager)) return false;
     auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, many);
@@ -79,14 +87,10 @@ bool round(CraftingScreenController& controller, Index const& index, Recipe cons
         controller._handlePlaceAll(grid, move.cell);
         if (held(manager)) return false;
     }
-    if (!craft) return true;
-    // The output slot reads empty while the game shows a product (seen 2026-11-18): the recipe the grid makes tells.
-    if (!static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) return false;
-    // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
-    controller._handleAutoPlace(INT_MAX, output, 0);
     return true;
 }
 }
+namespace place {
 int gridSide(ScreenView& screen) {
     try {
         auto* controller = crafting(screen);
@@ -110,7 +114,7 @@ std::vector<PlaceSource> carried(ScreenView& screen, Index const& index) {
     } catch (...) {}
     return {};
 }
-bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many, bool craft) {
+bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many) {
     going = {};
     try {
         auto* controller = crafting(screen);
@@ -121,13 +125,11 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             controller->_evacuateCraftingGrid();
             // Not read as empty at once: the recipe is laid in when it is, a few frames on.
             if (!gridEmpty(manager)) {
-                going = {table, recipe, 0, 0, picks, screen.getScreenName(), many, craft, 0};
+                going = {table, recipe, picks, screen.getScreenName(), many, 0};
                 return true;
             }
         }
-        if (!round(*controller, table->index, table->index.recipes[static_cast<size_t>(recipe)], picks, many, craft)) return false;
-        if (craft) going = {table, recipe, 1, framesBetween, picks, screen.getScreenName(), many, true, 0};
-        return true;
+        return lay(*controller, table->index, table->index.recipes[static_cast<size_t>(recipe)], picks, many);
     } catch (...) {
         try { Runtime::instance().self().getLogger().warn("Recipes: placing a recipe failed"); } catch (...) {}
         return false;
@@ -138,26 +140,199 @@ void tick(ScreenView& screen) {
     try {
         auto* controller = crafting(screen);
         if (!controller || screen.getScreenName() != going.screen) { going = {}; return; }
-        if (going.wait-- > 0) return;
-        auto& manager = *controller->mContainerManagerController;
-        auto const& recipe = going.table->index.recipes[static_cast<size_t>(going.recipe)];
-        if (!going.rounds) {
-            // Waiting for what lay in the grid to be back in the inventory (no room for it: given up).
-            if (!gridEmpty(manager)) { if (++going.tries > mostTries) going = {}; return; }
-            if (!round(*controller, going.table->index, recipe, going.picks, going.many, going.craft) || !going.craft) { going = {}; return; }
-            going.rounds = 1;
-            going.wait = framesBetween;
-            return;
-        }
-        // What the last take left in the grid found no room: the run ends there, the grid as it is.
-        if (going.rounds >= mostRounds || held(manager) || !gridEmpty(manager)
-            || !round(*controller, going.table->index, recipe, going.picks, going.many, true)) {
-            going = {};
-            return;
-        }
-        ++going.rounds;
-        going.wait = framesBetween;
-    } catch (...) { going = {}; }
+        // Waiting for what lay in the grid to be back in the inventory (no room for it: given up).
+        if (!gridEmpty(*controller->mContainerManagerController)) { if (++going.tries > mostTries) going = {}; return; }
+        lay(*controller, going.table->index, going.table->index.recipes[static_cast<size_t>(going.recipe)], going.picks, going.many);
+    } catch (...) {}
+    going = {};
 }
 void stop() { going = {}; }
+}
+namespace massCraft {
+namespace {
+using Clock = std::chrono::steady_clock;
+// Between two steps of a run, so a fast frame rate does not send requests faster; and how long a
+// round that cannot be laid in waits for more to arrive, or for what it threw out to be gone.
+constexpr auto step = std::chrono::milliseconds(50), idle = std::chrono::milliseconds(250), afterSurplus = std::chrono::milliseconds(1000);
+constexpr int slots = 36, mostWaits = 10;
+enum class Phase { Lay, Take, Throw };
+struct Run {
+    bool on = false, over = false; // over: this press of the key does nothing more
+    std::shared_ptr<service::Table const> table;
+    int recipe = -1;
+    std::map<int, Item> picks;
+    Phase phase = Phase::Take;
+    std::vector<int> before; // per slot, what it held of the product before the take
+    int waits = 0;
+    Clock::time_point next, began;
+    int rounds = 0, takes = 0, thrown = 0, surplus = 0;
+} run;
+std::atomic<bool> keyHeld{false};
+ll::event::ListenerPtr renderListener, exitListener;
+void finish(char const* why) {
+    if (run.on) {
+        auto const ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - run.began).count();
+        try {
+            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} surplus stacks in {} ms ({})",
+                                                       run.rounds, run.takes, run.thrown, run.surplus, ms, why);
+        } catch (...) {}
+    }
+    run = {};
+    run.over = keyHeld;
+}
+bool overOutput(CraftingScreenController& controller) {
+    auto const& native = controller.mHoveredSlotData.get();
+    if (!native.mCollectionName->empty()) return native.mCollectionName.get() == output;
+    auto const& current = inspection::hover::HoverTracker::getInstance().current();
+    return current && current->controller == &controller && current->collectionName == output;
+}
+std::string const& collectionOf(int slot) { return slot < 9 ? hotbar : inventory; }
+int indexOf(int slot) { return slot < 9 ? slot : slot - 9; }
+// Hotbar and inventory, slot by slot: the item (-1: empty or not in the table) and how many.
+std::vector<std::pair<Item, int>> slotsOf(ContainerManagerController& manager, Index const& index, bool& anyFree) {
+    std::vector<std::pair<Item, int>> out(slots, {-1, 0});
+    anyFree = false;
+    if (manager.getContainerSize(hotbar) < 9 || manager.getContainerSize(inventory) < 27) return out;
+    for (int slot = 0; slot < slots; ++slot) {
+        auto const& stack = manager.getItemStack(collectionOf(slot), indexOf(slot));
+        if (stack.isNull() || stack.mCount <= 0) { anyFree = true; continue; }
+        out[static_cast<size_t>(slot)] = {index.find(stack.getTypeName(), stack.getAuxValue()), static_cast<int>(stack.mCount)};
+    }
+    return out;
+}
+bool makes(ContainerManagerController& manager) { return static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe != nullptr; }
+void begin(CraftingScreenController& controller) {
+    auto& manager = *controller.mContainerManagerController;
+    // The recipe is the one lying in the grid: nothing in it, nothing to do yet.
+    if (held(manager) || !makes(manager) || service::want() != service::State::Ready) return;
+    auto table = service::table();
+    if (!table) return;
+    int const side = sideOf(manager);
+    std::vector<Item> cells;
+    for (int i = 0; i < side * side; ++i) {
+        auto const& stack = manager.getItemStack(grid, i);
+        cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
+    }
+    int const recipe = recipeInGrid(table->index, side, cells);
+    if (recipe < 0) {
+        try { Runtime::instance().self().getLogger().info("Mass Craft: the grid lays out no recipe of the table"); } catch (...) {}
+        run.over = true;
+        return;
+    }
+    Request request;
+    apply(table->index, state::notes(), request);
+    run = {};
+    run.on = true;
+    run.table = std::move(table);
+    run.recipe = recipe;
+    run.picks = std::move(request.picks);
+    run.next = run.began = Clock::now();
+}
+void advance(CraftingScreenController& controller) {
+    auto& manager = *controller.mContainerManagerController;
+    auto const& index = run.table->index;
+    auto const& recipe = index.recipes[static_cast<size_t>(run.recipe)];
+    auto const now = Clock::now();
+    if (now < run.next) return;
+    if (held(manager)) { finish("the pointer holds an item"); return; }
+    bool anyFree = false;
+    switch (run.phase) {
+    case Phase::Take: {
+        if (!makes(manager)) {
+            if (gridEmpty(manager)) { run.phase = Phase::Lay; run.waits = 0; return; }
+            // What a recipe leaves behind (a bucket), or a product not shown yet.
+            if (++run.waits > mostWaits) finish("the grid holds something that is not the recipe");
+            return;
+        }
+        auto const now36 = slotsOf(manager, index, anyFree);
+        run.before.assign(slots, 0);
+        for (int slot = 0; slot < slots; ++slot)
+            if (now36[static_cast<size_t>(slot)].first == recipe.makes) run.before[static_cast<size_t>(slot)] = now36[static_cast<size_t>(slot)].second;
+        // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
+        controller._handleAutoPlace(INT_MAX, output, 0);
+        ++run.takes;
+        run.phase = Phase::Throw;
+        run.waits = 0;
+        run.next = now + step;
+        return;
+    }
+    case Phase::Throw: {
+        auto const found = gains(run.before, slotsOf(manager, index, anyFree), recipe.makes);
+        if (found.empty()) {
+            if (++run.waits > mostWaits) finish("the product found no room");
+            return;
+        }
+        for (auto const& gain : found) {
+            bool const sent = gain.whole ? inventory::game::transferRoutes::drop(controller, collectionOf(gain.slot), indexOf(gain.slot), false)
+                                         : inventory::game::transferRoutes::dropAmount(controller, collectionOf(gain.slot), indexOf(gain.slot), gain.amount);
+            if (!sent) { finish("throwing the product out failed"); return; }
+            ++run.thrown;
+        }
+        run.phase = Phase::Take;
+        run.waits = 0;
+        run.next = now + step;
+        return;
+    }
+    case Phase::Lay: {
+        if (!gridEmpty(manager)) { run.phase = Phase::Take; run.waits = 0; return; }
+        auto const carried = carriedOf(manager, index);
+        auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
+        if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
+        if (plan.ready()) {
+            if (!lay(controller, index, recipe, run.picks, true)) { finish("laying the recipe in failed"); return; }
+            ++run.rounds;
+            run.phase = Phase::Take;
+            run.waits = 0;
+            run.next = now + step;
+            return;
+        }
+        // Not enough of an ingredient: more may arrive while the key is held. With no slot free for it,
+        // what the others fill beyond their share goes out.
+        run.next = now + idle;
+        slotsOf(manager, index, anyFree);
+        if (anyFree) return;
+        for (int slot : surplusSlots(index, recipe, carried)) {
+            if (!inventory::game::transferRoutes::drop(controller, collectionOf(slot), indexOf(slot), false)) { finish("throwing a surplus out failed"); return; }
+            ++run.surplus;
+            run.next = now + afterSurplus;
+        }
+        return;
+    }
+    }
+}
+void tick(ScreenView& screen) {
+    if (!keyHeld) { if (run.on || run.over) finish("the key was released"); return; }
+    if (run.over) return;
+    auto& runtime = Runtime::instance();
+    if (!runtime.enabled() || !runtime.snapshot()->inventory.massCraft) { finish("switched off"); return; }
+    auto* controller = crafting(screen);
+    if (!controller) { finish("not a crafting screen"); return; }
+    // Only while the pointer is over the output slot; holding the key before it gets there waits.
+    if (!overOutput(*controller)) { if (run.on) finish("the pointer left the output slot"); return; }
+    if (!run.on) begin(*controller);
+    if (run.on) advance(*controller);
+}
+}
+void setHeld(bool held) {
+    keyHeld = held;
+    if (!held) finish("the key was released");
+}
+void start() {
+    auto& bus = ll::event::EventBus::getInstance();
+    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
+        try {
+            auto& screen = event.screenView();
+            // Several screens are drawn a frame (the HUD under a container): only the focused item screen is this run's.
+            if (!screen.mHasFocus || !screen.mController || !screen.mController->_isContainerScreen()) return;
+            tick(screen);
+        } catch (...) { try { finish("an error"); } catch (...) {} }
+    });
+    exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { run = {}; });
+}
+void stop() {
+    for (auto* listener : {&renderListener, &exitListener})
+        if (*listener) { ll::event::EventBus::getInstance().removeListener(*listener); listener->reset(); }
+    run = {};
+}
+}
 }

@@ -229,8 +229,11 @@ and `crafting_screen` it reads the collections `hotbar_items`,
 `_evacuateCraftingGrid`, `_handleTakeAmount`, `_handlePlaceAll` and
 `_handleAutoPlace` (on `crafting_output_items`, which reads empty while a
 product shows), and reads `CraftingContainerManagerController::mCraftingRecipe`
-(a class-layout read) to tell that the grid makes something. After a game
-update: lay a chest in and Shift-place a stack of logs.
+(a class-layout read) to tell that the grid makes something. Mass Craft
+(the same file) also reads `ContainerScreenController::mHoveredSlotData`
+and the hover tracker for the output slot and throws slots out with the
+slot routes' `drop` and `dropAmount`. After a game update: lay a chest in,
+Shift-place a stack of logs, and hold the Mass Craft key over the output.
 
 ## Inventory
 

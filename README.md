@@ -172,6 +172,7 @@ Waypoints also show in the world, with both maps off.
 | Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
 | Recipes *Exp.* | List and search every item beside item screens, show recipes and uses, keep favourites and a list of wanted items with what it takes | `R` recipes, `U` uses, `A` favourite, `W` wanted, `Backspace` back | Off |
+| Mass Craft *Exp.* | While a key is held over the crafting output: craft what lies in the grid again and again and throw the products out | unbound | Off |
 | Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
 | Paste across book pages | A long paste into a book continues on new pages | — | On |
 
