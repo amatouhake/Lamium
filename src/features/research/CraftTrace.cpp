@@ -36,6 +36,11 @@
 #include "mc/world/inventory/network/crafting/ItemStackRequestActionCraftBase.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/crafting/Recipe.h"
+#include "mc/client/player/LocalPlayer.h"
+#include "mc/deps/shared_types/legacy/ContainerType.h"
+#include "mc/world/level/BlockPos.h"
+#include "mc/world/level/BlockSource.h"
+#include "mc/world/level/block/Block.h"
 #include <Windows.h>
 #include <algorithm>
 #include <atomic>
@@ -351,9 +356,49 @@ void describe(UIControl const& control, int depth, std::string& out, int& count)
     }
 }
 // Once per item screen, after it has stood for a second: its size, its controls and its collections.
+// Counted places (L-359 step 8): how an open container can be told apart and read. One line when a
+// container screen opens (its position and entity as the screen holds them, the block there, the
+// container's type and size), one when its items first show, one when it is gone.
+void const* probed = nullptr;
+int probeFrames = 0, probeFilled = -1;
+TraceBudget placeBudget;
+void seePlace(ScreenView& view) {
+    auto& controller = static_cast<ContainerScreenController&>(*view.mController);
+    auto manager = controller.mContainerManagerController;
+    if (!manager || manager->mContainersClosed) return;
+    std::string const items = "container_items";
+    bool const has = manager->hasContainerController(items);
+    int const size = has ? manager->getContainerSize(items) : -1;
+    int filled = 0;
+    for (int i = 0; i < size && i < 200; ++i)
+        if (!manager->getItemStack(items, i).isNull()) ++filled;
+    if (probed != &controller) {
+        probed = &controller;
+        probeFrames = 0;
+        probeFilled = filled;
+        BlockPos const pos = controller.mBlockPos;
+        std::string block = "?";
+        int dimension = -99;
+        if (auto client = ll::service::getClientInstance())
+            if (auto* player = client->getLocalPlayer()) {
+                dimension = static_cast<int>(player->getDimensionId());
+                try { block = player->getDimensionBlockSource().getBlock(pos).getTypeName(); } catch (...) { block = "unreadable"; }
+            }
+        log(placeBudget, 200, "place opened: screen '{}' type={} dimension={} pos={},{},{} block={} entity={} container_items={} filled={}",
+            view.getScreenName(), static_cast<int>(manager->getContainerType()), dimension, pos.x, pos.y, pos.z, block,
+            controller.mEntityUniqueID->rawID, size, filled);
+        return;
+    }
+    ++probeFrames;
+    if (filled != probeFilled) {
+        log(placeBudget, 200, "place items: {} filled after {} frames (was {})", filled, probeFrames, probeFilled);
+        probeFilled = filled;
+    }
+}
 void seeScreen(ll::event::UIRenderEvent& event) {
     auto& view = event.screenView();
     if (!view.mHasFocus || !view.mController || !view.mController->_isContainerScreen()) return;
+    try { seePlace(view); } catch (...) {}
     auto* tree = view.mVisualTree.get();
     UIControl* const root = tree ? tree->mRootControl.get() : nullptr;
     if (!root) return;

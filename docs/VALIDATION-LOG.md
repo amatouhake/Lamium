@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The hand-over's switch and the raw view's heading (L-359, 2026-11-19)
+
+Build `78559093` (DLL
+`894f24fa902a7ef56e17128ffa7ce178a90398729550e8c459b6e7e2c2e8f467`),
+1.26.60.05 Dev instance, the maintainer:
+- The switch on the Materials tab off, and Schematics off: either took
+  the schematic's materials out of the wanted items.
+- "Show raw materials" has one line of headings.
+
 ## A schematic's materials among the wanted items (L-359, 2026-11-19)
 
 Build `a89a55fb` (DLL
