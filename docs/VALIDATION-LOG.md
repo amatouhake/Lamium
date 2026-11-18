@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Shift + "place" lays in only (L-359 step 9, 2026-11-18)
+
+Build `88febf9d` (DLL
+`e30018f71f1236f17bae43e1c47e1884428482e0f9054c9a34bec49da721e3ab`),
+1.26.60.05 Dev instance, the maintainer: Shift + "place" laid in as many
+as divide evenly, crafted nothing and closed the view.
+
 ## "Place" in the recipe view (L-359 step 9, L-165, 2026-11-18)
 
 Build `94c53d97` (DLL
