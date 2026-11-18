@@ -257,18 +257,24 @@ item is in; a row of the plan's window says its whole name and its count
 in chests and stacks under the pointer; the Stores tab and the band's
 switch as above. Agreed, not built:
 - A shared tab strip in `Widgets.h` (no screen has one: each draws
-  buttons, Primary when selected), whose selected tab joins what it
-  shows; for the recipe view's stations, the plan's window and the band's
-  lists, which become icon tabs where the band is narrow instead of one
-  button going round.
-- The band's and the windows' lists scroll, with the shared scrollbar
-  (`ScrollBar.h`, `ScrollDrag.h`, `drawScrollbar`; the panels beside the
-  anvil use them); the item list on the right keeps its pages.
-- "Favourite" and "wanted" in the recipe view as icon toggles, to be
-  compared in a mockup first. The recipe view's slots nearer the game's
-  in brightness and edge, a missing ingredient on the game's red.
-- A hovered item drawn by Lamium gets a tooltip near the game's with
-  Lamium's item details ([L-363](backlog/L-363.md)); the details are
+  buttons, Primary when selected), for the recipe view's stations, the
+  plan's window and the band's lists, which become icon tabs where the
+  band is narrow instead of one button going round. Its look is open:
+  joined to what it shows was turned down as it stood (on the light
+  window the title and the hints read as inside the tab, on a dark panel
+  the join is weak); an underline, plain or with some decoration, is
+  what the maintainer leans to ([demos/tab-strip.html](demos/tab-strip.html)
+  sets seven side by side).
+- Decided from [demos/recipe-look.html](demos/recipe-look.html)
+  (2026-11-19): the recipe view's slots near the game's in brightness
+  and edge, a missing ingredient on the game's red; "favourite" and
+  "wanted" there as a name and a switch each (icon toggles depend too
+  much on the icon; a common style first); the band's and the windows'
+  lists scroll with the shared scrollbar (`ScrollBar.h`, `ScrollDrag.h`,
+  `drawScrollbar`; the panels beside the anvil use them), the item list
+  on the right keeps its pages.
+- A hovered item drawn by Lamium gets a tooltip near the game's, in its
+  frame, with Lamium's item details ([L-363](backlog/L-363.md)); the details are
   filled inside the hover-text hook today (`Inspection.cpp`), so either
   the game's own hover text is asked for or that part is made a function.
 - Lamium's parts follow the game's window as it opens and closes, as the
@@ -340,6 +346,11 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
+- Open: whether the switch for the shulker boxes carried goes, or
+  becomes one for all shulker boxes. What bundles hold is not counted:
+  it lives in a container of the client's that is read through an open
+  item screen (`BundlePreviewProvider.cpp`), so the HUD and the
+  Materials tab could only use what was last seen there.
 - Stores: not seen are a store replaced by another block, shulker boxes
   inside one, the Materials tab and the Schematic HUD counting them, and
   the switches for what is carried.

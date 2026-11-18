@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tab Strip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --panel:rgba(16,17,19,.88); --edge:rgba(255,255,255,.14);
+  --text:#fff; --dim:#b4b8b6; --faint:#7f8583; --key:#2b2c2d; --key-edge:#5a5b5c;
+  --win:#c6c6c6; --win-ink:#3a3a3a; --win-faint:#7c7c7c;
+  --font:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 16px/1.4 "Noto Sans JP",sans-serif;margin:0}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:84ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.note{color:var(--ink-2);font-size:13.5px;max-width:92ch;margin:2px 0 8px}
+.rec{color:var(--accent);font-size:12px;margin-left:6px;font-weight:400}
+.four{display:grid;grid-template-columns:1.25fr 1fr .5fr 1.4fr;gap:10px}
+@media (max-width:860px){.four{grid-template-columns:1fr 1fr}}
+.cap{font-size:12px;color:var(--faint);margin-top:3px}
+.stage{position:relative;height:132px;font-family:var(--font);color:var(--text);overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(160deg,#2c4b3c 0%,#46523f 35%,#6b6450 60%,#3b4a57 100%)}
+.stage::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.stage>*{position:absolute}
+.win{inset:8px;background:var(--win);color:var(--win-ink);font-size:13px;box-shadow:0 0 0 1px #000;padding:5px 7px}
+.band{left:0;top:0;bottom:0;right:0;background:var(--panel);font-size:13px;padding:7px 6px}
+.scr{inset:0;background:rgba(14,15,17,.93);font-size:13px;padding:7px 8px}
+.it{display:inline-block;width:14px;height:14px;vertical-align:-2px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),inset 3px 3px 0 rgba(255,255,255,.2)}
+.rows{line-height:18px;margin-top:6px}
+.rows div{display:flex;gap:5px;white-space:nowrap}
+.rows .n{margin-left:auto;opacity:.75}
+.body{margin-top:0}
+.foot{position:absolute;left:7px;right:7px;bottom:4px;font-size:11.5px;opacity:.6;white-space:nowrap;overflow:hidden}
+.tabs{display:flex;align-items:flex-end;white-space:nowrap}
+.tab{cursor:default;font-size:12px}
+.eq .tab{flex:1;text-align:center}
+.ic .tab{padding-left:5px!important;padding-right:5px!important}
+
+/* A: buttons, as today. */
+.v-a .tabs{gap:3px}
+.v-a .tab{border:1px solid var(--key-edge);background:var(--key);color:var(--dim);padding:0 8px;height:17px;line-height:15px}
+.v-a .tab.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+
+/* B1: joined to what is below. */
+.v-b1 .tabs{gap:1px;border-bottom:1px solid rgba(255,255,255,.3)}
+.v-b1 .tab{background:rgba(0,0,0,.28);padding:0 8px;height:18px;line-height:17px;opacity:.75}
+.v-b1 .tab.on{background:rgba(255,255,255,.14);opacity:1;box-shadow:inset 0 2px var(--accent);height:21px;line-height:21px;margin-bottom:-1px}
+.v-b1 .win .tabs{border-color:#8a8a8a}
+.v-b1 .win .tab{background:#a9a9a9}
+.v-b1 .win .tab.on{background:#c6c6c6}
+
+/* B2: a page. The tabs sit on a framed sheet that holds what they switch, and nothing else. */
+.v-b2 .tabs{gap:2px;padding-left:4px;position:relative;z-index:1}
+.v-b2 .tab{padding:0 8px;height:17px;line-height:16px;border:1px solid transparent;border-bottom:0;opacity:.7}
+.v-b2 .tab.on{opacity:1;height:19px;line-height:17px;margin-bottom:-1px}
+.v-b2 .body{border:1px solid;padding:3px 5px 4px;min-height:52px}
+.v-b2 .band .tab.on,.v-b2 .scr .tab.on{background:#2b2f31;border-color:rgba(255,255,255,.34);box-shadow:inset 0 2px var(--accent)}
+.v-b2 .band .body,.v-b2 .scr .body{background:#2b2f31;border-color:rgba(255,255,255,.34)}
+.v-b2 .win .tab{color:#555}
+.v-b2 .win .tab.on{background:#dcdcdc;border-color:#7b7b7b;color:var(--win-ink);box-shadow:inset 0 2px var(--accent-deep)}
+.v-b2 .win .body{background:#dcdcdc;border-color:#7b7b7b}
+.v-b2 .rows{margin-top:0}
+
+/* C1: an underline and nothing else. */
+.v-c1 .tabs{gap:10px;border-bottom:1px solid rgba(255,255,255,.3)}
+.v-c1 .tab{padding:0 2px;height:19px;line-height:17px;opacity:.7}
+.v-c1 .tab.on{opacity:1;box-shadow:inset 0 -2px var(--accent)}
+.v-c1 .win .tabs{border-color:#8a8a8a}
+.v-c1 .win .tab.on{box-shadow:inset 0 -2px var(--accent-deep)}
+
+/* C2: the settings sidebar's selected row, turned sideways: a tint and a bar. */
+.v-c2 .tabs{gap:2px;border-bottom:1px solid rgba(255,255,255,.22)}
+.v-c2 .tab{padding:0 8px;height:20px;line-height:18px;opacity:.72}
+.v-c2 .tab.on{opacity:1;background:rgba(108,195,73,.18);box-shadow:inset 0 -2px var(--accent)}
+.v-c2 .win .tabs{border-color:#8a8a8a}
+.v-c2 .win .tab.on{background:rgba(60,133,39,.22);box-shadow:inset 0 -2px var(--accent-deep)}
+
+/* C3: an underline between divided labels; the selected one is bright and the rule under it is cut. */
+.v-c3 .tabs{border-bottom:1px solid rgba(255,255,255,.3)}
+.v-c3 .tab{padding:0 9px;height:19px;line-height:17px;color:var(--faint);border-left:1px solid rgba(255,255,255,.16)}
+.v-c3 .tab:first-child{border-left:0}
+.v-c3 .tab.on{color:#fff;box-shadow:inset 0 -3px var(--accent)}
+.v-c3 .win .tabs{border-color:#8a8a8a}
+.v-c3 .win .tab{color:#777;border-color:#a2a2a2}
+.v-c3 .win .tab.on{color:#1f1f1f;box-shadow:inset 0 -3px var(--accent-deep)}
+
+/* D: one control of several cells, in the buttons' own colors. */
+.v-d .tabs{display:inline-flex;border:1px solid var(--key-edge);background:var(--key)}
+.v-d .eq{display:flex}
+.v-d .tab{padding:0 8px;height:16px;line-height:15px;color:var(--dim);border-left:1px solid var(--key-edge)}
+.v-d .tab:first-child{border-left:0}
+.v-d .tab.on{background:var(--accent-deep);color:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">LAMIUM / L-359 / 見た目の見直し</div>
+  <h1>タブの共通部品: 案を並べて比べる</h1>
+  <p class="lede">recipe-look.html の 1 で決まらなかったタブを、案ごとに 4 つの場面で並べました。左から、明るい窓（計画）、暗い帯（左の一覧）、狭い帯（絵だけ）、暗い画面（設計図の画面。等幅 4 つ）。B は「つながって見えるか」「タブ以外の部分とどう区別するか」の指摘に対して B2 を足しました。C は装飾の違う 3 つです。</p>
+</header>
+
+<template id="scenes">
+  <div class="four">
+    <div><div class="stage"><div class="win">
+      <div style="margin-bottom:4px">計画</div>
+      <div class="tabs"><span class="tab on">欲しい物</span><span class="tab">集める物</span><span class="tab">作る物</span><span class="tab">保管場所</span></div>
+      <div class="body"><div class="rows"><div><span class="it" style="background:#c8a85a"></span>小麦<span class="n">16</span></div><div><span class="it" style="background:#5d9b3c"></span>草ブロック<span class="n">158　設計図</span></div></div></div>
+      <div class="foot">A キー: お気に入り | W キー: 欲しい物</div>
+    </div></div><div class="cap">明るい窓。見出しと下の案内はタブの外</div></div>
+    <div><div class="stage"><div class="band">
+      <div class="tabs"><span class="tab on">欲しい物</span><span class="tab">集める物</span><span class="tab">作る物</span></div>
+      <div class="body"><div class="rows"><div><span class="it" style="background:#c8a85a"></span>小麦<span class="n">16</span></div><div><span class="it" style="background:#5d9b3c"></span>草ブロック<span class="n">158</span></div><div><span class="it" style="background:#7a5236"></span>土<span class="n">7</span></div></div></div>
+    </div></div><div class="cap">暗い帯</div></div>
+    <div><div class="stage"><div class="band">
+      <div class="tabs ic"><span class="tab on"><span class="it" style="background:#e3c14f"></span></span><span class="tab"><span class="it" style="background:#8b8f94"></span></span><span class="tab"><span class="it" style="background:#9a6b3c"></span></span></div>
+      <div class="body"><div class="rows"><div><span class="it" style="background:#c8a85a"></span><span class="n">16</span></div><div><span class="it" style="background:#5d9b3c"></span><span class="n">158</span></div></div></div>
+    </div></div><div class="cap">狭い帯</div></div>
+    <div><div class="stage"><div class="scr">
+      <div class="tabs eq"><span class="tab">ファイル</span><span class="tab">配置</span><span class="tab">照合</span><span class="tab on">資材</span></div>
+      <div class="body"><div class="rows"><div><span style="opacity:.6">資材</span><span class="n">必要　残り</span></div><div><span class="it" style="background:#b98a4b"></span>模様入りの本棚<span class="n">4　　4</span></div><div><span class="it" style="background:#3f8a3a"></span>背の高い草<span class="n">4　　4</span></div></div></div>
+    </div></div><div class="cap">暗い画面（設計図）。等幅</div></div>
+  </div>
+</template>
+
+<section class="v-a"><h2>A　いまのまま: ボタンを並べる</h2><p class="note">選択中を緑のボタンにするだけ。操作のボタン（開く、配置など）と同じ形なので、切り替えなのか実行なのかが形からは分かりません。</p><div class="mount"></div></section>
+<section class="v-b1"><h2>B1　下とつながるタブ（前回の B）</h2><p class="note">指摘のとおり、暗い面ではつながりが弱く、明るい窓では見出しや案内までタブの中に見えます。</p><div class="mount"></div></section>
+<section class="v-b2"><h2>B2　ページ: タブが切り替える範囲を枠で囲む</h2><p class="note">B1 の弱点への対応です。切り替わる範囲だけを 1 枚の面にして、選択中のタブをその面と同じ色・同じ枠でつなぎます。見出しと案内は面の外に残るので区別できます。暗い面でも枠があるのでつながりが見えます。その分、枠の線が増えて、帯のような狭い所では中身の幅が 2 単位ほど減ります。</p><div class="mount"></div></section>
+<section class="v-c1"><h2>C1　下線だけ（前回の C）</h2><p class="note">いちばん軽い形です。選択中は下線と文字の明るさだけで示します。</p><div class="mount"></div></section>
+<section class="v-c2"><h2>C2　下線 + 薄い緑の面<span class="rec">既存のスタイルに寄せた案</span></h2><p class="note">設定画面の左の一覧で、選択中の行は「薄い緑の面 + 緑の棒」です。それを横向きにしたものです。Lamium の中で同じ言葉（選択中 = 緑の面と棒）になります。</p><div class="mount"></div></section>
+<section class="v-c3"><h2>C3　下線 + 区切り線、選択中は太い下線と明るい文字</h2><p class="note">タブ同士を細い線で区切って、ひと続きの見出しに見せます。選択中以外は文字を暗くします。面の色は使いません。</p><div class="mount"></div></section>
+<section class="v-d"><h2>D　ひとつの部品に区切りを入れる</h2><p class="note">ボタンの色をそのまま使い、全体を 1 つの枠にまとめます。A より「どれか 1 つを選ぶ」ことは伝わりますが、ボタンの見た目からは離れません。</p><div class="mount"></div></section>
+
+<section>
+  <h2>私の見立て</h2>
+  <p class="note">C2 を推します。Lamium にすでにある「選択中」の見せ方と同じで、明るい窓でも暗い面でも同じように読め、枠を増やさずに済みます。B2 は「ここからここまでが切り替わる」が最もはっきりしますが、線が増え、帯では窮屈です。計画の窓だけ B2、帯と設備は C2、という混在は共通部品の意味が薄れるので勧めません。</p>
+</section>
+</div>
+<script>
+var scenes = document.getElementById('scenes');
+document.querySelectorAll('.mount').forEach(function (mount) { mount.appendChild(scenes.content.cloneNode(true)); });
+</script>
+</body>
+</html>
