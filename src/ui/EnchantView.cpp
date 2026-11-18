@@ -94,9 +94,7 @@ bool click(float x, float y, bool right) {
 }
 void key(int key) {
     if (typingRow >= 0) {
-        if (key >= 0x30 && key <= 0x39) typed.append(std::string(1, static_cast<char>(key)));
-        else if (key >= 0x60 && key <= 0x69) typed.append(std::string(1, static_cast<char>('0' + key - 0x60)));
-        else if (key == 0x08) typed.backspace();
+        if (typed.digitKey(key)) {}
         else if (key == 0x0d || key == 0x09) endTyping(true);
         else if (key == 0x1b) endTyping(false);
         return;

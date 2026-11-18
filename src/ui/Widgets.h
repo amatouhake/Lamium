@@ -44,7 +44,10 @@ namespace vanilla {
 inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     armor{.722f,.725f,.769f}, // #B8B9C4, the armor icon
     curse{1.f,.333f,.333f}, // curses in an item's tooltip
-    tooltipBorder{.55f,.35f,.7f}; // the container preview's frame, as the item tooltip's
+    tooltipBorder{.55f,.35f,.7f}, // the container preview's frame, as the item tooltip's
+    // A window of the game's own grey and the text written on it, for a Lamium window that lies over
+    // a game window and takes its place (the recipe view, L-359).
+    window{.776f,.776f,.776f}, windowInk{.247f,.247f,.247f}, windowFaint{.42f,.42f,.42f};
 }
 }
 // Two panel opacities (DESIGN "Colors"), by what is under the panel: the
@@ -114,6 +117,12 @@ float labelWidth(MinecraftUIRenderContext&, std::string_view text, float scale);
 void fill(MinecraftUIRenderContext&, float x, float y, float width, float height, Rgb color, float opacity = 1);
 void frame(MinecraftUIRenderContext&, float x, float y, float width, float height, Rgb color, float opacity = 1);
 void panel(MinecraftUIRenderContext&, float left, float top, float width, float height, float opacity = .8f);
+// A window in the game's grey (palette::vanilla::window) with a dark edge, opaque: what lies under it
+// must not show. Text on it is windowLabel: dark, without a shadow. Buttons, slots and fields on it
+// are the shared dark ones.
+void windowPanel(MinecraftUIRenderContext&, float left, float top, float width, float height);
+void windowLabel(MinecraftUIRenderContext&, float x, float y, float width, std::string text, bool faint = false,
+                 Align align = Align::Left);
 // HUD card: the panel fill with corners stepped by one GUI pixel, like
 // Bedrock's item-name popup.
 void card(MinecraftUIRenderContext&, float left, float top, float width, float height, float opacity = .72f);
@@ -157,6 +166,9 @@ void arrow(MinecraftUIRenderContext&, float x, float y, bool left, Rgb color = p
 // like "North -> East": the game fonts lack U+2192 (it fell back to another
 // font in English and showed as a box in Japanese, 2026-10-08).
 constexpr float changeArrowWidth = 7, changeArrowHeight = 5;
+// "In any order": three squares out of line, 9 by 9 units, for a recipe whose ingredients have no place.
+constexpr float anyOrderMarkSize = 9;
+void anyOrderMark(MinecraftUIRenderContext&, float x, float y, Rgb color);
 void changeArrow(MinecraftUIRenderContext&, float x, float y, float scale, Rgb color);
 // Warning caps mark a binding that relates to another: Outline overlaps,
 // Filled is the exact same chord (all its actions fire together).

@@ -4,6 +4,7 @@
 #include "app/Versions.h"
 #include "features/inspection/Inspection.h"
 #include "features/inspection/render/DurabilityBar.h"
+#include "features/inspection/render/HeldItem.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "ui/EnchantChooser.h"
 #include "ui/EnchantLayout.h"
@@ -554,26 +555,7 @@ int chooserFirst = 0, stepsFirst = 0;
 std::string chooserMessage;
 std::chrono::steady_clock::time_point chooserMessageAt{};
 bool insideAnvil = false, paintedInside = false;
-// The item held on the pointer, to be drawn once more over the list: the
-// game's stack and the box the game draws it in. Valid for one frame.
-struct HeldIcon {
-    ItemStack const* stack = nullptr;
-    float x = 0, y = 0, size = 16;
-    // Where the game writes the stack's count, when it shows one.
-    bool counted = false;
-    float countX = 0, countY = 0, countWidth = 0, countHeight = 0;
-};
-// The game's count label of the held item, `selected_stack_size_text` (12x10 units; read from the log 2026-11-12).
-UIControl const* countControl(UIControl const& control, int depth = 0) {
-    if (depth > 8) return nullptr;
-    for (auto const& child : *control.mChildren) {
-        if (!child || (static_cast<int>(child->mVisible) & 1) == 0) continue;
-        glm::vec2 const extent = *child->mSize;
-        if (*child->mName == "selected_stack_size_text" && extent.x > 0 && extent.y > 0) return child.get();
-        if (auto const* found = countControl(*child, depth + 1)) return found;
-    }
-    return nullptr;
-}
+using inspection::render::HeldIcon;
 using Icons = std::vector<inspection::render::IconAt>;
 // The marks on the slots. Drawn over the items (Lamium cannot draw under them): a half-strength tint over the
 // whole slot, chosen in game 2026-11-13 over frames and fainter tints - the colour has to be seen, the item
@@ -665,32 +647,7 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     if (held) icons.push_back({held->stack, held->x, held->y, held->size / 16, 0, list.opacity, true, true});
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
     enchant_steps::drawTip(context, tip);
-    if (held && held->stack->mItem) {
-        // Its durability bar as the game draws it on a slot, at the held item's size.
-        int const maxDamage = static_cast<int>(held->stack->mItem->getMaxDamage());
-        if (inspection::render::shouldShowDurabilityBar(held->stack->isDamageableItem(), held->stack->getDamageValue(), maxDamage)) {
-            float const unit = held->size / 16, ratio = inspection::render::durabilityRatio(held->stack->getDamageValue(), maxDamage);
-            auto const back = inspection::render::durabilityBackground({0, 0, 16, 16});
-            auto const front = inspection::render::durabilityForeground(back, ratio);
-            auto const color = inspection::render::durabilityColor(ratio);
-            fill(context, held->x + back.x0 * unit, held->y + back.y0 * unit, back.width() * unit, back.height() * unit, palette::shade);
-            if (front.width() > 0)
-                fill(context, held->x + front.x0 * unit, held->y + front.y0 * unit, front.width() * unit, front.height() * unit,
-                    Rgb{color.r, color.g, color.b});
-        }
-        // Its count, on top of it and where the game writes it (the game's own number is under the item
-        // drawn again), drawn as the container previews draw theirs.
-        if (held->stack->mCount > 1 && held->counted) {
-            auto const& fontHandle = context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default");
-            TextMeasureData const textData{1.0f, 0.0f, true, false, false, ::ui::TextAlignment::Right};
-            CaretMeasureData const caret{-1, false};
-            context.drawText(ui::fontOf(fontHandle),
-                RectangleArea{held->countX, held->countX + held->countWidth, held->countY, held->countY + held->countHeight},
-                std::to_string(static_cast<int>(held->stack->mCount)), mce::Color{1.f, 1.f, 1.f, list.opacity}, 1.0f, ::ui::TextAlignment::Right,
-                textData, caret);
-            context.flushText(0, std::nullopt);
-        }
-    }
+    if (held) inspection::render::drawHeldMarks(context, *held, list.opacity);
 }
 // The game's tooltip is about to be drawn in the anvil screen. Painted here
 // the panels are above the screen's dark layer and under the tooltip. (Painting
@@ -986,28 +943,12 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // control `selected_item_icon` (21 units, following the pointer; read from the log 2026-11-12), so while
     // it overlaps one of them it is drawn once more in the same box, with them.
     HeldIcon onTop;
-    if (!painted && heldItem && opacity > .02f) {
-        static std::string const heldName = "selected_item_icon";
-        try {
-            if (auto icon = tree->getControlByName(heldName, true); icon && !icon->mCachedPositionDirty) {
-                glm::vec2 const where = *icon->mCachedPosition, extent = *icon->mSize;
-                auto over = [&](float x, float y, float w, float h) {
-                    return extent.x > 0 && where.x < x + w && where.x + extent.x > x && where.y < y + h && where.y + extent.y > y;
-                };
-                if (over(left, top, width, height)
-                    || (chooser && over(choose.left, choose.headTop, choose.width, choose.footerTop + ui::EnchantLayout::statusHeight - choose.headTop))) {
-                    onTop = {heldItem, where.x, where.y, extent.x};
-                    static std::string const buttonName = "inventory_selected_icon_button";
-                    if (auto button = tree->getControlByName(buttonName, true))
-                        if (auto const* count = countControl(*button)) {
-                            glm::vec2 const at2 = *count->mCachedPosition, size2 = *count->mSize;
-                            onTop.counted = true;
-                            onTop.countX = at2.x; onTop.countY = at2.y; onTop.countWidth = size2.x; onTop.countHeight = size2.y;
-                        }
-                }
-            }
-        } catch (...) { onTop = {}; }
-    }
+    if (!painted && heldItem && opacity > .02f)
+        onTop = inspection::render::heldOver(view, heldItem, [&](float x, float y, float w, float h) {
+            auto over = [&](float bx, float by, float bw, float bh) { return x < bx + bw && x + w > bx && y < by + bh && y + h > by; };
+            return over(left, top, width, height)
+                || (chooser && over(choose.left, choose.headTop, choose.width, choose.footerTop + ui::EnchantLayout::statusHeight - choose.headTop));
+        });
     // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
     if (!painted) paintList(context, onTop.stack ? &onTop : nullptr);
 }

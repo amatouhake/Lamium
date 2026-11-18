@@ -35,6 +35,14 @@ public:
         set(origin);
         replace = true;
     }
+    // A key of a whole number being typed: the digit row, the number pad, Backspace. False for any other.
+    bool digitKey(int code) {
+        if (code >= 0x30 && code <= 0x39) append(std::string(1, static_cast<char>(code)));
+        else if (code >= 0x60 && code <= 0x69) append(std::string(1, static_cast<char>('0' + code - 0x60)));
+        else if (code == 0x08) backspace();
+        else return false;
+        return true;
+    }
     // Typed numbers apply as they are typed; Esc puts the starting text back
     // so the next apply writes the value from before (exact: shortest round trip).
     void restore() { set(origin); }

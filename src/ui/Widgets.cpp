@@ -217,6 +217,18 @@ size_t paragraphLines(MinecraftUIRenderContext& context, float width, std::strin
 void panel(MinecraftUIRenderContext& context, float left, float top, float width, float height, float opacity) {
     fill(context,left,top,width,height,palette::panel,opacity);
 }
+void windowPanel(MinecraftUIRenderContext& context, float left, float top, float width, float height) {
+    fill(context,left,top,width,height,palette::vanilla::window);
+    frame(context,left,top,width,height,palette::shade,.75f);
+}
+void windowLabel(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, bool faint, Align align) {
+    labelScaled(context,x,y,width,std::move(text),1.f,faint ? palette::vanilla::windowFaint : palette::vanilla::windowInk,align,false);
+}
+void anyOrderMark(MinecraftUIRenderContext& context, float x, float y, Rgb color) {
+    fill(context,x,y+1,3,3,color);
+    fill(context,x+5,y,3,3,color);
+    fill(context,x+3,y+6,3,3,color);
+}
 void card(MinecraftUIRenderContext& context, float left, float top, float width, float height, float opacity) {
     if (width < 3 || height < 3) { fill(context,left,top,width,height,palette::panel,opacity); return; }
     fill(context,left+1,top,width-2,1,palette::panel,opacity);

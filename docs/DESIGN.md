@@ -103,8 +103,12 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 Colors sampled from the game (`heart`, `heartEmpty`, `armor`, `curse`,
 `tooltipBorder` for the container preview's frame) live in
 `palette::vanilla::`: they only match what the game draws and carry no
-Lamium meaning. Text shadow
-comes from `labelScaled`, not a token.
+Lamium meaning. `window`, `windowInk` and `windowFaint` are the game's
+window grey and the text on it: a Lamium window that lies over a game
+window and takes its place (the recipe view and the wanted items' window)
+is drawn with `windowPanel`, opaque, its text with `windowLabel` (dark, no
+shadow); the buttons, slots and fields on it are the shared dark ones.
+Text shadow comes from `labelScaled`, not a token.
 
 ### Sizes
 
