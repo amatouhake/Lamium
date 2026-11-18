@@ -11,6 +11,7 @@
 #include "ui/EnchantSteps.h"
 #include "ui/ScrollDrag.h"
 #include "ui/Localization.h"
+#include "ui/NumberInput.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -49,6 +50,7 @@
 #include "mc/world/item/enchanting/ItemEnchants.h"
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <bit>
 #include <chrono>
 #include <mutex>
@@ -540,14 +542,28 @@ struct PressState {
     ui::EnchantLayout choose;
     ui::EnchantStepsLayout steps;
     bool goalLive = false;
+    bool typing = false; // a row's level is being typed: the keys are kept from the game
 } pressState;
 struct Pending {
     ui::EnchantLayout::Hit hit;
     bool goal = false, scrollbar = false, stepsScrollbar = false;
-    bool level = false; // on a row's level value, which only the planner screen types into
+    bool level = false; // on a row's level value, which is typed after a press
+    bool outside = false; // a press the game kept, which ends the typing
     float y = 0;
 };
 std::vector<Pending> pendingPresses;
+// A level being typed beside the anvil, as on the planner screen: the row and its text on the client thread;
+// the keys kept for it and those still held, under pressLock.
+int typingRow = -1;
+ui::NumberInput typedLevel;
+std::vector<int> pendingKeys, keptKeys;
+std::atomic<bool> dropTyping{false};
+void endTyping(bool keep) {
+    if (typingRow < 0) return;
+    int const row = std::exchange(typingRow, -1);
+    if (!keep || !opened) return;
+    if (auto level = typedLevel.committedPrecise(1, 255, true)) setRowLevel(row, static_cast<int>(*level));
+}
 bool pendingRelease = false; // the left button went up (a held scroll bar lets go)
 int pendingWheel = 0, pendingStepsWheel = 0;
 bool pressSwallow = false;
@@ -588,7 +604,7 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     size_t const before = icons.size();
     int itemsDrawn = 0;
     enchant_chooser::draw(context, l, shown, hover, icons, itemsDrawn,
-        ui::scroll_drag::holding(&chooserFirst) || (list.free && l.rows.onScrollbar(list.pointerX, list.pointerY)));
+        ui::scroll_drag::holding(&chooserFirst) || (list.free && l.rows.onScrollbar(list.pointerX, list.pointerY)), typingRow, &typedLevel);
     // In their turn and not in batches, so an item held on the pointer, drawn last, is above them all.
     for (size_t i = before; i < icons.size(); ++i) { icons[i].alpha = list.opacity; icons[i].direct = true; }
     fill(context, l.left, l.footerTop, l.width, 1, palette::white, .14f);
@@ -639,7 +655,7 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     {
         std::scoped_lock lock(pressLock);
         pressState = {std::chrono::steady_clock::now(), list.pointerX, list.pointerY, list.free && list.opacity > .98f, change, panelBox,
-            list.chooser ? list.choose : EnchantLayout{}, list.steps, list.chooser};
+            list.chooser ? list.choose : EnchantLayout{}, list.steps, list.chooser, typingRow >= 0};
     }
     context.flushText(0, std::nullopt);
     // The held item goes with the panels' own icons, last so it is on top: a
@@ -670,9 +686,11 @@ void endAnvil() {
     if (anvilOpened) close();
     if (ui::scroll_drag::holding(&chooserFirst) || ui::scroll_drag::holding(&stepsFirst)) ui::scroll_drag::release();
     chooserMessage.clear();
+    typingRow = -1;
     std::scoped_lock lock(pressLock);
     pressState = {};
     pendingPresses.clear();
+    pendingKeys.clear();
     pendingWheel = pendingStepsWheel = 0;
 }
 // An item cell follows what is in its place while the anvil is open. True when it changed.
@@ -696,27 +714,44 @@ void seeItems(ItemStack const* hand, ItemStack const& input) {
 // The presses and wheel turns taken since the last frame.
 void applyPresses() {
     std::vector<Pending> presses;
+    std::vector<int> keys;
     int wheel = 0, stepsWheel = 0;
     bool released = false;
     {
         std::scoped_lock lock(pressLock);
         presses.swap(pendingPresses);
+        keys.swap(pendingKeys);
         released = std::exchange(pendingRelease, false);
         wheel = std::exchange(pendingWheel, 0);
         stepsWheel = std::exchange(pendingStepsWheel, 0);
     }
+    // A level being typed: digits, Enter keeps it, Esc leaves it. Any press ends it, kept; so does the
+    // row going away. Losing the window drops it.
+    if (dropTyping.exchange(false) || !opened || !list.chooser || !ui::enchant_chooser::levelStepper(shown, typingRow)) endTyping(false);
+    for (int key : keys) {
+        if (typingRow < 0) break;
+        if (key == 0x1B) endTyping(false);
+        else if (key == 0x0D || key == 0x09) endTyping(true);
+        else typedLevel.digitKey(key);
+    }
+    if (!presses.empty()) endTyping(true);
     auto const& rows = list.choose.rows;
     auto const& stepRows = list.steps.rows;
     if (wheel) chooserFirst = ui::SettingsTable::clampFirst(chooserFirst + wheel, rows.listCount, rows.listVisible);
     if (stepsWheel) stepsFirst = ui::SettingsTable::clampFirst(stepsFirst + stepsWheel, stepRows.listCount, stepRows.listVisible);
     for (auto const& press : presses) {
+        if (press.outside) continue;
         if (press.goal) { if (opened) { flipGoal(); stepsFirst = 0; } continue; }
         // The bars are the shared ones (ScrollDrag.h): held until the button goes up.
         if (press.stepsScrollbar) { ui::scroll_drag::hold(stepRows.scrollBar(), press.y, ui::scroll_drag::firstRow(stepsFirst), &stepsFirst); continue; }
         if (press.scrollbar) { ui::scroll_drag::hold(rows.scrollBar(), press.y, ui::scroll_drag::firstRow(chooserFirst), &chooserFirst); continue; }
         if (!opened) continue;
-        // The level between a stepper's ends is typed on the planner screen; here it does nothing (not a toggle).
-        if (press.level && ui::enchant_chooser::levelStepper(shown, press.hit.index)) continue;
+        // The level between a stepper's ends is typed, as on the planner screen (not a toggle).
+        if (press.level && ui::enchant_chooser::levelStepper(shown, press.hit.index)) {
+            typingRow = press.hit.index;
+            typedLevel.beginPrecise(shown.rows[static_cast<size_t>(typingRow)].level);
+            continue;
+        }
         std::string message;
         auto const pressed = ui::enchant_chooser::press(press.hit, message);
         if (pressed == ui::enchant_chooser::Pressed::NewItem) chooserFirst = 0;
@@ -1135,7 +1170,44 @@ int anvilPress(bool left, bool down) {
         pressSwallow = true;
         return 1;
     }
+    if (state.typing) {
+        Pending press;
+        press.outside = true;
+        pendingPresses.push_back(press);
+    }
     return 0;
+}
+bool anvilKey(int code, bool down) {
+    // The modifier keys stay the game's.
+    if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
+    std::scoped_lock lock(pressLock);
+    auto const kept = std::find(keptKeys.begin(), keptKeys.end(), code);
+    // A key kept at its press stays kept through its repeats and its release, whatever ended meanwhile.
+    if (!down) {
+        if (kept == keptKeys.end()) return false;
+        keptKeys.erase(kept);
+        return true;
+    }
+    bool const typing = pressState.typing && std::chrono::steady_clock::now() - pressState.at <= std::chrono::milliseconds(300);
+    if (kept != keptKeys.end()) {
+        if (typing && code != 0x1B && code != 0x0D && code != 0x09 && pendingKeys.size() < 64) pendingKeys.push_back(code);
+        return true;
+    }
+    if (!typing) return false;
+    if (keptKeys.size() >= 64) keptKeys.erase(keptKeys.begin());
+    keptKeys.push_back(code);
+    if (pendingKeys.size() < 64) pendingKeys.push_back(code);
+    return true;
+}
+bool anvilTyping() {
+    std::scoped_lock lock(pressLock);
+    return pressState.typing && std::chrono::steady_clock::now() - pressState.at <= std::chrono::milliseconds(300);
+}
+void anvilFocusLost() {
+    std::scoped_lock lock(pressLock);
+    keptKeys.clear();
+    pendingKeys.clear();
+    dropTyping = true;
 }
 bool anvilWheel(int rows) {
     std::scoped_lock lock(pressLock);

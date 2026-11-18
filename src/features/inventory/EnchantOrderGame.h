@@ -120,6 +120,12 @@ ItemStack const* stepBookIcon(int number);
 int anvilPress(bool left, bool down);
 // The wheel over the anvil's choosing panel, in rows: true when the panel takes it.
 bool anvilWheel(int rows);
+// A key changed while a level is typed beside the anvil (values only): true when it is kept from the
+// game, so the number keys move no stack and Esc leaves the anvil open. `anvilTyping`: such a level is
+// being typed, so text goes nowhere else. `anvilFocusLost`: the window lost the focus.
+bool anvilKey(int code, bool down);
+bool anvilTyping();
+void anvilFocusLost();
 ItemStack const* kindIcon(int index);
 ItemStack const* itemIcon();
 ItemStack const* heldIcon();
