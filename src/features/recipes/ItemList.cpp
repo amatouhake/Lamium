@@ -105,7 +105,7 @@ struct Queued {
     bool outside = false;       // a press the game kept, which takes the focus from the field
 } queued;
 bool ctrlHeld = false; // the listeners' own
-std::atomic<bool> shiftHeld{false}, dropFocus{false};
+std::atomic<bool> shiftHeld{false}, dropFocus{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
 // The left band's short list, as the window's tabs: the wanted items, what is left to gather, what to make.
 enum class SideList { Wanted, Gather, Make };
 SideList sideList = SideList::Gather;
@@ -126,7 +126,7 @@ struct GridPlacer : view::Placer {
     GridPlacer(ScreenView& screen, std::shared_ptr<service::Table const> table, std::map<int, Item> picks, int side)
         : screen(screen), table(std::move(table)), picks(std::move(picks)), side(side), carried(place::carried(screen, this->table->index)) {}
     PlacePlan preview(Recipe const& recipe, bool many) const override { return placePlan(table->index, recipe, side, carried, picks, many); }
-    void run(int recipe, bool many) override { place::run(screen, table, recipe, picks, many); }
+    bool run(int recipe, bool many) override { return place::run(screen, table, recipe, picks, many); }
 };
 bool anyView() { return view::isOpen() || planView::isOpen(); }
 KeptPresses keptButtons, keptKeys; // under shownLock
@@ -298,7 +298,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // One press a frame. Each control asks whether it was on it; what none takes goes to the recipe view.
     bool pressed = !input.clicks.empty();
     // A run of crafting goes on by itself a round every few frames; any press of the player's, or leaving, ends it.
-    if (pressed || input.outside || input.close) place::stop();
+    if (pressed || input.outside || input.close || stopRun.exchange(false)) place::stop();
     place::tick(screenView);
     bool const leftPress = pressed && input.clicks.front();
     auto took = [&](ListBox const& box) {
@@ -530,6 +530,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                        shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
+    // A recipe laid into the grid: nothing of Lamium's stays over it.
+    if (late.placed) view::close(), planView::close(), countEdit::cancel();
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView();
     static std::vector<int> inventoryKeys;
@@ -637,6 +639,7 @@ bool key(int code, bool down) {
     if (code == 0x11 || code == 0xA2 || code == 0xA3) ctrlHeld = down;
     if (code == 0x10 || code == 0xA0 || code == 0xA1) shiftHeld = down;
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
+    if (down) stopRun = true;
     std::scoped_lock lock(shownLock);
     // The focused search field takes every key: letters are text, which the game hands over itself. So
     // does a count being typed: the number keys must not move stacks to the hotbar.

@@ -63,9 +63,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
             else if (region.act == Act::Use) state::setChoice(shownItem, region.item);
             else if (region.act == Act::Place && input.placer) {
-                input.placer->run(region.tab, input.shift);
                 // One of each laid in: the grid is what the player wants to see next.
-                if (!input.shift) { close(); return; }
+                if (input.placer->run(region.tab, input.shift) && !input.shift) { late.placed = true; return; }
             }
             break;
         }

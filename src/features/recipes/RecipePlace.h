@@ -14,11 +14,13 @@ class ScreenView;
 namespace lamium::recipes::place {
 // The side of the screen's crafting grid, 2 or 3; 0 where it has none or the slot calls are not confirmed.
 int gridSide(ScreenView& screen);
-// What the player carries, slot by slot (0-8 the hotbar, 9-35 the inventory), as PlacePlan wants it.
+// What the player carries, slot by slot (0-8 the hotbar, 9-35 the inventory), as PlacePlan wants it, and
+// what lies in the grid (from 100), which goes back to the inventory before a recipe is laid in.
 std::vector<PlaceSource> carried(ScreenView& screen, Index const& index);
 // Lays the recipe in now: one of each ingredient, or with `all` as many as divide evenly, then takes all
 // the grid makes and goes on, a round every few frames, while ingredients are left outside the grid.
-// False when nothing was done (something on the pointer, an ingredient missing, a grid that will not empty).
+// What lay in the grid goes back first; the recipe is then laid in once the grid reads empty.
+// False when nothing was done (something on the pointer, an ingredient missing).
 bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool all);
 // The next round of a run, if one is going; called every frame the item screen is drawn.
 void tick(ScreenView& screen);

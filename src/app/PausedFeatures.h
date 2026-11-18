@@ -57,7 +57,8 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::ScoreboardPosition: return s.information.placesScoreboard();
     case Id::BossBarPosition: return s.information.placesBossBars();
     case Id::RepeatedTrades: return s.inventory.repeatTrades;
-    case Id::TransferRoutes: return s.inventory.transfer;
+    // Item transfer's routes, and the recipe view's "place", which lays a recipe in with the same slot calls (L-165).
+    case Id::TransferRoutes: return s.inventory.transfer || s.inventory.recipes;
     case Id::SkipServerPacks: return v.skipServerPacks;
     case Id::HideFog: return v.hideEffects && (v.hideWater || v.hideLava || v.hidePowderSnow || v.hideDistanceFog);
     case Id::HideWeather: return v.hideEffects && v.hideWeather;

@@ -15,7 +15,8 @@ namespace lamium::recipes::view {
 struct Placer {
     virtual ~Placer() = default;
     virtual PlacePlan preview(Recipe const& recipe, bool many) const = 0;
-    virtual void run(int recipe, bool many) = 0;
+    // False when nothing was done.
+    virtual bool run(int recipe, bool many) = 0;
 };
 struct Input {
     float screenWidth = 0, screenHeight = 0, pointerX = -1, pointerY = -1;
@@ -33,6 +34,7 @@ struct Late {
     std::string tip;
     std::vector<std::string> tipLines; // further lines under `tip`
     std::string hovered; // the item under the pointer, by its id
+    bool placed = false; // a recipe was laid into the grid: the host clears the windows off it
 };
 bool isOpen();
 // Shows an item's recipes, or what it is used in; the item shown before stays one step back.
