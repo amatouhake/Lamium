@@ -123,7 +123,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             int const at = first + row - 2;
             std::string name, icon, tip;
             bool on = false, faint = false;
-            if (at == -2) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:chest_minecart", on = all.carried;
+            if (at == -2) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:player_head", on = all.carried;
             else if (at == -1) name = translated("recipes.place.boxes"), tip = translated("recipes.place.boxesTip"), icon = "minecraft:undyed_shulker_box", on = all.boxes, faint = !all.carried;
             else {
                 auto const& place = places[static_cast<size_t>(at)];
@@ -136,12 +136,15 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 else if (at == -1) state::setCarriedCounted(all.carried, !all.boxes);
                 else state::setPlaceCounted(at, !on);
             }
-            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(icon).icon)) late.icons.push_back({stack, left, y + 1, iconScale});
+            // The shulker boxes carried are a part of what is carried: their row stands in from it, so it
+            // is not read as a switch for the boxes in stores.
+            float const from = left + (at == -1 ? 10.f : 0.f);
+            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(icon).icon)) late.icons.push_back({stack, from, y + 1, iconScale});
             if (late.tip.empty() && over(left, y, sx - left - 4, rowHeight)) {
                 late.tip = name;
                 if (!tip.empty()) late.tipLines.push_back(std::move(tip));
             }
-            windowLabel(context, left + 13, y + 2, sx - left - 17, std::move(name), faint || !on);
+            windowLabel(context, from + 13, y + 2, sx - from - 17, std::move(name), faint || !on);
         }
         if (places.empty() && fits > 3) paragraph(context, left, top + 2 * rowHeight + 4, right - left, translated("recipes.place.how"), 3, palette::vanilla::windowFaint);
         return;

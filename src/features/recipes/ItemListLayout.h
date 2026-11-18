@@ -54,7 +54,10 @@ struct SideLayout {
     }
     float barY() const { return top + split() + 3; }
     float rowsTop() const { return top + split() + 16; }
-    int rows() const { return std::max(0, static_cast<int>((height - (split() + 16) - 13) / row)); }
+    // The last 18 units are the open container's line: a rule, the name and switch, and room under them.
+    static constexpr float foot = 18;
+    float footY() const { return top + height - 14; }
+    int rows() const { return std::max(0, static_cast<int>((height - (split() + 16) - foot) / row)); }
     float rowY(int index) const { return rowsTop() + static_cast<float>(index) * row; }
     int hitRow(float x, float y) const {
         if (!has(x, y) || y < rowsTop()) return -1;

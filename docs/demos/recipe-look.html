@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Look</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --panel:rgba(16,17,19,.88); --edge:rgba(255,255,255,.14); --hover:rgba(255,255,255,.10);
+  --text:#fff; --dim:#b4b8b6; --faint:#7f8583; --key:#2b2c2d; --key-edge:#5a5b5c; --warn:#ffc24a;
+  --win:#c6c6c6; --win-ink:#3a3a3a; --win-faint:#7c7c7c;
+  --font:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:26px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 17px/1.4 "Noto Sans JP",sans-serif;margin:0 0 4px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:82ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.note{color:var(--ink-2);font-size:13.5px;max-width:86ch}
+.grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--ink-2);margin:10px 0}
+.grp button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:12.5px;padding:3px 10px}
+.grp button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.grp button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rec{color:var(--accent);font-size:12px;margin-left:4px}
+/* A piece of the game's screen, drawn at twice Lamium's units as in a 1920x1080 capture halved. */
+.stage{position:relative;font-family:var(--font);color:var(--text);overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(160deg,#2c4b3c 0%,#46523f 35%,#6b6450 60%,#3b4a57 100%)}
+.stage::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.stage>*{position:absolute}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.cap{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+/* Lamium's parts. */
+.band{background:var(--panel);font-size:13px}
+.win{background:var(--win);color:var(--win-ink);font-size:13px;box-shadow:0 0 0 1px #000}
+.btn{display:inline-block;border:1px solid var(--key-edge);background:var(--key);padding:0 7px;height:17px;line-height:15px;font-size:12px;color:var(--dim);white-space:nowrap;cursor:pointer}
+.btn.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.it{display:inline-block;width:16px;height:16px;vertical-align:-3px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),inset 3px 3px 0 rgba(255,255,255,.2)}
+.sw{display:inline-block;width:26px;height:13px;background:#3a3d3f;border:1px solid var(--key-edge);position:relative;vertical-align:-2px}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:10px;height:9px;background:#c9cdcb}
+.sw.on{background:var(--accent-deep);border-color:var(--accent)}
+.sw.on::after{left:13px;background:#fff}
+/* Tabs: three looks, switched on the body. */
+.tabs{display:flex;gap:3px;align-items:flex-end}
+.tab{border:1px solid var(--key-edge);background:var(--key);color:var(--dim);padding:0 8px;height:17px;line-height:15px;font-size:12px;cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+body[data-tab=joined] .tabs{gap:1px;border-bottom:1px solid var(--tabline,rgba(255,255,255,.3))}
+body[data-tab=joined] .tab{border:0;background:rgba(0,0,0,.28);height:18px;line-height:17px;margin-bottom:0;color:inherit;opacity:.75}
+body[data-tab=joined] .tab.on{background:var(--tabface,rgba(255,255,255,.14));opacity:1;color:inherit;box-shadow:inset 0 2px var(--accent);height:21px;line-height:21px;margin-bottom:-1px}
+body[data-tab=under] .tabs{gap:10px;border-bottom:1px solid var(--tabline,rgba(255,255,255,.3))}
+body[data-tab=under] .tab{border:0;background:none;padding:0 2px;height:19px;line-height:17px;color:inherit;opacity:.7}
+body[data-tab=under] .tab.on{background:none;opacity:1;color:inherit;box-shadow:inset 0 -2px var(--accent)}
+.win .tabs{--tabline:#8a8a8a;--tabface:#c6c6c6}
+body[data-tab=joined] .win .tab{background:#a9a9a9}
+body[data-tab=joined] .win .tab.on{background:#c6c6c6}
+.tabicon .tab{padding:0 5px}
+/* Slots of the recipe view. */
+.grid{display:grid;grid-template-columns:repeat(3,26px);gap:1px}
+.sl{width:26px;height:26px;position:relative;background:#2a2c2d;box-shadow:inset 0 0 0 1px #1a1b1c}
+.sl .it{position:absolute;left:5px;top:5px}
+.sl.miss{box-shadow:inset 0 0 0 2px var(--warn)}
+body[data-slot=game] .sl{background:#8b8b8b;box-shadow:inset 1.5px 1.5px #373737,inset -1.5px -1.5px #fff}
+body[data-slot=game] .sl.miss{background:#c45a5a;box-shadow:inset 1.5px 1.5px #7a2f2f,inset -1.5px -1.5px #f0b1b1}
+body[data-slot=soft] .sl{background:#a2a2a2;box-shadow:inset 0 0 0 1px #6f6f6f}
+body[data-slot=soft] .sl.miss{background:#c98a8a;box-shadow:inset 0 0 0 1px #9a3d3d}
+/* The recipe view's two toggles. */
+.tg{display:none;gap:4px;align-items:center}
+body[data-toggle=text] .tg.text,body[data-toggle=icon] .tg.icon,body[data-toggle=switch] .tg.switch{display:flex}
+.ib{width:19px;height:17px;border:1px solid #6a6a6a;background:#b4b4b4;color:#5a5a5a;text-align:center;line-height:15px;font-size:13px;cursor:pointer}
+.ib.on{background:var(--accent-deep);border-color:#2c661c;color:#fff}
+.ib.star.on{color:#ffe07a}
+/* Tooltips. */
+.tip{padding:4px 6px;font-size:13px;line-height:1.35;white-space:nowrap}
+.tip .d{color:var(--dim)} .tip .f{color:#8d8d9a;font-size:12px}
+body[data-tip=plain] .tip{background:rgba(16,17,19,.94);border:1px solid var(--edge)}
+body[data-tip=plain] .tip .more{display:none}
+body[data-tip=game] .tip{background:rgba(16,0,16,.94);border:2px solid #2a0a5e;box-shadow:0 0 0 1px #100010}
+/* Scrolling. */
+.rows{font-size:13px;line-height:18px}
+.rows div{display:flex;gap:5px;padding:0 4px;white-space:nowrap}
+.rows span.n{margin-left:auto;color:var(--dim)}
+.bar{width:3px;background:rgba(255,255,255,.12)}
+.bar i{display:block;width:3px;background:rgba(255,255,255,.55)}
+body[data-scroll=more] .bar,body[data-scroll=bar] .more13{display:none}
+.more13{color:var(--faint);font-size:12.5px;padding:0 4px}
+</style>
+</head>
+<body data-tab="joined" data-slot="game" data-toggle="icon" data-tip="game" data-scroll="bar">
+<div class="wrap">
+<header>
+  <div class="eyebrow">LAMIUM / L-359 / 見た目の見直し</div>
+  <h1>レシピ機能の共通部品</h1>
+  <p class="lede">2026-11-19 の見直しで合意した B の項目を、形を決めるために並べた見本です。各項目のボタンで案を切り替えられます。緑の「推奨」は私の案です。アイテムの絵は色の四角で代用しています。大きさは 1920x1080 のスクリーンショットを半分にした縮尺です。</p>
+</header>
+
+<section>
+  <h2>1. タブの共通部品</h2>
+  <p class="note">いまはどの画面もボタンを並べて、選択中を緑にしているだけです。共通のタブにすると、計画の窓、レシピの設備、左の帯、設計図の画面などを同じ形に揃えられます。</p>
+  <div class="grp" data-set="tab">見た目:
+    <button data-v="button">A いまのまま（ボタン）</button>
+    <button data-v="joined">B 下の領域とつながるタブ<span class="rec">推奨</span></button>
+    <button data-v="under">C 下線だけ</button>
+  </div>
+  <div class="row2">
+    <div>
+      <div class="stage" style="height:150px">
+        <div class="win" style="left:14px;top:12px;right:14px;bottom:12px;padding:6px 8px">
+          <div style="margin-bottom:5px">計画</div>
+          <div class="tabs"><span class="tab on">欲しい物</span><span class="tab">集める物</span><span class="tab">作る物</span><span class="tab">保管場所</span></div>
+          <div style="margin-top:8px;line-height:19px"><span class="it" style="background:#c8a85a"></span> 小麦 <span style="float:right">16</span><br><span class="it" style="background:#5d9b3c"></span> 草ブロック <span style="float:right;color:var(--win-faint)">158　設計図</span></div>
+        </div>
+      </div>
+      <div class="cap">計画の窓（明るい窓の上）</div>
+    </div>
+    <div>
+      <div class="stage" style="height:150px">
+        <div class="band" style="left:0;top:0;width:210px;bottom:0;padding:8px 6px">
+          <div class="tabs"><span class="tab on">欲しい物</span><span class="tab">集める物</span><span class="tab">作る物</span></div>
+          <div class="rows" style="margin-top:6px"><div><span class="it" style="background:#c8a85a"></span>小麦<span class="n">16</span></div><div><span class="it" style="background:#5d9b3c"></span>草ブロック<span class="n">158</span></div></div>
+        </div>
+        <div class="band" style="left:226px;top:0;width:96px;bottom:0;padding:8px 6px">
+          <div class="tabs tabicon"><span class="tab on" title="欲しい物">★</span><span class="tab" title="集める物">⛏</span><span class="tab" title="作る物">⚒</span></div>
+          <div class="rows" style="margin-top:6px"><div><span class="it" style="background:#c8a85a"></span><span class="n">16</span></div><div><span class="it" style="background:#5d9b3c"></span><span class="n">158</span></div></div>
+        </div>
+      </div>
+      <div class="cap">左の帯: 広いとき（左）と、レシピブックを開いて狭いとき（右）。狭いときは 1 つのボタンで回すのをやめ、絵だけのタブにします。絵は仮です。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2. レシピ画面のスロット、不足の見せ方、設備のタブ</h2>
+  <p class="note">いまのスロットは暗く沈み、枠も簡素です。不足は黄色い枠で、ゲームのレシピブック（赤い背景）と違います。設備の切り替えは 1 のタブに揃えます。</p>
+  <div class="grp" data-set="slot">スロット:
+    <button data-v="dark">A いまのまま（暗い、不足は黄枠）</button>
+    <button data-v="game">B ゲームに近い明るさと縁、不足は赤い背景<span class="rec">推奨</span></button>
+    <button data-v="soft">C 明るい平らな面、不足は薄い赤</button>
+  </div>
+  <div class="grp" data-set="toggle">お気に入り・欲しい物:
+    <button data-v="text">A 文字のボタン（いま）</button>
+    <button data-v="icon">B 絵のトグル<span class="rec">推奨</span></button>
+    <button data-v="switch">C 名前 + スイッチ</button>
+  </div>
+  <div class="stage" style="height:214px">
+    <div class="win" style="left:50%;top:12px;width:340px;margin-left:-170px;bottom:12px;padding:6px 8px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <span style="flex:1;overflow:hidden;white-space:nowrap">使い道: 鉄インゴット</span>
+        <span class="tg text"><span class="btn on">お気に入り</span><span class="btn">欲しい物</span></span>
+        <span class="tg icon"><span class="ib star on" title="お気に入り">★</span><span class="ib" title="欲しい物">＋</span></span>
+        <span class="tg switch" style="font-size:12px">お気に入り <span class="sw on"></span>　欲しい物 <span class="sw"></span></span>
+      </div>
+      <div class="tabs tabicon"><span class="tab on" title="作業台"><span class="it" style="background:#9a6b3c;width:13px;height:13px"></span></span><span class="tab" title="かまど"><span class="it" style="background:#6f6f6f;width:13px;height:13px"></span></span><span class="tab" title="溶鉱炉"><span class="it" style="background:#4d4f55;width:13px;height:13px"></span></span><span style="margin-left:auto;color:var(--win-faint);font-size:12px">1 / 5</span></div>
+      <div style="display:flex;gap:22px;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="grid"><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl"><span class="it" style="background:#8a5a2b"></span></div><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl miss"><span class="it" style="background:#c0392b"></span></div><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl"><span class="it" style="background:#8a5a2b"></span></div><div class="sl"><span class="it" style="background:#d8d8d8"></span></div></div>
+          <div style="text-align:center"><span class="btn" style="margin-bottom:6px;opacity:.5">配置</span><br>→ <span class="sl" style="display:inline-block;vertical-align:middle"><span class="it" style="background:#7a5b3a"></span></span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="grid"><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl"></div><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl"></div><div class="sl"><span class="it" style="background:#d8d8d8"></span></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+          <div style="text-align:center"><span class="btn" style="margin-bottom:6px">配置</span><br>→ <span class="sl" style="display:inline-block;vertical-align:middle"><span class="it" style="background:#b9bdc2"></span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">左のレシピは中央の素材が不足している状態です。「配置」は不足があると押せません。</div>
+</section>
+
+<section>
+  <h2>3. Lamium が描くアイテムのツールチップ</h2>
+  <p class="note">いまは名前だけの簡素な箱です。ゲームのツールチップに近い枠にして、Lamium のアイテム詳細の行（耐久値、ID など、設定でオンにしている行）も出します。計画の窓の行では、数の換算もここに出します。</p>
+  <div class="grp" data-set="tip">見た目:
+    <button data-v="plain">A いまのまま（名前だけ）</button>
+    <button data-v="game">B ゲームに近い枠 + アイテム詳細の行<span class="rec">推奨</span></button>
+  </div>
+  <div class="stage" style="height:118px">
+    <div class="tip" style="left:20px;top:16px">盾<div class="more"><span class="d">耐久値: 336 / 336</span><br><span class="d">クールダウン: 5 秒</span><br><span class="f">minecraft:shield</span></div></div>
+    <div class="tip" style="left:230px;top:16px">草ブロック<div class="more"><span class="d">あと 158（2 スタック + 30）</span><br><span class="d">設計図から</span><br><span class="f">minecraft:grass_block</span></div></div>
+  </div>
+  <div class="cap">左: アイテム一覧やレシピのスロットの上。右: 計画の窓の行の上。</div>
+</section>
+
+<section>
+  <h2>4. 一覧のスクロールと、開いている入れ物の行</h2>
+  <p class="note">左の帯は入りきらない行を「ほか 13 種類」と出すだけで、残りを見る手段がありません。帯と窓の一覧は、共通のスクロールバー付きのスクロールにします。右のアイテム一覧はページのままです。いちばん下の「保管場所として数える」は、罫線で区切って下に余白を取りました（この行は今回のビルドに入っています）。</p>
+  <div class="grp" data-set="scroll">帯の一覧:
+    <button data-v="more">A いまのまま（ほか N 種類）</button>
+    <button data-v="bar">B スクロールバー<span class="rec">推奨</span></button>
+  </div>
+  <div class="stage" style="height:190px">
+    <div class="band" style="left:0;top:0;width:230px;bottom:0;padding:8px 6px 0">
+      <div class="tabs"><span class="tab on">欲しい物</span><span class="tab">集める物</span><span class="tab">作る物</span><span class="btn" style="margin-left:auto">開く</span></div>
+      <div style="display:flex;gap:3px;margin-top:6px;height:92px">
+        <div class="rows" style="flex:1;overflow:hidden"><div><span class="it" style="background:#c8a85a"></span>小麦<span class="n">16</span></div><div><span class="it" style="background:#5d9b3c"></span>草ブロック<span class="n">158</span></div><div><span class="it" style="background:#3f8a3a"></span>背の低い草<span class="n">22</span></div><div><span class="it" style="background:#7a5236"></span>土<span class="n">7</span></div><div><span class="it" style="background:#6b3f2a"></span>音符ブロック<span class="n">6</span></div></div>
+        <div class="bar"><i style="height:34px"></i></div>
+      </div>
+      <div class="more13">ほか 13 種類</div>
+      <div style="position:absolute;left:6px;right:6px;bottom:6px;border-top:1px solid var(--edge);padding-top:5px;display:flex;align-items:center;color:var(--dim)">保管場所として数える<span class="sw" style="margin-left:auto"></span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>見本にしていないもの</h2>
+  <p class="note">動きや配置の話なので、絵にしていません。ゲームのウィンドウの出入りに Lamium の表示を合わせること（金床の横のパネルと同じやり方）、レシピブックを開いたときに Lamium の窓をゲームのウィンドウ全体に広げること、窓の見出しを「計画」にすること、欲しい物のタブに「設計図の残りを含める」のスイッチを置くこと、ワールド内で保管場所に枠を出すこと。</p>
+</section>
+</div>
+<script>
+document.querySelectorAll('.grp[data-set]').forEach(function (group) {
+  var name = group.dataset.set;
+  function show() {
+    group.querySelectorAll('button').forEach(function (button) {
+      button.setAttribute('aria-pressed', String(document.body.dataset[name] === button.dataset.v));
+    });
+  }
+  group.querySelectorAll('button').forEach(function (button) {
+    button.addEventListener('click', function () { document.body.dataset[name] = button.dataset.v; show(); });
+  });
+  show();
+});
+</script>
+</body>
+</html>

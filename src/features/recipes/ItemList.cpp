@@ -512,7 +512,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
             // out again); the ender chest, which is noted anyway, is switched in or out of the count.
             int const index = open->ender ? state::places().ender() : state::places().store(open->spot);
             bool const on = index >= 0 && (!open->ender || state::places().list[static_cast<size_t>(index)].counted);
-            ListBox const box{side.left + 2, side.top + side.height - 12, side.width - 4, 11};
+            // Set off from the list by a rule, and clear of the screen's edge.
+            ListBox const box{side.left + 2, side.footY(), side.width - 4, 11};
+            fill(context, side.left + 2, box.y - 3, side.width - 4, 1, palette::white, .14f);
             if (box.has(px, py)) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
             if (side.wide()) label(context, box.x + 2, box.y + 2, box.w - switchWidth - 6, translated("recipes.place.count"), palette::dim);
             else if (box.has(px, py)) late.tip = translated("recipes.place.count");

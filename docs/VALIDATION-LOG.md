@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The first fixes from the look review (L-359, 2026-11-19)
+
+Build `910258a9` (DLL
+`e3961dbd4704217944ffd5e09aa5c97c88775ddacde921592f633fe3d51b25c9`),
+1.26.60.05 Dev instance, the maintainer:
+- The Stores tab's rows and its column of switches; with "Carried" off
+  the count was the stores' alone.
+- The band's last line switched a chest and the ender chest in and out.
+- Shift on a wanted count gave multiples of 64.
+- Bothered: the band's last line touches the screen's bottom and has no
+  border to tell it from the list; the row for the shulker boxes carried
+  does not say whether it is about what is carried or about all boxes;
+  the chest minecart as the icon of what is carried (something of the
+  player's is wanted, a head if the game has nothing better).
+
 ## The look of Recipes as a whole, the maintainer's first pass (L-359, 2026-11-19)
 
 Build `8cb8b40f`, 1.26.60.05 Dev instance, the maintainer, with thirteen

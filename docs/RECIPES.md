@@ -171,12 +171,14 @@ after using the first build. What is still open is in the L-item.
   included, and is noted while it is open and Recipes is on. One count
   serves the plan, the schematic Materials tab and the Schematic HUD;
   Enchantment Order and "can be made" keep counting what is carried.
-- While a container is open, the last line of the left band is "Count as
-  a store" with a switch: on makes it a store, off takes it out; at the
+- While a container is open, the last line of the left band, under a
+  rule and clear of the screen's edge, is "Count as a store" with a
+  switch: on makes it a store, off takes it out; at the
   ender chest it switches the chest in or out of the count. The plan's
   window has a "Stores" tab: what is carried, the shulker boxes carried,
-  the ender chest and the stores, each a name and a switch in one
-  column, a store also with "Remove". A store where another block stands
+  (standing in under it, as a part of it) the ender chest and the
+  stores, each a name and a switch in one column, a store also with
+  "Remove". A store where another block stands
   is dropped when that is seen. The word is "store" throughout.
 - In "to gather", a "have" number that includes a place's last-seen count
   carries a star in a gutter of its own, and says under the pointer how
