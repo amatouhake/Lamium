@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The output slot throws nothing (L-165, 2026-11-18)
+
+Trace build of `f8955751` (`craft_trace`, DLL
+`1b9a1195db587b6d740aad6bd2bc32d6c5974be3cf98946e22ecdc041715c20c`),
+1.26.60.05 Dev instance, a local world, the maintainer at a crafting
+table:
+- 64 logs in one cell, the slot drop called once on
+  `crafting_output_items`, for the stack and for one: no planks fell, 64
+  logs stayed, also with a nearly full inventory. The call reported that
+  it was made; the log has no craft request after it.
+- The same call every tick while a key was held (418 and 334 ticks, logs
+  and a grid of cobblestone): nothing crafted, nothing fell, no request.
+- The game's own drop key and Shift + the drop key over the output slot:
+  nothing.
+- Not measured: how fast rounds are accepted.
+
 ## Shift + "place" lays in only (L-359 step 9, 2026-11-18)
 
 Build `88febf9d` (DLL
