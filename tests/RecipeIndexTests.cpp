@@ -1,5 +1,6 @@
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ListFilter.h"
+#include "features/recipes/PlacePlan.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeView.h"
@@ -218,6 +219,26 @@ void recipeIndexTests() {
         check(view.left == 210 && view.top == 4 && view.height == 336 && view.hintY() == 329, "the view is centred, two columns wide, down to the search field's place");
         check(view.rows(Station::Crafting) == 5 && view.columns(Station::Crafting, 5) == 1 && view.columns(Station::Crafting, 6) == 2
               && view.pages(Station::Crafting, 11) == 2, "rows fill the height; a second column and page come when needed");
+        // Laying a recipe into the grid from what is carried.
+        Item const iron = index.find("iron"), sticks = index.find("stick"), oak = index.find("oak_planks"), birch = index.find("birch_planks");
+        using Moves = std::vector<PlaceMove>;
+        auto one = placePlan(index, pickaxe, 3, {{0, iron, 5}, {1, sticks, 2}}, {}, false);
+        check(one.ready() && one.crafts == 1 && one.moves == Moves{{0, 1, 0}, {0, 1, 1}, {0, 1, 2}, {1, 1, 4}, {1, 1, 7}},
+              "a shaped recipe is laid cell by cell where its shape puts it, one of each");
+        check(!placePlan(index, pickaxe, 2, {{0, iron, 5}, {1, sticks, 2}}, {}, false).fits, "a recipe wider than the grid does not fit");
+        auto few = placePlan(index, pickaxe, 3, {{0, iron, 2}, {1, sticks, 2}}, {}, false);
+        check(few.fits && !few.ready() && few.missing == std::vector<int>{2} && few.moves.empty(), "a cell nothing serves is named and nothing moves");
+        auto split = placePlan(index, pickaxe, 3, {{0, iron, 3}, {1, sticks, 64}, {2, iron, 4}}, {}, true);
+        check(split.crafts == 2 && split.moves == Moves{{0, 2, 0}, {0, 1, 1}, {2, 1, 1}, {2, 2, 2}, {1, 2, 4}, {1, 2, 7}},
+              "as many as divide evenly, drawn from every stack of the item, a cell from two stacks where one runs out");
+        check(placePlan(index, pickaxe, 3, {{0, iron, 64}, {1, sticks, 64, 16}, {2, iron, 64}, {3, iron, 64}}, {}, true).crafts == 16,
+              "a cell holds at most its item's stack");
+        int const planksGroup = stick.cells[0].id;
+        check(placePlan(index, stick, 2, {{0, oak, 3}, {1, birch, 10}}, {}, false).moves == Moves{{1, 1, 0}, {1, 1, 2}},
+              "any of several items: the one most carried, and a narrow shape keeps the grid's left");
+        check(placePlan(index, stick, 2, {{0, oak, 3}, {1, birch, 10}}, {{planksGroup, oak}}, false).moves == Moves{{0, 1, 0}, {0, 1, 2}},
+              "the member the player picked comes first");
+        check(placePlan(index, stick, 2, {{0, oak, 9}, {1, birch, 10}}, {}, true).crafts == 9, "laying many, several kinds add up");
         check(view.blockX(Station::Crafting, 3, 1) == 270 && view.blockX(Station::Crafting, 8, 1) == 325 && view.blockY(Station::Crafting, 8, 3) == 4 + 29 + 59,
               "one column sits in the middle; two fill left to right, then down");
     }

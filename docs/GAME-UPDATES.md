@@ -222,6 +222,15 @@ on the pointer is drawn again over the bands and the windows as beside the
 anvil (`inspection/render/HeldItem.cpp`: the container manager's
 `cursor_items`, the controls `selected_item_icon` and
 `selected_stack_size_text`); a screen without those controls shows nothing.
+"Place" (`features/recipes/RecipePlace.cpp`, L-165) has no hook either and
+asks the TransferRoutes capability: on the screens named `inventory_screen`
+and `crafting_screen` it reads the collections `hotbar_items`,
+`inventory_items`, `crafting_input_items` and `cursor_items`, calls
+`_evacuateCraftingGrid`, `_handleTakeAmount`, `_handlePlaceAll` and
+`_handleAutoPlace` (on `crafting_output_items`, which reads empty while a
+product shows), and reads `CraftingContainerManagerController::mCraftingRecipe`
+(a class-layout read) to tell that the grid makes something. After a game
+update: lay a chest in and Shift-place a stack of logs.
 
 ## Inventory
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "features/inspection/render/ItemIcon.h"
+#include "features/recipes/PlacePlan.h"
 #include <string>
 #include <vector>
 class MinecraftUIRenderContext;
@@ -9,11 +10,20 @@ class MinecraftUIRenderContext;
 // host hands it the pointer and the input it kept from the game, and draws
 // what must lie over the item icons afterwards. Client thread only.
 namespace lamium::recipes::view {
+// The screen's crafting grid, as the host reaches it: whether a recipe can be laid into it from what
+// is carried, and doing so. `many`: as many as divide evenly, and all of it crafted.
+struct Placer {
+    virtual ~Placer() = default;
+    virtual PlacePlan preview(Recipe const& recipe, bool many) const = 0;
+    virtual void run(int recipe, bool many) = 0;
+};
 struct Input {
     float screenWidth = 0, screenHeight = 0, pointerX = -1, pointerY = -1;
     std::vector<bool> clicks; // presses since the last frame; true: the left button
     int wheel = 0;            // pages to turn
     bool back = false, close = false;
+    bool shift = false;       // held: "place" lays in as many as divide evenly and crafts them all
+    Placer* placer = nullptr; // null where the screen has no crafting grid
 };
 // Drawn by the host after its own: item icons, then counts and the name under the pointer on top of them.
 struct Late {

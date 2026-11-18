@@ -1027,6 +1027,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"recipes.toMake", "製作"},
     {"recipes.backToAny", "恢復為任意"},
     {"recipes.mark.use", "使用"},
+    {"recipes.place", "放置"},
     {"recipes.hint.favourite", "{}: 收藏"},
     {"recipes.hint.wanted", "{}: 想要"},
     {"recipes.hint.back", "{}: 上一個配方"},

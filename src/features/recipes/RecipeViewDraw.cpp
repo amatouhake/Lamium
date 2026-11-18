@@ -25,12 +25,12 @@ struct Target {
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, or a
 // recipe's "use this".
-enum class Act { Item, Tab, Favourite, Wanted, Use };
+enum class Act { Item, Tab, Favourite, Wanted, Use, Place };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
     std::string item; // Item: its key; Use: the recipe, as notes name it
-    int tab = -1;
+    int tab = -1; // Tab: which; Place: the recipe
     bool has(float px, float py) const { return px >= x && px < x + w && py >= y && py < y + h; }
 };
 std::vector<Region> regions;
@@ -62,6 +62,11 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Favourite) state::toggleFavourite(shownItem);
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
             else if (region.act == Act::Use) state::setChoice(shownItem, region.item);
+            else if (region.act == Act::Place && input.placer) {
+                input.placer->run(region.tab, input.shift);
+                // One of each laid in: the grid is what the player wants to see next.
+                if (!input.shift) { close(); return; }
+            }
             break;
         }
     }
@@ -153,6 +158,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (hovered) late.tip = shown.name, late.hovered = region.item;
             regions.push_back(std::move(region));
         };
+        // Where the screen has a grid this recipe fits, it can be laid in; a cell nothing carried serves is marked.
+        PlacePlan laid;
+        if (input.placer && recipe.station == Station::Crafting) laid = input.placer->preview(recipe, input.shift);
         for (auto const& part : block.slots) {
             Item item = -1;
             if (part.cell >= 0) {
@@ -166,15 +174,27 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                 }
             }
             place(bx + part.x, by + part.y, item, 1);
+            if (part.cell >= 0 && std::find(laid.missing.begin(), laid.missing.end(), part.cell) != laid.missing.end())
+                frame(context, bx + part.x, by + part.y, 18, 18, palette::warning);
         }
         changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
         // Asked from the list of what to make, an item with several recipes: the one it is made by says
         // so, the others offer themselves.
+        if (laid.fits) {
+            std::string text = translated("recipes.place");
+            float const mx = bx + block.marksX, my = by + block.marksY;
+            float const w = std::min(textWidth(context, text) + 8, bx + RecipeViewLayout::block - mx);
+            Region const region{mx, my, w, 10, Act::Place, {}, number};
+            drawButton(context, mx, my, w, 10, std::move(text), laid.ready() && region.has(input.pointerX, input.pointerY), ButtonKind::Plain, laid.ready());
+            if (laid.ready()) regions.push_back(region);
+        }
         if (several && !recipe.own) {
             bool const inUse = choice->recipe[static_cast<size_t>(id)] == number;
             std::string text = translated(inUse ? "recipes.mark.default" : "recipes.mark.use");
-            float const mx = bx + block.marksX, my = by + block.marksY;
+            // Beside the small mark's place when the recipe has one there, else on the marks' line.
+            bool const below = block.noteY > 0;
+            float const mx = bx + (below ? block.noteX + anyOrderMarkSize + 3 : block.marksX), my = by + (below ? block.noteY - 1 : block.marksY + (laid.fits ? 12 : 0));
             float const w = std::min(textWidth(context, text) + 8, bx + RecipeViewLayout::block - mx);
             Region region{mx, my, w, 10, Act::Use, choiceKey(recipe), -1};
             drawButton(context, mx, my, w, 10, std::move(text), !inUse && region.has(input.pointerX, input.pointerY),

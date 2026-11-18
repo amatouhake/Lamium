@@ -11,6 +11,7 @@
 #include "features/recipes/PlanViewDraw.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
+#include "features/recipes/RecipePlace.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
@@ -48,6 +49,7 @@
 #include <format>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -112,7 +114,20 @@ void closeViews() {
     view::close();
     planView::close();
     countEdit::cancel();
+    place::stop();
 }
+// The crafting grid of the screen under the view, for its "place" buttons: what is carried is read once a frame.
+struct GridPlacer : view::Placer {
+    ScreenView& screen;
+    std::shared_ptr<service::Table const> table;
+    std::map<int, Item> picks;
+    int side = 0;
+    std::vector<PlaceSource> carried;
+    GridPlacer(ScreenView& screen, std::shared_ptr<service::Table const> table, std::map<int, Item> picks, int side)
+        : screen(screen), table(std::move(table)), picks(std::move(picks)), side(side), carried(place::carried(screen, this->table->index)) {}
+    PlacePlan preview(Recipe const& recipe, bool many) const override { return placePlan(table->index, recipe, side, carried, picks, many); }
+    void run(int recipe, bool many) override { place::run(screen, table, recipe, picks, many); }
+};
 bool anyView() { return view::isOpen() || planView::isOpen(); }
 KeptPresses keptButtons, keptKeys; // under shownLock
 // Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
@@ -282,6 +297,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // One press a frame. Each control asks whether it was on it; what none takes goes to the recipe view.
     bool pressed = !input.clicks.empty();
+    // A run of crafting goes on by itself a round every few frames; any press of the player's, or leaving, ends it.
+    if (pressed || input.outside || input.close) place::stop();
+    place::tick(screenView);
     bool const leftPress = pressed && input.clicks.front();
     auto took = [&](ListBox const& box) {
         if (!pressed || !box.has(px, py)) return false;
@@ -495,12 +513,20 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     if (!searchFocus) releaseKeyboard();
     // The recipe view is on top; under it, the window of what is wanted.
-    if (view::isOpen())
-        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
+    if (view::isOpen()) {
+        std::optional<GridPlacer> placer;
+        if (int const gridSide = place::gridSide(screenView))
+            if (auto table = service::table()) {
+                auto const* plan = state::plan(*player);
+                placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
+            }
+        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(),
+                             placer ? &*placer : nullptr}, late);
+    }
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close}, late, *player,
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, nullptr}, late, *player,
                        shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
@@ -634,6 +660,7 @@ void focusLost() {
     keptKeys = {};
     keptButtons = {};
     queued = {};
+    queued.outside = true; // ends a run of crafting with the next frame
     ctrlHeld = false;
     shiftHeld = false;
     dropFocus = true;
