@@ -128,6 +128,19 @@ the same commit. A screen never draws its own variant.
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.
+- **Tabs** (`drawTab`, `tabRule`; decided 2026-11-19 from
+  [demos/tab-strip.html](demos/tab-strip.html)): a strip of names side by
+  side with no gap, divided by thin lines, over a rule as wide as what
+  they switch. The selected tab is bright over a thick accent line, the
+  others dim and lighter under the pointer; none is a filled button, so
+  a strip is not read as actions. Where the names do not fit, each tab
+  is an item's picture, named under the pointer. Built for Recipes;
+  screens that still set buttons side by side for this (Schematics) move
+  to it when they are next worked on. A choice among values in one
+  bordered control (the world map's dimensions) stays what it is.
+- **Slots on a window of the game's grey** (`windowSlot`): as the game
+  draws its own, dark upper-left and light lower-right edges on its slot
+  grey; what the player lacks stands on the game's red.
 - **Key caps** for bindings. The key column never shows Hold/Toggle/Press.
   A binding that relates to another draws warning-colored caps: filled for the
   exact same chord, outlined for an overlap; hovering (or selecting with the

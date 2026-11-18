@@ -304,6 +304,26 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
     context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});
     return true;
 }
+void windowSlot(MinecraftUIRenderContext& context, float x, float y, bool hovered, bool missing) {
+    namespace v = palette::vanilla;
+    fill(context, x, y, 18, 18, missing ? v::slotMissing : v::slot);
+    fill(context, x, y, 18, 1, missing ? v::slotMissingDark : v::slotDark);
+    fill(context, x, y + 1, 1, 17, missing ? v::slotMissingDark : v::slotDark);
+    fill(context, x + 1, y + 17, 17, 1, missing ? v::slotMissingLight : v::slotLight);
+    fill(context, x + 17, y + 1, 1, 16, missing ? v::slotMissingLight : v::slotLight);
+    if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .3f);
+}
+void drawTab(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool selected, bool hovered, bool first, bool window) {
+    if (!first) fill(context, x, y + 2, .5f, tabHeight - 4, window ? palette::vanilla::windowFaint : palette::white, window ? .7f : .2f);
+    if (hovered && !selected) fill(context, x, y, w, tabHeight, window ? palette::shade : palette::white, .08f);
+    if (selected) fill(context, x, y + tabHeight - 1.5f, w, 1.5f, window ? palette::accentDeep : palette::accent);
+    if (text.empty()) return;
+    if (window) labelScaled(context, x, y + boxTextInset(), w, std::move(text), 1.f, selected ? palette::shade : palette::vanilla::windowFaint, Align::Center, false);
+    else label(context, x, y + boxTextInset(), w, std::move(text), selected ? palette::text : palette::faint, Align::Center);
+}
+void tabRule(MinecraftUIRenderContext& context, float x, float y, float w, bool window) {
+    fill(context, x, y, w, .5f, window ? palette::vanilla::windowFaint : palette::white, window ? 1.f : .3f);
+}
 void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
     fill(context, x + 1, y + 1, 16, 16, palette::keyFill, .9f);
     if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .14f);

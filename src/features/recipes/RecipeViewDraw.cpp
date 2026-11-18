@@ -77,18 +77,21 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     windowPanel(context, l.left, l.top, l.width, l.height);
     // The item's own actions keep the heading's right end; its name takes what is left.
     float headEnd = l.left + l.width - 5;
+    // A name and its switch, as Lamium's rows are (decided 2026-11-19): the item is a favourite or not,
+    // wanted or not. A press anywhere on the pair switches it.
     auto headButton = [&](std::string text, float w, bool on, Act act) {
         Region const region{headEnd - w, l.top + 3, w, 11, act, {}, -1};
-        drawButton(context, region.x, region.y, region.w, region.h, std::move(text), region.has(input.pointerX, input.pointerY),
-                   on ? ButtonKind::Primary : ButtonKind::Plain);
+        if (region.has(input.pointerX, input.pointerY)) fill(context, region.x - 1, region.y, region.w + 2, region.h, palette::shade, .08f);
+        windowLabel(context, region.x, region.y + 2, w - switchWidth - 3, std::move(text));
+        toggleSwitch(context, region.x + w - switchWidth, region.y + 1, on);
         regions.push_back(region);
-        headEnd -= w + 2;
+        headEnd -= w + 6;
     };
     bool const wanted = state::wanted().has(at.item);
     // Both keep their words; the look says whether the item is in (maintainer 2026-11-19).
     std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
-    headButton(in, textWidth(context, in) + 10, wanted, Act::Wanted);
-    headButton(favourite, textWidth(context, favourite) + 10, state::notes().favourite(at.item), Act::Favourite);
+    headButton(in, textWidth(context, in) + 3 + switchWidth, wanted, Act::Wanted);
+    headButton(favourite, textWidth(context, favourite) + 3 + switchWidth, state::notes().favourite(at.item), Act::Favourite);
     windowLabel(context, l.left + 6, l.top + 5, headEnd - l.left - 8,
                 translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {
@@ -120,19 +123,20 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         std::string name = stationName(tabs[i].station);
         auto const picture = stationItem(tabs[i].station);
         auto const* stack = picture.empty() ? nullptr : schematic::items::iconStack(schematic::items::shown(std::string(picture)).icon);
-        float const w = stack ? 16 : textWidth(context, name) + 10;
+        float const w = stack ? tabIconWidth : textWidth(context, name) + tabPad;
         if (x + w > tabEnd) break;
-        Region const region{x, tabY, w, 11, Act::Tab, {}, static_cast<int>(i)};
+        Region const region{x, tabY, w, tabHeight, Act::Tab, {}, static_cast<int>(i)};
         bool const hot = region.has(input.pointerX, input.pointerY);
-        auto const kind = static_cast<int>(i) == at.tab ? ButtonKind::Primary : ButtonKind::Plain;
+        bool const selected = static_cast<int>(i) == at.tab;
         if (stack) {
-            drawButtonBox(context, x, tabY, w, 11, hot, kind);
-            late.icons.push_back({stack, x + 3, tabY + .5f, .625f});
+            drawTab(context, x, tabY, w, {}, selected, hot, i == 0, true);
+            late.icons.push_back({stack, x + 3, tabY - .5f, .625f});
             if (hot) late.tip = std::move(name);
-        } else drawButton(context, x, tabY, w, 11, std::move(name), hot, kind);
+        } else drawTab(context, x, tabY, w, std::move(name), selected, hot, i == 0, true);
         regions.push_back(region);
-        x += w + 2;
+        x += w;
     }
+    tabRule(context, l.left + 5, tabY + tabHeight, l.width - 10, true);
     if (pages > 1) windowLabel(context, l.left, tabY + 2, l.width - 6, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(
@@ -144,11 +148,12 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         auto const& recipe = index.recipes[static_cast<size_t>(number)];
         float const bx = l.blockX(station, count, i), by = l.blockY(station, count, i);
         auto const block = viewBlock(recipe);
-        auto place = [&](float sx, float sy, Item item, Count amount) {
+        // A slot as the game draws its own; `lacks`: on the game's red, an ingredient nothing carried serves.
+        auto place = [&](float sx, float sy, Item item, Count amount, bool lacks = false) {
             Region region{sx, sy, 18, 18, Act::Item, {}, -1};
             bool const named = item >= 0 && item < static_cast<Item>(index.items.size());
             bool const hovered = named && region.has(input.pointerX, input.pointerY);
-            slot(context, sx, sy, hovered);
+            windowSlot(context, sx, sy, hovered, lacks);
             if (!named) return;
             region.item = index.items[static_cast<size_t>(item)];
             auto const& shown = schematic::items::shown(region.item);
@@ -172,9 +177,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                     item = members.empty() ? -1 : asked ? id : members[turn % members.size()];
                 }
             }
-            place(bx + part.x, by + part.y, item, 1);
-            if (part.cell >= 0 && std::find(laid.missing.begin(), laid.missing.end(), part.cell) != laid.missing.end())
-                frame(context, bx + part.x, by + part.y, 18, 18, palette::warning);
+            place(bx + part.x, by + part.y, item, 1,
+                  part.cell >= 0 && std::find(laid.missing.begin(), laid.missing.end(), part.cell) != laid.missing.end());
         }
         changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);

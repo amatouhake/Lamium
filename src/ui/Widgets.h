@@ -47,7 +47,11 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     tooltipBorder{.55f,.35f,.7f}, // the container preview's frame, as the item tooltip's
     // A window of the game's own grey and the text written on it, for a Lamium window that lies over
     // a game window and takes its place (the recipe view, L-359).
-    window{.776f,.776f,.776f}, windowInk{.247f,.247f,.247f}, windowFaint{.42f,.42f,.42f};
+    window{.776f,.776f,.776f}, windowInk{.247f,.247f,.247f}, windowFaint{.42f,.42f,.42f},
+    // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
+    // red the recipe book gives what cannot be made.
+    slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.82f,.33f,.33f},
+    slotMissingDark{.48f,.18f,.18f}, slotMissingLight{.95f,.7f,.7f};
 }
 }
 // Two panel opacities (DESIGN "Colors"), by what is under the panel: the
@@ -133,6 +137,19 @@ void rowBackground(MinecraftUIRenderContext&, float left, float top, float width
 // are the caller's, drawn after the fills: slotCount puts a stack's count at
 // the slot's lower right, over the icon.
 void slot(MinecraftUIRenderContext&, float x, float y, bool hovered = false);
+// The same 18-unit cell on a window of the game's grey (windowPanel), drawn as the game draws its own
+// slots so a Lamium window that takes a game window's place reads like one; `missing` is the game's red
+// for what the player lacks.
+void windowSlot(MinecraftUIRenderContext&, float x, float y, bool hovered = false, bool missing = false);
+// A tab strip (decided 2026-11-19, demos/tab-strip.html): tabs lie side by side with no gap, divided by
+// thin lines, over a rule (tabRule) as wide as what they switch. The selected tab is bright over a thick
+// accent line, the others dim; none is a filled button, so a strip is not mistaken for actions. `first`
+// has no divider at its left. `window`: on the game's grey window. Without a text the tab is an icon's
+// place and the caller draws the icon. Height 11 like a button.
+inline constexpr float tabHeight = 11, tabPad = 9, tabIconWidth = 16;
+void drawTab(MinecraftUIRenderContext&, float x, float y, float w, std::string text, bool selected, bool hovered, bool first,
+             bool window = false);
+void tabRule(MinecraftUIRenderContext&, float x, float y, float w, bool window = false);
 void slotCount(MinecraftUIRenderContext&, float x, float y, std::string text);
 // Bedrock-style switch: the knob position carries the state as well as color.
 // `scale` sizes it with a HUD element (the toggle toast); the edge stays one unit.

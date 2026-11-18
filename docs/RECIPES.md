@@ -251,28 +251,18 @@ A setting of its own, off by default, and it works with Recipes off
   and what it sees.
 
 ### The look, reviewed with the maintainer (2026-11-19)
-What bothered is in VALIDATION-LOG of that day. Agreed, built: the wanted
-button of the recipe view keeps its words and shows by its look that the
-item is in; a row of the plan's window says its whole name and its count
+What bothered is in VALIDATION-LOG of that day. Agreed, built: the shared tab strip (DESIGN "Controls") on the recipe
+view's stations, the plan's window and the band's lists, as pictures
+where the band is narrow; the recipe view's slots as the game draws its
+own, a missing ingredient on the game's red; "favourite" and "wanted"
+there as a name and a switch each (icon toggles depend too much on the
+icon; a common style first); a row of the plan's window says its whole name and its count
 in chests and stacks under the pointer; the Stores tab and the band's
 switch as above. Agreed, not built:
-- A shared tab strip in `Widgets.h` (no screen has one: each draws
-  buttons, Primary when selected), for the recipe view's stations, the
-  plan's window and the band's lists, which become icon tabs where the
-  band is narrow instead of one button going round. Its look is open:
-  joined to what it shows was turned down as it stood (on the light
-  window the title and the hints read as inside the tab, on a dark panel
-  the join is weak); an underline, plain or with some decoration, is
-  what the maintainer leans to ([demos/tab-strip.html](demos/tab-strip.html)
-  sets seven side by side).
-- Decided from [demos/recipe-look.html](demos/recipe-look.html)
-  (2026-11-19): the recipe view's slots near the game's in brightness
-  and edge, a missing ingredient on the game's red; "favourite" and
-  "wanted" there as a name and a switch each (icon toggles depend too
-  much on the icon; a common style first); the band's and the windows'
-  lists scroll with the shared scrollbar (`ScrollBar.h`, `ScrollDrag.h`,
-  `drawScrollbar`; the panels beside the anvil use them), the item list
-  on the right keeps its pages.
+- The band's and the windows' lists scroll with the shared scrollbar
+  (`ScrollBar.h`, `ScrollDrag.h`, `drawScrollbar`; the panels beside the
+  anvil use them); the item list on the right keeps its pages. Decided
+  from [demos/recipe-look.html](demos/recipe-look.html).
 - A hovered item drawn by Lamium gets a tooltip near the game's, in its
   frame, with Lamium's item details ([L-363](backlog/L-363.md)); the details are
   filled inside the hover-text hook today (`Inspection.cpp`), so either

@@ -415,18 +415,28 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float listWidths[3], listsWidth = 0;
         for (int i = 0; i < 3; ++i) {
             listTexts[i] = translated(lists[i].key);
-            listWidths[i] = textWidth(context, listTexts[i]) + 8;
-            listsWidth += listWidths[i] + 2;
+            listWidths[i] = textWidth(context, listTexts[i]) + tabPad;
+            listsWidth += listWidths[i];
         }
+        // The three lists are tabs. Where their names do not fit beside "Open" (the game's recipe book
+        // is out), each is an item's picture, named under the pointer.
         float barX2 = side.left + 2;
         float const barRoom = openBox.x - 2 - barX2;
-        if (listsWidth - 2 <= barRoom) {
+        bool const named = listsWidth <= barRoom;
+        static constexpr char const* pictures[]{"minecraft:writable_book", "minecraft:iron_pickaxe", "minecraft:crafting_table"};
+        if (named || 3 * tabIconWidth <= barRoom) {
             for (int i = 0; i < 3; ++i) {
-                if (barButton2({barX2, side.barY(), listWidths[i], 11}, std::move(listTexts[i]), i == listNow)) sideList = lists[i].list;
-                barX2 += listWidths[i] + 2;
+                float const w = named ? listWidths[i] : tabIconWidth;
+                ListBox const box{barX2, side.barY(), w, tabHeight};
+                drawTab(context, box.x, box.y, box.w, named ? std::move(listTexts[i]) : std::string(), i == listNow, box.has(px, py), i == 0);
+                if (!named) {
+                    if (auto const* stack = schematic::items::iconStack(schematic::items::shown(pictures[i]).icon)) late.icons.push_back({stack, box.x + 3, box.y - .5f, .625f});
+                    if (box.has(px, py)) late.tip = std::move(listTexts[i]);
+                }
+                if (leftPress && took(box)) sideList = lists[i].list;
+                barX2 += w;
             }
-        } else if (float const w = std::min(listWidths[listNow], barRoom); w > 12) {
-            if (barButton2({barX2, side.barY(), w, 11}, std::move(listTexts[listNow]), true)) sideList = lists[(listNow + 1) % 3].list;
+            tabRule(context, side.left + 2, side.barY() + tabHeight, side.width - 4);
         }
         // The short list: an icon, the name where there is room, and how many; a wanted item's count has the stepper.
         struct SideRow {

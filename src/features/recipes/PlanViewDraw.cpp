@@ -51,11 +51,12 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.places"};
     for (int i = 0; i < 4; ++i) {
         std::string name = translated(names[i]);
-        float const w = textWidth(context, name) + 10;
-        drawButton(context, x, l.top + 16, w, 11, std::move(name), over(x, l.top + 16, w, 11), tab == tabs[i] ? ButtonKind::Primary : ButtonKind::Plain);
-        if (took(x, l.top + 16, w, 11)) tab = tabs[i], expanded = -1;
-        x += w + 2;
+        float const w = textWidth(context, name) + tabPad;
+        drawTab(context, x, l.top + 16, w, std::move(name), tab == tabs[i], over(x, l.top + 16, w, tabHeight), i == 0, true);
+        if (took(x, l.top + 16, w, tabHeight)) tab = tabs[i], expanded = -1;
+        x += w;
     }
+    tabRule(context, l.left + 5, l.top + 16 + tabHeight, l.width - 10, true);
     auto const* plan = state::plan(player);
     float const left = l.left + 6, right = l.left + l.width - 6, top = l.top + rowsTop;
     int const fits = std::max(1, static_cast<int>((l.height - rowsTop - RecipeViewLayout::foot) / rowHeight));
