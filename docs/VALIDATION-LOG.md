@@ -12,6 +12,32 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe screens reworked, a level typed beside the anvil (L-359, 2026-11-18)
+
+Build `b3a8deb1` (DLL
+`a8055ef082cc62f0f49588c3185ff29c3d07a4d391ba8056589b4ece763d3c3c`),
+1.26.60.05 Dev instance, the maintainer:
+- The recipe view as a grey window read well; the arrow and product stood
+  at the grid's middle; the tabs were station icons named under the
+  pointer; "add to wanted" kept its width.
+- Japanese and letters with descenders fit the search field; the key
+  hints stayed inside the window.
+- A wanted count was typed after a press on it (Enter or a press
+  elsewhere kept it, Esc did not); minus at one took the item out; W
+  switched the left band to the wanted items.
+- The band's make list showed what a step takes under the pointer; opened
+  from the window's make list, an item with several recipes showed "in
+  use" and "use".
+- A favourite was framed in the list, a wanted item carried its count; an
+  item held on the pointer stayed above the bands and the windows; the
+  netherite upgrade template had its recipe.
+- Beside the anvil a level was typed after a press on it, and the held
+  item was above the panels as before.
+- Faults seen: "Open" did nothing while the recipe view was open, and on
+  the left band a count moved down a little while it was typed. Both fixed
+  in the next build, not seen. The look as a whole is reviewed once the
+  feature is complete (maintainer).
+
 ## Search, favourites, wanted items and bed colors (L-359 steps 4 to 6, 2026-11-18)
 
 Build `51a6c7d5` (DLL

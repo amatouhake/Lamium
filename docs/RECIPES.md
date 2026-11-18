@@ -203,11 +203,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
-- Not seen in game: everything decided after the first build (the grey
-  window, icon tabs, the make list on the band, typed counts, the marks in
-  the list, the held item over the bands, recipes that use their own
-  product), "use" on a recipe, a server. The search field takes no pasted
-  text.
+- Not seen in game: a server. The search field takes no pasted text.
+- The look as a whole is reviewed once the feature is complete
+  (maintainer 2026-11-18); until then only faults are fixed.
 - Not built: "place" and Mass Craft; the schematic handing its materials
   over and the Materials tab cut back to its gather list; counted places
   beyond what is carried; held members first in a group's turn. Their own

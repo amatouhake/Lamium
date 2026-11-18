@@ -207,7 +207,8 @@ void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w,
     }
     if (look.backed) fill(context,x+aw,top,w-2*aw,h,palette::panel);
     frame(context,x,top,w,h,look.editing ? palette::accent : look.warn ? palette::warning : palette::keyEdge);
-    if (look.editing) drawEditField(context,x+aw+1,top,h,w-2*aw-2,*look.editing,Align::Center,ink);
+    // The typed text stands where the value did, whatever the box's height: the field lays its line out for 12 units.
+    if (look.editing) drawEditField(context,x+aw+1,top+(h-12)/2,12,w-2*aw-2,*look.editing,Align::Center,ink);
     else label(context,x+aw+1,textY,w-2*aw-2,std::move(text),ink,Align::Center);
 }
 void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text, NumberInput const* editing,

@@ -376,6 +376,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                                           {SideList::Make, "recipes.make", planView::Tab::Make}};
         int const listNow = sideList == SideList::Wanted ? 0 : sideList == SideList::Gather ? 1 : 2;
         auto openPlan = [&] {
+            // The recipe view lies over the window: asked for, the window comes to the front.
+            view::close();
             planView::open(lists[listNow].tab);
             viewScreen = screenName;
         };
