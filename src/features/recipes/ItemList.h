@@ -31,4 +31,6 @@ void focusLost();
 // The favourite and wanted keys: the item under the pointer goes in, or out when it is in.
 void favourite();
 void want();
+// The item under the pointer as the keys above see it, by its key; empty when there is none.
+std::string hoveredItem();
 }

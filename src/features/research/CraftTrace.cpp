@@ -2,6 +2,10 @@
 #ifdef LAMIUM_CRAFT_TRACE
 #include "app/Runtime.h"
 #include "app/TraceLog.h"
+#include "features/recipes/ItemKey.h"
+#include "features/recipes/ItemList.h"
+#include "features/recipes/RecipeService.h"
+#include "features/recipes/RecipeState.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
@@ -31,7 +35,10 @@
 #include "mc/world/inventory/network/crafting/ItemStackRequestActionCraftBase.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/crafting/Recipe.h"
+#include <Windows.h>
+#include <algorithm>
 #include <atomic>
+#include <climits>
 #include <chrono>
 #include <format>
 #include <iterator>
@@ -156,9 +163,121 @@ LL_TYPE_INSTANCE_HOOK(CraftServerAction, ll::memory::HookPriority::Normal, Craft
     return result;
 }
 // The screen's state whenever it changes: the chosen recipe, the grid, the output.
+// The experiment (not read-only): Lamium lays a recipe into the grid and takes the output, with the slot
+// calls Item transfer uses. F7 over an item of Lamium's lists lays its recipe in, one of each ingredient
+// (with Shift: as many as divide evenly); F8 takes the output as a Shift click does; F9 keeps taking it
+// while there is one. One step a tick, each logged with what the pointer holds after it.
+struct Step { int amount; std::string from; int index; int cell; };
+std::vector<Step> steps;
+size_t stepAt = 0;
+int wait = 0, takes = 0, idle = 0;
+bool f7Down = false, f8Down = false, f9Down = false;
+bool edge(int key, bool& was) {
+    bool const down = (GetAsyncKeyState(key) & 0x8000) != 0, pressed = down && !was;
+    was = down;
+    return pressed;
+}
+int cursorCount(ContainerManagerController& manager) {
+    auto const& held = manager.getItemStack("cursor_items", 0);
+    return held.isNull() ? 0 : int(held.mCount);
+}
+void layOut(CraftingScreenController& screen, ContainerManagerController& manager, bool many) {
+    using namespace lamium::recipes;
+    steps.clear();
+    stepAt = 0;
+    std::string const key = itemList::hoveredItem();
+    auto const table = service::table();
+    if (key.empty() || !table) { log(callBudget, 400, "lay: nothing under the pointer in Lamium's lists, or no table"); return; }
+    auto const& index = table->index;
+    auto const parts = splitItemKey(key);
+    Item const id = index.find(parts.name, parts.aux);
+    auto const choice = state::choice(table);
+    int const number = id >= 0 && choice ? choice->recipe[static_cast<size_t>(id)] : -1;
+    if (number < 0) { log(callBudget, 400, "lay: {} has no recipe in use", key); return; }
+    auto const& recipe = index.recipes[static_cast<size_t>(number)];
+    int const grid = manager.getContainerSize("crafting_input_items"), side = grid == 4 ? 2 : grid == 9 ? 3 : 0;
+    int const across = recipe.width ? recipe.width : side;
+    int const count = static_cast<int>(recipe.cells.size());
+    if (recipe.station != Station::Crafting || !side || across < 1 || across > side || (count + across - 1) / across > side) {
+        log(callBudget, 400, "lay: {} ({}) does not fit this grid of {}", key, recipe.id, grid);
+        return;
+    }
+    if (cursorCount(manager)) { log(callBudget, 400, "lay: the pointer holds something"); return; }
+    for (int i = 0; i < grid; ++i)
+        if (!manager.getItemStack("crafting_input_items", i).isNull()) {
+            log(callBudget, 400, "lay: the grid is not empty, emptied first; press again");
+            screen._evacuateCraftingGrid();
+            return;
+        }
+    // What is carried, slot by slot, and which slot serves each cell: the first that still has one.
+    struct Source { std::string from; int index; Item item; int left, uses; };
+    std::vector<Source> sources;
+    for (auto const& [from, size] : {std::pair<std::string, int>{"hotbar_items", 9}, {"inventory_items", 27}})
+        for (int i = 0; i < size; ++i) {
+            auto const& stack = manager.getItemStack(from, i);
+            if (stack.isNull()) continue;
+            Item const item = index.find(stack.getTypeName(), stack.getAuxValue());
+            if (item >= 0) sources.push_back({from, i, item, int(stack.mCount), 0});
+        }
+    std::vector<std::pair<int, size_t>> served; // grid cell, source
+    for (int i = 0; i < count; ++i) {
+        auto const& part = recipe.cells[static_cast<size_t>(i)];
+        if (part.id < 0) continue;
+        auto fits = [&](Item item) {
+            if (!part.group) return item == part.id;
+            auto const& members = index.groups[static_cast<size_t>(part.id)].members;
+            return std::find(members.begin(), members.end(), item) != members.end();
+        };
+        size_t found = sources.size();
+        for (size_t s = 0; s < sources.size(); ++s) if (fits(sources[s].item) && sources[s].left - sources[s].uses > 0) { found = s; break; }
+        if (found == sources.size()) { log(callBudget, 400, "lay: {} lacks an ingredient for cell {}", recipe.id, i); return; }
+        ++sources[found].uses;
+        served.emplace_back(i / across * side + i % across, found);
+    }
+    int each = 1;
+    if (many) {
+        each = 64;
+        for (auto const& source : sources) if (source.uses) each = std::min(each, source.left / source.uses);
+    }
+    for (auto const& [cell, source] : served) steps.push_back({each, sources[source].from, sources[source].index, cell});
+    log(callBudget, 400, "lay: {} ({}) into {} cells, {} each", key, recipe.id, steps.size(), each);
+}
+void experiment(CraftingScreenController& screen, ContainerManagerController& manager) {
+    bool const shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+    if (edge(VK_F7, f7Down)) layOut(screen, manager, shift);
+    bool const once = edge(VK_F8, f8Down);
+    if (edge(VK_F9, f9Down)) takes = takes ? 0 : 40, idle = 0;
+    if (wait > 0) { --wait; return; }
+    if (stepAt < steps.size()) {
+        auto const& step = steps[stepAt++];
+        screen._handleTakeAmount(step.amount, step.from, step.index);
+        int const taken = cursorCount(manager);
+        if (taken) screen._handlePlaceAll("crafting_input_items", step.cell);
+        log(callBudget, 400, "lay step {}/{}: {} from {}:{} to cell {}: took {}, the pointer holds {} after", stepAt, steps.size(), step.amount,
+            step.from, step.index, step.cell, taken, cursorCount(manager));
+        if (!taken || cursorCount(manager)) steps.clear(), stepAt = 0; // not as planned: stop, leave the rest to the player
+        wait = 1;
+        return;
+    }
+    bool const output = !manager.getItemStack("crafting_output_items", 0).isNull();
+    if (once || (takes > 0 && output)) {
+        if (!output) { log(callBudget, 400, "take: no output"); return; }
+        if (takes > 0) --takes;
+        idle = 0;
+        log(callBudget, 400, "take: Shift take of the output{}", once ? "" : std::format(", {} left of the run", takes));
+        screen._handleAutoPlace(INT_MAX, "crafting_output_items", 0);
+        wait = 4;
+    } else if (takes > 0 && ++idle > 40) {
+        log(callBudget, 400, "take: the run ended, no output for 40 ticks");
+        takes = 0;
+    }
+}
 LL_TYPE_INSTANCE_HOOK(CraftTick, ll::memory::HookPriority::Normal, CraftingScreenController,
     &CraftingScreenController::$tick, ::ui::DirtyFlag) {
     auto result = origin();
+    try {
+        if (auto manager = mContainerManagerController.get(); manager && !manager->mContainersClosed) experiment(*this, *manager);
+    } catch (...) { log(callBudget, 400, "experiment threw"); }
     try {
         observedAt = nowMs();
         if (auto manager = mContainerManagerController.get()) {

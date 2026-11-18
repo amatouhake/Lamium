@@ -663,6 +663,7 @@ std::string hovered() {
     return fresh() ? shown.hoverItem : std::string();
 }
 }
+std::string hoveredItem() { return hovered(); }
 void favourite() {
     if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
 }
