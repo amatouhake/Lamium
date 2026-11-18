@@ -80,22 +80,24 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     // The heading has the first line to itself: the item's name is what the view is about. The item's two
     // switches stand at the right end of the stations' line, the pager left of them.
     float headEnd = l.left + l.width - 5;
-    // A name and its switch, as Lamium's rows are (decided 2026-11-19): the item is a favourite or not,
-    // wanted or not. A press anywhere on the pair switches it.
-    auto headButton = [&](std::string text, float w, bool on, Act act) {
-        Region const region{headEnd - w, l.top + 15, w, 11, act, {}, -1};
-        if (region.has(input.pointerX, input.pointerY)) fill(context, region.x - 1, region.y, region.w + 2, region.h, palette::shade, .08f);
-        // The switch sits on the text's line: its 9 units centred on the glyphs, which stand low in their box.
-        windowLabel(context, region.x, region.y + 2, w - switchWidth - 3, std::move(text));
-        toggleSwitch(context, region.x + w - switchWidth, region.y + 2, on);
-        regions.push_back(region);
-        headEnd -= w + 6;
-    };
-    bool const wanted = state::wanted().has(at.item);
-    // Both keep their words; the look says whether the item is in (maintainer 2026-11-19).
+    // Each on or off, like the world map's layers: two buttons sharing a border, green when on (a trial
+    // beside "a name and a switch", 2026-11-19). The one that is on is drawn last, so its frame is whole.
+    bool const wanted = state::wanted().has(at.item), liked = state::notes().favourite(at.item);
     std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
-    headButton(in, textWidth(context, in) + 3 + switchWidth, wanted, Act::Wanted);
-    headButton(favourite, textWidth(context, favourite) + 3 + switchWidth, state::notes().favourite(at.item), Act::Favourite);
+    float const wantedWidth = textWidth(context, in) + 10, likedWidth = textWidth(context, favourite) + 10;
+    Region const wantedRegion{headEnd - wantedWidth, l.top + 15, wantedWidth, 11, Act::Wanted, {}, -1};
+    Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + 15, likedWidth, 11, Act::Favourite, {}, -1};
+    for (bool pass : {false, true}) {
+        if (liked == pass)
+            drawButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favourite, likedRegion.has(input.pointerX, input.pointerY),
+                       liked ? ButtonKind::Primary : ButtonKind::Plain);
+        if (wanted == pass)
+            drawButton(context, wantedRegion.x, wantedRegion.y, wantedRegion.w, wantedRegion.h, in, wantedRegion.has(input.pointerX, input.pointerY),
+                       wanted ? ButtonKind::Primary : ButtonKind::Plain);
+    }
+    regions.push_back(wantedRegion);
+    regions.push_back(likedRegion);
+    headEnd = likedRegion.x - 6;
     windowLabel(context, l.left + 6, l.top + 5, l.width - 12,
                 translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {

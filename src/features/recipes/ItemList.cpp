@@ -332,8 +332,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
         return leftPress && took(box);
     };
     if (layout.width >= 130) {
-        if (barButton(translated("recipes.filter.all"), filter == Filter::All)) filter = Filter::All;
-        if (barButton(translated("recipes.filter.canMake"), filter == Filter::CanMake)) filter = Filter::CanMake;
+        // One of the two is chosen: tabs, as the band's lists are.
+        auto barTab = [&](std::string text, bool on, bool first) {
+            ListBox const box{barX, layout.top + 1, textWidth(context, text) + tabPad, tabHeight};
+            drawTab(context, box.x, box.y, box.w, std::move(text), on, box.has(px, py), first);
+            barX += box.w;
+            return leftPress && took(box);
+        };
+        if (barTab(translated("recipes.filter.all"), filter == Filter::All, true)) filter = Filter::All;
+        if (barTab(translated("recipes.filter.canMake"), filter == Filter::CanMake, false)) filter = Filter::CanMake;
+        tabRule(context, layout.left + 2, layout.top + 1 + tabHeight, layout.width - 4);
     } else if (barButton(translated("recipes.filter.canMakeShort"), filter == Filter::CanMake))
         filter = filter == Filter::CanMake ? Filter::All : Filter::CanMake;
     if (!count) label(context, layout.left + 4, layout.top + ItemListLayout::bar + 4, layout.width - 8,
@@ -524,13 +532,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
             // out again); the ender chest, which is noted anyway, is switched in or out of the count.
             int const index = open->ender ? state::places().ender() : state::places().store(open->spot);
             bool const on = index >= 0 && (!open->ender || state::places().list[static_cast<size_t>(index)].counted);
-            // Set off from the list by a rule, and clear of the screen's edge.
-            ListBox const box{side.left + 2, side.footY(), side.width - 4, 11};
-            fill(context, side.left + 2, box.y - 3, side.width - 4, 1, palette::white, .14f);
-            if (box.has(px, py)) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
-            if (side.wide()) label(context, box.x + 2, box.y + 2, box.w - switchWidth - 6, translated("recipes.place.count"), palette::dim);
+            // One switch about the open container, not a row of the list: it stands in a frame of its own,
+            // clear of the list above and of the screen's edge.
+            ListBox const box{side.left + 2, side.footY(), side.width - 4, 13};
+            fill(context, box.x, box.y, box.w, box.h, palette::white, box.has(px, py) ? .1f : .04f);
+            frame(context, box.x, box.y, box.w, box.h, palette::white, .22f);
+            if (side.wide()) label(context, box.x + 4, box.y + 3, box.w - switchWidth - 10, translated("recipes.place.count"), palette::text);
             else if (box.has(px, py)) late.tip = translated("recipes.place.count");
-            toggleSwitch(context, box.x + box.w - switchWidth - 1, box.y + 1, on);
+            toggleSwitch(context, box.x + box.w - switchWidth - 3, box.y + 2, on);
             if (leftPress && took(box)) {
                 if (open->ender) { if (index >= 0) state::setPlaceCounted(index, !on); }
                 else if (index < 0) state::markStore(open->spot, open->pair, open->block, open->items);

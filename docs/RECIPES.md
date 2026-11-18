@@ -251,13 +251,15 @@ A setting of its own, off by default, and it works with Recipes off
   and what it sees.
 
 ### The look, reviewed with the maintainer (2026-11-19)
-What bothered is in VALIDATION-LOG of that day. Built as a trial, its look not settled (DESIGN "Controls"): a tab strip
-on the recipe view's stations, the plan's window and the band's lists,
-as pictures where the band is narrow. Agreed, built: the recipe view's slots as the game draws its
+What bothered is in VALIDATION-LOG of that day. Agreed, built: "one of several" as DESIGN "Controls" has it, on the
+recipe view's stations, the plan's window, the band's lists (pictures
+where the band is narrow) and the item list's "all / can be made";
+the open container's switch in a frame of its own; the recipe view's slots as the game draws its
 own, a missing ingredient on the game's red; "favourite" and "wanted"
-there as a name and a switch each (icon toggles depend too much on the
-icon; a common style first), at the right end of the stations' line so
-the heading has its line to itself; a Lamium window's grey covers the
+at the right end of the stations' line, so the heading has its line to
+itself: as two joined buttons, green when on, on trial against a name
+and a switch each (they are each on or off, like the world map's
+layers; icon toggles were turned down as depending on the icon); a Lamium window's grey covers the
 whole span between the two bands, so the game's window with its recipe
 book out does not show beside it; a row of the plan's window says its whole name and its count
 in chests and stacks under the pointer; the Stores tab and the band's

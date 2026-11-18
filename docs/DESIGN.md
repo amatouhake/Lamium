@@ -128,17 +128,23 @@ the same commit. A screen never draws its own variant.
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.
-- **Switching controls** are not settled. They are sorted by two things
-  (maintainer 2026-11-19): whether one of several is chosen (the
-  Schematics screen's tabs, the settings sidebar, the world map's
-  dimensions, the item list's "all / can be made", the plan's tabs, a
-  recipe's stations) or each is on or off (the world map's layers, the
-  Check tab's filters, "favourite" and "wanted"), and whether they stand
-  on a dark Lamium panel or on a window of the game's grey. Today all but
-  the sidebar are buttons, Primary when chosen or on. Recipes carries a
-  trial for "one of several" (`drawTab`, `tabRule`: divided labels over a
-  rule, a thick accent line under the chosen one). The four cases are set
-  out in [demos/switching-controls-2.html](demos/switching-controls-2.html).
+- **One of several** (`drawTab`, `tabRule`; decided 2026-11-19 from
+  [demos/switching-controls-2.html](demos/switching-controls-2.html)):
+  names side by side over a rule as wide as what they switch. On a dark
+  Lamium panel the chosen one stands on a faint accent face over an
+  accent bar, the settings sidebar's selected row turned sideways. On a
+  window of the game's grey, where that face does not sit well, it is
+  dark over a thick accent line and the names are divided by thin lines.
+  Where the names do not fit, each is an item's picture, named under the
+  pointer. Built in Recipes; the Schematics screen's tabs and the world
+  map's dimensions follow ([L-364](backlog/L-364.md)). The Check tab's
+  filters, also one of several, stay outlined pills: the same look twice
+  in the same direction, right under the tabs, would be hard to read.
+- **Each on or off**: a name and a switch. Where several are packed into
+  a bar, joined buttons, green when on, pictures where the names do not
+  fit (the world map's layers). A single switch that is not a row of a
+  list (the open container's in the band of Recipes) stands in a frame
+  of its own.
 - **Slots on a window of the game's grey** (`windowSlot`): as the game
   draws its own, dark upper-left and light lower-right edges on its slot
   grey; what the player lacks stands on the game's red.

@@ -314,15 +314,22 @@ void windowSlot(MinecraftUIRenderContext& context, float x, float y, bool hovere
     if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .3f);
 }
 void drawTab(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool selected, bool hovered, bool first, bool window) {
-    if (!first) fill(context, x, y + 2, .5f, tabHeight - 4, window ? palette::vanilla::windowFaint : palette::white, window ? .7f : .2f);
-    if (hovered && !selected) fill(context, x, y, w, tabHeight, window ? palette::shade : palette::white, .08f);
-    if (selected) fill(context, x, y + tabHeight - 1.5f, w, 1.5f, window ? palette::accentDeep : palette::accent);
-    if (text.empty()) return;
-    if (window) labelScaled(context, x, y + boxTextInset(), w, std::move(text), 1.f, selected ? palette::shade : palette::vanilla::windowFaint, Align::Center, false);
-    else label(context, x, y + boxTextInset(), w, std::move(text), selected ? palette::text : palette::faint, Align::Center);
+    if (window) {
+        if (!first) fill(context, x, y + 2, .5f, tabHeight - 4, palette::vanilla::windowFaint, .7f);
+        if (hovered && !selected) fill(context, x, y, w, tabHeight, palette::shade, .08f);
+        if (selected) fill(context, x, y + tabHeight - 1.5f, w, 1.5f, palette::accentDeep);
+        if (!text.empty())
+            labelScaled(context, x, y + boxTextInset(), w, std::move(text), 1.f, selected ? palette::shade : palette::vanilla::windowFaint, Align::Center, false);
+        return;
+    }
+    if (selected) {
+        fill(context, x, y, w, tabHeight, palette::accent, .18f);
+        fill(context, x, y + tabHeight - 1, w, 1, palette::accent);
+    } else if (hovered) fill(context, x, y, w, tabHeight, palette::white, .07f);
+    if (!text.empty()) label(context, x, y + boxTextInset(), w, std::move(text), selected ? palette::text : palette::dim, Align::Center);
 }
 void tabRule(MinecraftUIRenderContext& context, float x, float y, float w, bool window) {
-    fill(context, x, y, w, .5f, window ? palette::vanilla::windowFaint : palette::white, window ? 1.f : .3f);
+    fill(context, x, y, w, .5f, window ? palette::vanilla::windowFaint : palette::white, window ? 1.f : .22f);
 }
 void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
     fill(context, x + 1, y + 1, 16, 16, palette::keyFill, .9f);

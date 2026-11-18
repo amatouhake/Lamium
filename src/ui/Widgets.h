@@ -141,11 +141,13 @@ void slot(MinecraftUIRenderContext&, float x, float y, bool hovered = false);
 // slots so a Lamium window that takes a game window's place reads like one; `missing` is the game's red
 // for what the player lacks.
 void windowSlot(MinecraftUIRenderContext&, float x, float y, bool hovered = false, bool missing = false);
-// A tab strip (decided 2026-11-19, demos/tab-strip.html): tabs lie side by side with no gap, divided by
-// thin lines, over a rule (tabRule) as wide as what they switch. The selected tab is bright over a thick
-// accent line, the others dim; none is a filled button, so a strip is not mistaken for actions. `first`
-// has no divider at its left. `window`: on the game's grey window. Without a text the tab is an icon's
-// place and the caller draws the icon. Height 11 like a button.
+// One of several, chosen (decided 2026-11-19, demos/switching-controls-2.html): names side by side with
+// no gap over a rule (tabRule) as wide as what they switch. On a dark Lamium panel the chosen one stands
+// on a faint accent face over an accent bar, as the settings sidebar's selected row does; on a window of
+// the game's grey (`window`), where that face does not sit well, it is dark over a thick accent line and
+// the names are divided by thin lines (`first` has none at its left). The others are dim and lighten
+// under the pointer; none is a filled button, so a strip is not mistaken for actions. Without a text the
+// tab is an icon's place and the caller draws the icon. Height 11 like a button.
 inline constexpr float tabHeight = 11, tabPad = 9, tabIconWidth = 16;
 void drawTab(MinecraftUIRenderContext&, float x, float y, float w, std::string text, bool selected, bool hovered, bool first,
              bool window = false);
