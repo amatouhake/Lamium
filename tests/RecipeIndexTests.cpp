@@ -362,6 +362,7 @@ void recipeIndexTests() {
         check(places.see(false, right, left, "minecraft:chest", {{"minecraft:stone", 0, 20}}, 120) && places.list[1].at == left && places.list[1].seen == 120
               && !places.see(false, right, left, "minecraft:chest", {{"minecraft:stone", 0, 20}}, 130),
               "a store opened again holds what it holds now, opened by either half");
+        check(storeBoxes(places) == std::vector<StoreBox>{{0, 17, 74, 151, 18, 74, 151}}, "a store is marked as the box of its blocks, a double chest as both; the ender chest is not");
         check(placeTotals(places) == std::vector<Stored>{{"minecraft:stone", 0, 23}, {"minecraft:bed", 14, 1}},
               "the counted places add up by name and aux");
         places.list[0].counted = false;

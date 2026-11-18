@@ -44,6 +44,9 @@ void unmarkStore(int index);
 void setPlaceCounted(int index, bool counted);
 // Whether what is carried counts.
 void setCarriedCounted(bool carried);
+// The stores as boxes in the world, for the world overlay to outline; read from any thread, replaced
+// when the places change or another world is joined.
+std::shared_ptr<std::vector<StoreBox> const> storeMarks();
 // What is held, by item name: what is carried and what the counted places held when last seen. The one
 // count for the plan, the schematic's Materials tab and its HUD.
 std::map<std::string, std::uint64_t> heldByName(LocalPlayer& player);

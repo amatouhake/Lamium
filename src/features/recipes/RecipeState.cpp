@@ -20,6 +20,8 @@ std::optional<std::filesystem::path> listFile;
 bool listKeep = false;
 unsigned revision = 1;
 Places placed;
+std::atomic<std::shared_ptr<std::vector<StoreBox> const>> marks;
+void publishMarks() { marks.store(std::make_shared<std::vector<StoreBox> const>(storeBoxes(placed))); }
 std::optional<std::filesystem::path> placedFile;
 bool placedKeep = false;
 std::map<std::string, Provider> providers;
@@ -72,6 +74,7 @@ void followWorld() {
     listFile = place.active ? place.wantedFile : std::nullopt;
     listKeep = false;
     placed = {};
+    publishMarks();
     placedFile.reset();
     placedKeep = false;
     ++revision;
@@ -94,9 +97,11 @@ void followWorld() {
         }
         if (placedKeep) log("the counted places' file could not be read; changes are kept for this session only");
     } catch (...) { placedKeep = true; }
+    publishMarks();
 }
 void writePlaces() {
     ++revision;
+    publishMarks();
     if (!placedFile || placedKeep) return;
     try {
         std::error_code ignored;
@@ -125,6 +130,7 @@ Wanted const& wanted() {
     followWorld();
     return list;
 }
+std::shared_ptr<std::vector<StoreBox> const> storeMarks() { return marks.load(); }
 Places const& places() {
     followWorld();
     return placed;

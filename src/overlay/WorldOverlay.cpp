@@ -11,6 +11,7 @@
 #include "overlay/ShapeSession.h"
 #include "overlay/ShapeWorkspace.h"
 #include "features/map/WaypointSession.h"
+#include "features/recipes/RecipeState.h"
 #include "features/interaction/BreakingRestriction.h"
 #include "features/visuals/BlockHighlightHooks.h"
 #include "app/Capabilities.h"
@@ -637,7 +638,11 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     bool glowShown = visuals.blockHighlight && !visuals.highlightBlocks.empty()
         && capabilities::registry().status(capabilities::Id::BlockHighlight).available();
     if (!glowShown && glow.revision) releaseGlow();
-    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown && !glowShown) return;
+    // The containers made stores for the plan of Recipes are outlined, so they can be told from the others.
+    auto const stores = settings->inventory.recipes && settings->inventory.recipesPlan && settings->inventory.recipesStoreMarks
+        ? recipes::state::storeMarks() : nullptr;
+    bool const storesShown = stores && !stores->empty();
+    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown && !glowShown && !storesShown) return;
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
@@ -689,6 +694,25 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
                     buildCellMesh(context.mScreenContext, restrictionMesh, restriction.faces, restriction.lines, style, material,
                                   restrictionRevision);
                 if (context.mImpl) drawCellMesh(context.mScreenContext, context.mImpl->mCameraPosition, restrictionMesh, material);
+            }
+        }
+        if (storesShown) {
+            constexpr double reach = 48, out = .01;
+            Vec3 const eye = player->getPosition();
+            int const dimensionId = static_cast<int>(player->getDimensionId());
+            thread_local std::vector<Line> outlines;
+            outlines.clear();
+            for (auto const& box : *stores) {
+                if (box.dimension != dimensionId || outlines.size() >= 12 * 64) continue;
+                double const dx = (box.lowX + box.highX + 1) * .5 - eye.x, dy = (box.lowY + box.highY + 1) * .5 - eye.y,
+                             dz = (box.lowZ + box.highZ + 1) * .5 - eye.z;
+                if (dx * dx + dy * dy + dz * dz > reach * reach) continue;
+                auto const edges = wireBox({box.lowX - out, box.lowY - out, box.lowZ - out}, {box.highX + 1 + out, box.highY + 1 + out, box.highZ + 1 + out});
+                outlines.insert(outlines.end(), edges.begin(), edges.end());
+            }
+            if (!outlines.empty()) {
+                std::array<LineBatch, 1> const batch{{{outlines, ui::palette::accent.r, ui::palette::accent.g, ui::palette::accent.b}}};
+                drawLines(context, batch);
             }
         }
         auto& dimension = player->getDimension();

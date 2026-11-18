@@ -89,6 +89,21 @@ struct Places {
         return true;
     }
 };
+// A store as a box of blocks in the world, for marking it there: one block, or a double chest's two.
+struct StoreBox {
+    int dimension = 0, lowX = 0, lowY = 0, lowZ = 0, highX = 0, highY = 0, highZ = 0;
+    bool operator==(StoreBox const&) const = default;
+};
+inline std::vector<StoreBox> storeBoxes(Places const& places) {
+    std::vector<StoreBox> out;
+    for (auto const& place : places.list) {
+        if (place.ender) continue;
+        Spot const other = place.pair && place.pair->dimension == place.at.dimension ? *place.pair : place.at;
+        out.push_back({place.at.dimension, std::min(place.at.x, other.x), std::min(place.at.y, other.y), std::min(place.at.z, other.z),
+                       std::max(place.at.x, other.x), std::max(place.at.y, other.y), std::max(place.at.z, other.z)});
+    }
+    return out;
+}
 // What the counted places hold, kinds of one name and aux summed.
 inline std::vector<Stored> placeTotals(Places const& places) {
     std::vector<Stored> out;
