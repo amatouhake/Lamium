@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Search, favourites, wanted items and bed colors (L-359 steps 4 to 6, 2026-11-18)
+
+Build `51a6c7d5` (DLL
+`002ae7e766eab873675bfc33dd2f43e3e4b17e3c2367213a05413090eba07835`),
+1.26.60.05 Dev instance, the maintainer:
+- Opening the inventory did not crash; the list on the right and the band
+  on the left (favourites above, wanted below) showed. The left band stayed
+  clear of the game's recipe book and followed the window's size.
+- The search field took text, Japanese too, and narrowed the list; E typed
+  a letter while it had the focus and Esc only left it. "Can be made"
+  showed what the carried items make.
+- A and W over an item put it into the left band; the stepper changed a
+  wanted item's count; the window's three tabs showed; the wanted items
+  were there after joining the world again.
+- Beds were listed per color and R showed that color's recipes.
+- Faults seen: the search field is too low for Japanese and for letters
+  with descenders; the key hints run off to the right; the recipe's arrow
+  and product sit below the grid's middle; the marks crowd a bed's recipe;
+  "add to wanted" changes width when it turns into "wanted"; the stepper
+  does nothing below 1; an item held on the pointer is hidden under the
+  bands; the smithing template's recipe is missing; a cake's recipe does
+  not say the buckets come back; potions have no recipe; the list's hover
+  shows a name only, not the game's tooltip or Lamium's item details.
+
 ## The recipe keys on mouse buttons and the back key (L-359 step 3, 2026-11-18)
 
 Build `3cf4d2f5` (DLL
