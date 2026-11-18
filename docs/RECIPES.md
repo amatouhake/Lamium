@@ -227,8 +227,9 @@ A setting of its own, off by default, and it works with Recipes off
   the client's) is tried again after 0.15 s, the grid's contents going
   back first where the run started from an item; twenty such steps in a
   row end the run. Each run writes
-  its recipe and, at its end, rounds, takes, stacks thrown and time to
-  the log.
+  its recipe and, at its end, rounds, takes, stacks thrown, requests and
+  time to the log; a run that does nothing for a second writes once why
+  and what it sees.
 
 ## Code
 - `src/features/recipes/RecipeIndex.h`: the game's table by name, the

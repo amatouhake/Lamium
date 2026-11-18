@@ -177,6 +177,10 @@ struct Run {
     std::map<int, Item> picks;
     Phase phase = Phase::Take;
     int keep = 0;      // of the product, what the player carried when the run began: it stays
+    char const* wait = ""; // why the last step did nothing, for the log
+    char const* told = nullptr;
+    int done = 0;          // rounds, takes and throws when something last happened
+    Clock::time_point doneAt;
     bool laid = false; // this step laid a round in: one a step
     Clock::time_point next, began, since; // since: when the current step began
     bool clicked = false; // Hand: a press on the output is out
@@ -305,7 +309,7 @@ void begin(CraftingScreenController& controller) {
     run.picks = std::move(request.picks);
     run.fromGrid = fromGrid;
     run.phase = fromGrid ? Phase::Take : Phase::Lay;
-    run.next = run.began = run.since = Clock::now();
+    run.next = run.began = run.since = run.doneAt = Clock::now();
     bool anyFree = false;
     for (auto const& [item, count] : slotsOf(manager, run.table->index, anyFree))
         if (item == run.table->index.recipes[static_cast<size_t>(recipe)].makes) run.keep += count;
@@ -374,6 +378,22 @@ void advance(CraftingScreenController& controller) {
     bool anyFree = false;
     run.next = now + step;
     run.laid = false;
+    // A run that does nothing for a second says once why, with what it sees: the log is all there is to
+    // tell a run that waits from one that is stuck.
+    if (int const done = run.rounds + run.takes + run.thrown + run.hands + run.surplus + run.roomed; done != run.done) run.done = done, run.doneAt = now, run.told = nullptr;
+    else if (now - run.doneAt > std::chrono::seconds(1) && run.told != run.wait) {
+        run.told = run.wait;
+        try {
+            int carried = 0, free = 0;
+            auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), run.picks, true);
+            for (auto const& [item, count] : slotsOf(manager, index, anyFree)) carried += count > 0, free += count <= 0;
+            Runtime::instance().self().getLogger().info(
+                "Mass Craft: waiting ({}): phase {}, grid {} makes {} ours {}, pointer {}, slots filled {} free {}, plan fits {} missing {} crafts {} moves {}, keep {}",
+                run.wait, static_cast<int>(run.phase), gridEmpty(manager) ? "empty" : "filled", makes(manager), makesProduct(manager, index, recipe.makes),
+                held(manager), carried, free, plan.fits, plan.missing.size(), plan.crafts, plan.moves.size(), run.keep);
+        } catch (...) {}
+    }
+    run.wait = "nothing to do";
     // What the game shows at once goes on in the same frame: a round is laid in, taken and thrown out in one,
     // and a take that found room for a part only is followed by the next.
     int budget = mostRequests;
@@ -390,6 +410,7 @@ void advance(CraftingScreenController& controller) {
         if (!makesProduct(manager, index, recipe.makes)) {
             if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; continue; }
             // What a recipe leaves behind (a bucket), a product not shown yet, or a part of the recipe only.
+            run.wait = "the grid does not make the product";
             if (now - run.since <= patience) return;
             // Started from an item, the grid is this run's: what stays in it goes back and it is laid in anew.
             if (run.fromGrid) { finish("the grid holds something that is not the recipe"); return; }
@@ -421,6 +442,7 @@ void advance(CraftingScreenController& controller) {
         int const thrown = throwExcess(controller, index, recipe.makes, budget);
         if (thrown < 0) { finish("throwing the product out failed"); return; }
         if (!thrown) {
+            run.wait = "the take showed nothing";
             if (now - run.since > patience) again("the product found no room", now);
             return;
         }
@@ -481,7 +503,7 @@ void advance(CraftingScreenController& controller) {
         continue;
     }
     case Phase::Lay: {
-        if (!gridEmpty(manager)) { run.phase = Phase::Take; run.since = now; return; }
+        if (!gridEmpty(manager)) { run.wait = "the grid is not empty"; run.phase = Phase::Take; run.since = now; return; }
         if (run.laid) return;
         run.laid = true;
         auto const carried = carriedOf(manager, index);
@@ -490,7 +512,7 @@ void advance(CraftingScreenController& controller) {
         if (plan.ready()) {
             // A round is laid in by a step that has all its calls left, however many cells it has.
             int const cost = 2 * static_cast<int>(plan.moves.size());
-            if (cost > budget && budget < mostRequests) return;
+            if (cost > budget && budget < mostRequests) { run.wait = "the step has no calls left to lay in"; return; }
             budget -= cost;
             // Laid in part: the take that follows finds no product, and what was laid goes back.
             if (!lay(controller, index, recipe, run.picks, true) && held(manager)) { again("laying the recipe in failed", now); return; }
@@ -501,6 +523,7 @@ void advance(CraftingScreenController& controller) {
         }
         // Not enough of an ingredient: more may arrive while the key is held. With no slot free for it,
         // what the others fill beyond their share goes out.
+        run.wait = "an ingredient is missing";
         run.next = now + idle;
         slotsOf(manager, index, anyFree);
         if (anyFree) return;

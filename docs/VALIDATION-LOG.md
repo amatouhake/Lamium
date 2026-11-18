@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft under 16 slot calls a step (L-165, 2026-11-18)
+
+Trace build of `f8d7b95c` (`craft_trace`, DLL
+`e3e26636c897076f01a6957aed1406ad5c451784bb60ca2cedb9e9d1ffec85fa`),
+1.26.60.05 Dev instance, a local world, the maintainer turning logs into
+planks and those into chests, several times:
+- No world closed. The log: planks 109 to 129 rounds in 10.7 to 16.8 s
+  with 1379 to 1850 requests (about 130 a second), chests 45 to 51
+  rounds in 9.1 to 13.2 s with about 1000; 11 to 28 stacks thrown out
+  for room in each run, none from the pointer.
+- Sometimes 64 logs or 64 planks were left, sometimes nothing; a run
+  seemed to craft only the first stack at times (maintainer). Every run
+  in the log ended by the key's release; the log does not tell why a
+  run stood still.
+
 ## A world closed during a Mass Craft run (L-165, 2026-11-18)
 
 Trace build of `5175b006` (`craft_trace`, DLL
