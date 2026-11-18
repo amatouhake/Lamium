@@ -13,7 +13,8 @@ enum class Tab { Wanted, Gather, Make };
 bool isOpen();
 void open(Tab tab);
 void close();
-// `shift`: a stepper moves by 16. `showItem` is set to the item whose name was pressed, for the recipe view.
+// `shift`: a stepper moves by 16. `showItem` is set to the item whose name was pressed, for the recipe
+// view; `showChoice` with it when that was in the list of what to make.
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift,
-          std::string& showItem);
+          std::string& showItem, bool& showChoice);
 }

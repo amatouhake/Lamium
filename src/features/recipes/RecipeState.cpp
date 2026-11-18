@@ -114,6 +114,13 @@ void removeWanted(std::string const& key) {
     list.remove(key);
     writeWanted();
 }
+void stepWanted(std::string const& key, bool up, bool shift, bool button) {
+    followWorld();
+    if (!list.has(key)) return;
+    if (Count const next = steppedWanted(list.count(key), up, shift ? 16 : 1, button)) list.set(key, next);
+    else list.remove(key);
+    writeWanted();
+}
 void setChoice(std::string const& item, std::string const& recipe) {
     readNotes();
     if (recipe.empty()) held.choices.erase(item); else held.choices[item] = recipe;

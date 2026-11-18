@@ -53,8 +53,9 @@ struct ListBox {
     bool has(float px, float py) const { return w > 0 && px >= x && px < x + w && py >= y && py < y + h; }
 };
 // The search field: at the bottom centre, as wide as the game's inventory window and low enough that
-// nothing above it ever has to move.
-inline ListBox searchFieldAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - 15, 176, 11}; }
+// nothing above it ever has to move. High enough for Japanese and for letters that reach under the line.
+inline constexpr float searchTop = 16; // its top, from the screen's bottom
+inline ListBox searchFieldAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - searchTop, 176, 14}; }
 // The band left of the game's window, from the screen's edge: favourites in its upper half, the wanted
 // items in the lower. The lower half is a bar, rows, and a last line kept free for the open container's
 // control, so the rows never shift.

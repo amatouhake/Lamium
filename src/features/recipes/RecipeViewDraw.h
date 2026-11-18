@@ -21,11 +21,14 @@ struct Late {
     std::vector<inspection::render::IconAt> icons;
     std::vector<Count> counts;
     std::string tip;
+    std::vector<std::string> tipLines; // further lines under `tip`
     std::string hovered; // the item under the pointer, by its id
 };
 bool isOpen();
 // Shows an item's recipes, or what it is used in; the item shown before stays one step back.
-void open(std::string item, bool uses);
+// `choose`: asked from the list of what to make, where an item with several recipes says which is
+// in use and offers the others.
+void open(std::string item, bool uses, bool choose = false);
 void close();
 void draw(MinecraftUIRenderContext& context, Input const& input, Late& late);
 }

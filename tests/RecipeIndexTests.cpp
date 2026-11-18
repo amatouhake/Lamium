@@ -71,7 +71,9 @@ void recipeIndexTests() {
     };
     {
         check(id("barrel") < 0 || index.makers[id("barrel")].empty(), "a superseded recipe is not in the index");
-        check(index.makers[id("arrow")].size() == 1 && made("arrow") == "arrow", "a recipe that uses its own product is left out");
+        check(index.makers[id("arrow")].size() == 1 && made("arrow") == "arrow" && index.copies[id("arrow")].size() == 1
+              && index.recipes[index.copies[id("arrow")].front()].own, "a recipe that uses its own product is kept apart and never chosen");
+        check(viewTabs(index, choice, id("arrow"), false).front().recipes.size() == 2, "the view shows it after the others");
         auto const& chest = index.recipes[choice.recipe[id("chest")]];
         check(chest.uses.size() == 1 && chest.uses[0].group && chest.uses[0].count == 8, "grid cells of one tag add up, empty cells are skipped");
         auto const& cake = index.recipes[choice.recipe[id("cake")]];
@@ -160,6 +162,9 @@ void recipeIndexTests() {
                   && usersOf(index, request, view, planks) == std::vector<std::pair<Item, Count>>{{id("chest"), 8}}
                   && usersOf(index, request, view, id("oak_planks")).empty(),
               "an item's users are the steps that take it; one only placed has none");
+        check(stepInputs(index, request, view.steps[1]) == std::vector<std::pair<Item, Count>>{{id("stone"), 44}}
+                  && stepInputs(index, request, view.steps[2]) == std::vector<std::pair<Item, Count>>{{planks, 8}},
+              "a step takes its recipe's parts times its crafts, a group as itself");
     }
     {
         // The item list right of a 176-wide window at x 232 on a 640x360 screen.
@@ -208,7 +213,9 @@ void recipeIndexTests() {
         check(viewTabs(index, choice, index.find("iron_ore"), true).size() == 1 && viewTabs(index, choice, -1, false).empty(),
               "a merged input counts as used, and an item the table lacks has no tabs");
         auto view = recipeViewAt(640, 360);
-        check(view.left == 210 && view.top == 4 && view.height == 337 && view.hintY() == 330, "the view is centred, two columns wide, down to the search field's place");
+        check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,
+              "the arrow and the product stand at the grid's middle, the small mark under them");
+        check(view.left == 210 && view.top == 4 && view.height == 336 && view.hintY() == 329, "the view is centred, two columns wide, down to the search field's place");
         check(view.rows(Station::Crafting) == 5 && view.columns(Station::Crafting, 5) == 1 && view.columns(Station::Crafting, 6) == 2
               && view.pages(Station::Crafting, 11) == 2, "rows fill the height; a second column and page come when needed");
         check(view.blockX(Station::Crafting, 3, 1) == 270 && view.blockX(Station::Crafting, 8, 1) == 325 && view.blockY(Station::Crafting, 8, 3) == 4 + 29 + 59,
@@ -267,7 +274,10 @@ void recipeIndexTests() {
               "favourites are cells above the middle; the wanted rows end a line short of the bottom");
         check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
-        check(field.x == 232 && field.y == 345 && field.w == 176 && field.has(300, 350) && !field.has(300, 340), "the search field sits at the bottom centre");
+        check(field.x == 232 && field.y == 344 && field.w == 176 && field.h == 14 && field.has(300, 350) && !field.has(300, 340), "the search field sits at the bottom centre");
+        check(steppedWanted(1, false, 1, true) == 0 && steppedWanted(1, false, 16, false) == 1 && steppedWanted(20, false, 16, true) == 4
+              && steppedWanted(9, false, 16, true) == 1 && steppedWanted(Wanted::most, true, 16, true) == Wanted::most,
+              "only the minus button at one takes a wanted item out; steps stop at one and at the most");
     }
     {
         // What the player enters: favourites, wanted items, and the notes a plan follows.

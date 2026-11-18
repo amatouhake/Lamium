@@ -47,6 +47,12 @@ inline Item partItem(Index const& index, Request const& request, Part const& par
     auto picked = request.picks.find(part.id);
     return picked != request.picks.end() ? picked->second : index.groupItem(part.id);
 }
+// What a step takes in all its crafts, each part as the item it stands for in the plan.
+inline std::vector<std::pair<Item, Count>> stepInputs(Index const& index, Request const& request, StepLine const& step) {
+    std::vector<std::pair<Item, Count>> out;
+    for (auto const& part : index.recipes[step.recipe].uses) out.emplace_back(partItem(index, request, part), step.crafts * part.count);
+    return out;
+}
 // The steps that use `id` and how many each takes, in the view's order.
 inline std::vector<std::pair<Item, Count>> usersOf(Index const& index, Request const& request, RawView const& view, Item id) {
     std::vector<std::pair<Item, Count>> out;

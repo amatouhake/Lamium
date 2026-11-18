@@ -2,7 +2,9 @@
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "features/inspection/hover/HoverTracker.h"
+#include "features/inspection/render/HeldItem.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "features/recipes/CountEdit.h"
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ListFilter.h"
@@ -44,6 +46,7 @@
 #include <atomic>
 #include <chrono>
 #include <format>
+#include <map>
 #include <mutex>
 #include <set>
 #include <string>
@@ -89,6 +92,7 @@ struct Shown {
     ListBox field;                  // the search field
     SideLayout side;                // the band left of the game's window
     bool searchFocus = false;
+    bool countFocus = false;        // a wanted item's count is being typed
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
@@ -100,11 +104,14 @@ struct Queued {
 } queued;
 bool ctrlHeld = false; // the listeners' own
 std::atomic<bool> shiftHeld{false}, dropFocus{false};
-bool sideGather = true; // the left band's short list: what is left to gather, or the wanted items
+// The left band's short list, as the window's tabs: the wanted items, what is left to gather, what to make.
+enum class SideList { Wanted, Gather, Make };
+SideList sideList = SideList::Gather;
 // The recipe view lies over the window of what is wanted; both go with the screen they were opened on.
 void closeViews() {
     view::close();
     planView::close();
+    countEdit::cancel();
 }
 bool anyView() { return view::isOpen() || planView::isOpen(); }
 KeptPresses keptButtons, keptKeys; // under shownLock
@@ -242,14 +249,23 @@ bool drawList(ll::event::UIRenderEvent& event) {
         std::scoped_lock lock(shownLock);
         // What was queued before a pause belongs to a screen that is gone.
         if (fresh()) input = std::move(queued);
+        else countEdit::cancel();
         queued = {};
     }
     // The table is read while the list shows, a part a frame, so the first recipe opens at once.
     service::want();
-    if (dropFocus.exchange(false)) searchFocus = false;
+    if (dropFocus.exchange(false)) searchFocus = false, countEdit::cancel();
     // The search field: what was typed since the last frame, then where this frame's press went.
     auto const field = searchFieldAt(screen.x, screen.y);
-    if (searchFocus) {
+    if (countEdit::active()) {
+        // A count being typed: digits, Enter keeps it, Esc leaves it as it was.
+        for (int pressed : input.fieldKeys) {
+            int const code = pressed & 0xFFFF;
+            if (code == 0x1B) { countEdit::cancel(); break; }
+            if (code == 0x0D || code == 0x09) { countEdit::commit(); break; }
+            countEdit::typed.digitKey(code);
+        }
+    } else if (searchFocus) {
         for (int pressed : input.fieldKeys) {
             int const code = pressed & 0xFFFF;
             bool const ctrl = (pressed & 0x10000) != 0;
@@ -273,7 +289,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         return true;
     };
     bool caretPress = false;
-    if (pressed || input.outside) searchFocus = false;
+    if (pressed || input.outside) searchFocus = false, countEdit::commit();
     if (took(field)) searchFocus = caretPress = true;
     narrow(*player);
     int const count = static_cast<int>(visible.size()), pages = layout.pages(count);
@@ -302,7 +318,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!count) label(context, layout.left + 4, layout.top + ItemListLayout::bar + 4, layout.width - 8,
                       translated(filter == Filter::CanMake && !service::table() ? "schematic.raw.reading" : "recipes.notFound"), palette::dim);
     view::Late late;
-    std::vector<ImageRect> dots; // a favourite's mark, drawn over its icon
+    // A favourite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
+    std::set<std::string_view> favouriteKeys;
+    std::map<std::string_view, Count> wantedCounts;
+    for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
+    for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
+    auto mark = [&](std::string const& key, float x, float y, float cell) {
+        if (favouriteKeys.contains(key)) frame(context, x, y, cell, cell, palette::accent, .9f);
+        if (auto wanted = wantedCounts.find(key); wanted != wantedCounts.end())
+            late.counts.push_back({x, y, wanted->second < 1000 ? std::to_string(wanted->second) : std::string("999+")});
+    };
     for (int i = 0; i < layout.perPage() && first + i < count; ++i) {
         auto const& item = schematic::items::shown(nameAt(i));
         float const x = layout.cellX(i), y = layout.cellY(i);
@@ -311,7 +336,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             late.tip = item.name;
         }
         if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
-        if (state::notes().favourite(nameAt(i))) dots.push_back({x + 13, y + 1, 4, 4});
+        mark(nameAt(i), x, y, ItemListLayout::cell);
     }
     // A press on an item shows its recipes, a right press what it is used in, also beside an open view.
     auto show = [&](std::string const& item) {
@@ -336,40 +361,57 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 hoverItem = favourites[static_cast<size_t>(i)];
             }
             if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
+            mark(favourites[static_cast<size_t>(i)], x, y, SideLayout::cell);
         }
         if (pressed && favouriteHover >= 0 && favouriteHover < favouriteCount) show(favourites[static_cast<size_t>(favouriteHover)]);
         fill(context, side.left + 3, side.top + side.split(), side.width - 6, 1, palette::white, .2f);
-        // The bar: the list's name, which of the two it shows, and the window. Buttons from the right end.
-        float barEnd = side.left + side.width - 2;
-        auto sideButton = [&](std::string text, bool on) {
-            float const w = textWidth(context, text) + 8;
-            barEnd -= w;
-            ListBox const box{barEnd, side.barY(), w, 11};
-            drawButton(context, box.x, box.y, box.w, box.h, std::move(text), box.has(px, py), on ? ButtonKind::Primary : ButtonKind::Plain);
-            barEnd -= 2;
-            return leftPress && took(box);
-        };
-        auto openPlan = [&](planView::Tab tab) {
-            planView::open(tab);
+        // The bar: which of the three lists shows, named as the window's tabs, and the window at the right
+        // end. Where the three do not fit, one button that goes round them.
+        struct ListName { SideList list; char const* key; planView::Tab tab; };
+        static constexpr ListName lists[]{{SideList::Wanted, "recipes.wanted", planView::Tab::Wanted},
+                                          {SideList::Gather, "recipes.gather", planView::Tab::Gather},
+                                          {SideList::Make, "recipes.make", planView::Tab::Make}};
+        int const listNow = sideList == SideList::Wanted ? 0 : sideList == SideList::Gather ? 1 : 2;
+        auto openPlan = [&] {
+            planView::open(lists[listNow].tab);
             viewScreen = screenName;
         };
-        if (sideButton(translated("recipes.open"), false)) openPlan(sideGather ? planView::Tab::Gather : planView::Tab::Wanted);
-        if (side.wide()) {
-            if (sideButton(translated("recipes.wanted"), !sideGather)) sideGather = false;
-            if (sideButton(translated("recipes.gather"), sideGather)) sideGather = true;
+        auto barButton2 = [&](ListBox const& box, std::string text, bool on) {
+            drawButton(context, box.x, box.y, box.w, box.h, std::move(text), box.has(px, py), on ? ButtonKind::Primary : ButtonKind::Plain);
+            return leftPress && took(box);
+        };
+        std::string openText = translated("recipes.open");
+        float const openWidth = textWidth(context, openText) + 8;
+        ListBox const openBox{side.left + side.width - 2 - openWidth, side.barY(), openWidth, 11};
+        if (barButton2(openBox, std::move(openText), false)) openPlan();
+        std::string listTexts[3];
+        float listWidths[3], listsWidth = 0;
+        for (int i = 0; i < 3; ++i) {
+            listTexts[i] = translated(lists[i].key);
+            listWidths[i] = textWidth(context, listTexts[i]) + 8;
+            listsWidth += listWidths[i] + 2;
         }
-        if (std::string title = translated("recipes.wanted"); barEnd - side.left - 4 >= textWidth(context, title))
-            label(context, side.left + 4, side.barY() + 2, barEnd - side.left - 4, std::move(title), palette::dim);
+        float barX2 = side.left + 2;
+        float const barRoom = openBox.x - 2 - barX2;
+        if (listsWidth - 2 <= barRoom) {
+            for (int i = 0; i < 3; ++i) {
+                if (barButton2({barX2, side.barY(), listWidths[i], 11}, std::move(listTexts[i]), i == listNow)) sideList = lists[i].list;
+                barX2 += listWidths[i] + 2;
+            }
+        } else if (float const w = std::min(listWidths[listNow], barRoom); w > 12) {
+            if (barButton2({barX2, side.barY(), w, 11}, std::move(listTexts[listNow]), true)) sideList = lists[(listNow + 1) % 3].list;
+        }
         // The short list: an icon, the name where there is room, and how many; a wanted item's count has the stepper.
         struct SideRow {
             std::string key, name;
             Count count = 0;
+            int step = -1; // a row of what to make: its place among the plan's steps
         };
         std::vector<SideRow> rows;
         auto const* plan = state::plan(*player);
-        if (!sideGather) {
+        if (sideList == SideList::Wanted) {
             for (auto const& [key, amount] : state::wanted().targets) rows.push_back({key, schematic::items::shown(key).name, amount});
-        } else if (plan) {
+        } else if (plan && sideList == SideList::Gather) {
             auto const& index = plan->table->index;
             Item const items = static_cast<Item>(index.items.size());
             auto const turn = static_cast<size_t>(
@@ -385,6 +427,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
                                     groupName(index, line.id - items), line.left});
                 }
             }
+        } else if (plan) {
+            // What to make, in the order it can be made, each with how many come out.
+            auto const& index = plan->table->index;
+            for (size_t i = 0; i < plan->view.steps.size(); ++i) {
+                auto const& key = index.items[static_cast<size_t>(plan->view.steps[i].item)];
+                rows.push_back({key, schematic::items::shown(key).name, plan->view.steps[i].made, static_cast<int>(i)});
+            }
         }
         int const fits = side.rows(), total = static_cast<int>(rows.size());
         int const drawn = total > fits ? std::max(0, fits - 1) : total;
@@ -396,29 +445,34 @@ bool drawList(ll::event::UIRenderEvent& event) {
             if (!row.key.empty())
                 if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon)) late.icons.push_back({stack, side.left + 3, y + 1, smallIcon});
             float nameEnd = end - 30;
-            if (!sideGather) {
+            if (sideList == SideList::Wanted) {
+                // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
                 float const sx = end - stepperWidth;
-                drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(row.count), {.lowEnabled = row.count > 1, .pointerX = px, .pointerY = py});
-                Count const step = shiftHeld.load() ? 16 : 1;
-                if (leftPress && took({sx, y + 1, 11, 10})) state::setWanted(row.key, row.count > step ? row.count - step : 1);
-                else if (leftPress && took({sx + stepperWidth - 11, y + 1, 11, 10})) state::setWanted(row.key, row.count + step);
-                else if (took({sx, y + 1, stepperWidth, 10})) {}
-                else if (input.sideTurns && ListBox{sx, y + 1, stepperWidth, 10}.has(px, py))
-                    state::setWanted(row.key, input.sideTurns < 0 ? row.count + step : row.count > step ? row.count - step : 1);
+                ListBox const box{sx, y + 1, stepperWidth, 10};
+                drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(row.count),
+                            {.editing = countEdit::editing(row.key), .pointerX = px, .pointerY = py});
+                if (leftPress && took({sx, y + 1, 11, 10})) state::stepWanted(row.key, false, shiftHeld.load(), true);
+                else if (leftPress && took({sx + stepperWidth - 11, y + 1, 11, 10})) state::stepWanted(row.key, true, shiftHeld.load(), true);
+                else if (leftPress && took(box)) countEdit::begin(row.key, row.count);
+                else if (took(box)) {}
+                else if (input.sideTurns && box.has(px, py)) state::stepWanted(row.key, input.sideTurns < 0, shiftHeld.load(), false);
                 nameEnd = sx - 3;
             } else label(context, end - 40, y + 2, 40, std::to_string(row.count), palette::text, Align::Right);
             if (side.wide()) label(context, side.left + 16, y + 2, nameEnd - side.left - 16, row.name, palette::dim);
             if (whole.has(px, py)) {
                 if (hoverItem.empty()) hoverItem = row.key;
-                if (!side.wide()) late.tip = row.name;
+                // A row of what to make says what its crafts take.
+                if (row.step >= 0 && plan) late.tip = row.name, late.tipLines = stepInputLines(plan->table->index, plan->request, plan->view.steps[static_cast<size_t>(row.step)]);
+                else if (!side.wide()) late.tip = row.name;
             }
-            if (leftPress && took(whole)) openPlan(sideGather ? planView::Tab::Gather : planView::Tab::Wanted);
+            if (leftPress && took(whole)) openPlan();
         }
         if (total > drawn && fits > 0)
             label(context, side.left + 4, side.rowY(drawn) + 2, side.width - 8, translated("recipes.more", total - drawn), palette::faint);
         if (!total)
             label(context, side.left + 4, side.rowY(0) + 2, side.width - 8,
-                  translated(!sideGather ? "recipes.nothingWanted" : plan ? "schematic.raw.nothing" : "schematic.raw.reading"), palette::faint);
+                  translated(sideList == SideList::Wanted || (plan && sideList == SideList::Make) ? "recipes.nothingWanted"
+                             : plan ? "schematic.raw.nothing" : "schematic.raw.reading"), palette::faint);
         // A press on the band that nothing took stays there: it must not reach the view under the pointer's line.
         if (pressed && side.has(px, py)) pressed = false;
     }
@@ -440,9 +494,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close}, late);
     else if (planView::isOpen()) {
         std::string showItem;
+        bool showChoice = false;
         planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close}, late, *player,
-                       shiftHeld.load(), showItem);
-        if (!showItem.empty()) view::open(std::move(showItem), false), viewScreen = screenName;
+                       shiftHeld.load(), showItem, showChoice);
+        if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView();
@@ -469,8 +524,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (!favouriteKey.empty()) hint += " | " + translated("recipes.hint.favourite", favouriteKey);
         if (!wantedKey.empty()) hint += " | " + translated("recipes.hint.wanted", wantedKey);
         if (view::isOpen() && !backKey.empty()) hint += " | " + translated("recipes.hint.back", backKey);
-        float const room = RecipeViewLayout::width - 8, wide = textWidth(context, hint), scale = wide > room ? room / wide : 1.f;
-        labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room / scale, std::move(hint), scale, palette::dim, Align::Center);
+        // On the open window it is the window's text: dark, without a shadow.
+        float const room = RecipeViewLayout::width - 8, wide = labelWidth(context, hint, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
+        labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room, std::move(hint), scale,
+                    open ? palette::vanilla::windowFaint : palette::dim, Align::Center, !open);
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
     if (hoverItem.empty() && !(open && viewLayout.has(px, py))) {
@@ -487,17 +544,32 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     {
         std::scoped_lock lock(shownLock);
-        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, side, searchFocus};
+        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, side, searchFocus,
+                 countEdit::active()};
     }
     context.flushText(0, std::nullopt);
+    // Painted after the screen, the bands and the windows cover the item held on the pointer: where it
+    // lies over one of them it is drawn once more, last so it is on top.
+    auto const held = inspection::render::heldOver(screenView, inspection::render::heldStack(screenView), [&](float x, float y, float w, float h) {
+        auto over = [&](float bx, float by, float bw, float bh) { return bw > 0 && x < bx + bw && x + w > bx && y < by + bh && y + h > by; };
+        return over(layout.left, layout.top, layout.width, layout.height) || over(field.x, field.y, field.w, field.h)
+            || (side.usable() && over(side.left, side.top, side.width, side.height))
+            || (open && over(viewLayout.left, viewLayout.top, RecipeViewLayout::width, viewLayout.height));
+    });
+    if (held.stack) late.icons.push_back({held.stack, held.x, held.y, held.size / 16, 0, 1.f, true, true});
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
-    fills(context, dots, palette::accent);
+    if (held.stack) inspection::render::drawHeldMarks(context, held);
     for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
     if (!late.counts.empty()) context.flushText(0, std::nullopt);
     if (!late.tip.empty()) {
-        float const w = textWidth(context, late.tip) + 8, x = std::min(px + 8, screen.x - w - 2), y = std::min(py + 8, screen.y - 14);
-        drawTipBox(context, x, y, w, 12);
+        float w = textWidth(context, late.tip);
+        for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
+        w += 8;
+        float const h = 12 + 10 * static_cast<float>(late.tipLines.size());
+        float const x = std::min(px + 8, screen.x - w - 2), y = std::min(py + 8, screen.y - h - 2);
+        drawTipBox(context, x, y, w, h);
         label(context, x + 4, y + 2, w - 8, late.tip);
+        for (size_t i = 0; i < late.tipLines.size(); ++i) label(context, x + 4, y + 12 + 10 * static_cast<float>(i), w - 8, late.tipLines[i], palette::dim);
         context.flushText(0, std::nullopt);
     }
     return true;
@@ -516,7 +588,7 @@ bool press(int button, bool left, bool right, bool down) {
     std::scoped_lock lock(shownLock);
     bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY) || shown.field.has(shown.pointerX, shown.pointerY)
         || shown.side.has(shown.pointerX, shown.pointerY));
-    if (!ours && down && fresh() && shown.searchFocus) queued.outside = true;
+    if (!ours && down && fresh() && (shown.searchFocus || shown.countFocus)) queued.outside = true;
     bool first = false;
     if (!keptButtons.decide(button, down, ours, &first)) return false;
     if (first && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
@@ -528,9 +600,10 @@ bool key(int code, bool down) {
     if (code == 0x10 || code == 0xA0 || code == 0xA1) shiftHeld = down;
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(shownLock);
-    // The focused search field takes every key: letters are text, which the game hands over itself.
+    // The focused search field takes every key: letters are text, which the game hands over itself. So
+    // does a count being typed: the number keys must not move stacks to the hotbar.
     bool first = false;
-    if (fresh() && shown.searchFocus) {
+    if (fresh() && (shown.searchFocus || shown.countFocus)) {
         if (!keptKeys.decide(code, down, true, &first)) return false;
         // Editing keys repeat while held; leaving the field happens once.
         if (down && (first || (code != 0x1B && code != 0x0D)) && queued.fieldKeys.size() < 64)
@@ -555,10 +628,11 @@ void focusLost() {
 }
 bool typing() {
     std::scoped_lock lock(shownLock);
-    return fresh() && shown.searchFocus;
+    return fresh() && (shown.searchFocus || shown.countFocus);
 }
 bool type(std::string const& text) {
     std::scoped_lock lock(shownLock);
+    if (fresh() && shown.countFocus) return true; // its digits come as keys
     if (!fresh() || !shown.searchFocus) return false;
     if (queued.text.size() + text.size() <= 256) queued.text += text;
     return true;
@@ -581,7 +655,8 @@ void favourite() {
     if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
 }
 void want() {
-    if (auto item = hovered(); !item.empty()) state::toggleWanted(item);
+    // The band shows the wanted items then, so what went in or out is seen.
+    if (auto item = hovered(); !item.empty()) state::toggleWanted(item), sideList = SideList::Wanted;
 }
 void show(bool uses) {
     std::string item;
@@ -604,7 +679,7 @@ void start() {
                 std::scoped_lock lock(shownLock);
                 gone = !fresh();
             }
-            if (gone) searchFocus = false, releaseKeyboard();
+            if (gone) searchFocus = false, countEdit::cancel(), releaseKeyboard();
         } catch (...) {}
     });
     // The names belong to the world's items: read them again in the next world.
@@ -614,6 +689,7 @@ void stop() {
     for (auto* listener : {&renderListener, &exitListener})
         if (*listener) { ll::event::EventBus::getInstance().removeListener(*listener); listener->reset(); }
     searchFocus = false;
+    countEdit::cancel();
     releaseKeyboard();
     forget = true;
 }

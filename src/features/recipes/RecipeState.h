@@ -21,6 +21,8 @@ void toggleFavourite(std::string const& key);
 void toggleWanted(std::string const& key);
 void setWanted(std::string const& key, Count amount);
 void removeWanted(std::string const& key);
+// A wanted item's stepper moved (steppedWanted): `button` is its minus or plus, not the wheel.
+void stepWanted(std::string const& key, bool up, bool shift, bool button);
 // The recipe an item is made by, as choiceKey names it; empty gives it back to the default.
 void setChoice(std::string const& item, std::string const& recipe);
 // The member used for a group; an empty member gives it back to "any".

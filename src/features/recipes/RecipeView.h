@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/ItemListLayout.h"
 #include "features/recipes/RecipeIndex.h"
 #include <algorithm>
 #include <vector>
@@ -28,9 +29,12 @@ inline std::vector<ViewTab> viewTabs(Index const& index, Choice const& choice, I
         });
     } else {
         list = index.makers[static_cast<size_t>(item)];
+        auto const& copies = index.copies[static_cast<size_t>(item)];
+        list.insert(list.end(), copies.begin(), copies.end());
         int const chosen = static_cast<size_t>(item) < choice.recipe.size() ? choice.recipe[static_cast<size_t>(item)] : -1;
         std::stable_sort(list.begin(), list.end(), [&](int a, int b) {
             if ((a == chosen) != (b == chosen)) return a == chosen;
+            if (index.recipes[static_cast<size_t>(a)].own != index.recipes[static_cast<size_t>(b)].own) return index.recipes[static_cast<size_t>(b)].own;
             return before(index, index.recipes[static_cast<size_t>(a)], index.recipes[static_cast<size_t>(b)]);
         });
     }
@@ -52,12 +56,13 @@ inline bool fitsSmallGrid(Recipe const& recipe) {
 inline bool anyOrder(Recipe const& recipe) { return recipe.station == Station::Crafting && recipe.anyOrder; }
 
 // One recipe as its station's screen lays it out, from the block's corner.
-// `cell` is a position in Recipe::cells, -1 an empty slot. Marks start at
-// `marks` and wrap within the block.
+// `cell` is a position in Recipe::cells, -1 an empty slot. The arrow and the
+// product stand at the middle of the ingredients' height. `marks` is a line
+// for the recipe's button, `note` the place of its small mark.
 struct ViewSlot { float x = 0, y = 0; int cell = -1; };
 struct ViewBlock {
     std::vector<ViewSlot> slots;
-    float arrowX = 0, arrowY = 0, productX = 0, productY = 0, marksX = 0, marksY = 0;
+    float arrowX = 0, arrowY = 0, productX = 0, productY = 0, marksX = 0, marksY = 0, noteX = 0, noteY = 0;
 };
 inline ViewBlock viewBlock(Recipe const& recipe) {
     constexpr float cell = 18;
@@ -69,7 +74,8 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
         for (int i = 0; i < 9; ++i) out.slots.push_back({static_cast<float>(i % 3) * cell, static_cast<float>(i / 3) * cell, -1});
         for (int i = 0; i < count && i / across < 3; ++i)
             if (recipe.cells[static_cast<size_t>(i)].id >= 0) out.slots[static_cast<size_t>(i / across * 3 + i % across)].cell = i;
-        out.arrowX = 58, out.arrowY = 31, out.productX = 70, out.productY = 24, out.marksX = 58, out.marksY = 0;
+        out.arrowX = 58, out.arrowY = 25, out.productX = 70, out.productY = 18, out.marksX = 58, out.marksY = 2;
+        out.noteX = 58, out.noteY = 42;
     } else if (recipe.station == Station::Stonecutter) {
         out.slots.push_back({0, 6, count ? 0 : -1});
         out.arrowX = 22, out.arrowY = 13, out.productX = 34, out.productY = 6, out.marksX = 58, out.marksY = 10;
@@ -110,12 +116,12 @@ struct RecipeViewLayout {
     // The key hints' line: the window's last, and the same place while it is closed.
     float hintY() const { return top + height - 11; }
 };
-// The search field's place is the screen's last 15 units; the window ends 4 above it.
+// The window ends 4 above the search field.
 inline RecipeViewLayout recipeViewAt(float screenWidth, float screenHeight) {
     RecipeViewLayout out;
     out.left = (screenWidth - RecipeViewLayout::width) / 2;
     out.top = 4;
-    out.height = screenHeight - 15 - 4 - out.top;
+    out.height = screenHeight - searchTop - 4 - out.top;
     return out;
 }
 }

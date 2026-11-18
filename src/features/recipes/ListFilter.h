@@ -40,7 +40,7 @@ inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> co
         return found == held.end() ? Count{0} : found->second;
     };
     for (auto const& recipe : index.recipes) {
-        if (recipe.station != Station::Crafting || out[static_cast<size_t>(recipe.makes)]) continue;
+        if (recipe.station != Station::Crafting || recipe.own || out[static_cast<size_t>(recipe.makes)]) continue;
         bool enough = !recipe.uses.empty();
         for (auto const& part : recipe.uses) {
             Count got = 0;

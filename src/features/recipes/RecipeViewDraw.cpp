@@ -15,7 +15,7 @@ namespace lamium::recipes::view {
 namespace {
 struct Target {
     std::string item;
-    bool uses = false;
+    bool uses = false, choose = false;
     int tab = 0, page = 0;
     // Its recipes by station, found once: what uses an item is a walk over the whole table.
     std::vector<ViewTab> tabs;
@@ -36,10 +36,10 @@ struct Region {
 std::vector<Region> regions;
 }
 bool isOpen() { return !trail.empty(); }
-void open(std::string item, bool uses) {
-    if (!trail.empty() && trail.back().item == item && trail.back().uses == uses) return;
+void open(std::string item, bool uses, bool choose) {
+    if (!trail.empty() && trail.back().item == item && trail.back().uses == uses) { trail.back().choose = choose; return; }
     if (trail.size() >= 64) trail.erase(trail.begin());
-    trail.push_back({std::move(item), uses, 0, 0, {}, {}, {}});
+    trail.push_back({std::move(item), uses, choose, 0, 0, {}, {}, {}});
 }
 void close() {
     trail.clear();
@@ -70,12 +70,10 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     at.page += input.wheel;
     auto const l = recipeViewAt(input.screenWidth, input.screenHeight);
     // The game's window lies under the view and still answers the pointer: nothing of it may show through.
-    fill(context, l.left, l.top, l.width, l.height, palette::panel);
-    panel(context, l.left, l.top, l.width, l.height, opacity::floating);
+    windowPanel(context, l.left, l.top, l.width, l.height);
     // The item's own actions keep the heading's right end; its name takes what is left.
     float headEnd = l.left + l.width - 5;
-    auto headButton = [&](std::string text, bool on, Act act) {
-        float const w = textWidth(context, text) + 10;
+    auto headButton = [&](std::string text, float w, bool on, Act act) {
         Region const region{headEnd - w, l.top + 3, w, 11, act, {}, -1};
         drawButton(context, region.x, region.y, region.w, region.h, std::move(text), region.has(input.pointerX, input.pointerY),
                    on ? ButtonKind::Primary : ButtonKind::Plain);
@@ -83,12 +81,14 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         headEnd -= w + 2;
     };
     bool const wanted = state::wanted().has(at.item);
-    headButton(translated(wanted ? "recipes.wanted" : "recipes.addWanted"), wanted, Act::Wanted);
-    headButton(translated("recipes.favourite"), state::notes().favourite(at.item), Act::Favourite);
-    label(context, l.left + 6, l.top + 5, headEnd - l.left - 8,
-          translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
+    // As wide as the longer of its two texts, so it does not change size when the item goes in.
+    std::string const add = translated("recipes.addWanted"), in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
+    headButton(wanted ? in : add, std::max(textWidth(context, add), textWidth(context, in)) + 10, wanted, Act::Wanted);
+    headButton(favourite, textWidth(context, favourite) + 10, state::notes().favourite(at.item), Act::Favourite);
+    windowLabel(context, l.left + 6, l.top + 5, headEnd - l.left - 8,
+                translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {
-        label(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), palette::dim);
+        windowLabel(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), true);
     };
     auto const reading = service::want();
     auto const table = service::table();
@@ -109,24 +109,31 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     Station const station = tab.station;
     int const count = static_cast<int>(tab.recipes.size()), pages = l.pages(station, count);
     at.page = std::clamp(at.page, 0, pages - 1);
-    // Stations are tabs; the pager keeps the line's right end.
+    // Stations are tabs, each by its block's icon and named under the pointer; the pager keeps the line's right end.
     float x = l.left + 5;
     float const tabY = l.top + 16, tabEnd = l.left + l.width - 40;
     for (size_t i = 0; i < tabs.size(); ++i) {
         std::string name = stationName(tabs[i].station);
-        float const w = textWidth(context, name) + 10;
+        auto const picture = stationItem(tabs[i].station);
+        auto const* stack = picture.empty() ? nullptr : schematic::items::iconStack(schematic::items::shown(std::string(picture)).icon);
+        float const w = stack ? 16 : textWidth(context, name) + 10;
         if (x + w > tabEnd) break;
         Region const region{x, tabY, w, 11, Act::Tab, {}, static_cast<int>(i)};
-        drawButton(context, x, tabY, w, 11, std::move(name), region.has(input.pointerX, input.pointerY),
-                   static_cast<int>(i) == at.tab ? ButtonKind::Primary : ButtonKind::Plain);
+        bool const hot = region.has(input.pointerX, input.pointerY);
+        auto const kind = static_cast<int>(i) == at.tab ? ButtonKind::Primary : ButtonKind::Plain;
+        if (stack) {
+            drawButtonBox(context, x, tabY, w, 11, hot, kind);
+            late.icons.push_back({stack, x + 3, tabY + .5f, .625f});
+            if (hot) late.tip = std::move(name);
+        } else drawButton(context, x, tabY, w, 11, std::move(name), hot, kind);
         regions.push_back(region);
         x += w + 2;
     }
-    if (pages > 1) label(context, l.left, tabY + 2, l.width - 6, std::format("{} / {}", at.page + 1, pages), palette::dim, Align::Right);
+    if (pages > 1) windowLabel(context, l.left, tabY + 2, l.width - 6, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
-    bool const several = !at.uses && id >= 0 && index.makers[static_cast<size_t>(id)].size() > 1;
+    bool const several = at.choose && !at.uses && id >= 0 && index.makers[static_cast<size_t>(id)].size() > 1;
     int const first = at.page * l.perPage(station);
     for (int i = 0; i < l.perPage(station) && first + i < count; ++i) {
         int const number = tab.recipes[static_cast<size_t>(first + i)];
@@ -160,30 +167,26 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             }
             place(bx + part.x, by + part.y, item, 1);
         }
-        changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::dim);
+        changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
-        float mx = bx + block.marksX, my = by + block.marksY;
-        float const marksEnd = bx + RecipeViewLayout::block;
-        auto wrap = [&](float w) {
-            if (mx > bx + block.marksX && mx + w > marksEnd) mx = bx + block.marksX, my += 11;
-        };
-        auto mark = [&](std::string text) {
-            wrap(tagWidth(context, text));
-            mx += drawTag(context, mx, my, std::move(text), marksEnd - mx) + 2;
-        };
-        // Where an item has several recipes: the one it is made by says so, the others offer themselves.
-        if (several && choice->recipe[static_cast<size_t>(id)] == number) mark(translated("recipes.mark.default"));
-        else if (several) {
-            std::string text = translated("recipes.mark.use");
-            float const w = std::min(textWidth(context, text) + 8, marksEnd - bx - block.marksX);
-            wrap(w);
+        // Asked from the list of what to make, an item with several recipes: the one it is made by says
+        // so, the others offer themselves.
+        if (several && !recipe.own) {
+            bool const inUse = choice->recipe[static_cast<size_t>(id)] == number;
+            std::string text = translated(inUse ? "recipes.mark.default" : "recipes.mark.use");
+            float const mx = bx + block.marksX, my = by + block.marksY;
+            float const w = std::min(textWidth(context, text) + 8, bx + RecipeViewLayout::block - mx);
             Region region{mx, my, w, 10, Act::Use, choiceKey(recipe), -1};
-            drawButton(context, mx, my, w, 10, std::move(text), region.has(input.pointerX, input.pointerY));
-            regions.push_back(std::move(region));
-            mx += w + 2;
+            drawButton(context, mx, my, w, 10, std::move(text), !inUse && region.has(input.pointerX, input.pointerY),
+                       inUse ? ButtonKind::Primary : ButtonKind::Plain);
+            if (!inUse) regions.push_back(std::move(region));
         }
-        if (anyOrder(recipe)) mark(translated("recipes.mark.anyOrder"));
-        if (fitsSmallGrid(recipe)) mark(translated("recipes.mark.small"));
+        if (anyOrder(recipe)) {
+            float const nx = bx + block.noteX, ny = by + block.noteY;
+            anyOrderMark(context, nx, ny, palette::vanilla::windowInk);
+            if (input.pointerX >= nx - 2 && input.pointerX < nx + anyOrderMarkSize + 2 && input.pointerY >= ny - 2 && input.pointerY < ny + anyOrderMarkSize + 2)
+                late.tip = translated("recipes.mark.anyOrder");
+        }
     }
 }
 }

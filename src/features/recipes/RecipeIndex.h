@@ -82,6 +82,9 @@ struct Recipe {
     std::vector<Part> cells;
     int width = 0;
     bool anyOrder = false; // the game says so; not merely a shape that was not read
+    // Uses its own product (copying a smithing template, dyeing a shulker box): shown, never the
+    // recipe an item is made by, so a plan cannot go round it.
+    bool own = false;
 };
 // Any one member will do: an item tag, or (without a name) the inputs that smelt to the same item.
 struct Group { std::string name; std::vector<Item> members; };
@@ -90,7 +93,8 @@ struct Index {
     std::map<std::string, Item, std::less<>> ids;
     std::vector<Group> groups;
     std::vector<Recipe> recipes;
-    std::vector<std::vector<int>> makers; // per item: the recipes whose product it is
+    std::vector<std::vector<int>> makers; // per item: the recipes whose product it is, those that use it left out
+    std::vector<std::vector<int>> copies; // per item: the recipes that make it from itself
     std::set<std::string, std::less<>> variantNames; // names whose aux tells items apart
     Item find(std::string_view key) const {
         auto found = ids.find(key);
@@ -166,10 +170,10 @@ inline Source settled(Source const& given, std::set<std::string, std::less<>>* v
     return out;
 }
 
-// Left out: superseded recipes (the game's "deprecated" tag), recipes without
-// a product or ingredients, and recipes that use their own product (an
+// Left out: superseded recipes (the game's "deprecated" tag) and recipes
+// without a product or ingredients. Recipes that use their own product (an
 // ingredient that is the product, or any variant of its name: dyeing a
-// shulker box, copying a banner). Smelting recipes that differ only in their
+// shulker box, copying a banner) are kept apart as `copies`. Smelting recipes that differ only in their
 // one input become one recipe with a nameless group (raw iron or either ore).
 inline Index build(Source const& given) {
     Index index;
@@ -218,12 +222,13 @@ inline Index build(Source const& given) {
                                      [&](Part const& other) { return other.group == next.group && other.id == next.id; });
             if (same != recipe.uses.end()) ++same->count; else recipe.uses.push_back(next);
         }
-        if (!own && !recipe.uses.empty()) all.push_back(std::move(recipe));
+        recipe.own = own;
+        if (!recipe.uses.empty()) all.push_back(std::move(recipe));
     }
     // Smelting alternatives: same station, product and amount, one input each.
     std::map<std::tuple<Station, Item, Count>, std::vector<size_t>> alike;
     for (size_t i = 0; i < all.size(); ++i)
-        if (smelts(all[i].station) && all[i].uses.size() == 1 && all[i].uses[0].count == 1)
+        if (!all[i].own && smelts(all[i].station) && all[i].uses.size() == 1 && all[i].uses[0].count == 1)
             alike[{all[i].station, all[i].makes, all[i].count}].push_back(i);
     std::vector<bool> dropped(all.size(), false);
     for (auto const& [key, list] : alike) {
@@ -248,7 +253,9 @@ inline Index build(Source const& given) {
     }
     for (size_t i = 0; i < all.size(); ++i) if (!dropped[i]) index.recipes.push_back(std::move(all[i]));
     index.makers.resize(index.items.size());
-    for (size_t i = 0; i < index.recipes.size(); ++i) index.makers[index.recipes[i].makes].push_back(static_cast<int>(i));
+    index.copies.resize(index.items.size());
+    for (size_t i = 0; i < index.recipes.size(); ++i)
+        (index.recipes[i].own ? index.copies : index.makers)[index.recipes[i].makes].push_back(static_cast<int>(i));
     return index;
 }
 
@@ -287,7 +294,7 @@ inline Choice choose(Index const& index) {
     Choice out{std::vector<int>(count, -1), std::vector<Item>(count, -1)};
     std::vector<std::vector<Item>> uses(count);
     for (auto const& recipe : index.recipes)
-        for (auto const& part : recipe.uses) if (!part.group) uses[recipe.makes].push_back(part.id);
+        if (!recipe.own) for (auto const& part : recipe.uses) if (!part.group) uses[recipe.makes].push_back(part.id);
     // Strongly connected components (Tarjan, without recursion).
     std::vector<int> order(count, -1), low(count, 0), loop(count, -1);
     std::vector<bool> stacked(count, false);
@@ -330,7 +337,7 @@ inline Choice choose(Index const& index) {
     std::vector<bool> several(count, false);
     for (auto const& recipe : index.recipes)
         for (auto const& part : recipe.uses) {
-            if (part.group) continue;
+            if (part.group || recipe.own) continue;
             if (loop[part.id] != loop[recipe.makes]) ++used[part.id];
             else if (part.count > 1) several[part.id] = true;
         }

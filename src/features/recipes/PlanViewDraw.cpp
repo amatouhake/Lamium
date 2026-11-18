@@ -1,4 +1,5 @@
 #include "features/recipes/PlanViewDraw.h"
+#include "features/recipes/CountEdit.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
 #include "features/recipes/RecipeView.h"
@@ -27,7 +28,8 @@ void close() {
     opened = false;
     expanded = -1;
 }
-void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift, std::string& showItem) {
+void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift, std::string& showItem,
+          bool& showChoice) {
     using namespace lamium::ui;
     if (!opened) return;
     if (input.close) { close(); return; }
@@ -41,9 +43,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         return true;
     };
     auto const l = recipeViewAt(input.screenWidth, input.screenHeight);
-    fill(context, l.left, l.top, l.width, l.height, palette::panel);
-    panel(context, l.left, l.top, l.width, l.height, opacity::floating);
-    label(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.wanted"));
+    // In the recipe view's place and look: the game's window under it must not show.
+    windowPanel(context, l.left, l.top, l.width, l.height);
+    windowLabel(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.wanted"));
     float x = l.left + 5;
     Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make};
     char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make"};
@@ -57,7 +59,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     auto const* plan = state::plan(player);
     float const left = l.left + 6, right = l.left + l.width - 6, top = l.top + rowsTop;
     int const fits = std::max(1, static_cast<int>((l.height - rowsTop - RecipeViewLayout::foot) / rowHeight));
-    auto note = [&](std::string text, Rgb color = palette::dim) { label(context, left, top + 2, right - left, std::move(text), color); };
+    auto note = [&](std::string text) { windowLabel(context, left, top + 2, right - left, std::move(text), true); };
     if (!plan) { note(translated("schematic.raw.reading")); return; }
     auto const& index = plan->table->index;
     Item const itemCount = static_cast<Item>(index.items.size());
@@ -77,15 +79,16 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (!key.empty())
             if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, left, y + 1, iconScale});
         bool const hot = id >= 0 && id < itemCount && over(left, y, nameEnd - left, rowHeight);
-        label(context, left + 13, y + 2, nameEnd - left - 15, std::move(name), hot ? palette::text : palette::dim);
+        if (hot) fill(context, left - 2, y, nameEnd - left + 2, rowHeight, palette::shade, .1f);
+        windowLabel(context, left + 13, y + 2, nameEnd - left - 15, std::move(name));
         if (hot) late.hovered = key;
         if (id >= 0 && id < itemCount && took(left, y, nameEnd - left, rowHeight)) showItem = key;
     };
-    auto number = [&](float cellRight, float y, std::string text, Rgb color = palette::dim) {
-        label(context, cellRight - 34, y + 2, 34, std::move(text), color, Align::Right);
+    auto number = [&](float cellRight, float y, std::string text, bool faint = true) {
+        windowLabel(context, cellRight - 34, y + 2, 34, std::move(text), faint, Align::Right);
     };
     auto heading = [&](float cellRight, char const* key) {
-        label(context, cellRight - 40, l.top + headTop + 1, 40, translated(key), palette::faint, Align::Right);
+        windowLabel(context, cellRight - 40, l.top + headTop + 1, 40, translated(key), true, Align::Right);
     };
     // A small button at a row's right end; returns its left edge.
     auto rowButton = [&](float end, float y, std::string text, auto&& act) {
@@ -98,20 +101,22 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     int wheel = input.wheel;
     if (tab == Tab::Wanted) {
         auto const targets = state::wanted().targets; // a copy: the controls below change the list
-        if (targets.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::dim); return; }
+        if (targets.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
         offset = std::clamp(offset, 0, std::max(0, static_cast<int>(targets.size()) - fits));
         for (int row = 0; row < fits && offset + row < static_cast<int>(targets.size()); ++row) {
             auto const& [key, amount] = targets[static_cast<size_t>(offset + row)];
             float const y = top + static_cast<float>(row) * rowHeight;
             float end = rowButton(right, y, translated("recipes.remove"), [&] { state::removeWanted(key); });
+            // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
             float const sx = end - stepperWidth;
-            drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(amount), {.lowEnabled = amount > 1, .pointerX = px, .pointerY = py});
-            Count const step = shift ? 16 : 1;
-            if (took(sx, y + 1, 11, 10)) state::setWanted(key, amount > step ? amount - step : 1);
-            else if (took(sx + stepperWidth - 11, y + 1, 11, 10)) state::setWanted(key, amount + step);
+            drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(amount),
+                        {.editing = countEdit::editing(key), .pointerX = px, .pointerY = py});
+            if (took(sx, y + 1, 11, 10)) state::stepWanted(key, false, shift, true);
+            else if (took(sx + stepperWidth - 11, y + 1, 11, 10)) state::stepWanted(key, true, shift, true);
+            else if (took(sx, y + 1, stepperWidth, 10)) countEdit::begin(key, amount);
             else if (wheel && over(sx, y + 1, stepperWidth, 10)) {
                 // The wheel over a stepper steps it: up is more.
-                state::setWanted(key, wheel < 0 ? amount + step : amount > step ? amount - step : 1);
+                state::stepWanted(key, wheel < 0, shift, false);
                 wheel = 0;
             }
             Item const id = index.findKey(key);
@@ -120,16 +125,18 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 // Not in this world's table: shown by what the game calls it, kept as it is.
                 auto const& shown = schematic::items::shown(key);
                 if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, left, y + 1, iconScale});
-                label(context, left + 13, y + 2, sx - left - 19, shown.name, palette::dim);
+                windowLabel(context, left + 13, y + 2, sx - left - 19, shown.name, true);
             }
         }
         offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(targets.size()) - fits));
         return;
     }
+    // On both lists the numbers stand left of the row's button, which keeps the right end.
+    float const columns = right - std::max(textWidth(context, translated("recipes.toGather")), textWidth(context, translated("recipes.toMake"))) - 11;
     if (tab == Tab::Gather) {
-        heading(right, "schematic.raw.left");
-        heading(right - 40, "recipes.col.have");
-        heading(right - 80, "recipes.col.need");
+        heading(columns, "schematic.raw.left");
+        heading(columns - 40, "recipes.col.have");
+        heading(columns - 80, "recipes.col.need");
         // What is still to gather, and what the player marked as gathered even when nothing is left of it.
         struct Line { GatherLine line; bool stopped = false; };
         std::vector<Line> lines;
@@ -137,21 +144,21 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             bool const stopped = line.id < itemCount && plan->request.stops.contains(line.id);
             if (line.left > 0 || stopped) lines.push_back({line, stopped});
         }
-        if (lines.empty()) { note(translated("schematic.raw.nothing"), palette::accent); return; }
+        if (lines.empty()) { note(translated("schematic.raw.nothing")); return; }
         // An open group takes rows of its own for its members, so rows are counted in units.
         offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(lines.size()) - 1));
         float y = top;
         float const bottom = l.top + l.height - RecipeViewLayout::foot;
         for (size_t at = static_cast<size_t>(offset); at < lines.size() && y + rowHeight <= bottom; ++at) {
             auto const& [line, stopped] = lines[at];
-            number(right, y, std::to_string(line.left), palette::text);
-            number(right - 40, y, std::to_string(line.held));
-            number(right - 80, y, std::to_string(line.need));
-            float end = right - 120;
+            number(columns, y, std::to_string(line.left), false);
+            number(columns - 40, y, std::to_string(line.held));
+            number(columns - 80, y, std::to_string(line.need));
+            float const end = columns - 118;
             if (line.id >= itemCount) {
                 int const group = line.id - itemCount;
                 // The whole row opens the members to pick one from.
-                if (over(left, y, right - left, rowHeight)) fill(context, l.left + 2, y, l.width - 4, rowHeight, palette::white, .06f);
+                if (over(left, y, right - left, rowHeight)) fill(context, l.left + 2, y, l.width - 4, rowHeight, palette::shade, .1f);
                 if (took(left, y, right - left, rowHeight)) expanded = expanded == group ? -1 : group;
                 lead(y, line.id, end);
                 y += rowHeight;
@@ -174,14 +181,12 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 y += static_cast<float>((members.size() + static_cast<size_t>(across) - 1) / static_cast<size_t>(across)) * 18 + 2;
                 continue;
             }
-            if (stopped) end = rowButton(end, y, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
+            if (stopped) rowButton(right, y, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
             lead(y, line.id, end);
             y += rowHeight;
         }
         return;
     }
-    // The numbers stand left of the row's "gather" button, which keeps the right end.
-    float const columns = right - textWidth(context, translated("recipes.toGather")) - 11;
     heading(columns, "schematic.raw.spare");
     heading(columns - 40, "schematic.raw.made");
     heading(columns - 80, "schematic.raw.crafts");
@@ -195,7 +200,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         rowButton(right, y, translated("recipes.toGather"), [&] { state::setStop(key, true); });
         number(columns, y, step.spare ? std::to_string(step.spare) : std::string("-"));
         number(columns - 40, y, std::to_string(step.made));
-        number(columns - 80, y, std::to_string(step.crafts), palette::text);
+        number(columns - 80, y, std::to_string(step.crafts), false);
         float end = columns - 118;
         // A member the player picked for a group can go back to "any".
         for (auto const& [group, member] : plan->request.picks)
@@ -211,7 +216,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (over(end - 11, y, 11, rowHeight)) late.tip = shown.name;
             end -= 14;
         }
+        // Under the pointer the row says what its crafts take; a press on the name shows the recipes to choose from.
+        if (over(left, y, end - left, rowHeight)) late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, plan->request, step);
         lead(y, step.item, end);
+        if (!showItem.empty()) showChoice = true;
     }
 }
 }
