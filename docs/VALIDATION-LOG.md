@@ -12,6 +12,45 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The look of Recipes as a whole, the maintainer's first pass (L-359, 2026-11-19)
+
+Build `8cb8b40f`, 1.26.60.05 Dev instance, the maintainer, with thirteen
+screenshots (inventory, crafting table with and without the game's recipe
+book, a large chest, the recipe view, the plan's four tabs, the Materials
+tab). What bothered, as said; nothing is decided by this entry:
+- Fading: the game's window fades out and in, Lamium's bands stay and
+  come at once.
+- Shared parts: tabs are used a lot and have no shared part; the one
+  cycling button for the band's lists (with the recipe book open) is hard
+  to read and unlike Lamium elsewhere; "Make this a store" should be a
+  name with a switch; lists should scroll with the shared scrollbar where
+  Lamium scrolls, while recipe mods page; the band's lists show neither
+  all rows nor a way to reach the rest.
+- The recipe view: its slots look dark and plain beside the game's; the
+  station buttons are small and do not read as tabs; "Favourite" and "Add
+  to wanted" are neither Lamium's switches nor clearly readable, and the
+  second changes its words when pressed; a missing ingredient is shown
+  unlike the game's way and color; with the game's recipe book open the
+  windows are not wide enough and the game's window shows behind.
+- Items drawn by Lamium: the hover is plain, far from the game's, and
+  shows nothing of Lamium's item details; in the plan's lists a hovered
+  row says nothing, so a cut name is told by its icon only; the counts
+  have no stacks-and-chests reading as the Materials tab has.
+- The plan's window: "Wanted" is both its title and a tab; the schematic
+  cannot be switched in or out from there; nothing but the left band
+  changes a count after W on the list; Shift on the stepper from 1 gives
+  17, 33, 49, which fit no stack.
+- Places: the rows' buttons are not in line; the carried row has no icon
+  and its text is cut with no way to read it; carried items are counted
+  whether wanted or not (a chest holding just a plan's items is not
+  served), and shulker boxes cannot be left out; the ender chest shows no
+  button; "store" and "counted place" are two words; a store cannot be
+  told from other containers in the world.
+- Settings: few; Recipes cannot be used without the plan.
+- Schematics' Materials tab: a number hovered low in the list puts its
+  tip over the hint line; "Open in ResourceCalculator" overlaps this
+  feature and is the most prominent control.
+
 ## Counted places (L-359 step 8, 2026-11-19)
 
 Build `8cb8b40f` (DLL
