@@ -90,6 +90,26 @@ inline std::vector<Throw> excess(std::vector<std::pair<Item, int>> const& now, I
     }
     return out;
 }
+// The slot to throw out whole when the inventory has no room for the
+// product: the smallest stack of an ingredient that is carried in another
+// stack too, so a take has a slot to fill instead of the product going out
+// craft by craft over the pointer. -1: none, nothing that stacks is carried
+// twice.
+inline int roomSlot(Index const& index, Recipe const& recipe, std::vector<PlaceSource> const& carried) {
+    std::map<Item, int> stacks;
+    auto used = [&](Item item) {
+        return std::any_of(recipe.cells.begin(), recipe.cells.end(), [&](Part const& part) { return serves(index, part, item); });
+    };
+    for (auto const& source : carried) if (source.count > 0 && source.stack > 1 && used(source.item)) ++stacks[source.item];
+    int slot = -1, least = 0;
+    for (auto const& source : carried) {
+        if (source.count <= 0 || source.stack <= 1) continue;
+        auto const found = stacks.find(source.item);
+        if (found == stacks.end() || found->second < 2) continue;
+        if (slot < 0 || source.count < least) slot = source.slot, least = source.count;
+    }
+    return slot;
+}
 // The slots to throw out whole when a round cannot be laid in and the
 // inventory is full: of the slots the recipe's ingredients fill, each
 // ingredient keeps the share its cells are of the recipe (one slot at least),

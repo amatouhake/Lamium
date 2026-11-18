@@ -250,6 +250,9 @@ void recipeIndexTests() {
         check(excess({{oak, 64}, {oak, 9}, {iron, 3}, {-1, 0}}, oak, 5) == std::vector<Throw>{{1, 9, true}, {0, 59, false}}
               && excess({{oak, 5}, {iron, 3}}, oak, 5).empty() && excess({{oak, 5}}, oak, 0) == std::vector<Throw>{{0, 5, true}},
               "the product beyond what was carried at the start is thrown out, whole stacks from the last slot back");
+        check(roomSlot(index, pickaxe, {{0, iron, 64}, {1, sticks, 5}, {2, iron, 9}, {3, oak, 2}, {4, oak, 3}}) == 2
+              && roomSlot(index, pickaxe, {{0, iron, 64}, {1, sticks, 5}}) < 0 && roomSlot(index, pickaxe, {{0, iron, 1, 1}, {1, iron, 1, 1}}) < 0,
+              "room is made by the smallest stack of an ingredient carried twice, never its only stack nor what does not stack");
         std::vector<PlaceSource> full;
         for (int slot = 0; slot < 10; ++slot) full.push_back({slot, iron, slot == 2 ? 7 : 64});
         check(surplusSlots(index, pickaxe, full) == std::vector<int>{2, 7, 8, 9},

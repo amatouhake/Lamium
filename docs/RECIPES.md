@@ -199,10 +199,17 @@ A setting of its own, off by default, and it works with Recipes off
   stays; everything beyond it goes, also what was thrown out and picked
   up again. A round goes out in one frame where the game shows each
   part at once, the next 50 ms later; a take that found room for a part
-  only is followed by the next in the same frame. With no room in the
-  inventory for the product, it is taken onto the pointer and thrown
-  from there: by presses on the output where the pointer is over it,
-  else by the slot call that takes an amount.
+  only is followed by the next in the same frame.
+- A step makes at most 16 slot calls (a move into a cell is two; a
+  round with more cells is laid in by a step of its own), so a run
+  stays under some 320 requests a second: a local world closed with a
+  network error during a run without that limit.
+- With no room in the inventory for the product, the smallest stack of
+  an ingredient that is carried in another stack too is thrown out, so
+  the take has a slot. Where there is none, the product is taken onto
+  the pointer craft by craft and thrown from there: by presses on the
+  output where the pointer is over it, else by the slot call that
+  takes an amount.
 - A round that cannot be laid in waits for more to arrive. With no slot
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its

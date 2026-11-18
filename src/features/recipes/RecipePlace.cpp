@@ -166,7 +166,9 @@ constexpr int mostStalls = 20;
 constexpr int slots = 36;
 // Hand: the inventory has no room for the product, so it is taken onto the pointer and thrown from there.
 enum class Phase { Lay, Take, Throw, Hand };
-constexpr int mostClicks = 16, mostPasses = 10;
+// `mostRequests`: the slot calls a step may make (a move into a cell is two). A local world closed with a
+// network error under some hundreds a step's worth a second; a step stays well under that.
+constexpr int mostPasses = 10, mostRequests = 16;
 struct Run {
     bool on = false, over = false; // over: this press of the key does nothing more
     bool fromGrid = false;         // started over the output slot: it goes on only while the pointer stays there
@@ -179,7 +181,7 @@ struct Run {
     Clock::time_point next, began, since; // since: when the current step began
     bool clicked = false; // Hand: a press on the output is out
     int handSeen = 0;     // Hand: what the pointer held before that press
-    int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0, stalls = 0, retries = 0, cleared = 0;
+    int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0, stalls = 0, retries = 0, cleared = 0, roomed = 0, requests = 0;
 } run;
 std::atomic<bool> keyHeld{false};
 Clock::time_point pressedAt; // when the key went down
@@ -189,8 +191,8 @@ void finish(char const* why) {
     if (run.on) {
         auto const ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - run.began).count();
         try {
-            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} thrown from the pointer, {} surplus stacks, {} steps tried again, {} times the pointer cleared in {} ms ({})",
-                                                       run.rounds, run.takes, run.thrown, run.hands, run.surplus, run.retries, run.cleared, ms, why);
+            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} thrown from the pointer, {} surplus stacks, {} stacks thrown for room, {} steps tried again, {} times the pointer cleared, {} requests in {} ms ({})",
+                                                       run.rounds, run.takes, run.thrown, run.hands, run.surplus, run.roomed, run.retries, run.cleared, run.requests, ms, why);
         } catch (...) {}
     }
     run = {};
@@ -343,11 +345,13 @@ bool clearPointer(CraftingScreenController& controller, Index const& index, Item
     return !held(manager);
 }
 // Throws out what the inventory holds of the product beyond what was carried at the start: how many
-// throws, -1 when one could not be sent.
-int throwExcess(CraftingScreenController& controller, Index const& index, Item product) {
+// throws, -1 when one could not be sent. `budget`: the slot calls the step has left.
+int throwExcess(CraftingScreenController& controller, Index const& index, Item product, int& budget) {
     bool anyFree = false;
     int thrown = 0;
     for (auto const& out : excess(slotsOf(*controller.mContainerManagerController, index, anyFree), product, run.keep)) {
+        if (budget <= 0) break;
+        budget -= out.whole ? 1 : 2;
         bool const sent = out.whole ? inventory::game::transferRoutes::drop(controller, collectionOf(out.slot), indexOf(out.slot), false)
                                     : inventory::game::transferRoutes::dropAmount(controller, collectionOf(out.slot), indexOf(out.slot), out.amount);
         if (!sent) return -1;
@@ -372,11 +376,16 @@ void advance(CraftingScreenController& controller) {
     run.laid = false;
     // What the game shows at once goes on in the same frame: a round is laid in, taken and thrown out in one,
     // and a take that found room for a part only is followed by the next.
-    for (int pass = 0; pass < mostPasses; ++pass)
+    int budget = mostRequests;
+    struct Spent {
+        int& budget;
+        ~Spent() { if (run.on) run.requests += mostRequests - budget; }
+    } spent{budget};
+    for (int pass = 0; pass < mostPasses && budget > 0; ++pass)
     switch (run.phase) {
     case Phase::Take: {
         // Also what came back: thrown out and picked up again, or a throw the server refused.
-        if (int const thrown = throwExcess(controller, index, recipe.makes); thrown < 0) { finish("throwing the product out failed"); return; }
+        if (int const thrown = throwExcess(controller, index, recipe.makes, budget); thrown < 0) { finish("throwing the product out failed"); return; }
         else if (thrown) run.thrown += thrown, run.stalls = 0;
         if (!makesProduct(manager, index, recipe.makes)) {
             if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; continue; }
@@ -388,16 +397,28 @@ void advance(CraftingScreenController& controller) {
             again("the grid holds something that is not the recipe", now);
             return;
         }
-        if (!roomFor(manager, index, recipe.makes)) { run.phase = Phase::Hand; run.since = now; run.clicked = false; continue; }
+        if (!roomFor(manager, index, recipe.makes)) {
+            // No slot for the product: one stack of an ingredient goes out, so the take has one. Only where
+            // nothing can go (it is the ingredient's only stack) the product goes out over the pointer.
+            int const slot = roomSlot(index, recipe, carriedOf(manager, index));
+            if (slot < 0 || !inventory::game::transferRoutes::drop(controller, collectionOf(slot), indexOf(slot), false)) {
+                run.phase = Phase::Hand; run.since = now; run.clicked = false;
+                continue;
+            }
+            --budget;
+            ++run.roomed;
+            if (!roomFor(manager, index, recipe.makes)) return;
+        }
         // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
         controller._handleAutoPlace(INT_MAX, output, 0);
+        --budget;
         ++run.takes;
         run.phase = Phase::Throw;
         run.since = now;
         continue;
     }
     case Phase::Throw: {
-        int const thrown = throwExcess(controller, index, recipe.makes);
+        int const thrown = throwExcess(controller, index, recipe.makes, budget);
         if (thrown < 0) { finish("throwing the product out failed"); return; }
         if (!thrown) {
             if (now - run.since > patience) again("the product found no room", now);
@@ -429,7 +450,8 @@ void advance(CraftingScreenController& controller) {
         // A press on the output crafts once onto the pointer; again while the last one showed. Away from the
         // output slot the product is taken onto the pointer by the slot call instead (not seen to craft yet).
         if (more(have) && (!run.clicked || have > run.handSeen)) {
-            for (int i = 0; i < mostClicks; ++i) {
+            while (budget > 1) {
+                --budget;
                 run.handSeen = held(manager);
                 if (!more(run.handSeen)) break;
                 if (!overOutput(controller)) controller._handleTakeAmount(static_cast<int>(recipe.count), output, 0);
@@ -450,6 +472,7 @@ void advance(CraftingScreenController& controller) {
             return;
         }
         if (!inventory::game::transferRoutes::dropCursor(controller)) { finish("throwing the product out failed"); return; }
+        --budget;
         ++run.hands;
         run.stalls = 0;
         run.phase = Phase::Take;
@@ -465,6 +488,10 @@ void advance(CraftingScreenController& controller) {
         auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
         if (plan.ready()) {
+            // A round is laid in by a step that has all its calls left, however many cells it has.
+            int const cost = 2 * static_cast<int>(plan.moves.size());
+            if (cost > budget && budget < mostRequests) return;
+            budget -= cost;
             // Laid in part: the take that follows finds no product, and what was laid goes back.
             if (!lay(controller, index, recipe, run.picks, true) && held(manager)) { again("laying the recipe in failed", now); return; }
             ++run.rounds;

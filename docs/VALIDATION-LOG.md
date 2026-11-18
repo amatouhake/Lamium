@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A world closed during a Mass Craft run (L-165, 2026-11-18)
+
+Trace build of `5175b006` (`craft_trace`, DLL
+`8c1124143f98d0a6729ed535d985a110e2283c06a0a38d0f6338728c48abbd8f`),
+1.26.60.05 Dev instance, a local world, the maintainer turning two
+inventories of logs into planks and those into chests, several times:
+- Slabs in place of chests were not seen again.
+- Once the world closed with the game's network error named "Bat". The
+  log has a chest run started at 22:45:25 without its end line. Read
+  as: too many requests; a chest round is 16 for laying in, and the
+  throw from the pointer made up to 16 more several times a step.
+- Logs or planks were sometimes left over; not explained.
+- The log before it: 185 rounds of planks in 15.8 s, 83 of chests in
+  9.6 s.
+
 ## Mass Craft throwing out what came back (L-165, 2026-11-18)
 
 Trace build of `199e2c7b` (`craft_trace`, DLL
