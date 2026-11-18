@@ -1,6 +1,8 @@
 #include "features/recipes/RecipePlaces.h"
 #include "app/Versions.h"
 #include "features/schematic/SchematicItems.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/gui/screens/ScreenController.h"
@@ -67,11 +69,32 @@ std::optional<Open> read(ScreenView& screen) {
         }
     }
     std::vector<schematic::items::Carried> stacks;
-    for (int i = 0; i < size; ++i) schematic::items::addStack(manager->getItemStack(items, i), stacks);
+    for (int i = 0; i < size; ++i) schematic::items::addStack(manager->getItemStack(items, i), stacks, &controller);
     for (auto const& stack : stacks)
         if (stack.name.size() <= 200) addStored(out.items, stack.name, stack.aux, stack.count);
     return out;
 }
+}
+namespace {
+ll::event::ListenerPtr renderListener;
+std::chrono::steady_clock::time_point bundlesAt{};
+}
+void start() {
+    renderListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
+        try {
+            auto& screen = event.screenView();
+            if (!screen.mHasFocus || !screen.mController || !screen.mController->_isContainerScreen()) return;
+            auto const now = std::chrono::steady_clock::now();
+            if (now - bundlesAt < std::chrono::milliseconds(250)) return;
+            bundlesAt = now;
+            auto client = ll::service::getClientInstance();
+            if (auto* player = client ? client->getLocalPlayer() : nullptr)
+                schematic::items::carriedStacks(*player, &static_cast<ContainerScreenController&>(*screen.mController));
+        } catch (...) {}
+    });
+}
+void stop() {
+    if (renderListener) { ll::event::EventBus::getInstance().removeListener(renderListener); renderListener.reset(); }
 }
 std::optional<Open> const& open(ScreenView& screen) {
     auto const now = std::chrono::steady_clock::now();

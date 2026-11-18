@@ -87,14 +87,13 @@ std::string encodePlaces(Places const& places) {
         }
         list.push_back(std::move(entry));
     }
-    return Json{{"version", 1}, {"carried", places.carried}, {"boxes", places.boxes}, {"places", std::move(list)}}.dump(2);
+    return Json{{"version", 1}, {"carried", places.carried}, {"places", std::move(list)}}.dump(2);
 }
 Places decodePlaces(std::string_view document) {
     Places out;
     Json const root = parsed(document);
     if (!root.is_object()) return out;
     if (auto const carried = root.value("carried", Json()); carried.is_boolean()) out.carried = carried.get<bool>();
-    if (auto const boxes = root.value("boxes", Json()); boxes.is_boolean()) out.boxes = boxes.get<bool>();
     auto list = root.find("places");
     if (list == root.end() || !list->is_array()) return out;
     for (auto const& entry : *list) {

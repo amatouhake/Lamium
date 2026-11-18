@@ -19,6 +19,7 @@
 #include "features/schematic/PlanHandOver.h"
 #include "features/recipes/ItemList.h"
 #include "features/recipes/RecipePlace.h"
+#include "features/recipes/RecipePlaces.h"
 #include "features/recipes/RecipeState.h"
 #include "features/schematic/GhostProbe.h"
 #include "features/schematic/GhostRenderer.h"
@@ -194,6 +195,7 @@ Feature const features[] = {
     {"Recipe notes", started<recipes::state::start>, recipes::state::stop},
     {"Item list", started<recipes::itemList::start>, recipes::itemList::stop},
     {"Mass Craft", started<recipes::massCraft::start>, recipes::massCraft::stop},
+    {"Carried bundles", started<recipes::placesGame::start>, recipes::placesGame::stop},
     {"Recipe table diagnostics", started<researchTrace::recipeTable::start>, researchTrace::recipeTable::stop},
     {"Item screen probe", started<researchTrace::itemScreen::start>, researchTrace::itemScreen::stop},
     {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},

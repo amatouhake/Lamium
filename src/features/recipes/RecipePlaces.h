@@ -17,4 +17,8 @@ struct Open {
 };
 // Nothing for a screen that is no such container (a minecart, the inventory, a furnace).
 std::optional<Open> const& open(ScreenView& screen);
+// Reads what the bundles carried hold while any item screen is open, a few times a second, so the counts
+// made without one (the Schematic HUD, the Materials tab) have it (SchematicItems.h).
+void start();
+void stop();
 }

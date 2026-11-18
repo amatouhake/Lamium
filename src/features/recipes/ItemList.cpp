@@ -537,7 +537,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             ListBox const box{side.left + 2, side.footY(), side.width - 4, 13};
             fill(context, box.x, box.y, box.w, box.h, palette::white, box.has(px, py) ? .1f : .04f);
             frame(context, box.x, box.y, box.w, box.h, palette::white, .22f);
-            if (side.wide()) label(context, box.x + 4, box.y + 3, box.w - switchWidth - 10, translated("recipes.place.count"), palette::text);
+            if (side.wide()) label(context, box.x + 4, box.y + 2, box.w - switchWidth - 10, translated("recipes.place.count"), palette::text);
             else if (box.has(px, py)) late.tip = translated("recipes.place.count");
             toggleSwitch(context, box.x + box.w - switchWidth - 3, box.y + 2, on);
             if (leftPress && took(box)) {

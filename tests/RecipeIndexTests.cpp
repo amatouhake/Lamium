@@ -364,9 +364,9 @@ void recipeIndexTests() {
         places.list[0].counted = false;
         check(placeTotals(places) == std::vector<Stored>{{"minecraft:stone", 0, 20}}, "a place switched off is not counted");
         {
-            places.boxes = false;
+            places.carried = false;
             Places const read = decodePlaces(encodePlaces(places));
-            check(read.list == places.list && read.carried && !read.boxes && decodePlaces("{}").boxes && decodePlaces("nonsense").list.empty()
+            check(read.list == places.list && !read.carried && decodePlaces("{}").carried && decodePlaces("nonsense").list.empty()
                   && decodePlaces(R"({"places":[{"at":[0,1,2]},{"at":[0,1,2,3],"items":[{"item":"a","count":2},{"item":"a","count":3},{"item":"b","count":0}]},{"at":[0,1,2,3]}]})").list
                          == std::vector<Place>{{false, {0, 1, 2, 3}, {}, "", true, {{"a", 0, 5}}, 0}},
                   "places survive their document; what is not understood is left out and a position stands once");

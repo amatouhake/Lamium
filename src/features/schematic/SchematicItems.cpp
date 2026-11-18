@@ -1,6 +1,10 @@
 #include "features/recipes/ItemKey.h"
 #include "features/schematic/SchematicItems.h"
+#include "features/inspection/preview/BundleContents.h"
 #include "features/schematic/Nbt.h"
+#include "mc/client/gui/screens/controllers/BundleHelper.h"
+#include "mc/client/gui/screens/controllers/ContainerScreenController.h"
+#include "mc/deps/nbt/IntTag.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/ListTag.h"
@@ -68,15 +72,43 @@ Shown const& shown(std::string const& item) {
     }
     return shownItems.emplace(item, std::move(out)).first->second;
 }
-std::map<std::string, std::uint64_t> carried(LocalPlayer& player, bool boxes) {
+std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {
     std::map<std::string, std::uint64_t> out;
-    for (auto const& stack : carriedStacks(player, boxes)) out[stack.name] += stack.count;
+    for (auto const& stack : carriedStacks(player)) out[stack.name] += stack.count;
     return out;
 }
-void addStack(ItemStack const& stack, std::vector<Carried>& out, bool boxes) {
+namespace {
+// What each bundle held when an item screen last read it, by the bundle's id; dropped with the world.
+std::map<int, std::vector<Carried>> bundles;
+unsigned seenBundles = 0;
+void addBundle(ItemStack const& stack, std::vector<Carried>& out, ContainerScreenController const* screen) {
+    if (unsigned now = generation.load(); now != seenBundles) bundles.clear(), seenBundles = now;
+    std::optional<int> id;
+    if (auto const* data = stack.mUserData.get())
+        if (auto found = data->mTags.find("bundle_id"); found != data->mTags.end())
+            if (auto const* value = std::get_if<IntTag>(&found->second.mTagStorage)) id = value->data;
+    if (screen) {
+        std::vector<Carried> held;
+        for (int index = 0; index < inspection::preview::BundleGrid::kMaxSlots; ++index) {
+            ItemStack const& inner = BundleHelper::getItemStackFromBundle(*screen, stack, index);
+            if (!inner.isNull()) held.push_back({inner.getTypeName(), inner.getAuxValue(), static_cast<std::uint64_t>(inner.mCount)});
+        }
+        out.insert(out.end(), held.begin(), held.end());
+        if (id && (bundles.size() < 1024 || bundles.contains(*id))) bundles[*id] = std::move(held);
+    } else if (id) {
+        if (auto found = bundles.find(*id); found != bundles.end()) out.insert(out.end(), found->second.begin(), found->second.end());
+    }
+}
+}
+void addStack(ItemStack const& stack, std::vector<Carried>& out, ContainerScreenController const* screen) {
     if (stack.isNull()) return;
-    out.push_back({stack.getTypeName(), stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount)});
-    if (!boxes || !stack.getTypeName().ends_with("shulker_box")) return;
+    std::string const name = stack.getTypeName();
+    out.push_back({name, stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount)});
+    if (inspection::preview::isBundleTypeName(name)) {
+        try { addBundle(stack, out, screen); } catch (...) {}
+        return;
+    }
+    if (!name.ends_with("shulker_box")) return;
     auto const* data = stack.mUserData.get();
     if (!data) return;
     auto items = data->mTags.find("Items");
@@ -85,14 +117,15 @@ void addStack(ItemStack const& stack, std::vector<Carried>& out, bool boxes) {
         if (!entry || entry->getId() != Tag::Type::Compound) continue;
         try {
             auto inner = ItemStack::fromTag(entry->as<CompoundTag>());
-            if (!inner.isNull()) out.push_back({inner.getTypeName(), inner.getAuxValue(), static_cast<std::uint64_t>(inner.mCount)});
+            // A bundle in the box counts with what it holds, as one carried does.
+            addStack(inner, out, screen);
         } catch (...) {}
     }
 }
-std::vector<Carried> carriedStacks(LocalPlayer& player, bool boxes) {
+std::vector<Carried> carriedStacks(LocalPlayer& player, ContainerScreenController const* screen) {
     std::vector<Carried> out;
     auto& inventory = player.getInventory();
-    for (int slot = 0; slot < inventory.getContainerSize(); ++slot) addStack(inventory.getItem(slot), out, boxes);
+    for (int slot = 0; slot < inventory.getContainerSize(); ++slot) addStack(inventory.getItem(slot), out, screen);
     return out;
 }
 }

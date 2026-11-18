@@ -161,22 +161,26 @@ after using the first build. What is still open is in the L-item.
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
-- What is held is the sum over what is counted: what is carried and the
-  shulker boxes carried (each a switch, on unless the player turns it
-  off, so a plan can be served from a store alone); the ender chest from
-  the first time it is seen open; and the containers the player makes
-  stores (a chest, barrel or placed shulker box; a double chest is one
-  store by either half; a minecart's chest is none). A store counts what
-  it held when it was last seen open, the contents of shulker boxes in it
-  included, and is noted while it is open and Recipes is on. One count
-  serves the plan, the schematic Materials tab and the Schematic HUD;
-  Enchantment Order and "can be made" keep counting what is carried.
+- What is held is the sum over what is counted: what is carried (a
+  switch, on unless the player turns it off, so a plan can be served
+  from a store alone); the ender chest from the first time it is seen
+  open; and the containers the player makes stores (a chest, barrel or
+  placed shulker box; a double chest is one store by either half; a
+  minecart's chest is none). A store counts what it held when it was
+  last seen open, and is noted while it is open and Recipes is on. One
+  count serves the plan, the schematic Materials tab and the Schematic
+  HUD; Enchantment Order and "can be made" keep counting what is carried.
+- What a shulker box or a bundle holds counts with it, carried or in a
+  store; there is no switch for it. A bundle keeps only an id, and what
+  it holds is read through an open item screen: it is read whenever one
+  is open and remembered by the id, so the plan, which only shows on
+  item screens, has it as it is, and the HUD and the Materials tab have
+  what the last item screen saw (nothing before the world's first).
 - While a container is open, the last line of the left band, under a
   rule and clear of the screen's edge, is "Count as a store" with a
   switch: on makes it a store, off takes it out; at the
   ender chest it switches the chest in or out of the count. The plan's
-  window has a "Stores" tab: what is carried, the shulker boxes carried,
-  (standing in under it, as a part of it) the ender chest and the
+  window has a "Stores" tab: what is carried, the ender chest and the
   stores, each a name and a switch in one column, a store also with
   "Remove". A store where another block stands
   is dropped when that is seen. The word is "store" throughout.
@@ -254,8 +258,8 @@ A setting of its own, off by default, and it works with Recipes off
 What bothered is in VALIDATION-LOG of that day. Agreed, built: "one of several" as DESIGN "Controls" has it, on the
 recipe view's stations, the plan's window, the band's lists (pictures
 where the band is narrow) and the item list's "all / can be made";
-the open container's switch in a frame of its own (its text stands
-low there and reads poorly: adjusting it or making it a button is open); the recipe view's slots as the game draws its
+the open container's switch in a frame of its own (a name and a
+switch; a button if it still reads poorly with its text centred); the recipe view's slots as the game draws its
 own, a missing ingredient on the game's red; "favourite" and "wanted"
 at the right end of the stations' line, so the heading has its line to
 itself: as two joined buttons, green when on (each on or off, like the world
@@ -340,15 +344,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Open: whether the switch for the shulker boxes carried goes, or
-  becomes one for all shulker boxes. What bundles hold is not counted:
-  the one call the SDK links for it (`BundleHelper::getItemStackFromBundle`)
-  takes an open item screen's controller. The plan is only shown on item
-  screens and could count it as it is; the HUD and the Materials tab,
-  which have no such screen, could only use what was last seen on one.
 - Stores: not seen are a store replaced by another block, shulker boxes
   inside one, the Materials tab and the Schematic HUD counting them, and
-  the switches for what is carried.
+  what bundles hold being counted (built, not seen in game).
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what

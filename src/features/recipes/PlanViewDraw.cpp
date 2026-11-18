@@ -111,23 +111,22 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         return end - w - 3;
     };
     if (tab == Tab::Places) {
-        // What counts as held: what is carried and the shulker boxes carried, then the ender chest and the
-        // stores as they were when last seen open. Each row is a name and its switch, the switches in one
+        // What counts as held: what is carried, then the ender chest and the stores as they were when last
+        // seen open (what a shulker box or a bundle among them holds counts with it). Each row is a name and its switch, the switches in one
         // column; a store can be taken out as well.
         auto const all = state::places();
         auto const& places = all.list; // of a copy: the controls below change the list
         std::string const removeText = translated("recipes.remove");
         float const sx = right - (textWidth(context, removeText) + 8) - 4 - switchWidth;
-        int const rows = static_cast<int>(places.size()) + 2;
+        int const rows = static_cast<int>(places.size()) + 1;
         int& first = scroll[static_cast<int>(tab)];
         first = std::clamp(first + input.wheel, 0, std::max(0, rows - fits));
         for (int row = 0; row < fits && first + row < rows; ++row) {
             float const y = top + static_cast<float>(row) * rowHeight;
-            int const at = first + row - 2;
+            int const at = first + row - 1;
             std::string name, icon, tip;
             bool on = false, faint = false;
-            if (at == -2) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:player_head", on = all.carried;
-            else if (at == -1) name = translated("recipes.place.boxes"), tip = translated("recipes.place.boxesTip"), icon = "minecraft:undyed_shulker_box", on = all.boxes, faint = !all.carried;
+            if (at < 0) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:player_head", on = all.carried;
             else {
                 auto const& place = places[static_cast<size_t>(at)];
                 name = placeName(place), icon = place.block, on = place.counted;
@@ -135,13 +134,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             }
             toggleSwitch(context, sx, y + 1.5f, on);
             if (took(sx - 2, y, switchWidth + 4, rowHeight)) {
-                if (at == -2) state::setCarriedCounted(!all.carried, all.boxes);
-                else if (at == -1) state::setCarriedCounted(all.carried, !all.boxes);
+                if (at < 0) state::setCarriedCounted(!all.carried);
                 else state::setPlaceCounted(at, !on);
             }
-            // The shulker boxes carried are a part of what is carried: their row stands in from it, so it
-            // is not read as a switch for the boxes in stores.
-            float const from = left + (at == -1 ? 10.f : 0.f);
+            float const from = left;
             if (auto const* stack = schematic::items::iconStack(schematic::items::shown(icon).icon)) late.icons.push_back({stack, from, y + 1, iconScale});
             if (late.tip.empty() && over(left, y, sx - left - 4, rowHeight)) {
                 late.tip = name;
@@ -149,7 +145,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             }
             windowLabel(context, from + 13, y + 2, sx - from - 17, std::move(name), faint || !on);
         }
-        if (places.empty() && fits > 3) paragraph(context, left, top + 2 * rowHeight + 4, right - left, translated("recipes.place.how"), 3, palette::vanilla::windowFaint);
+        if (places.empty() && fits > 2) paragraph(context, left, top + rowHeight + 4, right - left, translated("recipes.place.how"), 3, palette::vanilla::windowFaint);
         return;
     }
     int& offset = scroll[static_cast<int>(tab)];

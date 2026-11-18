@@ -42,8 +42,8 @@ void seePlace(bool ender, Spot const& spot, std::optional<Spot> const& pair, std
 bool markStore(Spot const& spot, std::optional<Spot> const& pair, std::string const& block, std::vector<Stored> items);
 void unmarkStore(int index);
 void setPlaceCounted(int index, bool counted);
-// Whether what is carried counts, and the shulker boxes carried with it.
-void setCarriedCounted(bool carried, bool boxes);
+// Whether what is carried counts.
+void setCarriedCounted(bool carried);
 // What is held, by item name: what is carried and what the counted places held when last seen. The one
 // count for the plan, the schematic's Materials tab and its HUD.
 std::map<std::string, std::uint64_t> heldByName(LocalPlayer& player);
