@@ -106,6 +106,7 @@ struct Queued {
     bool outside = false;       // a press the game kept, which takes the focus from the field
 } queued;
 bool ctrlHeld = false; // the listeners' own
+std::atomic<bool> leftHeld{false}; // the left button is down, as the mouse listener last saw it: a scrollbar's drag
 std::atomic<bool> shiftHeld{false}, dropFocus{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
 // The left band's short list, as the window's tabs: the wanted items, what is left to gather, what to make.
 enum class SideList { Wanted, Gather, Make };
@@ -484,12 +485,24 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 rows.push_back({key, schematic::items::shown(key).name, plan->view.steps[i].made, static_cast<int>(i)});
             }
         }
+        // The list scrolls: the wheel over it (a stepper under the pointer takes the wheel for itself)
+        // and the shared bar at its right, which the rows make room for.
         int const fits = side.rows(), total = static_cast<int>(rows.size());
-        int const drawn = total > fits ? std::max(0, fits - 1) : total;
         constexpr float stepperWidth = 46;
+        static int sideFirst[3]{};
+        int& first = sideFirst[listNow];
+        float const rowsEnd = side.left + side.width - 3 - (total > fits ? rowBarGutter : 0.f);
+        if (input.sideTurns && side.has(px, py) && !(sideList == SideList::Wanted && px >= rowsEnd - stepperWidth)) first += input.sideTurns;
+        {
+            bool onBar = pressed && leftPress;
+            listScrollbar(context, side.left + side.width - 3, side.rowY(0), static_cast<float>(fits) * SideLayout::row, total, fits, first, px, py, onBar,
+                          leftHeld.load());
+            if (pressed && leftPress && !onBar) pressed = false;
+        }
+        int const drawn = std::min(fits, total - first);
         for (int i = 0; i < drawn; ++i) {
-            auto const& row = rows[static_cast<size_t>(i)];
-            float const y = side.rowY(i), end = side.left + side.width - 3;
+            auto const& row = rows[static_cast<size_t>(first + i)];
+            float const y = side.rowY(i), end = rowsEnd;
             ListBox const whole{side.left, y, side.width, SideLayout::row};
             if (!row.key.empty())
                 if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon)) late.icons.push_back({stack, side.left + 3, y + 1, smallIcon});
@@ -518,8 +531,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
             }
             if (leftPress && took(whole)) openPlan();
         }
-        if (total > drawn && fits > 0)
-            label(context, side.left + 4, side.rowY(drawn) + 2, side.width - 8, translated("recipes.more", total - drawn), palette::faint);
         if (!total)
             label(context, side.left + 4, side.rowY(0) + 2, side.width - 8,
                   translated(sideList == SideList::Wanted || (plan && sideList == SideList::Make) ? "recipes.nothingWanted"
@@ -532,14 +543,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
             // out again); the ender chest, which is noted anyway, is switched in or out of the count.
             int const index = open->ender ? state::places().ender() : state::places().store(open->spot);
             bool const on = index >= 0 && (!open->ender || state::places().list[static_cast<size_t>(index)].counted);
-            // One switch about the open container, not a row of the list: it stands in a frame of its own,
-            // clear of the list above and of the screen's edge.
-            ListBox const box{side.left + 2, side.footY(), side.width - 4, 13};
-            fill(context, box.x, box.y, box.w, box.h, palette::white, box.has(px, py) ? .1f : .04f);
-            frame(context, box.x, box.y, box.w, box.h, palette::white, .22f);
-            if (side.wide()) label(context, box.x + 4, box.y + 2, box.w - switchWidth - 10, translated("recipes.place.count"), palette::text);
+            // One switch about the open container, under a rule like the one between the favourites and the
+            // plan (no stronger a division than that), with room above and below it.
+            ListBox const box{side.left + 2, side.footY(), side.width - 4, 11};
+            fill(context, side.left + 3, box.y - 4, side.width - 6, 1, palette::white, .2f);
+            if (box.has(px, py)) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
+            if (side.wide()) label(context, box.x + 2, box.y + 1, box.w - switchWidth - 8, translated("recipes.place.count"), palette::dim);
             else if (box.has(px, py)) late.tip = translated("recipes.place.count");
-            toggleSwitch(context, box.x + box.w - switchWidth - 3, box.y + 2, on);
+            toggleSwitch(context, box.x + box.w - switchWidth - 2, box.y + 1, on);
             if (leftPress && took(box)) {
                 if (open->ender) { if (index >= 0) state::setPlaceCounted(index, !on); }
                 else if (index < 0) state::markStore(open->spot, open->pair, open->block, open->items);
@@ -570,13 +581,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 auto const* plan = state::plan(*player);
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
-        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(),
+        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(),
                              placer ? &*placer : nullptr, coverLeft, right}, late);
     }
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, nullptr, coverLeft, right}, late, *player,
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), nullptr, coverLeft, right}, late, *player,
                        shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
@@ -681,6 +692,7 @@ bool press(int button, bool left, bool right, bool down) {
     if (!ours && down && fresh() && (shown.searchFocus || shown.countFocus)) queued.outside = true;
     bool first = false;
     if (!keptButtons.decide(button, down, ours, &first)) return false;
+    if (left) leftHeld = down;
     if (first && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
 }

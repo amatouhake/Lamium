@@ -1431,14 +1431,13 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
         dimX[static_cast<size_t>(d)] = x;
         x += widthOf(dimTexts[static_cast<size_t>(d)]) - 1;
     }
-    for (int pass = 0; pass < 2; ++pass)
-        for (int d = 0; d < 3; ++d) {
-            if ((state.dimension == d) != (pass == 1)) continue;
-            auto const& text = dimTexts[static_cast<size_t>(d)];
-            float bx = dimX[static_cast<size_t>(d)];
-            button(context, bx, y, text, dims[static_cast<size_t>(d)].first, state.dimension == d,
-                hovering(bx, y, widthOf(text), buttonHeight));
-        }
+    // One of several: tabs, as DESIGN "Controls" has them on a dark panel.
+    for (int d = 0; d < 3; ++d) {
+        auto const& text = dimTexts[static_cast<size_t>(d)];
+        float bx = dimX[static_cast<size_t>(d)], bw = widthOf(text);
+        ui::drawTab(context, bx, y, bw, text, state.dimension == d, hovering(bx, y, bw, buttonHeight), d == 0);
+        state.hits.push_back({bx, y, bw, buttonHeight, dims[static_cast<size_t>(d)].first});
+    }
     x += 8;
     if (state.dimension != 2) {
         // The one terrain control: its panel opens directly under it.

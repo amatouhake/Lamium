@@ -1,4 +1,6 @@
 #include "ui/ListViewWidgets.h"
+#include "ui/ScrollBar.h"
+#include "ui/ScrollDrag.h"
 #include "ui/ItemAmount.h"
 #include "ui/Localization.h"
 #include "ui/ScreenParts.h"
@@ -290,6 +292,19 @@ std::string amountText(std::uint64_t count, int maxStack) {
     std::string out;
     for (auto const& part : parts) out += (out.empty() ? "" : " + ") + part;
     return out;
+}
+void listScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, int count, int visible, int& first, float pointerX,
+                   float pointerY, bool& pressed, bool held) {
+    int const last = std::max(0, count - visible);
+    first = std::clamp(first, 0, last);
+    if (scroll_drag::holding(&first) && !held) scroll_drag::release();
+    auto bar = rowScrollBar(x, top, track, count, visible, first);
+    if (!bar.scrolls()) { if (scroll_drag::holding(&first)) scroll_drag::release(); return; }
+    if (pressed && held && scroll_drag::press(bar, pointerX, pointerY, scroll_drag::firstRow(first), &first)) pressed = false;
+    else if (scroll_drag::holding(&first)) scroll_drag::follow(pointerY);
+    first = std::clamp(first, 0, last);
+    bar = rowScrollBar(x, top, track, count, visible, first);
+    drawScrollbar(context, bar.x, bar.top, bar.track, bar.thumbTop(), bar.thumb, scroll_drag::holding(&first) || bar.hit(pointerX, pointerY));
 }
 void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, float thumbTop, float thumb, bool hot) {
     fill(context,x,top,2,track,palette::white,.08f);

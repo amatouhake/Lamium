@@ -24,6 +24,7 @@ struct Input {
     int wheel = 0;            // pages to turn
     bool back = false, close = false;
     bool shift = false;       // held: "place" lays in as many as divide evenly
+    bool held = false;        // the left button is down: a scrollbar that was pressed is dragged
     Placer* placer = nullptr; // null where the screen has no crafting grid
     // The span between the two bands. The window's grey covers all of it, so a game window wider than
     // the view (its recipe book out) does not show at the view's sides; what the view shows keeps its place.

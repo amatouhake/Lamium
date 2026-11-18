@@ -56,7 +56,7 @@ struct SideLayout {
     float rowsTop() const { return top + split() + 16; }
     // The last 18 units are the open container's line: a rule, the name and switch, and room under them.
     static constexpr float foot = 18;
-    float footY() const { return top + height - 16; }
+    float footY() const { return top + height - 14; }
     int rows() const { return std::max(0, static_cast<int>((height - (split() + 16) - foot) / row)); }
     float rowY(int index) const { return rowsTop() + static_cast<float>(index) * row; }
     int hitRow(float x, float y) const {

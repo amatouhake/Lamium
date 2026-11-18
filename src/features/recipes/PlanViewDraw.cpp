@@ -47,7 +47,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     float const coverLeft = input.coverRight > input.coverLeft ? std::min(l.left, input.coverLeft) : l.left;
     float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
-    windowLabel(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.wanted"));
+    windowLabel(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.plan"));
     float x = l.left + 5;
     Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::Places};
     char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.places"};
@@ -68,6 +68,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         return place.ender ? name : translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);
     };
     auto note = [&](std::string text) { windowLabel(context, left, top + 2, right - left, std::move(text), true); };
+    // Every list of the window scrolls with the shared bar, in the margin right of the rows.
+    auto bar = [&](int count, int& first) {
+        listScrollbar(context, right + 2, top, static_cast<float>(fits) * rowHeight, count, fits, first, px, py, pressed, input.held);
+    };
     if (!plan) { note(translated("schematic.raw.reading")); return; }
     auto const& index = plan->table->index;
     Item const itemCount = static_cast<Item>(index.items.size());
@@ -121,6 +125,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         int const rows = static_cast<int>(places.size()) + 1;
         int& first = scroll[static_cast<int>(tab)];
         first = std::clamp(first + input.wheel, 0, std::max(0, rows - fits));
+        bar(rows, first);
         for (int row = 0; row < fits && first + row < rows; ++row) {
             float const y = top + static_cast<float>(row) * rowHeight;
             int const at = first + row - 1;
@@ -158,7 +163,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         for (auto const& [key, amount] : state::wanted().targets) targets.push_back({key, amount, {}});
         for (auto const& given : state::handed()) targets.push_back({given.key, given.count, given.source});
         if (targets.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
-        offset = std::clamp(offset, 0, std::max(0, static_cast<int>(targets.size()) - fits));
+        offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(targets.size()) - fits));
+        wheel = 0;
+        bar(static_cast<int>(targets.size()), offset);
         for (int row = 0; row < fits && offset + row < static_cast<int>(targets.size()); ++row) {
             auto const& [key, amount, source] = targets[static_cast<size_t>(offset + row)];
             float const y = top + static_cast<float>(row) * rowHeight;
@@ -212,6 +219,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (lines.empty()) { note(translated("schematic.raw.nothing")); return; }
         // An open group takes rows of its own for its members, so rows are counted in units.
         offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(lines.size()) - 1));
+        bar(static_cast<int>(lines.size()), offset);
         float y = top;
         float const bottom = l.top + l.height - RecipeViewLayout::foot;
         for (size_t at = static_cast<size_t>(offset); at < lines.size() && y + rowHeight <= bottom; ++at) {
@@ -276,6 +284,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     auto const& steps = plan->view.steps;
     if (steps.empty()) { note(translated("recipes.nothingWanted")); return; }
     offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(steps.size()) - fits));
+    bar(static_cast<int>(steps.size()), offset);
     for (int row = 0; row < fits && offset + row < static_cast<int>(steps.size()); ++row) {
         auto const& step = steps[static_cast<size_t>(offset + row)];
         float const y = top + static_cast<float>(row) * rowHeight;

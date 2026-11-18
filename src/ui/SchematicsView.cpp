@@ -1330,8 +1330,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     for (int i = 0; i < schematicTabCount; ++i) {
         bool active = static_cast<int>(schematicTab) == i;
         float x = schematicTabX(l, i), w = schematicTabWidth(l);
-        drawButton(context,x,l.toolbarTop+2,w,12,translated(tabNames[static_cast<size_t>(i)]),tabHover == i, active ? ButtonKind::Primary : ButtonKind::Plain);
+        drawTab(context,x,l.toolbarTop+2,w,translated(tabNames[static_cast<size_t>(i)]),active,tabHover == i,i == 0);
     }
+    tabRule(context,schematicTabX(l,0),l.toolbarTop+2+tabHeight,schematicTabX(l,schematicTabCount-1)+schematicTabWidth(l)-schematicTabX(l,0));
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
 
     // List.
@@ -2349,7 +2350,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         bool missing = !missingMaterials().empty();
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.openCalculator"),
-            over(ShapeZone::Action,0), ButtonKind::Primary, missing);
+            over(ShapeZone::Action,0), ButtonKind::Plain, missing);
         break;
     }
     }

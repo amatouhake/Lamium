@@ -171,6 +171,12 @@ std::string amountText(std::uint64_t count, int maxStack = 64);
 // Scroll bars (DESIGN "Controls"): a faint track and a thumb in the 2-unit
 // column from `x`; `hot` (pointed at or dragged) brightens the thumb a little.
 void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, float thumbTop, float thumb, bool hot);
+// A list's scrollbar in one call, for a view that has no layout of its own to carry one: `count` rows of
+// which `visible` show from `first`, which is kept in range. It takes a press on it (`pressed` is then
+// cleared), follows the drag while `held` (the button is down) and lets go when it is not. `first` must
+// outlive the drag: it also tells the lists' bars apart. Nothing is drawn while all rows show.
+void listScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, int count, int visible, int& first, float pointerX,
+                   float pointerY, bool& pressed, bool held);
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot = false);
 // The HUD layout editor's Contents popover (L-336), laid out by
 // hud_editor::layoutContents: the panel, then per row a switch and its name
