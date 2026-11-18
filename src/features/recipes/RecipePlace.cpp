@@ -230,6 +230,26 @@ bool roomFor(ContainerManagerController& manager, Index const& index, Item produ
     return false;
 }
 bool makes(ContainerManagerController& manager) { return static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe != nullptr; }
+// The grid's items, cell by cell, and the id of the recipe the game says they make.
+std::vector<Item> cellsOf(ContainerManagerController& manager, Index const& index, std::string& named) {
+    std::vector<Item> cells;
+    for (int i = 0, size = manager.getContainerSize(grid); i < size; ++i) {
+        auto const& stack = manager.getItemStack(grid, i);
+        cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : index.find(stack.getTypeName(), stack.getAuxValue()));
+    }
+    named.clear();
+    if (::Recipe const* made = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) named = *made->mRecipeId;
+    return cells;
+}
+// Whether the grid makes the run's product: a round the server let through in part only lays out
+// another recipe (three planks of a chest's eight make slabs), which must not be taken.
+bool makesProduct(ContainerManagerController& manager, Index const& index, Item product) {
+    if (!makes(manager)) return false;
+    std::string named;
+    auto const cells = cellsOf(manager, index, named);
+    int const recipe = recipeInGrid(index, sideOf(manager), cells, named);
+    return recipe >= 0 && index.recipes[static_cast<size_t>(recipe)].makes == product;
+}
 // The crafting recipe an item is made by that fits the grid: the one the player's choices name, else the first.
 int recipeFor(std::shared_ptr<service::Table const> const& shared, Item item, int side) {
     auto const& table = *shared;
@@ -253,12 +273,7 @@ void begin(CraftingScreenController& controller) {
     if (fromGrid) {
         // Over the output slot the recipe is the one lying in the grid: nothing in it, nothing to do yet.
         if (!makes(manager)) return;
-        std::vector<Item> cells;
-        for (int i = 0; i < side * side; ++i) {
-            auto const& stack = manager.getItemStack(grid, i);
-            cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
-        }
-        if (::Recipe const* made = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) named = *made->mRecipeId;
+        auto const cells = cellsOf(manager, table->index, named);
         recipe = recipeInGrid(table->index, side, cells, named);
     } else {
         // Elsewhere it is the recipe of the item under the pointer, in Lamium's lists or a slot of the game.
@@ -363,9 +378,9 @@ void advance(CraftingScreenController& controller) {
         // Also what came back: thrown out and picked up again, or a throw the server refused.
         if (int const thrown = throwExcess(controller, index, recipe.makes); thrown < 0) { finish("throwing the product out failed"); return; }
         else if (thrown) run.thrown += thrown, run.stalls = 0;
-        if (!makes(manager)) {
+        if (!makesProduct(manager, index, recipe.makes)) {
             if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; continue; }
-            // What a recipe leaves behind (a bucket), or a product not shown yet.
+            // What a recipe leaves behind (a bucket), a product not shown yet, or a part of the recipe only.
             if (now - run.since <= patience) return;
             // Started from an item, the grid is this run's: what stays in it goes back and it is laid in anew.
             if (run.fromGrid) { finish("the grid holds something that is not the recipe"); return; }
@@ -399,13 +414,18 @@ void advance(CraftingScreenController& controller) {
         auto more = [&](int count) {
             int most = 64;
             if (count) most = static_cast<int>(manager.getItemStack(pointer, 0).getMaxStackSize());
-            return makes(manager) && count + static_cast<int>(recipe.count) <= most;
+            return makesProduct(manager, index, recipe.makes) && count + static_cast<int>(recipe.count) <= most;
         };
         auto product = [&] {
             auto const& stack = manager.getItemStack(pointer, 0);
             return index.find(stack.getTypeName(), stack.getAuxValue()) == recipe.makes;
         };
-        if (have && !product()) { finish("the pointer holds an item"); return; }
+        if (have && !product()) {
+            if (!clearPointer(controller, index, recipe.makes)) { finish("the pointer holds an item"); return; }
+            ++run.cleared;
+            again("the pointer holds an item", now);
+            return;
+        }
         // A press on the output crafts once onto the pointer; again while the last one showed. Away from the
         // output slot the product is taken onto the pointer by the slot call instead (not seen to craft yet).
         if (more(have) && (!run.clicked || have > run.handSeen)) {
@@ -418,7 +438,12 @@ void advance(CraftingScreenController& controller) {
                 if (held(manager) <= run.handSeen) break;
             }
             have = held(manager);
-            if (have && !product()) { finish("the pointer holds an item"); return; }
+            if (have && !product()) {
+            if (!clearPointer(controller, index, recipe.makes)) { finish("the pointer holds an item"); return; }
+            ++run.cleared;
+            again("the pointer holds an item", now);
+            return;
+        }
         }
         if (!have) {
             if (now - run.since > patience) again("the product could not be taken", now);

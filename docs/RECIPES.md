@@ -209,6 +209,9 @@ A setting of its own, off by default, and it works with Recipes off
   fullest stacks, and the other slots are thrown out whole. A recipe of
   one ingredient throws nothing, and what does not stack (a filled
   shulker box to dye) is never thrown.
+- Only what makes the run's product is taken: a round the server let
+  through in part lays out another recipe (three planks of a chest's
+  eight make slabs), and goes back to be laid in anew.
 - It ends when the key is released. What a step leaves on the pointer
   (a cell the server did not let it place) goes back to a slot that
   takes it, out of the inventory if none does, and the product is

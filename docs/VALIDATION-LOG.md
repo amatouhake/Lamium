@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft throwing out what came back (L-165, 2026-11-18)
+
+Trace build of `199e2c7b` (`craft_trace`, DLL
+`994fe8cfa5e3b3a8c1524732adfdf1d04c0b80f0f8dcb6307ab54abc5c685a27`),
+1.26.60.05 Dev instance, a local world, the maintainer picking the
+ingredients up while it ran:
+- Logs into planks: no planks piled up and every log was used; planks
+  carried before the run stayed, that many. The log: 125 rounds and
+  1056 stacks thrown in 11.2 s, 122 and 1071 in 13.6 s, about fifty
+  steps tried again in each.
+- Much faster with few free slots than before; three free slots were
+  seen to hold three stacks of planks at a time (maintainer: more free
+  slots might be faster).
+- A chest run once made wooden slabs and stopped (the log: "the pointer
+  holds an item" after 10 rounds). Read as: a round laid in part, three
+  planks in a row, which the take crafted.
+
 ## Mass Craft with the pointer cleared (L-165, 2026-11-18)
 
 Trace build of `badf3ce3` (`craft_trace`, DLL
