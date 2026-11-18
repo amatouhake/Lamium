@@ -178,7 +178,7 @@ struct Run {
     Clock::time_point next, began, since; // since: when the current step began
     bool clicked = false; // Hand: a press on the output is out
     int handSeen = 0;     // Hand: what the pointer held before that press
-    int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0, stalls = 0, retries = 0;
+    int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0, stalls = 0, retries = 0, cleared = 0;
 } run;
 std::atomic<bool> keyHeld{false};
 Clock::time_point pressedAt; // when the key went down
@@ -188,8 +188,8 @@ void finish(char const* why) {
     if (run.on) {
         auto const ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - run.began).count();
         try {
-            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} thrown from the pointer, {} surplus stacks, {} steps tried again in {} ms ({})",
-                                                       run.rounds, run.takes, run.thrown, run.hands, run.surplus, run.retries, ms, why);
+            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} thrown from the pointer, {} surplus stacks, {} steps tried again, {} times the pointer cleared in {} ms ({})",
+                                                       run.rounds, run.takes, run.thrown, run.hands, run.surplus, run.retries, run.cleared, ms, why);
         } catch (...) {}
     }
     run = {};
@@ -301,13 +301,40 @@ void again(char const* why, Clock::time_point now) {
     run.clicked = false;
     run.next = now + step;
 }
+// What a step of the run left on the pointer (a cell that was not placed, a take the server answered
+// late): the product is thrown out, anything else goes back to a slot that takes it, and out if none does.
+// The pointer was empty when the run began, so what it holds is the run's.
+bool clearPointer(CraftingScreenController& controller, Index const& index, Item product) {
+    auto& manager = *controller.mContainerManagerController;
+    if (!held(manager)) return true;
+    auto const& stack = manager.getItemStack(pointer, 0);
+    std::string const name = stack.getTypeName();
+    int const aux = stack.getAuxValue();
+    if (index.find(name, aux) != product) {
+        for (int pass = 0; pass < 2 && held(manager); ++pass)
+            for (int slot = 0; slot < slots && held(manager); ++slot) {
+                auto const& there = manager.getItemStack(collectionOf(slot), indexOf(slot));
+                bool const empty = there.isNull() || there.mCount <= 0;
+                // Stacks of the same item first, then an empty slot.
+                bool const takes = pass ? empty : !empty && there.mCount < there.getMaxStackSize() && there.getTypeName() == name && there.getAuxValue() == aux;
+                if (takes) controller._handlePlaceAll(collectionOf(slot), indexOf(slot));
+            }
+    }
+    if (held(manager)) inventory::game::transferRoutes::dropCursor(controller);
+    return !held(manager);
+}
 void advance(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
     auto const& index = run.table->index;
     auto const& recipe = index.recipes[static_cast<size_t>(run.recipe)];
     auto const now = Clock::now();
     if (now < run.next) return;
-    if (run.phase != Phase::Hand && held(manager)) { finish("the pointer holds an item"); return; }
+    if (run.phase != Phase::Hand && held(manager)) {
+        if (!clearPointer(controller, index, recipe.makes)) { finish("the pointer holds an item"); return; }
+        ++run.cleared;
+        again("the pointer holds an item", now);
+        return;
+    }
     bool anyFree = false;
     // What the game shows at once goes on in the same frame: a round is laid in, taken and thrown out in one.
     for (int pass = 0; pass < mostPasses; ++pass)
@@ -399,7 +426,7 @@ void advance(CraftingScreenController& controller) {
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
         if (plan.ready()) {
             // Laid in part: the take that follows finds no product, and what was laid goes back.
-            if (!lay(controller, index, recipe, run.picks, true) && held(manager)) { finish("laying the recipe in failed"); return; }
+            if (!lay(controller, index, recipe, run.picks, true) && held(manager)) { again("laying the recipe in failed", now); return; }
             ++run.rounds;
             run.phase = Phase::Take;
             run.since = now;

@@ -207,8 +207,10 @@ A setting of its own, off by default, and it works with Recipes off
   fullest stacks, and the other slots are thrown out whole. A recipe of
   one ingredient throws nothing, and what does not stack (a filled
   shulker box to dye) is never thrown.
-- It ends when the key is released or the pointer holds an item that is
-  not the product. A step that shows nothing (the server refuses a
+- It ends when the key is released. What a step leaves on the pointer
+  (a cell the server did not let it place) goes back to a slot that
+  takes it, out of the inventory if none does, and the product is
+  thrown out. A step that shows nothing (the server refuses a
   request when items were picked up meanwhile and its inventory is not
   the client's) is tried again after 0.15 s, the grid's contents going
   back first where the run started from an item; twenty such steps in a

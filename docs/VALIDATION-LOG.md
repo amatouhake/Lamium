@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A Mass Craft round in one frame (L-165, 2026-11-18)
+
+Trace build of `5bb1fbd6` (`craft_trace`, DLL
+`7a184b969162cbe109ea70ec2523790e6b78a11bcb1f79d5ad4e58d08986d83e`),
+1.26.60.05 Dev instance, a local world, the maintainer:
+- Without picking anything up it was clearly faster; the log has 33
+  rounds and 172 stacks thrown in 3.1 s.
+- Picking the ingredients up while it ran, logs into planks: the run
+  ended with logs on the pointer, five times in the log ("the pointer
+  holds an item").
+
 ## Mass Craft going on through refused steps (L-165, 2026-11-18)
 
 Trace build of `2d20fdc0` (`craft_trace`, DLL
