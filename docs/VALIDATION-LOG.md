@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Counted places (L-359 step 8, 2026-11-19)
+
+Build `8cb8b40f` (DLL
+`a7288790f6b5b266277e28c6469f16c0febbc3701e11a7c0712f7f6d3fc2c213`),
+1.26.60.05 Dev instance, a local world, the maintainer:
+- A chest with items made a store: an item of it among the wanted items
+  was counted in "to gather" with the star. So an open container's items
+  are read (the containers of the probe before were empty).
+- The ender chest counted after it was opened once.
+- The Places tab listed both; the switches and "Remove" worked.
+- A double chest marked by one half showed "take out" when opened by the
+  other.
+- Not looked at: the pointer's line on a starred count, a store replaced
+  by another block, shulker boxes inside a place, the Materials tab and
+  the Schematic HUD counting places, a placed shulker box as a store.
+
 ## How an opened container is told apart (L-359 step 8, 2026-11-19)
 
 Trace build of `259f43e4` (`craft_trace`, DLL

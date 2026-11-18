@@ -298,8 +298,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Counted places are built and not seen in game; whether an open
-  container's items are read is the first thing to see.
+- Counted places: not seen are a store replaced by another block,
+  shulker boxes inside a place, and the Materials tab and the Schematic
+  HUD counting places.
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what
