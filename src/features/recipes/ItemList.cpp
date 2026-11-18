@@ -323,10 +323,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
     std::map<std::string_view, Count> wantedCounts;
     for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
     for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
-    auto mark = [&](std::string const& key, float x, float y, float cell) {
-        if (favouriteKeys.contains(key)) frame(context, x, y, cell, cell, palette::accent, .9f);
-        if (auto wanted = wantedCounts.find(key); wanted != wantedCounts.end())
-            late.counts.push_back({x, y, wanted->second < 1000 ? std::to_string(wanted->second) : std::string("999+")});
+    auto mark = [&](std::string const& key, float x, float y, bool framed) {
+        if (framed && favouriteKeys.contains(key)) frame(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::accent, .9f);
+        auto wanted = wantedCounts.find(key);
+        if (wanted == wantedCounts.end()) return;
+        // Three characters fit a cell: thousands above that, and "++" past them.
+        Count const n = wanted->second;
+        late.counts.push_back({x, y, n < 1000 ? std::to_string(n) : n < 100000 ? std::format("{}k", n / 1000) : std::string("++")});
     };
     for (int i = 0; i < layout.perPage() && first + i < count; ++i) {
         auto const& item = schematic::items::shown(nameAt(i));
@@ -336,7 +339,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             late.tip = item.name;
         }
         if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
-        mark(nameAt(i), x, y, ItemListLayout::cell);
+        mark(nameAt(i), x, y, true);
     }
     // A press on an item shows its recipes, a right press what it is used in, also beside an open view.
     auto show = [&](std::string const& item) {
@@ -361,7 +364,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 hoverItem = favourites[static_cast<size_t>(i)];
             }
             if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
-            mark(favourites[static_cast<size_t>(i)], x, y, SideLayout::cell);
+            mark(favourites[static_cast<size_t>(i)], x, y, false); // all here are favourites
         }
         if (pressed && favouriteHover >= 0 && favouriteHover < favouriteCount) show(favourites[static_cast<size_t>(favouriteHover)]);
         fill(context, side.left + 3, side.top + side.split(), side.width - 6, 1, palette::white, .2f);
@@ -519,11 +522,15 @@ bool drawList(ll::event::UIRenderEvent& event) {
         wantedKey = keyOf(input::Action::RecipeWanted);
     }
     if (open || viewLayout.hintY() >= at.y + size.y + 2) {
-        // One line whatever the language: shrunk to the window's width where it is longer.
-        std::string hint = translated("recipes.hint");
-        if (!favouriteKey.empty()) hint += " | " + translated("recipes.hint.favourite", favouriteKey);
-        if (!wantedKey.empty()) hint += " | " + translated("recipes.hint.wanted", wantedKey);
-        if (view::isOpen() && !backKey.empty()) hint += " | " + translated("recipes.hint.back", backKey);
+        // One line whatever the language: the keys, with the presses before them where both fit; shrunk a
+        // little to the window's width where it is still longer.
+        std::string keys;
+        auto add = [&](std::string part) { keys += (keys.empty() ? "" : " | ") + part; };
+        if (!favouriteKey.empty()) add(translated("recipes.hint.favourite", favouriteKey));
+        if (!wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
+        if (view::isOpen() && !backKey.empty()) add(translated("recipes.hint.back", backKey));
+        std::string hint = translated("recipes.hint") + (keys.empty() ? "" : " | " + keys);
+        if (!keys.empty() && labelWidth(context, hint, 1) * .8f > RecipeViewLayout::width - 8) hint = std::move(keys);
         // On the open window it is the window's text: dark, without a shadow.
         float const room = RecipeViewLayout::width - 8, wide = labelWidth(context, hint, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
         labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room, std::move(hint), scale,
@@ -556,9 +563,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
             || (side.usable() && over(side.left, side.top, side.width, side.height))
             || (open && over(viewLayout.left, viewLayout.top, RecipeViewLayout::width, viewLayout.height));
     });
-    if (held.stack) late.icons.push_back({held.stack, held.x, held.y, held.size / 16, 0, 1.f, true, true});
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
-    if (held.stack) inspection::render::drawHeldMarks(context, held);
+    // In a call of its own: within one call the batched icons, which the lists' are, are drawn after a direct one.
+    if (held.stack) {
+        inspection::render::drawItemIcon(context, {held.stack, held.x, held.y, held.size / 16, 0, 1.f, true, true}, 17);
+        inspection::render::drawHeldMarks(context, held);
+    }
     for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
     if (!late.counts.empty()) context.flushText(0, std::nullopt);
     if (!late.tip.empty()) {

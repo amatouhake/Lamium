@@ -6,6 +6,7 @@
 #include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/HeldItem.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "input/KeptPresses.h"
 #include "ui/EnchantChooser.h"
 #include "ui/EnchantLayout.h"
 #include "ui/EnchantSteps.h"
@@ -556,7 +557,8 @@ std::vector<Pending> pendingPresses;
 // the keys kept for it and those still held, under pressLock.
 int typingRow = -1;
 ui::NumberInput typedLevel;
-std::vector<int> pendingKeys, keptKeys;
+std::vector<int> pendingKeys;
+input::KeptPresses keptKeys;
 std::atomic<bool> dropTyping{false};
 void endTyping(bool keep) {
     if (typingRow < 0) return;
@@ -1181,22 +1183,12 @@ bool anvilKey(int code, bool down) {
     // The modifier keys stay the game's.
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     std::scoped_lock lock(pressLock);
-    auto const kept = std::find(keptKeys.begin(), keptKeys.end(), code);
-    // A key kept at its press stays kept through its repeats and its release, whatever ended meanwhile.
-    if (!down) {
-        if (kept == keptKeys.end()) return false;
-        keptKeys.erase(kept);
-        return true;
-    }
     bool const typing = pressState.typing && std::chrono::steady_clock::now() - pressState.at <= std::chrono::milliseconds(300);
-    if (kept != keptKeys.end()) {
-        if (typing && code != 0x1B && code != 0x0D && code != 0x09 && pendingKeys.size() < 64) pendingKeys.push_back(code);
-        return true;
-    }
-    if (!typing) return false;
-    if (keptKeys.size() >= 64) keptKeys.erase(keptKeys.begin());
-    keptKeys.push_back(code);
-    if (pendingKeys.size() < 64) pendingKeys.push_back(code);
+    // Decided at the key's press (KeptPresses): one held since before the typing began stays the game's.
+    bool first = false;
+    if (!keptKeys.decide(code, down, typing, &first)) return false;
+    // Digits and Backspace repeat while held; ending the typing happens once.
+    if (down && typing && (first || (code != 0x1B && code != 0x0D && code != 0x09)) && pendingKeys.size() < 64) pendingKeys.push_back(code);
     return true;
 }
 bool anvilTyping() {
@@ -1205,7 +1197,7 @@ bool anvilTyping() {
 }
 void anvilFocusLost() {
     std::scoped_lock lock(pressLock);
-    keptKeys.clear();
+    keptKeys = {};
     pendingKeys.clear();
     dropTyping = true;
 }

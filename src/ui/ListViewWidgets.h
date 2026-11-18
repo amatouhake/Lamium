@@ -96,6 +96,7 @@ struct StepperLook {
     float cell = 11;
     Rgb ink = palette::text;
     float pointerX = -1, pointerY = -1; // given instead of `hot`: the lit end follows the pointer
+    bool backed = false; // fill the value's cell too: on a light surface (windowPanel) the white value needs it
 };
 void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w, float h, bool numeric, std::string text,
                  StepperLook const& look = {});

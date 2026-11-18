@@ -205,6 +205,7 @@ void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w,
         if (numeric) label(context,cx,textY,aw,side ? "+" : "-",mark,Align::Center);
         else arrow(context,cx+std::floor((aw-3)/2),top+std::floor((h-5)/2),side == 0,mark);
     }
+    if (look.backed) fill(context,x+aw,top,w-2*aw,h,palette::panel);
     frame(context,x,top,w,h,look.editing ? palette::accent : look.warn ? palette::warning : palette::keyEdge);
     if (look.editing) drawEditField(context,x+aw+1,top,h,w-2*aw-2,*look.editing,Align::Center,ink);
     else label(context,x+aw+1,textY,w-2*aw-2,std::move(text),ink,Align::Center);

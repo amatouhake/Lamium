@@ -46,8 +46,9 @@ after using the first build. What is still open is in the L-item.
 - The list can be narrowed, at least to what can be made now. The filters
   have their place from the start: the list's bar, "All" and "Can be made"
   (one switch where the band is narrow).
-- In the lists a favourite's cell is framed in the accent color; a wanted
-  item carries how many are wanted where a stack has its count.
+- In the item list a favourite's cell is framed in the accent color; in
+  both lists a wanted item carries how many are wanted where a stack has
+  its count.
 - An item held on the pointer is drawn over the bands and the windows, as
   beside the anvil.
 - The agent's choices while building, to confirm: the search takes the

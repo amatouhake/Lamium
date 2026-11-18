@@ -110,7 +110,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
             float const sx = end - stepperWidth;
             drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(amount),
-                        {.editing = countEdit::editing(key), .pointerX = px, .pointerY = py});
+                        {.editing = countEdit::editing(key), .pointerX = px, .pointerY = py, .backed = true});
             if (took(sx, y + 1, 11, 10)) state::stepWanted(key, false, shift, true);
             else if (took(sx + stepperWidth - 11, y + 1, 11, 10)) state::stepWanted(key, true, shift, true);
             else if (took(sx, y + 1, stepperWidth, 10)) countEdit::begin(key, amount);
