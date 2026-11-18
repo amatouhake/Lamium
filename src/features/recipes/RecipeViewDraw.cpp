@@ -85,17 +85,18 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     bool const wanted = state::wanted().has(at.item), liked = state::notes().favourite(at.item);
     std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
     float const wantedWidth = textWidth(context, in) + 10, likedWidth = textWidth(context, favourite) + 10;
-    Region const wantedRegion{headEnd - wantedWidth, l.top + 15, wantedWidth, 11, Act::Wanted, {}, -1};
+    // Without the plan there is nothing to want an item for: the favourite button stands alone.
+    Region const wantedRegion{headEnd - (input.plan ? wantedWidth : 1), l.top + 15, input.plan ? wantedWidth : 1, 11, Act::Wanted, {}, -1};
     Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + 15, likedWidth, 11, Act::Favourite, {}, -1};
     for (bool pass : {false, true}) {
         if (liked == pass)
             drawButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favourite, likedRegion.has(input.pointerX, input.pointerY),
                        liked ? ButtonKind::Primary : ButtonKind::Plain);
-        if (wanted == pass)
+        if (input.plan && wanted == pass)
             drawButton(context, wantedRegion.x, wantedRegion.y, wantedRegion.w, wantedRegion.h, in, wantedRegion.has(input.pointerX, input.pointerY),
                        wanted ? ButtonKind::Primary : ButtonKind::Plain);
     }
-    regions.push_back(wantedRegion);
+    if (input.plan) regions.push_back(wantedRegion);
     regions.push_back(likedRegion);
     headEnd = likedRegion.x - 6;
     windowLabel(context, l.left + 6, l.top + 5, l.width - 12,

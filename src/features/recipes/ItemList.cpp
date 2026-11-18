@@ -99,13 +99,20 @@ struct Shown {
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
-    int listTurns = 0, viewTurns = 0, sideTurns = 0;
+    int listTurns = 0, viewTurns = 0, sideTurns = 0, wantedTurns = 0;
+    bool wantedUp = false; // the wanted key was released
     bool back = false, close = false;
     std::vector<int> fieldKeys; // keys pressed while the search field has the focus; 0x10000 set with Ctrl
     std::string text;           // text the game handed the focused field
     bool outside = false;       // a press the game kept, which takes the focus from the field
 } queued;
 bool ctrlHeld = false; // the listeners' own
+// The wanted key held over an item (a single key only): the wheel then changes how many are wanted. An
+// item that was wanted already goes out on the key's release, unless the wheel turned meanwhile.
+std::atomic<bool> wantedHeld{false};
+std::atomic<int> wantedCode{0};
+std::string wantedItem;      // client thread
+bool wantedLeaves = false;   // client thread: it goes out when the key is released
 std::atomic<bool> leftHeld{false}; // the left button is down, as the mouse listener last saw it: a scrollbar's drag
 std::atomic<bool> shiftHeld{false}, dropFocus{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
 // The left band's short list, as the window's tabs: the wanted items, what is left to gather, what to make.
@@ -261,7 +268,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!layout.usable()) { closeViews(); return false; }
     // Between the two bands: what a Lamium window covers, so the game's window does not show beside it.
     float const coverLeft = std::min(windowLeft, viewLayout.left);
-    auto const side = itemListLeft(screen.y, coverLeft);
+    auto const prefs = Runtime::instance().snapshot();
+    bool const planOn = prefs->inventory.recipesPlan;
+    // Without the band nothing stands left of the game's window; without the plan the band is the favourites.
+    auto const side = prefs->inventory.recipesBand ? itemListLeft(screen.y, coverLeft) : SideLayout{};
+    if (!planOn && planView::isOpen()) planView::close();
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
     {
@@ -298,6 +309,17 @@ bool drawList(ll::event::UIRenderEvent& event) {
             else if (ctrl && code == 0x41) search.selectAll();
         }
         if (!input.text.empty()) search.type(input.text);
+    }
+    // The wanted key held: each notch of the wheel steps the item's count; released without one, an item
+    // that was wanted before the press goes out.
+    if (input.wantedTurns && !wantedItem.empty() && state::wanted().has(wantedItem)) {
+        for (int i = 0; i < std::abs(input.wantedTurns) && i < 64; ++i) state::stepWanted(wantedItem, input.wantedTurns < 0, shiftHeld.load(), false);
+        wantedLeaves = false;
+    }
+    if (input.wantedUp) {
+        if (wantedLeaves && !wantedItem.empty() && state::wanted().has(wantedItem)) state::toggleWanted(wantedItem);
+        wantedItem.clear();
+        wantedLeaves = false;
     }
     // One press a frame. Each control asks whether it was on it; what none takes goes to the recipe view.
     bool pressed = !input.clicks.empty();
@@ -352,10 +374,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
     std::set<std::string_view> favouriteKeys;
     std::map<std::string_view, Count> wantedCounts;
     for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
-    for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
+    if (planOn) for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
     // What a feature handed over is wanted too.
     auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
-    for (auto const& target : handed) wantedCounts[target.key] += target.count;
+    if (planOn) for (auto const& target : handed) wantedCounts[target.key] += target.count;
     auto mark = [&](std::string const& key, float x, float y, bool framed) {
         if (framed && favouriteKeys.contains(key)) frame(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::accent, .9f);
         auto wanted = wantedCounts.find(key);
@@ -400,6 +422,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             mark(favourites[static_cast<size_t>(i)], x, y, false); // all here are favourites
         }
         if (pressed && favouriteHover >= 0 && favouriteHover < favouriteCount) show(favourites[static_cast<size_t>(favouriteHover)]);
+        if (planOn) {
         fill(context, side.left + 3, side.top + side.split(), side.width - 6, 1, palette::white, .2f);
         // The bar: which of the three lists shows, named as the window's tabs, and the window at the right
         // end. Where the three do not fit, one button that goes round them.
@@ -557,6 +580,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 else state::unmarkStore(index);
             }
         }
+        }
         // A press on the band that nothing took stays there: it must not reach the view under the pointer's line.
         if (pressed && side.has(px, py)) pressed = false;
     }
@@ -581,13 +605,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 auto const* plan = state::plan(*player);
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
-        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(),
+        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn,
                              placer ? &*placer : nullptr, coverLeft, right}, late);
     }
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), nullptr, coverLeft, right}, late, *player,
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), true, nullptr, coverLeft, right}, late, *player,
                        shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
@@ -611,6 +635,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         backKey = keyOf(input::Action::RecipeBack);
         favouriteKey = keyOf(input::Action::RecipeFavourite);
         wantedKey = keyOf(input::Action::RecipeWanted);
+        {
+            auto const chord = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::RecipeWanted);
+            wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
+        }
     }
     if (open || viewLayout.hintY() >= at.y + size.y + 2) {
         // One line whatever the language: the keys, with the presses before them where both fit; shrunk a
@@ -679,6 +707,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
 bool wheel(int pages) {
     std::scoped_lock lock(shownLock);
     if (!fresh()) return false;
+    if (wantedHeld.load()) { queued.wantedTurns += pages; return true; }
     if (shown.viewOpen && shown.view.has(shown.pointerX, shown.pointerY)) queued.viewTurns += pages;
     else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
     else if (shown.side.has(shown.pointerX, shown.pointerY)) queued.sideTurns += pages;
@@ -703,6 +732,7 @@ bool key(int code, bool down) {
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     if (down) stopRun = true;
     std::scoped_lock lock(shownLock);
+    if (!down && code == wantedCode.load() && wantedHeld.exchange(false)) queued.wantedUp = true;
     // The focused search field takes every key: letters are text, which the game hands over itself. So
     // does a count being typed: the number keys must not move stacks to the hotbar.
     bool first = false;
@@ -721,6 +751,8 @@ bool key(int code, bool down) {
     return true;
 }
 void focusLost() {
+    wantedHeld = false;
+    leftHeld = false;
     std::scoped_lock lock(shownLock);
     keptKeys = {};
     keptButtons = {};
@@ -760,8 +792,18 @@ void favourite() {
     if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
 }
 void want() {
+    if (!Runtime::instance().snapshot()->inventory.recipesPlan) return;
+    auto item = hovered();
+    if (item.empty()) return;
+    bool const was = state::wanted().has(item);
     // The band shows the wanted items then, so what went in or out is seen.
-    if (auto item = hovered(); !item.empty()) state::toggleWanted(item), sideList = SideList::Wanted;
+    sideList = SideList::Wanted;
+    if (wantedCode.load() <= 0) { state::toggleWanted(item); return; } // not a single key: no hold to wait for
+    // In at once; an item that was in stays until the key is released, so the wheel can change its count.
+    if (!was) state::toggleWanted(item);
+    wantedItem = std::move(item);
+    wantedLeaves = was;
+    wantedHeld = true;
 }
 void show(bool uses) {
     std::string item;

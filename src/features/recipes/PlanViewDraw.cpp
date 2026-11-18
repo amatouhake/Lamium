@@ -1,4 +1,5 @@
 #include "features/recipes/PlanViewDraw.h"
+#include "app/Runtime.h"
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
@@ -60,8 +61,24 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     }
     tabRule(context, l.left + 5, l.top + 16 + tabHeight, l.width - 10, true);
     auto const* plan = state::plan(player);
-    float const left = l.left + 6, right = l.left + l.width - 6, top = l.top + rowsTop;
-    int const fits = std::max(1, static_cast<int>((l.height - rowsTop - RecipeViewLayout::foot) / rowHeight));
+    float const left = l.left + 6, right = l.left + l.width - 6;
+    float top = l.top + rowsTop;
+    int fits = std::max(1, static_cast<int>((l.height - rowsTop - RecipeViewLayout::foot) / rowHeight));
+    // On the wanted tab, above the list: whether a schematic's materials still to place stand among the
+    // wanted items. The same switch as on the schematic's Materials tab, shown while Schematics is on.
+    if (tab == Tab::Wanted && Runtime::instance().preferences().schematic.enabled) {
+        bool const on = Runtime::instance().preferences().schematic.planMaterials;
+        if (over(left, top, right - left, rowHeight)) fill(context, left - 2, top, right - left + 4, rowHeight, palette::shade, .08f);
+        windowLabel(context, left, top + 2, right - left - switchWidth - 4, translated("recipes.plan.schematic"));
+        toggleSwitch(context, right - switchWidth, top + 1.5f, on);
+        if (took(left, top, right - left, rowHeight)) {
+            auto value = Runtime::instance().preferences();
+            value.schematic.planMaterials = !on;
+            Runtime::instance().save(value);
+        }
+        top += rowHeight + 2;
+        fits = std::max(1, fits - 1);
+    }
     // A place by what it is: the ender chest, or a store's block and where it stands.
     auto placeName = [&](Place const& place) {
         std::string name = schematic::items::shown(place.block).name;

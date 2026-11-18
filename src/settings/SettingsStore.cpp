@@ -241,6 +241,8 @@ Json encode(Settings const& settings) {
                        {"offhandSwap", settings.inventory.offhandSwap},
                        {"deathRestore", settings.inventory.deathRestore},
                        {"recipes", settings.inventory.recipes},
+                       {"recipesBand", settings.inventory.recipesBand}, {"recipesPlan", settings.inventory.recipesPlan},
+                       {"recipesStoreMarks", settings.inventory.recipesStoreMarks},
                        {"massCraft", settings.inventory.massCraft},
                        {"massCraftDelay", settings.inventory.massCraftDelay},
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
@@ -701,6 +703,9 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.offhandSwap = settingsValue(data.at("inventory"), "offhandSwap", value.inventory.offhandSwap);
         value.inventory.deathRestore = settingsValue(data.at("inventory"), "deathRestore", value.inventory.deathRestore);
         value.inventory.recipes = settingsValue(data.at("inventory"), "recipes", value.inventory.recipes);
+        value.inventory.recipesBand = settingsValue(data.at("inventory"), "recipesBand", value.inventory.recipesBand);
+        value.inventory.recipesPlan = settingsValue(data.at("inventory"), "recipesPlan", value.inventory.recipesPlan);
+        value.inventory.recipesStoreMarks = settingsValue(data.at("inventory"), "recipesStoreMarks", value.inventory.recipesStoreMarks);
         value.inventory.massCraft = settingsValue(data.at("inventory"), "massCraft", value.inventory.massCraft);
         value.inventory.massCraftDelay = settingsValue(data.at("inventory"), "massCraftDelay", value.inventory.massCraftDelay);
         value.inventory.deathRestoreAll = settingsValue(data.at("inventory"), "deathRestoreAll", value.inventory.deathRestoreAll);
