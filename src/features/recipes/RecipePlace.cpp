@@ -156,9 +156,12 @@ namespace {
 using Clock = std::chrono::steady_clock;
 // Between two steps of a run, so a fast frame rate does not send requests faster; and how long a
 // round that cannot be laid in waits for more to arrive, or for what it threw out to be gone.
-// `patience`: how long a take's result or a product may take to show before the run gives up.
+// `patience`: how long a take's result or a product may take to show before the step is tried again. A
+// request is refused when the server's inventory is not the client's (items picked up meanwhile), so a
+// step that shows nothing is tried again, `mostStalls` times in a row before the run gives up.
 constexpr auto step = std::chrono::milliseconds(50), idle = std::chrono::milliseconds(250), afterSurplus = std::chrono::milliseconds(1000),
-               patience = std::chrono::milliseconds(500);
+               patience = std::chrono::milliseconds(300);
+constexpr int mostStalls = 20;
 constexpr int slots = 36;
 // Hand: the inventory has no room for the product, so it is taken onto the pointer and thrown from there.
 enum class Phase { Lay, Take, Throw, Hand };
@@ -174,7 +177,7 @@ struct Run {
     Clock::time_point next, began, since; // since: when the current step began
     bool clicked = false; // Hand: a press on the output is out
     int handSeen = 0;     // Hand: what the pointer held before that press
-    int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0;
+    int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0, stalls = 0, retries = 0;
 } run;
 std::atomic<bool> keyHeld{false};
 Clock::time_point pressedAt; // when the key went down
@@ -184,8 +187,8 @@ void finish(char const* why) {
     if (run.on) {
         auto const ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - run.began).count();
         try {
-            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} thrown from the pointer, {} surplus stacks in {} ms ({})",
-                                                       run.rounds, run.takes, run.thrown, run.hands, run.surplus, ms, why);
+            Runtime::instance().self().getLogger().info("Mass Craft: {} rounds laid, {} takes, {} stacks thrown, {} thrown from the pointer, {} surplus stacks, {} steps tried again in {} ms ({})",
+                                                       run.rounds, run.takes, run.thrown, run.hands, run.surplus, run.retries, ms, why);
         } catch (...) {}
     }
     run = {};
@@ -288,6 +291,15 @@ void begin(CraftingScreenController& controller) {
         Runtime::instance().self().getLogger().info("Mass Craft: started with {} (the game names {})", run.table->index.recipes[static_cast<size_t>(recipe)].id, named);
     } catch (...) {}
 }
+// A step showed nothing: it is tried again from the take, or the run ends when that keeps happening.
+void again(char const* why, Clock::time_point now) {
+    if (++run.stalls > mostStalls) { finish(why); return; }
+    ++run.retries;
+    run.phase = Phase::Take;
+    run.since = now;
+    run.clicked = false;
+    run.next = now + idle;
+}
 void advance(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
     auto const& index = run.table->index;
@@ -301,7 +313,11 @@ void advance(CraftingScreenController& controller) {
         if (!makes(manager)) {
             if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; return; }
             // What a recipe leaves behind (a bucket), or a product not shown yet.
-            if (now - run.since > patience) finish("the grid holds something that is not the recipe");
+            if (now - run.since <= patience) return;
+            // Started from an item, the grid is this run's: what stays in it goes back and it is laid in anew.
+            if (run.fromGrid) { finish("the grid holds something that is not the recipe"); return; }
+            controller._evacuateCraftingGrid();
+            again("the grid holds something that is not the recipe", now);
             return;
         }
         if (!roomFor(manager, index, recipe.makes)) { run.phase = Phase::Hand; run.since = now; run.clicked = false; return; }
@@ -320,7 +336,7 @@ void advance(CraftingScreenController& controller) {
     case Phase::Throw: {
         auto const found = gains(run.before, slotsOf(manager, index, anyFree), recipe.makes);
         if (found.empty()) {
-            if (now - run.since > patience) finish("the product found no room");
+            if (now - run.since > patience) again("the product found no room", now);
             return;
         }
         for (auto const& gain : found) {
@@ -329,6 +345,7 @@ void advance(CraftingScreenController& controller) {
             if (!sent) { finish("throwing the product out failed"); return; }
             ++run.thrown;
         }
+        run.stalls = 0;
         run.phase = Phase::Take;
         run.since = now;
         run.next = now + step;
@@ -358,11 +375,12 @@ void advance(CraftingScreenController& controller) {
             return;
         }
         if (!have) {
-            if (now - run.since > patience) finish("the product could not be taken");
+            if (now - run.since > patience) again("the product could not be taken", now);
             return;
         }
         if (!inventory::game::transferRoutes::dropCursor(controller)) { finish("throwing the product out failed"); return; }
         ++run.hands;
+        run.stalls = 0;
         run.phase = Phase::Take;
         run.since = now;
         run.clicked = false;
@@ -375,7 +393,8 @@ void advance(CraftingScreenController& controller) {
         auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
         if (plan.ready()) {
-            if (!lay(controller, index, recipe, run.picks, true)) { finish("laying the recipe in failed"); return; }
+            // Laid in part: the take that follows finds no product, and what was laid goes back.
+            if (!lay(controller, index, recipe, run.picks, true) && held(manager)) { finish("laying the recipe in failed"); return; }
             ++run.rounds;
             run.phase = Phase::Take;
             run.since = now;

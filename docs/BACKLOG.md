@@ -210,7 +210,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design): Waiting for the maintainer's choices below; not chosen for building, no release.
 - [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research): Partly done: Game language and Skip server resource packs shipped in 0.2.1; global pack stack work not chosen.
 - [L-166](backlog/L-166.md) Villager trade helpers: favourites and assisted trading (Design): Part 1 (Shift + right-click repeated trading) shipped in 0.2.1; part 2 is candidates waiting for the maintainer, not approved to build
-- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Open; built behind its own setting and seen crafting in game; a full inventory and the surplus are not seen. No release
+- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Open; built behind its own setting and seen in game; going on after a refused step is not seen. No release
 - [L-163](backlog/L-163.md) A Lamium-drawn inventory screen (Research): Open, not started; recorded for later.
 - [L-132](backlog/L-132.md) Move while the inventory screen is open (Research): Parked 2026-10-10 after eight trial rounds without smooth movement; resume from Next
 - [L-59](backlog/L-59.md) Held placement style: vanilla, Java-like or fast (Design done; Research first): Planned, nothing built; no step starts until the maintainer says so

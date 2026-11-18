@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft from an item and with a full inventory (L-165, 2026-11-18)
+
+Trace build of `73ad8976` (`craft_trace`, DLL
+`a213eedcdcf820d447c82e3873c0565ea0d2d9c88e4eeb66abbb483d033a89e3`),
+1.26.60.05 Dev instance, a local world, the maintainer:
+- The key over an item in an inventory slot and in Lamium's list ran that
+  item's recipe; a brush of the key started nothing.
+- An inventory full of logs: planks kept being thrown out (the log has
+  products thrown from the pointer).
+- Levers with the inventory full of one ingredient: the surplus fell by
+  the stack (17 stacks in one run) and the run went on once the other
+  was picked up.
+- Runs ended by themselves when the inventory filled up while they ran:
+  the log has "the product found no room" after 0.5 s some twenty
+  times, and 337 refused responses (results 49 and 50) in the session,
+  none in the earlier one without a full inventory. Read as: thrown
+  items were picked up again, the server's inventory was not the
+  client's, and the take was refused.
+
 ## Mass Craft's first run (L-165, 2026-11-18)
 
 Trace build of `07ac9654` (`craft_trace`, DLL

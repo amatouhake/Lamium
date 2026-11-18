@@ -206,8 +206,12 @@ A setting of its own, off by default, and it works with Recipes off
   fullest stacks, and the other slots are thrown out whole. A recipe of
   one ingredient throws nothing, and what does not stack (a filled
   shulker box to dye) is never thrown.
-- It ends when the key is released, the pointer holds an item, the product finds no room or the grid holds
-  what is not the recipe (a bucket a recipe gave back). Each run writes
+- It ends when the key is released or the pointer holds an item that is
+  not the product. A step that shows nothing (the server refuses a
+  request when items were picked up meanwhile and its inventory is not
+  the client's) is tried again after 0.3 s, the grid's contents going
+  back first where the run started from an item; twenty such steps in a
+  row end the run. Each run writes
   its recipe and, at its end, rounds, takes, stacks thrown and time to
   the log.
 
