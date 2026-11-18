@@ -2359,8 +2359,10 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     if (listTip) {
         float w = std::min(textWidth(context, listTip->text) + 8, l.width - 4);
         float x = std::max(l.left + 2, std::min(listTip->x + 8, l.left + l.width - w - 2));
-        drawTipBox(context,x,listTip->y+10,w,13);
-        label(context,x+4,listTip->y+12,w-6,listTip->text,palette::text);
+        // Above the pointer where it would cover the footer's description (seen low in the Materials list).
+        float const y = listTip->y + 10 + 13 > l.footerTop ? listTip->y - 16 : listTip->y + 10;
+        drawTipBox(context,x,y,w,13);
+        label(context,x+4,y+2,w-6,listTip->text,palette::text);
     }
     // Footer.
     fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);

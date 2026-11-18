@@ -101,11 +101,13 @@ struct Wanted {
     }
 };
 // A wanted item's count after its stepper moved: 0 takes the item out. Only the minus button at one
-// does that; the wheel and a step of several stop at one.
+// does that; the wheel and a step of several stop at one. A step of several (Shift: the item's stack)
+// goes to the next multiple of it, so 1 becomes 64 and 128, not 65 and 129.
 inline Count steppedWanted(Count now, bool up, Count step, bool button) {
-    if (up) return std::min<Count>(now + step, Wanted::most);
+    step = std::max<Count>(step, 1);
+    if (up) return std::min<Count>((now / step + 1) * step, Wanted::most);
     if (now <= 1) return button ? 0 : 1;
-    return now > step ? now - step : 1;
+    return std::max<Count>((now - 1) / step * step, 1);
 }
 // A target a feature handed over (a schematic's materials still to place): what, how many and whose it
 // is. It stands among the wanted items and is not the player's to edit.

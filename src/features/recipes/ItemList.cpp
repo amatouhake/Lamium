@@ -508,15 +508,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
         // (L-359 step 8). What it holds is noted while it is open, for the ender chest and for stores.
         if (auto const& open = placesGame::open(screenView)) {
             state::seePlace(open->ender, open->spot, open->pair, open->block, open->items);
-            if (!open->ender) {
-                int const store = state::places().store(open->spot);
-                ListBox const box{side.left + 2, side.top + side.height - 12, side.width - 4, 11};
-                drawButton(context, box.x, box.y, box.w, box.h, translated(store < 0 ? "recipes.place.mark" : "recipes.place.unmark"), box.has(px, py),
-                           store < 0 ? ButtonKind::Plain : ButtonKind::Primary);
-                if (leftPress && took(box)) {
-                    if (store < 0) state::markStore(open->spot, open->pair, open->block, open->items);
-                    else state::unmarkStore(store);
-                }
+            // A name and a switch, as Lamium's rows are: on makes the open container a store (off takes it
+            // out again); the ender chest, which is noted anyway, is switched in or out of the count.
+            int const index = open->ender ? state::places().ender() : state::places().store(open->spot);
+            bool const on = index >= 0 && (!open->ender || state::places().list[static_cast<size_t>(index)].counted);
+            ListBox const box{side.left + 2, side.top + side.height - 12, side.width - 4, 11};
+            if (box.has(px, py)) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
+            if (side.wide()) label(context, box.x + 2, box.y + 2, box.w - switchWidth - 6, translated("recipes.place.count"), palette::dim);
+            else if (box.has(px, py)) late.tip = translated("recipes.place.count");
+            toggleSwitch(context, box.x + box.w - switchWidth - 1, box.y + 1, on);
+            if (leftPress && took(box)) {
+                if (open->ender) { if (index >= 0) state::setPlaceCounted(index, !on); }
+                else if (index < 0) state::markStore(open->spot, open->pair, open->block, open->items);
+                else state::unmarkStore(index);
             }
         }
         // A press on the band that nothing took stays there: it must not reach the view under the pointer's line.

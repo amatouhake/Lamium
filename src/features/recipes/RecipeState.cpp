@@ -149,8 +149,15 @@ void setPlaceCounted(int index, bool counted) {
     placed.list[static_cast<size_t>(index)].counted = counted;
     writePlaces();
 }
+void setCarriedCounted(bool carried, bool boxes) {
+    followWorld();
+    if (placed.carried == carried && placed.boxes == boxes) return;
+    placed.carried = carried;
+    placed.boxes = boxes;
+    writePlaces();
+}
 std::map<std::string, std::uint64_t> heldByName(LocalPlayer& player) {
-    auto out = schematic::items::carried(player);
+    auto out = places().carried ? schematic::items::carried(player, placed.boxes) : std::map<std::string, std::uint64_t>{};
     for (auto const& item : placeTotals(places())) out[item.name] += item.count;
     return out;
 }
@@ -195,7 +202,8 @@ void removeWanted(std::string const& key) {
 void stepWanted(std::string const& key, bool up, bool shift, bool button) {
     followWorld();
     if (!list.has(key)) return;
-    if (Count const next = steppedWanted(list.count(key), up, shift ? 16 : 1, button)) list.set(key, next);
+    Count const stack = static_cast<Count>(std::max(1, schematic::items::shown(key).stack));
+    if (Count const next = steppedWanted(list.count(key), up, shift ? stack : 1, button)) list.set(key, next);
     else list.remove(key);
     writeWanted();
 }
@@ -232,8 +240,9 @@ Plan const* plan(LocalPlayer& player) {
     plan.table = table;
     plan.choice = choice(table);
     plan.held.clear();
-    for (auto const& stack : schematic::items::carriedStacks(player))
-        if (Item const id = table->index.find(stack.name, stack.aux); id >= 0) plan.held[id] += stack.count;
+    if (placed.carried)
+        for (auto const& stack : schematic::items::carriedStacks(player, placed.boxes))
+            if (Item const id = table->index.find(stack.name, stack.aux); id >= 0) plan.held[id] += stack.count;
     plan.request = {};
     apply(table->index, list, given, plan.request);
     apply(table->index, held, plan.request);

@@ -43,6 +43,9 @@ struct Place {
 };
 struct Places {
     static constexpr size_t most = 64, mostItems = 2048;
+    // What is carried counts unless the player says no (a plan that is served from a store only), and
+    // so do the shulker boxes carried, which count only with it.
+    bool carried = true, boxes = true;
     std::vector<Place> list; // the ender chest first once it is known
     int store(Spot const& spot) const {
         for (size_t i = 0; i < list.size(); ++i) if (list[i].is(spot)) return static_cast<int>(i);

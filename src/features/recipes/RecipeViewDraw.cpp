@@ -85,9 +85,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         headEnd -= w + 2;
     };
     bool const wanted = state::wanted().has(at.item);
-    // As wide as the longer of its two texts, so it does not change size when the item goes in.
-    std::string const add = translated("recipes.addWanted"), in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
-    headButton(wanted ? in : add, std::max(textWidth(context, add), textWidth(context, in)) + 10, wanted, Act::Wanted);
+    // Both keep their words; the look says whether the item is in (maintainer 2026-11-19).
+    std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
+    headButton(in, textWidth(context, in) + 10, wanted, Act::Wanted);
     headButton(favourite, textWidth(context, favourite) + 10, state::notes().favourite(at.item), Act::Favourite);
     windowLabel(context, l.left + 6, l.top + 5, headEnd - l.left - 8,
                 translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));

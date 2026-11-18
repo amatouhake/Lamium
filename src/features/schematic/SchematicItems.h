@@ -25,14 +25,14 @@ struct Shown {
 };
 Shown const& shown(std::string const& item);
 // Items carried: the inventory and the contents of shulker boxes in it.
-std::map<std::string, std::uint64_t> carried(LocalPlayer& player);
+std::map<std::string, std::uint64_t> carried(LocalPlayer& player, bool boxes = true);
 // The same stacks one by one, with the aux a recipe may tell them apart by (a bed's color).
 struct Carried {
     std::string name;
     int aux = 0;
     std::uint64_t count = 0;
 };
-std::vector<Carried> carriedStacks(LocalPlayer& player);
-// One stack, and with a shulker box what it holds.
-void addStack(ItemStack const& stack, std::vector<Carried>& out);
+std::vector<Carried> carriedStacks(LocalPlayer& player, bool boxes = true);
+// One stack, and with a shulker box what it holds (`boxes`).
+void addStack(ItemStack const& stack, std::vector<Carried>& out, bool boxes = true);
 }

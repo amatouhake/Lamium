@@ -71,7 +71,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     auto const turn = static_cast<size_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
     // A row's start: the icon and the name, which a press turns into the item's recipes. `id` past the items is a group.
-    auto lead = [&](float y, Item id, float nameEnd) {
+    // Under the pointer the row says its whole name, which the column may cut, and `amount` in chests and stacks.
+    auto lead = [&](float y, Item id, float nameEnd, Count amount = 0) {
         std::string key, name;
         if (id >= itemCount) {
             auto const& members = index.groups[static_cast<size_t>(id - itemCount)].members;
@@ -85,6 +86,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, left, y + 1, iconScale});
         bool const hot = id >= 0 && id < itemCount && over(left, y, nameEnd - left, rowHeight);
         if (hot) fill(context, left - 2, y, nameEnd - left + 2, rowHeight, palette::shade, .1f);
+        if (late.tip.empty() && !name.empty() && over(left, y, right - left, rowHeight)) {
+            late.tip = name;
+            if (amount) late.tipLines.push_back(amountText(amount, key.empty() ? 64 : schematic::items::shown(key).stack));
+        }
         windowLabel(context, left + 13, y + 2, nameEnd - left - 15, std::move(name));
         if (hot) late.hovered = key;
         if (id >= 0 && id < itemCount && took(left, y, nameEnd - left, rowHeight)) showItem = key;
@@ -103,29 +108,42 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         return end - w - 3;
     };
     if (tab == Tab::Places) {
-        // What counts as held: what is carried, always; then the ender chest and the stores, each with
-        // its switch, as they were when last seen open.
-        auto const places = state::places().list; // a copy: the controls below change the list
+        // What counts as held: what is carried and the shulker boxes carried, then the ender chest and the
+        // stores as they were when last seen open. Each row is a name and its switch, the switches in one
+        // column; a store can be taken out as well.
+        auto const all = state::places();
+        auto const& places = all.list; // of a copy: the controls below change the list
+        std::string const removeText = translated("recipes.remove");
+        float const sx = right - (textWidth(context, removeText) + 8) - 4 - switchWidth;
+        int const rows = static_cast<int>(places.size()) + 2;
         int& first = scroll[static_cast<int>(tab)];
-        first = std::clamp(first + input.wheel, 0, std::max(0, static_cast<int>(places.size()) + 1 - fits));
-        for (int row = 0; row < fits && first + row <= static_cast<int>(places.size()); ++row) {
+        first = std::clamp(first + input.wheel, 0, std::max(0, rows - fits));
+        for (int row = 0; row < fits && first + row < rows; ++row) {
             float const y = top + static_cast<float>(row) * rowHeight;
-            int const at = first + row - 1;
-            if (at < 0) {
-                windowLabel(context, left, y + 2, right - left - 60, translated("recipes.place.carried"));
-                windowLabel(context, right - 60, y + 2, 60, translated("recipes.place.always"), true, Align::Right);
-                continue;
+            int const at = first + row - 2;
+            std::string name, icon, tip;
+            bool on = false, faint = false;
+            if (at == -2) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:chest_minecart", on = all.carried;
+            else if (at == -1) name = translated("recipes.place.boxes"), tip = translated("recipes.place.boxesTip"), icon = "minecraft:undyed_shulker_box", on = all.boxes, faint = !all.carried;
+            else {
+                auto const& place = places[static_cast<size_t>(at)];
+                name = placeName(place), icon = place.block, on = place.counted;
+                if (!place.ender) rowButton(right, y, removeText, [&] { state::unmarkStore(at); });
             }
-            auto const& place = places[static_cast<size_t>(at)];
-            float end = right;
-            if (!place.ender) end = rowButton(right, y, translated("recipes.remove"), [&] { state::unmarkStore(at); }) - 2;
-            float const sx = end - switchWidth;
-            toggleSwitch(context, sx, y + 1.5f, place.counted);
-            if (took(sx - 2, y, switchWidth + 4, rowHeight)) state::setPlaceCounted(at, !place.counted);
-            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(place.block).icon)) late.icons.push_back({stack, left, y + 1, iconScale});
-            windowLabel(context, left + 13, y + 2, sx - left - 17, placeName(place), !place.counted);
+            toggleSwitch(context, sx, y + 1.5f, on);
+            if (took(sx - 2, y, switchWidth + 4, rowHeight)) {
+                if (at == -2) state::setCarriedCounted(!all.carried, all.boxes);
+                else if (at == -1) state::setCarriedCounted(all.carried, !all.boxes);
+                else state::setPlaceCounted(at, !on);
+            }
+            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(icon).icon)) late.icons.push_back({stack, left, y + 1, iconScale});
+            if (late.tip.empty() && over(left, y, sx - left - 4, rowHeight)) {
+                late.tip = name;
+                if (!tip.empty()) late.tipLines.push_back(std::move(tip));
+            }
+            windowLabel(context, left + 13, y + 2, sx - left - 17, std::move(name), faint || !on);
         }
-        if (places.empty() && fits > 1) paragraph(context, left, top + rowHeight + 4, right - left, translated("recipes.place.how"), 3, palette::vanilla::windowFaint);
+        if (places.empty() && fits > 3) paragraph(context, left, top + 2 * rowHeight + 4, right - left, translated("recipes.place.how"), 3, palette::vanilla::windowFaint);
         return;
     }
     int& offset = scroll[static_cast<int>(tab)];
@@ -165,7 +183,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             }
             }
             Item const id = index.findKey(key);
-            if (id >= 0) lead(y, id, sx - 4);
+            if (id >= 0) lead(y, id, sx - 4, amount);
             else {
                 // Not in this world's table: shown by what the game calls it, kept as it is.
                 auto const& shown = schematic::items::shown(key);
@@ -223,7 +241,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 // The whole row opens the members to pick one from.
                 if (over(left, y, right - left, rowHeight)) fill(context, l.left + 2, y, l.width - 4, rowHeight, palette::shade, .1f);
                 if (took(left, y, right - left, rowHeight)) expanded = expanded == group ? -1 : group;
-                lead(y, line.id, end);
+                lead(y, line.id, end, line.left);
                 y += rowHeight;
                 if (expanded != group) continue;
                 auto const& members = index.groups[static_cast<size_t>(group)].members;
@@ -245,7 +263,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 continue;
             }
             if (stopped) rowButton(right, y, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
-            lead(y, line.id, end);
+            lead(y, line.id, end, line.left);
             y += rowHeight;
         }
         return;

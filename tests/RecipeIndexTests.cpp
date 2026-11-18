@@ -321,9 +321,12 @@ void recipeIndexTests() {
         check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
         check(field.x == 232 && field.y == 344 && field.w == 176 && field.h == 14 && field.has(300, 350) && !field.has(300, 340), "the search field sits at the bottom centre");
-        check(steppedWanted(1, false, 1, true) == 0 && steppedWanted(1, false, 16, false) == 1 && steppedWanted(20, false, 16, true) == 4
+        check(steppedWanted(1, false, 1, true) == 0 && steppedWanted(1, false, 16, false) == 1 && steppedWanted(5, false, 1, true) == 4
               && steppedWanted(9, false, 16, true) == 1 && steppedWanted(Wanted::most, true, 16, true) == Wanted::most,
               "only the minus button at one takes a wanted item out; steps stop at one and at the most");
+        check(steppedWanted(1, true, 64, true) == 64 && steppedWanted(64, true, 64, true) == 128 && steppedWanted(70, false, 64, true) == 64
+              && steppedWanted(64, false, 64, true) == 1 && steppedWanted(20, false, 16, true) == 16 && steppedWanted(3, true, 1, true) == 4,
+              "a step of several lands on its multiples, so Shift gives whole stacks");
     }
     {
         // What the player enters: favourites, wanted items, and the notes a plan follows.
@@ -361,8 +364,9 @@ void recipeIndexTests() {
         places.list[0].counted = false;
         check(placeTotals(places) == std::vector<Stored>{{"minecraft:stone", 0, 20}}, "a place switched off is not counted");
         {
+            places.boxes = false;
             Places const read = decodePlaces(encodePlaces(places));
-            check(read.list == places.list && decodePlaces("nonsense").list.empty()
+            check(read.list == places.list && read.carried && !read.boxes && decodePlaces("{}").boxes && decodePlaces("nonsense").list.empty()
                   && decodePlaces(R"({"places":[{"at":[0,1,2]},{"at":[0,1,2,3],"items":[{"item":"a","count":2},{"item":"a","count":3},{"item":"b","count":0}]},{"at":[0,1,2,3]}]})").list
                          == std::vector<Place>{{false, {0, 1, 2, 3}, {}, "", true, {{"a", 0, 5}}, 0}},
                   "places survive their document; what is not understood is left out and a position stands once");

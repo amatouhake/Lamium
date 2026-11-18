@@ -154,26 +154,30 @@ after using the first build. What is still open is in the L-item.
   so what went in is seen.
 - A wanted item's count is changed with the shared stepper (- N +), on the
   short list and in the window alike: minus at one takes the item out (the
-  wheel and a Shift step stop at one), and a press on the number types it
+  wheel and a Shift step stop at one; Shift steps to the next multiple
+  of the item's stack, 1 to 64 to 128), and a press on the number types it
   (Enter or a press elsewhere keeps it, Esc does not; 0 takes the item
   out).
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
 - The plan is lists; no tree view for now.
-- What is held is the sum over the places that are counted: what is
-  carried, always, with the shulker boxes carried; the ender chest from
-  the first time it is seen open; and the containers the player marks as
+- What is held is the sum over what is counted: what is carried and the
+  shulker boxes carried (each a switch, on unless the player turns it
+  off, so a plan can be served from a store alone); the ender chest from
+  the first time it is seen open; and the containers the player makes
   stores (a chest, barrel or placed shulker box; a double chest is one
-  store by either half; a minecart's chest is none). A place counts what
+  store by either half; a minecart's chest is none). A store counts what
   it held when it was last seen open, the contents of shulker boxes in it
   included, and is noted while it is open and Recipes is on. One count
   serves the plan, the schematic Materials tab and the Schematic HUD;
   Enchantment Order and "can be made" keep counting what is carried.
-- While a container is open, the last line of the left band has "Make
-  this a store", which turns into taking it out again. The plan's window
-  has a "Places" tab: what is carried (always), then the ender chest and
-  the stores, each with a switch, a store also with "Remove". A store
-  where another block stands is dropped when that is seen.
+- While a container is open, the last line of the left band is "Count as
+  a store" with a switch: on makes it a store, off takes it out; at the
+  ender chest it switches the chest in or out of the count. The plan's
+  window has a "Stores" tab: what is carried, the shulker boxes carried,
+  the ender chest and the stores, each a name and a switch in one
+  column, a store also with "Remove". A store where another block stands
+  is dropped when that is seen. The word is "store" throughout.
 - In "to gather", a "have" number that includes a place's last-seen count
   carries a star in a gutter of its own, and says under the pointer how
   many are carried and how many each place holds.
@@ -244,6 +248,42 @@ A setting of its own, off by default, and it works with Recipes off
   time to the log; a run that does nothing for a second writes once why
   and what it sees.
 
+### The look, reviewed with the maintainer (2026-11-19)
+What bothered is in VALIDATION-LOG of that day. Agreed, built: the wanted
+button of the recipe view keeps its words and shows by its look that the
+item is in; a row of the plan's window says its whole name and its count
+in chests and stacks under the pointer; the Stores tab and the band's
+switch as above. Agreed, not built:
+- A shared tab strip in `Widgets.h` (no screen has one: each draws
+  buttons, Primary when selected), whose selected tab joins what it
+  shows; for the recipe view's stations, the plan's window and the band's
+  lists, which become icon tabs where the band is narrow instead of one
+  button going round.
+- The band's and the windows' lists scroll, with the shared scrollbar
+  (`ScrollBar.h`, `ScrollDrag.h`, `drawScrollbar`; the panels beside the
+  anvil use them); the item list on the right keeps its pages.
+- "Favourite" and "wanted" in the recipe view as icon toggles, to be
+  compared in a mockup first. The recipe view's slots nearer the game's
+  in brightness and edge, a missing ingredient on the game's red.
+- A hovered item drawn by Lamium gets a tooltip near the game's with
+  Lamium's item details ([L-363](backlog/L-363.md)); the details are
+  filled inside the hover-text hook today (`Inspection.cpp`), so either
+  the game's own hover text is asked for or that part is made a function.
+- Lamium's parts follow the game's window as it opens and closes, as the
+  panels beside the anvil do by its rest position and slide
+  (`EnchantOrderGame.cpp` `drawBeside`); those still flicker on opening,
+  which is to be looked at with it.
+- With the game's recipe book open, Lamium's windows cover the whole of
+  the game's window.
+- The window's title is "Plan"; a switch for the schematic's materials on
+  the wanted tab; W held with the wheel over an item of the list changes
+  its wanted count; settings for the left band and for using Recipes
+  without the plan; "Open in ResourceCalculator" as a plain button.
+- A store marked in the world, with what Lamium draws there already
+  (`overlay/CellSurface.h` and `CellMesh.h` as the breaking region uses
+  them, or the schematic's "show in world" point); a feature has to hook
+  the world render itself, there is no shared registration.
+
 ## Code
 - `src/features/recipes/RecipeIndex.h`: the game's table by name, the
   default recipe per item, groups and `plan()`. `RawView.h`: a plan as
@@ -298,9 +338,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Counted places: not seen are a store replaced by another block,
-  shulker boxes inside a place, and the Materials tab and the Schematic
-  HUD counting places.
+- Stores: not seen are a store replaced by another block, shulker boxes
+  inside one, the Materials tab and the Schematic HUD counting them, and
+  the switches for what is carried.
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what

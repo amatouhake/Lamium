@@ -68,15 +68,15 @@ Shown const& shown(std::string const& item) {
     }
     return shownItems.emplace(item, std::move(out)).first->second;
 }
-std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {
+std::map<std::string, std::uint64_t> carried(LocalPlayer& player, bool boxes) {
     std::map<std::string, std::uint64_t> out;
-    for (auto const& stack : carriedStacks(player)) out[stack.name] += stack.count;
+    for (auto const& stack : carriedStacks(player, boxes)) out[stack.name] += stack.count;
     return out;
 }
-void addStack(ItemStack const& stack, std::vector<Carried>& out) {
+void addStack(ItemStack const& stack, std::vector<Carried>& out, bool boxes) {
     if (stack.isNull()) return;
     out.push_back({stack.getTypeName(), stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount)});
-    if (!stack.getTypeName().ends_with("shulker_box")) return;
+    if (!boxes || !stack.getTypeName().ends_with("shulker_box")) return;
     auto const* data = stack.mUserData.get();
     if (!data) return;
     auto items = data->mTags.find("Items");
@@ -89,10 +89,10 @@ void addStack(ItemStack const& stack, std::vector<Carried>& out) {
         } catch (...) {}
     }
 }
-std::vector<Carried> carriedStacks(LocalPlayer& player) {
+std::vector<Carried> carriedStacks(LocalPlayer& player, bool boxes) {
     std::vector<Carried> out;
     auto& inventory = player.getInventory();
-    for (int slot = 0; slot < inventory.getContainerSize(); ++slot) addStack(inventory.getItem(slot), out);
+    for (int slot = 0; slot < inventory.getContainerSize(); ++slot) addStack(inventory.getItem(slot), out, boxes);
     return out;
 }
 }
