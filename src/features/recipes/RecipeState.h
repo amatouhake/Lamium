@@ -62,6 +62,7 @@ struct Plan {
     RawView view;
     std::map<Item, Count> held; // carried as far as it counts (the player's switches), by item
     std::map<Item, Count> stored; // in the counted places as last seen, by item; the plan counts both
+    std::vector<LooseLine> loose; // wanted items the table does not know: gathered as they are
 };
 // Null until the recipe table is read.
 Plan const* plan(LocalPlayer& player);

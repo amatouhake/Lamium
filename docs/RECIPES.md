@@ -163,6 +163,9 @@ after using the first build. What is still open is in the L-item.
   out).
 - Picking a member for a group and saying that an item is gathered, not
   made, are done inside the plan.
+- "To gather" lists everything to gather: what the recipes ask for and,
+  after it, wanted items the recipe table does not know because no
+  recipe makes or uses them (a grass block), gathered as they are.
 - The plan is lists; no tree view for now.
 - What is held is the sum over what is counted: what is carried (a
   switch, on unless the player turns it off, so a plan can be served
@@ -185,8 +188,9 @@ after using the first build. What is still open is in the L-item.
   ender chest it switches the chest in or out of the count. The plan's
   window has a "Stores" tab: what is carried, the ender chest and the
   stores, each a name and a switch in one column, a store also with
-  "Remove". A store where another block stands
-  is dropped when that is seen. The word is "store" throughout.
+  "Remove". A store where another block stands,
+  or none, is dropped: looked at once a second within 48 blocks, in
+  loaded chunks, and when the container is opened. The word is "store" throughout.
 - In "to gather", a "have" number that includes a place's last-seen count
   carries a star in a gutter of its own, and says under the pointer how
   many are carried and how many each place holds.
@@ -291,10 +295,12 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   color, by the world overlay (`WorldOverlay.cpp`, from `storeMarks`).
   They show once the world's places were read, which the first item
   screen does.
-- Settings (agent's choices, all on by default): "Left band", "Plan"
-  (off: no wanted items, plan lists, stores or W; the favourites stay)
-  and "Outline stores in the world". With the band off and the plan on,
-  W still works and nothing opens the plan's window.
+- Settings, all on by default: "Favourites" and "Plan" (maintainer
+  2026-11-19, in place of a switch for the band, which overlapped the
+  plan's) and "Outline stores in the world". The band shows while
+  either of the first two is on, and one alone has all of it. Without
+  favourites: no favourites in the band, no marks, no button, and A does
+  nothing. Without the plan: no wanted items, lists, stores or W.
 
 ## Code
 - `src/features/recipes/RecipeIndex.h`: the game's table by name, the
@@ -350,9 +356,9 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Not seen in game: the tooltip with the game's text, the schematic's
-  switch on the wanted tab, the three settings; a store replaced by
-  another block, shulker boxes inside a store.
+- Not seen in game: the settings for favourites and the plan, a store
+  dropped when its block is gone, and wanted items no recipe knows in
+  "to gather".
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what

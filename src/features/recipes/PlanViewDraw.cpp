@@ -233,10 +233,14 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             bool const stopped = line.id < itemCount && plan->request.stops.contains(line.id);
             if (line.left > 0 || stopped) lines.push_back({line, stopped});
         }
-        if (lines.empty()) { note(translated("schematic.raw.nothing")); return; }
+        // What the recipe table does not know is gathered as it is, after what the recipes ask for.
+        std::vector<LooseLine> loose;
+        for (auto const& line : plan->loose) if (line.left > 0) loose.push_back(line);
+        if (lines.empty() && loose.empty()) { note(translated("schematic.raw.nothing")); return; }
         // An open group takes rows of its own for its members, so rows are counted in units.
-        offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(lines.size()) - 1));
-        bar(static_cast<int>(lines.size()), offset);
+        int const all = static_cast<int>(lines.size() + loose.size());
+        offset = std::clamp(offset + wheel, 0, std::max(0, all - 1));
+        bar(all, offset);
         float y = top;
         float const bottom = l.top + l.height - RecipeViewLayout::foot;
         for (size_t at = static_cast<size_t>(offset); at < lines.size() && y + rowHeight <= bottom; ++at) {
@@ -291,6 +295,17 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             }
             if (stopped) rowButton(right, y, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
             lead(y, line.id, end, line.left);
+            y += rowHeight;
+        }
+        for (size_t at = static_cast<size_t>(offset) > lines.size() ? static_cast<size_t>(offset) - lines.size() : 0; at < loose.size() && y + rowHeight <= bottom; ++at) {
+            auto const& line = loose[at];
+            number(columns, y, std::to_string(line.left), false);
+            number(columns - 40, y, std::to_string(line.held));
+            number(columns - 80, y, std::to_string(line.need));
+            auto const& shown = schematic::items::shown(line.key);
+            if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, left, y + 1, iconScale});
+            if (late.tip.empty() && over(left, y, right - left, rowHeight)) late.tip = shown.name, late.tipLines.push_back(amountText(line.left, shown.stack)), late.hovered = line.key;
+            windowLabel(context, left + 13, y + 2, columns - 118 - left - 15, shown.name);
             y += rowHeight;
         }
         return;

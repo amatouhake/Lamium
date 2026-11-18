@@ -89,7 +89,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     Region const wantedRegion{headEnd - (input.plan ? wantedWidth : 1), l.top + 15, input.plan ? wantedWidth : 1, 11, Act::Wanted, {}, -1};
     Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + 15, likedWidth, 11, Act::Favourite, {}, -1};
     for (bool pass : {false, true}) {
-        if (liked == pass)
+        if (input.favourites && liked == pass)
             drawButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favourite, likedRegion.has(input.pointerX, input.pointerY),
                        liked ? ButtonKind::Primary : ButtonKind::Plain);
         if (input.plan && wanted == pass)
@@ -97,8 +97,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                        wanted ? ButtonKind::Primary : ButtonKind::Plain);
     }
     if (input.plan) regions.push_back(wantedRegion);
-    regions.push_back(likedRegion);
-    headEnd = likedRegion.x - 6;
+    if (input.favourites) regions.push_back(likedRegion);
+    headEnd = (input.favourites ? likedRegion.x : input.plan ? wantedRegion.x : headEnd) - 6;
     windowLabel(context, l.left + 6, l.top + 5, l.width - 12,
                 translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {

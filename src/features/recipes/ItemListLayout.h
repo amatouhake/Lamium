@@ -40,9 +40,11 @@ struct SideLayout {
     static constexpr float cell = 18, head = 14, row = 12, pad = 2;
     float left = 0, top = 0, width = 0, height = 0;
     int columns = 0;
+    // Which halves are in use; one alone has the whole band.
+    bool favouritesOn = true, planOn = true;
     bool usable() const { return columns > 0 && height >= 120; }
     bool has(float x, float y) const { return usable() && x >= left && x < left + width && y >= top && y < top + height; }
-    float split() const { return std::floor(height * .5f); }
+    float split() const { return !favouritesOn ? 0 : !planOn ? height : std::floor(height * .5f); }
     int favouriteRows() const { return std::max(0, static_cast<int>((split() - head - pad) / cell)); }
     int favourites() const { return columns * favouriteRows(); }
     float cellX(int index) const { return left + pad + static_cast<float>(index % columns) * cell; }

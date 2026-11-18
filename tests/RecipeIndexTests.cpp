@@ -419,6 +419,9 @@ void recipeIndexTests() {
         auto view = rawView(index, base, both);
         check(both.wanted.size() == 1 && view.gather.size() == 1 && view.gather[0].id == index.find("oak_planks") && view.gather[0].left == 4 && view.steps.size() == 1,
               "the plan makes sticks from the picked planks and gathers those, as they are marked");
+        check(looseLines(index, list, {{"grass", 100, "schematic"}, {"grass", 58, "schematic"}, {"stick", 4, "schematic"}}, {{"grass", 30}, {"unknown_item", 9}})
+                  == std::vector<LooseLine>{{"unknown_item", 3, 3, 0}, {"grass", 158, 30, 128}},
+              "a wanted item no recipe knows is gathered as it is: its need summed, what is held taken off");
         check(groupKey(index, 0) == "planks", "a tag is noted by its name");
         check(index.findKey("stick@7") == index.find("stick") && index.findKey("stick") == index.find("stick") && index.findKey("none@2") < 0,
               "a key that carries an aux the table does not tell apart finds the item all the same");

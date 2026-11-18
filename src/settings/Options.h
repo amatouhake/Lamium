@@ -506,7 +506,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::offhandSwapFireworks>("inventory.offhandSwapFireworks", "offhandSwap", "offhandSwapFireworks"),
     toggle<&Settings::inventory, &Settings::Inventory::deathRestore>("inventory.deathRestore", "deathRestore", "deathRestore"),
     toggle<&Settings::inventory, &Settings::Inventory::recipes>("inventory.recipes", "recipes", "recipes"),
-    toggle<&Settings::inventory, &Settings::Inventory::recipesBand>("inventory.recipesBand", "recipes", "recipesBand"),
+    toggle<&Settings::inventory, &Settings::Inventory::recipesFavourites>("inventory.recipesFavourites", "recipes", "recipesFavourites"),
     toggle<&Settings::inventory, &Settings::Inventory::recipesPlan>("inventory.recipesPlan", "recipes", "recipesPlan"),
     toggle<&Settings::inventory, &Settings::Inventory::recipesStoreMarks>("inventory.recipesStoreMarks", "recipes", "recipesStoreMarks"),
     toggle<&Settings::inventory, &Settings::Inventory::massCraft>("inventory.massCraft", "massCraft", "massCraft"),

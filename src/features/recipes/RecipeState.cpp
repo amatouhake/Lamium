@@ -257,6 +257,10 @@ Plan const* plan(LocalPlayer& player) {
     plan.stored.clear();
     for (auto const& item : placeTotals(placed))
         if (Item const id = table->index.find(item.name, item.aux); id >= 0) plan.stored[id] += item.count;
+    std::map<std::string, Count> byName;
+    if (placed.carried) for (auto const& stack : schematic::items::carriedStacks(player)) byName[stack.name] += stack.count;
+    for (auto const& item : placeTotals(placed)) byName[item.name] += item.count;
+    plan.loose = looseLines(table->index, list, given, byName);
     auto both = plan.held;
     for (auto const& [id, count] : plan.stored) both[id] += count;
     plan.request.held.assign(both.begin(), both.end());

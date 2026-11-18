@@ -16,7 +16,11 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/actor/BlockActor.h"
 #include "mc/world/level/block/actor/BlockActorType.h"
+#include "app/Runtime.h"
+#include "features/recipes/RecipeState.h"
 #include "mc/world/level/block/actor/ChestBlockActor.h"
+#include "mc/world/level/chunk/ChunkState.h"
+#include "mc/world/level/chunk/LevelChunk.h"
 #include <chrono>
 #include <string>
 
@@ -77,19 +81,48 @@ std::optional<Open> read(ScreenView& screen) {
 }
 namespace {
 ll::event::ListenerPtr renderListener;
-std::chrono::steady_clock::time_point bundlesAt{};
+std::chrono::steady_clock::time_point bundlesAt{}, storesAt{};
+// A store where another block stands, or none, is a store no more: looked at once a second near the
+// player, in chunks that are loaded (a chunk on its way shows a placeholder block, which says nothing).
+void dropMissingStores(LocalPlayer& player) {
+    auto const settings = Runtime::instance().snapshot();
+    if (!Runtime::instance().enabled() || !settings->inventory.recipes || !settings->inventory.recipesPlan) return;
+    auto const& list = state::places().list;
+    if (list.empty()) return;
+    int const dimension = static_cast<int>(player.getDimensionId());
+    Vec3 const eye = player.getPosition();
+    auto& region = player.getDimensionBlockSource();
+    for (int i = static_cast<int>(list.size()) - 1; i >= 0; --i) {
+        auto const& place = list[static_cast<size_t>(i)];
+        if (place.ender || place.at.dimension != dimension) continue;
+        double const dx = place.at.x + .5 - eye.x, dy = place.at.y + .5 - eye.y, dz = place.at.z + .5 - eye.z;
+        if (dx * dx + dy * dy + dz * dz > 48.0 * 48.0) continue;
+        BlockPos const pos{place.at.x, place.at.y, place.at.z};
+        auto* chunk = region.getChunkAt(pos);
+        if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) continue;
+        std::string const block = region.getBlock(pos).getTypeName();
+        if (block.empty() || block == place.block || block.find("placeholder") != std::string::npos) continue;
+        state::unmarkStore(i);
+        return; // the list changed: the rest waits for the next look
+    }
+}
 }
 void start() {
     renderListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
         try {
             auto& screen = event.screenView();
-            if (!screen.mHasFocus || !screen.mController || !screen.mController->_isContainerScreen()) return;
             auto const now = std::chrono::steady_clock::now();
+            auto client = ll::service::getClientInstance();
+            auto* player = client ? client->getLocalPlayer() : nullptr;
+            if (!player) return;
+            if (now - storesAt >= std::chrono::seconds(1)) {
+                storesAt = now;
+                dropMissingStores(*player);
+            }
+            if (!screen.mHasFocus || !screen.mController || !screen.mController->_isContainerScreen()) return;
             if (now - bundlesAt < std::chrono::milliseconds(250)) return;
             bundlesAt = now;
-            auto client = ll::service::getClientInstance();
-            if (auto* player = client ? client->getLocalPlayer() : nullptr)
-                schematic::items::carriedStacks(*player, &static_cast<ContainerScreenController&>(*screen.mController));
+            schematic::items::carriedStacks(*player, &static_cast<ContainerScreenController&>(*screen.mController));
         } catch (...) {}
     });
 }

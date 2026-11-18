@@ -296,8 +296,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
     float const coverLeft = std::min(windowLeft, viewLayout.left);
     auto const prefs = Runtime::instance().snapshot();
     bool const planOn = prefs->inventory.recipesPlan;
-    // Without the band nothing stands left of the game's window; without the plan the band is the favourites.
-    auto const side = prefs->inventory.recipesBand ? itemListLeft(screen.y, coverLeft) : SideLayout{};
+    // The band left of the game's window holds the favourites and the plan: one alone has all of it, and
+    // with neither there is no band.
+    bool const favouritesOn = prefs->inventory.recipesFavourites;
+    auto side = favouritesOn || planOn ? itemListLeft(screen.y, coverLeft) : SideLayout{};
+    side.favouritesOn = favouritesOn;
+    side.planOn = planOn;
     if (!planOn && planView::isOpen()) planView::close();
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
@@ -399,7 +403,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // A favourite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
     std::set<std::string_view> favouriteKeys;
     std::map<std::string_view, Count> wantedCounts;
-    for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
+    if (prefs->inventory.recipesFavourites) for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
     if (planOn) for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
     // What a feature handed over is wanted too.
     auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
@@ -433,8 +437,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     constexpr float smallIcon = .625f;
     if (side.usable()) {
         fill(context, side.left, side.top, side.width, side.height, palette::panel, .5f);
-        label(context, side.left + 4, side.top + 3, side.width - 8, translated("recipes.favourites"), palette::dim);
-        auto const favourites = state::notes().favourites;
+        if (favouritesOn) label(context, side.left + 4, side.top + 3, side.width - 8, translated("recipes.favourites"), palette::dim);
+        auto const favourites = favouritesOn ? state::notes().favourites : std::vector<std::string>{};
         int const favouriteHover = side.hitFavourite(px, py), favouriteCount = std::min(static_cast<int>(favourites.size()), side.favourites());
         for (int i = 0; i < favouriteCount; ++i) {
             auto const& item = schematic::items::shown(favourites[static_cast<size_t>(i)]);
@@ -449,7 +453,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
         if (pressed && favouriteHover >= 0 && favouriteHover < favouriteCount) show(favourites[static_cast<size_t>(favouriteHover)]);
         if (planOn) {
-        fill(context, side.left + 3, side.top + side.split(), side.width - 6, 1, palette::white, .2f);
+        if (favouritesOn) fill(context, side.left + 3, side.top + side.split(), side.width - 6, 1, palette::white, .2f);
         // The bar: which of the three lists shows, named as the window's tabs, and the window at the right
         // end. Where the three do not fit, one button that goes round them.
         struct ListName { SideList list; char const* key; planView::Tab tab; };
@@ -526,6 +530,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                                     groupName(index, line.id - items), line.left});
                 }
             }
+            // What the recipe table does not know (a grass block) is gathered as it is.
+            for (auto const& line : plan->loose) if (line.left > 0) rows.push_back({line.key, schematic::items::shown(line.key).name, line.left});
         } else if (plan) {
             // What to make, in the order it can be made, each with how many come out.
             auto const& index = plan->table->index;
@@ -636,13 +642,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 auto const* plan = state::plan(*player);
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
-        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn,
+        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn, favouritesOn,
                              placer ? &*placer : nullptr, coverLeft, right}, late);
     }
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), true, nullptr, coverLeft, right}, late, *player,
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), true, true, nullptr, coverLeft, right}, late, *player,
                        shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
@@ -745,7 +751,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
         for (auto const& line : more) w = std::max(w, textWidth(context, line));
         w = std::min(w + 8, screen.x - 4);
-        float const h = 12 + 10 * static_cast<float>(late.tipLines.size() + more.size());
+        // Two units under the last line: letters that reach below it (p, y) stay inside the frame.
+        float const h = 12 + 10 * static_cast<float>(late.tipLines.size() + more.size()) + (late.tipLines.empty() && more.empty() ? 0.f : 2.f);
         float const x = std::max(2.f, std::min(px + 8, screen.x - w - 2)), y = std::max(2.f, std::min(py + 8, screen.y - h - 2));
         if (item) {
             context.flushText(0, std::nullopt);
@@ -846,6 +853,7 @@ std::string hovered() {
 }
 std::string hoveredItem() { return hovered(); }
 void favourite() {
+    if (!Runtime::instance().snapshot()->inventory.recipesFavourites) return;
     if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
 }
 void want() {

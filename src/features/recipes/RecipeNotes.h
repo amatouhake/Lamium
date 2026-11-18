@@ -130,6 +130,32 @@ inline void apply(Index const& index, Wanted const& wanted, std::vector<Handed> 
     for (auto const& target : handed) add(target.key, target.count);
 }
 
+// A wanted item the recipe table does not know, because no recipe makes or uses it (a grass block): it
+// is gathered as it is, and stands in "to gather" beside what the recipes ask for. `heldByName`: what
+// counts as held, by item name.
+struct LooseLine {
+    std::string key;
+    Count need = 0, held = 0, left = 0;
+    bool operator==(LooseLine const&) const = default;
+};
+inline std::vector<LooseLine> looseLines(Index const& index, Wanted const& wanted, std::vector<Handed> const& handed,
+                                         std::map<std::string, Count> const& heldByName) {
+    std::vector<LooseLine> out;
+    auto add = [&](std::string const& key, Count amount) {
+        if (key.empty() || !amount || index.findKey(key) >= 0) return;
+        auto found = std::find_if(out.begin(), out.end(), [&](LooseLine const& line) { return line.key == key; });
+        if (found == out.end()) out.push_back({key, amount, 0, 0}); else found->need += amount;
+    };
+    for (auto const& [key, amount] : wanted.targets) add(key, amount);
+    for (auto const& target : handed) add(target.key, target.count);
+    for (auto& line : out) {
+        auto const have = heldByName.find(std::string(splitItemKey(line.key).name));
+        line.held = std::min(line.need, have == heldByName.end() ? Count{0} : have->second);
+        line.left = line.need - line.held;
+    }
+    return out;
+}
+
 // The documents. Reading tolerates anything: what is not understood is left out.
 std::string encodeNotes(Notes const& notes);
 Notes decodeNotes(std::string_view text);

@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## What the look review built, second look (L-359, L-363, L-364, 2026-11-19)
+
+Build `d09a0743` (DLL
+`e92b9c77cbef7587905aa544dcbcf13619625ecc430b52a7a849e028afde5d4e`),
+1.26.60.05 Dev instance, the maintainer:
+- An item Lamium draws has the game-like frame and, under its name, the
+  game's lines with Lamium's item details, with no stray characters or
+  lines. A last line with letters that reach below it (an id with p or
+  y) stuck out of the frame.
+- The tabs on the Schematics screen and the world map stand side by side
+  with no gap.
+- "Include what the schematic still needs" on the wanted tab works. The
+  three settings work; "Left band" and "Plan" overlap in part, and
+  "Favourites" and "Plan" were asked for instead.
+- Shulker boxes and bundles inside a store count. A store whose block
+  was replaced kept its outline and its row.
+- "To gather" lacked wanted items no recipe knows (grass blocks from a
+  schematic), so it did not list everything to gather.
+- Mass Craft on a server: still not looked at.
+
 ## What the look review built, first look (L-359, L-363, L-364, 2026-11-19)
 
 Build `e0aac46a` (DLL
