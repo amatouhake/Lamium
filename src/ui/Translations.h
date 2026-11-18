@@ -993,7 +993,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.materials.short", "Short: {} kinds", "足りない: {} 種類"},
     {"schematic.materials.raw", "Show raw materials", "元の素材で表示"},
     {"schematic.materials.rawPaused", "Show raw materials (paused)", "元の素材で表示（一時停止中）"},
-    {"schematic.raw.column", "Raw materials", "元の素材"},
     {"schematic.raw.gather", "To gather", "集めるもの"},
     {"schematic.raw.left", "Left", "あと"},
     {"schematic.raw.crafts", "Times", "回数"},

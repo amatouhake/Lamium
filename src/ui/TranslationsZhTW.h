@@ -984,7 +984,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"schematic.materials.short", "不足: {} 種"},
     {"schematic.materials.raw", "顯示原材料"},
     {"schematic.materials.rawPaused", "顯示原材料（已暫停）"},
-    {"schematic.raw.column", "原材料"},
     {"schematic.raw.gather", "需要收集"},
     {"schematic.raw.left", "還差"},
     {"schematic.raw.crafts", "次數"},

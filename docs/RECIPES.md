@@ -290,10 +290,6 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.
-- Built and not seen in game: the schematic handing its materials over
-  (they follow the player's own wanted items, named "Schematic" where
-  those have their controls) and the Materials tab cut back to its
-  gather list.
 - Not built: counted places
   beyond what is carried; held members first in a group's turn. Their own
   items: taking an item out of the list in creative

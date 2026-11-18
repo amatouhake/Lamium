@@ -311,7 +311,7 @@ int materialSelected = -1; // index into materialRows
 // the list falls back to the materials when the recipes cannot be read.
 bool materialsRaw = false;
 struct RawRow {
-    enum class Kind { GatherHead, Gather, Nothing, Reading } kind;
+    enum class Kind { Gather, Nothing, Reading } kind;
     int index = -1; // into rawGather
     bool selectable() const { return kind == Kind::Gather; }
 };
@@ -1273,7 +1273,6 @@ void refreshRaw() {
         rawGather.push_back({line.id < items ? table->index.items[static_cast<size_t>(line.id)] : std::string{}, line.id < items ? -1 : line.id - items,
                              line.id, line.need, line.held, line.left});
     std::stable_sort(rawGather.begin(), rawGather.end(), [](RawGather const& a, RawGather const& b) { return a.left > b.left; });
-    rawRows.push_back({RawRow::Kind::GatherHead});
     for (int i = 0; i < static_cast<int>(rawGather.size()); ++i) rawRows.push_back({RawRow::Kind::Gather, i});
     // What to make of it is the plan's to show (RECIPES.md): this tab stops at what to gather.
     if (rawGather.empty()) rawRows.push_back({RawRow::Kind::Nothing});
@@ -1399,7 +1398,12 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         break;
     }
     case SchematicTab::Materials:
-        if (rawShowing()) { heading(left + 14, listRight - left - 16, "schematic.raw.column"); break; }
+        // One line of headings: the list is what to gather and nothing else.
+        if (rawShowing()) {
+            heading(left + 14, carriedX - left - 16, "schematic.raw.gather");
+            heading(carriedX, numW, "schematic.raw.left", Align::Right);
+            break;
+        }
         heading(left + 14, neededX - left - 16, "schematic.column.material");
         heading(neededX, numW, "schematic.column.needed", Align::Right);
         if (showPlaced) heading(placedX, numW, "schematic.column.placed", Align::Right);
@@ -1599,10 +1603,6 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     break;
                 case RawRow::Kind::Nothing:
                     label(context,left,y+3,listRight-left-ShapesLayout::pad,translated("schematic.raw.nothing"),palette::accent);
-                    break;
-                case RawRow::Kind::GatherHead:
-                    label(context,left,y+3,carriedX-left-2,translated("schematic.raw.gather"),palette::faint);
-                    label(context,carriedX,y+3,numW,translated("schematic.raw.left"),palette::faint,Align::Right);
                     break;
                 case RawRow::Kind::Gather: {
                     auto const& line = rawGather[static_cast<size_t>(row.index)];

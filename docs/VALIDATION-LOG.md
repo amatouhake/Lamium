@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A schematic's materials among the wanted items (L-359, 2026-11-19)
+
+Build `a89a55fb` (DLL
+`59721bdf22074562ade69017077fecacf2ac67c03e218a78775a051eab779f51`),
+1.26.60.05 Dev instance, the maintainer, a placement checked:
+- "Put what is left into the plan" on: the materials stood among the
+  wanted items, and what to gather and to make took them in; a block
+  placed lowered its count.
+- The switch off, or Schematics off: they left the wanted items (the
+  maintainer's note reads so; not asked again).
+- "Show raw materials" showed what to gather only and was laid out
+  right, but under two lines of headings ("Raw materials", then "To
+  gather" and "Left"): one in the next build.
+
 ## A recipe cell pressed by Lamium crafts nothing (L-165, 2026-11-19)
 
 Trace build of `12997bd6` (`craft_trace`, DLL
