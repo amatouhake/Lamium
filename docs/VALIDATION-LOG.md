@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## What the look review built, third look (L-359, 2026-11-19)
+
+Build `4f2b0e7a` (DLL
+`785a495d4b5a81849d06aae171ea5b9da46afb51aec1bee47358d6b9ded1de71`),
+1.26.60.05 Dev instance, the maintainer:
+- The tooltip's last line stays inside the frame with the id shown.
+- With "Favourites" or "Plan" off, the band shows what is left as
+  expected.
+- A store's chest broken: its outline and its row were gone within
+  seconds.
+- With the schematic's materials handed over, "to gather" lists grass
+  blocks and the like.
+
 ## What the look review built, second look (L-359, L-363, L-364, 2026-11-19)
 
 Build `d09a0743` (DLL
