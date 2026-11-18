@@ -180,25 +180,33 @@ after using the first build. What is still open is in the L-item.
 ### Mass Craft
 A setting of its own, off by default, and it works with Recipes off
 ([L-165](backlog/L-165.md), maintainer 2026-11-18).
-- It runs while its key is held with the pointer over the output slot of
-  the inventory's or the crafting table's grid. The key has no default.
-- The recipe is the one lying in the grid when the key goes down, found
-  in the table by the grid's items; a grid the table has no recipe for
+- It runs on the inventory and the crafting table while its key is held;
+  the key has no default. It starts once the key was held for a time the
+  player sets, 0 to 1 s, 0.3 s unless changed, so a brush of the key
   does nothing.
+- The recipe is that of the item under the pointer, as for the recipe
+  keys: in Lamium's lists or a slot of the game. Of its crafting recipes
+  that fit the grid, the one the player's choices name, else the first;
+  what lay in the grid goes back first, and the run goes on wherever the
+  pointer moves. Ingredients need not be carried when it starts, so an
+  inventory full of one ingredient can throw its surplus out.
+- Over the output slot the recipe is the one lying in the grid, found in
+  the table by the grid's items, and the run ends when the pointer leaves
+  the slot. A grid the table has no recipe for does nothing.
 - A round: all the grid makes is taken into the inventory, what the take
   added of the product is thrown out (what was carried of it before
   stays), and the recipe is laid in again as many times as divide evenly.
   A step every 50 ms. With no room in the inventory for the product, it
-  is taken onto the pointer by presses on the output and thrown from
-  there.
+  is taken onto the pointer and thrown from there: by presses on the
+  output where the pointer is over it, else by the slot call that takes
+  an amount, which was not seen to craft.
 - A round that cannot be laid in waits for more to arrive. With no slot
   free, of the slots the recipe's ingredients fill each ingredient keeps
   the share its cells are of the recipe, one slot at least and its
   fullest stacks, and the other slots are thrown out whole. A recipe of
   one ingredient throws nothing, and what does not stack (a filled
   shulker box to dye) is never thrown.
-- It ends when the key is released, the pointer leaves the output slot,
-  the pointer holds an item, the product finds no room or the grid holds
+- It ends when the key is released, the pointer holds an item, the product finds no room or the grid holds
   what is not the recipe (a bucket a recipe gave back). Each run writes
   its recipe and, at its end, rounds, takes, stacks thrown and time to
   the log.

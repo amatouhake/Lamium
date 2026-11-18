@@ -27,8 +27,8 @@ void tick(ScreenView& screen);
 // Gives a waiting recipe up: the screen went, the player pressed something, the window lost the focus.
 void stop();
 }
-// Mass Craft (L-165): while its key is held with the pointer over the output slot, the recipe lying in the
-// grid is laid in again as many times as divide evenly, all of it taken and the product thrown out of the
+// Mass Craft (L-165): while its key is held, the recipe of the item under the pointer (over the output
+// slot: the one lying in the grid) is laid in again as many times as divide evenly, all of it taken and the product thrown out of the
 // inventory, a step every 50 ms. A round that cannot be laid in waits for more to arrive; with no slot
 // free, the stacks of an ingredient beyond its share go out (MassCraftPlan.h). One log line per run.
 namespace massCraft {

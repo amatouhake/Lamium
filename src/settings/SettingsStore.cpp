@@ -242,6 +242,7 @@ Json encode(Settings const& settings) {
                        {"deathRestore", settings.inventory.deathRestore},
                        {"recipes", settings.inventory.recipes},
                        {"massCraft", settings.inventory.massCraft},
+                       {"massCraftDelay", settings.inventory.massCraftDelay},
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
                        {"enchantOrderAnvil", settings.inventory.enchantOrderAnvil},
                        {"enchantOrderAnvilChoose", settings.inventory.enchantOrderAnvilChoose},
@@ -699,6 +700,7 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.deathRestore = settingsValue(data.at("inventory"), "deathRestore", value.inventory.deathRestore);
         value.inventory.recipes = settingsValue(data.at("inventory"), "recipes", value.inventory.recipes);
         value.inventory.massCraft = settingsValue(data.at("inventory"), "massCraft", value.inventory.massCraft);
+        value.inventory.massCraftDelay = settingsValue(data.at("inventory"), "massCraftDelay", value.inventory.massCraftDelay);
         value.inventory.deathRestoreAll = settingsValue(data.at("inventory"), "deathRestoreAll", value.inventory.deathRestoreAll);
         value.inventory.enchantOrderAnvil = settingsValue(data.at("inventory"), "enchantOrderAnvil", value.inventory.enchantOrderAnvil);
         value.inventory.enchantOrderAnvilChoose =

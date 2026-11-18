@@ -451,10 +451,12 @@ still to come in [RECIPES.md](RECIPES.md).
 
 ### Mass Craft (experimental)
 
-Hold its key (unbound by default) with the pointer over the output slot of
-the inventory's or the crafting table's grid: the recipe lying in the grid
-is crafted, the products are thrown out and the recipe is laid in again as
-many times as divide evenly, for as long as the key is held. When the
+On the inventory and the crafting table, hold its key (unbound by default)
+with the pointer over an item, in Lamium's lists or a slot of the game:
+that item's recipe is laid in as many times as divide evenly, crafted and
+the products thrown out, again and again for as long as the key is held.
+Over the output slot it is the recipe lying in the grid. The key acts
+after it was held for 0.3 s (0 to 1 s). When the
 inventory is full and an ingredient is missing, stacks of the other
 ingredients beyond the recipe's share are thrown out too. Off by default;
 a server may limit how fast requests come. Details in

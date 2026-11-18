@@ -2,6 +2,7 @@
 #include "app/Runtime.h"
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inventory/game/TransferRoutes.h"
+#include "features/recipes/ItemList.h"
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/RecipeState.h"
 #include "ll/api/event/EventBus.h"
@@ -164,6 +165,7 @@ enum class Phase { Lay, Take, Throw, Hand };
 constexpr int mostClicks = 8;
 struct Run {
     bool on = false, over = false; // over: this press of the key does nothing more
+    bool fromGrid = false;         // started over the output slot: it goes on only while the pointer stays there
     std::shared_ptr<service::Table const> table;
     int recipe = -1;
     std::map<int, Item> picks;
@@ -175,6 +177,8 @@ struct Run {
     int rounds = 0, takes = 0, thrown = 0, surplus = 0, hands = 0;
 } run;
 std::atomic<bool> keyHeld{false};
+Clock::time_point pressedAt; // when the key went down
+bool evacuated = false;      // this press already sent the grid's contents back
 ll::event::ListenerPtr renderListener, exitListener;
 void finish(char const* why) {
     if (run.on) {
@@ -221,25 +225,54 @@ bool roomFor(ContainerManagerController& manager, Index const& index, Item produ
     return false;
 }
 bool makes(ContainerManagerController& manager) { return static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe != nullptr; }
+// The crafting recipe an item is made by that fits the grid: the one the player's choices name, else the first.
+int recipeFor(std::shared_ptr<service::Table const> const& shared, Item item, int side) {
+    auto const& table = *shared;
+    auto fits = [&](int recipe) {
+        return recipe >= 0 && placePlan(table.index, table.index.recipes[static_cast<size_t>(recipe)], side, {}, {}, false).fits;
+    };
+    if (auto const choice = state::choice(shared); choice && static_cast<size_t>(item) < choice->recipe.size() && fits(choice->recipe[static_cast<size_t>(item)]))
+        return choice->recipe[static_cast<size_t>(item)];
+    for (int recipe : table.index.makers[static_cast<size_t>(item)]) if (fits(recipe)) return recipe;
+    return -1;
+}
 void begin(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
-    // The recipe is the one lying in the grid: nothing in it, nothing to do yet.
-    if (held(manager) || !makes(manager) || service::want() != service::State::Ready) return;
+    if (held(manager) || service::want() != service::State::Ready) return;
     auto table = service::table();
     if (!table) return;
     int const side = sideOf(manager);
-    std::vector<Item> cells;
-    for (int i = 0; i < side * side; ++i) {
-        auto const& stack = manager.getItemStack(grid, i);
-        cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
-    }
+    bool const fromGrid = overOutput(controller);
+    int recipe = -1;
     std::string named;
-    if (::Recipe const* made = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) named = *made->mRecipeId;
-    int const recipe = recipeInGrid(table->index, side, cells, named);
+    if (fromGrid) {
+        // Over the output slot the recipe is the one lying in the grid: nothing in it, nothing to do yet.
+        if (!makes(manager)) return;
+        std::vector<Item> cells;
+        for (int i = 0; i < side * side; ++i) {
+            auto const& stack = manager.getItemStack(grid, i);
+            cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
+        }
+        if (::Recipe const* made = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) named = *made->mRecipeId;
+        recipe = recipeInGrid(table->index, side, cells, named);
+    } else {
+        // Elsewhere it is the recipe of the item under the pointer, in Lamium's lists or a slot of the game.
+        Item item = -1;
+        if (auto const key = itemList::hoveredItem(); !key.empty()) item = table->index.findKey(key);
+        else if (auto const* stack = inspection::hover::HoverTracker::getInstance().resolveItem(controller); stack && !stack->isNull())
+            item = table->index.find(stack->getTypeName(), stack->getAuxValue());
+        if (item < 0) return;
+        recipe = recipeFor(table, item, side);
+    }
     if (recipe < 0) {
-        try { Runtime::instance().self().getLogger().info("Mass Craft: the grid lays out no recipe of the table"); } catch (...) {}
+        try { Runtime::instance().self().getLogger().info("Mass Craft: no crafting recipe for it fits this grid"); } catch (...) {}
         run.over = true;
         return;
+    }
+    if (!fromGrid && !gridEmpty(manager)) {
+        // What lies in the grid goes back first, once a press; the run starts when the grid reads empty.
+        if (!evacuated) controller._evacuateCraftingGrid(), evacuated = true;
+        if (!gridEmpty(manager)) return;
     }
     Request request;
     apply(table->index, state::notes(), request);
@@ -248,6 +281,8 @@ void begin(CraftingScreenController& controller) {
     run.table = std::move(table);
     run.recipe = recipe;
     run.picks = std::move(request.picks);
+    run.fromGrid = fromGrid;
+    run.phase = fromGrid ? Phase::Take : Phase::Lay;
     run.next = run.began = run.since = Clock::now();
     try {
         Runtime::instance().self().getLogger().info("Mass Craft: started with {} (the game names {})", run.table->index.recipes[static_cast<size_t>(recipe)].id, named);
@@ -308,12 +343,14 @@ void advance(CraftingScreenController& controller) {
             most = static_cast<int>(stack.getMaxStackSize());
         }
         auto more = [&](int count) { return makes(manager) && count + static_cast<int>(recipe.count) <= most; };
-        // A press on the output, where the pointer is, crafts once onto the pointer; again while the last one showed.
+        // A press on the output crafts once onto the pointer; again while the last one showed. Away from the
+        // output slot the product is taken onto the pointer by the slot call instead (not seen to craft yet).
         if (more(have) && (!run.clicked || have > run.handSeen)) {
             for (int i = 0; i < mostClicks; ++i) {
                 run.handSeen = held(manager);
                 if (!more(run.handSeen)) break;
-                if (!inventory::game::transferRoutes::pressAsPlainClick(controller)) { finish("pressing the output failed"); return; }
+                if (!overOutput(controller)) controller._handleTakeAmount(static_cast<int>(recipe.count), output, 0);
+                else if (!inventory::game::transferRoutes::pressAsPlainClick(controller)) { finish("pressing the output failed"); return; }
                 run.clicked = true;
                 if (held(manager) <= run.handSeen) break;
             }
@@ -366,13 +403,15 @@ void tick(ScreenView& screen) {
     if (!runtime.enabled() || !runtime.snapshot()->inventory.massCraft) { finish("switched off"); return; }
     auto* controller = crafting(screen);
     if (!controller) { finish("not a crafting screen"); return; }
-    // Only while the pointer is over the output slot; holding the key before it gets there waits.
-    if (!overOutput(*controller)) { if (run.on) finish("the pointer left the output slot"); return; }
-    if (!run.on) begin(*controller);
+    if (run.on && run.fromGrid && !overOutput(*controller)) { finish("the pointer left the output slot"); return; }
+    // Held a moment first, so a brush of the key starts nothing.
+    if (!run.on && Clock::now() - pressedAt >= std::chrono::milliseconds(static_cast<int>(runtime.snapshot()->inventory.massCraftDelay * 1000)))
+        begin(*controller);
     if (run.on) advance(*controller);
 }
 }
 void setHeld(bool held) {
+    if (held && !keyHeld) pressedAt = Clock::now(), evacuated = false;
     keyHeld = held;
     if (!held) finish("the key was released");
 }

@@ -94,7 +94,8 @@ struct Settings {
         bool offhandSwap = true; // The Swap with offhand key works (L-94)
         bool deathRestore = false; // Put picked-up items back in their death-time slots (L-109, experimental)
         bool recipes = false; // The item list beside item screens and the recipe view (L-359, experimental)
-        bool massCraft = false; // The key that crafts and throws out what lies in the grid, while held (L-165)
+        bool massCraft = false; // The key that crafts and throws out an item's recipe, while held (L-165)
+        float massCraftDelay = .3f; // Seconds the key is held before it starts
         bool deathRestoreAll = false; // Also the main inventory; off: the hotbar, armor and offhand
         // The planned steps listed beside the anvil screen (L-170). Off for new installs while the feature is
         // Experimental (L-338); the two below only act with it on.
@@ -438,6 +439,8 @@ struct Settings {
         overlays.lightRange = std::clamp(std::round(overlays.lightRange), 4.f, 64.f);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;
         overlays.hitboxDistance = std::clamp(overlays.hitboxDistance, 8.f, 128.f);
+        if (!std::isfinite(inventory.massCraftDelay)) inventory.massCraftDelay = .3f;
+        inventory.massCraftDelay = std::clamp(std::round(inventory.massCraftDelay * 10) / 10, 0.f, 1.f);
         if (!std::isfinite(interaction.elytraReturnSeconds)) interaction.elytraReturnSeconds = 3;
         interaction.elytraReturnSeconds = std::clamp(std::round(interaction.elytraReturnSeconds * 2) / 2, 0.f, 10.f);
         // Per-line backgrounds exist only for the line elements (Info, Status,
