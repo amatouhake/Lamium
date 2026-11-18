@@ -12,6 +12,32 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A recipe laid into the grid and taken by Lamium (L-165, L-359, 2026-11-18)
+
+Builds `42f79d98` and `31ee25e5` with `craft_trace` (DLL of the second
+`deaaa42346e7625f71d7ec48b9f2c1074d0b24f2c5a9d71e8cc84a8cd4e6b2b8`),
+1.26.60.05 Dev instance, a local world, crafting table and inventory, the
+maintainer played and the agent read the log:
+- Laying a recipe in with `_handleTakeAmount` then `_handlePlaceAll` per
+  cell: a chest's eight cells, one plank each and seven each, a furnace's
+  eight cobblestone each, logs in one cell, in the 3x3 and the 2x2 grid.
+  Every request was accepted, the pointer was empty after each cell, and
+  the manager's crafting recipe became the one laid in. A recipe too large
+  for the 2x2 grid was refused by the trace itself.
+- The output slot (`crafting_output_items`) read empty while the game
+  showed the product, so the first build never took anything.
+- One Shift take (`_handleAutoPlace` with the largest amount on the output
+  slot) crafted all the grid held: 1 chest; 8 furnaces from 8 cobblestone a
+  cell, the grid empty after; 31 logs to planks as two craft actions of 16
+  and 15; 64 logs likewise. The server was asked for `CraftRecipe` with
+  that many crafts.
+- With the inventory nearly full, one take crafted what fit (16 and 4
+  crafts), the rest stayed in the grid with the product still shown;
+  further takes asked the server for nothing.
+- The trace took from one stack only (63 planks gave seven a cell); the
+  game's book gathers from every stack. Not checked on a server: the
+  maintainer set it aside, a local world running the same server code.
+
 ## What the game's recipe book and item screens do (L-165, L-359, 2026-11-18)
 
 Build `d5456178` with `craft_trace` (DLL
