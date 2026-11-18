@@ -190,6 +190,7 @@ struct Run {
 std::atomic<bool> keyHeld{false};
 Clock::time_point pressedAt; // when the key went down
 bool evacuated = false;      // this press already sent the grid's contents back
+bool refusalTold = false;    // this press already logged why it does not start
 ll::event::ListenerPtr renderListener, exitListener;
 void finish(char const* why) {
     if (run.on) {
@@ -269,7 +270,15 @@ int recipeFor(std::shared_ptr<service::Table const> const& shared, Item item, in
 }
 void begin(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
-    if (held(manager) || service::want() != service::State::Ready) return;
+    if (held(manager)) {
+        // Waits for the pointer to be empty; said once, since nothing else shows it.
+        if (!refusalTold) {
+            refusalTold = true;
+            try { Runtime::instance().self().getLogger().info("Mass Craft: not started, the pointer holds an item"); } catch (...) {}
+        }
+        return;
+    }
+    if (service::want() != service::State::Ready) return;
     auto table = service::table();
     if (!table) return;
     int const side = sideOf(manager);
@@ -551,7 +560,7 @@ void tick(ScreenView& screen) {
 }
 }
 void setHeld(bool held) {
-    if (held && !keyHeld) pressedAt = Clock::now(), evacuated = false;
+    if (held && !keyHeld) pressedAt = Clock::now(), evacuated = false, refusalTold = false;
     keyHeld = held;
     if (!held) finish("the key was released");
 }

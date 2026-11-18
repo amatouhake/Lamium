@@ -193,7 +193,9 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"recipeback", "recipes", Behavior::Press, 0x08}, // Backspace, while the recipe view is open
     {"recipefavourite", "recipes", Behavior::Press, 0x41}, // A and W over an item: into the favourites or the wanted items, or out
     {"recipewanted", "recipes", Behavior::Press, 0x57},
-    {"masscrafthold", "massCraft", Behavior::Hold}, // over the crafting grid's output slot (L-165)
+    // Over an item on a crafting screen (L-165). Its keys match in any order: pressed in another order, a
+    // chord that ends in a click left the click to the game, which crafted a stack onto the pointer.
+    {"masscrafthold", "massCraft", Behavior::Hold, 0, Matching::Modifier},
     {"masscraft", "massCraft", Behavior::Toggle},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));

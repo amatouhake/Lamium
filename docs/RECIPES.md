@@ -181,7 +181,8 @@ after using the first build. What is still open is in the L-item.
 A setting of its own, off by default, and it works with Recipes off
 ([L-165](backlog/L-165.md), maintainer 2026-11-18).
 - It runs on the inventory and the crafting table while its key is held;
-  the key has no default. It starts once the key was held for a time the
+  the key has no default, and a key of several inputs matches in any
+  order. It starts once the key was held for a time the
   player sets, 0 to 1 s, 0.3 s unless changed, so a brush of the key
   does nothing.
 - The recipe is that of the item under the pointer, as for the recipe

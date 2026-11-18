@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A Mass Craft press that crafted one stack onto the pointer (L-165, 2026-11-18)
+
+Trace build of `a9ad7804` (`craft_trace`, DLL
+`f65343b3ea0731014f4b14d5b5133c27c2d84a94dc0b46fff5886cb091df6194`),
+1.26.60.05 Dev instance, a local world, the maintainer, the key set to
+Ctrl + Shift + left click and the start delay to 1 s:
+- The key pressed over an entry of the game's recipe book, logs carried:
+  one stack of planks was crafted, lay on the pointer and nothing went
+  on. The log has no Mass Craft line for it: no run began.
+- Read as, not confirmed: the click went to the game, whose own
+  Ctrl + Shift + click crafted the stack, and the run then waited for an
+  empty pointer. A key of several inputs matched in the order it was
+  set only, so Shift before Ctrl left the click to the game.
+
 ## Mass Craft under 16 slot calls a step (L-165, 2026-11-18)
 
 Trace build of `f8d7b95c` (`craft_trace`, DLL
