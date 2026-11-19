@@ -18,7 +18,10 @@ bool opened = false;
 Tab tab = Tab::Wanted;
 int scroll[4]{};
 int expanded = -1; // the group whose members are shown, to pick one
-std::pair<Item, int> expandedMake{-1, -1}; // a row of what to make and its group input opened to pick a member
+std::pair<Item, int> expandedMake{-1, -1}; // unused since L-370: choosing is the breakdown's
+std::string openEntry; // the wanted entry whose breakdown is open (wantedEntryId)
+std::pair<std::string, int> openMembers{{}, -1}; // in that breakdown, a group opened to pick a member
+std::string scrollTo; // a wanted entry to bring into view when the wanted tab shows next
 constexpr float rowHeight = 12, headTop = 4, rowsTop = 16, iconScale = .625f, stepperWidth = 50;
 }
 bool isOpen() { return opened; }
@@ -30,6 +33,8 @@ void close() {
     opened = false;
     expanded = -1;
     expandedMake = {-1, -1};
+    openEntry.clear();
+    openMembers = {{}, -1};
 }
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift, std::string& showItem,
           bool& showChoice) {
@@ -171,55 +176,6 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     }
     int& offset = scroll[static_cast<int>(tab)];
     int wheel = input.wheel;
-    if (tab == Tab::Wanted) {
-        // A copy: the controls below change the list. What features handed over follows, named by its
-        // source where the player's own rows have their controls.
-        struct Target { std::string key; Count amount = 0; std::string source; };
-        std::vector<Target> targets;
-        for (auto const& [key, amount] : state::wanted().targets) targets.push_back({key, amount, {}});
-        for (auto const& given : state::handed()) targets.push_back({given.key, given.count, given.source});
-        if (targets.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
-        // The wheel scrolls the list only after the rows: a stepper under the pointer takes it for itself.
-        offset = std::clamp(offset, 0, std::max(0, static_cast<int>(targets.size()) - fits));
-        bar(static_cast<int>(targets.size()), offset);
-        for (int row = 0; row < fits && offset + row < static_cast<int>(targets.size()); ++row) {
-            auto const& [key, amount, source] = targets[static_cast<size_t>(offset + row)];
-            float const y = top + static_cast<float>(row) * rowHeight;
-            float sx = right;
-            if (source.empty() && over(left, y, right - left, rowHeight)) late.wantedRow = key;
-            if (!source.empty()) {
-                std::string from = translated("recipes.from." + source);
-                float const w = textWidth(context, from) + 4;
-                windowLabel(context, right - w, y + 2, w, std::move(from), true, Align::Right);
-                number(right - w - 2, y, std::to_string(amount), false);
-                sx = right - w - 38;
-            } else {
-            float end = rowButton(right, y, translated("recipes.remove"), [&] { state::removeWanted(key); });
-            // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
-            sx = end - stepperWidth;
-            drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(amount),
-                        {.editing = countEdit::editing(key), .pointerX = px, .pointerY = py, .backed = true, .dimValue = amount == 0});
-            if (took(sx, y + 1, 11, 10)) state::stepWanted(key, false, shift, true);
-            else if (took(sx + stepperWidth - 11, y + 1, 11, 10)) state::stepWanted(key, true, shift, true);
-            else if (took(sx, y + 1, stepperWidth, 10)) countEdit::begin(key, amount);
-            else if (wheel && over(sx, y + 1, stepperWidth, 10)) {
-                // The wheel over a stepper steps it: up is more.
-                state::stepWanted(key, wheel < 0, shift, false);
-                wheel = 0;
-            }
-            }
-            Item const id = index.findKey(key);
-            if (id >= 0) lead(y, id, sx - 4, amount);
-            else {
-                // Not in this world's table: shown by what the game calls it, kept as it is.
-                auto const& shown = schematic::items::shown(key);
-                if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, left, y + 1, iconScale});
-                windowLabel(context, left + 13, y + 2, sx - left - 19, shown.name, true);
-            }
-        }
-        offset = std::clamp(offset + wheel, 0, std::max(0, static_cast<int>(targets.size()) - fits));
-        return;
-    }
     float const bottom = l.top + l.height - RecipeViewLayout::foot;
     // A group's members as cells under its row, to pick one (or "any" again); a row's height in all.
     auto members = [&](float y, int group, auto&& done) {
@@ -246,6 +202,215 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         }
         return rows * 18 + 2;
     };
+    // A step as the game's slots: its inputs, an arrow, its product, and its station (L-370). `choosing`: in a
+    // breakdown, where a group input opens its members and the recipe and "gather" are chosen; `entry` is
+    // that breakdown's. `faint`: its icons dim (a step that cannot be made yet). Returns nothing; the row is
+    // `stepHeight` high.
+    constexpr float stepHeight = 20, targetHeight = 22, materialHeight = 18, labelHeight = 11;
+    auto stepRow = [&](float x0, float y, StepLine const& step, Request const& request, bool choosing, std::string const& entry, bool faint) {
+        auto const& key = index.items[static_cast<size_t>(step.item)];
+        auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+        size_t const iconsBefore = late.icons.size();
+        float end = right;
+        if (choosing) {
+            end = rowButton(right, y + 4, translated("recipes.toGather"), [&] { state::setStop(key, true); });
+            auto const options = recipeOptions(index, step.item);
+            if (options.size() > 1) {
+                int const now = static_cast<int>(std::ranges::find(options, step.recipe) - options.begin());
+                auto const pager = drawPager(context, end, y + 4.5f, now, static_cast<int>(options.size()), px, py);
+                auto choose = [&](int to) { state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(options[static_cast<size_t>(to)])])); };
+                if (pager.prevOn && took(pager.prevX, pager.y, Pager::size, Pager::size)) choose(now - 1);
+                else if (pager.nextOn && took(pager.nextX, pager.y, Pager::size, Pager::size)) choose(now + 1);
+                end = pager.prevX - 3;
+            }
+        }
+        if (auto const station = stationItem(recipe.station); !station.empty()) {
+            auto const& shown = schematic::items::shown(std::string(station));
+            if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, end - 11, y + 5, iconScale});
+            if (over(end - 11, y, 11, stepHeight)) late.tip = shown.name;
+            end -= 14;
+        }
+        // The inputs from the left, as many as there is room for before the arrow and the product.
+        float x = x0;
+        float const room = end - 18 - 12;
+        auto slotAt = [&](float sx, std::string const& iconKey, Count count) {
+            windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18));
+            if (!iconKey.empty())
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(iconKey).icon)) late.icons.push_back({stack, sx + 1, y + 2});
+            if (count > 1) late.counts.push_back({sx, y + 1, std::to_string(count)});
+        };
+        auto const& uses = recipe.uses;
+        for (size_t u = 0; u < uses.size(); ++u) {
+            auto const& part = uses[u];
+            if (x + 18 > room) {
+                windowLabel(context, x + 1, y + 6, room - x, "...", true);
+                if (over(x, y, room - x, stepHeight)) late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step);
+                break;
+            }
+            Item const item = partItem(index, request, part);
+            std::string iconKey, name;
+            if (item >= itemCount) {
+                auto const& list = index.groups[static_cast<size_t>(item - itemCount)].members;
+                if (!list.empty()) iconKey = index.items[static_cast<size_t>(list[turn % list.size()])];
+                name = groupName(index, item - itemCount);
+            } else if (item >= 0) iconKey = index.items[static_cast<size_t>(item)], name = schematic::items::shown(iconKey).name;
+            slotAt(x, iconKey, step.crafts * part.count);
+            if (over(x, y + 1, 18, 18)) late.tip = name, late.hovered = item < itemCount ? iconKey : std::string();
+            if (choosing && part.group) {
+                // Any of several: a press opens its members under the row to pick one.
+                bool const open = openMembers == std::pair<std::string, int>{entry, part.id};
+                if (open) fill(context, x, y + 19, 18, 1, palette::accentDeep);
+                if (took(x, y + 1, 18, 18)) openMembers = open ? std::pair<std::string, int>{{}, -1} : std::pair<std::string, int>{entry, part.id};
+            }
+            x += 18;
+        }
+        changeArrow(context, x + 3, y + 7.5f, 1, palette::vanilla::windowInk);
+        x += 12;
+        slotAt(x, key, step.made);
+        if (over(x, y + 1, 18, 18)) late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
+        if (took(x, y + 1, 18, 18)) showItem = key;
+        if (faint) for (size_t k = iconsBefore; k < late.icons.size(); ++k) late.icons[k].alpha = .45f;
+    };
+    if (tab == Tab::Wanted) {
+        // Each wanted item, in its priority order: the finished ones held against those wanted and a bar of how
+        // much of what it takes is gathered; a press opens its breakdown, where its choices are made (L-370).
+        auto const& entries = plan->entries;
+        if (entries.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
+        // The rows as lines of their own heights, so a breakdown's lines scroll like the rest.
+        struct Line { enum class Kind { Target, Step, Label, Material, Members } kind; size_t entry = 0; size_t at = 0; float height = 0; };
+        std::vector<Line> lines;
+        for (size_t e = 0; e < entries.size(); ++e) {
+            if (scrollTo == wantedEntryId(entries[e])) offset = static_cast<int>(lines.size()), scrollTo.clear();
+            lines.push_back({Line::Kind::Target, e, 0, targetHeight});
+            if (openEntry != wantedEntryId(entries[e]) || e >= plan->targets.size() || plan->targets[e].item < 0) continue;
+            auto const& view = plan->targets[e].view;
+            if (!view.steps.empty()) lines.push_back({Line::Kind::Label, e, 0, labelHeight});
+            for (size_t k = 0; k < view.steps.size(); ++k) {
+                lines.push_back({Line::Kind::Step, e, k, stepHeight});
+                if (openMembers.first == openEntry) {
+                    auto const& uses = index.recipes[static_cast<size_t>(view.steps[k].recipe)].uses;
+                    if (std::ranges::any_of(uses, [&](Part const& part) { return part.group && part.id == openMembers.second; }) &&
+                        std::ranges::none_of(lines, [](Line const& line) { return line.kind == Line::Kind::Members; }))
+                        lines.push_back({Line::Kind::Members, e, k, 0});
+                }
+            }
+            if (!view.gather.empty()) lines.push_back({Line::Kind::Label, e, 1, labelHeight});
+            for (size_t k = 0; k < view.gather.size(); ++k) lines.push_back({Line::Kind::Material, e, k, materialHeight});
+        }
+        int const count = static_cast<int>(lines.size());
+        offset = std::clamp(offset, 0, std::max(0, count - 1));
+        bar(count, offset);
+        float y = top;
+        auto const& request = plan->request;
+        for (int at = offset; at < count; ++at) {
+            auto const& line = lines[static_cast<size_t>(at)];
+            auto const& entry = entries[line.entry];
+            std::string const id = wantedEntryId(entry);
+            TargetPlan const* target = line.entry < plan->targets.size() ? &plan->targets[line.entry] : nullptr;
+            float height = line.height;
+            if (line.kind == Line::Kind::Members) {
+                if (openMembers.second < 0) continue;
+                height = members(y, openMembers.second, [&] { openMembers = {{}, -1}; });
+            }
+            if (y + std::min(height, stepHeight) > bottom) break;
+            if (line.kind == Line::Kind::Label) {
+                windowLabel(context, left + 8, y + 1, right - left - 8, translated(line.at == 0 ? "recipes.make" : "recipes.gather"), true);
+            } else if (line.kind == Line::Kind::Step && target) {
+                stepRow(left + 8, y, target->view.steps[line.at], request, true, id, false);
+            } else if (line.kind == Line::Kind::Material && target) {
+                auto const& material = target->view.gather[line.at];
+                std::string const amounts = std::format("{} / {}", material.held, material.need);
+                constexpr float barW = 26;
+                float const numbersEnd = right - barW - 4, numbersW = 46;
+                windowLabel(context, numbersEnd - numbersW, y + 5, numbersW, amounts, false, Align::Right);
+                progressBar(context, right - barW, y + 7, barW, 3, material.need > 0 ? static_cast<float>(material.held) / static_cast<float>(material.need) : 1.f);
+                float nameEnd = numbersEnd - numbersW - 4;
+                bool const stopped = material.id >= 0 && material.id < itemCount && request.stops.contains(material.id);
+                if (stopped) nameEnd = rowButton(nameEnd, y + 3, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(material.id)], false); });
+                std::string iconKey, name;
+                if (material.id >= itemCount) {
+                    auto const& list = index.groups[static_cast<size_t>(material.id - itemCount)].members;
+                    if (!list.empty()) iconKey = index.items[static_cast<size_t>(list[turn % list.size()])];
+                    name = groupName(index, material.id - itemCount);
+                    // A group: a press on the row opens its members to pick one.
+                    bool const open = openMembers == std::pair<std::string, int>{id, material.id - itemCount};
+                    if (over(left, y, nameEnd - left, height)) fill(context, left + 6, y, nameEnd - left - 6, height, palette::shade, .1f);
+                    if (took(left, y, nameEnd - left, height)) openMembers = open ? std::pair<std::string, int>{{}, -1} : std::pair<std::string, int>{id, material.id - itemCount};
+                } else if (material.id >= 0) iconKey = index.items[static_cast<size_t>(material.id)], name = schematic::items::shown(iconKey).name;
+                if (!iconKey.empty())
+                    if (auto const* stack = schematic::items::iconStack(schematic::items::shown(iconKey).icon)) late.icons.push_back({stack, left + 8, y + 1});
+                if (late.tip.empty() && over(left, y, nameEnd - left, height)) late.tip = name, late.hovered = material.id < itemCount ? iconKey : std::string();
+                windowLabel(context, left + 27, y + 5, nameEnd - left - 29, name);
+                // A group opened from this row shows its members right under it.
+                if (material.id >= itemCount && openMembers == std::pair<std::string, int>{id, material.id - itemCount}) {
+                    y += height;
+                    height = members(y, material.id - itemCount, [&] { openMembers = {{}, -1}; });
+                }
+            } else if (line.kind == Line::Kind::Target) {
+                // The row: a fold mark, the icon and the name; under the name its bar; "have / want" and the
+                // share at the right of the bar; the controls at the right end, up and down under the pointer.
+                bool const manual = entry.source.empty();
+                bool const hot = over(left, y, right - left, height);
+                if (manual && hot) late.wantedRow = entry.key;
+                Item const item = index.findKey(entry.key);
+                bool const known = item >= 0 && target && target->item >= 0;
+                float sx = right;
+                if (!manual) {
+                    std::string from = translated("recipes.from." + entry.source);
+                    float const w = textWidth(context, from) + 4;
+                    windowLabel(context, right - w, y + 6, w, std::move(from), true, Align::Right);
+                    sx = right - w - 4;
+                } else {
+                    float const end = rowButton(right, y + 5, translated("recipes.remove"), [&] { state::removeWanted(entry.key); });
+                    sx = end - stepperWidth;
+                    drawStepper(context, sx, y + 6, stepperWidth, 10, true, std::to_string(entry.count),
+                                {.editing = countEdit::editing(entry.key), .pointerX = px, .pointerY = py, .backed = true, .dimValue = entry.count == 0});
+                    if (took(sx, y + 6, 11, 10)) state::stepWanted(entry.key, false, shift, true);
+                    else if (took(sx + stepperWidth - 11, y + 6, 11, 10)) state::stepWanted(entry.key, true, shift, true);
+                    else if (took(sx, y + 6, stepperWidth, 10)) countEdit::begin(entry.key, entry.count);
+                    else if (wheel && over(sx, y + 6, stepperWidth, 10)) {
+                        state::stepWanted(entry.key, wheel < 0, shift, false);
+                        wheel = 0;
+                    }
+                    sx -= 3;
+                }
+                if (hot) {
+                    sx -= moveButtonsWidth;
+                    int const move = drawMoveButtons(context, sx, y + 5.5f, line.entry > 0, line.entry + 1 < entries.size(), px, py);
+                    if (move && took(sx, y + 5.5f, moveButtonsWidth, moveButtonSize)) state::moveWanted(id, move);
+                    sx -= 3;
+                }
+                Count want = entry.count, have = 0;
+                float fraction = 1;
+                int percent = 100;
+                if (known) have = target->finished, fraction = target->fraction(), percent = target->percent();
+                else
+                    for (auto const& loose : plan->loose)
+                        if (loose.key == entry.key) {
+                            have = loose.held;
+                            fraction = loose.need > 0 ? static_cast<float>(loose.held) / static_cast<float>(loose.need) : 1.f;
+                            percent = static_cast<int>(fraction * 100);
+                        }
+                bool const done = want > 0 && have >= want;
+                if (known) chevron(context, left, y + 8, openEntry == id, palette::vanilla::windowInk);
+                auto const& shown = schematic::items::shown(entry.key);
+                if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, left + 8, y + 3, 1.f, 0, done ? .45f : 1.f});
+                std::string const amounts = done ? std::format("{} / {}", have, want) : std::format("{} / {}  {}%", have, want, percent);
+                float const amountsW = textWidth(context, amounts);
+                windowLabel(context, left + 27, y + 2, sx - left - 29, shown.name, done);
+                windowLabel(context, sx - amountsW - 2, y + 11, amountsW, amounts, true, Align::Right);
+                progressBar(context, left + 27, y + 14, std::max(10.f, sx - amountsW - 6 - (left + 27)), 3, fraction);
+                if (late.tip.empty() && over(left, y, sx - left, height)) late.tip = shown.name, late.hovered = entry.key;
+                if (known && took(left, y, sx - left, height)) {
+                    openEntry = openEntry == id ? std::string() : id;
+                    openMembers = {{}, -1};
+                }
+            }
+            y += height;
+        }
+        offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
+        return;
+    }
     if (tab == Tab::Gather) {
         // One line of the whole: what is left of all there is to gather, with a bar. Rows still to gather come
         // first, most left first; done ones (held whole, or marked gathered) follow, faint (L-367).
@@ -328,83 +493,34 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         }
         return;
     }
-    // What to make, in the order to make it: each row its inputs with counts, an arrow, the product with the
-    // count made, the station, the recipe it is made by (stepped through in place where there are several) and
-    // "gather" at its right end. A press on an input any of several items serves opens them to pick one.
+    // What to make: the work to do. Steps that can be made now come first, the others under them faint; a press
+    // opens the breakdown of the wanted item that needs the step, where its choices are made (L-370).
     auto const& steps = plan->view.steps;
     if (steps.empty()) { note(translated("recipes.nothingWanted")); return; }
-    int const count = static_cast<int>(steps.size());
+    std::map<Item, Count> stock;
+    for (auto const& [id, have] : plan->request.held) stock[id] += have;
+    std::vector<std::pair<StepLine const*, bool>> order;
+    for (auto const& step : steps) if (stepReady(index, plan->request, step, stock)) order.push_back({&step, true});
+    for (auto const& step : steps) if (!stepReady(index, plan->request, step, stock)) order.push_back({&step, false});
+    int const count = static_cast<int>(order.size());
     offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
     bar(count, offset);
     float y = top;
-    for (int at = offset; at < count && y + rowHeight <= bottom; ++at) {
-        auto const& step = steps[static_cast<size_t>(at)];
-        auto const& key = index.items[static_cast<size_t>(step.item)];
-        auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
-        float end = rowButton(right, y, translated("recipes.toGather"), [&] { state::setStop(key, true); });
-        // The recipe it is made by: previous / "1 / 3" / next, only where there are several.
-        auto const options = recipeOptions(index, step.item);
-        if (options.size() > 1) {
-            int const now = static_cast<int>(std::ranges::find(options, step.recipe) - options.begin());
-            auto const pager = drawPager(context, end, y + .5f, now, static_cast<int>(options.size()), px, py);
-            auto choose = [&](int to) { state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(options[static_cast<size_t>(to)])])); };
-            if (pager.prevOn && took(pager.prevX, pager.y, Pager::size, Pager::size)) choose(now - 1);
-            else if (pager.nextOn && took(pager.nextX, pager.y, Pager::size, Pager::size)) choose(now + 1);
-            end = pager.prevX - 3;
+    for (int at = offset; at < count && y + stepHeight <= bottom; ++at) {
+        auto const& [step, ready] = order[static_cast<size_t>(at)];
+        bool const hot = over(left, y, right - left, stepHeight);
+        if (hot) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
+        stepRow(left, y, *step, plan->request, false, {}, !ready);
+        if (took(left, y, right - left, stepHeight)) {
+            for (size_t e = 0; e < plan->targets.size() && e < plan->entries.size(); ++e)
+                if (std::ranges::any_of(plan->targets[e].view.steps, [&](StepLine const& mine) { return mine.item == step->item; })) {
+                    openEntry = scrollTo = wantedEntryId(plan->entries[e]);
+                    openMembers = {{}, -1};
+                    tab = Tab::Wanted;
+                    break;
+                }
         }
-        // Where it is made, as that station's item.
-        if (auto const station = stationItem(recipe.station); !station.empty()) {
-            auto const& shown = schematic::items::shown(std::string(station));
-            if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, end - 11, y + 1, iconScale});
-            if (over(end - 11, y, 11, rowHeight)) late.tip = shown.name;
-            end -= 14;
-        }
-        // The product and how many the crafts make, right-aligned against the station.
-        auto const& product = schematic::items::shown(key);
-        std::string const made = std::format("{}", step.made);
-        float const madeW = textWidth(context, made), productX = end - madeW - 13;
-        if (auto const* stack = schematic::items::iconStack(product.icon)) late.icons.push_back({stack, productX, y + 1, iconScale});
-        windowLabel(context, productX + 11, y + 2, madeW + 2, made);
-        bool const onProduct = over(productX, y, madeW + 13, rowHeight);
-        if (onProduct) late.tip = product.name, late.tipLines = stepInputLines(index, plan->request, step), late.hovered = key;
-        if (took(productX, y, madeW + 13, rowHeight)) showItem = key;
-        float const arrowX = productX - 10;
-        changeArrow(context, arrowX, y + 3.5f, 1, palette::vanilla::windowInk);
-        // The inputs from the left, as many as there is room for; the rest says itself under the pointer.
-        float x = left;
-        int openGroup = -1;
-        auto const& uses = recipe.uses;
-        for (size_t u = 0; u < uses.size(); ++u) {
-            auto const& part = uses[u];
-            Item const item = partItem(index, plan->request, part);
-            std::string const amount = std::to_string(step.crafts * part.count);
-            float const w = 11 + textWidth(context, amount) + 4;
-            if (x + w > arrowX - 2) {
-                windowLabel(context, x, y + 2, arrowX - 2 - x, "...", true);
-                if (over(x, y, arrowX - x, rowHeight)) late.tip = product.name, late.tipLines = stepInputLines(index, plan->request, step);
-                break;
-            }
-            std::string iconKey, name;
-            if (item >= itemCount) {
-                auto const& list = index.groups[static_cast<size_t>(item - itemCount)].members;
-                if (!list.empty()) iconKey = index.items[static_cast<size_t>(list[turn % list.size()])];
-                name = groupName(index, item - itemCount);
-            } else if (item >= 0) iconKey = index.items[static_cast<size_t>(item)], name = schematic::items::shown(iconKey).name;
-            if (!iconKey.empty())
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(iconKey).icon)) late.icons.push_back({stack, x, y + 1, iconScale});
-            windowLabel(context, x + 11, y + 2, w - 11, amount);
-            bool const hot = over(x, y, w, rowHeight);
-            if (part.group) {
-                // Any of several: a press opens the members under the row.
-                if (hot) fill(context, x - 1, y, w, rowHeight, palette::shade, .1f), late.tip = name;
-                if (took(x, y, w, rowHeight)) openGroup = part.id;
-                if (expandedMake == std::pair<Item, int>{step.item, part.id}) fill(context, x - 1, y + rowHeight - 1, w, 1, palette::accentDeep);
-            } else if (hot) late.tip = name, late.hovered = iconKey;
-            x += w;
-        }
-        if (openGroup >= 0) expandedMake = expandedMake == std::pair<Item, int>{step.item, openGroup} ? std::pair<Item, int>{-1, -1} : std::pair<Item, int>{step.item, openGroup};
-        y += rowHeight;
-        if (expandedMake.first == step.item) y += members(y, expandedMake.second, [&] { expandedMake = {-1, -1}; });
+        y += stepHeight;
     }
     if (!showItem.empty()) showChoice = false;
 }

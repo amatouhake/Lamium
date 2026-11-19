@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/PlanTargets.h"
 #include "features/recipes/Places.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/RecipeNotes.h"
@@ -32,6 +33,10 @@ void removeWanted(std::string const& key);
 void stepWanted(std::string const& key, bool up, bool shift, bool button);
 // Wanted items the wheel left at 0 go out, but `keep`, the one under the pointer or being stepped.
 void settleWanted(std::string_view keep);
+// The wanted items, the player's and what features hand over, in their priority order (L-370).
+std::vector<WantedEntry> wantedEntries();
+// Moves a wanted entry (wantedEntryId) up (negative) or down by `delta` places, and keeps the order.
+void moveWanted(std::string const& id, int delta);
 // The recipe an item is made by, as choiceKey names it; empty gives it back to the default.
 void setChoice(std::string const& item, std::string const& recipe);
 // The member used for a group; an empty member gives it back to "any".
@@ -65,6 +70,9 @@ struct Plan {
     std::map<Item, Count> held; // carried as far as it counts (the player's switches), by item
     std::map<Item, Count> stored; // in the counted places as last seen, by item; the plan counts both
     std::vector<LooseLine> loose; // wanted items the table does not know: gathered as they are
+    // L-370: the wanted entries in priority order and, for each, its share (item -1 where the table lacks it).
+    std::vector<WantedEntry> entries;
+    std::vector<TargetPlan> targets;
 };
 // Null until the recipe table is read.
 Plan const* plan(LocalPlayer& player);

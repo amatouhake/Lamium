@@ -48,12 +48,17 @@ Notes decodeNotes(std::string_view document) {
 std::string encodeWanted(Wanted const& wanted) {
     Json targets = Json::array();
     for (auto const& [key, amount] : wanted.targets) if (amount > 0) targets.push_back({{"item", key}, {"count", amount}});
-    return Json{{"version", 1}, {"wanted", std::move(targets)}}.dump(2);
+    Json root{{"version", 1}, {"wanted", std::move(targets)}};
+    // The order the wanted items stand in (L-370); a file without it reads as the order they were added.
+    if (!wanted.order.empty()) root["order"] = wanted.order;
+    return root.dump(2);
 }
 Wanted decodeWanted(std::string_view document) {
     Wanted out;
     Json const root = parsed(document);
     if (!root.is_object()) return out;
+    if (auto order = root.find("order"); order != root.end() && order->is_array())
+        for (auto const& entry : *order) if (auto id = text(entry); !id.empty() && out.order.size() < 1024) out.order.push_back(std::move(id));
     auto list = root.find("wanted");
     if (list == root.end() || !list->is_array()) return out;
     for (auto const& entry : *list) {

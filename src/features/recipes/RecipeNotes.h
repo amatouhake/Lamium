@@ -76,6 +76,9 @@ struct Wanted {
     std::vector<std::pair<std::string, Count>> targets; // item key and how many, in the order added
     // What a target taken out had, so putting it back restores it; for the session, not saved.
     std::map<std::string, Count> remembered;
+    // The order targets stand in, their priority (L-370): entry ids (wantedEntryId), the player's own and
+    // what features hand over alike. Ids it lacks follow in their own order; ids gone are ignored.
+    std::vector<std::string> order;
     Count count(std::string_view key) const {
         for (auto const& [name, amount] : targets) if (name == key) return amount;
         return 0;

@@ -35,6 +35,10 @@ struct Pager {
     bool overNext(float px, float py) const { return nextOn && px >= nextX && px < nextX + size && py >= y && py < y + size; }
 };
 Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int page, int pages, float pointerX, float pointerY);
+// Up and down (L-370): two small buttons side by side, `moveButtonsWidth` wide, to move an entry of an
+// ordered list one place. Returns -1 for the up button under the pointer, 1 for down, 0 for neither.
+inline constexpr float moveButtonsWidth = 21, moveButtonSize = 11;
+int drawMoveButtons(MinecraftUIRenderContext& context, float x, float y, bool upOn, bool downOn, float pointerX, float pointerY);
 // One of joined on/off buttons (DESIGN "Each on or off"), green when on. On the game's window the off face
 // is the game's lighter grey with a black edge, as the switch's track there; the text stays white.
 void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, bool hovered, bool on);

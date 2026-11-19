@@ -216,6 +216,15 @@ void stepWanted(std::string const& key, bool up, bool shift, bool button) {
     else list.zero(key);
     writeWanted();
 }
+std::vector<WantedEntry> wantedEntries() {
+    followWorld();
+    return prioritized(list, handed());
+}
+void moveWanted(std::string const& id, int delta) {
+    followWorld();
+    list.order = movedOrder(prioritized(list, handed()), id, delta);
+    writeWanted();
+}
 void settleWanted(std::string_view keep) {
     followWorld();
     if (list.settle(keep)) writeWanted();
@@ -270,6 +279,11 @@ Plan const* plan(LocalPlayer& player) {
     for (auto const& [id, count] : plan.stored) both[id] += count;
     plan.request.held.assign(both.begin(), both.end());
     plan.view = rawView(table->index, *plan.choice, plan.request);
+    // Each wanted entry's share, held stock going to them from the top down (L-370).
+    plan.entries = prioritized(list, given);
+    std::vector<std::pair<Item, Count>> order;
+    for (auto const& entry : plan.entries) order.emplace_back(table->index.findKey(entry.key), entry.count);
+    plan.targets = targetPlans(table->index, *plan.choice, order, plan.request.held, plan.request.picks, plan.request.stops);
     plannedNow.revision = revision;
     plannedNow.at = now;
     return &plan;

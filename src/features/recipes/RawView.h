@@ -45,8 +45,7 @@ inline std::vector<int> recipeOptions(Index const& index, Item item) {
     for (int number : index.makers[static_cast<size_t>(item)]) if (!index.recipes[static_cast<size_t>(number)].own) out.push_back(number);
     return out;
 }
-inline RawView rawView(Index const& index, Choice const& choice, Request const& request) {
-    Planned plan = planned(index, choice, request);
+inline RawView rawView(Index const& index, Choice const& choice, Planned plan) {
     RawView out;
     out.covered = std::move(plan.covered);
     out.heldKinds = plan.result.fromHeld.size();
@@ -68,6 +67,9 @@ inline RawView rawView(Index const& index, Choice const& choice, Request const& 
         if (!listed) out.done.push_back({item, have, have, 0});
     }
     return out;
+}
+inline RawView rawView(Index const& index, Choice const& choice, Request const& request) {
+    return rawView(index, choice, planned(index, choice, request));
 }
 // The item a recipe's part stands for in a plan: itself, the picked member of its group, or the group.
 inline Item partItem(Index const& index, Request const& request, Part const& part) {

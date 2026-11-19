@@ -151,32 +151,35 @@ after using the first build. What is still open is in the L-item.
   gather list and "make" moves it back. "Back to any" undoes a picked
   group member.
   "Plan" stays the feature's name in settings only.
-- There is one plan: a list of targets in, what to gather and what to make
-  out. Several named plans are not built until one proves too few.
+- There is one plan, built around the wanted items (L-370): it says how
+  far each is, what is left to gather for all, and what to make. Several
+  named plans are not built until one proves too few.
 - Targets come from features (a schematic's materials still to place,
   while "Put what is left into the plan" on its Materials tab is on: a
   saved switch, off unless the player turns it on) and can be added by
   hand. Hand-added targets are saved per world, under the
   waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
   be edited; it looks like the others and says where it comes from.
-- The plan's short list on the left shows the wanted items, what is left
-  to gather or what to make, switched in place and named as the window's
-  tabs (one button going round where the three do not fit); a press on a
-  line or on "Open" opens the window on that list. The window has the tabs
-  wanted, to gather and to make, and sits where the recipe view does, in
-  its look; the recipe view opens over it (a press on an item's name) and
-  gives it back when closed.
-- The window's "to gather" (L-367): a line of the whole above it (left
-  of all, count and percent, with a bar); each row its name, "have /
-  need" and a short bar; rows done (held whole, or marked gathered) faint
-  under the others.
-- The window's "to make", in the order to make it: each row its inputs
-  with counts, an arrow, the product with the count made, the station,
-  previous / "1 / 3" / next where several recipes make it (the choice is
-  made there; the recipe view has no "use"), and "gather". A press on an
-  input any of several items serves opens its members under the row to
-  pick one. A step whose product is held whole leaves the list. The short
-  list's line says, under the pointer, what its crafts take.
+- The left band's short list shows the wanted items, what to gather or
+  what to make, named as the window's tabs; a press on a line or "Open"
+  opens the window there. The window sits where the recipe view does; the
+  recipe view opens over it (a press on an item) and gives it back.
+- The window's "wanted", in priority order (up and down buttons on the
+  row under the pointer, handed items too; kept in `wanted.json`): each
+  row its icon and name, the finished items held against those wanted,
+  the share of what it takes that is gathered (a part held on the way
+  counts) with a bar. Held stock goes to the rows from the top down. A
+  press opens its breakdown: its steps in the order to make them, then
+  what it needs gathered (have / need). Only the breakdown chooses: a
+  step's previous / "1 / 3" / next for its recipe, a press on an input
+  any of several items serves (or on such a material's row) for its
+  member, "gather" on a step and "make" on a material set to gather.
+- The window's "to gather": a line of the whole (left of all, percent,
+  bar); each row "have / need" and a short bar; done rows faint below.
+- The window's "to make" is the work: steps that can be made now from
+  what is held first, the others faint below; a press opens the
+  breakdown of the wanted item that needs it. Steps show as the game's
+  slots: inputs, an arrow, the product with its count, the station.
 - A key (W by default, beside A for favourites; both rebindable) puts the
   hovered item into "wanted" or takes it out, wherever the favourite key
   works. While it is held the wheel changes how many are wanted, so the
@@ -194,12 +197,9 @@ after using the first build. What is still open is in the L-item.
   multiple of the item's stack, 1 to 64 to 128. A press on the number types it
   (Enter or a press elsewhere keeps it, Esc does not; 0 takes the item
   out).
-- Picking a member for a group, the recipe in use and saying that an item
-  is gathered, not made, are done inside the plan.
 - "To gather" lists everything to gather: what the recipes ask for and,
   after it, wanted items the recipe table does not know because no
   recipe makes or uses them (a grass block), gathered as they are.
-- The plan is lists; no tree view for now.
 - What is held is the sum over what is counted: what is carried (a
   switch, on unless the player turns it off, so a plan can be served
   from a store alone); the ender chest from the first time it is seen
@@ -225,8 +225,7 @@ after using the first build. What is still open is in the L-item.
   or none, is dropped: looked at once a second within 48 blocks, in
   loaded chunks, and when the container is opened. The word is "store" throughout.
 - In "to gather", a "have" number that includes a place's last-seen count
-  carries a star in a gutter of its own, and says under the pointer how
-  many are carried and how many each place holds.
+  is starred and says under the pointer where the items are.
 - Kept between sessions: only what the player enters (recipe choices, group
   picks, "stop here" marks), in one file for all worlds; an entry the
   current world's recipes lack is ignored, not deleted.
