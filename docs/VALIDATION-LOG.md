@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe windows' tabs on their top edge (L-367, 2026-11-20)
+
+Build `b5ef2370` (DLL
+`3d10823f37d13da44ea60619ab455251abe57f9baebd2d57a5731d0f85aa3ce6`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the tabs stand on the
+windows' top edge naturally; favourite and wanted (Lamium's buttons with
+the lighter off face) sit well on the light window; the band's picture
+tabs and the one-unit rule are the right size. Not right: on the band the
+chosen picture tab's green line overlaps its picture; the windows are
+crowded (no margins, the heading's name cut short, the pager beside the
+buttons); rows of raised buttons (Gather, Make) without room and without a
+sound; the light window's switch edge too dark; the tab pictures not the
+game's shape; the gather and make lists do not show the whole of what is
+needed and gathered, names are cut, an old Lamium tip shows; the make list
+does not show what turns into what; the chosen recipe's "in use" mark;
+pages turn only by the wheel.
+
 ## Game-like controls on the recipe windows; the wheel to 0 (L-367, 2026-11-20)
 
 Build `dd2f0293` (DLL
