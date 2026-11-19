@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The red slot face and one more a press (L-367, 2026-11-20)
+
+Build `56632ffa` (DLL
+`9f44bd8d2f4737b954de7128fbe631d8dfe09c05e9f2248bde6b8eacf631aeec`),
+1.26.60.05 Dev instance, the maintainer: confirmed. A missing ingredient's
+slot reddens only its face, as the game's does; pressing an item under
+"can be made" again adds one more of each, nothing flies; once something
+is short or a cell is a full stack, a press adds nothing. The recipe view
+of L-367 is settled; the plan window's lists come next.
+
 ## Rounded tabs, a full grid left alone (L-367, 2026-11-20)
 
 Build `7c191e53` (DLL
