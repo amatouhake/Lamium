@@ -5,6 +5,7 @@
 #include "features/map/DataMerge.h"
 #include "features/map/MapRegionFiles.h"
 #include "features/map/SavedData.h"
+#include "features/map/RealmCookie.h"
 #include "features/schematic/PlacementStore.h"
 #include "overlay/LocalShapePath.h"
 #include "overlay/ShapeStore.h"
@@ -20,6 +21,7 @@
 #include "mc/deps/core/utility/FilePathManager.h"
 #include "mc/network/GameConnectionInfo.h"
 #include "mc/world/level/Level.h"
+#include "mc/world/level/LevelSeed64.h"
 #include "mc/world/level/storage/LevelData.h"
 #ifdef LAMIUM_SERVER_TRACE
 #include <format>
@@ -81,10 +83,18 @@ struct Identity {
     bool local = false;
     std::string address, ip, levelId, levelName;
     int port = 0;
+    std::int64_t realm = 0;         // A Realm's id (L-358); its data goes by it, whatever the address.
+    prints::Print print;            // The world joined (L-365).
+    std::string base;               // The key the identity names; `key` is the data set of it in use.
     std::optional<std::string> key; // The config key of a server's or a friend's world's data.
     std::filesystem::path worlds;   // The game's local worlds folder.
     bool hasAddress() const { return !local && port > 0 && !(address.empty() && ip.empty()); }
+    // Named by its address through the server records, which "Use this data" changes.
+    bool byAddress() const { return hasAddress() && !realm; }
 } identity;
+// The joined world's print decided for now and not answered yet (L-365): the tool screens ask.
+std::optional<prints::Pick> question;
+bool questionToast = false;
 std::filesystem::path configFolder() { return Runtime::instance().self().getConfigDir(); }
 // Fuller data that may be the joined server's, per kind (SavedData.h); refreshed by suggest().
 std::array<std::optional<SavedData>, 4> fullerFound;
@@ -130,20 +140,29 @@ bool withList(Edit edit) {
     catch (std::exception const& error) { log(std::string("could not save the server list: ") + error.what()); return false; }
     return true;
 }
-// The key this join's data is under (L-343), or none. A server: by its address, through the record of which
-// key each server was reached by. No address (a friend's world): by the level id, as a local world is.
+// Records a world's name and kind for the saved data list. The caller holds the lock.
+void recordWorld(servers::List& list, std::string const& key, Identity const& who) {
+    auto found = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
+    if (found != list.worlds.end()) {
+        found->name = who.levelName;
+        found->realm = found->realm || who.realm;
+    } else if (list.worlds.size() < servers::maxEntries) list.worlds.push_back({key, who.levelName, who.realm != 0});
+}
+// The key the joined identity names (L-343): a Realm by its id (L-358); a server by its address, through the record
+// of which key each server was reached by; no address (a friend's world) by the level id, as a local world is.
 std::optional<std::string> serverKey(Identity const& who) {
+    if (who.realm) {
+        std::string key = "realm_" + std::to_string(who.realm);
+        withList([&](servers::List& list) { recordWorld(list, key, who); });
+        return key;
+    }
     if (!who.hasAddress()) {
         // Seen for a friend's world, whose level id is as distinct as a local world's. A world that sent a
         // plain name here would share its data with every world sending the same; the log tells which it was.
         auto key = servers::worldKey(who.levelId);
         log("joined without an address; its data goes by the level id '" + who.levelId + "'");
         if (key.empty()) return std::nullopt;
-        withList([&](servers::List& list) {
-            auto found = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
-            if (found != list.worlds.end()) found->name = who.levelName;
-            else if (list.worlds.size() < servers::maxEntries) list.worlds.push_back({key, who.levelName});
-        });
+        withList([&](servers::List& list) { recordWorld(list, key, who); });
         return key;
     }
     auto config = configFolder();
@@ -153,6 +172,23 @@ std::optional<std::string> serverKey(Identity const& who) {
                               [&](std::string const& k) { return held(config, k); });
     });
     return key.empty() ? std::nullopt : std::optional(key);
+}
+// The data set of the joined identity for the world joined (L-365): `who.base` is set to the identity's key.
+std::optional<std::string> dataKey(Identity& who) {
+    auto base = serverKey(who);
+    if (!base) return std::nullopt;
+    who.base = *base;
+    auto config = configFolder();
+    prints::Pick pick{*base};
+    withList([&](servers::List& list) {
+        pick = prints::pick(list.prints, list.unsplit, *base, who.print, [&](std::string const& k) { return held(config, k) >= 0; });
+        if (!who.byAddress() && pick.key != *base) recordWorld(list, pick.key, who);
+    });
+    question = pick.asked ? std::optional(pick) : std::nullopt;
+    if (pick.asked)
+        log("this world differs from its saved data (" + std::to_string(pick.diff) + "); "
+            + (pick.fresh ? "new data under '" + pick.key + "' for now" : "the data under '" + pick.key + "' for now") + ", asked");
+    return pick.key;
 }
 // Where this world's data lives: a local world's Lamium folder, or for a
 // server a file or folder named by its key in Lamium's config folder.
@@ -225,6 +261,7 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
 #endif
         std::lock_guard lock(mutex);
         identity = {};
+        question.reset();
         identity.local = joiningLocal;
         auto& level = event.player().getLevel();
         identity.levelId = level.getLevelId();
@@ -237,7 +274,21 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
                 identity.ip = *connection->mHostIpAddress;
                 identity.port = static_cast<int>(connection->mPort);
             }
-            try { identity.key = serverKey(identity); }
+            try {
+                auto cookie = realm::read(event.self().getMinecraftGame_DEPRECATED());
+                // How a released build is checked with a Realm nobody here has (L-358).
+                log("in a Realm: " + std::string(cookie.inRealm ? "yes" : "no") + "; reconnect cookie kind "
+                    + std::to_string(cookie.kind) + ", Realm id " + std::to_string(cookie.id));
+                if (cookie.inRealm && cookie.id > 0) identity.realm = cookie.id;
+            } catch (...) {}
+            try {
+                identity.print.seed = static_cast<std::uint64_t>(level.getLevelSeed64().mValue);
+                identity.print.name = identity.levelName;
+                identity.print.mode = static_cast<int>(level.getDefaultGameType());
+                identity.print.hardcore = level.isHardcore();
+            } catch (...) {}
+            questionToast = false;
+            try { identity.key = dataKey(identity); questionToast = question.has_value(); }
             catch (std::exception const& error) { log(std::string("no name for this server's data: ") + error.what()); }
             // Which folder and files to look in when data seems to be missing (L-343).
             log(identity.key ? "this server's data is under '" + *identity.key + "'"
@@ -248,6 +299,8 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
 }
 void leave() {
     std::lock_guard lock(mutex);
+    question.reset();
+    questionToast = false;
     mapMerge.reset();
     mergeFinished.reset();
     joined.active = false;
@@ -443,7 +496,7 @@ SavedData summary(std::filesystem::path const& config, servers::List const& list
 // Works out fullerFound for the joined server. Reads a few files: at a join and after a change only.
 void suggest() {
     fullerFound = {};
-    if (!joined.active || !identity.hasAddress() || !identity.key) return;
+    if (!joined.active || !identity.byAddress() || !identity.key) return;
     std::error_code ignored;
     auto config = configFolder();
     servers::List list;
@@ -476,7 +529,7 @@ std::optional<SavedData> fullerData(DataKind kind) {
 void quietFullerData() {
     std::lock_guard lock(mutex);
     fullerFound = {};
-    if (!identity.hasAddress() || !identity.key) return;
+    if (!identity.byAddress() || !identity.key) return;
     withList([&](servers::List& list) {
         for (auto& e : list.servers) if (e.key == *identity.key) e.quiet = true;
     });
@@ -509,12 +562,21 @@ std::vector<SavedData> savedData() {
     for (auto const& key : keys) {
         SavedData item;
         item.key = key;
-        item.kind = key.starts_with("world_") ? SavedData::Kind::Friend : SavedData::Kind::Server;
-        if (item.kind == SavedData::Kind::Friend) {
-            auto found = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
-            if (found != list.worlds.end()) item.name = found->name;
+        auto world = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
+        item.kind = world != list.worlds.end() ? (world->realm ? SavedData::Kind::Realm : SavedData::Kind::Friend)
+                  : key.starts_with("world_") ? SavedData::Kind::Friend : SavedData::Kind::Server;
+        if (item.kind != SavedData::Kind::Server) {
+            if (world != list.worlds.end()) item.name = world->name;
         } else {
             item.name = servers::shownName(key);
+            // One of several data sets of a server (L-365): the world it was last used with tells them apart.
+            auto row = std::find_if(list.prints.rbegin(), list.prints.rend(), [&](prints::Row const& r) { return r.key == key; });
+            if (row != list.prints.rend()) {
+                if (row->key != row->base) item.name = servers::shownName(row->base);
+                bool const several = std::any_of(list.prints.begin(), list.prints.end(),
+                    [&](prints::Row const& r) { return r.base == row->base && r.key != row->key; });
+                if (several && !row->print.name.empty()) item.name += " - " + row->print.name;
+            }
             for (auto const& e : list.servers) {
                 if (e.key != key) continue;
                 item.anyPort = item.anyPort || e.anyPort;
@@ -527,7 +589,10 @@ std::vector<SavedData> savedData() {
         measure(item, config / waypointFolder / (key + ".json"), config / schematicFolder / (key + ".json"),
                 config / deathFolder / (key + ".json"), config / mapFolder / key, config / shapeFolder / (key + ".json"));
         item.inUse = !current.empty() && key == current;
-        item.canUse = item.kind == SavedData::Kind::Server && identity.hasAddress() && !item.inUse;
+        // A server takes another server's data (L-343) or another data set of its own (L-365); a Realm or a
+        // friend's world any data but a local world's.
+        item.canUse = !item.inUse && joined.active && !identity.local && identity.key
+            && (!identity.byAddress() || item.kind == SavedData::Kind::Server);
         item.canDelete = !item.inUse;
         items.push_back(std::move(item));
     }
@@ -558,19 +623,74 @@ std::vector<SavedData> savedData() {
     });
     return items;
 }
-bool useData(std::string const& key) {
-    std::lock_guard lock(mutex);
-    if (!joined.active || !identity.hasAddress() || !safeKey(key) || key.starts_with("world_")) return false;
-    if (identity.key && *identity.key == key) return true;
-    bool assigned = false;
-    bool const saved = withList([&](servers::List& list) {
-        assigned = servers::assign(list.servers, identity.address, identity.ip, identity.port, identity.levelId, key);
-    });
-    if (!assigned || !saved) return false;
-    log("this server now uses the data under '" + key + "'");
+namespace {
+// The joined world uses `key` from now on. The caller holds the lock.
+bool switchTo(std::string const& key) {
+    question.reset();
+    if (identity.key && *identity.key == key) {
+        try { suggest(); } catch (...) { fullerFound = {}; }
+        return true;
+    }
+    log("this world now uses the data under '" + key + "'");
     identity.key = key;
     attach();
     return true;
+}
+}
+bool useData(std::string const& key) {
+    std::lock_guard lock(mutex);
+    if (!joined.active || identity.local || !identity.key || !safeKey(key)) return false;
+    if (*identity.key == key && !question) return true;
+    bool done = false;
+    bool const saved = withList([&](servers::List& list) {
+        bool const own = key == identity.base || std::any_of(list.prints.begin(), list.prints.end(),
+            [&](prints::Row const& r) { return r.base == identity.base && r.key == key; });
+        if (identity.byAddress() && !own) {
+            // Another server's data: this server's record takes it (L-343), and the data's own key names the server.
+            auto world = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
+            if (key.starts_with("world_") || world != list.worlds.end()) return;
+            if (!servers::assign(list.servers, identity.address, identity.ip, identity.port, identity.levelId, key)) return;
+            identity.base = key;
+        }
+        done = !prints::use(list.prints, identity.base, identity.print, key).empty();
+    });
+    if (!done || !saved) return false;
+    return switchTo(key);
+}
+std::optional<WorldQuestion> worldQuestion() {
+    std::lock_guard lock(mutex);
+    if (!question || !joined.active) return std::nullopt;
+    WorldQuestion q{question->fresh, question->other, {}, question->diff};
+    servers::List list;
+    std::error_code ignored;
+    try {
+        if (std::filesystem::exists(configFolder() / "servers.json", ignored)) list = readServers(configFolder() / "servers.json");
+    } catch (...) {}
+    auto world = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == q.other; });
+    q.otherName = world != list.worlds.end() && !world->name.empty() ? world->name : servers::shownName(q.other);
+    return q;
+}
+bool takeWorldToast() {
+    std::lock_guard lock(mutex);
+    return std::exchange(questionToast, false) && question.has_value();
+}
+bool answerWorld(WorldAnswer answer) {
+    std::lock_guard lock(mutex);
+    if (!question || !joined.active || identity.base.empty()) return false;
+    auto config = configFolder();
+    auto exists = [&](std::string const& k) { return held(config, k) >= 0; };
+    std::string key;
+    bool const saved = withList([&](servers::List& list) {
+        switch (answer) {
+        case WorldAnswer::Keep: key = prints::keep(list.prints, identity.base, identity.print); break;
+        case WorldAnswer::New: key = prints::startNew(list.prints, identity.base, identity.print, exists); break;
+        case WorldAnswer::UseOther: key = prints::use(list.prints, identity.base, identity.print, question->other); break;
+        case WorldAnswer::NoSplit: key = prints::noSplit(list.unsplit, identity.base); break;
+        }
+        if (!key.empty() && !identity.byAddress() && key != identity.base) recordWorld(list, key, identity);
+    });
+    if (key.empty() || !saved || !safeKey(key)) return false;
+    return switchTo(key);
 }
 bool removeData(SavedData const& item) {
     std::lock_guard lock(mutex);
@@ -626,8 +746,8 @@ int setDataAnyPort(std::string const& key, bool on) {
     int released = -1;
     if (!withList([&](servers::List& list) { released = servers::setAnyPort(list.servers, key, on); }) || released < 0) return -1;
     // The joined server may be one of the ports that now follow the switch.
-    if (joined.active && identity.hasAddress()) {
-        auto now = serverKey(identity);
+    if (joined.active && identity.byAddress()) {
+        auto now = dataKey(identity);
         if (now && now != identity.key) {
             log("this server now uses the data under '" + *now + "'");
             identity.key = now;
@@ -661,8 +781,7 @@ std::vector<MapMerge::File> regionFiles(std::filesystem::path const& folder) {
 MergeStart mergeData(std::string const& key) {
     std::lock_guard lock(mutex);
     MergeStart start;
-    if (!joined.active || !identity.hasAddress() || !identity.key || !safeKey(key) || key.starts_with("world_")
-        || *identity.key == key || loadFailed || mapMerge)
+    if (!joined.active || identity.local || !identity.key || !safeKey(key) || *identity.key == key || loadFailed || mapMerge)
         return start;
     auto config = configFolder();
     std::error_code ignored;
@@ -784,7 +903,7 @@ std::optional<MergeProgress> takeFinishedMerge() {
 std::string dataName() {
     std::lock_guard lock(mutex);
     if (!joined.active || identity.local || !identity.key) return {};
-    if (!identity.hasAddress()) return identity.levelName;
-    return servers::shownName(*identity.key);
+    if (!identity.byAddress()) return identity.levelName;
+    return servers::shownName(identity.base.empty() ? *identity.key : identity.base);
 }
 }

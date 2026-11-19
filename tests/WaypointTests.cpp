@@ -1,4 +1,5 @@
 #include <map>
+#include <set>
 #include "features/map/MapThumbnail.h"
 #include "features/map/WaypointStore.h"
 #include "features/map/Waypoints.h"
@@ -290,7 +291,7 @@ void storage() {
               && sv::maybe(lent, "play.example.net_19133", "198.51.100.20_19140") == sv::Maybe::SameAddress
               && sv::maybe(lent, "play.example.net_19133", "elsewhere.example.org_19133") == sv::Maybe::No,
               "data no record points at is a candidate when its key names this server's address");
-        sv::List all{wide, {{"world_41", "A friend's world"}}};
+        sv::List all{wide, {{"world_41", "A friend's world", false}}, {}, {}};
         check(lamium::map::decodeServers(lamium::map::encodeServers(all)) == all, "the server list survives saving");
         sv::forget(all, "realm.example.net_30001");
         sv::forget(all, "world_41");
@@ -371,7 +372,60 @@ void distances() {
           "30 blocks below it: 30 in 3D, 0 horizontally");
     check(waypointDistance(3, 4, 12, false) == 13 && waypointDistance(3, 4, 4, true) == 5, "3D and horizontal from offsets");
 }
+void worldPrints() {
+    namespace wp = lamium::map::prints;
+    std::vector<wp::Row> rows;
+    std::vector<std::string> unsplit;
+    std::set<std::string> disk;
+    auto exists = [&](std::string const& key) { return disk.contains(key); };
+    wp::Print survival{42, "Base", 0, false}, slot{77, "Island", 0, false}, copy{42, "Base", 1, false};
+    auto first = wp::pick(rows, unsplit, "realm_5", survival, exists);
+    check(first.key == "realm_5" && !first.asked && rows.size() == 1, "data with no print adopts the first world joined");
+    check(wp::pick(rows, unsplit, "realm_5", survival, exists).key == "realm_5" && rows.size() == 1, "the same world goes on silently");
+    disk.insert("realm_5-w2");
+    auto other = wp::pick(rows, unsplit, "realm_5", slot, exists);
+    check(other.key == "realm_5-w3" && other.asked && other.fresh && other.other == "realm_5" && other.diff == (wp::Seed | wp::Name),
+          "another seed starts new data for now, under a name no folder holds, and asks");
+    check(wp::pick(rows, unsplit, "realm_5", slot, exists).asked, "until answered it asks at every join");
+    check(wp::keep(rows, "realm_5", slot) == "realm_5-w3" && !wp::pick(rows, unsplit, "realm_5", slot, exists).asked,
+          "kept new data is that world's from then on");
+    check(wp::pick(rows, unsplit, "realm_5", survival, exists).key == "realm_5", "going back to the first slot needs no question");
+    auto creative = wp::pick(rows, unsplit, "realm_5", copy, exists);
+    check(creative.key == "realm_5" && creative.asked && !creative.fresh && creative.diff == wp::Mode,
+          "the same seed in another game mode keeps the data for now and asks");
+    check(wp::startNew(rows, "realm_5", copy, exists) == "realm_5-w4" && wp::pick(rows, unsplit, "realm_5", survival, exists).key == "realm_5"
+          && wp::pick(rows, unsplit, "realm_5", copy, exists).key == "realm_5-w4", "a copy given its own data keeps both apart");
+    wp::Print renamed = survival;
+    renamed.name = "Base 2";
+    auto rename = wp::pick(rows, unsplit, "realm_5", renamed, exists);
+    check(rename.key == "realm_5" && rename.asked && rename.diff == wp::Name, "a rename keeps the data");
+    check(wp::keep(rows, "realm_5", renamed) == "realm_5" && !wp::pick(rows, unsplit, "realm_5", survival, exists).asked
+          && !wp::pick(rows, unsplit, "realm_5", renamed, exists).asked, "and both names are that data's");
+    wp::Print reset{99, "Base", 0, false};
+    auto fresh = wp::pick(rows, unsplit, "realm_5", reset, exists);
+    check(fresh.fresh && wp::use(rows, "realm_5", reset, fresh.other) == "realm_5"
+          && wp::pick(rows, unsplit, "realm_5", reset, exists).key == "realm_5", "using the saved data instead is remembered");
+    wp::Print hidden{0, "Lobby", 0, false};
+    check(wp::pick(rows, unsplit, "srv", {0, "Lobby", 0, false}, exists).key == "srv"
+          && wp::pick(rows, unsplit, "srv", {0, "Hub", 2, false}, exists).key == "srv", "without a seed nothing is split");
+    check(wp::pick(rows, unsplit, "srv", {5, "Lobby", 0, false}, exists).key == "srv", "a seed appearing where none was keeps the data");
+    check(wp::noSplit(unsplit, "srv") == "srv" && wp::pick(rows, unsplit, "srv", {6, "X", 1, true}, exists).key == "srv"
+          && !wp::pick(rows, unsplit, "srv", {7, "Y", 1, true}, exists).asked, "a base not split uses one data, unasked");
+    wp::forget(rows, "realm_5-w4");
+    check(std::none_of(rows.begin(), rows.end(), [](wp::Row const& r) { return r.key == "realm_5-w4"; }), "deleted data leaves no rows");
+    std::vector<wp::Row> many;
+    for (int i = 0; i < 40; ++i) wp::pick(many, unsplit, "b", {static_cast<std::uint64_t>(i + 1), "n", 0, false}, exists);
+    check(std::count_if(many.begin(), many.end(), [](wp::Row const& r) { return r.base == "b"; }) <= static_cast<long>(wp::maxPerBase),
+          "one base keeps a bounded number of prints");
+    (void)hidden;
+    servers::List list;
+    list.prints = rows;
+    list.unsplit = unsplit;
+    list.worlds.push_back({"realm_5", "Base", true});
+    check(decodeServers(encodeServers(list)) == list, "prints, unsplit bases and a Realm's kind are saved");
+}
 void waypointTests() {
+    worldPrints();
 
     {
         // Session ids (L-139): same names and places stay apart; deleting or

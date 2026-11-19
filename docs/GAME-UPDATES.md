@@ -613,7 +613,17 @@ L-343. At a join, reads `Social::GameConnectionInfo` (`mUnresolvedUrl`, `mHostIp
 placements and death layout are kept. A wrong value names the wrong folder: new data starts there and nothing is
 overwritten. Deleting could remove another world's folder, so the Saved data page's Delete is off while
 `verifiedGameExecutable()` is false; looking and "Use this data" stay. The `server_trace` option logs these and the
-connection's other ids.
+connection's other ids. L-365 also reads `Level::getLevelSeed64`, `getDefaultGameType` and `isHardcore` to tell the
+worlds behind one key apart; a wrong value only asks or starts new data, never overwrites.
+
+L-358, `RealmCookie.cpp`, capability `RealmIdentity`: at a join, `IMinecraftGame::isInRealm()` and the reconnect cookie
+through `INetworkGameConnector::getReconnectionCookie()`. Neither the getter nor the alternatives' destructors are
+exported, so the cookie is taken as bytes through the virtual call (vtable slot of the SDK's declaration order) and
+never destroyed. Meaning a rebuild cannot check: MSVC's `std::optional<std::variant<...>>` layout (index byte after
+the alternatives' union, the optional's flag 8 bytes later), the union being as large as `GameConnectionInfoEx` or
+`Social::MultiplayerGameInfo` (the experience request and `Realms::RealmId` are opaque, at most 120 and 8 bytes), and
+`Realms::RealmId` being one int64. A flag other than 0 or 1 takes nothing. Every remote join logs the kind and id
+read; with the capability off a Realm's data goes by its level id.
 
 ### Enchantment order (`EnchantOrderGame.cpp`, no hooks)
 L-170. A hook on `InventoryItemRenderer::$render` to paint the list before the slots was tried and removed

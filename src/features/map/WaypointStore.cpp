@@ -91,8 +91,20 @@ std::string encodeServers(servers::List const& all) {
     for (auto const& e : all.servers)
         list.push_back({{"key", e.key}, {"hosts", e.hosts}, {"ip", e.ip}, {"port", e.port}, {"levelId", e.levelId},
                         {"others", e.others}, {"anyPort", e.anyPort}, {"quiet", e.quiet}, {"pinned", e.pinned}});
-    for (auto const& w : all.worlds) worlds.push_back({{"key", w.key}, {"name", w.name}});
-    return Json{{"version", 1}, {"servers", std::move(list)}, {"worlds", std::move(worlds)}}.dump(2);
+    for (auto const& w : all.worlds) {
+        Json world{{"key", w.key}, {"name", w.name}};
+        if (w.realm) world["realm"] = true;
+        worlds.push_back(std::move(world));
+    }
+    Json prints = Json::array();
+    for (auto const& r : all.prints) {
+        Json row{{"base", r.base}, {"key", r.key}, {"seed", r.print.seed}, {"name", r.print.name}, {"mode", r.print.mode},
+                 {"hardcore", r.print.hardcore}};
+        if (!r.confirmed) row.update({{"confirmed", false}, {"fresh", r.fresh}, {"other", r.other}, {"diff", r.diff}});
+        prints.push_back(std::move(row));
+    }
+    return Json{{"version", 1}, {"servers", std::move(list)}, {"worlds", std::move(worlds)}, {"prints", std::move(prints)},
+                {"unsplit", all.unsplit}}.dump(2);
 }
 servers::List decodeServers(std::string_view text) {
     if (text.size() > maxDocument) throw std::length_error("Server list document exceeds size limit");
@@ -128,8 +140,40 @@ servers::List decodeServers(std::string_view text) {
         for (auto const& entry : *found) {
             if (!entry.is_object() || all.worlds.size() >= servers::maxEntries) continue;
             servers::World w{entry.value("key", std::string()), entry.value("name", std::string())};
+            if (auto realm = entry.find("realm"); realm != entry.end() && realm->is_boolean()) w.realm = realm->get<bool>();
             if (safeKey(w.key)) all.worlds.push_back(std::move(w));
         }
+    auto field = [](Json const& entry, char const* name) {
+        auto found = entry.find(name);
+        return found != entry.end() && found->is_string() ? found->get<std::string>() : std::string();
+    };
+    auto flag = [](Json const& entry, char const* field, bool fallback) {
+        auto found = entry.find(field);
+        return found != entry.end() && found->is_boolean() ? found->get<bool>() : fallback;
+    };
+    if (auto found = root.find("prints"); found != root.end() && found->is_array())
+        for (auto const& entry : *found) {
+            if (!entry.is_object() || all.prints.size() >= map::prints::maxRows) continue;
+            map::prints::Row r;
+            r.base = field(entry, "base");
+            r.key = field(entry, "key");
+            if (!safeKey(r.base) || !safeKey(r.key)) continue;
+            if (auto seed = entry.find("seed"); seed != entry.end() && seed->is_number_unsigned()) r.print.seed = seed->get<std::uint64_t>();
+            r.print.name = field(entry, "name");
+            r.print.mode = integer(entry.value("mode", Json()), -1);
+            r.print.hardcore = flag(entry, "hardcore", false);
+            r.confirmed = flag(entry, "confirmed", true);
+            if (!r.confirmed) {
+                r.fresh = flag(entry, "fresh", false);
+                r.other = field(entry, "other");
+                r.diff = static_cast<unsigned>(integer(entry.value("diff", Json()), 0)) & 7u;
+            }
+            all.prints.push_back(std::move(r));
+        }
+    if (auto found = root.find("unsplit"); found != root.end() && found->is_array())
+        for (auto const& key : *found)
+            if (key.is_string() && safeKey(key.get<std::string>()) && all.unsplit.size() < servers::maxEntries)
+                all.unsplit.push_back(key.get<std::string>());
     return all;
 }
 servers::List readServers(std::filesystem::path const& path) {

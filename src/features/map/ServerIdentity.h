@@ -1,5 +1,6 @@
 #pragma once
 #include "features/map/Waypoints.h"
+#include "features/map/WorldPrints.h"
 #include <algorithm>
 #include <string>
 #include <string_view>
@@ -82,14 +83,17 @@ struct Entry {
     bool quiet = false;
     bool operator==(Entry const&) const = default;
 };
-// A world joined without an address, for its name in the saved data list.
+// A world joined without an address, or a Realm (L-358), for its name and kind in the saved data list.
 struct World {
     std::string key, name;
+    bool realm = false;
     bool operator==(World const&) const = default;
 };
 struct List {
     std::vector<Entry> servers;
     std::vector<World> worlds;
+    std::vector<prints::Row> prints;   // Which data set each world behind a key uses (L-365).
+    std::vector<std::string> unsplit;  // Keys the player keeps as one data set whatever the world.
     bool operator==(List const&) const = default;
 };
 inline constexpr size_t maxEntries = 500, maxNames = 16;
@@ -236,6 +240,7 @@ inline void forget(List& list, std::string const& key) {
     std::erase_if(list.servers, [&](Entry const& e) { return e.key == key; });
     for (auto& e : list.servers) std::erase(e.others, key);
     std::erase_if(list.worlds, [&](World const& w) { return w.key == key; });
+    prints::forget(list.prints, key);
 }
 // Two records of one address: a shared name, or neither has a name and the IP is the same.
 inline bool sameAddress(Entry const& a, Entry const& b) {

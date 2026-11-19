@@ -294,12 +294,12 @@ Decided by the maintainer 2026-10-19 (L-228); the controls are mockup D
 - Unloaded chunks are filled from saved regions; incomplete chunks keep
   saved colors; missing sections are requested (L-104).
 - Storage per dimension (`overworld`, `nether/y<N>`, `end`, `overworld/y<Y>`):
-  a local world's `lamium/map/` and `lamium/waypoints.json`; a server's or
-  friend's world's data under its key in Lamium's config folder
-  (`map/<key>/`, `waypoints/<key>.json`, `shapes/<key>.json`; which key: L-343 A server's map,
-  waypoints and placements are lost when its address changes). Lobby servers
-  with several worlds share one set. A waypoint file that fails to load is
-  never overwritten.
+  a local world's `lamium/map/` and `lamium/waypoints.json`; others under a
+  key in Lamium's config folder (`map/<key>/`, `waypoints/<key>.json`, ...):
+  a server's address (L-343), a Realm's id (`realm_<id>`, L-358), a friend's
+  world's level id (`world_<hex>`), with a data set per world behind it
+  (`<key>-w<n>`, L-365 The world behind a server, Realm or friend's world can
+  change). A waypoint file that fails to load is never overwritten.
 - Without a map folder, regions spill to `maps/.session/<n>/` in the mod's
   data folder with the same files, listing, usage, clearing and eviction;
   removed on world exit, leftovers at startup. Waypoints then stay in memory.

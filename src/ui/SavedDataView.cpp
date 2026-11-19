@@ -97,7 +97,8 @@ void anyPort() {
 }
 std::string kindText(Data const& d) {
     return translated(d.kind == Data::Kind::Server ? "savedData.kind.server"
-        : d.kind == Data::Kind::Friend ? "savedData.kind.friend" : "savedData.kind.local");
+        : d.kind == Data::Kind::Friend ? "savedData.kind.friend" : d.kind == Data::Kind::Realm ? "savedData.kind.realm"
+        : "savedData.kind.local");
 }
 std::string dateText(std::int64_t seconds) {
     if (seconds <= 0) return "-";
@@ -321,9 +322,9 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         }
 
         std::string note = d->inUse ? translated("savedData.note.inUse")
+            : d->canUse ? translated("savedData.note.use", currentName())
             : d->kind != Data::Kind::Server ? translated("savedData.note.world")
-            : !d->canUse ? translated("savedData.note.noServer")
-            : translated("savedData.note.use", currentName());
+            : translated("savedData.note.noServer");
         paragraph(context, x, last.noteY, width, note, static_cast<size_t>(SavedDataLayout::noteLines), palette::dim);
         if (last.anyPort) {
             // As a settings row: the words left, the switch at the right edge.

@@ -1654,6 +1654,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
                               ui::translated("waypoint.deathName"));
         // A map merge that ended while playing (L-343): the saved data page would have said it.
         if (auto merged = map::waypoints::takeFinishedMerge()) ui::showMessageToast(ui::saved_data_view::mergeReport(*merged));
+        // The world differs from its saved data (L-365): the tool screens ask, this says where.
+        if (map::waypoints::takeWorldToast()) ui::showMessageToast(ui::translated("savedData.worldToast"), 6);
         // The body arrives, not FreeCamera's view.
         if (auto* player = context.mClient.getLocalPlayer(); player && player->isAlive()) {
             auto feet = player->getFeetPos();

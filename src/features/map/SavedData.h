@@ -12,7 +12,7 @@
 // Implemented with the session (WaypointSession.cpp), which owns the files.
 namespace lamium::map::waypoints {
 struct SavedData {
-    enum class Kind { Server, Friend, Local };
+    enum class Kind { Server, Friend, Local, Realm };
     Kind kind = Kind::Server;
     // A server's or a friend's world's key in the config folders; a local world's folder name.
     std::string key;
@@ -53,6 +53,20 @@ enum class DataKind { Waypoints, Placements, Map, Shapes };
 std::optional<SavedData> fullerData(DataKind kind);
 // "Do not show again": no such notice for the joined server from now on.
 void quietFullerData();
+// The joined world differs from every world its saved data was used with (L-365) and Lamium decided for now: new
+// data (`fresh`) or the data used before. The tool screens ask, ahead of the notice above; a join that asks also
+// shows a toast once.
+struct WorldQuestion {
+    bool fresh = false;
+    std::string other, otherName; // The saved data compared with: new data started, it may be wanted instead.
+    unsigned diff = 0;            // prints::Diff bits.
+};
+std::optional<WorldQuestion> worldQuestion();
+bool takeWorldToast();
+// Keep what was decided, start new data for this world, use the data compared with, or one data set for every
+// world here from now on. The answer is remembered for this world.
+enum class WorldAnswer { Keep, New, UseOther, NoSplit };
+bool answerWorld(WorldAnswer);
 // Merges a server data into the data in use (L-343 part 4, DataMerge.h): waypoints, placements and shapes at once, the
 // map after, a few regions per frame (stepMerge). The other data stays as it was; the death layout in use stays.
 struct MergeStart {
