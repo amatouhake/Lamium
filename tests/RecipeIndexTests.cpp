@@ -23,6 +23,8 @@ void recipeIndexTests() {
         {"crafting_table", "oak_planks_from_wood", 0, {{"oak_planks", 4}}, cells("oak_wood", 1)},
         {"crafting_table", "oak_planks", 0, {{"oak_planks", 4}}, cells("oak_log", 1)},
         {"crafting_table", "chest", 0, {{"chest", 1}}, both(cells("planks", 4, true), both(cells("", 1), cells("planks", 4, true)))},
+        {"crafting_table", "chest_from_birch", 0, {{"chest", 1}}, both(cells("birch_planks", 4), both(cells("", 1), cells("birch_planks", 4)))},
+        {"crafting_table", "chest_from_cherry", 0, {{"chest", 1}}, both(cells("cherry_planks", 4), both(cells("", 1), cells("cherry_planks", 4)))},
         {"crafting_table", "torch", -1, {{"torch", 4}}, both(cells("coals", 1, true), cells("stick", 1))},
         {"crafting_table", "stonebrick", 0, {{"stone_bricks", 4}}, cells("stone", 4)},
         {"stonecutter", "stonecutter_stonebrick", 4, {{"stone_bricks", 1}}, cells("stone", 1)},
@@ -86,6 +88,10 @@ void recipeIndexTests() {
         check(chest.uses.size() == 1 && chest.uses[0].group && chest.uses[0].count == 8, "grid cells of one tag add up, empty cells are skipped");
         auto const& cake = index.recipes[choice.recipe[id("cake")]];
         check(cake.count == 1 && cake.extra == Raw{{id("bucket"), 3}}, "what comes with the product is kept apart from it");
+        bool birch = false;
+        for (int number : index.makers[id("chest")]) birch = birch || index.recipes[number].id == "chest_from_birch";
+        check(!birch && index.makers[id("chest")].size() == 2,
+              "a recipe of one member is left out beside the recipe of any member; one of an item outside the group stays");
         check(index.groups[chest.uses[0].id].members == std::vector<Item>{id("oak_planks"), id("birch_planks")}, "a tag lists its members");
     }
     {

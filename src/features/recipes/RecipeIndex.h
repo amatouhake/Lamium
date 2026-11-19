@@ -188,7 +188,9 @@ inline Source settled(Source const& given, std::set<std::string, std::less<>>* v
 // without a product or ingredients. Recipes that use their own product (an
 // ingredient that is the product, or any variant of its name: dyeing a
 // shulker box, copying a banner) are kept apart as `copies`. Smelting recipes that differ only in their
-// one input become one recipe with a nameless group (raw iron or either ore).
+// one input become one recipe with a nameless group (raw iron or either ore). A recipe another one already
+// covers is left out: same station, product and layout, each cell the same or a member of the other's group
+// there (a chest of crimson planks beside the chest of any planks).
 inline Index build(Source const& given) {
     Index index;
     Source const source = settled(given, &index.variantNames);
@@ -265,6 +267,28 @@ inline Index build(Source const& given) {
         all[best].width = 0;
         for (size_t i : list) dropped[i] = i != best;
     }
+    auto covers = [&](Recipe const& wide, Recipe const& narrow) {
+        if (wide.station != narrow.station || wide.makes != narrow.makes || wide.count != narrow.count || wide.width != narrow.width
+            || wide.cells.size() != narrow.cells.size() || wide.extra != narrow.extra)
+            return false;
+        bool wider = false;
+        for (size_t c = 0; c < wide.cells.size(); ++c) {
+            auto const& w = wide.cells[c];
+            auto const& n = narrow.cells[c];
+            if (w == n) continue;
+            if (!w.group || n.group || n.id < 0) return false;
+            auto const& members = index.groups[static_cast<size_t>(w.id)].members;
+            if (std::find(members.begin(), members.end(), n.id) == members.end()) return false;
+            wider = true;
+        }
+        return wider;
+    };
+    std::map<Item, std::vector<size_t>> byProduct;
+    for (size_t i = 0; i < all.size(); ++i) if (!dropped[i] && !all[i].own) byProduct[all[i].makes].push_back(i);
+    for (auto const& [product, list] : byProduct)
+        for (size_t narrow : list)
+            for (size_t wide : list)
+                if (wide != narrow && !dropped[wide] && covers(all[wide], all[narrow])) { dropped[narrow] = true; break; }
     for (size_t i = 0; i < all.size(); ++i) if (!dropped[i]) index.recipes.push_back(std::move(all[i]));
     index.makers.resize(index.items.size());
     index.copies.resize(index.items.size());
