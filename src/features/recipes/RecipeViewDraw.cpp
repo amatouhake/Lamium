@@ -80,7 +80,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
             else if (region.act == Act::Favourite) state::toggleFavourite(shownItem);
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
-            else if (region.act == Act::HowTo) late.howTo = shownItem;
+            else if (region.act == Act::HowTo) late.howTo = region.item;
             else if (region.act == Act::PagePrev) trail.back().page -= 1;
             else if (region.act == Act::PageNext) trail.back().page += 1;
             else if (region.act == Act::Place && input.placer) {
@@ -253,14 +253,19 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         // "automatic" when the rule did; a press goes to its line there (L-370).
         bool const inUse = id >= 0 && !at.uses && choice->recipe[static_cast<size_t>(id)] == number && recipeOptions(index, id).size() > 1;
         if (inUse) {
-            bool const chosen = state::notes().choices.contains(at.item);
+            // The item as the table keys it, as "How to make" and the notes do.
+            std::string const& itemKey = index.items[static_cast<size_t>(id)];
+            bool const chosen = state::notes().choices.contains(itemKey);
             float const ux = bx + block.productX - 1, uy = by + block.productY + 20, uw = 20, uh = 8;
             if (chosen) inUseMark(context, ux + 6, uy, palette::accentDeep);
             else labelScaled(context, ux, uy - 1, uw, translated("recipes.howTo.auto"), .5f, palette::vanilla::windowFaint, Align::Center, false);
-            Region const region{ux, uy - 2, uw, uh + 2, Act::HowTo, {}, -1};
-            if (region.has(input.pointerX, input.pointerY))
-                late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.change")};
-            regions.push_back(region);
+            // A press goes to "How to make", which is the plan window's: only while the plan is in use.
+            Region const region{ux, uy - 2, uw, uh + 2, Act::HowTo, itemKey, -1};
+            if (region.has(input.pointerX, input.pointerY)) {
+                late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto");
+                if (input.plan) late.tipLines = {translated("recipes.howTo.change")};
+            }
+            if (input.plan) regions.push_back(region);
         }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;
