@@ -149,9 +149,11 @@ dark look. No control plays a sound.
   names side by side over a one-unit rule as wide as what they switch. On
   a dark Lamium panel the chosen one stands on a faint accent face over an
   accent bar, the settings sidebar's selected row turned sideways. On a
-  window of the game's grey they are the game's tabs (`windowTab`): blocks
-  standing on the window's top edge, outside it, a unit apart, the others
-  in the slots' grey, the chosen one in the window's grey and joined to
+  window of the game's grey they are the game's tabs (`windowTab`, measured
+  from the game's recipe book): blocks standing on the window's top edge,
+  outside it, side by side sharing their black edges, two units of light
+  along the top and left, the others with a dark grey face, the chosen one
+  in the window's grey with two units of shadow at its right, joined to
   it; pictures there are 16 units. Such tabs name the window, which then
   has no title line (L-367).
   Where the names do not fit, each is an item's picture, named under the

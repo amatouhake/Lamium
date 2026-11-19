@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Placing from "can be made" and the pager's slash (L-367, 2026-11-20)
+
+Build `e39d18a4` (DLL
+`b589d560c06ab787f2b354e3cb238458aea10b479a6c1d9ce55cc32a7a21109b`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the pager's slash stays
+put from 9 to 10 pages; under "can be made" a press lays the recipe into
+the inventory's and the crafting table's grid, with Shift as many as
+divide; where there is no grid the press opens the recipes. Not right: the
+pager's spacing around the slash; "can be made" listed items that cannot
+be made (it counted what shulker boxes and bundles hold, and recipes too
+big for the grid); pressing again on a recipe already laid took it out and
+laid it again, items seen flying; the tabs unlike the game's (measured:
+two units of light, dark faces, edges shared, a shadow on the chosen one);
+the window stretched top to bottom, too much for the eye. All built in
+the next build, not yet seen.
+
 ## The recipe heading's icon and the flat disabled button (L-367, 2026-11-20)
 
 Build `7d1fb219` (DLL

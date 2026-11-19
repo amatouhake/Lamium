@@ -219,7 +219,9 @@ void recipeIndexTests() {
         auto view = recipeViewAt(640, 360);
         check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,
               "the arrow and the product stand at the grid's middle, the small mark under them");
-        check(view.left == 210 && view.top == 19 && view.height == 321 && view.hintY() == 327, "the view is centred, two columns wide, under its tabs, down to the search field's place");
+        check(view.left == 210 && view.top == 60 && view.height == 241 && view.hintY() == 288
+              && recipeViewAt(640, 200).height == 200 - 16 - 4 - 22 && recipeViewAt(640, 200).top == 22,
+              "the view is centred, three rows high, under its tabs; on a low screen it fills the room");
         check(view.rows(Station::Crafting) == 3 && view.perPage(Station::Crafting) == 6 && view.columns(Station::Crafting, 3) == 1
               && view.columns(Station::Crafting, 4) == 2 && view.pages(Station::Crafting, 13) == 3
               && std::abs(view.blockY(Station::Crafting, 6, 2) - view.blockY(Station::Crafting, 6, 0) - view.rowStep(Station::Crafting)) < .01f
@@ -233,6 +235,11 @@ void recipeIndexTests() {
         check(one.ready() && one.crafts == 1 && one.moves == Moves{{0, 1, 0}, {0, 1, 1}, {0, 1, 2}, {1, 1, 4}, {1, 1, 7}},
               "a shaped recipe is laid cell by cell where its shape puts it, one of each");
         check(!placePlan(index, pickaxe, 2, {{0, iron, 5}, {1, sticks, 2}}, {}, false).fits, "a recipe wider than the grid does not fit");
+        check(alreadyLaid(index, pickaxe, 3, {iron, iron, iron, -1, sticks, -1, -1, sticks, -1})
+              && !alreadyLaid(index, pickaxe, 3, {iron, iron, iron, -1, sticks, -1, -1, sticks, iron})
+              && !alreadyLaid(index, pickaxe, 3, {iron, iron, -1, -1, sticks, -1, -1, sticks, -1}) && !alreadyLaid(index, pickaxe, 2, {iron, iron, iron, -1}),
+              "a grid that holds the recipe where it would be laid, and nothing else, is already laid");
+        check(fitsGrid(pickaxe, 3) && !fitsGrid(pickaxe, 2) && fitsGrid(pickaxe, 0), "a three-wide recipe fits only a three-wide grid");
         auto few = placePlan(index, pickaxe, 3, {{0, iron, 2}, {1, sticks, 2}}, {}, false);
         check(few.fits && !few.ready() && few.missing == std::vector<int>{2} && few.moves.empty(), "a cell nothing serves is named and nothing moves");
         auto split = placePlan(index, pickaxe, 3, {{0, iron, 3}, {1, sticks, 64}, {2, iron, 4}}, {}, true);
@@ -270,7 +277,7 @@ void recipeIndexTests() {
               && recipeInGrid(index, 2, {-1, -1, -1, birch}, "none") == at(button) && recipeInGrid(index, 2, {-1, -1, -1, birch}, button.id) == at(button),
               "what does not stack is never thrown, and the recipe the game names is taken where it fits");
         check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 324
-              && std::abs(view.blockY(Station::Crafting, 8, 3) - (19 + 31 + 278.f / 3 + (278.f / 3 - 59) / 2)) < .01f,
+              && std::abs(view.blockY(Station::Crafting, 8, 3) - (60 + 31 + 66 + (66.f - 59) / 2)) < .01f,
               "one column sits in the middle; two fill left to right, then down");
     }
     {

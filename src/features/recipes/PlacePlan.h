@@ -23,6 +23,28 @@ struct PlacePlan {
 // every stack carried, a cell's stack at most. An ingredient any of several
 // items satisfies takes the picked member while it lasts, else the one most
 // carried; `many` then takes the one with most left, so several kinds add up.
+// Whether the grid (`grid`: per cell row by row, -1 empty) already holds `recipe` as placePlan lays it:
+// each ingredient's cell has it, or any member of its group, and every other cell is empty. A press to
+// lay one of each then has nothing to do.
+inline bool alreadyLaid(Index const& index, Recipe const& recipe, int side, std::vector<Item> const& grid) {
+    int const count = static_cast<int>(recipe.cells.size()), across = recipe.width ? recipe.width : side;
+    if (recipe.station != Station::Crafting || side < 2 || side > 3 || across < 1 || across > side || (count + across - 1) / across > side
+        || grid.size() != static_cast<size_t>(side * side))
+        return false;
+    std::vector<bool> used(grid.size(), false);
+    for (int i = 0; i < count; ++i) {
+        auto const& part = recipe.cells[static_cast<size_t>(i)];
+        if (part.id < 0) continue;
+        size_t const cell = static_cast<size_t>(i / across * side + i % across);
+        Item const there = grid[cell];
+        bool const fits = part.group ? std::ranges::find(index.groups[static_cast<size_t>(part.id)].members, there) != index.groups[static_cast<size_t>(part.id)].members.end()
+                                     : there == part.id;
+        if (there < 0 || !fits) return false;
+        used[cell] = true;
+    }
+    for (size_t cell = 0; cell < grid.size(); ++cell) if (!used[cell] && grid[cell] >= 0) return false;
+    return true;
+}
 inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, std::vector<PlaceSource> const& carried,
                            std::map<int, Item> const& picks, bool many) {
     PlacePlan out;

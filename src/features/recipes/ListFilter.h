@@ -30,17 +30,23 @@ inline bool searchMatches(std::string_view query, std::string_view name, std::st
     }
     return true;
 }
+// Whether a recipe's shape fits a grid `side` cells wide (0: any grid), as placePlan lays it.
+inline bool fitsGrid(Recipe const& recipe, int side) {
+    if (side <= 0) return true;
+    int const count = static_cast<int>(recipe.cells.size()), across = recipe.width ? recipe.width : side;
+    return across <= side && (count + across - 1) / across <= side;
+}
 // Per item: whether a crafting recipe for it can be made once from `held`
-// as it is, without making anything first. An ingredient any of several
-// items satisfies takes them together.
-inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> const& held) {
+// as it is, without making anything first, in a grid `side` cells wide (0:
+// any). An ingredient any of several items satisfies takes them together.
+inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> const& held, int side = 0) {
     std::vector<bool> out(index.items.size(), false);
     auto have = [&](Item item) {
         auto found = held.find(item);
         return found == held.end() ? Count{0} : found->second;
     };
     for (auto const& recipe : index.recipes) {
-        if (recipe.station != Station::Crafting || recipe.own || out[static_cast<size_t>(recipe.makes)]) continue;
+        if (recipe.station != Station::Crafting || recipe.own || out[static_cast<size_t>(recipe.makes)] || !fitsGrid(recipe, side)) continue;
         bool enough = !recipe.uses.empty();
         for (auto const& part : recipe.uses) {
             Count got = 0;

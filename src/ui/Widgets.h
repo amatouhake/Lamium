@@ -192,12 +192,14 @@ inline constexpr float tabHeight = 11, tabPad = 9, tabIconWidth = 16;
 void drawTab(MinecraftUIRenderContext&, float x, float y, float w, std::string text, bool selected, bool hovered, bool first,
              float height = tabHeight);
 void tabRule(MinecraftUIRenderContext&, float x, float y, float w);
-// The game's tabs on a window of its grey (L-367): blocks standing windowTabRise above the window's top
-// edge, a unit apart; the others in the slots' grey with white names, the chosen one in the window's grey,
-// a unit taller and joined to the window through its edge. Drawn after the window. Without a text the
-// caller draws a 16-unit icon at the tab's x + (w - 17) / 2 and windowTabIconY.
-inline constexpr float windowTabRise = 18;
-inline constexpr float windowTabIconY(float windowTop) { return windowTop - 16; }
+// The game's tabs on a window of its grey (L-367), as measured from the game's recipe book: blocks
+// standing windowTabRise above the window's top edge, side by side sharing their black edges (the next
+// starts at x + w - 1), two units of light along the top and left; the others' face dark grey with white
+// names, the chosen one in the window's grey with two units of shadow at its right, joined to the window
+// through its edge. Drawn after the window. Without a text the caller draws a 16-unit icon at
+// x + (w - 16) / 2 and windowTabIconY. windowTabWidth suits an icon.
+inline constexpr float windowTabRise = 21, windowTabWidth = 24;
+inline constexpr float windowTabIconY(float windowTop) { return windowTop - 18; }
 void windowTab(MinecraftUIRenderContext&, float x, float windowTop, float w, std::string text, bool selected, bool hovered);
 void slotCount(MinecraftUIRenderContext&, float x, float y, std::string text);
 // Bedrock-style switch: the knob position carries the state as well as color.

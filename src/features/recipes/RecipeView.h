@@ -2,6 +2,7 @@
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/RecipeIndex.h"
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 // L-359: what the recipe view shows for an item and where, in GUI units. Pure.
@@ -102,7 +103,9 @@ struct RecipeViewLayout {
     static constexpr float width = 220, margin = 10, column = (width - 2 * margin) / 2, block = 92, head = 31, foot = 12;
     static constexpr int mostRows = 3;
     // The game's tabs stand on the window's top edge, above it (windowTab's rise).
-    static constexpr float tabsAbove = 18;
+    static constexpr float tabsAbove = 21;
+    // Three rows of crafting recipes with room between them: taller only moved the eye further (L-367).
+    static constexpr float mostHeight = head + foot + 3 * 66;
     float left = 0, top = 0, height = 0;
     static float blockHeight(Station station) { return station == Station::Crafting ? 59.f : station == Station::Stonecutter ? 31.f : 53.f; }
     int rows(Station station) const {
@@ -126,12 +129,14 @@ struct RecipeViewLayout {
     // window's three-unit edge below it (it reaches into the last row's spacing, which a block never fills).
     float hintY() const { return top + height - 13; }
 };
-// The tabs start a unit below the screen's top, the window under them; it ends 4 above the search field.
+// Between a unit below the screen's top (the tabs) and 4 above the search field: the window keeps the
+// height of three rows and stands in the middle of that room, or fills it where it is lower.
 inline RecipeViewLayout recipeViewAt(float screenWidth, float screenHeight) {
     RecipeViewLayout out;
     out.left = (screenWidth - RecipeViewLayout::width) / 2;
-    out.top = 1 + RecipeViewLayout::tabsAbove;
-    out.height = screenHeight - searchTop - 4 - out.top;
+    float const roomTop = 1 + RecipeViewLayout::tabsAbove, room = screenHeight - searchTop - 4 - roomTop;
+    out.height = std::min(room, RecipeViewLayout::mostHeight);
+    out.top = std::floor(roomTop + (room - out.height) / 2);
     return out;
 }
 }

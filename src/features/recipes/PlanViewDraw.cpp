@@ -55,10 +55,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.places"};
     for (int i = 0; i < 4; ++i) {
         std::string name = translated(names[i]);
-        float const w = textWidth(context, name) + 11;
+        float const w = textWidth(context, name) + 14;
         windowTab(context, x, l.top, w, std::move(name), tab == tabs[i], over(x, l.top - windowTabRise, w - 1, windowTabRise));
         if (took(x, l.top - windowTabRise, w - 1, windowTabRise)) tab = tabs[i], expanded = -1;
-        x += w;
+        x += w - 1; // neighbours share their edge
     }
     auto const* plan = state::plan(player);
     float const left = l.left + 6, right = l.left + l.width - 6;

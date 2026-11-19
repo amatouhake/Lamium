@@ -350,21 +350,20 @@ void tabRule(MinecraftUIRenderContext& context, float x, float y, float w) {
 }
 void windowTab(MinecraftUIRenderContext& context, float x, float windowTop, float w, std::string text, bool selected, bool hovered) {
     namespace v = palette::vanilla;
-    // The top corners are cut by a unit. The chosen tab reaches 3 units down over the window's edge.
-    float const bw = std::max(4.f, w - 1), y0 = windowTop - (selected ? windowTabRise : windowTabRise - 1);
-    float const bottom = selected ? windowTop + 3 : windowTop, h = bottom - y0;
-    Rgb const face = selected ? v::window : v::slot, light = selected ? v::windowLight : v::tabRim;
-    fill(context, x + 1, y0, bw - 2, h, face);
-    fill(context, x, y0 + 1, bw, h - 1, face);
-    if (hovered && !selected) fill(context, x + 1, y0 + 2, bw - 2, h - 2, palette::white, .15f);
-    fill(context, x + 1, y0 + 1, bw - 2, 1, light);
-    fill(context, x + 1, y0 + 2, 1, h - 2, light);
+    // Its top corners are cut by a unit. The chosen tab reaches 3 units down over the window's edge.
+    float const y0 = windowTop - windowTabRise, bottom = selected ? windowTop + 3 : windowTop, h = bottom - y0;
+    Rgb const face = selected ? v::window : v::tabBack, light = selected ? v::windowLight : v::tabRim;
+    fill(context, x + 1, y0 + 1, w - 2, h - 1, face);
+    if (hovered && !selected) fill(context, x + 3, y0 + 3, w - 4, h - 3, palette::white, .12f);
+    fill(context, x + 1, y0 + 1, w - 2, 2, light);
+    fill(context, x + 1, y0 + 3, 2, h - 3, light);
+    if (selected) fill(context, x + w - 3, y0 + 3, 2, h - 3, v::windowShadow);
     float const sides = (selected ? windowTop + 1 : windowTop) - (y0 + 1);
-    fill(context, x + 1, y0, bw - 2, 1, v::windowEdge);
+    fill(context, x + 1, y0, w - 2, 1, v::windowEdge);
     fill(context, x, y0 + 1, 1, sides, v::windowEdge);
-    fill(context, x + bw - 1, y0 + 1, 1, sides, v::windowEdge);
+    fill(context, x + w - 1, y0 + 1, 1, sides, v::windowEdge);
     if (!text.empty())
-        labelScaled(context, x, windowTop - 12 + boxTextInset(), bw, std::move(text), 1.f, selected ? v::windowInk : palette::text, Align::Center, !selected);
+        labelScaled(context, x + 2, windowTop - 14 + boxTextInset(), w - 4, std::move(text), 1.f, selected ? v::windowInk : palette::text, Align::Center, !selected);
 }
 void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
     fill(context, x + 1, y + 1, 16, 16, palette::keyFill, .9f);

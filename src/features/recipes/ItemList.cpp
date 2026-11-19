@@ -37,6 +37,7 @@
 #include "mc/client/input/Keymapping.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/world/actor/player/Inventory.h"
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/world/item/ItemInstance.h"
 #include "mc/world/item/ItemStack.h"
@@ -81,6 +82,7 @@ struct VisibleFor {
     std::string query;
     Filter filter = Filter::All;
     size_t named = 0;
+    int side = 0; // the screen's grid, which "can be made" depends on
     std::chrono::steady_clock::time_point at{};
 } visibleFor;
 std::string viewScreen; // the screen the recipe view was opened on; it closes with it
@@ -179,21 +181,27 @@ void releaseKeyboard() {
     }
 }
 // The list as narrowed now. What can be made changes with the inventory, so it is asked again twice a second.
-void narrow(LocalPlayer& player) {
+// `side`: the screen's crafting grid, 0 without one.
+void narrow(LocalPlayer& player, int side) {
     for (int budget = 150; budget > 0 && lowNames.size() < names.size(); --budget)
         lowNames.push_back(lowered(schematic::items::shown(names[lowNames.size()]).name));
     std::string query = lowered(search.value());
     auto const now = std::chrono::steady_clock::now();
     if (visibleFor.valid && query == visibleFor.query && filter == visibleFor.filter && lowNames.size() == visibleFor.named
-        && (filter != Filter::CanMake || now - visibleFor.at < std::chrono::milliseconds(500)))
+        && side == visibleFor.side && (filter != Filter::CanMake || now - visibleFor.at < std::chrono::milliseconds(500)))
         return;
     std::shared_ptr<service::Table const> table;
     std::vector<bool> can;
     if (filter == Filter::CanMake && (table = service::table())) {
+        // What the inventory holds itself: a shulker box's or bundle's contents cannot go into a grid (L-367).
         std::map<Item, Count> held;
-        for (auto const& stack : schematic::items::carriedStacks(player))
-            if (Item const id = table->index.find(stack.name, stack.aux); id >= 0) held[id] += stack.count;
-        can = canMakeNow(table->index, held);
+        auto& inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); ++slot) {
+            auto const& stack = inventory.getItem(slot);
+            if (stack.isNull() || stack.mCount <= 0) continue;
+            if (Item const id = table->index.find(stack.getTypeName(), stack.getAuxValue()); id >= 0) held[id] += stack.mCount;
+        }
+        can = canMakeNow(table->index, held, side);
     }
     visible.clear();
     for (size_t i = 0; i < names.size(); ++i) {
@@ -207,7 +215,7 @@ void narrow(LocalPlayer& player) {
         visible.push_back(static_cast<int>(i));
     }
     if (query != visibleFor.query || filter != visibleFor.filter) page = 0;
-    visibleFor = {true, std::move(query), filter, lowNames.size(), now};
+    visibleFor = {true, std::move(query), filter, lowNames.size(), side, now};
 }
 void readNames(LocalPlayer& player) {
     names.clear();
@@ -373,7 +381,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     bool caretPress = false;
     if (pressed || input.outside) searchFocus = false, countEdit::commit();
     if (took(field)) searchFocus = caretPress = true;
-    narrow(*player);
+    narrow(*player, place::gridSide(screenView));
     int const count = static_cast<int>(visible.size()), pages = layout.pages(count);
     page = std::clamp(page + input.listTurns, 0, pages - 1);
     int const first = page * layout.perPage(), hovered = layout.hit(px, py);

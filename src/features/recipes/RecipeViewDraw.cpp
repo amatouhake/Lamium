@@ -159,18 +159,18 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         std::string name = stationName(tabs[i].station);
         auto const picture = stationItem(tabs[i].station);
         auto const* stack = picture.empty() ? nullptr : schematic::items::iconStack(schematic::items::shown(std::string(picture)).icon);
-        float const w = stack ? 22 : textWidth(context, name) + 11;
+        float const w = stack ? windowTabWidth : textWidth(context, name) + 14;
         if (x + w > tabEnd) break;
         Region const region{x, l.top - windowTabRise, w - 1, windowTabRise, Act::Tab, {}, static_cast<int>(i)};
         bool const hot = region.has(input.pointerX, input.pointerY);
         bool const selected = static_cast<int>(i) == at.tab;
         if (stack) {
             windowTab(context, x, l.top, w, {}, selected, hot);
-            late.icons.push_back({stack, x + (w - 17) / 2, windowTabIconY(l.top), 1.f});
+            late.icons.push_back({stack, x + (w - 16) / 2, windowTabIconY(l.top), 1.f});
             if (hot) late.tip = std::move(name);
         } else windowTab(context, x, l.top, w, std::move(name), selected, hot);
         regions.push_back(region);
-        x += w;
+        x += w - 1; // neighbours share their edge
     }
     // The second line: the station's name, and the pager at its right end.
     float const lineTwo = l.top + 17, lineEnd = l.left + l.width - 6;

@@ -56,10 +56,12 @@ Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int pag
     out.nextOn = page + 1 < pages;
     // The slash keeps its place: the page ends at it, the count starts after it, each as wide as two digits
     // or what it needs, so neither the buttons nor the slash move as the numbers grow.
-    std::string const now = std::to_string(page + 1), all = std::to_string(std::max(1, pages)), slash = " / ";
+    std::string const now = std::to_string(page + 1), all = std::to_string(std::max(1, pages)), slash = "/";
     float const digits = textWidth(context, "88");
     float const nowW = std::max(digits, textWidth(context, now)), allW = std::max(digits, textWidth(context, all));
-    float const slashW = textWidth(context, slash), tw = nowW + slashW + allW;
+    // Spaces in the text are not measured alike on both sides; the room either side is given instead.
+    constexpr float gap = 2;
+    float const slashW = textWidth(context, slash) + 2 * gap, tw = nowW + slashW + allW;
     out.nextX = right - Pager::size;
     out.prevX = out.nextX - 6 - tw - Pager::size;
     for (bool next : {false, true}) {

@@ -59,8 +59,9 @@ after using the first build. What is still open is in the L-item.
 - The agent's choices while building, to confirm: the search takes the
   name as the game shows it or the item's id, every word typed must be in
   one of them, letters match in either case; "can be made" is a crafting
-  recipe that what is carried (shulker boxes included) makes once, without
-  making anything first; the wanted mark being the count; the left band is
+  recipe that what lies in the inventory itself (not what shulker boxes
+  and bundles hold) makes once, without making anything first, and that
+  fits the screen's grid (any size where there is none; L-367); the wanted mark being the count; the left band is
   halved between favourites and wanted; favourites are kept with the notes
   for all worlds; a chosen recipe is kept by station and id; deleting a
   world's or a server's saved data removes its wanted items; "any order"
@@ -69,7 +70,8 @@ after using the first build. What is still open is in the L-item.
 - Under "can be made" a press on an item lays its recipe into the screen's
   grid, as the game's recipe book does (Shift: as many as divide evenly):
   the recipe the player's choices name where it can be laid, else the
-  first crafting recipe that can. Where none can (no grid, the recipe
+  first crafting recipe that can; a recipe already lying in the grid as
+  it would be laid is left as it is. Where none can (no grid, the recipe
   does not fit) the press shows the recipes as elsewhere; a right press
   and the recipe keys still show recipes and uses (maintainer
   2026-11-20, L-367).
@@ -79,8 +81,11 @@ after using the first build. What is still open is in the L-item.
   (a dark one read badly over the game's window, and a translucent one let
   it show through), with dark text; its buttons, tabs and cells are
   Lamium's shared ones. The arrangement follows the game.
-- The window keeps one size, two recipe columns wide, so nothing changes
-  between items; where one column is enough it sits in the middle. The
+- The window keeps one size, two recipe columns wide and three rows high,
+  so nothing changes between items; where one column is enough it sits in
+  the middle. It stands in the middle of the room between the screen's top
+  and the search field, filling it only where it is lower (L-367: a window
+  from top to bottom moved the eye too far). The
   centre keeps that room free, so the side lists never move.
 - A page is two columns of three rows, six recipes, with room between
   them and inside the window's edge (L-367; ten without margins read as
