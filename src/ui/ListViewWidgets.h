@@ -23,8 +23,9 @@ namespace lamium::ui {
 enum class ButtonKind { Plain, Primary };
 void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                 bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
-// A pager (L-367): a previous button, "page / pages" (as wide as two-digit pages, so the buttons keep
-// their place) and a next button, ending at `right`, `y` the buttons' top. A button at the first or last page is disabled. The caller turns the page on a press
+// A pager (L-367): a previous button, "page / pages" and a next button, ending at `right`, `y` the
+// buttons' top. The page is right-aligned before the slash and the count left-aligned after it, each as
+// wide as two digits, so the buttons and the slash keep their place. A button at the first or last page is disabled. The caller turns the page on a press
 // over a button (overPrev, overNext); the wheel keeps turning pages too.
 struct Pager {
     static constexpr float size = 11;

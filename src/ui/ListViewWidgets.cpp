@@ -54,9 +54,12 @@ Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int pag
     out.y = y;
     out.prevOn = page > 0;
     out.nextOn = page + 1 < pages;
-    std::string text = std::format("{} / {}", page + 1, std::max(1, pages));
-    // As wide as two-digit pages whatever the numbers, so the buttons do not move as they grow.
-    float const tw = std::max(textWidth(context, text), textWidth(context, "88 / 88"));
+    // The slash keeps its place: the page ends at it, the count starts after it, each as wide as two digits
+    // or what it needs, so neither the buttons nor the slash move as the numbers grow.
+    std::string const now = std::to_string(page + 1), all = std::to_string(std::max(1, pages)), slash = " / ";
+    float const digits = textWidth(context, "88");
+    float const nowW = std::max(digits, textWidth(context, now)), allW = std::max(digits, textWidth(context, all));
+    float const slashW = textWidth(context, slash), tw = nowW + slashW + allW;
     out.nextX = right - Pager::size;
     out.prevX = out.nextX - 6 - tw - Pager::size;
     for (bool next : {false, true}) {
@@ -66,8 +69,12 @@ Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int pag
         Rgb const mark = drawButtonBox(context, bx, y, Pager::size, Pager::size, over, ButtonKind::Plain, on);
         arrow(context, bx + 4, y + 3, !next, mark);
     }
-    labelScaled(context, out.prevX + Pager::size + 3, y + (Pager::size - 10) / 2 + boxTextInset(), tw, std::move(text), 1.f,
-                onWindow() ? palette::vanilla::windowInk : palette::dim, Align::Center, !onWindow());
+    Rgb const ink = onWindow() ? palette::vanilla::windowInk : palette::dim;
+    bool const shadow = !onWindow();
+    float const textX = out.prevX + Pager::size + 3, textY = y + (Pager::size - 10) / 2 + boxTextInset();
+    labelScaled(context, textX, textY, nowW, now, 1.f, ink, Align::Right, shadow);
+    labelScaled(context, textX + nowW, textY, slashW, slash, 1.f, ink, Align::Center, shadow);
+    labelScaled(context, textX + nowW + slashW, textY, allW, all, 1.f, ink, Align::Left, shadow);
     return out;
 }
 void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, bool hovered, bool on) {
