@@ -67,14 +67,11 @@ after using the first build. What is still open is in the L-item.
   world's or a server's saved data removes its wanted items; "any order"
   is a small mark of three squares, named under the pointer.
 - The list moves aside when the game's own recipe book is switched on.
-- Under "can be made" a press on an item lays its recipe into the screen's
-  grid, as the game's recipe book does (Shift: as many as divide evenly):
-  the recipe the player's choices name where it can be laid, else the
-  first crafting recipe that can; a recipe already lying in the grid as
-  it would be laid is left as it is. Where none can (no grid, the recipe
-  does not fit) the press shows the recipes as elsewhere; a right press
-  and the recipe keys still show recipes and uses (maintainer
-  2026-11-20, L-367).
+- Under "can be made" a press lays the item's recipe into the grid, as
+  the game's recipe book does (Shift: as many as divide): the chosen
+  recipe where it can be laid, else the first that can; one already laid
+  is left alone. Without a grid or a fitting recipe it shows the recipes;
+  a right press and the keys work as elsewhere (L-367).
 
 ### The recipe view
 - Opens in the centre of the screen as a window in the game's grey, opaque
@@ -82,10 +79,8 @@ after using the first build. What is still open is in the L-item.
   it show through), with dark text; its buttons, tabs and cells are
   Lamium's shared ones. The arrangement follows the game.
 - The window keeps one size, two recipe columns wide and three rows high,
-  so nothing changes between items; where one column is enough it sits in
-  the middle. It stands in the middle of the room between the screen's top
-  and the search field, filling it only where it is lower (L-367: a window
-  from top to bottom moved the eye too far). The
+  in the middle of the room above the search field (all of it where it is
+  lower; L-367); where one column is enough it sits in the middle. The
   centre keeps that room free, so the side lists never move.
 - A page is two columns of three rows, six recipes, with room between
   them and inside the window's edge (L-367; ten without margins read as
