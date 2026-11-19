@@ -431,6 +431,26 @@ void worldPrints() {
                                   {"realm_5", "realm_5-w2", {2, "B", 0, false}, true, false, {}, 0}};
         check(wp::baseOf(sets, "realm_5-w2") == "realm_5" && wp::baseOf(sets, "realm_5") == "realm_5" && wp::baseOf(sets, "other") == "other",
               "a world's data set switches with its identity, other data with itself");
+        // A friend's world given a server's data (Use this data) adds a row naming the friend's world; the server's own
+        // row moves to the end when it is joined, so the first row with the key is the friend's.
+        std::vector<wp::Row> lent{{"world_x", "foo", {9, "F", 0, false}, true, false, {}, 0},
+                                  {"foo", "foo", {1, "S", 0, false}, true, false, {}, 0},
+                                  {"foo", "foo-w2", {2, "T", 0, false}, true, false, {}, 0}};
+        check(wp::baseOf(lent, "foo") == "foo" && wp::baseOf(lent, "foo-w2") == "foo"
+              && wp::ownSet("foo", "foo-w2") && !wp::ownSet("foo", "foo-wx") && !wp::ownSet("world_x", "foo"),
+              "data lent to another identity still belongs to its own");
+        lamium::map::servers::List owned;
+        owned.prints = lent;
+        check(lamium::map::servers::dataName(owned, "foo") == "foo - S", "a lent row does not name the data");
+        std::vector<wp::Row> asking{{"srv", "srv", {1, "A", 0, false}, true, false, {}, 0},
+                                    {"srv", "srv-w2", {2, "B", 0, false}, false, true, "srv", wp::Seed}};
+        wp::forget(asking, "srv");
+        check(asking.size() == 1 && asking[0].confirmed && asking[0].other.empty() && asking[0].diff == 0,
+              "deleting the data a question compared with settles the question");
+        lamium::map::servers::List gone;
+        gone.unsplit = {"srv", "keep"};
+        lamium::map::servers::forget(gone, "srv");
+        check(gone.unsplit == std::vector<std::string>{"keep"}, "deleted data is no longer kept together");
     }
     wp::forget(rows, "realm_5-w4");
     check(std::none_of(rows.begin(), rows.end(), [](wp::Row const& r) { return r.key == "realm_5-w4"; }), "deleted data leaves no rows");

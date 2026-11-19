@@ -174,10 +174,6 @@ std::optional<std::string> serverKey(Identity const& who) {
     });
     return key.empty() ? std::nullopt : std::optional(key);
 }
-// A data set of `base` itself (not data of another identity it was given): its name and kind follow the join.
-bool ownSet(std::string const& base, std::string const& key) {
-    return key == base || (key.starts_with(base + "-w") && key.size() > base.size() + 2);
-}
 // How a key reads in the notice: a world's name, else the server data's.
 std::string shownKey(servers::List const& list, std::string const& key) {
     auto world = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
@@ -192,7 +188,7 @@ std::optional<std::string> dataKey(Identity& who) {
     prints::Pick pick{*base};
     withList([&](servers::List& list) {
         pick = prints::pick(list.prints, list.unsplit, *base, who.print, [&](std::string const& k) { return held(config, k) >= 0; });
-        if (!who.byAddress() && pick.key != *base && ownSet(*base, pick.key)) recordWorld(list, pick.key, who);
+        if (!who.byAddress() && pick.key != *base && prints::ownSet(*base, pick.key)) recordWorld(list, pick.key, who);
         if (pick.asked) questionName = shownKey(list, pick.other);
     });
     question = pick.asked ? std::optional(pick) : std::nullopt;
@@ -712,7 +708,7 @@ bool answerWorld(WorldAnswer answer) {
         case WorldAnswer::UseOther: key = prints::use(list.prints, identity.base, identity.print, question->other); break;
         case WorldAnswer::NoSplit: key = prints::noSplit(list.unsplit, identity.base); break;
         }
-        if (!key.empty() && !identity.byAddress() && key != identity.base && ownSet(identity.base, key)) recordWorld(list, key, identity);
+        if (!key.empty() && !identity.byAddress() && key != identity.base && prints::ownSet(identity.base, key)) recordWorld(list, key, identity);
     });
     if (key.empty() || !saved || !safeKey(key)) return false;
     return switchTo(key);
@@ -760,6 +756,7 @@ bool removeData(SavedData const& item) {
     } catch (std::exception const& error) { log(std::string("could not delete saved data: ") + error.what()); }
     if (removed) {
         withList([&](servers::List& list) { servers::forget(list, item.key); });
+        if (question && question->other == item.key) question.reset(); // Nothing left to use instead.
         log("deleted the saved data under '" + item.key + "'");
     }
     // Also after a part of it went: the notice of fuller data counts what is left.

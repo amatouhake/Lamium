@@ -153,13 +153,22 @@ inline std::string noSplit(std::vector<std::string>& unsplit, std::string const&
 inline bool split(std::vector<std::string>& unsplit, std::string const& base) {
     return std::erase(unsplit, base) > 0;
 }
-// The identity a data set belongs to: a world's own data set (`<base>-w<n>`) its base, any other data itself.
+// Whether `key` is a data set of `base` itself: its base or a variant `<base>-w<n>`, not data it was given.
+inline bool ownSet(std::string const& base, std::string const& key) {
+    if (key == base) return true;
+    if (!key.starts_with(base + "-w") || key.size() <= base.size() + 2) return false;
+    return std::all_of(key.begin() + static_cast<std::ptrdiff_t>(base.size() + 2), key.end(), [](char c) { return c >= '0' && c <= '9'; });
+}
+// The identity a data set belongs to: a world's own data set (`<base>-w<n>`) its base, any other data itself. A row of
+// another identity that was given this data (`use`) names that identity, not the data's owner.
 inline std::string baseOf(std::vector<Row> const& rows, std::string const& key) {
-    auto row = std::find_if(rows.begin(), rows.end(), [&](Row const& r) { return r.key == key; });
+    auto row = std::find_if(rows.begin(), rows.end(), [&](Row const& r) { return r.key == key && ownSet(r.base, key); });
     return row != rows.end() ? row->base : key;
 }
-// The data under `key` was deleted: rows naming it go.
+// The data under `key` was deleted: rows naming it go, and a question comparing with it keeps what it decided.
 inline void forget(std::vector<Row>& rows, std::string const& key) {
     std::erase_if(rows, [&](Row const& r) { return r.key == key; });
+    for (auto& r : rows)
+        if (r.other == key) r = {r.base, r.key, r.print, true, false, {}, 0};
 }
 }

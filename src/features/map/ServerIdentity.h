@@ -241,6 +241,7 @@ inline void forget(List& list, std::string const& key) {
     for (auto& e : list.servers) std::erase(e.others, key);
     std::erase_if(list.worlds, [&](World const& w) { return w.key == key; });
     prints::forget(list.prints, key);
+    std::erase(list.unsplit, key);
 }
 // Two records of one address: a shared name, or neither has a name and the IP is the same.
 inline bool sameAddress(Entry const& a, Entry const& b) {
@@ -298,9 +299,10 @@ inline std::string shownName(std::string const& key) {
 // A server data's name in the list and the notice. One of several data sets of a server (L-365) adds the world it was
 // last confirmed with: a row still asked carries the joined world, not the data's.
 inline std::string dataName(List const& list, std::string const& key) {
+    // Rows of the data's own identity: one that was given this data names another.
     auto last = [&](bool confirmedOnly) {
         return std::find_if(list.prints.rbegin(), list.prints.rend(),
-            [&](prints::Row const& r) { return r.key == key && (r.confirmed || !confirmedOnly); });
+            [&](prints::Row const& r) { return r.key == key && prints::ownSet(r.base, key) && (r.confirmed || !confirmedOnly); });
     };
     auto row = last(true);
     if (row == list.prints.rend()) row = last(false);
