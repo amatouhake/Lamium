@@ -27,12 +27,18 @@ Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, 
                   bool enabled) {
     bool primary = enabled && kind == ButtonKind::Primary;
     if (onWindow()) {
-        // The game's raised button; one that is on keeps its green face, with its text white.
+        // The game's raised button; one that is on keeps its green face, with its text white. A disabled one
+        // is flat and darker, so it reads as not pressable at a glance.
         namespace v = palette::vanilla;
+        if (!enabled) {
+            fill(context,x,y,w,h,v::slot);
+            frame(context,x,y,w,h,v::windowEdge);
+            return v::buttonShadow;
+        }
         raisedBox(context,x,y,w,h,primary ? palette::accentDeep : v::window,primary ? palette::accent : v::windowLight,
                   primary ? palette::shade : v::buttonShadow);
-        if (enabled && hovered) fill(context,x+1,y+1,w-2,h-2,palette::white,primary ? .12f : .3f);
-        return !enabled ? v::windowFaint : primary ? palette::text : v::windowInk;
+        if (hovered) fill(context,x+1,y+1,w-2,h-2,palette::white,primary ? .12f : .3f);
+        return primary ? palette::text : v::windowInk;
     }
     box(context,x,y,w,h,enabled && hovered,primary ? palette::accentDeep : palette::keyFill,primary ? palette::accent : palette::keyEdge);
     return enabled ? palette::text : palette::faint;
@@ -49,7 +55,8 @@ Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int pag
     out.prevOn = page > 0;
     out.nextOn = page + 1 < pages;
     std::string text = std::format("{} / {}", page + 1, std::max(1, pages));
-    float const tw = textWidth(context, text);
+    // As wide as two-digit pages whatever the numbers, so the buttons do not move as they grow.
+    float const tw = std::max(textWidth(context, text), textWidth(context, "88 / 88"));
     out.nextX = right - Pager::size;
     out.prevX = out.nextX - 6 - tw - Pager::size;
     for (bool next : {false, true}) {

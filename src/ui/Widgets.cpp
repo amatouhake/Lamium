@@ -232,11 +232,13 @@ void windowPanel(MinecraftUIRenderContext& context, float left, float top, float
 }
 void raisedBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow) {
     if (w < 3 || h < 3) return;
+    // Half a unit of light and shadow: a whole unit was heavy on buttons this small (L-367).
+    constexpr float e = .5f;
     fill(context, x, y, w, h, face);
-    fill(context, x + 1, y + 1, w - 2, 1, light);
-    fill(context, x + 1, y + 2, 1, h - 3, light);
-    fill(context, x + 1, y + h - 2, w - 2, 1, shadow);
-    fill(context, x + w - 2, y + 2, 1, h - 4, shadow);
+    fill(context, x + 1, y + 1, w - 2, e, light);
+    fill(context, x + 1, y + 1 + e, e, h - 2 - e, light);
+    fill(context, x + 1, y + h - 1 - e, w - 2, e, shadow);
+    fill(context, x + w - 1 - e, y + 1, e, h - 2 - e, shadow);
     frame(context, x, y, w, h, palette::vanilla::windowEdge);
 }
 void gameTooltipBox(MinecraftUIRenderContext& context, float x, float y, float width, float height) {

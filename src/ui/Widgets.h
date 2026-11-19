@@ -163,8 +163,8 @@ void windowPanel(MinecraftUIRenderContext&, float left, float top, float width, 
 // The game's item tooltip box (VanillaFrame.h: text 6 units in, 5 down, 10 a line), opaque, for an item
 // Lamium shows in place of a slot of the game's.
 void gameTooltipBox(MinecraftUIRenderContext&, float x, float y, float width, float height);
-// The game's raised button shape: a black edge, `light` along the top and left inside it, `shadow` along
-// the bottom and right, `face` inside.
+// The game's raised button shape: a black edge, half a unit of `light` along the top and left inside it
+// and of `shadow` along the bottom and right, `face` inside.
 void raisedBox(MinecraftUIRenderContext&, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow);
 void windowLabel(MinecraftUIRenderContext&, float x, float y, float width, std::string text, bool faint = false,
                  Align align = Align::Left);

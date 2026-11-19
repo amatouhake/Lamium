@@ -120,8 +120,16 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     if (input.plan) regions.push_back(wantedRegion);
     if (input.favourites) regions.push_back(likedRegion);
     headEnd = (input.favourites ? likedRegion.x : input.plan ? wantedRegion.x : headEnd) - 6;
-    windowLabel(context, l.left + 6, l.top + 4, headEnd - (l.left + 6),
-                translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
+    // The item's icon leads its name; under the pointer either names the item in its own tooltip, so a name
+    // cut short on a narrow screen can still be read.
+    {
+        auto const& shown = schematic::items::shown(at.item);
+        if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, l.left + 6, l.top + 3, .625f});
+        float const nameX = l.left + 19;
+        windowLabel(context, nameX, l.top + 4, headEnd - nameX, translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", shown.name));
+        if (input.pointerX >= l.left + 6 && input.pointerX < headEnd && input.pointerY >= l.top + 3 && input.pointerY < l.top + 14)
+            late.tip = shown.name, late.hovered = at.item;
+    }
     auto line = [&](std::string_view key) {
         windowLabel(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), true);
     };

@@ -81,12 +81,14 @@ after using the first build. What is still open is in the L-item.
 - Stations are tabs on the window's top edge: one station's recipes to a
   view, each the same size. A tab is the station's block as an icon,
   named under the pointer.
-- A two-line heading: the item's name across the width with its own
-  actions at the right end, a favourite button (the key works too) and
-  "wanted"; under it the station's name and the pager (previous,
-  "1 / 3", next). The wheel turns pages too. Recipes carry no favourite
+- A two-line heading: the item's icon and name across the width (under
+  the pointer, the item's tooltip, so a name cut short can be read) with
+  its own actions at the right end, a favourite button (the key works
+  too) and "wanted"; under it the station's name and the pager (previous,
+  "1 / 3", next, as wide as two-digit pages so the buttons stay put). The wheel turns pages too. Recipes carry no favourite
   button of their own: any item in a recipe can be opened, and the key is
   there.
+- Every tip over the view or the plan window is the game's tooltip box.
 - One line of key hints sits just above the search field, in the same
   place whether a recipe is open (the window's last line) or not: click
   for recipes, right click for uses, the favourite key, and Backspace for
@@ -99,8 +101,9 @@ after using the first build. What is still open is in the L-item.
 - R over an item shows its recipes and U what it is used in, in the lists,
   the view and the game's own slots. Sorting therefore has no default key.
 - Each recipe carries one control, "place" (with Shift: as many as divide
-  evenly), a small square button with a picture at its upper right, named
-  under the pointer and faint with the reason when something is missing;
+  evenly), a small square button with a picture (an arrow down onto a
+  line) at its upper right, named under the pointer, flat and darker with
+  the reason when something is missing;
   and one small mark, "any order" for a shapeless recipe. That a recipe
   fits the inventory's own grid is seen from its shape. While the item is
   in the plan, the recipe it is made by carries a small check under its

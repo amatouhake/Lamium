@@ -751,17 +751,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
         for (auto const& line : more) w = std::max(w, textWidth(context, line.text));
         int const lines = 1 + static_cast<int>(late.tipLines.size() + more.size());
-        // An item's tip is the game's tooltip box (VanillaFrame.h); other tips are Lamium's, two units under
-        // the last line so letters that reach below it (p, y) stay inside the frame.
+        // An item's tip, and any tip over Lamium's light windows, is the game's tooltip box (VanillaFrame.h,
+        // L-367); other tips are Lamium's, two units under the last line so letters that reach below it
+        // (p, y) stay inside the frame.
         namespace vf = vanilla_frame;
-        float const inset = item ? vf::tooltipTextLeft : 4, top = item ? vf::tooltipTextTop - 1 : 2;
-        w = std::min(item ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
-        float const h = item ? vf::tooltipHeight(lines) : 2 + 10 * static_cast<float>(lines) + (lines > 1 ? 2.f : 0.f);
+        bool const game = item || covered;
+        float const inset = game ? vf::tooltipTextLeft : 4, top = game ? vf::tooltipTextTop - 1 : 2;
+        w = std::min(game ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
+        float const h = game ? vf::tooltipHeight(lines) : 2 + 10 * static_cast<float>(lines) + (lines > 1 ? 2.f : 0.f);
         // On whole units: the pointer lies between them, and the box and the text, rounded to pixels each their
         // own way, moved a pixel apart now and then as it went.
         w = std::ceil(w);
         float const x = std::round(std::max(2.f, std::min(px + 8, screen.x - w - 2))), y = std::round(std::max(2.f, std::min(py + 8, screen.y - h - 2)));
-        if (item) {
+        if (game) {
             context.flushText(0, std::nullopt);
             gameTooltipBox(context, x, y, w, h);
         } else drawTipBox(context, x, y, w, h);

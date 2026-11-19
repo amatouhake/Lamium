@@ -134,11 +134,13 @@ the same commit. A screen never draws its own variant.
 On a window of the game's grey (`windowPanel`, drawn inside `OnWindow`) the
 shared controls take the game's look, so they sit in it as its own do
 (maintainer 2026-11-19/20, L-367): action buttons are raised (`raisedBox`:
-black edge, white light, grey shadow) with dark text; joined on/off buttons
+black edge, half a unit of white light and grey shadow) with dark text,
+a disabled one flat and darker; joined on/off buttons
 (`drawOnOffButton`) and a switch keep Lamium's shape, green when on, their
 off face the game's lighter grey with a black edge; tabs are the game's
 (`windowTab`, below); a stepper has raised ends and its value in the slots'
-grey. Elsewhere they keep Lamium's dark look. No control plays a sound.
+grey. A tip there is the game's tooltip box. Elsewhere they keep Lamium's
+dark look. No control plays a sound.
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.
