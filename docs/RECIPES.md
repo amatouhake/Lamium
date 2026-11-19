@@ -75,14 +75,18 @@ after using the first build. What is still open is in the L-item.
 - The window keeps one size, two recipe columns wide, so nothing changes
   between items; where one column is enough it sits in the middle. The
   centre keeps that room free, so the side lists never move.
-- Shows as many recipes to a page as the window holds (two were too few
-  for an item with dozens of uses).
-- Stations are tabs: one station's recipes to a view, each the same size.
-  A tab is the station's block as an icon, named under the pointer.
-- The item's own actions sit together in the heading: a favourite button
-  (the key works too) and "add to wanted", which keeps its width when it
-  turns into "wanted". Recipes carry no favourite button
-  of their own: any item in a recipe can be opened, and the key is there.
+- A page is two columns of three rows, six recipes, with room between
+  them and inside the window's edge (L-367; ten without margins read as
+  crowded, two were too few for an item with dozens of uses).
+- Stations are tabs on the window's top edge: one station's recipes to a
+  view, each the same size. A tab is the station's block as an icon,
+  named under the pointer.
+- A two-line heading: the item's name across the width with its own
+  actions at the right end, a favourite button (the key works too) and
+  "wanted"; under it the station's name and the pager (previous,
+  "1 / 3", next). The wheel turns pages too. Recipes carry no favourite
+  button of their own: any item in a recipe can be opened, and the key is
+  there.
 - One line of key hints sits just above the search field, in the same
   place whether a recipe is open (the window's last line) or not: click
   for recipes, right click for uses, the favourite key, and Backspace for
@@ -95,11 +99,14 @@ after using the first build. What is still open is in the L-item.
 - R over an item shows its recipes and U what it is used in, in the lists,
   the view and the game's own slots. Sorting therefore has no default key.
 - Each recipe carries one control, "place" (with Shift: as many as divide
-  evenly), and one small mark, "any order" for a shapeless recipe. That a
-  recipe fits the inventory's own grid is seen from its shape. Which recipe
-  makes an item is chosen only where it matters: opened from the list of
-  what to make, an item with several recipes shows "in use" on one and
-  "use" on the others.
+  evenly), a small square button with a picture at its upper right, named
+  under the pointer and faint with the reason when something is missing;
+  and one small mark, "any order" for a shapeless recipe. That a recipe
+  fits the inventory's own grid is seen from its shape. While the item is
+  in the plan, the recipe it is made by carries a small check under its
+  product, named under the pointer. Opened from the list of what to make,
+  an item with several recipes still offers "use" on the others, until
+  the plan's rows choose (L-367).
 - The arrow and the product stand at the middle of the ingredients.
 - A recipe that uses its own product (copying a smithing template, dyeing
   a shulker box) is shown after the others and is never the recipe a plan

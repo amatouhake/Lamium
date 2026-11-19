@@ -1048,6 +1048,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.backToAny", "恢复为任意"},
     {"recipes.mark.use", "使用"},
     {"recipes.place", "放置"},
+    {"recipes.placeMissing", "缺少材料（红框）"},
     {"recipes.hint.favourite", "{}: 收藏"},
     {"recipes.hint.wanted", "{}: 想要"},
     {"recipes.hint.back", "{}: 上一个配方"},

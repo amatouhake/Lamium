@@ -98,21 +98,28 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
 // station's recipes all take the same room; where one column holds them all
 // it sits in the middle.
 struct RecipeViewLayout {
-    static constexpr float width = 220, column = 110, block = 100, head = 14, foot = 12;
+    // Two columns of three rows a page, with room between them and inside the window's edge (L-367).
+    static constexpr float width = 220, margin = 10, column = (width - 2 * margin) / 2, block = 92, head = 31, foot = 12;
+    static constexpr int mostRows = 3;
     // The game's tabs stand on the window's top edge, above it (windowTab's rise).
     static constexpr float tabsAbove = 18;
     float left = 0, top = 0, height = 0;
     static float blockHeight(Station station) { return station == Station::Crafting ? 59.f : station == Station::Stonecutter ? 31.f : 53.f; }
-    int rows(Station station) const { return std::max(1, static_cast<int>((height - head - foot) / blockHeight(station))); }
+    int rows(Station station) const {
+        return std::clamp(static_cast<int>((height - head - foot) / blockHeight(station)), 1, mostRows);
+    }
+    // The rows share the height between the heading and the key hints.
+    float rowStep(Station station) const { return (height - head - foot) / static_cast<float>(rows(station)); }
     int perPage(Station station) const { return rows(station) * 2; }
     int pages(Station station, int count) const { return std::max(1, (count + perPage(station) - 1) / perPage(station)); }
     int columns(Station station, int count) const { return count <= rows(station) ? 1 : 2; }
     // The i-th block of a page, of `count` recipes in the tab: left to right, then down.
     float blockX(Station station, int count, int i) const {
-        return columns(station, count) == 1 ? left + (width - block) / 2 : left + static_cast<float>(i % 2) * column + (column - block) / 2;
+        return columns(station, count) == 1 ? left + (width - block) / 2 : left + margin + static_cast<float>(i % 2) * column + (column - block) / 2;
     }
     float blockY(Station station, int count, int i) const {
-        return top + head + static_cast<float>(columns(station, count) == 1 ? i : i / 2) * blockHeight(station);
+        float const step = rowStep(station);
+        return top + head + static_cast<float>(columns(station, count) == 1 ? i : i / 2) * step + std::max(0.f, (step - blockHeight(station)) / 2);
     }
     bool has(float x, float y) const { return x >= left && x < left + width && y >= top && y < top + height; }
     // The key hints' line: the window's last, and the same place while it is closed; clear of the

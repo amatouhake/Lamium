@@ -6,6 +6,7 @@
 #include "ui/ScreenParts.h"
 #include "ui/TextFit.h"
 #include <vector>
+#include <format>
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include <algorithm>
 #include <chrono>
@@ -41,6 +42,26 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
     Rgb color = drawButtonBox(context,x,y,w,h,hovered,kind,enabled);
     // Dark text on the game's grey has no shadow, as the window's own text.
     centered(context,x,y,w,h,std::move(text),color,!onWindow() || (enabled && kind == ButtonKind::Primary));
+}
+Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int page, int pages, float pointerX, float pointerY) {
+    Pager out;
+    out.y = y;
+    out.prevOn = page > 0;
+    out.nextOn = page + 1 < pages;
+    std::string text = std::format("{} / {}", page + 1, std::max(1, pages));
+    float const tw = textWidth(context, text);
+    out.nextX = right - Pager::size;
+    out.prevX = out.nextX - 6 - tw - Pager::size;
+    for (bool next : {false, true}) {
+        float const bx = next ? out.nextX : out.prevX;
+        bool const on = next ? out.nextOn : out.prevOn;
+        bool const over = next ? out.overNext(pointerX, pointerY) : out.overPrev(pointerX, pointerY);
+        Rgb const mark = drawButtonBox(context, bx, y, Pager::size, Pager::size, over, ButtonKind::Plain, on);
+        arrow(context, bx + 4, y + 3, !next, mark);
+    }
+    labelScaled(context, out.prevX + Pager::size + 3, y + (Pager::size - 10) / 2 + boxTextInset(), tw, std::move(text), 1.f,
+                onWindow() ? palette::vanilla::windowInk : palette::dim, Align::Center, !onWindow());
+    return out;
 }
 void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, bool hovered, bool on) {
     if (!onWindow()) { drawButton(context,x,y,w,h,std::move(text),hovered,on ? ButtonKind::Primary : ButtonKind::Plain); return; }

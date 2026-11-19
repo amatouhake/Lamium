@@ -1057,6 +1057,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.backToAny", "Back to any", "どれでもに戻す"},
     {"recipes.mark.use", "Use", "使う"},
     {"recipes.place", "Place", "配置"},
+    {"recipes.placeMissing", "Something is missing: the red slots", "足りない材料があります（赤い枠）"},
     {"recipes.hint.favourite", "{}: favourite", "{}: お気に入り"},
     {"recipes.hint.wanted", "{}: wanted", "{}: 欲しい物"},
     {"recipes.hint.back", "{}: previous recipe", "{}: 前のレシピ"},

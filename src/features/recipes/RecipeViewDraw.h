@@ -1,4 +1,5 @@
 #pragma once
+#include <set>
 #include "features/inspection/render/ItemIcon.h"
 #include "features/recipes/PlacePlan.h"
 #include <string>
@@ -31,6 +32,8 @@ struct Input {
     // The span between the two bands. The window's grey covers all of it, so a game window wider than
     // the view (its recipe book out) does not show at the view's sides; what the view shows keeps its place.
     float coverLeft = 0, coverRight = 0;
+    // Items the plan makes or the player wants, by key: the recipe in use for one of them carries a mark.
+    std::set<std::string> const* planned = nullptr;
 };
 // Drawn by the host after its own: item icons, then counts and the name under the pointer on top of them.
 struct Late {

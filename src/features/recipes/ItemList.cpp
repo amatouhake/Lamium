@@ -359,7 +359,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto& context = event.uiRenderContext();
     // A dimmed band to the screen's edge: the game dims the world too little for bare icons.
     fill(context, layout.left, layout.top, layout.width, layout.height, palette::panel, .5f);
-    label(context, layout.left, layout.top + 3, layout.width - 4, std::format("{} / {}", page + 1, pages), palette::dim, Align::Right);
+    // The pager at the bar's right end; the wheel turns pages too.
+    auto const pager = drawPager(context, layout.left + layout.width - 3, layout.top + 1, page, pages, px, py);
+    if (leftPress && took({pager.prevX, pager.y, Pager::size, Pager::size})) page = std::max(0, page - 1);
+    else if (leftPress && took({pager.nextX, pager.y, Pager::size, Pager::size})) page = std::min(pages - 1, page + 1);
     // The filters keep the bar's left end: both where the band is wide, one switch where it is not.
     float barX = layout.left + 2;
     auto barButton = [&](std::string text, bool on) {
@@ -621,6 +624,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!searchFocus) releaseKeyboard();
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
+        // What the plan makes and the player wants: the recipe in use for one of them is marked in the view.
+        std::set<std::string> planned;
+        if (planOn) {
+            for (auto const& [key, amount] : state::wanted().targets) planned.insert(key);
+            if (auto const* plan = state::plan(*player))
+                for (auto const& step : plan->view.steps) planned.insert(plan->table->index.items[static_cast<size_t>(step.item)]);
+        }
         std::optional<GridPlacer> placer;
         if (int const gridSide = place::gridSide(screenView))
             if (auto table = service::table()) {
@@ -628,7 +638,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
         view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn, favouritesOn,
-                             placer ? &*placer : nullptr, coverLeft, right}, late);
+                             placer ? &*placer : nullptr, coverLeft, right, &planned}, late);
     }
     else if (planView::isOpen()) {
         std::string showItem;

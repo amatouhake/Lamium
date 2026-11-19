@@ -23,6 +23,17 @@ namespace lamium::ui {
 enum class ButtonKind { Plain, Primary };
 void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                 bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
+// A pager (L-367): a previous button, "page / pages" and a next button, ending at `right`, `y` the
+// buttons' top. A button at the first or last page is disabled. The caller turns the page on a press
+// over a button (overPrev, overNext); the wheel keeps turning pages too.
+struct Pager {
+    static constexpr float size = 11;
+    float prevX = 0, nextX = 0, y = 0;
+    bool prevOn = false, nextOn = false;
+    bool overPrev(float px, float py) const { return prevOn && px >= prevX && px < prevX + size && py >= y && py < y + size; }
+    bool overNext(float px, float py) const { return nextOn && px >= nextX && px < nextX + size && py >= y && py < y + size; }
+};
+Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int page, int pages, float pointerX, float pointerY);
 // One of joined on/off buttons (DESIGN "Each on or off"), green when on. On the game's window the off face
 // is the game's lighter grey with a black edge, as the switch's track there; the text stays white.
 void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, bool hovered, bool on);

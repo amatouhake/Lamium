@@ -25,7 +25,7 @@ struct Target {
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, or a
 // recipe's "use this".
-enum class Act { Item, Tab, Favourite, Wanted, Use, Place };
+enum class Act { Item, Tab, Favourite, Wanted, Use, Place, PagePrev, PageNext };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
@@ -45,6 +45,25 @@ void close() {
     trail.clear();
     regions.clear();
 }
+namespace {
+// "Place": an arrow down onto a line, the grid it lays into.
+void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb color) {
+    using namespace lamium::ui;
+    fill(context, x + 5, y + 2, 1, 4, color);
+    fill(context, x + 3, y + 5, 5, 1, color);
+    fill(context, x + 4, y + 6, 3, 1, color);
+    fill(context, x + 5, y + 7, 1, 1, color);
+    fill(context, x + 2, y + 8, 7, 1, color);
+}
+// In use: a small check.
+void inUseMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb color) {
+    using namespace lamium::ui;
+    fill(context, x, y + 2, 1, 2, color);
+    fill(context, x + 1, y + 3, 1, 2, color);
+    fill(context, x + 2, y + 4, 1, 1, color);
+    for (int i = 0; i < 5; ++i) fill(context, x + 3 + static_cast<float>(i), y + 3 - static_cast<float>(i) * .75f, 1, 1.5f, color);
+}
+}
 void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     using namespace lamium::ui;
     if (trail.empty()) return;
@@ -62,6 +81,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Favourite) state::toggleFavourite(shownItem);
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
             else if (region.act == Act::Use) state::setChoice(shownItem, region.item);
+            else if (region.act == Act::PagePrev) trail.back().page -= 1;
+            else if (region.act == Act::PageNext) trail.back().page += 1;
             else if (region.act == Act::Place && input.placer) {
                 // Laid in: the grid is what the player wants to see next.
                 if (input.placer->run(region.tab, input.shift)) { late.placed = true; return; }
@@ -79,8 +100,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
     OnWindow const onWindowScope;
     static_assert(RecipeViewLayout::tabsAbove == windowTabRise);
-    // One heading line: the item's name, the pager, and the item's two switches at its right end. The
-    // stations are the game's tabs on the window's top edge.
+    // Two heading lines: the item's name with its two switches at the right end; under it the station's
+    // name and the pager. The stations are the game's tabs on the window's top edge.
     float headEnd = l.left + l.width - 5;
     // Each on or off, like the world map's layers: two buttons sharing a border, green when on (a trial
     // beside "a name and a switch", 2026-11-19). The one that is on is drawn last, so its frame is whole.
@@ -99,9 +120,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     if (input.plan) regions.push_back(wantedRegion);
     if (input.favourites) regions.push_back(likedRegion);
     headEnd = (input.favourites ? likedRegion.x : input.plan ? wantedRegion.x : headEnd) - 6;
-    // The pager's room is kept whether or not there are pages, so the name does not jump.
-    constexpr float pagerWidth = 36;
-    windowLabel(context, l.left + 6, l.top + 4, headEnd - pagerWidth - 4 - (l.left + 6),
+    windowLabel(context, l.left + 6, l.top + 4, headEnd - (l.left + 6),
                 translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {
         windowLabel(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), true);
@@ -145,7 +164,12 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         regions.push_back(region);
         x += w;
     }
-    if (pages > 1) windowLabel(context, headEnd - pagerWidth, l.top + 4, pagerWidth, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
+    // The second line: the station's name, and the pager at its right end.
+    float const lineTwo = l.top + 17, lineEnd = l.left + l.width - 6;
+    auto const pager = drawPager(context, lineEnd, lineTwo, at.page, pages, input.pointerX, input.pointerY);
+    windowLabel(context, l.left + 6, lineTwo + 1, pager.prevX - 4 - (l.left + 6), stationName(station), true);
+    if (pager.prevOn) regions.push_back({pager.prevX, pager.y, Pager::size, Pager::size, Act::PagePrev, {}, -1});
+    if (pager.nextOn) regions.push_back({pager.nextX, pager.y, Pager::size, Pager::size, Act::PageNext, {}, -1});
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
@@ -190,27 +214,36 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         }
         changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
-        // Asked from the list of what to make, an item with several recipes: the one it is made by says
-        // so, the others offer themselves.
+        // "Place": a small square button with a picture, named under the pointer; faint, with the reason,
+        // when something is missing.
         if (laid.fits) {
-            std::string text = translated("recipes.place");
-            float const mx = bx + block.marksX, my = by + block.marksY;
-            float const w = std::min(textWidth(context, text) + 8, bx + RecipeViewLayout::block - mx);
-            Region const region{mx, my, w, 10, Act::Place, {}, number};
-            drawButton(context, mx, my, w, 10, std::move(text), laid.ready() && region.has(input.pointerX, input.pointerY), ButtonKind::Plain, laid.ready());
+            float const mx = bx + block.marksX, my = by + block.marksY, size = 11;
+            Region const region{mx, my, size, size, Act::Place, {}, number};
+            bool const over = region.has(input.pointerX, input.pointerY);
+            Rgb const mark = drawButtonBox(context, mx, my, size, size, laid.ready() && over, ButtonKind::Plain, laid.ready());
+            placeMark(context, mx, my, mark);
+            if (over) late.tip = translated(laid.ready() ? "recipes.place" : "recipes.placeMissing");
             if (laid.ready()) regions.push_back(region);
         }
-        if (several && !recipe.own) {
-            bool const inUse = choice->recipe[static_cast<size_t>(id)] == number;
-            std::string text = translated(inUse ? "recipes.mark.default" : "recipes.mark.use");
+        // The recipe the plan makes the item by, while the item is in the plan: a small mark under its product.
+        bool const inUse = id >= 0 && !at.uses && choice->recipe[static_cast<size_t>(id)] == number;
+        if (inUse && input.planned && input.planned->contains(at.item)) {
+            float const ux = bx + block.productX + 5, uy = by + block.productY + 20;
+            inUseMark(context, ux, uy, palette::accentDeep);
+            if (input.pointerX >= ux - 2 && input.pointerX < ux + 9 && input.pointerY >= uy - 2 && input.pointerY < uy + 7)
+                late.tip = translated("recipes.mark.default");
+        }
+        // Asked from the list of what to make, an item with several recipes: the others offer themselves
+        // (until the plan's rows choose, L-367).
+        if (several && !recipe.own && !inUse) {
+            std::string text = translated("recipes.mark.use");
             // Beside the small mark's place when the recipe has one there, else on the marks' line.
             bool const below = block.noteY > 0;
             float const mx = bx + (below ? block.noteX + anyOrderMarkSize + 3 : block.marksX), my = by + (below ? block.noteY - 1 : block.marksY + (laid.fits ? 12 : 0));
             float const w = std::min(textWidth(context, text) + 8, bx + RecipeViewLayout::block - mx);
             Region region{mx, my, w, 10, Act::Use, choiceKey(recipe), -1};
-            drawButton(context, mx, my, w, 10, std::move(text), !inUse && region.has(input.pointerX, input.pointerY),
-                       inUse ? ButtonKind::Primary : ButtonKind::Plain);
-            if (!inUse) regions.push_back(std::move(region));
+            drawButton(context, mx, my, w, 10, std::move(text), region.has(input.pointerX, input.pointerY));
+            regions.push_back(std::move(region));
         }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;

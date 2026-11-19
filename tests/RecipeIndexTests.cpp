@@ -1,3 +1,4 @@
+#include <cmath>
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/ListFilter.h"
@@ -219,8 +220,12 @@ void recipeIndexTests() {
         check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,
               "the arrow and the product stand at the grid's middle, the small mark under them");
         check(view.left == 210 && view.top == 19 && view.height == 321 && view.hintY() == 327, "the view is centred, two columns wide, under its tabs, down to the search field's place");
-        check(view.rows(Station::Crafting) == 5 && view.columns(Station::Crafting, 5) == 1 && view.columns(Station::Crafting, 6) == 2
-              && view.pages(Station::Crafting, 11) == 2, "rows fill the height; a second column and page come when needed");
+        check(view.rows(Station::Crafting) == 3 && view.perPage(Station::Crafting) == 6 && view.columns(Station::Crafting, 3) == 1
+              && view.columns(Station::Crafting, 4) == 2 && view.pages(Station::Crafting, 13) == 3
+              && std::abs(view.blockY(Station::Crafting, 6, 2) - view.blockY(Station::Crafting, 6, 0) - view.rowStep(Station::Crafting)) < .01f
+              && view.blockX(Station::Crafting, 6, 0) >= view.left + RecipeViewLayout::margin
+              && view.blockX(Station::Crafting, 6, 1) + RecipeViewLayout::block <= view.left + RecipeViewLayout::width - RecipeViewLayout::margin,
+              "a page is two columns of three rows inside the window's margins; one column when three fit");
         // Laying a recipe into the grid from what is carried.
         Item const iron = index.find("iron"), sticks = index.find("stick"), oak = index.find("oak_planks"), birch = index.find("birch_planks");
         using Moves = std::vector<PlaceMove>;
@@ -264,7 +269,8 @@ void recipeIndexTests() {
         check(surplusSlots(index, pickaxe, {{0, iron, 1, 1}, {1, iron, 1, 1}, {2, iron, 1, 1}, {3, iron, 1, 1}}).empty()
               && recipeInGrid(index, 2, {-1, -1, -1, birch}, "none") == at(button) && recipeInGrid(index, 2, {-1, -1, -1, birch}, button.id) == at(button),
               "what does not stack is never thrown, and the recipe the game names is taken where it fits");
-        check(view.blockX(Station::Crafting, 3, 1) == 270 && view.blockX(Station::Crafting, 8, 1) == 325 && view.blockY(Station::Crafting, 8, 3) == 4 + 29 + 59,
+        check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 324
+              && std::abs(view.blockY(Station::Crafting, 8, 3) - (19 + 31 + 278.f / 3 + (278.f / 3 - 59) / 2)) < .01f,
               "one column sits in the middle; two fill left to right, then down");
     }
     {
