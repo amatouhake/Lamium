@@ -94,6 +94,7 @@ struct Identity {
 } identity;
 // The joined world's print decided for now and not answered yet (L-365): the tool screens ask.
 std::optional<prints::Pick> question;
+std::string questionName; // The data compared with, as shown; worked out when asked, not every frame.
 bool questionToast = false;
 std::filesystem::path configFolder() { return Runtime::instance().self().getConfigDir(); }
 // Fuller data that may be the joined server's, per kind (SavedData.h); refreshed by suggest().
@@ -173,6 +174,15 @@ std::optional<std::string> serverKey(Identity const& who) {
     });
     return key.empty() ? std::nullopt : std::optional(key);
 }
+// A data set of `base` itself (not data of another identity it was given): its name and kind follow the join.
+bool ownSet(std::string const& base, std::string const& key) {
+    return key == base || (key.starts_with(base + "-w") && key.size() > base.size() + 2);
+}
+// How a key reads in the notice: a world's name, else the server's.
+std::string shownKey(servers::List const& list, std::string const& key) {
+    auto world = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
+    return world != list.worlds.end() && !world->name.empty() ? world->name : servers::shownName(key);
+}
 // The data set of the joined identity for the world joined (L-365): `who.base` is set to the identity's key.
 std::optional<std::string> dataKey(Identity& who) {
     auto base = serverKey(who);
@@ -182,7 +192,8 @@ std::optional<std::string> dataKey(Identity& who) {
     prints::Pick pick{*base};
     withList([&](servers::List& list) {
         pick = prints::pick(list.prints, list.unsplit, *base, who.print, [&](std::string const& k) { return held(config, k) >= 0; });
-        if (!who.byAddress() && pick.key != *base) recordWorld(list, pick.key, who);
+        if (!who.byAddress() && pick.key != *base && ownSet(*base, pick.key)) recordWorld(list, pick.key, who);
+        if (pick.asked) questionName = shownKey(list, pick.other);
     });
     question = pick.asked ? std::optional(pick) : std::nullopt;
     if (pick.asked)
@@ -287,6 +298,9 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
                 identity.print.mode = static_cast<int>(level.getDefaultGameType());
                 identity.print.hardcore = level.isHardcore();
             } catch (...) {}
+            // Whether the world can be told from another behind the same key (L-365): a hidden seed cannot.
+            log("world: seed " + std::string(identity.print.seed ? "known" : "hidden") + ", game mode "
+                + std::to_string(identity.print.mode) + (identity.print.hardcore ? ", hardcore" : ""));
             questionToast = false;
             try { identity.key = dataKey(identity); questionToast = question.has_value(); }
             catch (std::exception const& error) { log(std::string("no name for this server's data: ") + error.what()); }
@@ -660,15 +674,7 @@ bool useData(std::string const& key) {
 std::optional<WorldQuestion> worldQuestion() {
     std::lock_guard lock(mutex);
     if (!question || !joined.active) return std::nullopt;
-    WorldQuestion q{question->fresh, question->other, {}, question->diff};
-    servers::List list;
-    std::error_code ignored;
-    try {
-        if (std::filesystem::exists(configFolder() / "servers.json", ignored)) list = readServers(configFolder() / "servers.json");
-    } catch (...) {}
-    auto world = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == q.other; });
-    q.otherName = world != list.worlds.end() && !world->name.empty() ? world->name : servers::shownName(q.other);
-    return q;
+    return WorldQuestion{question->fresh, question->other, questionName, question->diff};
 }
 bool takeWorldToast() {
     std::lock_guard lock(mutex);
@@ -687,7 +693,7 @@ bool answerWorld(WorldAnswer answer) {
         case WorldAnswer::UseOther: key = prints::use(list.prints, identity.base, identity.print, question->other); break;
         case WorldAnswer::NoSplit: key = prints::noSplit(list.unsplit, identity.base); break;
         }
-        if (!key.empty() && !identity.byAddress() && key != identity.base) recordWorld(list, key, identity);
+        if (!key.empty() && !identity.byAddress() && key != identity.base && ownSet(identity.base, key)) recordWorld(list, key, identity);
     });
     if (key.empty() || !saved || !safeKey(key)) return false;
     return switchTo(key);
