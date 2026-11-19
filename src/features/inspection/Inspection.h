@@ -10,8 +10,8 @@ void stop();
 void setBeforeTooltip(void (*painter)(MinecraftUIRenderContext&));
 // While `wants` answers true, the game's tooltip is not drawn inside the
 // screen but after every after-render painter, on top of them (the recipe
-// list's bands). `dropDeferredTooltip` throws this frame's away (a slot
-// under Lamium's open window). One asker; null removes it. Client thread.
+// list's bands). `dropDeferredTooltip` throws this frame's away, the
+// container preview too (a slot under Lamium's open window). One asker; null removes it. Client thread.
 void setDeferTooltip(bool (*wants)());
 void dropDeferredTooltip();
 }

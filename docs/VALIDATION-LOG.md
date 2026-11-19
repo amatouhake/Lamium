@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The game's tooltip over the recipe bands (L-366, 2026-11-19)
+
+Build `4aa398bd` (DLL
+`dcf43ae24d0c835f234969b39eb1e89478ffdae63221ca52d32a2f135b307156`),
+1.26.60.05 Dev instance, the maintainer: a chest slot's tooltip at the
+window's right edge is drawn over the item list; the shulker box preview
+keeps clear of it; a real food's tooltip has its hunger icons. A slot under
+the open recipe view shows no tooltip, but its bundle or shulker box
+preview still shows through (fixed in the next build, not yet seen). A
+listed food's tooltip has no hunger icons (Lamium's own tip).
+
 ## The cookie left unread outside a Realm (L-358, 2026-11-19)
 
 Build `31fe9937` (DLL

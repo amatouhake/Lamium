@@ -391,11 +391,12 @@ void setDeferTooltip(bool (*wants)()) { deferTooltip = wants; }
 void dropDeferredTooltip() { heldTooltipsDropped = true; }
 namespace {
 // The held tooltip drawn now, through the hooked call so the food icons and the box still come with it.
-void replayHeldTooltips(MinecraftUIRenderContext& context) {
+// False when the pointer's slot lies under a Lamium window this frame: neither its tooltip nor its preview shows.
+bool replayHeldTooltips(MinecraftUIRenderContext& context) {
     auto held = std::move(heldTooltips);
     heldTooltips.clear();
-    bool const dropped = std::exchange(heldTooltipsDropped, false);
-    if (held.empty() || dropped) return;
+    if (std::exchange(heldTooltipsDropped, false)) return false;
+    if (held.empty()) return true;
     static bool told = false;
     if (!told) {
         told = true;
@@ -407,6 +408,7 @@ void replayHeldTooltips(MinecraftUIRenderContext& context) {
     for (auto const& call : held) try { call.renderer->$render(context, *call.client, *call.owner, call.pass); } catch (...) {}
     replayingTooltip = false;
     context.flushText(0, std::nullopt);
+    return true;
 }
 }
 bool start() {
@@ -424,8 +426,9 @@ bool start() {
         // container preview, which keeps clear of the tooltip's box, after that.
         renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
             unsigned const frame = uiFrame;
-            replayHeldTooltips(event.uiRenderContext());
+            bool const pointerFree = replayHeldTooltips(event.uiRenderContext());
             ++uiFrame;
+            if (!pointerFree) return;
             auto settings = Runtime::instance().preferences();
             auto* controller = event.screenView().mController.get();
             if (!controller || !controller->_isContainerScreen()) return;
