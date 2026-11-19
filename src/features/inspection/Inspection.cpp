@@ -277,6 +277,13 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
 struct GlyphDraw { Font* font; float x, y; tooltip::GlyphRun run; std::vector<information::saturation::FoodIcon> icons; };
 bool tooltipRendering = false;
 void (*beforeTooltip)(MinecraftUIRenderContext&) = nullptr;
+// While a feature paints after the screen over where the game's tooltip may reach (the recipe list), the
+// tooltip's drawing is held back and replayed after it, so the tooltip stays on top. Held calls belong to the
+// screen being drawn; they are replayed or dropped in its after-render, never kept to the next one.
+bool (*deferTooltip)() = nullptr;
+struct HeldTooltip { HoverTextRenderer* renderer; MinecraftUIRenderContext* context; IClientInstance* client; UIControl* owner; int pass; };
+std::vector<HeldTooltip> heldTooltips;
+bool replayingTooltip = false, heldTooltipsDropped = false;
 // The hover text's box in this frame's UI pass, for the container preview to stay clear of. Tagged with the UI
 // frame it was drawn in; the preview, drawn after the UI pass, ignores one from an earlier frame.
 struct TooltipBox { render::HoverTextBox box; unsigned frame; };
@@ -312,7 +319,12 @@ LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &
 }
 LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTextRenderer, &HoverTextRenderer::$render,
     void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner, int pass) {
-    if (beforeTooltip) try { beforeTooltip(context); } catch (...) {}
+    if (!replayingTooltip && deferTooltip) {
+        bool defer = false;
+        try { defer = deferTooltip(); } catch (...) {}
+        if (defer && heldTooltips.size() < 8) { heldTooltips.push_back({this, &context, &client, &owner, pass}); return; }
+    }
+    if (beforeTooltip && !replayingTooltip) try { beforeTooltip(context); } catch (...) {}
     glyphDraw.reset();
     tooltipTextAt.reset();
     tooltipRendering = true;
@@ -375,6 +387,28 @@ std::optional<render::Rect> bundleTooltipBox(ScreenView const& view) {
 }
 }
 void setBeforeTooltip(void (*painter)(MinecraftUIRenderContext&)) { beforeTooltip = painter; }
+void setDeferTooltip(bool (*wants)()) { deferTooltip = wants; }
+void dropDeferredTooltip() { heldTooltipsDropped = true; }
+namespace {
+// The held tooltip drawn now, through the hooked call so the food icons and the box still come with it.
+void replayHeldTooltips(MinecraftUIRenderContext& context) {
+    auto held = std::move(heldTooltips);
+    heldTooltips.clear();
+    bool const dropped = std::exchange(heldTooltipsDropped, false);
+    if (held.empty() || dropped) return;
+    static bool told = false;
+    if (!told) {
+        told = true;
+        Runtime::instance().self().getLogger().info("Tooltip replayed after the screen: {} call(s), pass {}, same context: {}", held.size(),
+            held.front().pass, held.front().context == &context);
+    }
+    context.flushText(0, std::nullopt);
+    replayingTooltip = true;
+    for (auto const& call : held) try { call.renderer->$render(context, *call.client, *call.owner, call.pass); } catch (...) {}
+    replayingTooltip = false;
+    context.flushText(0, std::nullopt);
+}
+}
 bool start() {
     try {
         tooltipHookInstalled = ShulkerContentsText::hook(true) == 0;
@@ -386,8 +420,12 @@ bool start() {
         if (!foodHooksInstalled) throw std::runtime_error("Could not install food tooltip hooks");
         hover::HoverTracker::getInstance().install();
         auto& bus = ll::event::EventBus::getInstance();
+        // Last of the after-render listeners: a held tooltip goes over what the others painted, and the
+        // container preview, which keeps clear of the tooltip's box, after that.
         renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
-            unsigned const frame = uiFrame++;
+            unsigned const frame = uiFrame;
+            replayHeldTooltips(event.uiRenderContext());
+            ++uiFrame;
             auto settings = Runtime::instance().preferences();
             auto* controller = event.screenView().mController.get();
             if (!controller || !controller->_isContainerScreen()) return;
@@ -407,7 +445,7 @@ bool start() {
                     hoverText = render::HoverTextBox{*box, pointer.x, pointer.y, true};
                 }
             renderer.render(event.screenView(), event.uiRenderContext(), *contents, hoverText);
-        });
+        }, ll::event::EventPriority::Lowest);
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { cache.clear(); });
         return true;
     } catch (std::exception const& error) {
@@ -422,6 +460,7 @@ void stop() {
         if (*listener) { bus.removeListener(*listener); listener->reset(); }
     }
     cache.clear();
+    heldTooltips.clear();
     hover::HoverTracker::getInstance().uninstall();
     if (foodHooksInstalled) {
         bool removed = TooltipFontDraw::unhook(true);

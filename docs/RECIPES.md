@@ -51,6 +51,11 @@ after using the first build. What is still open is in the L-item.
   its count.
 - An item held on the pointer is drawn over the bands and the windows, as
   beside the anvil.
+- The game's tooltip for one of its slots is drawn over the bands: while
+  the list shows, Inspection holds the game's tooltip call back and makes
+  it again after the bands are painted. A slot under an open Lamium
+  window has none. The bundle's tooltip is a UI panel and still goes
+  under the bands.
 - The agent's choices while building, to confirm: the search takes the
   name as the game shows it or the item's id, every word typed must be in
   one of them, letters match in either case; "can be made" is a crafting

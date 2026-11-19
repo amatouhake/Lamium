@@ -1,6 +1,7 @@
 #include "features/recipes/ItemList.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "features/inspection/Inspection.h"
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inspection/render/HeldItem.h"
 #include "features/inspection/render/ItemIcon.h"
@@ -695,7 +696,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (hoverItem.empty()) hoverItem = late.hovered;
     std::string tipItem;
     // Under an open window, as wide as it is drawn, the game's slots are covered: they name no item.
-    if (hoverItem.empty() && !(open && px >= coverLeft && px < right && py >= viewLayout.top && py < viewLayout.top + viewLayout.height)) {
+    bool const covered = open && px >= coverLeft && px < right && py >= viewLayout.top && py < viewLayout.top + viewLayout.height;
+    if (covered) inspection::dropDeferredTooltip();
+    if (hoverItem.empty() && !covered) {
         // A slot of the game's own window, as its hover callbacks last said.
         if (auto const* stack = inspection::hover::HoverTracker::getInstance().resolveItem(*screenView.mController); stack && !stack->isNull()) {
             // Its aux counts where it tells items apart (a red bed, a potion), not where it is wear.
@@ -880,7 +883,14 @@ void show(bool uses) {
     view::open(std::move(item), uses);
     viewScreen = lastScreen;
 }
+// The game's tooltip waits for the list while it shows beside the window, so it is drawn over the bands; the
+// anvil's sides are the enchantment order's, which paints under the tooltip itself.
+bool holdsTooltip() {
+    std::scoped_lock lock(shownLock);
+    return fresh() && lastScreen != "anvil_screen";
+}
 void start() {
+    inspection::setDeferTooltip(holdsTooltip);
     auto& bus = ll::event::EventBus::getInstance();
     renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
         try {
@@ -898,6 +908,7 @@ void start() {
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { forget = true; });
 }
 void stop() {
+    inspection::setDeferTooltip(nullptr);
     for (auto* listener : {&renderListener, &exitListener})
         if (*listener) { ll::event::EventBus::getInstance().removeListener(*listener); listener->reset(); }
     searchFocus = false;

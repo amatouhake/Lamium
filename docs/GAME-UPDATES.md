@@ -382,7 +382,10 @@ Meaning: the hover text's line layout and the placeholder glyph line the
 painter covers with hunger-bar icons; fonts' sheet scales. `TooltipPainter`
 takes the tooltip's box from `HoverTextRenderer::mCursorPosition`, `mOffset`
 and `mBoxDimensions`; the bundle's own tooltip is the panel named
-`bundle_cursor_tooltip`.
+`bundle_cursor_tooltip`. While the recipe list shows, `TooltipPainter`
+skips the game's call and makes it again with the same renderer, control
+and pass from the last after-render listener of that screen: a later call
+in the same frame is taken to draw the same tooltip.
 Item details (L-319) read, under the Item details capability (decided 2026-11-14, L-338): `Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`,
 `FurnaceBlockActor::getItemBurnDuration` and, where that is 0, `FuelItemComponent::mFuelDuration` (seconds),
 `Item::getCooldownDuration`, the `minecraft:use_modifiers` component's `UseModifiersItemComponent::mUseDuration`
