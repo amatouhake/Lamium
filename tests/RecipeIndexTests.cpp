@@ -55,6 +55,9 @@ void recipeIndexTests() {
         {"crafting_table", "wool_black_from_white", 50, {{"black_wool", 1}}, both(cells("ink_sac", 1), cells("white_wool", 1))},
         {"crafting_table", "wool_red_from_black", 50, {{"red_wool", 1}}, both(cells("red_dye", 1), cells("black_wool", 1))},
         {"crafting_table", "wool_red_from_white", 50, {{"red_wool", 1}}, both(cells("red_dye", 1), cells("white_wool", 1))},
+        {"crafting_table", "white_dye_from_bone_meal", 0, {{"white_dye", 1}}, cells("bone_meal", 1)},
+        {"crafting_table", "white_stained_glass", 0, {{"white_stained_glass", 8}}, both(cells("glass", 8), cells("white_dye", 1))},
+        {"crafting_table", "white_stained_glass_from_bone_meal", 0, {{"white_stained_glass", 8}}, both(cells("glass", 8), cells("bone_meal", 1))},
         {"crafting_table", "honey_block", 0, {{"honey_block", 1}}, cells("honey_bottle", 4)},
         {"crafting_table", "honey_bottle", 0, {{"honey_bottle", 4}, {"x", 0}}, both(cells("honey_block", 1), cells("glass_bottle", 4))},
         {"crafting_table", "sugar_from_honey", 0, {{"sugar", 3}}, cells("honey_bottle", 1)},
@@ -113,6 +116,8 @@ void recipeIndexTests() {
               "an item with a recipe from outside the loop is its base");
         check(made("black_wool") == "wool_black_from_white" && made("red_wool") == "wool_red_from_white",
               "among equal recipes the one closest to the base wins, not the first by name");
+        check(made("white_stained_glass") == "white_stained_glass_from_bone_meal",
+              "a recipe that uses bone meal itself wins over the one that needs it made into white dye first");
         check(made("honey_bottle").empty() && made("honey_block") == "honey_block", "a loop with a second ingredient is cut the same way");
         bool looped = false;
         for (Item item = 0; item < static_cast<Item>(index.items.size()); ++item)
