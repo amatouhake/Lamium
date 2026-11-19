@@ -14,6 +14,7 @@
 #include "ui/Localization.h"
 #include "ui/NumberInput.h"
 #include "ui/Widgets.h"
+#include "ui/WindowFade.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
@@ -788,7 +789,6 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     insideAnvil = false;
     bool const painted = std::exchange(paintedInside, false);
     list.ready = false;
-    bool const reopened = clock - anvilSeen > std::chrono::milliseconds(500);
     anvilSeen = clock;
     auto const preferences = Runtime::instance().preferences().inventory;
     if (!preferences.enchantOrderAnvil || !versionSensitiveAllowed(capabilities::Id::EnchantOrder)) { endAnvil(); return; }
@@ -815,9 +815,10 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         left = at.x - gap - width;
     }
     if (width < narrow) return;
-    // Where the window rests is its highest place since the screen opened. While it slides away on closing the
-    // panels go with it by the same distance, off the screen too.
-    windowRest = reopened ? at.y : std::min(windowRest, at.y);
+    // The panels stand where the window rests and fade as it slides in and away (WindowFade.h, L-366).
+    static ui::WindowFade windowFade;
+    windowRest = windowFade.see("anvil_screen", at.y, size.y, screen.y,
+        std::chrono::duration<double, std::milli>(clock.time_since_epoch()).count());
 
     // What the slots and the inventory hold, as planner inputs.
     int now = -1, gameCost = -1, level = -1;
@@ -938,7 +939,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     ui::EnchantLayout choose;
     if (chooser) {
         float const chooseWidth = std::min(chooseWide, roomLeft), chooseHeight = std::min(chooseTall, screen.y - 2 * gap);
-        float const chooseTop = std::clamp(windowRest + (size.y - chooseHeight) / 2, gap, std::max(gap, screen.y - gap - chooseHeight)) + (at.y - windowRest);
+        float const chooseTop = std::clamp(windowRest + (size.y - chooseHeight) / 2, gap, std::max(gap, screen.y - gap - chooseHeight));
         // One height whatever the kind: a panel as tall as its rows changed size with every press (tried 2026-11-12).
         choose = ui::EnchantLayout::fitPanel(at.x - gap - chooseWidth, chooseTop, chooseWidth, chooseHeight, static_cast<int>(kinds.size()),
             shown.heldCell, shown.slotCell, static_cast<int>(shown.rows.size()), chooserFirst);
@@ -953,16 +954,16 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // Without a plan the same side with its goal, and a few lines saying what to do, in the room of two steps.
     float const height = std::min(room, ui::EnchantStepsLayout::neededHeight(planned ? stepCount : 2, lines, foot) + changeSpace + 2);
     // Level with the choosing panel's top where there is one, so the two start on one line; else with the window's.
-    float const rest = chooser ? choose.headTop - (at.y - windowRest) : windowRest;
-    float const top = std::clamp(rest, gap, std::max(gap, screen.y - gap - height)) + (at.y - windowRest);
+    float const rest = chooser ? choose.headTop : windowRest;
+    float const top = std::clamp(rest, gap, std::max(gap, screen.y - gap - height));
     auto const stepsLayout =
         ui::EnchantStepsLayout::fit(left, top + 1, width, top + height - changeSpace - 1, planned ? stepCount : 0, stepsFirst, lines, foot);
     if (!stepsLayout.usable()) return;
     stepsFirst = stepsLayout.rows.listFirst;
     // The game's window fades as it slides away on closing; the panels fade with the distance, or with the
     // window's own opacity when that is lower.
-    float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);
-    float opacity = std::clamp(1 - slide / way, 0.f, 1.f);
+    float const slide = std::max(0.f, at.y - windowRest);
+    float opacity = windowFade.opacity(at.y, screen.y);
     // Only while it is moving and only a value that looks like a fade: at rest the member may not be the drawn opacity.
     if (float const own = window->mAlpha; slide > .5f && std::isfinite(own) && own > 0 && own < opacity) opacity = own;
     list.ready = true;

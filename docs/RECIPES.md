@@ -54,7 +54,7 @@ after using the first build. What is still open is in the L-item.
 - The game's tooltip for one of its slots is drawn over the bands: while
   the list shows, Inspection holds the game's tooltip call back and makes
   it again after the bands are painted. A slot under an open Lamium
-  window has none. The bundle's tooltip is a UI panel and still goes
+  window has none, nor a container preview. The bundle's tooltip is a UI panel and still goes
   under the bands.
 - The agent's choices while building, to confirm: the search takes the
   name as the game shows it or the item's id, every word typed must be in
@@ -290,10 +290,9 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   without the name, the color codes and lines of icon glyphs
   (`hoverLines`). A row of the plan's window also says its count in
   chests and stacks.
-- Lamium's parts fade with the game's window as it slides in and out, by
-  how far it is from where it rests (its highest place seen; a screen
-  seen before is known from its first frame, the first opening of a
-  session is not; a window that stood still for 20 frames is at rest).
+- Lamium's parts stand still and fade with the game's window as it
+  slides in and out, by how far it is from where it rests, as the anvil's
+  panels do (`ui/WindowFade.h`; maintainer 2026-11-19, to be seen).
 - The wanted tab has "Include what the schematic still needs", the
   switch of the schematic's Materials tab, while Schematics is on.
 - The stores are outlined in the world within 48 blocks, in the accent

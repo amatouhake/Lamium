@@ -18,6 +18,7 @@
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
 #include "features/schematic/SchematicItems.h"
+#include "ui/WindowFade.h"
 #include "input/Actions.h"
 #include "input/Binding.h"
 #include "ll/api/event/EventBus.h"
@@ -262,31 +263,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     float windowLeft = 0;
     if (names.empty() || !windowOf(screenView, at, size, windowLeft)) return false;
     glm::vec2 const screen = *screenView.mSize;
-    // Lamium's parts come and go with the game's window, as the panels beside the anvil do: the window
-    // slides in from below and out again, and what Lamium draws fades by how far it is from where it
-    // rests. Where it rests is its highest place seen; a screen seen before is known from its first
-    // frame, so it fades in too (the first opening of a session cannot: its rest is not known yet).
-    static std::map<std::string, float> rests;
-    static std::chrono::steady_clock::time_point seenAt{};
-    static float windowRest = 0;
-    {
-        auto const now = std::chrono::steady_clock::now();
-        bool const reopened = now - seenAt > std::chrono::milliseconds(500);
-        seenAt = now;
-        auto known = rests.find(screenName);
-        if (reopened) windowRest = known != rests.end() ? std::min(known->second, at.y) : at.y;
-        else windowRest = std::min(windowRest, at.y);
-        // A window that has stood still for a while is at rest wherever it is: a rest remembered from
-        // another window size must not leave Lamium's parts faded.
-        static float lastY = 0;
-        static int still = 0;
-        still = at.y == lastY ? still + 1 : 0;
-        lastY = at.y;
-        if (still >= 20) windowRest = at.y;
-        if (rests.size() < 64 || known != rests.end()) rests[screenName] = windowRest;
-    }
-    float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);
-    float const shownOpacity = std::clamp(1 - slide / way, 0.f, 1.f);
+    // Lamium's parts fade with the game's window as it slides in and out, where they stand (WindowFade.h).
+    static ui::WindowFade windowFade;
+    windowFade.see(screenName, at.y, size.y, screen.y,
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
+    float const shownOpacity = windowFade.opacity(at.y, screen.y);
     DrawOpacity const fade{shownOpacity};
     // The centre keeps the recipe view's two columns free, so the list never moves when it opens.
     auto const viewLayout = recipeViewAt(screen.x, screen.y);

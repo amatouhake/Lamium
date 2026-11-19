@@ -195,6 +195,8 @@ int main() try {
     worldMapTests();
     extern void mapRegionFormatTests();
     mapRegionFormatTests();
+    extern void windowFadeTests();
+    windowFadeTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

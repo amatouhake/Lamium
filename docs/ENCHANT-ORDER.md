@@ -229,8 +229,9 @@ version is verified.
   else after the screen. They are always drawn. An item on the pointer
   overlapping a panel is drawn once more on top of it, with glint,
   durability bar and count (at the game's own count control's place).
-- Closing: the panels slide and fade with the anvil window (its distance
-  from rest, or the window's own alpha when lower). Everything attached to
+- Opening and closing: the panels stand where the window rests and fade
+  by its distance from there (`ui/WindowFade.h`, as the recipe screens),
+  or with the window's own alpha when lower. Everything attached to
   the anvil closes with it. A finished plan is cleared once the anvil has
   closed, its enchantments going to "Last choice"; an unfinished plan stays
   for the session. A finished plan the planner view is open on at that
