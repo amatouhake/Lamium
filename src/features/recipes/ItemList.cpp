@@ -318,7 +318,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto side = favouritesOn || planOn ? itemListLeft(screen.y, coverLeft) : SideLayout{};
     side.favouritesOn = favouritesOn;
     side.planOn = planOn;
-    if (!planOn && planView::isOpen()) planView::close();
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
     {
@@ -674,7 +673,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), true, true, nullptr, coverLeft, right}, late, *player,
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), planOn, true, nullptr, coverLeft, right}, late, *player,
                        shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }

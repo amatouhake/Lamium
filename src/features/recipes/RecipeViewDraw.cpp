@@ -259,13 +259,11 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             float const ux = bx + block.productX - 1, uy = by + block.productY + 20, uw = 20, uh = 8;
             if (chosen) inUseMark(context, ux + 6, uy, palette::accentDeep);
             else labelScaled(context, ux, uy - 1, uw, translated("recipes.howTo.auto"), .5f, palette::vanilla::windowFaint, Align::Center, false);
-            // A press goes to "How to make", which is the plan window's: only while the plan is in use.
+            // A press goes to "How to make", the Recipes window's (with the plan off it holds only that).
             Region const region{ux, uy - 2, uw, uh + 2, Act::HowTo, itemKey, -1};
-            if (region.has(input.pointerX, input.pointerY)) {
-                late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto");
-                if (input.plan) late.tipLines = {translated("recipes.howTo.change")};
-            }
-            if (input.plan) regions.push_back(region);
+            if (region.has(input.pointerX, input.pointerY))
+                late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.change")};
+            regions.push_back(region);
         }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;

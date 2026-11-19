@@ -282,17 +282,25 @@ Plan const* plan(LocalPlayer& player) {
 Shares const* shares(LocalPlayer& player) {
     auto const* now = plan(player);
     if (!now) return nullptr;
-    // The same plan as last asked (it is worked out again at most twice a second): its shares stand.
+    // The plan is worked out again twice a second, but its shares only change with what they are made from:
+    // a long list costs milliseconds, so they stand until the entries, the stock or a choice changes.
     static Shares kept;
     static std::chrono::steady_clock::time_point keptFor{};
-    static unsigned keptRevision = 0;
-    if (keptFor == plannedNow.at && keptRevision == plannedNow.revision) return &kept;
-    auto const started = std::chrono::steady_clock::now();
-    kept.entries = prioritized(list, handed());
+    static std::shared_ptr<Choice const> keptChoice;
+    static Request keptFrom;
+    if (keptFor == plannedNow.at) return &kept;
+    keptFor = plannedNow.at;
+    auto entries = prioritized(list, handed());
     std::vector<std::pair<Item, Count>> order;
-    for (auto const& entry : kept.entries) order.emplace_back(now->table->index.findKey(entry.key), entry.count);
+    for (auto const& entry : entries) order.emplace_back(now->table->index.findKey(entry.key), entry.count);
+    Request from{order, now->request.held, now->request.picks, now->request.stops};
+    if (keptChoice == now->choice && entries == kept.entries && from.wanted == keptFrom.wanted && from.held == keptFrom.held
+        && from.picks == keptFrom.picks && from.stops == keptFrom.stops)
+        return &kept;
+    auto const started = std::chrono::steady_clock::now();
+    kept.entries = std::move(entries);
     kept.targets = targetPlans(now->table->index, *now->choice, order, now->request.held, now->request.picks, now->request.stops);
-    keptFor = plannedNow.at, keptRevision = plannedNow.revision;
+    keptChoice = now->choice, keptFrom = std::move(from);
     // Each entry is planned twice; say once how long it took, so a long list's cost is known.
     static bool told = false;
     auto const took = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - started).count();

@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
-// L-370: the plan by wanted item. The wanted items stand in an order the player sets (their priority);
+// L-370: the plan by wanted item. The wanted items stand in the order added;
 // held stock goes to them from the top down, and each gets its own progress and breakdown. Pure.
 namespace lamium::recipes {
 // One wanted item as the list shows it: the player's own (`source` empty) or one a feature handed over.
@@ -37,7 +37,7 @@ struct TargetPlan {
     float fraction() const { return need > 0 ? static_cast<float>(need - std::min(left, need)) / static_cast<float>(need) : 1.f; }
     int percent() const { return static_cast<int>(fraction() * 100 + .0001f); }
 };
-// `wanted`: items in priority order (one entry each, a feature's and the player's apart). Held stock goes to
+// `wanted`: items in the order added (one entry each, a feature's and the player's apart). Held stock goes to
 // them from the top down: what one uses is gone for those below it.
 inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& choice, std::vector<std::pair<Item, Count>> const& wanted,
                                            std::vector<std::pair<Item, Count>> const& held, std::map<int, Item> const& picks, std::set<Item> const& stops) {

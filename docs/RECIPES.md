@@ -162,31 +162,32 @@ after using the first build. What is still open is in the L-item.
   opens the window there. The window sits where the recipe view does; the
   recipe view opens over it (a press on an item) and gives it back.
 - The window ("wanted", "to gather", "to make", "How to make",
-  "stores") is the Recipes feature's, not only the plan's (L-370).
+  "stores") is the Recipes feature's (L-370); with the plan off it holds
+  only "How to make", reached from a recipe's in-use mark.
 - "Wanted" is a table: fold, icon, name, held, wanted, a bar of what it
   takes that is gathered (a part held on the way counts). The player's
   own rows turn "wanted" into "- N +" and show "x" only under the
   pointer; handed rows show their source. Held stock goes to the rows in
   the order added; a row that lost stock to one above says so under the
-  pointer. A press opens its breakdown on a sunk face, read only: its
-  steps as slots (inputs right-aligned to the arrow), then what it needs
-  gathered, each with its choice's state (a press goes to "How to
-  make"); "gather" on a step and "make" on a material set to gather.
+  pointer. A press opens its read-only breakdown: steps as slots, then
+  what it needs gathered. A recipe's state and an any-of input's slot (framed green
+  when chosen) go to "How to make"; "gather" on a step, "make" on a
+  material set to gather.
 - "To gather" uses the same columns, "All" as the first row; done rows
   faint below. "To make" is the work: steps that can be made now from
   what is held first, the others faint; a press opens the breakdown.
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
-  "automatic" first); lines for the current plan, or with a switch all
-  chosen before. Placing follows it, falling back to what is held.
+  "automatic" first), by name; lines for the current plan, or with a
+  switch all chosen before. Placing follows it, else what is held.
 - A key (W by default, beside A for favourites; both rebindable) puts the
   hovered item into "wanted" or takes it out, wherever the favourite key
   works. While it is held the wheel changes how many are wanted, so the
   count is set where the item was added; an item that was wanted goes
   out when the key is released without the wheel having turned (a key
   of several inputs or a mouse button takes it out at once, and has no
-  wheel). An item taken out keeps its count until the world is left.
-  The short list then shows the wanted items, so what went in is seen.
+  wheel). An item taken out keeps its count until the world is left;
+  the short list then shows the wanted items.
 - A wanted item's count is changed with the shared stepper (- N +), on the
   short list and in the window alike: minus at one takes the item out at
   once; the wheel (also with the wanted key held over the list) takes it
