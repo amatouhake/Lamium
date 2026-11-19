@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The world question's other answers (L-365, 2026-11-19)
+
+Build `27bc0af5` (DLL
+`ca4336408c521be66e440676a49f0f50f39e197f2e91310e622ecb73f19f8b62`),
+1.26.60.05 Dev instance, the same local BDS and level id, the maintainer:
+- World A in survival (game mode only changed): toast; notice "differs from
+  the data in use (game mode)" with Keep this data / Start new data / Do
+  not split here; Start new data switched to an empty `-w3`.
+- World C (another seed), creative: toast; notice "new data started (seed /
+  game mode)", compared with `-w3`; Use the saved data switched to `-w3`,
+  whose map showed A's terrain until C's was seen.
+- World C in survival: notice "game mode"; Do not split here showed its
+  message and switched to the first data (A's map and waypoints); a rejoin
+  asked nothing. The test server's `unsplit` entry was removed by hand
+  afterwards.
+- The notice names every data set of the server "127.0.0.1:19132", so which
+  one Use the saved data takes is not visible.
+
 ## A world swapped behind one server (L-365, 2026-11-19)
 
 Build `27bc0af5` (DLL
