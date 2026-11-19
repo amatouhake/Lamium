@@ -231,6 +231,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-367](backlog/done/L-367.md) Game-like controls on the recipe windows; wanted items down to 0 by the wheel
 - [L-366](backlog/done/L-366.md) Recipe screens look like the game's window and tooltip
 - [L-320](backlog/done/L-320.md) Highlight designated block types in the world
 - [L-236](backlog/done/L-236.md) Rebuild only the ghost sections whose visible layer changed

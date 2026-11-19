@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The plan window's whole, bars and make rows (L-367, 2026-11-20)
+
+Build `faad5a37` (DLL
+`1af46911862be306ae4cbf9639aa9321b053439bc602567db53bb4ab36601f35`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the whole's line and
+bar and each row's have / need and bar read well; done rows sit faint
+below; stepping a recipe in a make row changes its inputs; a group input
+opens its members to pick. Not right: the make rows do not show at a
+glance what turns into what; members opened near the list's end cannot
+be reached (the scroll does not grow with them); tabs of unequal widths
+(band and window); the whole's line only on "to gather", in the room
+under the tabs; items drawn smaller than in play; a group picked on "to
+gather" cannot be changed or put back there; gather or make is switched
+item by item, so how much of each wanted item is still needed and how
+much is gathered is hard to see; the stores' switch edge too dark. The
+plan as a feature is to be rethought (L-370); the look's fixes are L-369.
+
 ## The red slot face and one more a press (L-367, 2026-11-20)
 
 Build `56632ffa` (DLL
