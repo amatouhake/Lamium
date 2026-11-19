@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Realm key and world prints, first server join (L-358, L-365, 2026-11-19)
+
+Build `27bc0af5` (DLL
+`ca4336408c521be66e440676a49f0f50f39e197f2e91310e622ecb73f19f8b62`),
+1.26.60.05 Dev instance, the maintainer, one server join:
+- No crash. The log read `in a Realm: no; reconnect cookie kind 0, Realm
+  id 0`: the reconnect cookie's layout reads as assumed for a server.
+- `world: seed hidden, game mode 2`: this server sends no seed at the join,
+  so its worlds are told apart by name and game mode only.
+- Not seen: a Realm or a friend's world, the toast, the notice and its
+  answers, a silent rejoin.
+
 ## What the look review built, third look (L-359, 2026-11-19)
 
 Build `4f2b0e7a` (DLL
