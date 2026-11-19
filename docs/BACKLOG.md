@@ -196,7 +196,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
 - [L-368](backlog/L-368.md) Close the game's recipe book while the recipe view is open (Research): Open, not started; may wait (maintainer 2026-11-20)
-- [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): Built and seen 2026-11-20: works, but very hard to take in; the layout to be redone
+- [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): Being redesigned with mockups (2026-11-20); the built version works but was very hard to take in
 - [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): Open; collected 2026-11-20 from the L-366 and L-367 rounds
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
