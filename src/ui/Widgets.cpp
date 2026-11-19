@@ -241,6 +241,14 @@ void raisedBox(MinecraftUIRenderContext& context, float x, float y, float w, flo
     fill(context, x + w - 1 - e, y + 1, e, h - 2 - e, shadow);
     frame(context, x, y, w, h, palette::vanilla::windowEdge);
 }
+void progressBar(MinecraftUIRenderContext& context, float x, float y, float w, float h, float fraction) {
+    if (w <= 0 || h <= 0) return;
+    fraction = std::clamp(std::isfinite(fraction) ? fraction : 0.f, 0.f, 1.f);
+    bool const light = onWindow();
+    fill(context, x, y, w, h, light ? palette::vanilla::slot : palette::off);
+    if (fraction > 0) fill(context, x, y, w * fraction, h, light ? palette::accentDeep : palette::accent);
+    fill(context, x, y, w, .5f, light ? palette::vanilla::slotDark : palette::controlEdge);
+}
 void gameTooltipBox(MinecraftUIRenderContext& context, float x, float y, float width, float height) {
     for (auto const& r : vanilla_frame::tooltip(x, y, width, height))
         fill(context, r.x, r.y, r.w, r.h, r.part == vanilla_frame::Part::Border ? palette::vanilla::tooltipLine : palette::vanilla::tooltipFill);

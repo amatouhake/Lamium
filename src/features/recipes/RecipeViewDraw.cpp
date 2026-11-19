@@ -23,13 +23,13 @@ struct Target {
     std::shared_ptr<Choice const> chosen;
 };
 std::vector<Target> trail; // the last is shown; the back key goes one back
-// What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, or a
-// recipe's "use this".
-enum class Act { Item, Tab, Favourite, Wanted, Use, Place, PagePrev, PageNext };
+// What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, a pager's
+// button or a recipe's "place".
+enum class Act { Item, Tab, Favourite, Wanted, Place, PagePrev, PageNext };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
-    std::string item; // Item: its key; Use: the recipe, as notes name it
+    std::string item; // Item: its key
     int tab = -1; // Tab: which; Place: the recipe
     bool has(float px, float py) const { return px >= x && px < x + w && py >= y && py < y + h; }
 };
@@ -80,7 +80,6 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
             else if (region.act == Act::Favourite) state::toggleFavourite(shownItem);
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
-            else if (region.act == Act::Use) state::setChoice(shownItem, region.item);
             else if (region.act == Act::PagePrev) trail.back().page -= 1;
             else if (region.act == Act::PageNext) trail.back().page += 1;
             else if (region.act == Act::Place && input.placer) {
@@ -183,7 +182,6 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
-    bool const several = at.choose && !at.uses && id >= 0 && index.makers[static_cast<size_t>(id)].size() > 1;
     int const first = at.page * l.perPage(station);
     for (int i = 0; i < l.perPage(station) && first + i < count; ++i) {
         int const number = tab.recipes[static_cast<size_t>(first + i)];
@@ -242,18 +240,6 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             inUseMark(context, ux, uy, palette::accentDeep);
             if (input.pointerX >= ux - 2 && input.pointerX < ux + 9 && input.pointerY >= uy - 2 && input.pointerY < uy + 7)
                 late.tip = translated("recipes.mark.default");
-        }
-        // Asked from the list of what to make, an item with several recipes: the others offer themselves
-        // (until the plan's rows choose, L-367).
-        if (several && !recipe.own && !inUse) {
-            std::string text = translated("recipes.mark.use");
-            // Beside the small mark's place when the recipe has one there, else on the marks' line.
-            bool const below = block.noteY > 0;
-            float const mx = bx + (below ? block.noteX + anyOrderMarkSize + 3 : block.marksX), my = by + (below ? block.noteY - 1 : block.marksY + (laid.fits ? 12 : 0));
-            float const w = std::min(textWidth(context, text) + 8, bx + RecipeViewLayout::block - mx);
-            Region region{mx, my, w, 10, Act::Use, choiceKey(recipe), -1};
-            drawButton(context, mx, my, w, 10, std::move(text), region.has(input.pointerX, input.pointerY));
-            regions.push_back(std::move(region));
         }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;

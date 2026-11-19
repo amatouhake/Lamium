@@ -162,6 +162,13 @@ void recipeIndexTests() {
         check(view.covered == std::vector<Cover>{{planksGroup, id("oak_planks"), 3}, {planksGroup, id("birch_planks"), 4}},
               "the members that cover a group are named with their share");
         check(view.heldKinds == 4, "kinds that held stock covers a part of are counted once each");
+        check(view.done == std::vector<GatherLine>{{id("oak_planks"), 2, 2, 0}},
+              "what held stock covers whole, neither gathered nor made, is done");
+        check(gatherTotal(view.gather).need == 48 && gatherTotal(view.gather).left == 41 && gatherTotal(view.gather).percent() == 14
+                  && gatherTotal({}).percent() == 100,
+              "the whole of what to gather: all needed, all left, and the share gathered");
+        check(recipeOptions(index, id("stone_bricks")) == index.makers[static_cast<size_t>(id("stone_bricks"))] && recipeOptions(index, -1).empty(),
+              "an item's recipe options are its makers in order");
         check(usersOf(index, request, view, id("stone")) == std::vector<std::pair<Item, Count>>{{id("stone_bricks"), 44}}
                   && usersOf(index, request, view, planks) == std::vector<std::pair<Item, Count>>{{id("chest"), 8}}
                   && usersOf(index, request, view, id("oak_planks")).empty(),

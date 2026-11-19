@@ -148,8 +148,8 @@ after using the first build. What is still open is in the L-item.
   "wanted" (the panel's title, the window's title and its first tab; the
   recipe window's button is "add to wanted"); what comes out is "to gather"
   and "to make". On a row, "gather" moves an item that would be made to the
-  gather list and "make" moves it back. A recipe is marked "in use", and
-  another offers "use this". "Back to any" undoes a picked group member.
+  gather list and "make" moves it back. "Back to any" undoes a picked
+  group member.
   "Plan" stays the feature's name in settings only.
 - There is one plan: a list of targets in, what to gather and what to make
   out. Several named plans are not built until one proves too few.
@@ -166,10 +166,17 @@ after using the first build. What is still open is in the L-item.
   wanted, to gather and to make, and sits where the recipe view does, in
   its look; the recipe view opens over it (a press on an item's name) and
   gives it back when closed.
-- A line of what to make says, under the pointer, what its crafts take and
-  how many, on the short list and in the window.
-- On both of the window's lists the row's button ("gather", "make") keeps
-  the right end, the numbers left of it.
+- The window's "to gather" (L-367): a line of the whole above it (left
+  of all, count and percent, with a bar); each row its name, "have /
+  need" and a short bar; rows done (held whole, or marked gathered) faint
+  under the others.
+- The window's "to make", in the order to make it: each row its inputs
+  with counts, an arrow, the product with the count made, the station,
+  previous / "1 / 3" / next where several recipes make it (the choice is
+  made there; the recipe view has no "use"), and "gather". A press on an
+  input any of several items serves opens its members under the row to
+  pick one. A step whose product is held whole leaves the list. The short
+  list's line says, under the pointer, what its crafts take.
 - A key (W by default, beside A for favourites; both rebindable) puts the
   hovered item into "wanted" or takes it out, wherever the favourite key
   works. While it is held the wheel changes how many are wanted, so the
@@ -187,8 +194,8 @@ after using the first build. What is still open is in the L-item.
   multiple of the item's stack, 1 to 64 to 128. A press on the number types it
   (Enter or a press elsewhere keeps it, Esc does not; 0 takes the item
   out).
-- Picking a member for a group and saying that an item is gathered, not
-  made, are done inside the plan.
+- Picking a member for a group, the recipe in use and saying that an item
+  is gathered, not made, are done inside the plan.
 - "To gather" lists everything to gather: what the recipes ask for and,
   after it, wanted items the recipe table does not know because no
   recipe makes or uses them (a grass block), gathered as they are.
@@ -293,27 +300,23 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   stations, the plan's window, the band's lists (pictures where the band
   is narrow), the item list's "all / can be made".
 - The recipe view's slots as the game draws its own, a missing
-  ingredient on the game's red. "Favourite" and "wanted" at the right end
-  of the stations' line as two joined buttons, green when on (each on or
-  off, like the world map's layers; chosen over a name and a switch
-  after seeing both; icon toggles were turned down as depending on the
-  icon). The heading has its line to itself.
+  ingredient's face on the game's red. "Favourite" and "wanted" are two
+  joined buttons, green when on (chosen over a name and a switch and over
+  icon toggles), at the heading's right end.
 - A Lamium window's grey covers the whole span between the two bands, so
   the game's window with its recipe book out does not show beside it.
-  The plan's window is titled "Plan".
 - The band's list and the plan window's lists scroll: the wheel, and the
   shared bar (`listScrollbar`). The item list on the right keeps pages.
 - The open container's switch is the band's last line under a rule like
   the one above the plan, no stronger a division than that.
 - An item Lamium draws says under its name what the game says of it,
-  with Lamium's item details, in the game's tooltip box. The
-  text is the stack's own hover text, which Lamium's hook has added to,
-  without the name, the color codes and lines of icon glyphs
-  (`hoverLines`). A row of the plan's window also says its count in
-  chests and stacks.
+  with Lamium's item details, in the game's tooltip box: the stack's own
+  hover text, which Lamium's hook has added to, each line in the color it
+  starts in, without the name and lines of icon glyphs (`hoverLines`). A
+  row of the plan's window also says its count in chests and stacks.
 - Lamium's parts stand still and fade with the game's window as it
   slides in and out, by how far it is from where it rests, as the anvil's
-  panels do (`ui/WindowFade.h`; maintainer 2026-11-19, to be seen).
+  panels do (`ui/WindowFade.h`; maintainer 2026-11-19).
 - The wanted tab has "Include what the schematic still needs", the
   switch of the schematic's Materials tab, while Schematics is on.
 - The stores are outlined in the world within 48 blocks, in the accent
@@ -373,9 +376,7 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
-- Not seen in game: a server. The search field takes no pasted text.
-- The look as a whole is reviewed once the feature is complete
-  (maintainer 2026-11-18); until then only faults are fixed.
+- The search field takes no pasted text.
 - Mass Craft: seen in a local world (VALIDATION-LOG 2026-11-18); the
   throw from the pointer and the surplus are not, nor a server.
 - "Place": a server is unchecked, and stations other than the two
@@ -385,8 +386,7 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what
   a recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), and
-  the game's tooltip and Lamium's item details for a listed item
-  ([L-363](backlog/L-363.md)): today the lists name an item and no more.
+  a listed item's own data ([L-363](backlog/L-363.md): no potion effect).
 - Items are told apart by name and aux. Items that differ only in their
   data (enchanted books, a filled map) are one item. The schematic
   Materials tab still counts what is carried by name alone.

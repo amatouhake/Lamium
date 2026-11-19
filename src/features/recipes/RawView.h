@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include "features/recipes/RecipeIndex.h"
 
 // L-359: a plan as the lists a screen shows: what to gather, most first, and
@@ -21,7 +22,29 @@ struct RawView {
     std::vector<StepLine> steps;
     std::vector<Cover> covered;
     size_t heldKinds = 0; // items and groups that held stock covers a part of
+    // What held stock covers whole: neither left to gather nor a step, so done (L-367: the plan window lists
+    // it faint under what is still to gather). Kept apart, so `gather` stays what is left.
+    std::vector<GatherLine> done;
 };
+// The whole of a list of what to gather: how many in all and how many are left (L-367).
+struct GatherTotal {
+    Count need = 0, left = 0;
+    int percent() const { return need > 0 ? static_cast<int>((need - std::min(left, need)) * 100 / need) : 100; }
+    float fraction() const { return need > 0 ? static_cast<float>(need - std::min(left, need)) / static_cast<float>(need) : 1.f; }
+};
+inline GatherTotal gatherTotal(std::vector<GatherLine> const& lines) {
+    GatherTotal out;
+    for (auto const& line : lines) out.need += line.need, out.left += line.left;
+    return out;
+}
+// The recipes an item can be made by in a plan, in the table's order: those that use their own product left
+// out. The plan's rows step through them (L-367).
+inline std::vector<int> recipeOptions(Index const& index, Item item) {
+    std::vector<int> out;
+    if (item < 0 || static_cast<size_t>(item) >= index.makers.size()) return out;
+    for (int number : index.makers[static_cast<size_t>(item)]) if (!index.recipes[static_cast<size_t>(number)].own) out.push_back(number);
+    return out;
+}
 inline RawView rawView(Index const& index, Choice const& choice, Request const& request) {
     Planned plan = planned(index, choice, request);
     RawView out;
@@ -38,6 +61,11 @@ inline RawView rawView(Index const& index, Choice const& choice, Request const& 
         int const recipe = step->item >= 0 && step->item < static_cast<Item>(choice.recipe.size()) ? choice.recipe[step->item] : -1;
         if (recipe < 0) continue;
         out.steps.push_back({step->item, recipe, step->crafts, step->crafts * index.recipes[recipe].count, step->spare, heldOf(step->item)});
+    }
+    for (auto [item, have] : plan.result.fromHeld) {
+        bool const listed = std::ranges::any_of(out.gather, [&](GatherLine const& line) { return line.id == item; })
+            || std::ranges::any_of(out.steps, [&](StepLine const& step) { return step.item == item; });
+        if (!listed) out.done.push_back({item, have, have, 0});
     }
     return out;
 }
