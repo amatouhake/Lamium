@@ -25,7 +25,7 @@ struct Target {
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, a pager's
 // button or a recipe's "place".
-enum class Act { Item, Tab, Favourite, Wanted, Place, PagePrev, PageNext };
+enum class Act { Item, Tab, Favourite, Wanted, Place, PagePrev, PageNext, HowTo };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
@@ -80,6 +80,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
             else if (region.act == Act::Favourite) state::toggleFavourite(shownItem);
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
+            else if (region.act == Act::HowTo) late.howTo = shownItem;
             else if (region.act == Act::PagePrev) trail.back().page -= 1;
             else if (region.act == Act::PageNext) trail.back().page += 1;
             else if (region.act == Act::Place && input.placer) {
@@ -188,8 +189,12 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         auto const& recipe = index.recipes[static_cast<size_t>(number)];
         float const bx = l.blockX(station, count, i), by = l.blockY(station, count, i);
         auto const block = viewBlock(recipe);
-        // A slot as the game draws its own; `lacks`: on the game's red, an ingredient nothing carried serves.
-        auto place = [&](float sx, float sy, Item item, Count amount, bool lacks = false) {
+        // Each recipe on a raised face of the window's own edge, so where one ends is seen (L-370).
+        raisedBox(context, bx - 3, by - 3, RecipeViewLayout::block + 6, RecipeViewLayout::blockHeight(station) + 1, palette::vanilla::window,
+                  palette::vanilla::windowLight, palette::vanilla::buttonShadow);
+        // A slot as the game draws its own; `lacks`: on the game's red, an ingredient nothing carried serves. `group`:
+        // the slot takes any of a group's members, and names the group and shows them under the pointer.
+        auto place = [&](float sx, float sy, Item item, Count amount, bool lacks = false, int group = -1) {
             Region region{sx, sy, 18, 18, Act::Item, {}, -1};
             bool const named = item >= 0 && item < static_cast<Item>(index.items.size());
             bool const hovered = named && region.has(input.pointerX, input.pointerY);
@@ -199,26 +204,37 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             auto const& shown = schematic::items::shown(region.item);
             if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, sx + 1, sy + 1});
             if (amount > 1) late.counts.push_back({sx, sy, std::to_string(amount)});
-            if (hovered) late.tip = shown.name, late.hovered = region.item;
+            if (hovered && group >= 0) {
+                late.tip = groupName(index, group);
+                late.tipItems.clear();
+                for (Item member : index.groups[static_cast<size_t>(group)].members) late.tipItems.push_back(index.items[static_cast<size_t>(member)]);
+            } else if (hovered) late.tip = shown.name, late.hovered = region.item;
             regions.push_back(std::move(region));
         };
         // Where the screen has a grid this recipe fits, it can be laid in; a cell nothing carried serves is marked.
         PlacePlan laid;
         if (input.placer && recipe.station == Station::Crafting) laid = input.placer->preview(recipe, input.shift);
+        auto const& picks = state::notes().picks;
         for (auto const& part : block.slots) {
             Item item = -1;
+            int group = -1;
             if (part.cell >= 0) {
                 auto const& cell = recipe.cells[static_cast<size_t>(part.cell)];
                 item = cell.id;
                 if (cell.group) {
+                    group = cell.id;
                     auto const& members = index.groups[static_cast<size_t>(cell.id)].members;
-                    // Asked what an item is used in, a slot it fits shows it and not the others in turn.
+                    // Asked what an item is used in, a slot it fits shows it; else the member "How to make" names, or
+                    // the members in turn.
                     bool const asked = at.uses && std::find(members.begin(), members.end(), id) != members.end();
-                    item = members.empty() ? -1 : asked ? id : members[turn % members.size()];
+                    Item picked = -1;
+                    if (auto found = picks.find(groupKey(index, cell.id)); found != picks.end()) picked = index.findKey(found->second);
+                    if (std::find(members.begin(), members.end(), picked) == members.end()) picked = -1;
+                    item = members.empty() ? -1 : asked ? id : picked >= 0 ? picked : members[turn % members.size()];
                 }
             }
             place(bx + part.x, by + part.y, item, 1,
-                  part.cell >= 0 && std::find(laid.missing.begin(), laid.missing.end(), part.cell) != laid.missing.end());
+                  part.cell >= 0 && std::find(laid.missing.begin(), laid.missing.end(), part.cell) != laid.missing.end(), group);
         }
         changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
@@ -233,13 +249,18 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (over) late.tip = translated(laid.ready() ? "recipes.place" : "recipes.placeMissing");
             if (laid.ready()) regions.push_back(region);
         }
-        // The recipe the plan makes the item by, while the item is in the plan: a small mark under its product.
-        bool const inUse = id >= 0 && !at.uses && choice->recipe[static_cast<size_t>(id)] == number;
-        if (inUse && input.planned && input.planned->contains(at.item)) {
-            float const ux = bx + block.productX + 5, uy = by + block.productY + 20;
-            inUseMark(context, ux, uy, palette::accentDeep);
-            if (input.pointerX >= ux - 2 && input.pointerX < ux + 9 && input.pointerY >= uy - 2 && input.pointerY < uy + 7)
-                late.tip = translated("recipes.mark.default");
+        // The recipe an item with several is made by, as "How to make" has it: a check when the player chose it,
+        // "automatic" when the rule did; a press goes to its line there (L-370).
+        bool const inUse = id >= 0 && !at.uses && choice->recipe[static_cast<size_t>(id)] == number && recipeOptions(index, id).size() > 1;
+        if (inUse) {
+            bool const chosen = state::notes().choices.contains(at.item);
+            float const ux = bx + block.productX - 1, uy = by + block.productY + 20, uw = 20, uh = 8;
+            if (chosen) inUseMark(context, ux + 6, uy, palette::accentDeep);
+            else labelScaled(context, ux, uy - 1, uw, translated("recipes.howTo.auto"), .5f, palette::vanilla::windowFaint, Align::Center, false);
+            Region const region{ux, uy - 2, uw, uh + 2, Act::HowTo, {}, -1};
+            if (region.has(input.pointerX, input.pointerY))
+                late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.change")};
+            regions.push_back(region);
         }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;

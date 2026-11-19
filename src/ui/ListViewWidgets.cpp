@@ -79,20 +79,6 @@ Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int pag
     labelScaled(context, textX + nowW + slashW, textY, allW, all, 1.f, ink, Align::Left, shadow);
     return out;
 }
-int drawMoveButtons(MinecraftUIRenderContext& context, float x, float y, bool upOn, bool downOn, float pointerX, float pointerY) {
-    int under = 0;
-    for (int side : {-1, 1}) {
-        float const bx = side < 0 ? x : x + moveButtonSize - 1;
-        bool const on = side < 0 ? upOn : downOn;
-        bool const over = pointerX >= bx && pointerX < bx + moveButtonSize && pointerY >= y && pointerY < y + moveButtonSize;
-        if (over && on) under = side;
-        Rgb const mark = drawButtonBox(context, bx, y, moveButtonSize, moveButtonSize, over, ButtonKind::Plain, on);
-        // A 5-wide triangle pointing up or down: its widest row at the bottom for up, at the top for down.
-        for (int i = 0; i < 3; ++i)
-            fill(context, bx + 3 + static_cast<float>(i), y + (side < 0 ? 6 - static_cast<float>(i) : 4 + static_cast<float>(i)), 5 - 2 * static_cast<float>(i), 1, mark);
-    }
-    return under;
-}
 void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, bool hovered, bool on) {
     if (!onWindow()) { drawButton(context,x,y,w,h,std::move(text),hovered,on ? ButtonKind::Primary : ButtonKind::Plain); return; }
     fill(context,x,y,w,h,on ? palette::accentDeep : palette::vanilla::switchTrack);

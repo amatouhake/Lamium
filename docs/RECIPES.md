@@ -113,11 +113,10 @@ after using the first build. What is still open is in the L-item.
   line) at its upper right, named under the pointer, flat and darker with
   the reason when something is missing;
   and one small mark, "any order" for a shapeless recipe. That a recipe
-  fits the inventory's own grid is seen from its shape. While the item is
-  in the plan, the recipe it is made by carries a small check under its
-  product, named under the pointer. Opened from the list of what to make,
-  an item with several recipes still offers "use" on the others, until
-  the plan's rows choose (L-367).
+  fits the inventory's own grid is seen from its shape. Each recipe lies
+  on a raised face. An item with several recipes marks the one in use
+  under its product, a check when chosen in "How to make", "automatic"
+  when not; a press goes to its line there (L-370).
 - The arrow and the product stand at the middle of the ingredients.
 - A recipe that uses its own product (copying a smithing template, dyeing
   a shulker box) is shown after the others and is never the recipe a plan
@@ -135,12 +134,10 @@ after using the first build. What is still open is in the L-item.
   tried and is not what a recipe view is expected to do. What lay in the
   grid goes back to the inventory first. An ingredient that is missing disables the
   button and turns its slot's face red, as the game does. Any of several items:
-  the member picked in the wanted window while it lasts, else the one most
-  carried.
-- An ingredient any one of several items satisfies (any planks) shows its
-  members in turn, the icon changing every few seconds; members the player
-  holds come first, then older items. All members appear as a grid of icons
-  (a new shared widget), not a row each.
+  the member "How to make" names while it lasts, else the one most carried.
+- An ingredient any one of several items satisfies (any planks) shows the
+  member "How to make" names, else its members in turn; under the pointer
+  it names the group and shows its members as small icons.
 - Every station that can do a recipe is named, as icons.
 
 ### The plan
@@ -164,22 +161,24 @@ after using the first build. What is still open is in the L-item.
   what to make, named as the window's tabs; a press on a line or "Open"
   opens the window there. The window sits where the recipe view does; the
   recipe view opens over it (a press on an item) and gives it back.
-- The window's "wanted", in priority order (up and down buttons on the
-  row under the pointer, handed items too; kept in `wanted.json`): each
-  row its icon and name, the finished items held against those wanted,
-  the share of what it takes that is gathered (a part held on the way
-  counts) with a bar. Held stock goes to the rows from the top down. A
-  press opens its breakdown: its steps in the order to make them, then
-  what it needs gathered (have / need). Only the breakdown chooses: a
-  step's previous / "1 / 3" / next for its recipe, a press on an input
-  any of several items serves (or on such a material's row) for its
-  member, "gather" on a step and "make" on a material set to gather.
-- The window's "to gather": a line of the whole (left of all, percent,
-  bar); each row "have / need" and a short bar; done rows faint below.
-- The window's "to make" is the work: steps that can be made now from
-  what is held first, the others faint below; a press opens the
-  breakdown of the wanted item that needs it. Steps show as the game's
-  slots: inputs, an arrow, the product with its count, the station.
+- The window ("wanted", "to gather", "to make", "How to make",
+  "stores") is the Recipes feature's, not only the plan's (L-370).
+- "Wanted" is a table: fold, icon, name, held, wanted, a bar of what it
+  takes that is gathered (a part held on the way counts). The player's
+  own rows turn "wanted" into "- N +" and show "x" only under the
+  pointer; handed rows show their source. Held stock goes to the rows in
+  the order added; a row that lost stock to one above says so under the
+  pointer. A press opens its breakdown on a sunk face, read only: its
+  steps as slots (inputs right-aligned to the arrow), then what it needs
+  gathered, each with its choice's state (a press goes to "How to
+  make"); "gather" on a step and "make" on a material set to gather.
+- "To gather" uses the same columns, "All" as the first row; done rows
+  faint below. "To make" is the work: steps that can be made now from
+  what is held first, the others faint; a press opens the breakdown.
+- "How to make" holds the choices for all plans and worlds: a group's
+  member (a grid of slots, "any" first) and an item's recipe (rows,
+  "automatic" first); lines for the current plan, or with a switch all
+  chosen before. Placing follows it, falling back to what is held.
 - A key (W by default, beside A for favourites; both rebindable) puts the
   hovered item into "wanted" or takes it out, wherever the favourite key
   works. While it is held the wheel changes how many are wanted, so the

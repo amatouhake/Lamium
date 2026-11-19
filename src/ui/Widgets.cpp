@@ -230,6 +230,15 @@ void windowPanel(MinecraftUIRenderContext& context, float left, float top, float
         fill(context, r.x, r.y, r.w, r.h, color);
     }
 }
+void sunkFace(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool top, bool bottom) {
+    if (w <= 2 || h <= 0) return;
+    namespace v = palette::vanilla;
+    fill(context, x, y, w, h, v::windowSunk);
+    fill(context, x, y, 1, h, v::buttonShadow);
+    fill(context, x + w - 1, y, 1, h, v::windowLight);
+    if (top) fill(context, x, y, w, 1, v::buttonShadow);
+    if (bottom) fill(context, x + 1, y + h - 1, w - 1, 1, v::windowLight);
+}
 void raisedBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow) {
     if (w < 3 || h < 3) return;
     // Half a unit of light and shadow: a whole unit was heavy on buttons this small (L-367).

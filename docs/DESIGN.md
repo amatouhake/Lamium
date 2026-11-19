@@ -135,7 +135,8 @@ On a window of the game's grey (`windowPanel`, drawn inside `OnWindow`) the
 shared controls take the game's look, so they sit in it as its own do
 (maintainer 2026-11-19/20, L-367): action buttons are raised (`raisedBox`:
 black edge, half a unit of white light and grey shadow) with dark text,
-a disabled one flat and darker; joined on/off buttons
+a disabled one flat and darker; a face sunk into the window (`sunkFace`,
+`windowSunk`) holds a breakdown or a list of candidates; joined on/off buttons
 (`drawOnOffButton`) and a switch keep Lamium's shape, green when on, their
 off face the game's lighter grey with a black edge; tabs are the game's
 (`windowTab`, below); a stepper has raised ends and its value in the slots'

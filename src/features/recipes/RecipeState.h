@@ -33,10 +33,8 @@ void removeWanted(std::string const& key);
 void stepWanted(std::string const& key, bool up, bool shift, bool button);
 // Wanted items the wheel left at 0 go out, but `keep`, the one under the pointer or being stepped.
 void settleWanted(std::string_view keep);
-// The wanted items, the player's and what features hand over, in their priority order (L-370).
+// The wanted items, the player's then what features hand over, in the order added (L-370).
 std::vector<WantedEntry> wantedEntries();
-// Moves a wanted entry (wantedEntryId) up (negative) or down by `delta` places, and keeps the order.
-void moveWanted(std::string const& id, int delta);
 // The recipe an item is made by, as choiceKey names it; empty gives it back to the default.
 void setChoice(std::string const& item, std::string const& recipe);
 // The member used for a group; an empty member gives it back to "any".

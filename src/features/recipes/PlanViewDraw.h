@@ -9,9 +9,11 @@ class MinecraftUIRenderContext;
 // the recipe view does and is hosted the same way; the recipe view opens over
 // it and gives it back when closed. Client thread only.
 namespace lamium::recipes::planView {
-enum class Tab { Wanted, Gather, Make, Places };
+enum class Tab { Wanted, Gather, Make, HowTo, Places };
 bool isOpen();
 void open(Tab tab);
+// Opens on "How to make" with the line of `key` (an item's key, or a group's: groupKey) open and lit (L-370).
+void openHowTo(std::string const& key);
 void close();
 // `shift`: a stepper moves by 16. `showItem` is set to the item whose name was pressed, for the recipe
 // view; `showChoice` with it when that was in the list of what to make.

@@ -12,39 +12,43 @@
 #include <chrono>
 #include <format>
 
+// L-370 (docs/demos/plan-*.html): the Recipes window. "Wanted" is a table of the wanted items whose rows open
+// read-only breakdowns; "to gather" and "to make" share its columns; "How to make" holds the choices for all
+// plans and worlds (a group's member, an item's recipe); "Stores" what counts as held.
 namespace lamium::recipes::planView {
 namespace {
 bool opened = false;
 Tab tab = Tab::Wanted;
-int scroll[4]{};
-int expanded = -1; // the group whose members are shown, to pick one
-std::string openEntry; // the wanted entry whose breakdown is open (wantedEntryId)
-// In that breakdown, a group opened to pick a member, from a step's input or from a material's row: its cells
-// show under the row they were opened from only.
-struct OpenMembers {
-    std::string entry;
-    int group = -1;
-    bool fromStep = false;
-    bool operator==(OpenMembers const&) const = default;
-};
-OpenMembers openMembers;
-std::string scrollTo; // a wanted entry to bring into view when the wanted tab shows next
-constexpr float rowHeight = 12, headTop = 4, rowsTop = 16, iconScale = .625f, stepperWidth = 50;
+int scroll[5]{};
+std::string openEntry;  // the wanted entry whose breakdown is open (wantedEntryId)
+std::string scrollTo;   // a wanted entry to bring into view when the wanted tab shows next
+std::string howOpen;    // the line of "How to make" whose candidates are open: an item's key or a group's
+std::string howScroll;  // a line of "How to make" to bring into view
+std::string howFlash;   // a line just asked for, lit for a moment
+std::chrono::steady_clock::time_point howFlashAt{};
+bool howAll = false;    // "How to make" also lists what was chosen before, beyond the current plan
+constexpr float rowHeight = 18, stepHeight = 20, labelHeight = 11, headHeight = 11, headTop = 4, rowsTop = 16, small = .625f, stepperWidth = 42;
 }
 bool isOpen() { return opened; }
 void open(Tab which) {
     opened = true;
     tab = which;
 }
+void openHowTo(std::string const& key) {
+    opened = true;
+    tab = Tab::HowTo;
+    howOpen = howScroll = howFlash = key;
+    howFlashAt = std::chrono::steady_clock::now();
+}
 void close() {
     opened = false;
-    expanded = -1;
     openEntry.clear();
-    openMembers = {};
+    howOpen.clear();
 }
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift, std::string& showItem,
           bool& showChoice) {
     using namespace lamium::ui;
+    namespace v = palette::vanilla;
     if (!opened) return;
     if (input.close) { close(); return; }
     float const px = input.pointerX, py = input.pointerY;
@@ -63,395 +67,344 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
     OnWindow const onWindowScope;
     // The lists are the game's tabs on the window's top edge; they name the window, which needs no title.
-    float x = l.left + 5;
-    Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::Places};
-    char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.places"};
-    for (int i = 0; i < 4; ++i) {
-        std::string name = translated(names[i]);
-        float const w = textWidth(context, name) + 14;
-        windowTab(context, x, l.top, w, std::move(name), tab == tabs[i], over(x, l.top - windowTabRise, w - 1, windowTabRise));
-        if (took(x, l.top - windowTabRise, w - 1, windowTabRise)) tab = tabs[i], expanded = -1;
-        x += w - 1; // neighbours share their edge
+    {
+        float x = l.left + 5;
+        Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::HowTo, Tab::Places};
+        char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.howTo", "recipes.places"};
+        for (int i = 0; i < 5; ++i) {
+            std::string name = translated(names[i]);
+            float const w = textWidth(context, name) + 12;
+            windowTab(context, x, l.top, w, std::move(name), tab == tabs[i], over(x, l.top - windowTabRise, w - 1, windowTabRise));
+            if (took(x, l.top - windowTabRise, w - 1, windowTabRise)) tab = tabs[i];
+            x += w - 1; // neighbours share their edge
+        }
     }
     auto const* plan = state::plan(player);
     float const left = l.left + 6, right = l.left + l.width - 6;
-    float top = l.top + rowsTop;
-    int fits = std::max(1, static_cast<int>((l.height - rowsTop - RecipeViewLayout::foot) / rowHeight));
-    // On the wanted tab, above the list: whether a schematic's materials still to place stand among the
-    // wanted items. The same switch as on the schematic's Materials tab, shown while Schematics is on.
-    if (tab == Tab::Wanted && Runtime::instance().preferences().schematic.enabled) {
-        bool const on = Runtime::instance().preferences().schematic.planMaterials;
-        if (over(left, top, right - left, rowHeight)) fill(context, left - 2, top, right - left + 4, rowHeight, palette::shade, .08f);
-        windowLabel(context, left, top + 2, right - left - switchWidth - 4, translated("recipes.plan.schematic"));
-        toggleSwitch(context, right - switchWidth, top + 1.5f, on);
-        if (took(left, top, right - left, rowHeight)) {
-            auto value = Runtime::instance().preferences();
-            value.schematic.planMaterials = !on;
-            Runtime::instance().save(value);
-        }
-        top += rowHeight + 2;
-        fits = std::max(1, fits - 1);
-    }
-    // A place by what it is: the ender chest, or a store's block and where it stands.
-    auto placeName = [&](Place const& place) {
-        std::string name = schematic::items::shown(place.block).name;
-        return place.ender ? name : translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);
-    };
-    auto note = [&](std::string text) { windowLabel(context, left, top + 2, right - left, std::move(text), true); };
-    // Every list of the window scrolls with the shared bar, in the margin right of the rows.
-    // `visible`: how many rows fit at the list's end, where rows are taller than `rowHeight`.
-    auto bar = [&](int count, int& first, int visible = -1) {
-        listScrollbar(context, right + 2, top, static_cast<float>(fits) * rowHeight, count, visible < 0 ? fits : visible, first, px, py, pressed, input.held);
-    };
-    if (!plan) { note(translated("schematic.raw.reading")); return; }
-    auto const& index = plan->table->index;
-    Item const itemCount = static_cast<Item>(index.items.size());
-    auto const turn = static_cast<size_t>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
-    // A row's start: the icon and the name, which a press turns into the item's recipes. `id` past the items is a group.
-    // Under the pointer the row says its whole name, which the column may cut, and `amount` in chests and stacks.
-    auto lead = [&](float y, Item id, float nameEnd, Count amount = 0) {
-        std::string key, name;
-        if (id >= itemCount) {
-            auto const& members = index.groups[static_cast<size_t>(id - itemCount)].members;
-            if (!members.empty()) key = index.items[static_cast<size_t>(members[turn % members.size()])];
-            name = groupName(index, id - itemCount);
-        } else if (id >= 0) {
-            key = index.items[static_cast<size_t>(id)];
-            name = schematic::items::shown(key).name;
-        }
-        if (!key.empty())
-            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, left, y + 1, iconScale});
-        bool const hot = id >= 0 && id < itemCount && over(left, y, nameEnd - left, rowHeight);
-        if (hot) fill(context, left - 2, y, nameEnd - left + 2, rowHeight, palette::shade, .1f);
-        if (late.tip.empty() && !name.empty() && over(left, y, right - left, rowHeight)) {
-            late.tip = name;
-            if (amount) late.tipLines.push_back(amountText(amount, key.empty() ? 64 : schematic::items::shown(key).stack));
-        }
-        windowLabel(context, left + 13, y + 2, nameEnd - left - 15, std::move(name));
-        if (hot) late.hovered = key;
-        if (id >= 0 && id < itemCount && took(left, y, nameEnd - left, rowHeight)) showItem = key;
-    };
-    auto number = [&](float cellRight, float y, std::string text, bool faint = true) {
-        windowLabel(context, cellRight - 34, y + 2, 34, std::move(text), faint, Align::Right);
-    };
-    // A small button at a row's right end; returns its left edge.
-    auto rowButton = [&](float end, float y, std::string text, auto&& act) {
-        float const w = textWidth(context, text) + 8;
-        drawButton(context, end - w, y + 1, w, 10, std::move(text), over(end - w, y + 1, w, 10));
-        if (took(end - w, y + 1, w, 10)) act();
-        return end - w - 3;
-    };
-    if (tab == Tab::Places) {
-        // What counts as held: what is carried, then the ender chest and the stores as they were when last
-        // seen open (what a shulker box or a bundle among them holds counts with it). Each row is a name and its switch, the switches in one
-        // column; a store can be taken out as well.
-        auto const all = state::places();
-        auto const& places = all.list; // of a copy: the controls below change the list
-        std::string const removeText = translated("recipes.remove");
-        float const sx = right - (textWidth(context, removeText) + 8) - 4 - switchWidth;
-        int const rows = static_cast<int>(places.size()) + 1;
-        int& first = scroll[static_cast<int>(tab)];
-        first = std::clamp(first + input.wheel, 0, std::max(0, rows - fits));
-        bar(rows, first);
-        for (int row = 0; row < fits && first + row < rows; ++row) {
-            float const y = top + static_cast<float>(row) * rowHeight;
-            int const at = first + row - 1;
-            std::string name, icon, tip;
-            bool on = false, faint = false;
-            if (at < 0) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:player_head", on = all.carried;
-            else {
-                auto const& place = places[static_cast<size_t>(at)];
-                name = placeName(place), icon = place.block, on = place.counted;
-                if (!place.ender) rowButton(right, y, removeText, [&] { state::unmarkStore(at); });
-            }
-            toggleSwitch(context, sx, y + 1.5f, on);
-            if (took(sx - 2, y, switchWidth + 4, rowHeight)) {
-                if (at < 0) state::setCarriedCounted(!all.carried);
-                else state::setPlaceCounted(at, !on);
-            }
-            float const from = left;
-            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(icon).icon)) late.icons.push_back({stack, from, y + 1, iconScale});
-            if (late.tip.empty() && over(left, y, sx - left - 4, rowHeight)) {
-                late.tip = name;
-                if (!tip.empty()) late.tipLines.push_back(std::move(tip));
-            }
-            windowLabel(context, from + 13, y + 2, sx - from - 17, std::move(name), faint || !on);
-        }
-        if (places.empty() && fits > 2) paragraph(context, left, top + rowHeight + 4, right - left, translated("recipes.place.how"), 3, palette::vanilla::windowFaint);
-        return;
-    }
+    float top = l.top + headTop;
+    float const bottom = l.top + l.height - RecipeViewLayout::foot;
     int& offset = scroll[static_cast<int>(tab)];
     int wheel = input.wheel;
-    float const bottom = l.top + l.height - RecipeViewLayout::foot;
-    // A group's members as cells under its row, to pick one (or "any" again); a row's height in all.
-    auto members = [&](float y, int group, auto&& done) {
-        auto const& list = index.groups[static_cast<size_t>(group)].members;
-        int const across = std::max(1, static_cast<int>((right - left - 12) / 18));
-        for (size_t m = 0; m < list.size(); ++m) {
-            float const cx = left + 12 + static_cast<float>(m % static_cast<size_t>(across)) * 18, cy = y + static_cast<float>(m / static_cast<size_t>(across)) * 18;
-            if (cy + 18 > bottom) break;
-            auto const& key = index.items[static_cast<size_t>(list[m])];
-            auto const& shown = schematic::items::shown(key);
-            bool const hot = over(cx, cy, 18, 18);
-            windowSlot(context, cx, cy, hot);
-            if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, cx + 1, cy + 1});
-            auto held = plan->held.find(list[m]);
-            if (held != plan->held.end() && held->second) late.counts.push_back({cx, cy, std::to_string(held->second)});
-            if (hot) late.tip = shown.name, late.hovered = key;
-            if (took(cx, cy, 18, 18)) state::setPick(groupKey(index, group), key), done();
-        }
-        float const rows = static_cast<float>((list.size() + static_cast<size_t>(across) - 1) / static_cast<size_t>(across));
-        if (plan->request.picks.contains(group)) {
-            float const by = y + rows * 18 + 1;
-            if (by + 11 <= bottom) rowButton(right, by - 1, translated("recipes.backToAny"), [&] { state::setPick(groupKey(index, group), {}); done(); });
-            return rows * 18 + 14;
-        }
-        return rows * 18 + 2;
+    // Every list scrolls with the shared bar in the margin right of the rows; `visible` is how many rows of their
+    // real heights fit at the list's end.
+    auto bar = [&](int count, int& first, int visible) {
+        listScrollbar(context, right + 2, top, bottom - top, count, std::max(1, visible), first, px, py, pressed, input.held);
     };
-    // The same height members() takes, without drawing.
-    auto membersHeight = [&](int group) {
-        auto const& list = index.groups[static_cast<size_t>(group)].members;
-        size_t const across = static_cast<size_t>(std::max(1, static_cast<int>((right - left - 12) / 18)));
-        float const rows = static_cast<float>((list.size() + across - 1) / across);
-        return rows * 18 + (plan->request.picks.contains(group) ? 14.f : 2.f);
-    };
-    // How many rows of these heights fit, counted from the list's end: the scroll goes down to them.
     auto fitFromEnd = [&](std::vector<float> const& heights) {
         float room = bottom - top;
         int fit = 0;
         for (auto h = heights.rbegin(); h != heights.rend() && room >= *h; ++h) room -= *h, ++fit;
         return std::max(1, fit);
     };
-    // A step as the game's slots: its inputs, an arrow, its product, and its station (L-370). `choosing`: in a
-    // breakdown, where a group input opens its members and the recipe and "gather" are chosen; `entry` is
-    // that breakdown's. `faint`: its icons dim (a step that cannot be made yet). Returns nothing; the row is
-    // `stepHeight` high.
-    constexpr float stepHeight = 20, targetHeight = 22, materialHeight = 18, labelHeight = 11;
-    auto stepRow = [&](float x0, float y, StepLine const& step, Request const& request, bool choosing, std::string const& entry, bool faint) {
+    auto note = [&](std::string text) { windowLabel(context, left, top + 2, right - left, std::move(text), true); };
+    // A place by what it is: the ender chest, or a store's block and where it stands.
+    auto placeName = [&](Place const& place) {
+        std::string name = schematic::items::shown(place.block).name;
+        return place.ender ? name : translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);
+    };
+    // A small button; returns its left edge less a gap.
+    auto rowButton = [&](float end, float y, std::string text, auto&& act) {
+        float const w = textWidth(context, text) + 8;
+        drawButton(context, end - w, y, w, 10, std::move(text), over(end - w, y, w, 10));
+        if (took(end - w, y, w, 10)) act();
+        return end - w - 3;
+    };
+    if (tab == Tab::Places) {
+        // What counts as held: what is carried, then the ender chest and the stores as they were when last seen
+        // open. Each row is a name and its switch, the switches in one column; a store can be taken out as well.
+        constexpr float placeRow = 12;
+        auto const all = state::places();
+        auto const& places = all.list; // of a copy: the controls below change the list
+        std::string const removeText = translated("recipes.remove");
+        float const sx = right - (textWidth(context, removeText) + 8) - 4 - switchWidth;
+        int const rows = static_cast<int>(places.size()) + 1, fits = static_cast<int>((bottom - top) / placeRow);
+        offset = std::clamp(offset + wheel, 0, std::max(0, rows - fits));
+        bar(rows, offset, fits);
+        for (int row = 0; row < fits && offset + row < rows; ++row) {
+            float const y = top + static_cast<float>(row) * placeRow;
+            int const at = offset + row - 1;
+            std::string name, icon, tip;
+            bool on = false;
+            if (at < 0) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:player_head", on = all.carried;
+            else {
+                auto const& place = places[static_cast<size_t>(at)];
+                name = placeName(place), icon = place.block, on = place.counted;
+                if (!place.ender) rowButton(right, y + 1, removeText, [&] { state::unmarkStore(at); });
+            }
+            toggleSwitch(context, sx, y + 1.5f, on);
+            if (took(sx - 2, y, switchWidth + 4, placeRow)) {
+                if (at < 0) state::setCarriedCounted(!all.carried);
+                else state::setPlaceCounted(at, !on);
+            }
+            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(icon).icon)) late.icons.push_back({stack, left, y + 1, small});
+            if (late.tip.empty() && over(left, y, sx - left - 4, placeRow)) {
+                late.tip = name;
+                if (!tip.empty()) late.tipLines.push_back(std::move(tip));
+            }
+            windowLabel(context, left + 13, y + 2, sx - left - 17, std::move(name), !on);
+        }
+        if (places.empty()) paragraph(context, left, top + placeRow + 4, right - left, translated("recipes.place.how"), 3, v::windowFaint);
+        return;
+    }
+    if (!plan) { note(translated("schematic.raw.reading")); return; }
+    auto const& index = plan->table->index;
+    auto const& request = plan->request;
+    Item const itemCount = static_cast<Item>(index.items.size());
+    auto const turn = static_cast<size_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
+    auto const notes = state::notes();
+
+    // ---- Shared pieces ----
+    // The table's columns, the same on every list: fold, icon, name, held, wanted (or needed), a bar, controls.
+    constexpr float controlsW = 26, barW = 24, wantW = stepperWidth, heldW = 24;
+    float const controlsX = right - controlsW, barX = controlsX - 2 - barW, wantX = barX - 3 - wantW, heldX = wantX - 2 - heldW;
+    float const nameX = left + 26, nameEnd = heldX - 3;
+    auto columnHeads = [&](float y, char const* wantKey, bool withName = false, std::string name = {}) {
+        if (withName) windowLabel(context, nameX, y + 1, nameEnd - nameX, std::move(name), true);
+        labelScaled(context, heldX, y + 2, heldW, translated("recipes.col.held"), .75f, v::windowFaint, Align::Right, false);
+        labelScaled(context, wantX, y + 2, wantW, translated(wantKey), .75f, v::windowFaint, Align::Right, false);
+        labelScaled(context, barX, y + 2, barW, translated("recipes.col.gathered"), .75f, v::windowFaint, Align::Left, false);
+    };
+    auto number = [&](float x, float w, float y, Count count, bool faint) {
+        windowLabel(context, x, y, w, std::to_string(count), faint, Align::Right);
+    };
+    // An item or a group as its picture and name: a group shows the member its line in "How to make" names, or
+    // turns through them.
+    auto pictureOf = [&](Item id) -> std::string {
+        if (id >= itemCount) {
+            int const group = id - itemCount;
+            if (auto picked = request.picks.find(group); picked != request.picks.end()) return index.items[static_cast<size_t>(picked->second)];
+            auto const& list = index.groups[static_cast<size_t>(group)].members;
+            return list.empty() ? std::string() : index.items[static_cast<size_t>(list[turn % list.size()])];
+        }
+        return id >= 0 ? index.items[static_cast<size_t>(id)] : std::string();
+    };
+    auto nameOf = [&](Item id) -> std::string {
+        if (id >= itemCount) return groupName(index, id - itemCount);
+        return id >= 0 ? schematic::items::shown(index.items[static_cast<size_t>(id)]).name : std::string();
+    };
+    auto icon = [&](std::string const& key, float x, float y, float scale = 1.f, float alpha = 1.f) {
+        if (key.empty()) return;
+        if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, x, y, scale, 0, alpha});
+    };
+    // Under the pointer a group names itself and shows its members as small icons.
+    auto groupTip = [&](int group) {
+        late.tip = groupName(index, group);
+        late.tipLines.clear();
+        late.tipItems.clear();
+        for (Item member : index.groups[static_cast<size_t>(group)].members) late.tipItems.push_back(index.items[static_cast<size_t>(member)]);
+    };
+    // A recipe by what it is made from: its first input.
+    auto recipeName = [&](int number) {
+        auto const& recipe = index.recipes[static_cast<size_t>(number)];
+        if (recipe.uses.empty()) return stationName(recipe.station);
+        auto const& part = recipe.uses.front();
+        return translated("recipes.howTo.from", part.group ? groupName(index, part.id) : nameOf(part.id));
+    };
+    // A choice's state, at the right of a row: automatic, faint; chosen, on green. A press goes to its line in
+    // "How to make". Returns its left edge less a gap.
+    auto stateTag = [&](float end, float y, std::string text, bool chosen, std::string const& key) {
+        float const w = std::min(64.f, textWidth(context, text) * .75f + 6), x = end - w;
+        if (chosen) fill(context, x, y, w, 10, palette::accentDeep);
+        bool const hot = over(x, y, w, 10);
+        if (hot) fill(context, x, y, w, 10, palette::white, .2f), late.tip = translated("recipes.howTo.change");
+        labelScaled(context, x + 3, y + 2.5f, w - 6, std::move(text), .75f, chosen ? palette::text : v::windowFaint, Align::Left, chosen);
+        if (took(x, y, w, 10)) {
+            tab = Tab::HowTo;
+            howOpen = howScroll = howFlash = key;
+            howFlashAt = std::chrono::steady_clock::now();
+        }
+        return x - 3;
+    };
+    auto recipeState = [&](float end, float y, Item item) {
+        if (recipeOptions(index, item).size() < 2) return end;
+        auto const& key = index.items[static_cast<size_t>(item)];
+        bool const chosen = notes.choices.contains(key);
+        int const now = plan->choice->recipe[static_cast<size_t>(item)];
+        return stateTag(end, y, chosen ? recipeName(now) : translated("recipes.howTo.auto"), chosen, key);
+    };
+    auto groupState = [&](float end, float y, int group) {
+        auto picked = request.picks.find(group);
+        bool const chosen = picked != request.picks.end();
+        return stateTag(end, y, chosen ? nameOf(picked->second) : translated("recipes.howTo.any"), chosen, groupKey(index, group));
+    };
+    // A step as the game's slots: inputs right-aligned to the arrow (room for four), the product in a fixed
+    // column, the station. `x0` is where the inputs' room starts.
+    constexpr float inputsW = 72;
+    auto stepSlots = [&](float x0, float y, StepLine const& step, bool faint) {
         auto const& key = index.items[static_cast<size_t>(step.item)];
         auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
         size_t const iconsBefore = late.icons.size();
-        float end = right;
-        if (choosing) {
-            end = rowButton(right, y + 4, translated("recipes.toGather"), [&] { state::setStop(key, true); });
-            auto const options = recipeOptions(index, step.item);
-            if (options.size() > 1) {
-                int const now = static_cast<int>(std::ranges::find(options, step.recipe) - options.begin());
-                auto const pager = drawPager(context, end, y + 4.5f, now, static_cast<int>(options.size()), px, py);
-                auto choose = [&](int to) { state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(options[static_cast<size_t>(to)])])); };
-                if (pager.prevOn && took(pager.prevX, pager.y, Pager::size, Pager::size)) choose(now - 1);
-                else if (pager.nextOn && took(pager.nextX, pager.y, Pager::size, Pager::size)) choose(now + 1);
-                end = pager.prevX - 3;
-            }
-        }
-        if (auto const station = stationItem(recipe.station); !station.empty()) {
-            auto const& shown = schematic::items::shown(std::string(station));
-            if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, end - 11, y + 5, iconScale});
-            if (over(end - 11, y, 11, stepHeight)) late.tip = shown.name;
-            end -= 14;
-        }
-        // The inputs from the left, as many as there is room for before the arrow and the product.
-        float x = x0;
-        float const room = end - 18 - 12;
-        auto slotAt = [&](float sx, std::string const& iconKey, Count count) {
-            windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18));
-            if (!iconKey.empty())
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(iconKey).icon)) late.icons.push_back({stack, sx + 1, y + 2});
-            if (count > 1) late.counts.push_back({sx, y + 1, std::to_string(count)});
-        };
+        float const arrowX = x0 + inputsW, productX = arrowX + 12;
         auto const& uses = recipe.uses;
-        for (size_t u = 0; u < uses.size(); ++u) {
+        size_t const shown = std::min<size_t>(uses.size(), 4);
+        for (size_t u = 0; u < shown; ++u) {
             auto const& part = uses[u];
-            if (x + 18 > room) {
-                windowLabel(context, x + 1, y + 6, room - x, "...", true);
-                if (over(x, y, room - x, stepHeight)) late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step);
-                break;
-            }
+            float const sx = arrowX - static_cast<float>(shown - u) * 18;
             Item const item = partItem(index, request, part);
-            std::string iconKey, name;
-            if (item >= itemCount) {
-                auto const& list = index.groups[static_cast<size_t>(item - itemCount)].members;
-                if (!list.empty()) iconKey = index.items[static_cast<size_t>(list[turn % list.size()])];
-                name = groupName(index, item - itemCount);
-            } else if (item >= 0) iconKey = index.items[static_cast<size_t>(item)], name = schematic::items::shown(iconKey).name;
-            slotAt(x, iconKey, step.crafts * part.count);
-            if (over(x, y + 1, 18, 18)) late.tip = name, late.hovered = item < itemCount ? iconKey : std::string();
-            if (choosing && part.group) {
-                // Any of several: a press opens its members under the row to pick one.
-                OpenMembers const here{entry, part.id, true};
-                bool const open = openMembers == here;
-                if (open) fill(context, x, y + 19, 18, 1, palette::accentDeep);
-                if (took(x, y + 1, 18, 18)) openMembers = open ? OpenMembers{} : here;
+            windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18));
+            icon(pictureOf(item), sx + 1, y + 2);
+            if (Count const n = step.crafts * part.count; n > 1) late.counts.push_back({sx, y + 1, std::to_string(n)});
+            if (over(sx, y + 1, 18, 18)) {
+                if (item >= itemCount) groupTip(item - itemCount);
+                else late.tip = nameOf(item), late.hovered = pictureOf(item);
             }
-            x += 18;
         }
-        changeArrow(context, x + 3, y + 7.5f, 1, palette::vanilla::windowInk);
-        x += 12;
-        slotAt(x, key, step.made);
-        if (over(x, y + 1, 18, 18)) late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
-        if (took(x, y + 1, 18, 18)) showItem = key;
+        if (uses.size() > shown && over(x0, y, inputsW, stepHeight))
+            late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step);
+        changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
+        windowSlot(context, productX, y + 1, over(productX, y + 1, 18, 18));
+        icon(key, productX + 1, y + 2);
+        if (step.made > 1) late.counts.push_back({productX, y + 1, std::to_string(step.made)});
+        if (over(productX, y + 1, 18, 18)) late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
+        if (took(productX, y + 1, 18, 18)) showItem = key;
+        if (auto const station = stationItem(recipe.station); !station.empty()) {
+            auto const& at = schematic::items::shown(std::string(station));
+            icon(std::string(station), productX + 22, y + 5, small);
+            if (over(productX + 22, y + 4, 11, 12)) late.tip = at.name;
+        }
         if (faint) for (size_t k = iconsBefore; k < late.icons.size(); ++k) late.icons[k].alpha = .45f;
+        return productX + 36;
     };
+
     if (tab == Tab::Wanted) {
-        // Each wanted item, in its priority order: the finished ones held against those wanted and a bar of how
-        // much of what it takes is gathered; a press opens its breakdown, where its choices are made (L-370).
+        // The schematic's switch above the table, while Schematics is on.
+        if (Runtime::instance().preferences().schematic.enabled) {
+            bool const on = Runtime::instance().preferences().schematic.planMaterials;
+            if (over(left, top, right - left, 12)) fill(context, left - 2, top, right - left + 4, 12, palette::shade, .08f);
+            windowLabel(context, left, top + 2, right - left - switchWidth - 4, translated("recipes.plan.schematic"));
+            toggleSwitch(context, right - switchWidth, top + 1.5f, on);
+            if (took(left, top, right - left, 12)) {
+                auto value = Runtime::instance().preferences();
+                value.schematic.planMaterials = !on;
+                Runtime::instance().save(value);
+            }
+            top += 13;
+        }
         auto const* shares = state::shares(player);
         if (!shares) { note(translated("schematic.raw.reading")); return; }
         auto const& entries = shares->entries;
-        if (entries.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
-        // The rows as lines of their own heights, so a breakdown's lines scroll like the rest.
-        struct Line { enum class Kind { Target, Step, Label, Material, Members } kind; size_t entry = 0; size_t at = 0; float height = 0; };
+        if (entries.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, v::windowInk); return; }
+        columnHeads(top, "recipes.col.wanted");
+        top += headHeight;
+        // Lines of their own heights: a wanted row, and under an open one its breakdown.
+        struct Line { enum class Kind { Target, Label, Step, Material, End } kind; size_t entry = 0; size_t at = 0; float height = 0; };
         std::vector<Line> lines;
         for (size_t e = 0; e < entries.size(); ++e) {
             if (scrollTo == wantedEntryId(entries[e])) offset = static_cast<int>(lines.size()), scrollTo.clear();
-            lines.push_back({Line::Kind::Target, e, 0, targetHeight});
+            lines.push_back({Line::Kind::Target, e, 0, rowHeight});
             if (openEntry != wantedEntryId(entries[e]) || e >= shares->targets.size() || shares->targets[e].item < 0) continue;
             auto const& view = shares->targets[e].view;
             if (!view.steps.empty()) lines.push_back({Line::Kind::Label, e, 0, labelHeight});
-            for (size_t k = 0; k < view.steps.size(); ++k) {
-                lines.push_back({Line::Kind::Step, e, k, stepHeight});
-                if (openMembers.fromStep && openMembers.entry == openEntry) {
-                    auto const& uses = index.recipes[static_cast<size_t>(view.steps[k].recipe)].uses;
-                    if (std::ranges::any_of(uses, [&](Part const& part) { return part.group && part.id == openMembers.group; }) &&
-                        std::ranges::none_of(lines, [](Line const& line) { return line.kind == Line::Kind::Members; }))
-                        lines.push_back({Line::Kind::Members, e, k, 0});
-                }
-            }
+            for (size_t k = 0; k < view.steps.size(); ++k) lines.push_back({Line::Kind::Step, e, k, stepHeight});
             if (!view.gather.empty()) lines.push_back({Line::Kind::Label, e, 1, labelHeight});
-            for (size_t k = 0; k < view.gather.size(); ++k) {
-                Item const id = view.gather[k].id;
-                bool const opened = id >= itemCount && openMembers == OpenMembers{openEntry, id - itemCount, false};
-                lines.push_back({Line::Kind::Material, e, k, materialHeight + (opened ? membersHeight(id - itemCount) : 0.f)});
-            }
+            for (size_t k = 0; k < view.gather.size(); ++k) lines.push_back({Line::Kind::Material, e, k, rowHeight});
+            lines.push_back({Line::Kind::End, e, 0, 3});
         }
         int const count = static_cast<int>(lines.size());
         std::vector<float> heights;
-        for (auto const& line : lines) heights.push_back(line.kind == Line::Kind::Members ? membersHeight(openMembers.group) : line.height);
+        for (auto const& line : lines) heights.push_back(line.height);
         offset = std::clamp(offset, 0, std::max(0, count - 1));
         bar(count, offset, fitFromEnd(heights));
+        float const faceX = left + 8, faceW = right - faceX, x0 = faceX + 4;
         float y = top;
-        auto const& request = plan->request;
-        for (int at = offset; at < count; ++at) {
+        for (int at = offset; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
             auto const& line = lines[static_cast<size_t>(at)];
             auto const& entry = entries[line.entry];
             std::string const id = wantedEntryId(entry);
             TargetPlan const* target = line.entry < shares->targets.size() ? &shares->targets[line.entry] : nullptr;
-            float height = line.height;
-            if (line.kind == Line::Kind::Members) {
-                if (openMembers.group < 0) continue;
-                height = members(y, openMembers.group, [&] { openMembers = {}; });
+            // A breakdown's lines lie on one sunk face, drawn in slices.
+            if (line.kind != Line::Kind::Target) {
+                bool const first = at == 0 || lines[static_cast<size_t>(at - 1)].kind == Line::Kind::Target;
+                sunkFace(context, faceX, y, faceW, line.height, first, line.kind == Line::Kind::End);
             }
-            if (y + std::min(height, stepHeight) > bottom) break;
             if (line.kind == Line::Kind::Label) {
-                windowLabel(context, left + 8, y + 1, right - left - 8, translated(line.at == 0 ? "recipes.make" : "recipes.gather"), true);
+                labelScaled(context, x0, y + 3, faceW - 8, translated(line.at == 0 ? "recipes.make" : "recipes.gather"), .75f, v::windowFaint, Align::Left, false);
             } else if (line.kind == Line::Kind::Step && target) {
-                stepRow(left + 8, y, target->view.steps[line.at], request, true, id, false);
+                auto const& step = target->view.steps[line.at];
+                float end = rowButton(right - 3, y + 5, translated("recipes.toGather"), [&] { state::setStop(index.items[static_cast<size_t>(step.item)], true); });
+                end = recipeState(end, y + 5, step.item);
+                // A group input picked or not: its state too, once per step.
+                for (auto const& part : index.recipes[static_cast<size_t>(step.recipe)].uses)
+                    if (part.group) { end = groupState(end, y + 5, part.id); break; }
+                stepSlots(x0, y, step, false);
             } else if (line.kind == Line::Kind::Material && target) {
                 auto const& material = target->view.gather[line.at];
+                // One icon column with the steps: the material under the inputs' last slot, its name after.
+                float const iconX = x0 + inputsW - 17, labelX = x0 + inputsW + 3;
+                icon(pictureOf(material.id), iconX, y + 1);
+                float end = right - 3;
                 std::string const amounts = std::format("{} / {}", material.held, material.need);
-                constexpr float barW = 26;
-                float const numbersEnd = right - barW - 4, numbersW = 46;
-                windowLabel(context, numbersEnd - numbersW, y + 5, numbersW, amounts, false, Align::Right);
-                progressBar(context, right - barW, y + 7, barW, 3, material.need > 0 ? static_cast<float>(material.held) / static_cast<float>(material.need) : 1.f);
-                float nameEnd = numbersEnd - numbersW - 4;
+                float const amountsW = textWidth(context, amounts);
+                windowLabel(context, end - amountsW, y + 5, amountsW, amounts, false, Align::Right);
+                end -= amountsW + 4;
                 bool const stopped = material.id >= 0 && material.id < itemCount && request.stops.contains(material.id);
-                if (stopped) nameEnd = rowButton(nameEnd, y + 3, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(material.id)], false); });
-                std::string iconKey, name;
-                if (material.id >= itemCount) {
-                    auto const& list = index.groups[static_cast<size_t>(material.id - itemCount)].members;
-                    if (!list.empty()) iconKey = index.items[static_cast<size_t>(list[turn % list.size()])];
-                    name = groupName(index, material.id - itemCount);
-                    // A group: a press on the row opens its members to pick one.
-                    OpenMembers const here{id, material.id - itemCount, false};
-                    bool const open = openMembers == here;
-                    if (over(left, y, nameEnd - left, height)) fill(context, left + 6, y, nameEnd - left - 6, height, palette::shade, .1f);
-                    if (took(left, y, nameEnd - left, height)) openMembers = open ? OpenMembers{} : here;
-                } else if (material.id >= 0) iconKey = index.items[static_cast<size_t>(material.id)], name = schematic::items::shown(iconKey).name;
-                if (!iconKey.empty())
-                    if (auto const* stack = schematic::items::iconStack(schematic::items::shown(iconKey).icon)) late.icons.push_back({stack, left + 8, y + 1});
-                if (late.tip.empty() && over(left, y, nameEnd - left, height)) late.tip = name, late.hovered = material.id < itemCount ? iconKey : std::string();
-                windowLabel(context, left + 27, y + 5, nameEnd - left - 29, name);
-                // A group opened from this row shows its members right under it.
-                if (material.id >= itemCount && openMembers == OpenMembers{id, material.id - itemCount, false}) {
-                    members(y + materialHeight, material.id - itemCount, [&] { openMembers = {}; });
+                if (stopped) end = rowButton(end, y + 4, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(material.id)], false); });
+                if (material.id >= itemCount) end = groupState(end, y + 4, material.id - itemCount);
+                windowLabel(context, labelX, y + 5, end - labelX, nameOf(material.id));
+                if (late.tip.empty() && over(iconX, y, end - iconX, rowHeight)) {
+                    if (material.id >= itemCount) groupTip(material.id - itemCount);
+                    else late.tip = nameOf(material.id), late.hovered = pictureOf(material.id);
                 }
             } else if (line.kind == Line::Kind::Target) {
-                // The row: a fold mark, the icon and the name; under the name its bar; "have / want" and the
-                // share at the right of the bar; the controls at the right end, up and down under the pointer.
                 bool const manual = entry.source.empty();
-                bool const hot = over(left, y, right - left, height);
+                bool const hot = over(left, y, right - left, rowHeight);
                 if (manual && hot) late.wantedRow = entry.key;
-                Item const item = index.findKey(entry.key);
-                bool const known = item >= 0 && target && target->item >= 0;
-                float sx = right;
-                if (!manual) {
-                    std::string from = translated("recipes.from." + entry.source);
-                    float const w = textWidth(context, from) + 4;
-                    windowLabel(context, right - w, y + 6, w, std::move(from), true, Align::Right);
-                    sx = right - w - 4;
-                } else {
-                    float const end = rowButton(right, y + 5, translated("recipes.remove"), [&] { state::removeWanted(entry.key); });
-                    sx = end - stepperWidth;
-                    drawStepper(context, sx, y + 6, stepperWidth, 10, true, std::to_string(entry.count),
-                                {.editing = countEdit::editing(entry.key), .pointerX = px, .pointerY = py, .backed = true, .dimValue = entry.count == 0});
-                    if (took(sx, y + 6, 11, 10)) state::stepWanted(entry.key, false, shift, true);
-                    else if (took(sx + stepperWidth - 11, y + 6, 11, 10)) state::stepWanted(entry.key, true, shift, true);
-                    else if (took(sx, y + 6, stepperWidth, 10)) countEdit::begin(entry.key, entry.count);
-                    else if (wheel && over(sx, y + 6, stepperWidth, 10)) {
-                        state::stepWanted(entry.key, wheel < 0, shift, false);
-                        wheel = 0;
-                    }
-                    sx -= 3;
-                }
-                if (hot) {
-                    sx -= moveButtonsWidth;
-                    int const move = drawMoveButtons(context, sx, y + 5.5f, line.entry > 0, line.entry + 1 < entries.size(), px, py);
-                    if (move && took(sx, y + 5.5f, moveButtonsWidth, moveButtonSize)) state::moveWanted(id, move);
-                    sx -= 3;
-                }
-                Count want = entry.count, have = 0;
+                bool const known = target && target->item >= 0;
+                Count have = 0;
                 float fraction = 1;
-                int percent = 100;
-                if (known) have = target->finished, fraction = target->fraction(), percent = target->percent();
+                if (known) have = target->finished, fraction = target->fraction();
                 else
                     for (auto const& loose : plan->loose)
-                        if (loose.key == entry.key) {
-                            have = loose.held;
-                            fraction = loose.need > 0 ? static_cast<float>(loose.held) / static_cast<float>(loose.need) : 1.f;
-                            percent = static_cast<int>(fraction * 100);
-                        }
-                bool const done = want > 0 && have >= want;
-                if (known) chevron(context, left, y + 8, openEntry == id, palette::vanilla::windowInk);
+                        if (loose.key == entry.key) have = loose.held, fraction = loose.need > 0 ? static_cast<float>(loose.held) / static_cast<float>(loose.need) : 1.f;
+                bool const done = entry.count > 0 && have >= entry.count;
+                if (known) chevron(context, left, y + 6, openEntry == id, v::windowInk);
                 auto const& shown = schematic::items::shown(entry.key);
-                if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, left + 8, y + 3, 1.f, 0, done ? .45f : 1.f});
-                std::string const amounts = done ? std::format("{} / {}", have, want) : std::format("{} / {}  {}%", have, want, percent);
-                float const amountsW = textWidth(context, amounts);
-                windowLabel(context, left + 27, y + 2, sx - left - 29, shown.name, done);
-                windowLabel(context, sx - amountsW - 2, y + 11, amountsW, amounts, true, Align::Right);
-                progressBar(context, left + 27, y + 14, std::max(10.f, sx - amountsW - 6 - (left + 27)), 3, fraction);
-                if (late.tip.empty() && over(left, y, sx - left, height)) late.tip = shown.name, late.hovered = entry.key;
-                if (known && took(left, y, sx - left, height)) {
-                    openEntry = openEntry == id ? std::string() : id;
-                    openMembers = {};
+                icon(entry.key, left + 8, y + 1, 1.f, done ? .45f : 1.f);
+                windowLabel(context, nameX, y + 5, nameEnd - nameX, shown.name, done);
+                number(heldX, heldW, y + 5, have, done);
+                progressBar(context, barX, y + 7.5f, barW, 3, fraction);
+                // The player's own: "wanted" turns into the stepper and remove shows under the pointer; nothing moves.
+                bool onControl = false;
+                if (manual && hot) {
+                    drawStepper(context, wantX, y + 4, wantW, 10, true, std::to_string(entry.count),
+                                {.editing = countEdit::editing(entry.key), .pointerX = px, .pointerY = py, .backed = true, .dimValue = entry.count == 0});
+                    float const xW = 11, xX = controlsX + controlsW - xW;
+                    drawButton(context, xX, y + 4, xW, 10, "x", over(xX, y + 4, xW, 10));
+                    onControl = over(wantX, y + 4, wantW, 10) || over(xX, y + 4, xW, 10);
+                    if (took(xX, y + 4, xW, 10)) state::removeWanted(entry.key);
+                    else if (took(wantX, y + 4, 11, 10)) state::stepWanted(entry.key, false, shift, true);
+                    else if (took(wantX + wantW - 11, y + 4, 11, 10)) state::stepWanted(entry.key, true, shift, true);
+                    else if (took(wantX, y + 4, wantW, 10)) countEdit::begin(entry.key, entry.count);
+                    else if (wheel && over(wantX, y + 4, wantW, 10)) state::stepWanted(entry.key, wheel < 0, shift, false), wheel = 0;
+                } else {
+                    if (countEdit::editing(entry.key))
+                        drawStepper(context, wantX, y + 4, wantW, 10, true, std::to_string(entry.count), {.editing = countEdit::editing(entry.key), .backed = true});
+                    else number(wantX, wantW, y + 5, entry.count, done || !manual);
+                    if (!manual) labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);
                 }
+                if (late.tip.empty() && hot && !onControl) {
+                    late.tip = shown.name, late.hovered = entry.key;
+                    if (known && target->sharedAbove()) late.tipLines.push_back(translated("recipes.sharedAbove"));
+                }
+                if (known && !onControl && took(left, y, controlsX - left, rowHeight)) openEntry = openEntry == id ? std::string() : id;
             }
-            y += height;
+            y += line.height;
         }
         offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
         return;
     }
+
     if (tab == Tab::Gather) {
-        // One line of the whole: what is left of all there is to gather, with a bar. Rows still to gather come
-        // first, most left first; done ones (held whole, or marked gathered) follow, faint (L-367).
+        // The shopping list for all, on the wanted table's columns: the whole first, then what is still to gather,
+        // most left first, then what is done, faint.
         struct Row { GatherLine line; std::string key; bool stopped = false, done = false; };
         std::vector<Row> rows, finished;
         for (auto const& line : plan->view.gather) {
-            bool const stopped = line.id < itemCount && plan->request.stops.contains(line.id);
+            bool const stopped = line.id < itemCount && request.stops.contains(line.id);
             if (line.left > 0) rows.push_back({line, {}, stopped});
             else if (stopped) finished.push_back({line, {}, true, true});
         }
-        // What the recipe table does not know is gathered as it is, after what the recipes ask for.
         for (auto const& line : plan->loose) {
             Row row{{-1, line.need, line.held, line.left}, line.key, false, line.left <= 0};
             (row.done ? finished : rows).push_back(row);
@@ -462,35 +415,38 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         std::vector<GatherLine> all;
         for (auto const& row : rows) all.push_back(row.line);
         auto const total = gatherTotal(all);
-        {
-            float const barW = 70, ty = l.top + headTop;
-            windowLabel(context, left, ty + 1, right - left - barW - 6, translated("recipes.gather.total", total.left, total.need, total.percent()));
-            progressBar(context, right - barW, ty + 4, barW, 4, total.fraction());
-        }
-        int const count = static_cast<int>(rows.size());
-        std::vector<float> heights;
-        for (auto const& row : rows)
-            heights.push_back(rowHeight + (row.key.empty() && row.line.id >= itemCount && expanded == row.line.id - itemCount ? membersHeight(expanded) : 0.f));
-        offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
-        bar(count, offset, fitFromEnd(heights));
-        // Each row: the icon and name, "have / need" and a short bar at its right end.
-        constexpr float barW = 26;
-        float const numbersEnd = right - barW - 4, numbersW = 46;
-        float y = top;
-        for (int at = offset; at < count && y + rowHeight <= bottom; ++at) {
+        columnHeads(top, "recipes.col.need");
+        top += headHeight;
+        // The whole, as the table's first row.
+        windowLabel(context, nameX, top + 5, nameEnd - nameX, translated("recipes.all"));
+        number(heldX, heldW, top + 5, total.need - total.left, false);
+        number(wantX, wantW, top + 5, total.need, false);
+        progressBar(context, barX, top + 7.5f, barW, 3, total.fraction());
+        fill(context, left, top + rowHeight - 1, right - left, .5f, v::windowFaint);
+        top += rowHeight;
+        int const count = static_cast<int>(rows.size()), fits = static_cast<int>((bottom - top) / rowHeight);
+        offset = std::clamp(offset + wheel, 0, std::max(0, count - fits));
+        bar(count, offset, fits);
+        for (int at = offset; at < count && at < offset + fits; ++at) {
             auto const& row = rows[static_cast<size_t>(at)];
             auto const& line = row.line;
-            size_t const iconsBefore = late.icons.size();
-            std::string const amounts = std::format("{} / {}", line.held, line.need);
-            windowLabel(context, numbersEnd - numbersW, y + 2, numbersW, amounts, row.done, Align::Right);
-            progressBar(context, right - barW, y + 4, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
-            // A count that includes what a place held when last seen is starred, and says under the pointer where
-            // the items are.
+            float const y = top + static_cast<float>(at - offset) * rowHeight;
+            float const alpha = row.done ? .45f : 1.f;
+            std::string const picture = row.key.empty() ? pictureOf(line.id) : row.key;
+            std::string const name = row.key.empty() ? nameOf(line.id) : schematic::items::shown(row.key).name;
+            icon(picture, left + 8, y + 1, 1.f, alpha);
+            number(heldX, heldW, y + 5, line.held, row.done);
+            number(wantX, wantW, y + 5, line.need, row.done);
+            progressBar(context, barX, y + 7.5f, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
+            float end = nameEnd;
+            if (row.stopped) rowButton(right, y + 4, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
+            else if (row.key.empty() && line.id >= itemCount) groupState(right, y + 4, line.id - itemCount);
+            // A count that includes what a place held when last seen is starred and says where the items are.
             if (line.id >= 0 && line.id < itemCount) {
                 auto const stored = plan->stored.find(line.id);
                 if (stored != plan->stored.end() && stored->second) {
-                    windowLabel(context, numbersEnd + 1, y + 2, 4, "*", true);
-                    if (over(numbersEnd - numbersW, y, numbersW + 5, rowHeight)) {
+                    windowLabel(context, heldX - 5, y + 5, 5, "*", true);
+                    if (over(heldX - 5, y, heldW + 5, rowHeight)) {
                         auto const carried = plan->held.find(line.id);
                         late.tip = translated("recipes.place.tipCarried", carried == plan->held.end() ? Count{0} : carried->second);
                         for (auto const& place : state::places().list) {
@@ -500,62 +456,220 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                             if (here) late.tipLines.push_back(translated("recipes.place.tipPlace", placeName(place), here));
                         }
                     }
+                    end -= 6;
                 }
             }
-            float nameEnd = numbersEnd - numbersW - 4;
-            if (row.stopped) nameEnd = rowButton(nameEnd, y, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
-            if (!row.key.empty()) {
-                // Not in the recipe table: shown by what the game calls it.
-                auto const& shown = schematic::items::shown(row.key);
-                if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, left, y + 1, iconScale});
-                if (late.tip.empty() && over(left, y, nameEnd - left, rowHeight)) late.tip = shown.name, late.tipLines.push_back(amountText(line.left, shown.stack)), late.hovered = row.key;
-                windowLabel(context, left + 13, y + 2, nameEnd - left - 15, shown.name, row.done);
-            } else if (line.id >= itemCount) {
-                int const group = line.id - itemCount;
-                // The whole row opens the members to pick one from.
-                if (over(left, y, nameEnd - left, rowHeight)) fill(context, l.left + 2, y, l.width - 4, rowHeight, palette::shade, .1f);
-                if (took(left, y, nameEnd - left, rowHeight)) expanded = expanded == group ? -1 : group;
-                lead(y, line.id, nameEnd, line.left);
-                y += rowHeight;
-                if (expanded == group) y += members(y, group, [&] { expanded = -1; });
-                continue;
-            } else lead(y, line.id, nameEnd, line.left);
-            if (row.done)
-                for (size_t k = iconsBefore; k < late.icons.size(); ++k) late.icons[k].alpha = .45f;
-            y += rowHeight;
+            windowLabel(context, nameX, y + 5, end - nameX, name, row.done);
+            if (late.tip.empty() && over(left, y, end - left, rowHeight)) {
+                if (row.key.empty() && line.id >= itemCount) groupTip(line.id - itemCount);
+                else late.tip = name, late.hovered = picture;
+                if (line.left > 0) late.tipLines.push_back(amountText(line.left, schematic::items::shown(picture).stack));
+            }
         }
         return;
     }
-    // What to make: the work to do. Steps that can be made now come first, the others under them faint; a press
-    // opens the breakdown of the wanted item that needs the step, where its choices are made (L-370).
-    auto const& steps = plan->view.steps;
-    if (steps.empty()) { note(translated("recipes.nothingWanted")); return; }
-    std::map<Item, Count> stock;
-    for (auto const& [id, have] : plan->request.held) stock[id] += have;
-    std::vector<std::pair<StepLine const*, bool>> order;
-    for (auto const& step : steps) if (stepReady(index, plan->request, step, stock)) order.push_back({&step, true});
-    for (auto const& step : steps) if (!stepReady(index, plan->request, step, stock)) order.push_back({&step, false});
-    int const count = static_cast<int>(order.size());
-    offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
-    bar(count, offset, std::max(1, static_cast<int>((bottom - top) / stepHeight)));
-    float y = top;
-    for (int at = offset; at < count && y + stepHeight <= bottom; ++at) {
-        auto const& [step, ready] = order[static_cast<size_t>(at)];
-        bool const hot = over(left, y, right - left, stepHeight);
-        if (hot) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
-        stepRow(left, y, *step, plan->request, false, {}, !ready);
-        if (took(left, y, right - left, stepHeight))
-            if (auto const* shares = state::shares(player)) {
-            for (size_t e = 0; e < shares->targets.size() && e < shares->entries.size(); ++e)
-                if (std::ranges::any_of(shares->targets[e].view.steps, [&](StepLine const& mine) { return mine.item == step->item; })) {
-                    openEntry = scrollTo = wantedEntryId(shares->entries[e]);
-                    openMembers = {};
-                    tab = Tab::Wanted;
-                    break;
-                }
+
+    if (tab == Tab::Make) {
+        // The work: steps that can be made now from what is held first, the others under them faint; a press opens
+        // the breakdown of the wanted item that needs the step.
+        auto const& steps = plan->view.steps;
+        if (steps.empty()) { note(translated("recipes.nothingWanted")); return; }
+        std::map<Item, Count> stock;
+        for (auto const& [id, have] : request.held) stock[id] += have;
+        struct Line { StepLine const* step = nullptr; bool ready = false; char const* label = nullptr; float height = 0; };
+        std::vector<Line> lines;
+        for (bool ready : {true, false}) {
+            bool first = true;
+            for (auto const& step : steps) {
+                if (stepReady(index, request, step, stock) != ready) continue;
+                if (first) lines.push_back({nullptr, ready, ready ? "recipes.ready" : "recipes.notReady", labelHeight}), first = false;
+                lines.push_back({&step, ready, nullptr, stepHeight});
+            }
         }
-        y += stepHeight;
+        int const count = static_cast<int>(lines.size());
+        std::vector<float> heights;
+        for (auto const& line : lines) heights.push_back(line.height);
+        offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
+        bar(count, offset, fitFromEnd(heights));
+        float y = top;
+        for (int at = offset; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
+            auto const& line = lines[static_cast<size_t>(at)];
+            if (line.label) {
+                labelScaled(context, left, y + 3, right - left, translated(line.label), .75f, v::windowFaint, Align::Left, false);
+            } else {
+                if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
+                float const after = stepSlots(left, y, *line.step, !line.ready);
+                windowLabel(context, after + 2, y + 6, right - after - 2, schematic::items::shown(index.items[static_cast<size_t>(line.step->item)]).name, !line.ready);
+                if (took(left, y, right - left, stepHeight))
+                    if (auto const* shares = state::shares(player))
+                        for (size_t e = 0; e < shares->targets.size() && e < shares->entries.size(); ++e)
+                            if (std::ranges::any_of(shares->targets[e].view.steps, [&](StepLine const& mine) { return mine.item == line.step->item; })) {
+                                openEntry = scrollTo = wantedEntryId(shares->entries[e]);
+                                tab = Tab::Wanted;
+                                break;
+                            }
+            }
+            y += line.height;
+        }
+        if (!showItem.empty()) showChoice = false;
+        return;
     }
-    if (!showItem.empty()) showChoice = false;
+
+    // ---- How to make ----
+    // The choices for all plans and worlds: a group's member, an item's recipe. A line: the item, an arrow, the
+    // chosen (or the group, or the rule's recipe) in a slot, its words by it; a press opens the candidates.
+    {
+        float const swY = top;
+        windowLabel(context, left, swY + 2, right - left - switchWidth - 4, translated("recipes.howTo.showAll"));
+        toggleSwitch(context, right - switchWidth, swY + 1.5f, howAll);
+        if (took(left, swY, right - left, 12)) howAll = !howAll;
+        top += 14;
+    }
+    // Which groups and items have a line: those in the current plan, and with the switch on all chosen before.
+    std::vector<int> groups;
+    std::vector<Item> items;
+    auto addGroup = [&](int group) { if (std::ranges::find(groups, group) == groups.end()) groups.push_back(group); };
+    auto addItem = [&](Item item) { if (item >= 0 && std::ranges::find(items, item) == items.end()) items.push_back(item); };
+    for (auto const& line : plan->view.gather) if (line.id >= itemCount) addGroup(line.id - itemCount);
+    for (auto const& step : plan->view.steps) {
+        for (auto const& part : index.recipes[static_cast<size_t>(step.recipe)].uses) if (part.group) addGroup(part.id);
+        if (recipeOptions(index, step.item).size() > 1) addItem(step.item);
+    }
+    for (auto const& [group, member] : request.picks) addGroup(group);
+    if (howAll) {
+        for (size_t group = 0; group < index.groups.size(); ++group)
+            if (notes.picks.contains(groupKey(index, static_cast<int>(group)))) addGroup(static_cast<int>(group));
+        for (auto const& [key, recipe] : notes.choices) if (Item const item = index.findKey(key); item >= 0 && recipeOptions(index, item).size() > 1) addItem(item);
+    }
+    if (groups.empty() && items.empty()) { note(translated("recipes.nothingWanted")); return; }
+    struct Line { enum class Kind { Label, Group, Members, Recipe, Option } kind; int group = -1; Item item = -1; int option = -1; float height = 0; };
+    std::vector<Line> lines;
+    size_t const across = static_cast<size_t>(std::max(1.f, (right - left - 24) / 18));
+    if (!groups.empty()) lines.push_back({Line::Kind::Label, -1, -1, 0, labelHeight});
+    for (int group : groups) {
+        std::string const key = groupKey(index, group);
+        if (howScroll == key) offset = static_cast<int>(lines.size()), howScroll.clear();
+        lines.push_back({Line::Kind::Group, group, -1, -1, stepHeight});
+        if (howOpen == key) {
+            size_t const cells = index.groups[static_cast<size_t>(group)].members.size() + 1;
+            lines.push_back({Line::Kind::Members, group, -1, -1, static_cast<float>((cells + across - 1) / across) * 18 + 6});
+        }
+    }
+    if (!items.empty()) lines.push_back({Line::Kind::Label, -1, -1, 1, labelHeight});
+    for (Item item : items) {
+        std::string const& key = index.items[static_cast<size_t>(item)];
+        if (howScroll == key) offset = static_cast<int>(lines.size()), howScroll.clear();
+        lines.push_back({Line::Kind::Recipe, -1, item, -1, stepHeight});
+        if (howOpen == key) {
+            auto const options = recipeOptions(index, item);
+            lines.push_back({Line::Kind::Option, -1, item, -1, stepHeight});
+            for (size_t o = 0; o < options.size(); ++o) lines.push_back({Line::Kind::Option, -1, item, static_cast<int>(o), stepHeight});
+        }
+    }
+    int const count = static_cast<int>(lines.size());
+    std::vector<float> heights;
+    for (auto const& line : lines) heights.push_back(line.height);
+    offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
+    bar(count, offset, fitFromEnd(heights));
+    bool const flashing = std::chrono::steady_clock::now() - howFlashAt < std::chrono::milliseconds(900);
+    // The line's parts: item icon and name, an arrow, a slot, the words beside it (a second, small line under them).
+    float const arrowX = left + 92, slotX = arrowX + 12, wordsX = slotX + 22;
+    auto words = [&](float y, std::string main, std::string sub) {
+        windowLabel(context, wordsX, y + 2, right - wordsX, std::move(main));
+        labelScaled(context, wordsX, y + 12, right - wordsX, std::move(sub), .75f, v::windowFaint, Align::Left, false);
+    };
+    float y = top;
+    for (int at = offset; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
+        auto const& line = lines[static_cast<size_t>(at)];
+        if (line.kind == Line::Kind::Label) {
+            labelScaled(context, left, y + 3, right - left, translated(line.option == 0 ? "recipes.howTo.groups" : "recipes.howTo.recipes"), .75f, v::windowFaint,
+                        Align::Left, false);
+        } else if (line.kind == Line::Kind::Group) {
+            std::string const key = groupKey(index, line.group);
+            auto picked = request.picks.find(line.group);
+            bool const chosen = picked != request.picks.end();
+            if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
+            if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
+            icon(pictureOf(index.groupItem(line.group)), left + 1, y + 2);
+            std::string const name = groupName(index, line.group);
+            windowLabel(context, left + 20, y + 6, arrowX - left - 22, name);
+            changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
+            windowSlot(context, slotX, y + 1);
+            icon(chosen ? index.items[static_cast<size_t>(picked->second)] : pictureOf(index.groupItem(line.group)), slotX + 1, y + 2);
+            if (chosen) words(y, nameOf(picked->second), translated("recipes.howTo.chosen"));
+            else words(y, translated("recipes.howTo.any"), translated("recipes.howTo.anyTip"));
+            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group);
+            if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
+        } else if (line.kind == Line::Kind::Members) {
+            // The candidates as the game's slots: "any" first (the group's picture, marked), then each member.
+            std::string const key = groupKey(index, line.group);
+            auto picked = request.picks.find(line.group);
+            sunkFace(context, left + 18, y, right - left - 18, line.height);
+            auto const& members = index.groups[static_cast<size_t>(line.group)].members;
+            for (size_t c = 0; c <= members.size(); ++c) {
+                float const cx = left + 21 + static_cast<float>(c % across) * 18, cy = y + 3 + static_cast<float>(c / across) * 18;
+                bool const hot = over(cx, cy, 18, 18);
+                windowSlot(context, cx, cy, hot);
+                if (c == 0) {
+                    icon(pictureOf(index.groupItem(line.group)), cx + 1, cy + 1);
+                    labelScaled(context, cx + 1, cy, 8, "*", .75f, palette::text, Align::Left, true);
+                    if (picked == request.picks.end()) frame(context, cx, cy, 18, 18, palette::accentDeep);
+                    if (hot) late.tip = translated("recipes.howTo.any"), late.tipLines = {translated("recipes.howTo.anyTip")};
+                    if (took(cx, cy, 18, 18)) state::setPick(key, {}), howOpen.clear();
+                } else {
+                    Item const member = members[c - 1];
+                    auto const& memberKey = index.items[static_cast<size_t>(member)];
+                    icon(memberKey, cx + 1, cy + 1);
+                    if (picked != request.picks.end() && picked->second == member) frame(context, cx, cy, 18, 18, palette::accentDeep);
+                    auto held = plan->held.find(member);
+                    if (held != plan->held.end() && held->second) late.counts.push_back({cx, cy, std::to_string(held->second)});
+                    if (hot) late.tip = nameOf(member), late.hovered = memberKey;
+                    if (took(cx, cy, 18, 18)) state::setPick(key, memberKey), howOpen.clear();
+                }
+            }
+        } else if (line.kind == Line::Kind::Recipe) {
+            std::string const& key = index.items[static_cast<size_t>(line.item)];
+            bool const chosen = notes.choices.contains(key);
+            int const now = plan->choice->recipe[static_cast<size_t>(line.item)], rule = plan->table->choice.recipe[static_cast<size_t>(line.item)];
+            if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
+            if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
+            icon(key, left + 1, y + 2);
+            windowLabel(context, left + 20, y + 6, arrowX - left - 22, nameOf(line.item));
+            // Made from: the recipe in use shown by its first input.
+            auto const& recipe = index.recipes[static_cast<size_t>(now)];
+            windowSlot(context, slotX, y + 1);
+            if (!recipe.uses.empty()) icon(pictureOf(partItem(index, request, recipe.uses.front())), slotX + 1, y + 2);
+            labelScaled(context, arrowX + 2, y + 6, 10, "<", 1.f, v::windowInk, Align::Center, false);
+            if (chosen) words(y, recipeName(now), translated("recipes.howTo.chosen"));
+            else words(y, translated("recipes.howTo.auto"), translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : std::string()));
+            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
+            if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
+        } else if (line.kind == Line::Kind::Option) {
+            // The candidates as rows of slots on a sunk face: "automatic" first, then each recipe.
+            std::string const& key = index.items[static_cast<size_t>(line.item)];
+            bool const first = at == 0 || lines[static_cast<size_t>(at - 1)].kind != Line::Kind::Option;
+            bool const last = at + 1 >= count || lines[static_cast<size_t>(at + 1)].kind != Line::Kind::Option;
+            sunkFace(context, left + 18, y, right - left - 18, stepHeight, first, last);
+            bool const chosen = notes.choices.contains(key);
+            int const now = plan->choice->recipe[static_cast<size_t>(line.item)], rule = plan->table->choice.recipe[static_cast<size_t>(line.item)];
+            bool const hot = over(left + 18, y, right - left - 18, stepHeight);
+            if (hot) fill(context, left + 19, y, right - left - 20, stepHeight, palette::white, .2f);
+            if (line.option < 0) {
+                windowSlot(context, left + 22, y + 1);
+                labelScaled(context, left + 22, y + 7, 18, translated("recipes.howTo.auto"), .5f, v::windowInk, Align::Center, false);
+                if (!chosen) frame(context, left + 19, y + 1, right - left - 20, stepHeight - 2, palette::accentDeep);
+                windowLabel(context, left + 44, y + 6, right - left - 46, translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : std::string()));
+                if (took(left + 18, y, right - left - 18, stepHeight)) state::setChoice(key, {}), howOpen.clear();
+            } else {
+                int const number = recipeOptions(index, line.item)[static_cast<size_t>(line.option)];
+                StepLine const one{line.item, number, 1, index.recipes[static_cast<size_t>(number)].count, 0, 0};
+                float const after = stepSlots(left + 18, y, one, false);
+                if (chosen && now == number) frame(context, left + 19, y + 1, right - left - 20, stepHeight - 2, palette::accentDeep);
+                windowLabel(context, after + 2, y + 6, right - after - 2, recipeName(number));
+                if (took(left + 18, y, right - left - 18, stepHeight)) state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(number)])), howOpen.clear();
+            }
+        }
+        y += line.height;
+    }
 }
 }

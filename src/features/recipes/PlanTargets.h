@@ -16,33 +16,13 @@ struct WantedEntry {
     bool operator==(WantedEntry const&) const = default;
 };
 inline std::string wantedEntryId(WantedEntry const& entry) { return entry.source.empty() ? entry.key : entry.source + "|" + entry.key; }
-// The player's wanted items and what features handed over, in the saved order; the rest after, the player's
-// own first, each in its own order.
+// The player's wanted items, then what features handed over, in the order each was added (L-370: held stock
+// goes to them in this order; there is no reordering).
 inline std::vector<WantedEntry> prioritized(Wanted const& wanted, std::vector<Handed> const& handed) {
-    std::vector<WantedEntry> all;
-    for (auto const& [key, amount] : wanted.targets) all.push_back({key, amount, {}});
-    for (auto const& given : handed) all.push_back({given.key, given.count, given.source});
     std::vector<WantedEntry> out;
-    std::vector<bool> taken(all.size(), false);
-    for (auto const& id : wanted.order)
-        for (size_t i = 0; i < all.size(); ++i)
-            if (!taken[i] && wantedEntryId(all[i]) == id) { out.push_back(all[i]), taken[i] = true; break; }
-    for (size_t i = 0; i < all.size(); ++i) if (!taken[i]) out.push_back(all[i]);
+    for (auto const& [key, amount] : wanted.targets) out.push_back({key, amount, {}});
+    for (auto const& given : handed) out.push_back({given.key, given.count, given.source});
     return out;
-}
-// The order after moving entry `id` by `delta` places (up is negative), as a full list of ids.
-inline std::vector<std::string> movedOrder(std::vector<WantedEntry> const& entries, std::string const& id, int delta) {
-    std::vector<std::string> ids;
-    for (auto const& entry : entries) ids.push_back(wantedEntryId(entry));
-    auto at = std::ranges::find(ids, id);
-    if (at == ids.end()) return ids;
-    long const from = at - ids.begin(), to = std::clamp<long>(from + delta, 0, static_cast<long>(ids.size()) - 1);
-    if (from != to) {
-        std::string moving = ids[static_cast<size_t>(from)];
-        ids.erase(ids.begin() + from);
-        ids.insert(ids.begin() + to, std::move(moving));
-    }
-    return ids;
 }
 // One wanted item's share of the plan: the finished items held for it, and how much of what it takes is
 // gathered (`need` of all its raw materials as if nothing were held, `left` of them with the stock it got),
@@ -50,6 +30,9 @@ inline std::vector<std::string> movedOrder(std::vector<WantedEntry> const& entri
 struct TargetPlan {
     Item item = -1;
     Count want = 0, finished = 0, need = 0, left = 0;
+    // Left with all the held stock to itself: more is left than that when rows above took a share of it.
+    Count leftAlone = 0;
+    bool sharedAbove() const { return left > leftAlone; }
     RawView view;
     float fraction() const { return need > 0 ? static_cast<float>(need - std::min(left, need)) / static_cast<float>(need) : 1.f; }
     int percent() const { return static_cast<int>(fraction() * 100 + .0001f); }
@@ -76,6 +59,12 @@ inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& cho
         for (auto const& line : target.view.gather) target.left += line.left;
         Request bare{{{item, want}}, {}, picks, stops};
         for (auto const& [id, count] : planned(index, choice, bare).result.raw) target.need += count;
+        target.leftAlone = target.left;
+        if (target.left > 0 && !out.empty()) {
+            Request alone{{{item, want}}, held, picks, stops};
+            target.leftAlone = 0;
+            for (auto const& [id, count] : planned(index, choice, alone).result.raw) target.leftAlone += count;
+        }
         out.push_back(std::move(target));
     }
     return out;

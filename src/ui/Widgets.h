@@ -55,6 +55,8 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     // The game's controls on its window (L-367): a raised button's shadow, a switch's empty track, a tab
     // not chosen and the light along its top.
     buttonShadow{.392f,.392f,.392f}, switchTrack{.498f,.498f,.498f}, tabBack{.384f,.384f,.384f}, tabRim{.769f,.769f,.769f},
+    // A face sunk into the game's window (a breakdown, a list of candidates), under a dark upper-left edge (L-370).
+    windowSunk{.706f,.706f,.706f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
     // red the recipe book gives what cannot be made.
     slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.851f,.302f,.302f};
@@ -165,6 +167,9 @@ void gameTooltipBox(MinecraftUIRenderContext&, float x, float y, float width, fl
 // A share done (L-367): a track with the done part in the accent green from the left. On the game's window
 // the track is the slots' grey under a half-unit dark top edge, as a slot is sunk.
 void progressBar(MinecraftUIRenderContext&, float x, float y, float w, float h, float fraction);
+// A face sunk into the game's window (L-370): the sunk grey under a dark top and left edge and a light bottom
+// and right one. `top`/`bottom`: whether this piece draws those edges, so a long face can be drawn in slices.
+void sunkFace(MinecraftUIRenderContext&, float x, float y, float w, float h, bool top = true, bool bottom = true);
 // The game's raised button shape: a black edge, half a unit of `light` along the top and left inside it
 // and of `shadow` along the bottom and right, `face` inside.
 void raisedBox(MinecraftUIRenderContext&, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow);

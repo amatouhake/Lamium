@@ -180,15 +180,12 @@ void recipeIndexTests() {
         // The plan by wanted item (L-370).
         Wanted wanted;
         wanted.targets = {{"a", 1}, {"b", 2}};
-        wanted.order = {"schematic|c", "b"};
-        auto const entries = prioritized(wanted, {{"c", 3, "schematic"}});
-        check(entries == std::vector<WantedEntry>{{"c", 3, "schematic"}, {"b", 2, ""}, {"a", 1, ""}}
-                  && movedOrder(entries, "a", -1) == std::vector<std::string>{"schematic|c", "a", "b"}
-                  && movedOrder(entries, "schematic|c", -1) == std::vector<std::string>{"schematic|c", "b", "a"},
-              "wanted items stand in the saved order, the rest after; a move shifts one place within the list");
+        check(prioritized(wanted, {{"c", 3, "schematic"}}) == std::vector<WantedEntry>{{"a", 1, ""}, {"b", 2, ""}, {"c", 3, "schematic"}},
+              "wanted items stand in the order added, the player's own before what features hand over");
         auto const two = targetPlans(index, choice, {{id("chest"), 1}, {id("chest"), 1}}, {{id("oak_planks"), 8}}, {}, {});
-        check(two.size() == 2 && two[0].left == 0 && two[0].fraction() == 1.f && two[1].left > 0 && two[1].need == two[0].need && two[1].need > 0,
-              "held stock goes to the first wanted item; the one below gets what is left of it");
+        check(two.size() == 2 && two[0].left == 0 && two[0].fraction() == 1.f && two[1].left > 0 && two[1].need == two[0].need && two[1].need > 0
+                  && !two[0].sharedAbove() && two[1].sharedAbove() && two[1].leftAlone == 0,
+              "held stock goes to the first wanted item; the one below gets what is left of it and knows it");
         std::map<Item, Count> plenty{{id("cobblestone"), 64}};
         check(stepReady(index, request, view.steps[0], plenty) && !stepReady(index, request, view.steps[0], {}),
               "a step is ready when everything its crafts take is held");
@@ -440,12 +437,6 @@ void recipeIndexTests() {
               "a store where another block stands now is no store any more");
         Wanted read = decodeWanted(encodeWanted(wanted));
         check(read.targets == wanted.targets && read.remembered.empty(), "the wanted items are saved in order, the remembered counts are not");
-        {
-            Wanted ordered = wanted;
-            ordered.order = {"schematic|stone", "a"};
-            check(decodeWanted(encodeWanted(ordered)).order == ordered.order && decodeWanted(encodeWanted(wanted)).order.empty(),
-                  "the wanted items' priority order is saved with them; a file without it has none");
-        }
         check(decodeWanted("not json").targets.empty() && decodeWanted("{\"wanted\":[{\"item\":\"a\",\"count\":-3},{\"item\":7,\"count\":1},{\"item\":\"b\",\"count\":2}]}").targets
               == std::vector<std::pair<std::string, Count>>{{"b", 2}}, "a document is read as far as it makes sense");
         Source source;

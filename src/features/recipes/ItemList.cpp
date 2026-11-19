@@ -662,13 +662,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!searchFocus) releaseKeyboard();
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
-        // What the plan makes and the player wants: the recipe in use for one of them is marked in the view.
-        std::set<std::string> planned;
-        if (planOn) {
-            for (auto const& [key, amount] : state::wanted().targets) planned.insert(key);
-            if (auto const* plan = state::plan(*player))
-                for (auto const& step : plan->view.steps) planned.insert(plan->table->index.items[static_cast<size_t>(step.item)]);
-        }
         std::optional<GridPlacer> placer;
         if (int const gridSide = place::gridSide(screenView))
             if (auto table = service::table()) {
@@ -676,7 +669,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
         view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn, favouritesOn,
-                             placer ? &*placer : nullptr, coverLeft, right, &planned}, late);
+                             placer ? &*placer : nullptr, coverLeft, right}, late);
     }
     else if (planView::isOpen()) {
         std::string showItem;
@@ -687,6 +680,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // A recipe laid into the grid: nothing of Lamium's stays over it.
     if (late.placed) view::close(), planView::close(), countEdit::cancel();
+    // The recipe view asked for an item's line in "How to make" (L-370): the window opens there over the view.
+    if (!late.howTo.empty()) view::close(), planView::openHowTo(late.howTo), viewScreen = screenName;
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView();
     static std::vector<int> inventoryKeys;
@@ -789,6 +784,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
         for (auto const& line : more) w = std::max(w, textWidth(context, line.text));
         int const lines = 1 + static_cast<int>(late.tipLines.size() + more.size());
+        // A group's members as small icons under the lines, ten to a row (L-370).
+        constexpr size_t perRow = 10;
+        size_t const members = std::min<size_t>(late.tipItems.size(), 40);
+        float const membersH = members ? static_cast<float>((members + perRow - 1) / perRow) * 11 + 2 : 0.f;
+        if (members) w = std::max(w, static_cast<float>(std::min(members, perRow)) * 11);
         // An item's tip, and any tip over Lamium's light windows, is the game's tooltip box (VanillaFrame.h,
         // L-367); other tips are Lamium's, two units under the last line so letters that reach below it
         // (p, y) stay inside the frame.
@@ -796,7 +796,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         bool const game = item || covered;
         float const inset = game ? vf::tooltipTextLeft : 4, top = game ? vf::tooltipTextTop - 1 : 2;
         w = std::min(game ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
-        float const h = game ? vf::tooltipHeight(lines) : 2 + 10 * static_cast<float>(lines) + (lines > 1 ? 2.f : 0.f);
+        float const h = (game ? vf::tooltipHeight(lines) : 2 + 10 * static_cast<float>(lines) + (lines > 1 ? 2.f : 0.f)) + membersH;
         // On whole units: the pointer lies between them, and the box and the text, rounded to pixels each their
         // own way, moved a pixel apart now and then as it went.
         w = std::ceil(w);
@@ -811,6 +811,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
         // The game's lines in the game's colors; a line without a color is white, as in the game's tooltip.
         for (auto const& text : more) label(context, x + inset, line, w - 2 * inset, text.text, item ? palette::vanilla::textCode(text.color) : palette::faint), line += 10;
         context.flushText(0, std::nullopt);
+        if (members) {
+            std::vector<inspection::render::IconAt> icons;
+            for (size_t i = 0; i < members; ++i)
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(late.tipItems[i]).icon))
+                    icons.push_back({stack, x + inset + static_cast<float>(i % perRow) * 11, line + 1 + static_cast<float>(i / perRow) * 11, .625f});
+            if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+        }
     }
     return true;
 }

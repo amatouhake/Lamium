@@ -63,7 +63,8 @@ void translationTests() {
             else if (entry.key == "debugEntityTypes.more" || entry.key == "worldMap.areaSize"
                 || entry.key == "bookPaste.tooManyPages")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
-            else if (entry.key == "schematic.size" || entry.key == "recipes.gather.total") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
+            else if (entry.key == "schematic.size") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
+            else if (entry.key == "recipes.howTo.autoNow" || entry.key == "recipes.howTo.from") rendered = std::vformat(pattern, std::make_format_args(key));
             else if (entry.key == "schematic.toast.moved")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));
             else if (entry.key == "schematic.toast.unreadable")

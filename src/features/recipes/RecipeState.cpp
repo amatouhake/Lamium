@@ -221,11 +221,6 @@ std::vector<WantedEntry> wantedEntries() {
     followWorld();
     return prioritized(list, handed());
 }
-void moveWanted(std::string const& id, int delta) {
-    followWorld();
-    list.order = movedOrder(prioritized(list, handed()), id, delta);
-    writeWanted();
-}
 void settleWanted(std::string_view keep) {
     followWorld();
     if (list.settle(keep)) writeWanted();
