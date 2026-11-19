@@ -178,10 +178,10 @@ std::optional<std::string> serverKey(Identity const& who) {
 bool ownSet(std::string const& base, std::string const& key) {
     return key == base || (key.starts_with(base + "-w") && key.size() > base.size() + 2);
 }
-// How a key reads in the notice: a world's name, else the server's.
+// How a key reads in the notice: a world's name, else the server data's.
 std::string shownKey(servers::List const& list, std::string const& key) {
     auto world = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
-    return world != list.worlds.end() && !world->name.empty() ? world->name : servers::shownName(key);
+    return world != list.worlds.end() && !world->name.empty() ? world->name : servers::dataName(list, key);
 }
 // The data set of the joined identity for the world joined (L-365): `who.base` is set to the identity's key.
 std::optional<std::string> dataKey(Identity& who) {
@@ -582,15 +582,7 @@ std::vector<SavedData> savedData() {
         if (item.kind != SavedData::Kind::Server) {
             if (world != list.worlds.end()) item.name = world->name;
         } else {
-            item.name = servers::shownName(key);
-            // One of several data sets of a server (L-365): the world it was last used with tells them apart.
-            auto row = std::find_if(list.prints.rbegin(), list.prints.rend(), [&](prints::Row const& r) { return r.key == key; });
-            if (row != list.prints.rend()) {
-                if (row->key != row->base) item.name = servers::shownName(row->base);
-                bool const several = std::any_of(list.prints.begin(), list.prints.end(),
-                    [&](prints::Row const& r) { return r.base == row->base && r.key != row->key; });
-                if (several && !row->print.name.empty()) item.name += " - " + row->print.name;
-            }
+            item.name = servers::dataName(list, key);
             for (auto const& e : list.servers) {
                 if (e.key != key) continue;
                 item.anyPort = item.anyPort || e.anyPort;

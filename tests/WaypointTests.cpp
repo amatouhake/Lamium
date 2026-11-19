@@ -291,6 +291,18 @@ void storage() {
               && sv::maybe(lent, "play.example.net_19133", "198.51.100.20_19140") == sv::Maybe::SameAddress
               && sv::maybe(lent, "play.example.net_19133", "elsewhere.example.org_19133") == sv::Maybe::No,
               "data no record points at is a candidate when its key names this server's address");
+        {
+            sv::List named;
+            check(sv::dataName(named, "play.example.net_19133") == "play.example.net:19133", "data without a print reads by its key");
+            named.prints = {{"play.example.net_19133", "play.example.net_19133", {1, "Survival", 0, false}, true, false, {}, 0},
+                            {"play.example.net_19133", "play.example.net_19133-w2", {2, "Creative", 1, false}, true, false, {}, 0},
+                            {"play.example.net_19133", "play.example.net_19133", {3, "Copy", 1, false}, false, false, {}, 1}};
+            check(sv::dataName(named, "play.example.net_19133") == "play.example.net:19133 - Survival"
+                  && sv::dataName(named, "play.example.net_19133-w2") == "play.example.net:19133 - Creative",
+                  "a server's data sets read with the world each was last confirmed with, not the world still asked");
+            named.prints.resize(1);
+            check(sv::dataName(named, "play.example.net_19133") == "play.example.net:19133", "a server's only data set reads as the server");
+        }
         sv::List all{wide, {{"world_41", "A friend's world", false}}, {}, {}};
         check(lamium::map::decodeServers(lamium::map::encodeServers(all)) == all, "the server list survives saving");
         sv::forget(all, "realm.example.net_30001");

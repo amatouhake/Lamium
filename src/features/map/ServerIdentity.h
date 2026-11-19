@@ -295,6 +295,22 @@ inline std::string shownName(std::string const& key) {
     auto named = namedBy(key);
     return named.port ? named.host + ":" + std::to_string(named.port) : named.host;
 }
+// A server data's name in the list and the notice. One of several data sets of a server (L-365) adds the world it was
+// last confirmed with: a row still asked carries the joined world, not the data's.
+inline std::string dataName(List const& list, std::string const& key) {
+    auto last = [&](bool confirmedOnly) {
+        return std::find_if(list.prints.rbegin(), list.prints.rend(),
+            [&](prints::Row const& r) { return r.key == key && (r.confirmed || !confirmedOnly); });
+    };
+    auto row = last(true);
+    if (row == list.prints.rend()) row = last(false);
+    if (row == list.prints.rend()) return shownName(key);
+    std::string name = shownName(row->base);
+    bool const several = std::any_of(list.prints.begin(), list.prints.end(),
+        [&](prints::Row const& r) { return r.base == row->base && r.key != row->key; });
+    if (several && !row->print.name.empty()) name += " - " + row->print.name;
+    return name;
+}
 // Why another key may be this join's data, for the list's mark.
 enum class Maybe { No, UsedBefore, SameLevel, SameAddress };
 inline Maybe maybe(std::vector<Entry> const& entries, std::string const& current, std::string const& other) {
