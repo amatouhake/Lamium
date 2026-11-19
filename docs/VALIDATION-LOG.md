@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe view with six recipes a page (L-367, 2026-11-20)
+
+Build `a72342e7` (DLL
+`e748949aa06abd708b11087c7860afedaee2b6350f0836bbf995c8c299ca0a6d`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: margins and six a page
+are right while the game's recipe book is closed; the two-line heading and
+its page buttons work and sit better than before; the place picture is
+clear; the check marks the recipe in use for an item in the plan; the
+item list's page buttons work. Not settled: with the recipe book open the
+window covers the wider game window and leaves wide empty sides when few
+recipes show; long names still cut on narrow screens (an icon with the
+name under the pointer?); the pager shifts as its text grows ("10 / 10");
+a disabled place button is hard to tell, its bevel heavy for its size,
+arrow or plus undecided; the tip's look does not match the light window;
+the list's pager compact or a wider line.
+
 ## The recipe windows' tabs on their top edge (L-367, 2026-11-20)
 
 Build `b5ef2370` (DLL

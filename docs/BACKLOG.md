@@ -195,7 +195,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-361](backlog/L-361.md) Brewing in the recipe view (Research): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
-- [L-367](backlog/L-367.md) Game-like controls on the recipe windows; wanted items down to 0 by the wheel (Design): The recipe view is built, not checked in game; the plan's lists and choice are decided, not built
+- [L-367](backlog/L-367.md) Game-like controls on the recipe windows; wanted items down to 0 by the wheel (Design): The recipe view seen in game, details open; the plan's lists and choice are decided, not built
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
