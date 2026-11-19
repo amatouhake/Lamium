@@ -57,8 +57,7 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     buttonShadow{.392f,.392f,.392f}, switchTrack{.498f,.498f,.498f}, tabBack{.384f,.384f,.384f}, tabRim{.769f,.769f,.769f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
     // red the recipe book gives what cannot be made.
-    slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.82f,.33f,.33f},
-    slotMissingDark{.48f,.18f,.18f}, slotMissingLight{.95f,.7f,.7f};
+    slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.851f,.302f,.302f};
 // The game's text color for a color code letter (the section sign's), white for none or an unknown one.
 // The game's table; blue (9) as measured in its tooltip (2026-11-19), the rest not checked one by one.
 constexpr Rgb textCode(char code) {

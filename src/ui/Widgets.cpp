@@ -331,10 +331,11 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
 void windowSlot(MinecraftUIRenderContext& context, float x, float y, bool hovered, bool missing) {
     namespace v = palette::vanilla;
     fill(context, x, y, 18, 18, missing ? v::slotMissing : v::slot);
-    fill(context, x, y, 18, 1, missing ? v::slotMissingDark : v::slotDark);
-    fill(context, x, y + 1, 1, 17, missing ? v::slotMissingDark : v::slotDark);
-    fill(context, x + 1, y + 17, 17, 1, missing ? v::slotMissingLight : v::slotLight);
-    fill(context, x + 17, y + 1, 1, 16, missing ? v::slotMissingLight : v::slotLight);
+    // Only the face turns red for what is missing; the edges stay the slot's, as the game draws it (L-367).
+    fill(context, x, y, 18, 1, v::slotDark);
+    fill(context, x, y + 1, 1, 17, v::slotDark);
+    fill(context, x + 1, y + 17, 17, 1, v::slotLight);
+    fill(context, x + 17, y + 1, 1, 16, v::slotLight);
     if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .3f);
 }
 void drawTab(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool selected, bool hovered, bool first, float height) {
