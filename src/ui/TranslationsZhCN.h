@@ -1042,7 +1042,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.col.held", "持有"},
     {"recipes.col.wanted", "想要"},
     {"recipes.col.need", "需要"},
-    {"recipes.col.gathered", "材料"},
     {"recipes.all", "全部"},
     {"recipes.ready", "现在可制作"},
     {"recipes.notReady", "材料不足"},

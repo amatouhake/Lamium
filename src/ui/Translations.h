@@ -1051,7 +1051,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.col.held", "Held", "所持"},
     {"recipes.col.wanted", "Wanted", "欲しい"},
     {"recipes.col.need", "Need", "必要"},
-    {"recipes.col.gathered", "Gathered", "素材"},
     {"recipes.all", "All", "全部"},
     {"recipes.ready", "Can be made now", "今作れる"},
     {"recipes.notReady", "Materials short", "材料が足りない"},

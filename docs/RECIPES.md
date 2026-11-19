@@ -164,8 +164,8 @@ after using the first build. What is still open is in the L-item.
 - The window ("wanted", "to gather", "to make", "How to make",
   "stores") is the Recipes feature's (L-370); with the plan off it holds
   only "How to make", reached from a recipe's in-use mark.
-- "Wanted" is a table: fold, icon, name, held, wanted, a bar of what it
-  takes that is gathered (a part held on the way counts). The player's
+- "Wanted" is a table: fold, icon, name, held, wanted, a bar of held
+  against wanted (what is gathered shows in "to gather"). The player's
   own rows turn "wanted" into "- N +" and show "x" only under the
   pointer; handed rows show their source. Held stock goes to the rows in
   the order added; a row that lost stock to one above says so under the

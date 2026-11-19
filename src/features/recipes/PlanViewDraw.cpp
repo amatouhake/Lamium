@@ -161,7 +161,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     auto const notes = state::notes();
 
     // ---- Shared pieces ----
-    // The table's columns, the same on every list: fold, icon, name, held, wanted (or needed), a bar, controls.
+    // The table's columns, the same on every list: fold, icon, name, held, wanted (or needed), a bar of held
+    // against that, controls.
     constexpr float controlsW = 26, barW = 24, wantW = stepperWidth, heldW = 24;
     float const controlsX = right - controlsW, barX = controlsX - 2 - barW, wantX = barX - 3 - wantW, heldX = wantX - 2 - heldW;
     float const nameX = left + 26, nameEnd = heldX - 3;
@@ -169,7 +170,6 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (withName) windowLabel(context, nameX, y + 1, nameEnd - nameX, std::move(name), true);
         labelScaled(context, heldX, y + 2, heldW, translated("recipes.col.held"), .75f, v::windowFaint, Align::Right, false);
         labelScaled(context, wantX, y + 2, wantW, translated(wantKey), .75f, v::windowFaint, Align::Right, false);
-        labelScaled(context, barX, y + 2, barW, translated("recipes.col.gathered"), .75f, v::windowFaint, Align::Left, false);
     };
     auto number = [&](float x, float w, float y, Count count, bool faint) {
         windowLabel(context, x, y, w, std::to_string(count), faint, Align::Right);
@@ -379,11 +379,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 if (manual && hot) late.wantedRow = entry.key;
                 bool const known = target && target->item >= 0;
                 Count have = 0;
-                float fraction = 1;
-                if (known) have = target->finished, fraction = target->fraction();
-                else
-                    for (auto const& loose : plan->loose)
-                        if (loose.key == entry.key) have = loose.held, fraction = loose.need > 0 ? static_cast<float>(loose.held) / static_cast<float>(loose.need) : 1.f;
+                if (known) have = target->finished;
+                else for (auto const& loose : plan->loose) if (loose.key == entry.key) have = loose.held;
+                // The bar: the finished items held against those wanted (what is gathered shows in "to gather").
+                float const fraction = entry.count > 0 ? std::min(1.f, static_cast<float>(have) / static_cast<float>(entry.count)) : 1.f;
                 bool const done = entry.count > 0 && have >= entry.count;
                 if (known) chevron(context, left, y + 6, openEntry == id, v::windowInk);
                 auto const& shown = schematic::items::shown(entry.key);
