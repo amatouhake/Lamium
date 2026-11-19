@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The plan around the wanted items (L-370, 2026-11-20)
+
+Build `cb7abb67` (DLL
+`6083d4b942806c2c55b4a9f440b34e31d2d1bc0622fb124c76543184d9609110`),
+1.26.60.05 Dev instance, the maintainer. Works: moving rows changes the
+bars and the order is kept after leaving the world; "to make" puts the
+steps that can be made first and a press opens the right breakdown; the
+scroll reaches the last rows and opened members. Not right: the up and
+down buttons were the wrong way round (fixed in the next build); the
+whole was very hard to take in: wanted rows show little for their size,
+repeat themselves (count, percent and bar) and their numbers do not stand
+in columns; a breakdown has no indent or style of its own; stepping a
+recipe gives no idea of the next; what the order means is unclear; the
+tabs' sizes differ; and in the recipe view the slots on one large light
+face do not show where one recipe ends.
+
 ## The plan window's whole, bars and make rows (L-367, 2026-11-20)
 
 Build `faad5a37` (DLL

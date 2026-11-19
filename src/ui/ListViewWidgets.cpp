@@ -87,9 +87,9 @@ int drawMoveButtons(MinecraftUIRenderContext& context, float x, float y, bool up
         bool const over = pointerX >= bx && pointerX < bx + moveButtonSize && pointerY >= y && pointerY < y + moveButtonSize;
         if (over && on) under = side;
         Rgb const mark = drawButtonBox(context, bx, y, moveButtonSize, moveButtonSize, over, ButtonKind::Plain, on);
-        // A 5-wide triangle pointing up or down.
+        // A 5-wide triangle pointing up or down: its widest row at the bottom for up, at the top for down.
         for (int i = 0; i < 3; ++i)
-            fill(context, bx + 3 + static_cast<float>(i), y + (side < 0 ? 4 + static_cast<float>(i) : 6 - static_cast<float>(i)), 5 - 2 * static_cast<float>(i), 1, mark);
+            fill(context, bx + 3 + static_cast<float>(i), y + (side < 0 ? 6 - static_cast<float>(i) : 4 + static_cast<float>(i)), 5 - 2 * static_cast<float>(i), 1, mark);
     }
     return under;
 }
