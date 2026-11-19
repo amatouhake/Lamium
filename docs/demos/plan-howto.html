@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan How To Make</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* One GUI unit is 3 pixels, as in the game at 1920x1080 and UI zoom 75%. The How to make tab only. */
+:root{
+  color-scheme: dark;
+  --u:3px;
+  --ground:#15181a; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --edge:#000; --shadow:#555; --inset:#b4b4b4;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:24px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.row2{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:14px;margin:0 0 6px;font-weight:700;max-width:calc(220*var(--u))}
+.cap small{display:block;font-weight:400;color:var(--ink-2);font-size:12.5px}
+.win{position:relative;width:calc(220*var(--u));margin-top:calc(21*var(--u));background:var(--win);color:var(--win-ink);font:calc(8*var(--u))/1 var(--pix);
+  box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge);padding:calc(6*var(--u)) calc(7*var(--u)) calc(7*var(--u))}
+.tabs{position:absolute;left:calc(5*var(--u));top:calc(-21*var(--u));display:flex}
+.tab{height:calc(21*var(--u));padding:0 calc(6*var(--u));display:flex;align-items:center;background:#626262;color:#fff;font:calc(8*var(--u))/1 var(--pix);
+  border:var(--u) solid var(--edge);border-bottom:0;box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #c4c4c4;margin-right:calc(-1*var(--u));border-radius:calc(2*var(--u)) calc(2*var(--u)) 0 0}
+.tab.on{background:var(--win);color:var(--win-ink);height:calc(24*var(--u));margin-bottom:calc(-3*var(--u));box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) 0 var(--shadow);z-index:1}
+.body{min-height:calc(190*var(--u))}
+.ico{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:0 0 2px #000;
+  box-shadow:inset calc(-2*var(--u)) calc(-2*var(--u)) rgba(0,0,0,.25),inset calc(2*var(--u)) calc(2*var(--u)) rgba(255,255,255,.25)}
+.slot{width:calc(18*var(--u));height:calc(18*var(--u));background:var(--slot);position:relative;display:grid;place-items:center;flex:none;
+  box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.slot .ico{box-shadow:none}
+.slot b{position:absolute;right:var(--u);bottom:0;font:calc(7*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.slot .any{position:absolute;left:var(--u);top:0;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.sec{height:calc(12*var(--u));font-size:calc(7*var(--u));color:var(--win-faint);display:flex;align-items:flex-end;padding-bottom:var(--u)}
+/* A line: [item icon][item name] [arrow] [chosen slot][its words, by it] */
+.line{display:grid;grid-template-columns:calc(18*var(--u)) calc(60*var(--u)) calc(12*var(--u)) calc(18*var(--u)) 1fr;align-items:center;column-gap:calc(2*var(--u));height:calc(20*var(--u));cursor:pointer}
+.line:hover{background:rgba(0,0,0,.07)}
+.line .w{font-size:calc(7*var(--u));padding-left:calc(2*var(--u))}
+.line .w small{display:block;font-size:calc(6*var(--u));color:var(--win-faint);margin-top:var(--u)}
+.line.flash{outline:var(--u) solid var(--accent-deep)}
+.arrow{text-align:center;font-size:calc(9*var(--u))}
+.name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Candidates as rows: [slot(s)] [arrow product] [words by them] */
+.alts{margin:0 0 calc(3*var(--u)) calc(20*var(--u));padding:calc(2*var(--u));background:var(--inset);box-shadow:inset var(--u) var(--u) var(--shadow),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.alt{display:flex;align-items:center;gap:calc(2*var(--u));cursor:pointer;height:calc(20*var(--u));padding:0 calc(2*var(--u))}
+.alt:hover{background:rgba(255,255,255,.3)}
+.alt.on{outline:var(--u) solid var(--accent-deep);outline-offset:calc(-1*var(--u))}
+.alt .w{font-size:calc(7*var(--u))}
+.alt .w small{color:var(--win-faint);font-size:calc(6*var(--u));margin-left:calc(2*var(--u))}
+/* Candidates as a grid of slots */
+.grid{display:flex;flex-wrap:wrap;gap:0}
+.cell{cursor:pointer;position:relative}
+.cell.on::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 var(--u) var(--accent-deep)}
+.cell:hover .slot{filter:brightness(1.15)}
+.gridname{font-size:calc(7*var(--u));height:calc(12*var(--u));display:flex;align-items:center;padding-left:calc(2*var(--u))}
+.gridname small{color:var(--win-faint);margin-left:calc(3*var(--u));font-size:calc(6*var(--u))}
+/* The switch for which lines show */
+.sw{display:flex;align-items:center;justify-content:space-between;height:calc(14*var(--u));font-size:calc(7*var(--u));cursor:pointer}
+.switch{width:calc(18*var(--u));height:calc(9*var(--u));background:#7f7f7f;box-shadow:0 0 0 calc(.5*var(--u)) #333;position:relative}
+.switch.on{background:var(--accent-deep)}
+.switch i{position:absolute;top:var(--u);left:var(--u);width:calc(7*var(--u));height:calc(7*var(--u));background:#d0d0d0}
+.switch.on i{left:auto;right:var(--u);background:#fff}
+.legend{font-size:13px;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>「作り方」のタブのモック</h1>
+  <p class="lede">L-370。決まったことを入れています: 「どれでも」「自動」も他の候補と同じ形（マスと、そのすぐ横の言葉）、言葉はアイテムのすぐ横、出す範囲はタブではなくスイッチ。比べるのは、どれでもよい材料の候補を「行」で並べるか「絵のマス」で並べるかの 1 点だけです（レシピの候補はどちらも行）。行を押すと候補が開きます。</p>
+</header>
+<div class="row2">
+  <div><p class="cap">a: 材料の候補も行で並べる<small>レシピと同じ形。名前がそれぞれ読める。候補が多い材料（板材、羊毛など）は行が長く続く。</small></p><div class="win" id="a"></div></div>
+  <div><p class="cap">b: 材料の候補は絵のマスで並べる<small>ゲームのインベントリのようにマスで並べ、ポインタを当てた物の名前を下の 1 行に出す。候補が多くてもまとまるが、名前は当てないと見えない。</small></p><div class="win" id="b"></div></div>
+</div>
+<p class="legend">決めたいこと: a か b か（どれでもよい材料の候補の並べ方）。</p>
+</div>
+<script>
+const I = {
+  planks:['板材','#b8945f','板'], oakPlanks:['オークの板材','#b8945f','オ'], birchPlanks:['シラカバの板材','#d8c88f','シ'], sprucePlanks:['トウヒの板材','#7a5634','ト'],
+  junglePlanks:['ジャングルの板材','#b07c55','ジ'], acaciaPlanks:['アカシアの板材','#b35c2e','ア'], darkOakPlanks:['ダークオークの板材','#4a3020','ダ'], mangrovePlanks:['マングローブの板材','#7c3530','マ'],
+  cherryPlanks:['サクラの板材','#e0b0a8','サ'], bambooPlanks:['竹の板材','#c8b84a','竹'], crimsonPlanks:['真紅の板材','#7a3550','紅'], warpedPlanks:['歪んだ板材','#2f7a74','歪'],
+  cobbleAny:['丸石の仲間','#7d7d7d','石'], cobble:['丸石','#7d7d7d','丸'], blackstone:['ブラックストーン','#2f2a30','黒'], deepslate:['深層岩の丸石','#4a4a50','深'],
+  stick:['棒','#8a6a3a','棒'], bamboo:['竹','#8cae3c','竹'], spruceLog:['トウヒの原木','#4b3520','原'], stripped:['樹皮を剥いだトウヒの原木','#6b4a2c','剥'], torch:['松明','#e0a040','松'], coal:['石炭','#2a2a2a','炭'], charcoal:['木炭','#3a3028','木'],
+};
+const ico = k => `<span class="ico" style="background:${I[k][1]}">${I[k][2]}</span>`;
+const slot = (k, n, any) => `<span class="slot">${k?ico(k):''}${n>1?`<b>${n}</b>`:''}${any?'<span class="any">＊</span>':''}</span>`;
+const tabs = `<div class="tabs">${['欲しい物','集める物','作る物','作り方','保管場所'].map(t=>`<span class="tab${t==='作り方'?' on':''}">${t}</span>`).join('')}</div>`;
+const groups = {
+  planks:{item:'planks', chosen:'sprucePlanks', inPlan:true, opts:['oakPlanks','sprucePlanks','birchPlanks','junglePlanks','acaciaPlanks','darkOakPlanks','mangrovePlanks','cherryPlanks','bambooPlanks','crimsonPlanks','warpedPlanks']},
+  cobbleAny:{item:'cobbleAny', chosen:null, inPlan:true, opts:['cobble','blackstone','deepslate']},
+};
+const recipes = {
+  sprucePlanks:{chosen:null, rule:0, inPlan:true, opts:[[['spruceLog',1]],4,'原木から'],},
+  stick:{chosen:1, rule:0, inPlan:false},
+  torch:{chosen:null, rule:0, inPlan:true},
+};
+recipes.sprucePlanks.opts = [[[['spruceLog',1]],4,'原木から'], [[['stripped',1]],4,'樹皮を剥いだ原木から']];
+recipes.stick.opts = [[[['planks',2]],4,'板材から'], [[['bamboo',2]],1,'竹から']];
+recipes.torch.opts = [[[['coal',1],['stick',1]],4,'石炭から'], [[['charcoal',1],['stick',1]],4,'木炭から']];
+const state = {a:{open:'planks', all:false, hover:''}, b:{open:'planks', all:false, hover:''}};
+function groupLine(v, k){
+  const g = groups[k];
+  const words = g.chosen ? `${I[g.chosen][0]}<small>選択</small>` : `どれでも<small>持っている種類を合わせて数える</small>`;
+  let h = `<div class="line" data-open="${v}:${k}">${ico(g.item)}<span class="name">${I[g.item][0]}</span><span class="arrow">→</span>${g.chosen?slot(g.chosen,1):slot(g.item,1,true)}<span class="w">${words}</span></div>`;
+  if (state[v].open !== k) return h;
+  if (v === 'a') {
+    h += `<div class="alts"><div class="alt${!g.chosen?' on':''}" data-pick="g:${k}:">${slot(g.item,1,true)}<span class="w">どれでも<small>持っている種類を合わせて数える</small></span></div>`;
+    g.opts.forEach(o => h += `<div class="alt${g.chosen===o?' on':''}" data-pick="g:${k}:${o}">${slot(o,1)}<span class="w">${I[o][0]}</span></div>`);
+    return h + `</div>`;
+  }
+  const shown = state.b.hover || (g.chosen || '');
+  h += `<div class="alts"><div class="grid"><span class="cell${!g.chosen?' on':''}" data-pick="g:${k}:" data-hover="">${slot(g.item,1,true)}</span>`;
+  g.opts.forEach(o => h += `<span class="cell${g.chosen===o?' on':''}" data-pick="g:${k}:${o}" data-hover="${o}">${slot(o,1)}</span>`);
+  h += `</div><div class="gridname">${shown ? I[shown][0] : 'どれでも'}${shown ? '' : '<small>持っている種類を合わせて数える</small>'}</div></div>`;
+  return h;
+}
+function recipeLine(v, k){
+  const r = recipes[k], u = r.chosen!==null ? r.chosen : r.rule, o = r.opts[u];
+  const words = r.chosen!==null ? `${o[2]}<small>選択</small>` : `自動<small>いまは「${r.opts[r.rule][2]}」</small>`;
+  let h = `<div class="line" data-open="${v}:${k}">${ico(k)}<span class="name">${I[k][0]}</span><span class="arrow">←</span>${slot(o[0][0][0],o[0][0][1])}<span class="w">${words}</span></div>`;
+  if (state[v].open !== k) return h;
+  h += `<div class="alts"><div class="alt${r.chosen===null?' on':''}" data-pick="r:${k}:-1"><span class="slot" style="font:calc(6*var(--u))/1 var(--pix)">自動</span><span class="w">自動<small>いまは「${r.opts[r.rule][2]}」</small></span></div>`;
+  r.opts.forEach((x,i) => h += `<div class="alt${r.chosen===i?' on':''}" data-pick="r:${k}:${i}">${x[0].map(([kk,c])=>slot(kk,c)).join('')}<span class="arrow" style="width:calc(10*var(--u))">→</span>${slot(k,x[1])}<span class="w">${x[2]}</span></div>`);
+  return h + `</div>`;
+}
+function view(v){
+  const st = state[v];
+  let h = tabs + `<div class="body">`;
+  h += `<div class="sw" data-all="${v}"><span>これまでに選んだ物も出す</span><span class="switch${st.all?' on':''}"><i></i></span></div>`;
+  h += `<div class="sec">どれでもよい材料</div>`;
+  Object.keys(groups).filter(k=>st.all||groups[k].inPlan).forEach(k => h += groupLine(v,k));
+  h += `<div class="sec">レシピ</div>`;
+  Object.keys(recipes).filter(k=>st.all||recipes[k].inPlan).forEach(k => h += recipeLine(v,k));
+  document.getElementById(v).innerHTML = h + `</div>`;
+}
+function draw(){ view('a'); view('b'); }
+document.addEventListener('mouseover', e => {
+  const c = e.target.closest('[data-hover]');
+  const next = c ? c.dataset.hover : '';
+  if (c && state.b.hover !== next) { state.b.hover = next; view('b'); }
+});
+document.addEventListener('mouseout', e => { if (e.target.closest('.grid') && !e.relatedTarget?.closest?.('.grid')) { state.b.hover=''; view('b'); } });
+document.addEventListener('click', e => {
+  const s = e.target.closest('[data-all]'); if (s) { state[s.dataset.all].all = !state[s.dataset.all].all; draw(); return; }
+  const p = e.target.closest('[data-pick]');
+  if (p) { const [kind, k, v] = p.dataset.pick.split(':');
+    if (kind==='g') groups[k].chosen = v || null; else recipes[k].chosen = v==='-1' ? null : +v;
+    state.a.open = state.b.open = ''; draw(); return; }
+  const o = e.target.closest('[data-open]');
+  if (o) { const [v, k] = o.dataset.open.split(':'); state[v].open = state[v].open===k ? '' : k; draw(); }
+});
+draw();
+</script>
+</body>
+</html>

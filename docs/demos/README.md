@@ -77,6 +77,7 @@ Text in the demos is Japanese because they were reviewed in Japanese.
 | [plan-window.html](plan-window.html) | Under review (L-370) | The plan window rebuilt for reading: the wanted tab as a table (controls inside the breakdown) or two-line rows (controls in a fixed column), a breakdown on a sunk face, recipe choice from a list of candidates, "to gather" and "to make" on the same columns, and the recipe view with each recipe on its own sunk face. |
 | [plan-recipe-choice.html](plan-recipe-choice.html) | Under review (L-370) | How a plan's recipe and a group's member are chosen in a breakdown: candidates always as chips, a list opened by pressing the step, or that with its state (automatic or chosen) always shown; each with "automatic" to go back to. |
 | [plan-wanted-howto.html](plan-wanted-howto.html) | Under review (L-370) | The wanted rows as a table with their controls always shown or only under the pointer, a read-only breakdown that shows each choice's state, and the How to make tab with its candidates. |
+| [plan-howto.html](plan-howto.html) | Under review (L-370) | The How to make tab with "any" and "automatic" shaped like the other options, words by their items and a switch for which lines show; a group's members as rows or as a grid of slots. |
 
 Rules for agents:
 
