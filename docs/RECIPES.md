@@ -285,7 +285,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
 - The open container's switch is the band's last line under a rule like
   the one above the plan, no stronger a division than that.
 - An item Lamium draws says under its name what the game says of it,
-  with Lamium's item details, in a frame like the game's tooltip. The
+  with Lamium's item details, in the game's tooltip box. The
   text is the stack's own hover text, which Lamium's hook has added to,
   without the name, the color codes and lines of icon glyphs
   (`hoverLines`). A row of the plan's window also says its count in

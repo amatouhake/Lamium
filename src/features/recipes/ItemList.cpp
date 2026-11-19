@@ -18,6 +18,7 @@
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
 #include "features/schematic/SchematicItems.h"
+#include "ui/VanillaFrame.h"
 #include "ui/WindowFade.h"
 #include "input/Actions.h"
 #include "input/Binding.h"
@@ -734,19 +735,22 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float w = textWidth(context, late.tip);
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
         for (auto const& line : more) w = std::max(w, textWidth(context, line));
-        w = std::min(w + 8, screen.x - 4);
-        // Two units under the last line: letters that reach below it (p, y) stay inside the frame.
-        float const h = 12 + 10 * static_cast<float>(late.tipLines.size() + more.size()) + (late.tipLines.empty() && more.empty() ? 0.f : 2.f);
+        int const lines = 1 + static_cast<int>(late.tipLines.size() + more.size());
+        // An item's tip is the game's tooltip box (VanillaFrame.h); other tips are Lamium's, two units under
+        // the last line so letters that reach below it (p, y) stay inside the frame.
+        namespace vf = vanilla_frame;
+        float const inset = item ? vf::tooltipTextLeft : 4, top = item ? vf::tooltipTextTop - 1 : 2;
+        w = std::min(item ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
+        float const h = item ? vf::tooltipHeight(lines) : 2 + 10 * static_cast<float>(lines) + (lines > 1 ? 2.f : 0.f);
         float const x = std::max(2.f, std::min(px + 8, screen.x - w - 2)), y = std::max(2.f, std::min(py + 8, screen.y - h - 2));
         if (item) {
             context.flushText(0, std::nullopt);
-            fill(context, x, y, w, h, palette::panel, .94f);
-            frame(context, x, y, w, h, palette::vanilla::tooltipBorder);
+            gameTooltipBox(context, x, y, w, h);
         } else drawTipBox(context, x, y, w, h);
-        label(context, x + 4, y + 2, w - 8, late.tip);
-        float line = y + 12;
-        for (auto const& text : late.tipLines) label(context, x + 4, line, w - 8, text, palette::dim), line += 10;
-        for (auto const& text : more) label(context, x + 4, line, w - 8, text, palette::faint), line += 10;
+        label(context, x + inset, y + top, w - 2 * inset, late.tip);
+        float line = y + top + 10;
+        for (auto const& text : late.tipLines) label(context, x + inset, line, w - 2 * inset, text, palette::dim), line += 10;
+        for (auto const& text : more) label(context, x + inset, line, w - 2 * inset, text, palette::faint), line += 10;
         context.flushText(0, std::nullopt);
     }
     return true;

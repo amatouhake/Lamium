@@ -1,6 +1,7 @@
 #include "ui/Widgets.h"
 #include "ui/KeycapLines.h"
 #include "ui/TextFit.h"
+#include "ui/VanillaFrame.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
@@ -218,8 +219,16 @@ void panel(MinecraftUIRenderContext& context, float left, float top, float width
     fill(context,left,top,width,height,palette::panel,opacity);
 }
 void windowPanel(MinecraftUIRenderContext& context, float left, float top, float width, float height) {
-    fill(context,left,top,width,height,palette::vanilla::window);
-    frame(context,left,top,width,height,palette::shade,.75f);
+    using vanilla_frame::Part;
+    for (auto const& r : vanilla_frame::window(left, top, width, height)) {
+        Rgb const color = r.part == Part::Light ? palette::vanilla::windowLight : r.part == Part::Dark ? palette::vanilla::windowShadow
+            : r.part == Part::Edge ? palette::vanilla::windowEdge : palette::vanilla::window;
+        fill(context, r.x, r.y, r.w, r.h, color);
+    }
+}
+void gameTooltipBox(MinecraftUIRenderContext& context, float x, float y, float width, float height) {
+    for (auto const& r : vanilla_frame::tooltip(x, y, width, height))
+        fill(context, r.x, r.y, r.w, r.h, r.part == vanilla_frame::Part::Border ? palette::vanilla::tooltipLine : palette::vanilla::tooltipFill);
 }
 void windowLabel(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, bool faint, Align align) {
     labelScaled(context,x,y,width,std::move(text),1.f,faint ? palette::vanilla::windowFaint : palette::vanilla::windowInk,align,false);

@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Recipe bands and anvil panels fade in place (L-366, 2026-11-19)
+
+Build `bdd589af` (DLL
+`a8c573e4dfac926cfd463e9d7c7d2a6ce2e173bae8d7f15ebca4c363ce7844f0`),
+1.26.60.05 Dev instance, the maintainer: a chest's bands fade in where they
+stand; at the anvil the panels stay put, fade and no longer flicker; a
+slot under the open recipe view shows neither its shulker box nor its
+bundle preview.
+
 ## The game's tooltip over the recipe bands (L-366, 2026-11-19)
 
 Build `4aa398bd` (DLL

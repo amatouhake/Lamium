@@ -48,6 +48,10 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     // A window of the game's own grey and the text written on it, for a Lamium window that lies over
     // a game window and takes its place (the recipe view, L-359).
     window{.776f,.776f,.776f}, windowInk{.247f,.247f,.247f}, windowFaint{.42f,.42f,.42f},
+    // The window's edge: black outside, white light on the upper left, shadow on the lower right (L-366).
+    windowEdge{0,0,0}, windowLight{1,1,1}, windowShadow{.333f,.333f,.333f},
+    // The item tooltip: its opaque fill and the purple line inside its edge (L-366).
+    tooltipFill{.106f,.047f,.106f}, tooltipLine{.173f,.031f,.388f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
     // red the recipe book gives what cannot be made.
     slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.82f,.33f,.33f},
@@ -121,10 +125,14 @@ float labelWidth(MinecraftUIRenderContext&, std::string_view text, float scale);
 void fill(MinecraftUIRenderContext&, float x, float y, float width, float height, Rgb color, float opacity = 1);
 void frame(MinecraftUIRenderContext&, float x, float y, float width, float height, Rgb color, float opacity = 1);
 void panel(MinecraftUIRenderContext&, float left, float top, float width, float height, float opacity = .8f);
-// A window in the game's grey (palette::vanilla::window) with a dark edge, opaque: what lies under it
-// must not show. Text on it is windowLabel: dark, without a shadow. Buttons, slots and fields on it
+// A window drawn as the game's own (VanillaFrame.h): black edge with cut corners, light upper left,
+// shadowed lower right, the game's grey inside; opaque: what lies under it must not show. Its edge is
+// 3 units wide. Text on it is windowLabel: dark, without a shadow. Buttons, slots and fields on it
 // are the shared dark ones.
 void windowPanel(MinecraftUIRenderContext&, float left, float top, float width, float height);
+// The game's item tooltip box (VanillaFrame.h: text 6 units in, 5 down, 10 a line), opaque, for an item
+// Lamium shows in place of a slot of the game's.
+void gameTooltipBox(MinecraftUIRenderContext&, float x, float y, float width, float height);
 void windowLabel(MinecraftUIRenderContext&, float x, float y, float width, std::string text, bool faint = false,
                  Align align = Align::Left);
 // HUD card: the panel fill with corners stepped by one GUI pixel, like

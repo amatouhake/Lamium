@@ -106,8 +106,13 @@ Colors sampled from the game (`heart`, `heartEmpty`, `armor`, `curse`,
 Lamium meaning. `window`, `windowInk` and `windowFaint` are the game's
 window grey and the text on it: a Lamium window that lies over a game
 window and takes its place (the recipe view and the wanted items' window)
-is drawn with `windowPanel`, opaque, its text with `windowLabel` (dark, no
-shadow); the buttons, slots and fields on it are the shared dark ones.
+is drawn with `windowPanel`, opaque, as the game draws its own window
+(`windowEdge`, `windowLight`, `windowShadow`; `ui/VanillaFrame.h`, measured
+from the game), its text with `windowLabel` (dark, no shadow); the buttons,
+slots and fields on it are the shared dark ones. An item Lamium shows in a
+slot's stead has the game's tooltip box (`gameTooltipBox`: `tooltipFill`,
+`tooltipLine`). These screens copy the game fully or not at all: half a copy
+reads as neither (maintainer 2026-11-19, L-366).
 Text shadow comes from `labelScaled`, not a token.
 
 ### Sizes
@@ -239,7 +244,8 @@ the same commit. A screen never draws its own variant.
 - **Tips** open below their anchor (above when there is no room) and look
   the same everywhere (`drawTipBox`): the floating panel, a `keyEdge` edge
   (`warning` when the tip warns), 4 units of padding, white text. The
-  locked-trade tip copies the game's own tooltip instead.
+  locked-trade tip copies the game's own tooltip instead, and an item
+  in the recipe screens has the game's tooltip box (`gameTooltipBox`).
 
 ## Screens
 
