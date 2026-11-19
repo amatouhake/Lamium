@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The split switch acting at once (L-365, 2026-11-19)
+
+Build `72e6eb97` (DLL
+`0ce57a1623afcb6ac76cdc1447fb1e9af84fbd66f37822a7e21944fc2c436f9b`),
+1.26.60.05 Dev instance, the local BDS with world D behind A's level id,
+the maintainer: "Separate data per world" showed on, above the any-port
+switch. Off switched at once to the base data (A's waypoints; the map
+records the loaded area again at once, so A's map was seen outside it) with
+its message; on went back to D's `-w5` without a question. The log shows
+each switch and the data used.
+
 ## Split worlds again and the notes' wording (L-365, 2026-11-19)
 
 Build `ccdd886b` (DLL
