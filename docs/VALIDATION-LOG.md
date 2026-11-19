@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The cookie left unread outside a Realm (L-358, 2026-11-19)
+
+Build `31fe9937` (DLL
+`ce68e1ebf39dcb5feaf0f041274de1fefdd0316761da8a486949a976da0d067e`),
+1.26.60.05 Dev instance, the maintainer, a public server joined: the log
+read `in a Realm: no; reconnect cookie kind -3, Realm id 0` and `world: seed
+hidden, game mode 2`, the server kept its data, no warning and no crash.
+
 ## The split switch acting at once (L-365, 2026-11-19)
 
 Build `72e6eb97` (DLL
