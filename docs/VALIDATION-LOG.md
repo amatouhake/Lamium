@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A friend's two worlds, and the cancelled join again (L-358, 2026-11-19)
+
+Build `27bc0af5` (DLL
+`ca4336408c521be66e440676a49f0f50f39e197f2e91310e622ecb73f19f8b62`),
+1.26.60.05 Dev instance, the maintainer:
+- The steps of the crash above (one friend's world joined and left, a join
+  to a second cancelled while connecting) did not crash this time.
+- One friend's two worlds reported different level ids (`D1t92LoNoiI=`,
+  game mode 1, and `bd1F3BEcXTQ=`, game mode 2), both cookie kind 1 with
+  Realm id 0, so each kept its own map and waypoints.
+- Not seen: a Realm, the world question.
+
 ## Crash cancelling a friend's world join, not isolated (L-358, 2026-11-19)
 
 Build `27bc0af5` (DLL
