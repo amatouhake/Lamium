@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Game-like controls on the recipe windows; the wheel to 0 (L-367, 2026-11-20)
+
+Build `dd2f0293` (DLL
+`957a9e0aff0fcf8d8273af31e10dbcf44f6ed0f2b4182a0077112ba9d24f8ae3`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the wheel takes a wanted
+row to a faint 0, turning back restores the count, leaving the row takes
+the item out; with W held over the list the same, the item going when W is
+up. The controls on the light windows did not settle: icon tabs too small
+(band and recipe view); the band's rule too thin for either look; the
+favourite and wanted buttons too low, silent for a game button, and green
+where the game's are not; joined tabs on one white face read as joined to
+everything; with joined tabs the title line is not needed; unchosen tabs
+too dark.
+
 ## A listed item's tip on whole units (L-366, 2026-11-19)
 
 Build `5044280e` (DLL
