@@ -600,6 +600,7 @@ std::vector<SavedData> savedData() {
         item.canUse = !item.inUse && joined.active && !identity.local && identity.key
             && (!identity.byAddress() || item.kind == SavedData::Kind::Server);
         item.canDelete = !item.inUse;
+        item.unsplit = std::find(list.unsplit.begin(), list.unsplit.end(), key) != list.unsplit.end();
         items.push_back(std::move(item));
     }
     // Local worlds that have a Lamium folder.
@@ -671,6 +672,14 @@ std::optional<WorldQuestion> worldQuestion() {
 bool takeWorldToast() {
     std::lock_guard lock(mutex);
     return std::exchange(questionToast, false) && question.has_value();
+}
+bool splitAgain(std::string const& key) {
+    std::lock_guard lock(mutex);
+    bool split = false;
+    bool const saved = withList([&](servers::List& list) { split = prints::split(list.unsplit, key); });
+    if (!split || !saved) return false;
+    log("worlds behind '" + key + "' are told apart again from the next join");
+    return true;
 }
 bool answerWorld(WorldAnswer answer) {
     std::lock_guard lock(mutex);

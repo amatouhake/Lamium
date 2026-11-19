@@ -149,6 +149,10 @@ inline std::string noSplit(std::vector<std::string>& unsplit, std::string const&
     if (std::find(unsplit.begin(), unsplit.end(), base) == unsplit.end()) unsplit.push_back(base);
     return base;
 }
+// "Split worlds again": `base` tells its worlds apart from the next join. False when it was not kept together.
+inline bool split(std::vector<std::string>& unsplit, std::string const& base) {
+    return std::erase(unsplit, base) > 0;
+}
 // The data under `key` was deleted: rows naming it go.
 inline void forget(std::vector<Row>& rows, std::string const& key) {
     std::erase_if(rows, [&](Row const& r) { return r.key == key; });

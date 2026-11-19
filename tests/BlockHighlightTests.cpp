@@ -127,6 +127,15 @@ void blockHighlightTests() {
         check(wide.useX == l.useX && wide.useY() == l.useY() && wide.useWidth == l.useWidth && wide.deleteX == l.deleteX
               && wide.deleteY == l.deleteY && wide.anyPortY == l.anyPortY && wide.deleteWidth <= wide.detailWidth
               && wide.hit(l.useX + 2, l.useY() + 2).zone == Zone::Use, "arming Delete widens it and moves nothing");
+        auto split = SavedDataLayout::fit(table, 1, 0, true, true, true, 80, 40, false, 0, true, 90);
+        check(split.splitX == split.useX && split.splitY + SavedDataLayout::buttonHeight <= split.deleteY
+              && split.anyPortY + SavedDataLayout::lineHeight <= split.splitY
+              && split.hit(split.splitX + 2, split.splitY + 2).zone == Zone::Split
+              && split.hit(split.deleteX + 2, split.deleteY + 2).zone == Zone::Delete,
+              "Split worlds again sits on its own row above Delete, below the switch");
+        auto alone = SavedDataLayout::fit(table, 1, 0, false, false, false, 80, 40, false, 0, true, 90);
+        check(alone.splitY == alone.useY() && alone.hit(alone.splitX + 2, alone.splitY + 2).zone == Zone::Split,
+              "alone it takes the bottom row");
         // Merge (L-343 part 4): beside Use when both fit, else on its own row between Use and Delete.
         auto merged = SavedDataLayout::fit(table, 1, 0, true, true, true, 60, 40, true, 60);
         check(merged.mergeY == merged.useY() && merged.mergeX >= merged.useX + merged.useWidth

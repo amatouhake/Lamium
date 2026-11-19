@@ -423,6 +423,11 @@ void worldPrints() {
     check(wp::pick(rows, unsplit, "srv", {5, "Lobby", 0, false}, exists).key == "srv", "a seed appearing where none was keeps the data");
     check(wp::noSplit(unsplit, "srv") == "srv" && wp::pick(rows, unsplit, "srv", {6, "X", 1, true}, exists).key == "srv"
           && !wp::pick(rows, unsplit, "srv", {7, "Y", 1, true}, exists).asked, "a base not split uses one data, unasked");
+    {
+        auto again = unsplit;
+        check(wp::split(again, "srv") && !wp::split(again, "srv") && wp::pick(rows, again, "srv", {8, "Z", 1, true}, exists).asked,
+              "splitting again asks about a new world once more, and only a base kept together splits");
+    }
     wp::forget(rows, "realm_5-w4");
     check(std::none_of(rows.begin(), rows.end(), [](wp::Row const& r) { return r.key == "realm_5-w4"; }), "deleted data leaves no rows");
     std::vector<wp::Row> many;

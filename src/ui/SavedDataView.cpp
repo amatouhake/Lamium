@@ -84,6 +84,14 @@ void remove() {
     if (map::waypoints::removeData(*d)) { reload(); say(translated("savedData.deleted", name)); }
     else { reload(key); say(translated("savedData.failed"), true); } // A failed delete may have removed part.
 }
+void splitAgain() {
+    auto const* d = chosen();
+    if (!d || !d->unsplit) return;
+    std::string const key = d->key;
+    bool const done = map::waypoints::splitAgain(key);
+    reload(key);
+    say(translated(done ? "savedData.splitDone" : "savedData.failed"), !done);
+}
 void anyPort() {
     auto const* d = chosen();
     if (!d || d->kind != Data::Kind::Server || d->host.empty()) return;
@@ -171,6 +179,7 @@ bool click(float x, float y, bool right) {
     case Zone::Use: use(); break;
     case Zone::Merge: mergeIn(); break;
     case Zone::Delete: remove(); break;
+    case Zone::Split: splitAgain(); break;
     case Zone::None: break;
     }
     return true;
@@ -212,10 +221,11 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     bool const server = d && d->kind == Data::Kind::Server;
     std::string const useText = translated("savedData.use"), removeLabel = translated("savedData.delete");
     std::string const mergeLabel = translated("savedData.merge"), mergeConfirm = translated("savedData.confirmMerge");
+    std::string const splitText = translated("savedData.splitAgain");
     // Delete and Merge hold both their labels, so arming moves nothing.
     last = SavedDataLayout::fit(t, static_cast<int>(items.size()), first, server && !d->host.empty(), d && d->canUse,
         d && d->canDelete, textWidth(context, useText) + 12, armedWidth(context, removeLabel, confirmDelete(), 12),
-        d && d->canUse, armedWidth(context, mergeLabel, mergeConfirm, 12));
+        d && d->canUse, armedWidth(context, mergeLabel, mergeConfirm, 12), d && d->unsplit, textWidth(context, splitText) + 12);
     std::string const removeText = armedLabel(context, removeLabel, confirmDelete(), d && armed == d->key, last.deleteWidth);
     std::string const mergeText = armedLabel(context, mergeLabel, mergeConfirm, d && armedMerge == d->key, last.mergeWidth);
     if (!last.usable()) return;
@@ -305,6 +315,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         row(translated("savedData.map", sizeText(d->mapBytes, d->mapMore)));
         row(translated("savedData.used", dateText(d->used)));
         if (!d->levelId.empty() && d->kind == Data::Kind::Server) row(translated("savedData.levelId", d->levelId), palette::faint);
+        if (d->unsplit) row(translated("savedData.unsplit"));
         // Which servers use it: the any-port switch and a port given other data read off the page (L-343).
         if (d->kind == Data::Kind::Server) {
             if (d->users.empty()) row(translated("savedData.usersNone"));
@@ -338,6 +349,9 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (last.merge)
             drawButton(context, last.mergeX, last.mergeY, last.mergeWidth, SavedDataLayout::buttonHeight, mergeText,
                 hover.zone == Zone::Merge, ButtonKind::Plain);
+        if (last.split)
+            drawButton(context, last.splitX, last.splitY, last.splitWidth, SavedDataLayout::buttonHeight, splitText,
+                hover.zone == Zone::Split, ButtonKind::Plain);
         if (last.remove && !deletable())
             drawButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeLabel,
                 false, ButtonKind::Plain, false);
