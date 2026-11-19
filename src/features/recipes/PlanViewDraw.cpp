@@ -48,8 +48,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     float const coverLeft = input.coverRight > input.coverLeft ? std::min(l.left, input.coverLeft) : l.left;
     float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
+    OnWindow const onWindowScope;
     windowLabel(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.plan"));
     float x = l.left + 5;
+    tabRule(context, l.left + 5, l.top + 16 + tabHeight, l.width - 10, true);
     Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::Places};
     char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.places"};
     for (int i = 0; i < 4; ++i) {
@@ -59,7 +61,6 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (took(x, l.top + 16, w, tabHeight)) tab = tabs[i], expanded = -1;
         x += w;
     }
-    tabRule(context, l.left + 5, l.top + 16 + tabHeight, l.width - 10, true);
     auto const* plan = state::plan(player);
     float const left = l.left + 6, right = l.left + l.width - 6;
     float top = l.top + rowsTop;
@@ -187,6 +188,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             auto const& [key, amount, source] = targets[static_cast<size_t>(offset + row)];
             float const y = top + static_cast<float>(row) * rowHeight;
             float sx = right;
+            if (source.empty() && over(left, y, right - left, rowHeight)) late.wantedRow = key;
             if (!source.empty()) {
                 std::string from = translated("recipes.from." + source);
                 float const w = textWidth(context, from) + 4;
@@ -198,7 +200,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
             sx = end - stepperWidth;
             drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(amount),
-                        {.editing = countEdit::editing(key), .pointerX = px, .pointerY = py, .backed = true});
+                        {.editing = countEdit::editing(key), .pointerX = px, .pointerY = py, .backed = true, .dimValue = amount == 0});
             if (took(sx, y + 1, 11, 10)) state::stepWanted(key, false, shift, true);
             else if (took(sx + stepperWidth - 11, y + 1, 11, 10)) state::stepWanted(key, true, shift, true);
             else if (took(sx, y + 1, stepperWidth, 10)) countEdit::begin(key, amount);

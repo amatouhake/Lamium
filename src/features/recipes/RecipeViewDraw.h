@@ -40,6 +40,7 @@ struct Late {
     std::string tip;
     std::vector<std::string> tipLines; // further lines under `tip`
     std::string hovered; // the item under the pointer, by its id
+    std::string wantedRow; // the wanted item whose row is under the pointer, controls and all
     bool placed = false; // a recipe was laid into the grid: the host clears the windows off it
 };
 bool isOpen();

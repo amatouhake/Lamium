@@ -321,16 +321,31 @@ void recipeIndexTests() {
         check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
         check(field.x == 232 && field.y == 344 && field.w == 176 && field.h == 14 && field.has(300, 350) && !field.has(300, 340), "the search field sits at the bottom centre");
-        check(steppedWanted(1, false, 1, true) == 0 && steppedWanted(1, false, 16, false) == 1 && steppedWanted(5, false, 1, true) == 4
-              && steppedWanted(9, false, 16, true) == 1 && steppedWanted(Wanted::most, true, 16, true) == Wanted::most,
-              "only the minus button at one takes a wanted item out; steps stop at one and at the most");
+        check(steppedWanted(1, false, 1) == 0 && steppedWanted(1, false, 16) == 0 && steppedWanted(5, false, 1) == 4
+              && steppedWanted(9, false, 16) == 1 && steppedWanted(0, true, 1) == 1 && steppedWanted(0, false, 1) == 0
+              && steppedWanted(Wanted::most, true, 16) == Wanted::most,
+              "down from one is 0 and up from 0 is one; steps of several stop at one; steps stop at the most");
+        {
+            Wanted held;
+            held.toggle("a"); held.set("a", 5); held.toggle("b");
+            held.zero("a");
+            bool const zeroShown = held.listed("a") && !held.has("a") && held.count("a") == 0;
+            held.toggle("a");
+            bool const back = held.count("a") == 5 && held.targets.size() == 2;
+            held.zero("a"); held.zero("b");
+            bool const went = held.settle("a");
+            check(zeroShown && back && went && held.listed("a") && !held.listed("b") && held.targets.size() == 1,
+                  "the wheel leaves an item at 0 in the list; toggling brings its count back; settling takes out all at 0 but the one kept");
+            held.settle("");
+            check(held.targets.empty() && held.remembered["a"] == 5, "an item settled at 0 remembers the count it had");
+        }
         check(hoverLines("Shield\n\xC2\xA7" "7Durability: 336 / 336\n\n\xEE\x84\x80\xEE\x84\x80\n\xC2\xA7" "8minecraft:shield") == std::vector<HoverLine>{{"Durability: 336 / 336", '7'}, {"minecraft:shield", '8'}}
               && hoverLines("a\n\xC2\xA7" "9\xC2\xA7" "oStorage\n\xC2\xA7" "rplain").back() == HoverLine{"plain", 0}
               && hoverLines("a\n\xC2\xA7" "9\xC2\xA7" "oStorage").front() == HoverLine{"Storage", '9'}
               && hoverLines("Name only").empty() && hoverLines("a\nb\nc\nd", 2).size() == 2,
               "an item's hover text gives its lines under the name with the color they start in, without empty lines and icon glyphs");
-        check(steppedWanted(1, true, 64, true) == 64 && steppedWanted(64, true, 64, true) == 128 && steppedWanted(70, false, 64, true) == 64
-              && steppedWanted(64, false, 64, true) == 1 && steppedWanted(20, false, 16, true) == 16 && steppedWanted(3, true, 1, true) == 4,
+        check(steppedWanted(1, true, 64) == 64 && steppedWanted(64, true, 64) == 128 && steppedWanted(70, false, 64) == 64
+              && steppedWanted(64, false, 64) == 1 && steppedWanted(20, false, 16) == 16 && steppedWanted(3, true, 1) == 4,
               "a step of several lands on its multiples, so Shift gives whole stacks");
     }
     {

@@ -131,6 +131,14 @@ Every control comes from the shared widgets (`Widgets.h`, `ListViewWidgets.h`).
 A control a screen needs and they lack is added there, and specified here in
 the same commit. A screen never draws its own variant.
 
+On a window of the game's grey (`windowPanel`, drawn inside `OnWindow`) the
+shared controls take the game's look, so they sit in it as its own do
+(maintainer 2026-11-19, L-367): buttons are raised (`raisedBox`: black edge,
+white light, grey shadow) with dark text, one that is on keeps its green
+face; tabs as below; a switch's empty track is the game's lighter grey with a
+black edge; a stepper has raised ends and its value in the slots' grey.
+Elsewhere they keep Lamium's dark look.
+
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.
 - **One of several** (`drawTab`, `tabRule`; decided 2026-11-19 from
@@ -138,8 +146,9 @@ the same commit. A screen never draws its own variant.
   names side by side over a rule as wide as what they switch. On a dark
   Lamium panel the chosen one stands on a faint accent face over an
   accent bar, the settings sidebar's selected row turned sideways. On a
-  window of the game's grey, where that face does not sit well, it is
-  dark over a thick accent line and the names are divided by thin lines.
+  window of the game's grey they are the game's tabs: blocks in a darker
+  grey with a gap between, the chosen one in the window's grey and joined
+  to it through the rule (L-367).
   Where the names do not fit, each is an item's picture, named under the
   pointer. Used in Recipes, on the Schematics screen's tabs and for the
   world map's dimensions. The Check tab's

@@ -209,11 +209,16 @@ void removeWanted(std::string const& key) {
 }
 void stepWanted(std::string const& key, bool up, bool shift, bool button) {
     followWorld();
-    if (!list.has(key)) return;
+    if (!list.listed(key)) return;
     Count const stack = static_cast<Count>(std::max(1, schematic::items::shown(key).stack));
-    if (Count const next = steppedWanted(list.count(key), up, shift ? stack : 1, button)) list.set(key, next);
-    else list.remove(key);
+    if (Count const next = steppedWanted(list.count(key), up, shift ? stack : 1)) list.set(key, next);
+    else if (button) list.remove(key);
+    else list.zero(key);
     writeWanted();
+}
+void settleWanted(std::string_view keep) {
+    followWorld();
+    if (list.settle(keep)) writeWanted();
 }
 void setChoice(std::string const& item, std::string const& recipe) {
     readNotes();

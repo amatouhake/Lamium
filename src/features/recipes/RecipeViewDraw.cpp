@@ -77,6 +77,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     float const coverLeft = input.coverRight > input.coverLeft ? std::min(l.left, input.coverLeft) : l.left;
     float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
+    OnWindow const onWindowScope;
     // The heading has the first line to itself: the item's name is what the view is about. The item's two
     // switches stand at the right end of the stations' line, the pager left of them.
     float headEnd = l.left + l.width - 5;
@@ -126,6 +127,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     // Stations are tabs, each by its block's icon and named under the pointer; the pager keeps the line's right end.
     float x = l.left + 5;
     float const tabY = l.top + 16, tabEnd = headEnd - 36;
+    tabRule(context, l.left + 5, tabY + tabHeight, l.width - 10, true);
     for (size_t i = 0; i < tabs.size(); ++i) {
         std::string name = stationName(tabs[i].station);
         auto const picture = stationItem(tabs[i].station);
@@ -137,13 +139,12 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         bool const selected = static_cast<int>(i) == at.tab;
         if (stack) {
             drawTab(context, x, tabY, w, {}, selected, hot, i == 0, true);
-            late.icons.push_back({stack, x + 3, tabY - .5f, .625f});
+            late.icons.push_back({stack, x + 2.5f, tabY + .5f, .625f});
             if (hot) late.tip = std::move(name);
         } else drawTab(context, x, tabY, w, std::move(name), selected, hot, i == 0, true);
         regions.push_back(region);
         x += w;
     }
-    tabRule(context, l.left + 5, tabY + tabHeight, l.width - 10, true);
     if (pages > 1) windowLabel(context, headEnd - 40, tabY + 2, 36, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(

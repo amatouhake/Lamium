@@ -18,20 +18,29 @@ void box(MinecraftUIRenderContext& context, float x, float y, float w, float h, 
     if (hovered) fill(context,x,y,w,h,palette::white,.1f);
     frame(context,x,y,w,h,edge);
 }
-void centered(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, Rgb color) {
-    label(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),color,Align::Center);
+void centered(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, Rgb color, bool shadow = true) {
+    labelScaled(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),1.f,color,Align::Center,shadow);
 }
 }
 Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool hovered, ButtonKind kind,
                   bool enabled) {
     bool primary = enabled && kind == ButtonKind::Primary;
+    if (onWindow()) {
+        // The game's raised button; one that is on keeps its green face, with its text white.
+        namespace v = palette::vanilla;
+        raisedBox(context,x,y,w,h,primary ? palette::accentDeep : v::window,primary ? palette::accent : v::windowLight,
+                  primary ? palette::shade : v::buttonShadow);
+        if (enabled && hovered) fill(context,x+1,y+1,w-2,h-2,palette::white,primary ? .12f : .3f);
+        return !enabled ? v::windowFaint : primary ? palette::text : v::windowInk;
+    }
     box(context,x,y,w,h,enabled && hovered,primary ? palette::accentDeep : palette::keyFill,primary ? palette::accent : palette::keyEdge);
     return enabled ? palette::text : palette::faint;
 }
 void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                 bool hovered, ButtonKind kind, bool enabled) {
     Rgb color = drawButtonBox(context,x,y,w,h,hovered,kind,enabled);
-    centered(context,x,y,w,h,std::move(text),color);
+    // Dark text on the game's grey has no shadow, as the window's own text.
+    centered(context,x,y,w,h,std::move(text),color,!onWindow() || (enabled && kind == ButtonKind::Primary));
 }
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed) {
@@ -192,7 +201,30 @@ void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, 
 void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w, float h, bool numeric, std::string text,
                  StepperLook const& look) {
     float aw = look.cell, textY = top + (h - 10) / 2 + boxTextInset();
-    Rgb ink = look.warn ? palette::warning : look.ink;
+    Rgb ink = look.warn ? palette::warning : look.dimValue ? palette::faint : look.ink;
+    if (onWindow()) {
+        // On the game's window: two raised end buttons and the value in a cell of the slots' grey, white.
+        namespace v = palette::vanilla;
+        int hotEnd = look.hot;
+        if (!hotEnd && look.pointerY >= top && look.pointerY < top + h) {
+            if (look.pointerX >= x && look.pointerX < x + aw) hotEnd = -1;
+            else if (look.pointerX >= x + w - aw && look.pointerX < x + w) hotEnd = 1;
+        }
+        fill(context,x+aw,top,w-2*aw,h,v::slot);
+        frame(context,x+aw-1,top,w-2*aw+2,h,look.editing ? palette::accent : look.warn ? palette::warning : v::windowEdge);
+        for (int side = 0; side < 2; ++side) {
+            float cx = side ? x + w - aw : x;
+            bool enabled = side ? look.highEnabled : look.lowEnabled;
+            raisedBox(context,cx,top,aw,h,v::window,v::windowLight,v::buttonShadow);
+            if (enabled && hotEnd == (side ? 1 : -1)) fill(context,cx+1,top+1,aw-2,h-2,palette::white,.3f);
+            Rgb mark = enabled ? v::windowInk : v::windowFaint;
+            if (numeric) labelScaled(context,cx,textY-1,aw,side ? "+" : "-",1.f,mark,Align::Center,false);
+            else arrow(context,cx+std::floor((aw-3)/2),top+std::floor((h-5)/2),side == 0,mark);
+        }
+        if (look.editing) drawEditField(context,x+aw+1,top+(h-12)/2,12,w-2*aw-2,*look.editing,Align::Center,ink);
+        else label(context,x+aw+1,textY,w-2*aw-2,std::move(text),look.dimValue ? v::windowFaint : ink,Align::Center);
+        return;
+    }
     int hot = look.hot;
     if (!hot && look.pointerY >= top && look.pointerY < top + h) {
         if (look.pointerX >= x && look.pointerX < x + aw) hot = -1;

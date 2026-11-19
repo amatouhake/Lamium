@@ -81,15 +81,28 @@ struct Wanted {
         return 0;
     }
     bool has(std::string_view key) const { return count(key) > 0; }
+    // In the list, also at 0: the wheel took it down to 0, and it stays shown until the pointer leaves it
+    // (settle), so a turn too far can be taken back. The plan and the saved file leave such an item out.
+    bool listed(std::string_view key) const {
+        return std::any_of(targets.begin(), targets.end(), [&](auto const& target) { return target.first == key; });
+    }
     void remove(std::string const& key) {
         auto found = std::find_if(targets.begin(), targets.end(), [&](auto const& target) { return target.first == key; });
         if (found == targets.end()) return;
-        remembered[key] = found->second;
+        if (found->second > 0) remembered[key] = found->second;
         targets.erase(found);
     }
-    // In with the count it had before, or one; out when it is in.
+    void zero(std::string const& key) {
+        for (auto& [name, held] : targets) if (name == key) { if (held > 0) remembered[key] = held; held = 0; return; }
+    }
+    // Items at 0 go out, but `keep` (the one under the pointer). True when one went.
+    bool settle(std::string_view keep) {
+        return std::erase_if(targets, [&](auto const& target) { return target.second == 0 && target.first != keep; }) > 0;
+    }
+    // In with the count it had before, or one; out when it is in; back to that count when it is at 0.
     void toggle(std::string const& key) {
         if (has(key)) { remove(key); return; }
+        if (listed(key)) { auto before = remembered.find(key); set(key, before == remembered.end() ? Count{1} : before->second); return; }
         if (key.empty() || targets.size() >= 512) return;
         auto before = remembered.find(key);
         targets.emplace_back(key, before == remembered.end() ? Count{1} : before->second);
@@ -100,13 +113,14 @@ struct Wanted {
         if (!key.empty() && targets.size() < 512) targets.emplace_back(key, amount);
     }
 };
-// A wanted item's count after its stepper moved: 0 takes the item out. Only the minus button at one
-// does that; the wheel and a step of several stop at one. A step of several (Shift: the item's stack)
-// goes to the next multiple of it, so 1 becomes 64 and 128, not 65 and 129.
-inline Count steppedWanted(Count now, bool up, Count step, bool button) {
+// A wanted item's count after its stepper moved. Down from one is 0: the minus button takes the item out
+// at once, the wheel leaves it at 0 until the pointer leaves it (Wanted::zero). A step of several (Shift:
+// the item's stack) goes to the next multiple of it, so 1 becomes 64 and 128, not 65 and 129, and down
+// stops at one before 0.
+inline Count steppedWanted(Count now, bool up, Count step) {
     step = std::max<Count>(step, 1);
     if (up) return std::min<Count>((now / step + 1) * step, Wanted::most);
-    if (now <= 1) return button ? 0 : 1;
+    if (now <= 1) return 0;
     return std::max<Count>((now - 1) / step * step, 1);
 }
 // A target a feature handed over (a schematic's materials still to place): what, how many and whose it

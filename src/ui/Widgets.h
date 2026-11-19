@@ -52,6 +52,9 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     windowEdge{0,0,0}, windowLight{1,1,1}, windowShadow{.333f,.333f,.333f},
     // The item tooltip: its opaque fill and the purple line inside its edge (L-366).
     tooltipFill{.106f,.047f,.106f}, tooltipLine{.173f,.031f,.388f},
+    // The game's controls on its window (L-367): a raised button's shadow, a switch's empty track, a tab
+    // not chosen and the light along its top.
+    buttonShadow{.392f,.392f,.392f}, switchTrack{.498f,.498f,.498f}, tabBack{.384f,.384f,.384f}, tabRim{.769f,.769f,.769f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
     // red the recipe book gives what cannot be made.
     slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.82f,.33f,.33f},
@@ -103,6 +106,18 @@ struct DrawOpacity {
     DrawOpacity(DrawOpacity const&) = delete;
     DrawOpacity& operator=(DrawOpacity const&) = delete;
 };
+// Inside the scope the shared controls (buttons, tabs, switches, steppers) are drawn for a window of the
+// game's grey (windowPanel) as the game draws its own there (L-367): raised buttons with dark text, an on
+// button keeping its green face; tabs that are blocks, the chosen one joined to the window below; a lighter
+// switch track. Outside, they keep Lamium's dark look.
+bool onWindow();
+struct OnWindow {
+    bool previous;
+    OnWindow();
+    ~OnWindow();
+    OnWindow(OnWindow const&) = delete;
+    OnWindow& operator=(OnWindow const&) = delete;
+};
 
 // Coordinates use the game's GUI units. Widgets borrow the render context only
 // for this call; screens retain navigation and input ownership themselves.
@@ -148,6 +163,9 @@ void windowPanel(MinecraftUIRenderContext&, float left, float top, float width, 
 // The game's item tooltip box (VanillaFrame.h: text 6 units in, 5 down, 10 a line), opaque, for an item
 // Lamium shows in place of a slot of the game's.
 void gameTooltipBox(MinecraftUIRenderContext&, float x, float y, float width, float height);
+// The game's raised button shape: a black edge, `light` along the top and left inside it, `shadow` along
+// the bottom and right, `face` inside.
+void raisedBox(MinecraftUIRenderContext&, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow);
 void windowLabel(MinecraftUIRenderContext&, float x, float y, float width, std::string text, bool faint = false,
                  Align align = Align::Left);
 // HUD card: the panel fill with corners stepped by one GUI pixel, like
@@ -167,9 +185,10 @@ void windowSlot(MinecraftUIRenderContext&, float x, float y, bool hovered = fals
 // One of several, chosen (decided 2026-11-19, demos/switching-controls-2.html): names side by side with
 // no gap over a rule (tabRule) as wide as what they switch. On a dark Lamium panel the chosen one stands
 // on a faint accent face over an accent bar, as the settings sidebar's selected row does; on a window of
-// the game's grey (`window`), where that face does not sit well, it is dark over a thick accent line and
-// the names are divided by thin lines (`first` has none at its left). The others are dim and lighten
-// under the pointer; none is a filled button, so a strip is not mistaken for actions. Without a text the
+// the game's grey (`window`, or inside OnWindow) they are the game's tabs instead: blocks in a darker grey
+// side by side, the chosen one in the window's grey and joined to it through the rule under them (draw
+// the rule first). On the dark panel the others are dim and lighten under the pointer; none is a filled
+// button, so a strip is not mistaken for actions. Without a text the
 // tab is an icon's place and the caller draws the icon. Height 11 like a button.
 inline constexpr float tabHeight = 11, tabPad = 9, tabIconWidth = 16;
 void drawTab(MinecraftUIRenderContext&, float x, float y, float w, std::string text, bool selected, bool hovered, bool first,

@@ -161,9 +161,12 @@ after using the first build. What is still open is in the L-item.
   wheel). An item taken out keeps its count until the world is left.
   The short list then shows the wanted items, so what went in is seen.
 - A wanted item's count is changed with the shared stepper (- N +), on the
-  short list and in the window alike: minus at one takes the item out (the
-  wheel and a Shift step stop at one; Shift steps to the next multiple
-  of the item's stack, 1 to 64 to 128), and a press on the number types it
+  short list and in the window alike: minus at one takes the item out at
+  once; the wheel (also with the wanted key held over the list) takes it
+  to 0, shown faint, and it goes out once the pointer leaves its row or
+  the key is up, so a turn too far can be turned back (maintainer
+  2026-11-19, L-367). A Shift step stops at one; Shift steps to the next
+  multiple of the item's stack, 1 to 64 to 128. A press on the number types it
   (Enter or a press elsewhere keeps it, Esc does not; 0 takes the item
   out).
 - Picking a member for a group and saying that an item is gathered, not

@@ -326,7 +326,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // The wanted key held: each notch of the wheel steps the item's count; released without one, an item
     // that was wanted before the press goes out.
-    if (input.wantedTurns && !wantedItem.empty() && state::wanted().has(wantedItem)) {
+    if (input.wantedTurns && !wantedItem.empty() && state::wanted().listed(wantedItem)) {
         for (int i = 0; i < std::abs(input.wantedTurns) && i < 64; ++i) state::stepWanted(wantedItem, input.wantedTurns < 0, shiftHeld.load(), false);
         wantedLeaves = false;
     }
@@ -556,7 +556,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 float const sx = end - stepperWidth;
                 ListBox const box{sx, y + 1, stepperWidth, 10};
                 drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(row.count),
-                            {.editing = countEdit::editing(row.key), .pointerX = px, .pointerY = py});
+                            {.editing = countEdit::editing(row.key), .pointerX = px, .pointerY = py, .dimValue = row.count == 0});
                 if (leftPress && took({sx, y + 1, 11, 10})) state::stepWanted(row.key, false, shiftHeld.load(), true);
                 else if (leftPress && took({sx + stepperWidth - 11, y + 1, 11, 10})) state::stepWanted(row.key, true, shiftHeld.load(), true);
                 else if (leftPress && took(box)) countEdit::begin(row.key, row.count);
@@ -677,6 +677,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                     open ? palette::vanilla::windowFaint : palette::dim, Align::Center, !open);
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
+    // An item the wheel took to 0 goes out once the pointer has left it (or the wanted key is up).
+    state::settleWanted(wantedHeld.load() ? std::string_view(wantedItem) : !late.wantedRow.empty() ? std::string_view(late.wantedRow) : std::string_view(hoverItem));
     std::string tipItem;
     // Under an open window, as wide as it is drawn, the game's slots are covered: they name no item.
     bool const covered = open && px >= coverLeft && px < right && py >= viewLayout.top && py < viewLayout.top + viewLayout.height;

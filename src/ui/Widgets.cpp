@@ -36,6 +36,7 @@ namespace {
 constexpr mce::Color white{1.f,1.f,1.f,1.f};
 mce::Color color(Rgb value) { return {value.r, value.g, value.b, 1.f}; }
 float currentScale = 1, currentOpacity = 1;
+bool currentOnWindow = false;
 Font& defaultFont(MinecraftUIRenderContext& context) {
     return fontOf(context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default"));
 }
@@ -50,6 +51,9 @@ DrawOpacity::DrawOpacity(float opacity) : previous(currentOpacity) {
     currentOpacity = std::isfinite(opacity) ? std::clamp(opacity, 0.f, 1.f) * previous : previous;
 }
 DrawOpacity::~DrawOpacity() { currentOpacity = previous; }
+bool onWindow() { return currentOnWindow; }
+OnWindow::OnWindow() : previous(std::exchange(currentOnWindow, true)) {}
+OnWindow::~OnWindow() { currentOnWindow = previous; }
 namespace {
 // Characters the font measures 0 wide (TextFit.h, labelRuns): each is
 // measured once per font and remembered.
@@ -226,6 +230,15 @@ void windowPanel(MinecraftUIRenderContext& context, float left, float top, float
         fill(context, r.x, r.y, r.w, r.h, color);
     }
 }
+void raisedBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow) {
+    if (w < 3 || h < 3) return;
+    fill(context, x, y, w, h, face);
+    fill(context, x + 1, y + 1, w - 2, 1, light);
+    fill(context, x + 1, y + 2, 1, h - 3, light);
+    fill(context, x + 1, y + h - 2, w - 2, 1, shadow);
+    fill(context, x + w - 2, y + 2, 1, h - 4, shadow);
+    frame(context, x, y, w, h, palette::vanilla::windowEdge);
+}
 void gameTooltipBox(MinecraftUIRenderContext& context, float x, float y, float width, float height) {
     for (auto const& r : vanilla_frame::tooltip(x, y, width, height))
         fill(context, r.x, r.y, r.w, r.h, r.part == vanilla_frame::Part::Border ? palette::vanilla::tooltipLine : palette::vanilla::tooltipFill);
@@ -323,12 +336,21 @@ void windowSlot(MinecraftUIRenderContext& context, float x, float y, bool hovere
     if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .3f);
 }
 void drawTab(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool selected, bool hovered, bool first, bool window) {
-    if (window) {
-        if (!first) fill(context, x, y + 2, .5f, tabHeight - 4, palette::vanilla::windowFaint, .7f);
-        if (hovered && !selected) fill(context, x, y, w, tabHeight, palette::shade, .08f);
-        if (selected) fill(context, x, y + tabHeight - 1.5f, w, 1.5f, palette::accentDeep);
+    if (window || onWindow()) {
+        // A block a unit narrower than its place, so neighbours keep a gap as the game's tabs do. The chosen
+        // one reaches over the rule (2 units) into the window.
+        namespace v = palette::vanilla;
+        float const bw = std::max(3.f, w - 1), h = selected ? tabHeight + 2 : tabHeight;
+        fill(context, x, y, bw, h, selected ? v::window : v::tabBack);
+        if (hovered && !selected) fill(context, x + 1, y + 1, bw - 2, tabHeight - 1, palette::white, .15f);
+        fill(context, x + 1, y + 1, bw - 2, 1, selected ? v::windowLight : v::tabRim);
+        if (selected) fill(context, x + 1, y + 2, 1, h - 2, v::windowLight);
+        fill(context, x, y, bw, 1, v::windowEdge);
+        fill(context, x, y + 1, 1, h - 1, v::windowEdge);
+        fill(context, x + bw - 1, y + 1, 1, h - 1, v::windowEdge);
         if (!text.empty())
-            labelScaled(context, x, y + boxTextInset(), w, std::move(text), 1.f, selected ? palette::shade : palette::vanilla::windowFaint, Align::Center, false);
+            labelScaled(context, x, y + 1 + boxTextInset(), bw, std::move(text), 1.f, selected ? v::windowInk : palette::text, Align::Center, !selected);
+        (void)first;
         return;
     }
     if (selected) {
@@ -338,7 +360,13 @@ void drawTab(MinecraftUIRenderContext& context, float x, float y, float w, std::
     if (!text.empty()) label(context, x, y + boxTextInset(), w, std::move(text), selected ? palette::text : palette::dim, Align::Center);
 }
 void tabRule(MinecraftUIRenderContext& context, float x, float y, float w, bool window) {
-    fill(context, x, y, w, .5f, window ? palette::vanilla::windowFaint : palette::white, window ? 1.f : .22f);
+    if (window || onWindow()) {
+        // The window's own top edge under the tabs: black, then its light.
+        fill(context, x, y, w, 1, palette::vanilla::windowEdge);
+        fill(context, x, y + 1, w, 1, palette::vanilla::windowLight);
+        return;
+    }
+    fill(context, x, y, w, .5f, palette::white, .22f);
 }
 void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
     fill(context, x + 1, y + 1, 16, 16, palette::keyFill, .9f);
@@ -350,8 +378,10 @@ void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string 
 void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on, float scale) {
     if (!(scale > 0)) scale = 1;
     float const w = switchWidth * scale, h = switchHeight * scale;
-    fill(context,x,y,w,h,on ? palette::accentDeep : palette::off);
-    frame(context,x,y,w,h,on ? palette::accent : palette::controlEdge);
+    // On the game's window the empty track is the game's lighter grey and the edge black, as its controls'.
+    bool const light = onWindow();
+    fill(context,x,y,w,h,on ? palette::accentDeep : light ? palette::vanilla::switchTrack : palette::off);
+    frame(context,x,y,w,h,light ? palette::vanilla::windowEdge : on ? palette::accent : palette::controlEdge);
     float knob = h - 2;
     float knobX = on ? x + w - 1 - knob : x + 1;
     fill(context,knobX,y+1,knob,knob,on ? palette::knobOn : palette::knobOff);

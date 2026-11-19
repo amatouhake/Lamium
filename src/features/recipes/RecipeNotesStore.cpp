@@ -47,7 +47,7 @@ Notes decodeNotes(std::string_view document) {
 }
 std::string encodeWanted(Wanted const& wanted) {
     Json targets = Json::array();
-    for (auto const& [key, amount] : wanted.targets) targets.push_back({{"item", key}, {"count", amount}});
+    for (auto const& [key, amount] : wanted.targets) if (amount > 0) targets.push_back({{"item", key}, {"count", amount}});
     return Json{{"version", 1}, {"wanted", std::move(targets)}}.dump(2);
 }
 Wanted decodeWanted(std::string_view document) {
