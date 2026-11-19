@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Recipe windows and item tips drawn as the game's (L-366, 2026-11-19)
+
+Build `f7077e3f` (DLL
+`5836d6cbe547c3dad04ce56d788351cfe4f68cf32d60b2d132a9970ee96eccbb`),
+1.26.60.05 Dev instance, the maintainer: the recipe view's and the wanted
+window's edge and corners look like the chest window beside them. A listed
+item's tip is nearly the game's, but its upper right and lower left
+corners are less round, its text starts one unit right of the game's, and
+colored lines (Storage, blue in the game) were grey. The key hint on the
+open window's last line ran into its lower edge. All four fixed in the
+next build from PNGs of both tips, not yet seen.
+
 ## Recipe bands and anvil panels fade in place (L-366, 2026-11-19)
 
 Build `bdd589af` (DLL

@@ -218,7 +218,7 @@ void recipeIndexTests() {
         auto view = recipeViewAt(640, 360);
         check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,
               "the arrow and the product stand at the grid's middle, the small mark under them");
-        check(view.left == 210 && view.top == 4 && view.height == 336 && view.hintY() == 329, "the view is centred, two columns wide, down to the search field's place");
+        check(view.left == 210 && view.top == 4 && view.height == 336 && view.hintY() == 327, "the view is centred, two columns wide, down to the search field's place");
         check(view.rows(Station::Crafting) == 5 && view.columns(Station::Crafting, 5) == 1 && view.columns(Station::Crafting, 6) == 2
               && view.pages(Station::Crafting, 11) == 2, "rows fill the height; a second column and page come when needed");
         // Laying a recipe into the grid from what is carried.
@@ -324,9 +324,11 @@ void recipeIndexTests() {
         check(steppedWanted(1, false, 1, true) == 0 && steppedWanted(1, false, 16, false) == 1 && steppedWanted(5, false, 1, true) == 4
               && steppedWanted(9, false, 16, true) == 1 && steppedWanted(Wanted::most, true, 16, true) == Wanted::most,
               "only the minus button at one takes a wanted item out; steps stop at one and at the most");
-        check(hoverLines("Shield\n\xC2\xA7" "7Durability: 336 / 336\n\n\xEE\x84\x80\xEE\x84\x80\n\xC2\xA7" "8minecraft:shield") == std::vector<std::string>{"Durability: 336 / 336", "minecraft:shield"}
+        check(hoverLines("Shield\n\xC2\xA7" "7Durability: 336 / 336\n\n\xEE\x84\x80\xEE\x84\x80\n\xC2\xA7" "8minecraft:shield") == std::vector<HoverLine>{{"Durability: 336 / 336", '7'}, {"minecraft:shield", '8'}}
+              && hoverLines("a\n\xC2\xA7" "9\xC2\xA7" "oStorage\n\xC2\xA7" "rplain").back() == HoverLine{"plain", 0}
+              && hoverLines("a\n\xC2\xA7" "9\xC2\xA7" "oStorage").front() == HoverLine{"Storage", '9'}
               && hoverLines("Name only").empty() && hoverLines("a\nb\nc\nd", 2).size() == 2,
-              "an item's hover text gives its lines under the name, without color codes, empty lines and icon glyphs");
+              "an item's hover text gives its lines under the name with the color they start in, without empty lines and icon glyphs");
         check(steppedWanted(1, true, 64, true) == 64 && steppedWanted(64, true, 64, true) == 128 && steppedWanted(70, false, 64, true) == 64
               && steppedWanted(64, false, 64, true) == 1 && steppedWanted(20, false, 16, true) == 16 && steppedWanted(3, true, 1, true) == 4,
               "a step of several lands on its multiples, so Shift gives whole stacks");

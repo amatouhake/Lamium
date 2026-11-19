@@ -23,20 +23,23 @@ inline std::vector<Rect> window(float x, float y, float w, float h) {
     };
 }
 
-// The item tooltip: opaque dark fill with rounded corners and a purple line
-// one unit in from its edge.
+// The item tooltip: opaque dark fill with a purple line one unit in from
+// its edge. Its upper left and lower right corners are rounded by one step,
+// its upper right and lower left by a two-unit diagonal, as the game's are.
 inline std::vector<Rect> tooltip(float x, float y, float w, float h) {
-    if (w < 5 || h < 5) return {{x, y, w, h, Part::Fill}};
+    if (w < 8 || h < 8) return {{x, y, w, h, Part::Fill}};
     auto r = [&](float rx, float ry, float rw, float rh, Part part) { return Rect{x + rx, y + ry, rw, rh, part}; };
     return {
-        r(2, 0, w - 4, h, Part::Fill), r(0, 2, w, h - 4, Part::Fill), r(1, 1, w - 2, h - 2, Part::Fill),
-        r(2, 1, w - 4, 1, Part::Border), r(2, h - 2, w - 4, 1, Part::Border), r(1, 2, 1, h - 4, Part::Border), r(w - 2, 2, 1, h - 4, Part::Border),
+        r(2, 0, w - 5, 1, Part::Fill), r(1, 1, w - 3, 1, Part::Fill), r(0, 2, w - 1, 1, Part::Fill), r(0, 3, w, h - 6, Part::Fill),
+        r(1, h - 3, w - 1, 1, Part::Fill), r(2, h - 2, w - 3, 1, Part::Fill), r(3, h - 1, w - 5, 1, Part::Fill),
+        r(2, 1, w - 5, 1, Part::Border), r(w - 4, 2, 2, 1, Part::Border), r(w - 3, 3, 2, 1, Part::Border), r(w - 2, 4, 1, h - 6, Part::Border),
+        r(1, 2, 1, h - 5, Part::Border), r(2, h - 4, 1, 1, Part::Border), r(2, h - 3, 2, 1, Part::Border), r(3, h - 2, w - 5, 1, Part::Border),
     };
 }
 // Where the tooltip's text starts inside it, and its size around text of
-// the given width and lines (the game's: 6 units left, 5 above and below a
-// line, 10 units a line).
-inline constexpr float tooltipTextLeft = 6, tooltipTextTop = 5, tooltipLine = 10;
+// the given width and lines (the game's: 5 units on each side, 10 units a
+// line).
+inline constexpr float tooltipTextLeft = 5, tooltipTextTop = 5, tooltipLine = 10;
 inline constexpr float tooltipWidth(float textWidth) { return textWidth + 2 * tooltipTextLeft; }
 inline constexpr float tooltipHeight(int lines) { return 2 * tooltipTextTop - 2 + tooltipLine * static_cast<float>(lines); }
 }

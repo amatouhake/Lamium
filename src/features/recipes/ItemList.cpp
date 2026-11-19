@@ -721,7 +721,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.
         bool const item = !tipItem.empty();
         static std::string detailsOf;
-        static std::vector<std::string> details;
+        static std::vector<HoverLine> details;
         if (item && tipItem != detailsOf) {
             detailsOf = tipItem;
             details.clear();
@@ -730,11 +730,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
                     details = hoverLines(stack->getFormattedHovertext(player->getLevel(), false).mUnredactedString);
             } catch (...) { details.clear(); }
         }
-        std::vector<std::string> const none;
+        std::vector<HoverLine> const none;
         auto const& more = item ? details : none;
         float w = textWidth(context, late.tip);
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
-        for (auto const& line : more) w = std::max(w, textWidth(context, line));
+        for (auto const& line : more) w = std::max(w, textWidth(context, line.text));
         int const lines = 1 + static_cast<int>(late.tipLines.size() + more.size());
         // An item's tip is the game's tooltip box (VanillaFrame.h); other tips are Lamium's, two units under
         // the last line so letters that reach below it (p, y) stay inside the frame.
@@ -750,7 +750,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         label(context, x + inset, y + top, w - 2 * inset, late.tip);
         float line = y + top + 10;
         for (auto const& text : late.tipLines) label(context, x + inset, line, w - 2 * inset, text, palette::dim), line += 10;
-        for (auto const& text : more) label(context, x + inset, line, w - 2 * inset, text, palette::faint), line += 10;
+        // The game's lines in the game's colors; a line without a color is white, as in the game's tooltip.
+        for (auto const& text : more) label(context, x + inset, line, w - 2 * inset, text.text, item ? palette::vanilla::textCode(text.color) : palette::faint), line += 10;
         context.flushText(0, std::nullopt);
     }
     return true;

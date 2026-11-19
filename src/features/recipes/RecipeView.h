@@ -113,8 +113,9 @@ struct RecipeViewLayout {
         return top + head + static_cast<float>(columns(station, count) == 1 ? i : i / 2) * blockHeight(station);
     }
     bool has(float x, float y) const { return x >= left && x < left + width && y >= top && y < top + height; }
-    // The key hints' line: the window's last, and the same place while it is closed.
-    float hintY() const { return top + height - 11; }
+    // The key hints' line: the window's last, and the same place while it is closed; clear of the
+    // window's three-unit edge below it (it reaches into the last row's spacing, which a block never fills).
+    float hintY() const { return top + height - 13; }
 };
 // The window ends 4 above the search field.
 inline RecipeViewLayout recipeViewAt(float screenWidth, float screenHeight) {

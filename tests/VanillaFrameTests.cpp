@@ -32,15 +32,19 @@ void vanillaFrameTests() {
               "  #ddddddd# ",
               "   #######  ",
           }, "the window's edge, light, shadow and cut corners are the game's");
-    auto const tooltip = raster(lamium::ui::vanilla_frame::tooltip(0, 0, 8, 7), 8, 7);
+    // A 10x10 tooltip, as the game's measured (2026-11-19): upper right and lower left rounder.
+    auto const tooltip = raster(lamium::ui::vanilla_frame::tooltip(0, 0, 10, 10), 10, 10);
     check(tooltip == std::vector<std::string>{
-              "  ....  ",
-              " .PPPP. ",
-              ".P....P.",
-              ".P....P.",
-              ".P....P.",
-              " .PPPP. ",
-              "  ....  ",
-          }, "the tooltip's rounded fill and purple line are the game's");
-    check(tooltipHeight(1) == 18 && tooltipWidth(10) == 22, "one line of tooltip text sits in the game's 18 units");
+              "  .....   ",
+              " .PPPPP.  ",
+              ".P....PP. ",
+              ".P.....PP.",
+              ".P......P.",
+              ".P......P.",
+              ".PP.....P.",
+              " .PP....P.",
+              "  .PPPPP. ",
+              "   .....  ",
+          }, "the tooltip's fill, purple line and corners are the game's");
+    check(tooltipHeight(1) == 18 && tooltipWidth(10) == 20, "one line of tooltip text sits in the game's 18 units");
 }

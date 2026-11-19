@@ -111,7 +111,7 @@ is drawn with `windowPanel`, opaque, as the game draws its own window
 from the game), its text with `windowLabel` (dark, no shadow); the buttons,
 slots and fields on it are the shared dark ones. An item Lamium shows in a
 slot's stead has the game's tooltip box (`gameTooltipBox`: `tooltipFill`,
-`tooltipLine`). These screens copy the game fully or not at all: half a copy
+`tooltipLine`) and its lines in the game's colors (`textCode`). These screens copy the game fully or not at all: half a copy
 reads as neither (maintainer 2026-11-19, L-366).
 Text shadow comes from `labelScaled`, not a token.
 
