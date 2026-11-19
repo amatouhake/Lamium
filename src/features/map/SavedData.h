@@ -35,7 +35,9 @@ struct SavedData {
     struct User { std::string host; int port = 0; bool anyPort = false; };
     std::vector<User> users;
     bool canUse = false, canDelete = false;
-    bool unsplit = false; // "Do not split here" was chosen for the worlds behind this data (L-365).
+    // The worlds behind this data's identity are told apart (L-365): off is "Do not split here". A server's, a
+    // Realm's or a friend's world's data only.
+    bool splittable = false, split = true;
 };
 inline constexpr size_t savedMarks = 5, savedDots = 64, savedDataLimit = 300;
 // Reads the folders: call when the page opens and after a change, not every frame.
@@ -68,8 +70,9 @@ bool takeWorldToast();
 // world here from now on. The answer is remembered for this world.
 enum class WorldAnswer { Keep, New, UseOther, NoSplit };
 bool answerWorld(WorldAnswer);
-// Undoes "Do not split here" for this data's worlds: from the next join they are told apart and asked again.
-bool splitAgain(std::string const& key);
+// The worlds behind this data's identity told apart (on) or one data for all ("Do not split here"), at once for the
+// joined world when it is that identity's.
+bool setDataSplit(std::string const& key, bool on);
 // Merges a server data into the data in use (L-343 part 4, DataMerge.h): waypoints, placements and shapes at once, the
 // map after, a few regions per frame (stepMerge). The other data stays as it was; the death layout in use stays.
 struct MergeStart {

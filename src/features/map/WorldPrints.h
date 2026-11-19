@@ -149,9 +149,14 @@ inline std::string noSplit(std::vector<std::string>& unsplit, std::string const&
     if (std::find(unsplit.begin(), unsplit.end(), base) == unsplit.end()) unsplit.push_back(base);
     return base;
 }
-// "Split worlds again": `base` tells its worlds apart from the next join. False when it was not kept together.
+// The Saved data page's switch on: `base` tells its worlds apart again. False when it was not kept together.
 inline bool split(std::vector<std::string>& unsplit, std::string const& base) {
     return std::erase(unsplit, base) > 0;
+}
+// The identity a data set belongs to: a world's own data set (`<base>-w<n>`) its base, any other data itself.
+inline std::string baseOf(std::vector<Row> const& rows, std::string const& key) {
+    auto row = std::find_if(rows.begin(), rows.end(), [&](Row const& r) { return r.key == key; });
+    return row != rows.end() ? row->base : key;
 }
 // The data under `key` was deleted: rows naming it go.
 inline void forget(std::vector<Row>& rows, std::string const& key) {

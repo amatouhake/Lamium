@@ -20,17 +20,17 @@ struct SavedDataLayout {
     float actionsY{}, anyPortY{}, noteY{};
     float useX{}, useWidth{}, deleteX{}, deleteWidth{};
     float mergeX{}, mergeY{}, mergeWidth{};
-    float splitX{}, splitY{}, splitWidth{};
+    float splitY{};
     bool anyPort = false, use = false, remove = false, merge = false, split = false;
     ShapesLayout list;
 
     bool usable() const { return width > 0; }
     // `useWide`, `deleteWide`, `mergeWide`: the buttons' text widths, Delete's and Merge's the longer of their two
     // labels. Merge (L-343 part 4) sits beside Use, or on a row of its own above it when both do not fit.
-    // "Split worlds again" (L-365) takes a row of its own above the other buttons.
+    // The split switch (L-365) is a row like the any-port switch, above it.
     static SavedDataLayout fit(SettingsTable const& t, int count, int first, bool anyPort, bool use, bool remove,
                                float useWide, float deleteWide, bool merge = false, float mergeWide = 0,
-                               bool split = false, float splitWide = 0) {
+                               bool split = false) {
         SavedDataLayout l;
         if (!t.usable()) return l;
         l.left = t.tableLeft; l.width = t.tableWidth;
@@ -64,15 +64,11 @@ struct SavedDataLayout {
         float top = use ? l.actionsY : l.footerTop;
         if (l.merge) top = std::min(top, l.mergeY);
         if (remove) top = l.deleteY;
-        l.split = split;
-        if (split) {
-            l.splitX = l.useX;
-            l.splitWidth = std::min(inner, splitWide);
-            l.splitY = use || remove ? top - buttonHeight - buttonGap : l.actionsY;
-            top = l.splitY;
-        }
         l.anyPortY = top - lineHeight - 2;
-        l.noteY = (anyPort ? l.anyPortY : top) - noteLines * lineHeight - 2;
+        float rows = anyPort ? l.anyPortY : top;
+        l.split = split;
+        if (split) l.splitY = rows = rows - lineHeight - (anyPort ? 0 : 2);
+        l.noteY = rows - noteLines * lineHeight - 2;
         return l;
     }
     float deleteY{};
@@ -90,7 +86,7 @@ struct SavedDataLayout {
         if (use && over(useX, useY(), useWidth, buttonHeight)) return {Zone::Use};
         if (merge && over(mergeX, mergeY, mergeWidth, buttonHeight)) return {Zone::Merge};
         if (remove && over(deleteX, deleteY, deleteWidth, buttonHeight)) return {Zone::Delete};
-        if (split && over(splitX, splitY, splitWidth, buttonHeight)) return {Zone::Split};
+        if (split && over(detailLeft, splitY, detailWidth, lineHeight)) return {Zone::Split};
         return {};
     }
 };

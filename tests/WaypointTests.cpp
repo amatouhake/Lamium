@@ -427,6 +427,10 @@ void worldPrints() {
         auto again = unsplit;
         check(wp::split(again, "srv") && !wp::split(again, "srv") && wp::pick(rows, again, "srv", {8, "Z", 1, true}, exists).asked,
               "splitting again asks about a new world once more, and only a base kept together splits");
+        std::vector<wp::Row> sets{{"realm_5", "realm_5", {1, "A", 0, false}, true, false, {}, 0},
+                                  {"realm_5", "realm_5-w2", {2, "B", 0, false}, true, false, {}, 0}};
+        check(wp::baseOf(sets, "realm_5-w2") == "realm_5" && wp::baseOf(sets, "realm_5") == "realm_5" && wp::baseOf(sets, "other") == "other",
+              "a world's data set switches with its identity, other data with itself");
     }
     wp::forget(rows, "realm_5-w4");
     check(std::none_of(rows.begin(), rows.end(), [](wp::Row const& r) { return r.key == "realm_5-w4"; }), "deleted data leaves no rows");

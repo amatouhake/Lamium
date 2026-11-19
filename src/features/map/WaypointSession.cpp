@@ -600,7 +600,9 @@ std::vector<SavedData> savedData() {
         item.canUse = !item.inUse && joined.active && !identity.local && identity.key
             && (!identity.byAddress() || item.kind == SavedData::Kind::Server);
         item.canDelete = !item.inUse;
-        item.unsplit = std::find(list.unsplit.begin(), list.unsplit.end(), key) != list.unsplit.end();
+        item.splittable = item.kind != SavedData::Kind::Local;
+        auto const base = prints::baseOf(list.prints, key);
+        item.split = std::find(list.unsplit.begin(), list.unsplit.end(), base) == list.unsplit.end();
         items.push_back(std::move(item));
     }
     // Local worlds that have a Lamium folder.
@@ -673,12 +675,28 @@ bool takeWorldToast() {
     std::lock_guard lock(mutex);
     return std::exchange(questionToast, false) && question.has_value();
 }
-bool splitAgain(std::string const& key) {
+bool setDataSplit(std::string const& key, bool on) {
     std::lock_guard lock(mutex);
-    bool split = false;
-    bool const saved = withList([&](servers::List& list) { split = prints::split(list.unsplit, key); });
-    if (!split || !saved) return false;
-    log("worlds behind '" + key + "' are told apart again from the next join");
+    if (!safeKey(key)) return false;
+    std::string base;
+    bool const saved = withList([&](servers::List& list) {
+        base = prints::baseOf(list.prints, key);
+        if (on) prints::split(list.unsplit, base);
+        else prints::noSplit(list.unsplit, base);
+    });
+    if (!saved) return false;
+    log("worlds behind '" + base + "' " + (on ? "are told apart" : "use one data set"));
+    // As the notice's answer does, at once for the joined world: the join's choice again, now with the switch.
+    if (joined.active && !identity.local && identity.base == base) {
+        auto now = dataKey(identity);
+        if (now && now != identity.key) {
+            log("this world now uses the data under '" + *now + "'");
+            identity.key = now;
+            attach();
+        } else {
+            try { suggest(); } catch (...) { fullerFound = {}; }
+        }
+    }
     return true;
 }
 bool answerWorld(WorldAnswer answer) {
