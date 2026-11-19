@@ -142,6 +142,30 @@ struct GridPlacer : view::Placer {
     bool run(int recipe, bool many) override { return place::run(screen, table, recipe, picks, many); }
 };
 bool anyView() { return view::isOpen() || planView::isOpen(); }
+// "Can be made" (L-367): a press lays the item's recipe into the grid as the recipe view's "place" does,
+// with `many` as many as divide evenly: the recipe the player's choices name where it can be laid, else
+// the first crafting recipe that can. False when none can, or the screen has no grid.
+bool placeItem(ScreenView& screen, std::string const& key, bool many, LocalPlayer& player) {
+    int const side = place::gridSide(screen);
+    auto table = service::table();
+    if (!side || !table) return false;
+    auto const& index = table->index;
+    auto const split = splitItemKey(key);
+    Item const id = index.find(split.name, split.aux);
+    if (id < 0 || id >= static_cast<Item>(index.makers.size())) return false;
+    auto const* plan = state::plan(player);
+    GridPlacer placer(screen, table, plan ? plan->request.picks : std::map<int, Item>{}, side);
+    auto const choice = state::choice(table);
+    int const chosen = choice && static_cast<size_t>(id) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(id)] : -1;
+    std::vector<int> order;
+    if (chosen >= 0) order.push_back(chosen);
+    for (int number : index.makers[static_cast<size_t>(id)]) if (number != chosen) order.push_back(number);
+    for (int number : order) {
+        auto const& recipe = index.recipes[static_cast<size_t>(number)];
+        if (recipe.station == Station::Crafting && placer.preview(recipe, false).ready()) return placer.run(number, many);
+    }
+    return false;
+}
 KeptPresses keptButtons, keptKeys; // under shownLock
 // Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
 bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono::milliseconds(300); }
@@ -419,7 +443,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
         viewScreen = screenName;
         pressed = false;
     };
-    if (pressed && hovered >= 0 && first + hovered < count) show(nameAt(hovered));
+    if (pressed && hovered >= 0 && first + hovered < count) {
+        // Under "can be made" a press lays the recipe into the screen's grid, as the game's recipe book does;
+        // where nothing can be laid (no grid, nothing that fits) it shows the recipes as elsewhere.
+        if (filter == Filter::CanMake && leftPress && placeItem(screenView, nameAt(hovered), shiftHeld.load(), *player))
+            pressed = false, view::close(), planView::close();
+        else show(nameAt(hovered));
+    }
     // The left band: favourites above, what is wanted below.
     constexpr float smallIcon = .625f;
     if (side.usable()) {

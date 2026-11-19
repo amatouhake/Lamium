@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe heading's icon and the flat disabled button (L-367, 2026-11-20)
+
+Build `7d1fb219` (DLL
+`47a427a76961c872e5b565d2660fc8252532e7bb2683eeeae39b64ec062347a9`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the heading's icon and
+the item's tooltip over it or the name look natural; the thinner bevel and
+the flat disabled place button are easy to tell; tips over the light
+windows are the game's tooltip box; the pager's buttons stay put at two
+digits. Not right: its slash moves and the numbers sit right of centre
+(fixed in the next build, not yet seen). New wish: under "can be made" a
+press on an item lays its recipe in, as the game's recipe book does
+(built in the next build, not yet seen).
+
 ## The recipe view with six recipes a page (L-367, 2026-11-20)
 
 Build `a72342e7` (DLL

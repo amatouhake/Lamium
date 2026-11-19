@@ -66,6 +66,13 @@ after using the first build. What is still open is in the L-item.
   world's or a server's saved data removes its wanted items; "any order"
   is a small mark of three squares, named under the pointer.
 - The list moves aside when the game's own recipe book is switched on.
+- Under "can be made" a press on an item lays its recipe into the screen's
+  grid, as the game's recipe book does (Shift: as many as divide evenly):
+  the recipe the player's choices name where it can be laid, else the
+  first crafting recipe that can. Where none can (no grid, the recipe
+  does not fit) the press shows the recipes as elsewhere; a right press
+  and the recipe keys still show recipes and uses (maintainer
+  2026-11-20, L-367).
 
 ### The recipe view
 - Opens in the centre of the screen as a window in the game's grey, opaque
