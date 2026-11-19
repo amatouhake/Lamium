@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Split worlds again and the notes' wording (L-365, 2026-11-19)
+
+Build `ccdd886b` (DLL
+`2d011bd433798bced0ed14a07a6bcf76d093bafe26b2840def8fc3b4d5027fb7`),
+1.26.60.05 Dev instance, the maintainer, with the test server's data set to
+"Do not split here" by hand: the Saved data page showed the shared line and
+"Split worlds again"; pressing it showed its message and both went; other
+data read the new "world" notes.
+
 ## The notice names the saved data with its world (L-365, 2026-11-19)
 
 Build `2ba13055` (DLL
