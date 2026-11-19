@@ -45,6 +45,23 @@ inline bool alreadyLaid(Index const& index, Recipe const& recipe, int side, std:
     for (size_t cell = 0; cell < grid.size(); ++cell) if (!used[cell] && grid[cell] >= 0) return false;
     return true;
 }
+// One more of each ingredient onto a grid that already holds the recipe (alreadyLaid; `counts` per cell):
+// each cell takes one of the item lying in it, from the stacks carried in order. Empty when a cell is a
+// full stack or something is short, so a press then changes nothing (L-367).
+inline std::vector<PlaceMove> oneMore(Index const& index, Recipe const& recipe, int side, std::vector<Item> const& grid,
+                                      std::vector<int> const& counts, std::vector<PlaceSource> const& carried) {
+    if (!alreadyLaid(index, recipe, side, grid) || counts.size() != grid.size()) return {};
+    std::vector<PlaceSource> stock = carried;
+    std::vector<PlaceMove> out;
+    for (size_t cell = 0; cell < grid.size(); ++cell) {
+        if (grid[cell] < 0) continue;
+        auto source = std::ranges::find_if(stock, [&](PlaceSource const& s) { return s.item == grid[cell] && s.count > 0; });
+        if (source == stock.end() || counts[cell] >= source->stack) return {};
+        --source->count;
+        out.push_back({source->slot, 1, static_cast<int>(cell)});
+    }
+    return out;
+}
 inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, std::vector<PlaceSource> const& carried,
                            std::map<int, Item> const& picks, bool many) {
     PlacePlan out;

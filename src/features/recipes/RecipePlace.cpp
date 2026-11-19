@@ -77,21 +77,26 @@ std::vector<PlaceSource> carriedOf(ContainerManagerController& manager, Index co
     add(inventory, 27, 9);
     return out;
 }
+// Moves from the inventory into the grid, each taken onto the pointer and put down. False where the
+// game did not do as planned; what the pointer holds then is left to the player.
+bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& moves) {
+    auto& manager = *controller.mContainerManagerController;
+    for (auto const& move : moves) {
+        bool const top = move.slot < 9;
+        controller._handleTakeAmount(move.amount, top ? hotbar : inventory, top ? move.slot : move.slot - 9);
+        if (held(manager) != move.amount) return false;
+        controller._handlePlaceAll(grid, move.cell);
+        if (held(manager)) return false;
+    }
+    return true;
+}
 // The recipe laid into an empty grid.
 bool lay(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many) {
     auto& manager = *controller.mContainerManagerController;
     if (held(manager) || !gridEmpty(manager)) return false;
     auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, many);
     if (!plan.ready()) return false;
-    for (auto const& move : plan.moves) {
-        bool const top = move.slot < 9;
-        controller._handleTakeAmount(move.amount, top ? hotbar : inventory, top ? move.slot : move.slot - 9);
-        // Not as planned: what the pointer holds, if anything, is left to the player.
-        if (held(manager) != move.amount) return false;
-        controller._handlePlaceAll(grid, move.cell);
-        if (held(manager)) return false;
-    }
-    return true;
+    return apply(controller, plan.moves);
 }
 }
 namespace place {
@@ -139,7 +144,13 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
                 counts.push_back(empty ? 0 : static_cast<int>(stack.mCount));
             }
             if (alreadyLaid(table->index, shape, side, cells)) {
-                if (!many) return true;
+                // A press adds one more of each, as the game's recipe book does; nothing when a cell is full or
+                // something is short.
+                if (!many) {
+                    auto const moves = oneMore(table->index, shape, side, cells, counts, carriedOf(manager, table->index));
+                    if (!moves.empty()) apply(*controller, moves);
+                    return true;
+                }
                 auto const most = placePlan(table->index, shape, side, carried(screen, table->index), picks, true);
                 if (most.ready() && std::ranges::all_of(std::views::iota(size_t{0}, cells.size()),
                                                         [&](size_t i) { return cells[i] < 0 || counts[i] == most.crafts; }))

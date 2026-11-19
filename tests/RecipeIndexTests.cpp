@@ -240,6 +240,14 @@ void recipeIndexTests() {
               && !alreadyLaid(index, pickaxe, 3, {iron, iron, -1, -1, sticks, -1, -1, sticks, -1}) && !alreadyLaid(index, pickaxe, 2, {iron, iron, iron, -1}),
               "a grid that holds the recipe where it would be laid, and nothing else, is already laid");
         check(fitsGrid(pickaxe, 3) && !fitsGrid(pickaxe, 2) && fitsGrid(pickaxe, 0), "a three-wide recipe fits only a three-wide grid");
+        {
+            std::vector<Item> const laid{iron, iron, iron, -1, sticks, -1, -1, sticks, -1};
+            std::vector<int> const ones{1, 1, 1, 0, 1, 0, 0, 1, 0}, full{64, 1, 1, 0, 1, 0, 0, 1, 0};
+            check(oneMore(index, pickaxe, 3, laid, ones, {{0, iron, 5, 64}, {1, sticks, 2, 64}}) == Moves{{0, 1, 0}, {0, 1, 1}, {0, 1, 2}, {1, 1, 4}, {1, 1, 7}}
+                  && oneMore(index, pickaxe, 3, laid, ones, {{0, iron, 5, 64}, {1, sticks, 1, 64}}).empty()
+                  && oneMore(index, pickaxe, 3, laid, full, {{0, iron, 5, 64}, {1, sticks, 2, 64}}).empty(),
+                  "one more of each goes onto a laid grid; nothing when something is short or a cell is a full stack");
+        }
         auto few = placePlan(index, pickaxe, 3, {{0, iron, 2}, {1, sticks, 2}}, {}, false);
         check(few.fits && !few.ready() && few.missing == std::vector<int>{2} && few.moves.empty(), "a cell nothing serves is named and nothing moves");
         auto split = placePlan(index, pickaxe, 3, {{0, iron, 3}, {1, sticks, 64}, {2, iron, 4}}, {}, true);

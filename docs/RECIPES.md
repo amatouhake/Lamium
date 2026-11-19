@@ -69,8 +69,9 @@ after using the first build. What is still open is in the L-item.
 - The list moves aside when the game's own recipe book is switched on.
 - Under "can be made" a press lays the item's recipe into the grid, as
   the game's recipe book does (Shift: as many as divide): the chosen
-  recipe where it can be laid, else the first that can; one already laid
-  (with Shift: as many as divide) is left alone. Without a grid or a fitting recipe it shows the recipes;
+  recipe where it can be laid, else the first that can; pressed again, one
+  more of each (nothing when short or full; with Shift a grid already as
+  full as dividing allows is left alone). Without a grid or a fitting recipe it shows the recipes;
   a right press and the keys work as elsewhere (L-367).
 
 ### The recipe view
@@ -128,12 +129,12 @@ after using the first build. What is still open is in the L-item.
   form is thought about when a place needs one.
 - "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): on the
   inventory and the crafting table, a crafting recipe that fits the grid
-  has the button. A press lays one of each ingredient into the grid, with
-  Shift as many as divide evenly from every stack carried, and closes the
-  view. Crafting is the player's: laying in and crafting at one press was
+  has the button. A press lays one of each ingredient into the grid (one
+  more of each onto the same recipe, 2026-11-20), with Shift as many as
+  divide evenly from every stack carried, and closes the view. Crafting is the player's: laying in and crafting at one press was
   tried and is not what a recipe view is expected to do. What lay in the
   grid goes back to the inventory first. An ingredient that is missing disables the
-  button and frames its cell in the warning color. Any of several items:
+  button and turns its slot's face red, as the game does. Any of several items:
   the member picked in the wanted window while it lasts, else the one most
   carried.
 - An ingredient any one of several items satisfies (any planks) shows its

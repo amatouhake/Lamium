@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Rounded tabs, a full grid left alone (L-367, 2026-11-20)
+
+Build `7c191e53` (DLL
+`b8526dbf5d62870a17e2fa5475e7c333b483c8dad17b92c872f9d3aae8e91344`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the tabs' rounded
+corners join the window's and look like the game's; Shift + press on a
+grid already holding as many as divide moves nothing; the room above the
+heading looks natural. Not right: a missing ingredient's slot was red
+edges and all, where the game reddens only the face. Decided: a press
+adds one more of each to a recipe already laid, as the game's Java recipe
+book does (Shift: as many as divide). Both built in the next build, not
+yet seen.
+
 ## Measured tabs, a shorter view, "can be made" from the inventory (L-367, 2026-11-20)
 
 Build `43794aee` (DLL
