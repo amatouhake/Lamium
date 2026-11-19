@@ -23,7 +23,9 @@ Cookie read(IMinecraftGame& game) noexcept {
     cookie.kind = -3;
     try {
         cookie.inRealm = game.isInRealm();
-        if (!versionSensitiveAllowed(capabilities::Id::RealmIdentity)) return cookie;
+        // Only a Realm's id is used, and the copy below is never destroyed (it keeps what the connection holds, such
+        // as its identity verifier): outside a Realm nothing is read.
+        if (!cookie.inRealm || !versionSensitiveAllowed(capabilities::Id::RealmIdentity)) return cookie;
         // The getter is virtual and not exported, and the alternatives' destructors are not exported either: the copy
         // is taken as bytes through the same vtable slot (a member function returns any struct through a hidden
         // pointer) and never destroyed. What it holds on the heap stays, a few hundred bytes a join.

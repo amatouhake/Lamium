@@ -622,8 +622,10 @@ exported, so the cookie is taken as bytes through the virtual call (vtable slot 
 never destroyed. Meaning a rebuild cannot check: MSVC's `std::optional<std::variant<...>>` layout (index byte after
 the alternatives' union, the optional's flag 8 bytes later), the union being as large as `GameConnectionInfoEx` or
 `Social::MultiplayerGameInfo` (the experience request and `Realms::RealmId` are opaque, at most 120 and 8 bytes), and
-`Realms::RealmId` being one int64. A flag other than 0 or 1 takes nothing. Every remote join logs the kind and id
-read; with the capability off a Realm's data goes by its level id.
+`Realms::RealmId` being one int64. A flag other than 0 or 1 takes nothing. The cookie is read only when the game says
+it is in a Realm; every remote join logs that answer, and a Realm join the kind and id read; with the capability off a
+Realm's data goes by its level id. On a version move, check that the game's alternatives are no larger than the SDK's
+`sizeof` (the getter writes the whole optional through the hidden return pointer; a larger one overruns the stack).
 
 ### Enchantment order (`EnchantOrderGame.cpp`, no hooks)
 L-170. A hook on `InventoryItemRenderer::$render` to paint the list before the slots was tried and removed
