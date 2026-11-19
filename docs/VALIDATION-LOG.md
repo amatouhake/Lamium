@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The notice names the saved data with its world (L-365, 2026-11-19)
+
+Build `2ba13055` (DLL
+`06a7eabf95dc978d67339d2df08faf67a9cd6e9552cf38b6e803e5219c3e7927`),
+1.26.60.05 Dev instance, the same local BDS, world D (another seed and name)
+behind the same level id, the maintainer: the notice read "differs from the
+saved data of 127.0.0.1:19132 - lamium-print-a (seed / name), so new data
+was started".
+
 ## The world question's other answers (L-365, 2026-11-19)
 
 Build `27bc0af5` (DLL

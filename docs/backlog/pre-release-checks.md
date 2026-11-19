@@ -92,8 +92,7 @@ not seen was still not seen in 0.7.0.
   worlds and every world question answer passed on a local BDS
   (VALIDATION-LOG 2026-11-19); a Realm is left for the reporter's log.
   "Do not split here" cannot be undone from a screen yet, the note on
-  using data says "server" for a Realm or a friend's world, and the notice's
-  "<address> - <world>" name is not seen in game.
+  using data says "server" for a Realm or a friend's world.
 - Work of 2026-11-15 and 16 passed in game (VALIDATION-LOG 2026-11-15/16):
   Game HUD placement's position and days played switches (L-348), the
   minimap's Text size and Nether view rows and the Map size row's removal
