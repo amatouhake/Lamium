@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan Wanted Rows</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* One GUI unit is 3 pixels, as in the game at 1920x1080 and UI zoom 75%. The wanted rows as a table; the How to make tab. */
+:root{
+  color-scheme: dark;
+  --u:3px;
+  --ground:#15181a; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent-deep:#3c8527;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --edge:#000; --shadow:#555; --inset:#b4b4b4;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:26px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 4px}
+p{margin:0;max-width:95ch}
+.lede,.note{color:var(--ink-2)}
+.note{font-size:13.5px;margin-top:4px}
+.row2{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:14px;margin:0 0 6px;font-weight:700;max-width:calc(220*var(--u))}
+.cap small{display:block;font-weight:400;color:var(--ink-2);font-size:12.5px}
+.win{position:relative;width:calc(220*var(--u));margin-top:calc(21*var(--u));background:var(--win);color:var(--win-ink);font:calc(8*var(--u))/1 var(--pix);
+  box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge);padding:calc(6*var(--u)) calc(7*var(--u)) calc(7*var(--u))}
+.tabs{position:absolute;left:calc(5*var(--u));top:calc(-21*var(--u));display:flex}
+.tab{height:calc(21*var(--u));padding:0 calc(6*var(--u));display:flex;align-items:center;background:#626262;color:#fff;font:calc(8*var(--u))/1 var(--pix);
+  border:var(--u) solid var(--edge);border-bottom:0;box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #c4c4c4;margin-right:calc(-1*var(--u));border-radius:calc(2*var(--u)) calc(2*var(--u)) 0 0;cursor:pointer}
+.tab.on{background:var(--win);color:var(--win-ink);height:calc(24*var(--u));margin-bottom:calc(-3*var(--u));box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) 0 var(--shadow);z-index:1}
+.body{min-height:calc(160*var(--u))}
+/* The table: [fold][icon][name][have][want][bar][controls] */
+.t{display:grid;grid-template-columns:calc(6*var(--u)) calc(18*var(--u)) 1fr calc(24*var(--u)) calc(42*var(--u)) calc(24*var(--u)) calc(14*var(--u));align-items:center;column-gap:calc(2*var(--u))}
+.head{height:calc(11*var(--u));font-size:calc(7*var(--u));color:var(--win-faint);white-space:nowrap}
+.r{height:calc(18*var(--u))}
+.r.click{cursor:pointer}
+.r.click:hover{background:rgba(0,0,0,.07)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.want{display:flex;justify-content:flex-end}
+.done{color:var(--win-faint)}
+.done .ico{opacity:.45}
+.fold{width:0;height:0;justify-self:center;border-left:calc(3*var(--u)) solid var(--win-ink);border-top:calc(2.5*var(--u)) solid transparent;border-bottom:calc(2.5*var(--u)) solid transparent}
+.fold.open{border-left:calc(2.5*var(--u)) solid transparent;border-right:calc(2.5*var(--u)) solid transparent;border-top:calc(3*var(--u)) solid var(--win-ink);border-bottom:0}
+.ico{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:0 0 2px #000;
+  box-shadow:inset calc(-2*var(--u)) calc(-2*var(--u)) rgba(0,0,0,.25),inset calc(2*var(--u)) calc(2*var(--u)) rgba(255,255,255,.25)}
+.ico.s{width:calc(10*var(--u));height:calc(10*var(--u));font-size:calc(5*var(--u))}
+.name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:calc(3*var(--u));background:var(--slot);box-shadow:inset 0 calc(.5*var(--u)) var(--slot-dark);position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent-deep)}
+.src{font-size:calc(6*var(--u));color:var(--win-faint);text-align:right}
+.stepper{display:inline-flex;align-items:center;height:calc(11*var(--u));box-shadow:0 0 0 var(--u) var(--edge);font:calc(7*var(--u))/1 var(--pix)}
+.stepper span{width:calc(9*var(--u));text-align:center;background:var(--win);height:100%;display:grid;place-items:center}
+.stepper em{font-style:normal;min-width:calc(22*var(--u));text-align:center;background:var(--slot);color:#fff;height:100%;display:grid;place-items:center}
+.btn{all:unset;cursor:pointer;height:calc(11*var(--u));padding:0 calc(3*var(--u));display:inline-flex;align-items:center;font:calc(7*var(--u))/1 var(--pix);color:var(--win-ink);background:var(--win);
+  box-shadow:inset calc(.5*var(--u)) calc(.5*var(--u)) #fff,inset calc(-.5*var(--u)) calc(-.5*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge)}
+.x{justify-self:end}
+.hov{visibility:hidden}
+.r:hover .hov{visibility:visible}
+.r:hover .rest{display:none}
+.r .only{display:none}
+.r:hover .only{display:inline-flex}
+/* Breakdown: indented on a sunk face, read only */
+.inset{margin:calc(1*var(--u)) 0 calc(2*var(--u)) calc(8*var(--u));background:var(--inset);padding:calc(2*var(--u)) calc(3*var(--u)) calc(3*var(--u));
+  box-shadow:inset var(--u) var(--u) var(--shadow),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.sec{height:calc(11*var(--u));font-size:calc(7*var(--u));color:var(--win-faint);display:flex;align-items:flex-end;padding-bottom:var(--u)}
+.step{height:calc(20*var(--u));display:grid;grid-template-columns:calc(56*var(--u)) calc(12*var(--u)) calc(18*var(--u)) calc(14*var(--u)) 1fr;align-items:center}
+.ins{display:flex;justify-content:flex-end}
+.slot{width:calc(18*var(--u));height:calc(18*var(--u));background:var(--slot);position:relative;display:grid;place-items:center;
+  box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.slot .ico{box-shadow:none}
+.slot b{position:absolute;right:var(--u);bottom:0;font:calc(7*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.arrow{text-align:center;font-size:calc(9*var(--u))}
+.station{display:grid;place-items:center}
+.state{justify-self:end;font-size:calc(7*var(--u));padding:0 calc(3*var(--u));height:calc(11*var(--u));display:inline-flex;align-items:center;cursor:pointer}
+.state.auto{color:var(--win-faint)}
+.state.mine{color:#fff;background:var(--accent-deep)}
+.mat{height:calc(18*var(--u));display:grid;grid-template-columns:calc(56*var(--u)) 1fr calc(36*var(--u));align-items:center;column-gap:calc(3*var(--u))}
+.mat .lead{display:flex;justify-content:flex-end}
+/* How to make: a line per choice */
+.h{display:grid;grid-template-columns:calc(18*var(--u)) 1fr calc(12*var(--u)) calc(18*var(--u)) 1fr;align-items:center;column-gap:calc(2*var(--u));height:calc(20*var(--u));cursor:pointer}
+.h:hover{background:rgba(0,0,0,.07)}
+.h.flash{outline:var(--u) solid var(--accent-deep)}
+.h .what{font-size:calc(7*var(--u));color:var(--win-faint);text-align:right}
+.h.mine .what{color:var(--accent-deep)}
+.alts{margin:0 0 calc(2*var(--u)) calc(20*var(--u));padding:calc(2*var(--u));background:#a9a9a9;box-shadow:inset var(--u) var(--u) var(--shadow)}
+.alt{display:grid;grid-template-columns:calc(38*var(--u)) calc(12*var(--u)) calc(18*var(--u)) 1fr;align-items:center;cursor:pointer;min-height:calc(20*var(--u))}
+.alt:hover{background:rgba(255,255,255,.25)}
+.alt.on{outline:var(--u) solid var(--accent-deep);outline-offset:calc(-1*var(--u))}
+.alt .auto{grid-column:1 / span 3;font-size:calc(7*var(--u));padding-left:calc(3*var(--u))}
+.alt .w{font-size:calc(7*var(--u));text-align:right;color:var(--win-faint);padding-right:calc(2*var(--u))}
+.toggle{font-size:calc(7*var(--u));color:var(--win-faint);display:flex;gap:calc(4*var(--u));height:calc(13*var(--u));align-items:center}
+.toggle span{cursor:pointer}
+.toggle .on{color:var(--win-ink);text-decoration:underline}
+.legend{font-size:13px;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>欲しい物の行と「作り方」のモック</h1>
+  <p class="lede">L-370。前回までに決まったこと: 欲しい物は表の形（数字を列にそろえる）、操作は右の決まった列、選択は全体に効く「作り方」の一覧で選ぶ、内訳は読むだけ。ここで比べるのは 1 点ずつです。アイテムの絵は色の四角で代用。押して試せます。</p>
+</header>
+
+<section>
+  <h2>1. 欲しい物の操作: いつも見せるか、ポインタを当てた行だけか</h2>
+  <p class="note">表の形は同じ。列は［開閉］［絵］［名前］［所持］［欲しい］［素材の帯］［操作］。名前の列は 220 単位の窓ではかなり狭く、長い名前は切れてポインタで全部出る。手で入れた物は「欲しい」の欄が数の調整（- N +）になり、設計図の物は数字だけ（数は設計図が決める）で、右端に小さく「図」。違うのは操作を見せるタイミングだけ。</p>
+  <div class="row2">
+    <div><p class="cap">a: いつも見せる<small>手で入れた物の行には、いつも「- N +」と「×（外す）」が出ている。</small></p><div class="win" id="a"></div></div>
+    <div><p class="cap">b: ポインタを当てた行だけ<small>ふだんは「欲しい」の欄に数字だけ。ポインタを当てた手で入れた物の行だけ、同じ欄が「- N +」に替わり、右に「×」が出る。何も動かない。</small></p><div class="win" id="b"></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>2. 作り方のタブと、読むだけの内訳</h2>
+  <p class="note">内訳の工程には「作り方」の状態（自動 / 選んだ物の名前）だけが出て、押すと作り方のタブの該当する行へ移る。作り方のタブでは、行を押すと候補がマスで開き、一番上が「自動」または「どれでも」。一覧に出す範囲は上の切り替えで比べられる。</p>
+  <div class="row2">
+    <div><p class="cap">欲しい物（内訳を開いた状態）</p><div class="win" id="br"></div></div>
+    <div><p class="cap">作り方</p><div class="win" id="how"></div></div>
+  </div>
+</section>
+<p class="legend">決めたいこと: 1 は a か b か。2 は作り方の行の形と、一覧に出す範囲（今の計画に出てくる物だけ / これまでに選んだ物も）。</p>
+</div>
+<script>
+const I = {
+  oakPlanks:['オークの板材','#b8945f','オ'], grass:['草ブロック','#5f9b3e','草'], dirt:['土','#8a5a3b','土'], sprucePlanks:['トウヒの板材','#7a5634','ト'],
+  chest:['チェスト','#a87a3c','箱'], noteBlock:['音符ブロック','#6b3f2a','音'], sign:['オークの看板','#b08a52','看'], spruceLog:['トウヒの原木','#4b3520','原'],
+  stripped:['樹皮を剥いだトウヒの原木','#6b4a2c','剥'], planks:['板材（どれでも）','#b8945f','板'], stick:['棒','#8a6a3a','棒'], bamboo:['竹','#8cae3c','竹'],
+  table:['作業台','#9c6b3c','台'], cobbleAny:['丸石の仲間（どれでも）','#7d7d7d','石'], cobble:['丸石','#7d7d7d','丸'], blackstone:['ブラックストーン','#2f2a30','黒'], birchPlanks:['シラカバの板材','#d8c88f','シ'],
+};
+const ico = (k, s='') => `<span class="ico ${s}" style="background:${I[k][1]}">${I[k][2]}</span>`;
+const slot = (k, n) => `<span class="slot">${k?ico(k):''}${n>1?`<b>${n}</b>`:''}</span>`;
+const bar = f => `<span class="bar"><i style="width:${Math.round(f*100)}%"></i></span>`;
+const tabs = on => `<div class="tabs">${['欲しい物','集める物','作る物','作り方','保管場所'].map(t=>`<span class="tab${t===on?' on':''}" data-tab="${t}">${t}</span>`).join('')}</div>`;
+const wanted = [
+  {k:'oakPlanks', have:192, want:192, frac:1, own:true},
+  {k:'grass', have:0, want:158, frac:0},
+  {k:'dirt', have:0, want:7, frac:0},
+  {k:'sprucePlanks', have:0, want:7, frac:0, own:true},
+  {k:'chest', have:0, want:1, frac:.25, own:true},
+  {k:'noteBlock', have:0, want:6, frac:.1},
+  {k:'sign', have:0, want:2, frac:.66},
+];
+// How to make: choices for all plans
+const how = {
+  planks:{kind:'group', item:'planks', name:'板材', chosen:'sprucePlanks', opts:['oakPlanks','birchPlanks','sprucePlanks'], inPlan:true},
+  cobbleAny:{kind:'group', item:'cobbleAny', name:'丸石の仲間', chosen:null, opts:['cobble','blackstone'], inPlan:true},
+  sprucePlanks:{kind:'recipe', item:'sprucePlanks', name:'トウヒの板材', chosen:null, rule:0, opts:[['spruceLog',2,8,'原木から'],['stripped',2,8,'樹皮を剥いだ原木から']], inPlan:true},
+  stick:{kind:'recipe', item:'stick', name:'棒', chosen:1, rule:0, opts:[['planks',2,4,'板材から'],['bamboo',2,1,'竹から']], inPlan:false},
+};
+let openRow = 'chest', openHow = '', scope = 'plan', flash = '', tab = '欲しい物';
+function row(w, mode){
+  const done = w.have >= w.want;
+  let want = `<span class="num">${w.want}</span>`, ctl = '';
+  if (w.own) {
+    const st = `<span class="stepper"><span>-</span><em>${w.want}</em><span>+</span></span>`;
+    if (mode==='a') { want = `<span class="want">${st}</span>`; ctl = `<button class="btn x">×</button>`; }
+    else { want = `<span class="want"><span class="rest num">${w.want}</span><span class="only">${st}</span></span>`; ctl = `<button class="btn x hov">×</button>`; }
+  } else ctl = `<span class="src">図</span>`;
+  return `<div class="t r click${done?' done':''}" data-row="${w.k}"><span class="fold${openRow===w.k?' open':''}"></span>${ico(w.k)}<span class="name">${I[w.k][0]}</span><span class="num">${w.have}</span>${want}${bar(w.frac)}${ctl}</div>`;
+}
+function head(){ return `<div class="t head"><span></span><span></span><span>設計図の残りを含める ●</span><span class="num">所持</span><span class="num">欲しい</span><span>&nbsp;素材</span><span></span></div>`; }
+function table(id, mode, withBreakdown){
+  let h = tabs('欲しい物') + `<div class="body">` + head();
+  wanted.forEach(w => { h += row(w, mode); if (withBreakdown && openRow===w.k) h += breakdown(w.k); });
+  document.getElementById(id).innerHTML = h + `</div>`;
+}
+function stateOf(key){
+  const c = how[key];
+  if (c.kind==='group') return c.chosen ? `<span class="state mine" data-go="${key}">${I[c.chosen][0]}</span>` : `<span class="state auto" data-go="${key}">どれでも</span>`;
+  return c.chosen!==null ? `<span class="state mine" data-go="${key}">${c.opts[c.chosen][3]}</span>` : `<span class="state auto" data-go="${key}">自動</span>`;
+}
+function breakdown(k){
+  let h = `<div class="inset"><div class="sec">作る</div>`;
+  if (k==='chest') {
+    const p = how.planks.chosen || 'planks';
+    h += `<div class="step"><span class="ins">${slot(p,8)}</span><span class="arrow">→</span>${slot('chest',1)}<span class="station">${ico('table','s')}</span>${stateOf('planks')}</div>`;
+    if (how.planks.chosen==='sprucePlanks') {
+      const r = how.sprucePlanks, u = r.chosen!==null ? r.chosen : r.rule, o = r.opts[u];
+      h += `<div class="step"><span class="ins">${slot(o[0],1)}</span><span class="arrow">→</span>${slot('sprucePlanks',o[2]/4*4)}<span class="station">${ico('table','s')}</span>${stateOf('sprucePlanks')}</div>`;
+      h += `<div class="sec">集める</div><div class="mat"><span class="lead">${ico(o[0])}</span><span>${I[o[0]][0]}</span><span class="num">0 / 1</span></div>`;
+    } else h += `<div class="sec">集める</div><div class="mat"><span class="lead">${ico(p)}</span><span>${I[p][0]}</span><span class="num">2 / 8</span></div>`;
+  } else {
+    h += `<div class="sec">（この物の内訳）</div>`;
+  }
+  return h + `</div>`;
+}
+function howTab(){
+  let h = tabs('作り方') + `<div class="body">`;
+  h += `<div class="toggle">一覧に出す: <span data-scope="plan" class="${scope==='plan'?'on':''}">今の計画に出てくる物</span><span data-scope="all" class="${scope==='all'?'on':''}">これまでに選んだ物も</span></div>`;
+  const groups = Object.keys(how).filter(k=>how[k].kind==='group' && (scope==='all' || how[k].inPlan));
+  const recipes = Object.keys(how).filter(k=>how[k].kind==='recipe' && (scope==='all' || how[k].inPlan));
+  h += `<div class="sec">どれでもよい材料</div>`;
+  groups.forEach(k => {
+    const c = how[k];
+    h += `<div class="h${c.chosen?' mine':''}${flash===k?' flash':''}" data-how="${k}">${ico(c.item)}<span>${c.name}</span><span class="arrow">→</span>${slot(c.chosen||c.item,1)}<span class="what">${c.chosen?I[c.chosen][0]:'どれでも'}</span></div>`;
+    if (openHow===k) {
+      h += `<div class="alts"><div class="alt${!c.chosen?' on':''}" data-pick="${k}:-1"><span class="auto">どれでも（持っている種類を合わせて数える）</span></div>`;
+      c.opts.forEach(o => h += `<div class="alt${c.chosen===o?' on':''}" data-pick="${k}:${o}"><span style="display:flex;justify-content:flex-end">${slot(o,1)}</span><span></span><span></span><span class="w">${I[o][0]}</span></div>`);
+      h += `</div>`;
+    }
+  });
+  h += `<div class="sec">レシピ</div>`;
+  recipes.forEach(k => {
+    const c = how[k], u = c.chosen!==null ? c.chosen : c.rule, o = c.opts[u];
+    h += `<div class="h${c.chosen!==null?' mine':''}${flash===k?' flash':''}" data-how="${k}">${ico(c.item)}<span>${c.name}</span><span class="arrow">←</span>${slot(o[0],o[1])}<span class="what">${c.chosen!==null?o[3]:'自動（'+o[3]+'）'}</span></div>`;
+    if (openHow===k) {
+      h += `<div class="alts"><div class="alt${c.chosen===null?' on':''}" data-pick="${k}:-1"><span class="auto">自動（いまは「${c.opts[c.rule][3]}」）</span></div>`;
+      c.opts.forEach((x,i) => h += `<div class="alt${c.chosen===i?' on':''}" data-pick="${k}:${i}"><span style="display:flex;justify-content:flex-end">${slot(x[0],x[1])}</span><span class="arrow">→</span>${slot(c.item,x[2])}<span class="w">${x[3]}</span></div>`);
+      h += `</div>`;
+    }
+  });
+  document.getElementById('how').innerHTML = h + `</div>`;
+}
+function draw(){ table('a','a',false); table('b','b',false); table('br','b',true); howTab(); }
+document.addEventListener('click', e => {
+  const s = e.target.closest('[data-scope]'); if (s) { scope = s.dataset.scope; draw(); return; }
+  const g = e.target.closest('[data-go]'); if (g) { flash = openHow = g.dataset.go; draw(); setTimeout(()=>{flash='';draw();}, 900); return; }
+  const p = e.target.closest('[data-pick]');
+  if (p) { const [k, v] = p.dataset.pick.split(':'); const c = how[k];
+    c.chosen = v==='-1' ? null : (c.kind==='group' ? v : +v); openHow=''; draw(); return; }
+  const hw = e.target.closest('[data-how]'); if (hw) { openHow = openHow===hw.dataset.how ? '' : hw.dataset.how; draw(); return; }
+  if (e.target.closest('button') || e.target.closest('.stepper')) return;
+  const r = e.target.closest('[data-row]'); if (r) { openRow = openRow===r.dataset.row ? '' : r.dataset.row; draw(); }
+});
+draw();
+</script>
+</body>
+</html>
