@@ -23,6 +23,22 @@ inline std::vector<Rect> window(float x, float y, float w, float h) {
     };
 }
 
+// A tab standing on the window (L-367): the window's top corners and light, `h` high from its top, open
+// at the bottom where it meets the window. `selected`: the window's shadow down its right side too.
+inline std::vector<Rect> tab(float x, float y, float w, float h, bool selected) {
+    if (w < 8 || h < 4) return {{x, y, w, h, Part::Fill}};
+    auto r = [&](float rx, float ry, float rw, float rh, Part part) { return Rect{x + rx, y + ry, rw, rh, part}; };
+    std::vector<Rect> out{
+        r(3, 1, w - 6, h - 1, Part::Fill), r(2, 2, w - 4, h - 2, Part::Fill), r(1, 3, w - 2, h - 3, Part::Fill),
+        r(3, 1, w - 6, 1, Part::Light), r(2, 2, w - 5, 1, Part::Light), r(1, 3, 2, h - 3, Part::Light), r(3, 3, 1, 1, Part::Light),
+    };
+    if (selected) out.push_back(r(w - 3, 3, 2, h - 3, Part::Dark));
+    for (Rect const& edge : {r(3, 0, w - 6, 1, Part::Edge), r(2, 1, 1, 1, Part::Edge), r(1, 2, 1, 1, Part::Edge), r(w - 3, 1, 1, 1, Part::Edge),
+                             r(w - 2, 2, 1, 1, Part::Edge), r(0, 3, 1, h - 3, Part::Edge), r(w - 1, 3, 1, h - 3, Part::Edge)})
+        out.push_back(edge);
+    return out;
+}
+
 // The item tooltip: opaque dark fill with a purple line one unit in from
 // its edge. Its upper left and lower right corners are rounded by one step,
 // its upper right and lower left by a two-unit diagonal, as the game's are.

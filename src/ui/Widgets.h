@@ -194,7 +194,7 @@ void drawTab(MinecraftUIRenderContext&, float x, float y, float w, std::string t
 void tabRule(MinecraftUIRenderContext&, float x, float y, float w);
 // The game's tabs on a window of its grey (L-367), as measured from the game's recipe book: blocks
 // standing windowTabRise above the window's top edge, side by side sharing their black edges (the next
-// starts at x + w - 1), two units of light along the top and left; the others' face dark grey with white
+// starts at x + w - 1), with the window's stepped corners and two units of light along the top and left; the others' face dark grey with white
 // names, the chosen one in the window's grey with two units of shadow at its right, joined to the window
 // through its edge. Drawn after the window. Without a text the caller draws a 16-unit icon at
 // x + (w - 16) / 2 and windowTabIconY. windowTabWidth suits an icon.

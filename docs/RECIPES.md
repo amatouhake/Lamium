@@ -70,7 +70,7 @@ after using the first build. What is still open is in the L-item.
 - Under "can be made" a press lays the item's recipe into the grid, as
   the game's recipe book does (Shift: as many as divide): the chosen
   recipe where it can be laid, else the first that can; one already laid
-  is left alone. Without a grid or a fitting recipe it shows the recipes;
+  (with Shift: as many as divide) is left alone. Without a grid or a fitting recipe it shows the recipes;
   a right press and the keys work as elsewhere (L-367).
 
 ### The recipe view

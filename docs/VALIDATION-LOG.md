@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Measured tabs, a shorter view, "can be made" from the inventory (L-367, 2026-11-20)
+
+Build `43794aee` (DLL
+`7831be8b52c3cbfd9671e9604b8ebad59bce028b6658a4ad1ce7f3eae9fd4da1`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the view's height and
+place make the eye's way easier; the pager's spacing reads naturally;
+"can be made" no longer lists what only a shulker box's contents or a 3x3
+recipe in the inventory would make; a press on a recipe already laid
+moves nothing. Not right: the tabs lack the game's rounded corners, while
+the window's are stepped; Shift + press on a grid already holding as many
+as divide still moves everything; the heading sits too close to the
+window's edge. All built in the next build, not yet seen.
+
 ## Placing from "can be made" and the pager's slash (L-367, 2026-11-20)
 
 Build `e39d18a4` (DLL

@@ -350,18 +350,18 @@ void tabRule(MinecraftUIRenderContext& context, float x, float y, float w) {
 }
 void windowTab(MinecraftUIRenderContext& context, float x, float windowTop, float w, std::string text, bool selected, bool hovered) {
     namespace v = palette::vanilla;
-    // Its top corners are cut by a unit. The chosen tab reaches 3 units down over the window's edge.
-    float const y0 = windowTop - windowTabRise, bottom = selected ? windowTop + 3 : windowTop, h = bottom - y0;
-    Rgb const face = selected ? v::window : v::tabBack, light = selected ? v::windowLight : v::tabRim;
-    fill(context, x + 1, y0 + 1, w - 2, h - 1, face);
-    if (hovered && !selected) fill(context, x + 3, y0 + 3, w - 4, h - 3, palette::white, .12f);
-    fill(context, x + 1, y0 + 1, w - 2, 2, light);
-    fill(context, x + 1, y0 + 3, 2, h - 3, light);
-    if (selected) fill(context, x + w - 3, y0 + 3, 2, h - 3, v::windowShadow);
-    float const sides = (selected ? windowTop + 1 : windowTop) - (y0 + 1);
-    fill(context, x + 1, y0, w - 2, 1, v::windowEdge);
-    fill(context, x, y0 + 1, 1, sides, v::windowEdge);
-    fill(context, x + w - 1, y0 + 1, 1, sides, v::windowEdge);
+    // The window's own top corners (VanillaFrame.h); the chosen tab reaches 3 units down over the window's
+    // edge, its sides stopping on the edge's black line.
+    using vanilla_frame::Part;
+    float const y0 = windowTop - windowTabRise, h = (selected ? windowTop + 3 : windowTop) - y0;
+    for (auto const& r : vanilla_frame::tab(x, y0, w, h, selected)) {
+        float rh = r.h;
+        if (r.part == Part::Edge && r.y + r.h > windowTop + 1) rh = windowTop + 1 - r.y; // the sides end on the window's edge
+        Rgb const color = r.part == Part::Fill ? (selected ? v::window : v::tabBack) : r.part == Part::Light ? (selected ? v::windowLight : v::tabRim)
+            : r.part == Part::Dark ? v::windowShadow : v::windowEdge;
+        fill(context, r.x, r.y, r.w, rh, color);
+    }
+    if (hovered && !selected) fill(context, x + 3, y0 + 3, w - 5, h - 3, palette::white, .12f);
     if (!text.empty())
         labelScaled(context, x + 2, windowTop - 14 + boxTextInset(), w - 4, std::move(text), 1.f, selected ? v::windowInk : palette::text, Align::Center, !selected);
 }

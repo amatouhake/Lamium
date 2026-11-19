@@ -1,4 +1,5 @@
 #include "features/recipes/RecipePlace.h"
+#include <ranges>
 #include "app/Runtime.h"
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inventory/game/TransferRoutes.h"
@@ -124,15 +125,26 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
         if (!controller || !table || recipe < 0 || recipe >= static_cast<int>(table->index.recipes.size())) return false;
         auto& manager = *controller->mContainerManagerController;
         if (held(manager)) return false;
-        if (!many && !gridEmpty(manager)) {
+        if (!gridEmpty(manager)) {
             // Already laid as asked: taking it out and laying it in again only shows items flying (L-367).
+            // With `many`, only when every cell holds as many as dividing would lay, the grid counted in.
             int const side = sideOf(manager);
+            auto const& shape = table->index.recipes[static_cast<size_t>(recipe)];
             std::vector<Item> cells;
+            std::vector<int> counts;
             for (int i = 0, size = manager.getContainerSize(grid); i < size && i < side * side; ++i) {
                 auto const& stack = manager.getItemStack(grid, i);
-                cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
+                bool const empty = stack.isNull() || stack.mCount <= 0;
+                cells.push_back(empty ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
+                counts.push_back(empty ? 0 : static_cast<int>(stack.mCount));
             }
-            if (alreadyLaid(table->index, table->index.recipes[static_cast<size_t>(recipe)], side, cells)) return true;
+            if (alreadyLaid(table->index, shape, side, cells)) {
+                if (!many) return true;
+                auto const most = placePlan(table->index, shape, side, carried(screen, table->index), picks, true);
+                if (most.ready() && std::ranges::all_of(std::views::iota(size_t{0}, cells.size()),
+                                                        [&](size_t i) { return cells[i] < 0 || counts[i] == most.crafts; }))
+                    return true;
+            }
         }
         if (!gridEmpty(manager)) {
             controller->_evacuateCraftingGrid();

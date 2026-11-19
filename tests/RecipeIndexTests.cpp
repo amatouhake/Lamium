@@ -219,7 +219,7 @@ void recipeIndexTests() {
         auto view = recipeViewAt(640, 360);
         check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,
               "the arrow and the product stand at the grid's middle, the small mark under them");
-        check(view.left == 210 && view.top == 60 && view.height == 241 && view.hintY() == 288
+        check(view.left == 210 && view.top == 58 && view.height == 245 && view.hintY() == 290
               && recipeViewAt(640, 200).height == 200 - 16 - 4 - 22 && recipeViewAt(640, 200).top == 22,
               "the view is centred, three rows high, under its tabs; on a low screen it fills the room");
         check(view.rows(Station::Crafting) == 3 && view.perPage(Station::Crafting) == 6 && view.columns(Station::Crafting, 3) == 1
@@ -277,7 +277,7 @@ void recipeIndexTests() {
               && recipeInGrid(index, 2, {-1, -1, -1, birch}, "none") == at(button) && recipeInGrid(index, 2, {-1, -1, -1, birch}, button.id) == at(button),
               "what does not stack is never thrown, and the recipe the game names is taken where it fits");
         check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 324
-              && std::abs(view.blockY(Station::Crafting, 8, 3) - (60 + 31 + 66 + (66.f - 59) / 2)) < .01f,
+              && std::abs(view.blockY(Station::Crafting, 8, 3) - (58 + 35 + 66 + (66.f - 59) / 2)) < .01f,
               "one column sits in the middle; two fill left to right, then down");
     }
     {

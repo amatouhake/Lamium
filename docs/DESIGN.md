@@ -151,8 +151,8 @@ dark look. No control plays a sound.
   accent bar, the settings sidebar's selected row turned sideways. On a
   window of the game's grey they are the game's tabs (`windowTab`, measured
   from the game's recipe book): blocks standing on the window's top edge,
-  outside it, side by side sharing their black edges, two units of light
-  along the top and left, the others with a dark grey face, the chosen one
+  outside it, side by side sharing their black edges, with the window's
+  stepped top corners and two units of light along the top and left, the others with a dark grey face, the chosen one
   in the window's grey with two units of shadow at its right, joined to
   it; pictures there are 16 units. Such tabs name the window, which then
   has no title line (L-367).

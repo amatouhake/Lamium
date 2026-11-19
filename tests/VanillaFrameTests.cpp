@@ -46,5 +46,14 @@ void vanillaFrameTests() {
               "  .PPPPP. ",
               "   .....  ",
           }, "the tooltip's fill, purple line and corners are the game's");
+    // A 10-wide tab 6 high: the window's top corners and light, open below; the chosen one's shadow at its right.
+    check(raster(lamium::ui::vanilla_frame::tab(0, 0, 10, 6, true), 10, 6) == std::vector<std::string>{
+              "   ####   ",
+              "  #WWWW#  ",
+              " #WWWWW.# ",
+              "#WWW...dd#",
+              "#WW....dd#",
+              "#WW....dd#",
+          }, "a tab has the window's stepped top corners and two units of light; the chosen one is shadowed at its right");
     check(tooltipHeight(1) == 18 && tooltipWidth(10) == 20, "one line of tooltip text sits in the game's 18 units");
 }

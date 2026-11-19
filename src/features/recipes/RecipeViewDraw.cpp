@@ -102,15 +102,17 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     static_assert(RecipeViewLayout::tabsAbove == windowTabRise);
     // Two heading lines: the item's name with its two switches at the right end; under it the station's
     // name and the pager. The stations are the game's tabs on the window's top edge.
-    float headEnd = l.left + l.width - 5;
+    float headEnd = l.left + l.width - 7;
     // Each on or off, like the world map's layers: two buttons sharing a border, green when on (a trial
     // beside "a name and a switch", 2026-11-19). The one that is on is drawn last, so its frame is whole.
     bool const wanted = state::wanted().has(at.item), liked = state::notes().favourite(at.item);
     std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
     float const wantedWidth = textWidth(context, in) + 10, likedWidth = textWidth(context, favourite) + 10;
     // Without the plan there is nothing to want an item for: the favourite button stands alone.
-    Region const wantedRegion{headEnd - (input.plan ? wantedWidth : 1), l.top + 3, input.plan ? wantedWidth : 1, 11, Act::Wanted, {}, -1};
-    Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + 3, likedWidth, 11, Act::Favourite, {}, -1};
+    // The heading's first line keeps room from the window's edge (L-367).
+    constexpr float lineOne = 7;
+    Region const wantedRegion{headEnd - (input.plan ? wantedWidth : 1), l.top + lineOne - 1, input.plan ? wantedWidth : 1, 11, Act::Wanted, {}, -1};
+    Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + lineOne - 1, likedWidth, 11, Act::Favourite, {}, -1};
     for (bool pass : {false, true}) {
         if (input.favourites && liked == pass)
             drawOnOffButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favourite, likedRegion.has(input.pointerX, input.pointerY), liked);
@@ -124,10 +126,10 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     // cut short on a narrow screen can still be read.
     {
         auto const& shown = schematic::items::shown(at.item);
-        if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, l.left + 6, l.top + 3, .625f});
-        float const nameX = l.left + 19;
-        windowLabel(context, nameX, l.top + 4, headEnd - nameX, translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", shown.name));
-        if (input.pointerX >= l.left + 6 && input.pointerX < headEnd && input.pointerY >= l.top + 3 && input.pointerY < l.top + 14)
+        if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, l.left + 7, l.top + lineOne - 1, .625f});
+        float const nameX = l.left + 20;
+        windowLabel(context, nameX, l.top + lineOne, headEnd - nameX, translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", shown.name));
+        if (input.pointerX >= l.left + 7 && input.pointerX < headEnd && input.pointerY >= l.top + lineOne - 1 && input.pointerY < l.top + lineOne + 10)
             late.tip = shown.name, late.hovered = at.item;
     }
     auto line = [&](std::string_view key) {
@@ -173,9 +175,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         x += w - 1; // neighbours share their edge
     }
     // The second line: the station's name, and the pager at its right end.
-    float const lineTwo = l.top + 17, lineEnd = l.left + l.width - 6;
+    float const lineTwo = l.top + lineOne + 14, lineEnd = l.left + l.width - 7;
     auto const pager = drawPager(context, lineEnd, lineTwo, at.page, pages, input.pointerX, input.pointerY);
-    windowLabel(context, l.left + 6, lineTwo + 1, pager.prevX - 4 - (l.left + 6), stationName(station), true);
+    windowLabel(context, l.left + 7, lineTwo + 1, pager.prevX - 4 - (l.left + 7), stationName(station), true);
     if (pager.prevOn) regions.push_back({pager.prevX, pager.y, Pager::size, Pager::size, Act::PagePrev, {}, -1});
     if (pager.nextOn) regions.push_back({pager.nextX, pager.y, Pager::size, Pager::size, Act::PageNext, {}, -1});
     // An ingredient any of several items satisfies shows them in turn.

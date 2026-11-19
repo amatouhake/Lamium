@@ -100,7 +100,7 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
 // it sits in the middle.
 struct RecipeViewLayout {
     // Two columns of three rows a page, with room between them and inside the window's edge (L-367).
-    static constexpr float width = 220, margin = 10, column = (width - 2 * margin) / 2, block = 92, head = 31, foot = 12;
+    static constexpr float width = 220, margin = 10, column = (width - 2 * margin) / 2, block = 92, head = 35, foot = 12;
     static constexpr int mostRows = 3;
     // The game's tabs stand on the window's top edge, above it (windowTab's rise).
     static constexpr float tabsAbove = 21;
