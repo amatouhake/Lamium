@@ -18,9 +18,16 @@ bool opened = false;
 Tab tab = Tab::Wanted;
 int scroll[4]{};
 int expanded = -1; // the group whose members are shown, to pick one
-std::pair<Item, int> expandedMake{-1, -1}; // unused since L-370: choosing is the breakdown's
 std::string openEntry; // the wanted entry whose breakdown is open (wantedEntryId)
-std::pair<std::string, int> openMembers{{}, -1}; // in that breakdown, a group opened to pick a member
+// In that breakdown, a group opened to pick a member, from a step's input or from a material's row: its cells
+// show under the row they were opened from only.
+struct OpenMembers {
+    std::string entry;
+    int group = -1;
+    bool fromStep = false;
+    bool operator==(OpenMembers const&) const = default;
+};
+OpenMembers openMembers;
 std::string scrollTo; // a wanted entry to bring into view when the wanted tab shows next
 constexpr float rowHeight = 12, headTop = 4, rowsTop = 16, iconScale = .625f, stepperWidth = 50;
 }
@@ -32,9 +39,8 @@ void open(Tab which) {
 void close() {
     opened = false;
     expanded = -1;
-    expandedMake = {-1, -1};
     openEntry.clear();
-    openMembers = {{}, -1};
+    openMembers = {};
 }
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift, std::string& showItem,
           bool& showChoice) {
@@ -64,7 +70,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         std::string name = translated(names[i]);
         float const w = textWidth(context, name) + 14;
         windowTab(context, x, l.top, w, std::move(name), tab == tabs[i], over(x, l.top - windowTabRise, w - 1, windowTabRise));
-        if (took(x, l.top - windowTabRise, w - 1, windowTabRise)) tab = tabs[i], expanded = -1, expandedMake = {-1, -1};
+        if (took(x, l.top - windowTabRise, w - 1, windowTabRise)) tab = tabs[i], expanded = -1;
         x += w - 1; // neighbours share their edge
     }
     auto const* plan = state::plan(player);
@@ -93,8 +99,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     };
     auto note = [&](std::string text) { windowLabel(context, left, top + 2, right - left, std::move(text), true); };
     // Every list of the window scrolls with the shared bar, in the margin right of the rows.
-    auto bar = [&](int count, int& first) {
-        listScrollbar(context, right + 2, top, static_cast<float>(fits) * rowHeight, count, fits, first, px, py, pressed, input.held);
+    // `visible`: how many rows fit at the list's end, where rows are taller than `rowHeight`.
+    auto bar = [&](int count, int& first, int visible = -1) {
+        listScrollbar(context, right + 2, top, static_cast<float>(fits) * rowHeight, count, visible < 0 ? fits : visible, first, px, py, pressed, input.held);
     };
     if (!plan) { note(translated("schematic.raw.reading")); return; }
     auto const& index = plan->table->index;
@@ -202,6 +209,20 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         }
         return rows * 18 + 2;
     };
+    // The same height members() takes, without drawing.
+    auto membersHeight = [&](int group) {
+        auto const& list = index.groups[static_cast<size_t>(group)].members;
+        size_t const across = static_cast<size_t>(std::max(1, static_cast<int>((right - left - 12) / 18)));
+        float const rows = static_cast<float>((list.size() + across - 1) / across);
+        return rows * 18 + (plan->request.picks.contains(group) ? 14.f : 2.f);
+    };
+    // How many rows of these heights fit, counted from the list's end: the scroll goes down to them.
+    auto fitFromEnd = [&](std::vector<float> const& heights) {
+        float room = bottom - top;
+        int fit = 0;
+        for (auto h = heights.rbegin(); h != heights.rend() && room >= *h; ++h) room -= *h, ++fit;
+        return std::max(1, fit);
+    };
     // A step as the game's slots: its inputs, an arrow, its product, and its station (L-370). `choosing`: in a
     // breakdown, where a group input opens its members and the recipe and "gather" are chosen; `entry` is
     // that breakdown's. `faint`: its icons dim (a step that cannot be made yet). Returns nothing; the row is
@@ -258,9 +279,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (over(x, y + 1, 18, 18)) late.tip = name, late.hovered = item < itemCount ? iconKey : std::string();
             if (choosing && part.group) {
                 // Any of several: a press opens its members under the row to pick one.
-                bool const open = openMembers == std::pair<std::string, int>{entry, part.id};
+                OpenMembers const here{entry, part.id, true};
+                bool const open = openMembers == here;
                 if (open) fill(context, x, y + 19, 18, 1, palette::accentDeep);
-                if (took(x, y + 1, 18, 18)) openMembers = open ? std::pair<std::string, int>{{}, -1} : std::pair<std::string, int>{entry, part.id};
+                if (took(x, y + 1, 18, 18)) openMembers = open ? OpenMembers{} : here;
             }
             x += 18;
         }
@@ -274,7 +296,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     if (tab == Tab::Wanted) {
         // Each wanted item, in its priority order: the finished ones held against those wanted and a bar of how
         // much of what it takes is gathered; a press opens its breakdown, where its choices are made (L-370).
-        auto const& entries = plan->entries;
+        auto const* shares = state::shares(player);
+        if (!shares) { note(translated("schematic.raw.reading")); return; }
+        auto const& entries = shares->entries;
         if (entries.empty()) { paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, palette::vanilla::windowInk); return; }
         // The rows as lines of their own heights, so a breakdown's lines scroll like the rest.
         struct Line { enum class Kind { Target, Step, Label, Material, Members } kind; size_t entry = 0; size_t at = 0; float height = 0; };
@@ -282,35 +306,41 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         for (size_t e = 0; e < entries.size(); ++e) {
             if (scrollTo == wantedEntryId(entries[e])) offset = static_cast<int>(lines.size()), scrollTo.clear();
             lines.push_back({Line::Kind::Target, e, 0, targetHeight});
-            if (openEntry != wantedEntryId(entries[e]) || e >= plan->targets.size() || plan->targets[e].item < 0) continue;
-            auto const& view = plan->targets[e].view;
+            if (openEntry != wantedEntryId(entries[e]) || e >= shares->targets.size() || shares->targets[e].item < 0) continue;
+            auto const& view = shares->targets[e].view;
             if (!view.steps.empty()) lines.push_back({Line::Kind::Label, e, 0, labelHeight});
             for (size_t k = 0; k < view.steps.size(); ++k) {
                 lines.push_back({Line::Kind::Step, e, k, stepHeight});
-                if (openMembers.first == openEntry) {
+                if (openMembers.fromStep && openMembers.entry == openEntry) {
                     auto const& uses = index.recipes[static_cast<size_t>(view.steps[k].recipe)].uses;
-                    if (std::ranges::any_of(uses, [&](Part const& part) { return part.group && part.id == openMembers.second; }) &&
+                    if (std::ranges::any_of(uses, [&](Part const& part) { return part.group && part.id == openMembers.group; }) &&
                         std::ranges::none_of(lines, [](Line const& line) { return line.kind == Line::Kind::Members; }))
                         lines.push_back({Line::Kind::Members, e, k, 0});
                 }
             }
             if (!view.gather.empty()) lines.push_back({Line::Kind::Label, e, 1, labelHeight});
-            for (size_t k = 0; k < view.gather.size(); ++k) lines.push_back({Line::Kind::Material, e, k, materialHeight});
+            for (size_t k = 0; k < view.gather.size(); ++k) {
+                Item const id = view.gather[k].id;
+                bool const opened = id >= itemCount && openMembers == OpenMembers{openEntry, id - itemCount, false};
+                lines.push_back({Line::Kind::Material, e, k, materialHeight + (opened ? membersHeight(id - itemCount) : 0.f)});
+            }
         }
         int const count = static_cast<int>(lines.size());
+        std::vector<float> heights;
+        for (auto const& line : lines) heights.push_back(line.kind == Line::Kind::Members ? membersHeight(openMembers.group) : line.height);
         offset = std::clamp(offset, 0, std::max(0, count - 1));
-        bar(count, offset);
+        bar(count, offset, fitFromEnd(heights));
         float y = top;
         auto const& request = plan->request;
         for (int at = offset; at < count; ++at) {
             auto const& line = lines[static_cast<size_t>(at)];
             auto const& entry = entries[line.entry];
             std::string const id = wantedEntryId(entry);
-            TargetPlan const* target = line.entry < plan->targets.size() ? &plan->targets[line.entry] : nullptr;
+            TargetPlan const* target = line.entry < shares->targets.size() ? &shares->targets[line.entry] : nullptr;
             float height = line.height;
             if (line.kind == Line::Kind::Members) {
-                if (openMembers.second < 0) continue;
-                height = members(y, openMembers.second, [&] { openMembers = {{}, -1}; });
+                if (openMembers.group < 0) continue;
+                height = members(y, openMembers.group, [&] { openMembers = {}; });
             }
             if (y + std::min(height, stepHeight) > bottom) break;
             if (line.kind == Line::Kind::Label) {
@@ -333,18 +363,18 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     if (!list.empty()) iconKey = index.items[static_cast<size_t>(list[turn % list.size()])];
                     name = groupName(index, material.id - itemCount);
                     // A group: a press on the row opens its members to pick one.
-                    bool const open = openMembers == std::pair<std::string, int>{id, material.id - itemCount};
+                    OpenMembers const here{id, material.id - itemCount, false};
+                    bool const open = openMembers == here;
                     if (over(left, y, nameEnd - left, height)) fill(context, left + 6, y, nameEnd - left - 6, height, palette::shade, .1f);
-                    if (took(left, y, nameEnd - left, height)) openMembers = open ? std::pair<std::string, int>{{}, -1} : std::pair<std::string, int>{id, material.id - itemCount};
+                    if (took(left, y, nameEnd - left, height)) openMembers = open ? OpenMembers{} : here;
                 } else if (material.id >= 0) iconKey = index.items[static_cast<size_t>(material.id)], name = schematic::items::shown(iconKey).name;
                 if (!iconKey.empty())
                     if (auto const* stack = schematic::items::iconStack(schematic::items::shown(iconKey).icon)) late.icons.push_back({stack, left + 8, y + 1});
                 if (late.tip.empty() && over(left, y, nameEnd - left, height)) late.tip = name, late.hovered = material.id < itemCount ? iconKey : std::string();
                 windowLabel(context, left + 27, y + 5, nameEnd - left - 29, name);
                 // A group opened from this row shows its members right under it.
-                if (material.id >= itemCount && openMembers == std::pair<std::string, int>{id, material.id - itemCount}) {
-                    y += height;
-                    height = members(y, material.id - itemCount, [&] { openMembers = {{}, -1}; });
+                if (material.id >= itemCount && openMembers == OpenMembers{id, material.id - itemCount, false}) {
+                    members(y + materialHeight, material.id - itemCount, [&] { openMembers = {}; });
                 }
             } else if (line.kind == Line::Kind::Target) {
                 // The row: a fold mark, the icon and the name; under the name its bar; "have / want" and the
@@ -403,7 +433,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 if (late.tip.empty() && over(left, y, sx - left, height)) late.tip = shown.name, late.hovered = entry.key;
                 if (known && took(left, y, sx - left, height)) {
                     openEntry = openEntry == id ? std::string() : id;
-                    openMembers = {{}, -1};
+                    openMembers = {};
                 }
             }
             y += height;
@@ -438,8 +468,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             progressBar(context, right - barW, ty + 4, barW, 4, total.fraction());
         }
         int const count = static_cast<int>(rows.size());
+        std::vector<float> heights;
+        for (auto const& row : rows)
+            heights.push_back(rowHeight + (row.key.empty() && row.line.id >= itemCount && expanded == row.line.id - itemCount ? membersHeight(expanded) : 0.f));
         offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
-        bar(count, offset);
+        bar(count, offset, fitFromEnd(heights));
         // Each row: the icon and name, "have / need" and a short bar at its right end.
         constexpr float barW = 26;
         float const numbersEnd = right - barW - 4, numbersW = 46;
@@ -504,18 +537,19 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     for (auto const& step : steps) if (!stepReady(index, plan->request, step, stock)) order.push_back({&step, false});
     int const count = static_cast<int>(order.size());
     offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
-    bar(count, offset);
+    bar(count, offset, std::max(1, static_cast<int>((bottom - top) / stepHeight)));
     float y = top;
     for (int at = offset; at < count && y + stepHeight <= bottom; ++at) {
         auto const& [step, ready] = order[static_cast<size_t>(at)];
         bool const hot = over(left, y, right - left, stepHeight);
         if (hot) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
         stepRow(left, y, *step, plan->request, false, {}, !ready);
-        if (took(left, y, right - left, stepHeight)) {
-            for (size_t e = 0; e < plan->targets.size() && e < plan->entries.size(); ++e)
-                if (std::ranges::any_of(plan->targets[e].view.steps, [&](StepLine const& mine) { return mine.item == step->item; })) {
-                    openEntry = scrollTo = wantedEntryId(plan->entries[e]);
-                    openMembers = {{}, -1};
+        if (took(left, y, right - left, stepHeight))
+            if (auto const* shares = state::shares(player)) {
+            for (size_t e = 0; e < shares->targets.size() && e < shares->entries.size(); ++e)
+                if (std::ranges::any_of(shares->targets[e].view.steps, [&](StepLine const& mine) { return mine.item == step->item; })) {
+                    openEntry = scrollTo = wantedEntryId(shares->entries[e]);
+                    openMembers = {};
                     tab = Tab::Wanted;
                     break;
                 }

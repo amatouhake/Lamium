@@ -70,10 +70,14 @@ struct Plan {
     std::map<Item, Count> held; // carried as far as it counts (the player's switches), by item
     std::map<Item, Count> stored; // in the counted places as last seen, by item; the plan counts both
     std::vector<LooseLine> loose; // wanted items the table does not know: gathered as they are
-    // L-370: the wanted entries in priority order and, for each, its share (item -1 where the table lacks it).
-    std::vector<WantedEntry> entries;
-    std::vector<TargetPlan> targets;
 };
 // Null until the recipe table is read.
 Plan const* plan(LocalPlayer& player);
+// L-370: the wanted entries in priority order and, for each, its share of the plan (item -1 where the table
+// lacks it). Worked out only when asked (the plan window's wanted and make tabs), once per plan.
+struct Shares {
+    std::vector<WantedEntry> entries;
+    std::vector<TargetPlan> targets;
+};
+Shares const* shares(LocalPlayer& player);
 }

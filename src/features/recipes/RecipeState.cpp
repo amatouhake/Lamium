@@ -1,4 +1,5 @@
 #include "features/recipes/RecipeState.h"
+#include <format>
 #include "app/AtomicFile.h"
 #include "app/Runtime.h"
 #include "features/map/WaypointSession.h"
@@ -279,14 +280,32 @@ Plan const* plan(LocalPlayer& player) {
     for (auto const& [id, count] : plan.stored) both[id] += count;
     plan.request.held.assign(both.begin(), both.end());
     plan.view = rawView(table->index, *plan.choice, plan.request);
-    // Each wanted entry's share, held stock going to them from the top down (L-370).
-    plan.entries = prioritized(list, given);
-    std::vector<std::pair<Item, Count>> order;
-    for (auto const& entry : plan.entries) order.emplace_back(table->index.findKey(entry.key), entry.count);
-    plan.targets = targetPlans(table->index, *plan.choice, order, plan.request.held, plan.request.picks, plan.request.stops);
     plannedNow.revision = revision;
     plannedNow.at = now;
     return &plan;
+}
+Shares const* shares(LocalPlayer& player) {
+    auto const* now = plan(player);
+    if (!now) return nullptr;
+    // The same plan as last asked (it is worked out again at most twice a second): its shares stand.
+    static Shares kept;
+    static std::chrono::steady_clock::time_point keptFor{};
+    static unsigned keptRevision = 0;
+    if (keptFor == plannedNow.at && keptRevision == plannedNow.revision) return &kept;
+    auto const started = std::chrono::steady_clock::now();
+    kept.entries = prioritized(list, handed());
+    std::vector<std::pair<Item, Count>> order;
+    for (auto const& entry : kept.entries) order.emplace_back(now->table->index.findKey(entry.key), entry.count);
+    kept.targets = targetPlans(now->table->index, *now->choice, order, now->request.held, now->request.picks, now->request.stops);
+    keptFor = plannedNow.at, keptRevision = plannedNow.revision;
+    // Each entry is planned twice; say once how long it took, so a long list's cost is known.
+    static bool told = false;
+    auto const took = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - started).count();
+    if (!told && kept.entries.size() >= 10) {
+        told = true;
+        log(std::format("the plan's shares of {} wanted items took {} us", kept.entries.size(), took));
+    }
+    return &kept;
 }
 void start() {
     // The stores' outlines are the world's: none in the next one until its places are read.
