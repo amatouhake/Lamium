@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A listed item's tip beside the game's (L-366, 2026-11-19)
+
+Build `974efe5f` (DLL
+`1e8315118a1e0332b6994bafc56bd0bc32425761aa9f57c8b08164f7a75352b1`),
+1.26.60.05 Dev instance, the maintainer: a listed shulker box's tip looks
+the same as the game's beside it (corners, text place, Storage in blue);
+the key hint on the open window is clear of its edge. With Item details on,
+the tip's frame and text sometimes seemed to move a little apart as the
+pointer went (the tip was placed between units; on whole units in the next
+build, not yet seen).
+
 ## Recipe windows and item tips drawn as the game's (L-366, 2026-11-19)
 
 Build `f7077e3f` (DLL

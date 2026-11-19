@@ -1,4 +1,5 @@
 #include "features/recipes/ItemList.h"
+#include <cmath>
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "features/inspection/Inspection.h"
@@ -742,7 +743,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float const inset = item ? vf::tooltipTextLeft : 4, top = item ? vf::tooltipTextTop - 1 : 2;
         w = std::min(item ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
         float const h = item ? vf::tooltipHeight(lines) : 2 + 10 * static_cast<float>(lines) + (lines > 1 ? 2.f : 0.f);
-        float const x = std::max(2.f, std::min(px + 8, screen.x - w - 2)), y = std::max(2.f, std::min(py + 8, screen.y - h - 2));
+        // On whole units: the pointer lies between them, and the box and the text, rounded to pixels each their
+        // own way, moved a pixel apart now and then as it went.
+        w = std::ceil(w);
+        float const x = std::round(std::max(2.f, std::min(px + 8, screen.x - w - 2))), y = std::round(std::max(2.f, std::min(py + 8, screen.y - h - 2)));
         if (item) {
             context.flushText(0, std::nullopt);
             gameTooltipBox(context, x, y, w, h);
