@@ -78,8 +78,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
     OnWindow const onWindowScope;
-    // The heading has the first line to itself: the item's name is what the view is about. The item's two
-    // switches stand at the right end of the stations' line, the pager left of them.
+    static_assert(RecipeViewLayout::tabsAbove == windowTabRise);
+    // One heading line: the item's name, the pager, and the item's two switches at its right end. The
+    // stations are the game's tabs on the window's top edge.
     float headEnd = l.left + l.width - 5;
     // Each on or off, like the world map's layers: two buttons sharing a border, green when on (a trial
     // beside "a name and a switch", 2026-11-19). The one that is on is drawn last, so its frame is whole.
@@ -87,20 +88,20 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
     float const wantedWidth = textWidth(context, in) + 10, likedWidth = textWidth(context, favourite) + 10;
     // Without the plan there is nothing to want an item for: the favourite button stands alone.
-    Region const wantedRegion{headEnd - (input.plan ? wantedWidth : 1), l.top + 15, input.plan ? wantedWidth : 1, 11, Act::Wanted, {}, -1};
-    Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + 15, likedWidth, 11, Act::Favourite, {}, -1};
+    Region const wantedRegion{headEnd - (input.plan ? wantedWidth : 1), l.top + 3, input.plan ? wantedWidth : 1, 11, Act::Wanted, {}, -1};
+    Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + 3, likedWidth, 11, Act::Favourite, {}, -1};
     for (bool pass : {false, true}) {
         if (input.favourites && liked == pass)
-            drawButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favourite, likedRegion.has(input.pointerX, input.pointerY),
-                       liked ? ButtonKind::Primary : ButtonKind::Plain);
+            drawOnOffButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favourite, likedRegion.has(input.pointerX, input.pointerY), liked);
         if (input.plan && wanted == pass)
-            drawButton(context, wantedRegion.x, wantedRegion.y, wantedRegion.w, wantedRegion.h, in, wantedRegion.has(input.pointerX, input.pointerY),
-                       wanted ? ButtonKind::Primary : ButtonKind::Plain);
+            drawOnOffButton(context, wantedRegion.x, wantedRegion.y, wantedRegion.w, wantedRegion.h, in, wantedRegion.has(input.pointerX, input.pointerY), wanted);
     }
     if (input.plan) regions.push_back(wantedRegion);
     if (input.favourites) regions.push_back(likedRegion);
     headEnd = (input.favourites ? likedRegion.x : input.plan ? wantedRegion.x : headEnd) - 6;
-    windowLabel(context, l.left + 6, l.top + 5, l.width - 12,
+    // The pager's room is kept whether or not there are pages, so the name does not jump.
+    constexpr float pagerWidth = 36;
+    windowLabel(context, l.left + 6, l.top + 4, headEnd - pagerWidth - 4 - (l.left + 6),
                 translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", schematic::items::shown(at.item).name));
     auto line = [&](std::string_view key) {
         windowLabel(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), true);
@@ -126,26 +127,25 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     at.page = std::clamp(at.page, 0, pages - 1);
     // Stations are tabs, each by its block's icon and named under the pointer; the pager keeps the line's right end.
     float x = l.left + 5;
-    float const tabY = l.top + 16, tabEnd = headEnd - 36;
-    tabRule(context, l.left + 5, tabY + tabHeight, l.width - 10, true);
+    float const tabEnd = l.left + l.width - 5;
     for (size_t i = 0; i < tabs.size(); ++i) {
         std::string name = stationName(tabs[i].station);
         auto const picture = stationItem(tabs[i].station);
         auto const* stack = picture.empty() ? nullptr : schematic::items::iconStack(schematic::items::shown(std::string(picture)).icon);
-        float const w = stack ? tabIconWidth : textWidth(context, name) + tabPad;
+        float const w = stack ? 22 : textWidth(context, name) + 11;
         if (x + w > tabEnd) break;
-        Region const region{x, tabY, w, tabHeight, Act::Tab, {}, static_cast<int>(i)};
+        Region const region{x, l.top - windowTabRise, w - 1, windowTabRise, Act::Tab, {}, static_cast<int>(i)};
         bool const hot = region.has(input.pointerX, input.pointerY);
         bool const selected = static_cast<int>(i) == at.tab;
         if (stack) {
-            drawTab(context, x, tabY, w, {}, selected, hot, i == 0, true);
-            late.icons.push_back({stack, x + 2.5f, tabY + .5f, .625f});
+            windowTab(context, x, l.top, w, {}, selected, hot);
+            late.icons.push_back({stack, x + (w - 17) / 2, windowTabIconY(l.top), 1.f});
             if (hot) late.tip = std::move(name);
-        } else drawTab(context, x, tabY, w, std::move(name), selected, hot, i == 0, true);
+        } else windowTab(context, x, l.top, w, std::move(name), selected, hot);
         regions.push_back(region);
         x += w;
     }
-    if (pages > 1) windowLabel(context, headEnd - 40, tabY + 2, 36, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
+    if (pages > 1) windowLabel(context, headEnd - pagerWidth, l.top + 4, pagerWidth, std::format("{} / {}", at.page + 1, pages), true, Align::Right);
     // An ingredient any of several items satisfies shows them in turn.
     auto const turn = static_cast<size_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);

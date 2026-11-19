@@ -18,7 +18,7 @@ bool opened = false;
 Tab tab = Tab::Wanted;
 int scroll[4]{};
 int expanded = -1; // the group whose members are shown, to pick one
-constexpr float rowHeight = 12, headTop = 29, rowsTop = 41, iconScale = .625f, stepperWidth = 50;
+constexpr float rowHeight = 12, headTop = 4, rowsTop = 16, iconScale = .625f, stepperWidth = 50;
 }
 bool isOpen() { return opened; }
 void open(Tab which) {
@@ -49,16 +49,15 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
     OnWindow const onWindowScope;
-    windowLabel(context, l.left + 6, l.top + 5, l.width - 12, translated("recipes.plan"));
+    // The lists are the game's tabs on the window's top edge; they name the window, which needs no title.
     float x = l.left + 5;
-    tabRule(context, l.left + 5, l.top + 16 + tabHeight, l.width - 10, true);
     Tab const tabs[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::Places};
     char const* const names[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.places"};
     for (int i = 0; i < 4; ++i) {
         std::string name = translated(names[i]);
-        float const w = textWidth(context, name) + tabPad;
-        drawTab(context, x, l.top + 16, w, std::move(name), tab == tabs[i], over(x, l.top + 16, w, tabHeight), i == 0, true);
-        if (took(x, l.top + 16, w, tabHeight)) tab = tabs[i], expanded = -1;
+        float const w = textWidth(context, name) + 11;
+        windowTab(context, x, l.top, w, std::move(name), tab == tabs[i], over(x, l.top - windowTabRise, w - 1, windowTabRise));
+        if (took(x, l.top - windowTabRise, w - 1, windowTabRise)) tab = tabs[i], expanded = -1;
         x += w;
     }
     auto const* plan = state::plan(player);

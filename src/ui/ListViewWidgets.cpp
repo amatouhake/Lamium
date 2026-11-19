@@ -42,6 +42,13 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
     // Dark text on the game's grey has no shadow, as the window's own text.
     centered(context,x,y,w,h,std::move(text),color,!onWindow() || (enabled && kind == ButtonKind::Primary));
 }
+void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, bool hovered, bool on) {
+    if (!onWindow()) { drawButton(context,x,y,w,h,std::move(text),hovered,on ? ButtonKind::Primary : ButtonKind::Plain); return; }
+    fill(context,x,y,w,h,on ? palette::accentDeep : palette::vanilla::switchTrack);
+    if (hovered) fill(context,x,y,w,h,palette::white,.12f);
+    frame(context,x,y,w,h,palette::vanilla::windowEdge);
+    centered(context,x,y,w,h,std::move(text),palette::text);
+}
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed) {
     bool red = armed || hovered;

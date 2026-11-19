@@ -218,7 +218,7 @@ void recipeIndexTests() {
         auto view = recipeViewAt(640, 360);
         check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,
               "the arrow and the product stand at the grid's middle, the small mark under them");
-        check(view.left == 210 && view.top == 4 && view.height == 336 && view.hintY() == 327, "the view is centred, two columns wide, down to the search field's place");
+        check(view.left == 210 && view.top == 19 && view.height == 321 && view.hintY() == 327, "the view is centred, two columns wide, under its tabs, down to the search field's place");
         check(view.rows(Station::Crafting) == 5 && view.columns(Station::Crafting, 5) == 1 && view.columns(Station::Crafting, 6) == 2
               && view.pages(Station::Crafting, 11) == 2, "rows fill the height; a second column and page come when needed");
         // Laying a recipe into the grid from what is carried.
@@ -315,7 +315,7 @@ void recipeIndexTests() {
         auto side = itemListLeft(360, 210);
         check(side.width == 206 && side.columns == 11 && side.split() == 180 && side.favouriteRows() == 9 && side.usable() && side.wide(),
               "the left band runs from the screen's edge to the room the centre keeps, halved between favourites and wanted");
-        check(side.hitFavourite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavourite(100, 178) == -1 && side.rows() == 12
+        check(side.hitFavourite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavourite(100, 178) == -1 && side.rows() == 11
               && side.hitRow(50, side.rowY(3) + 1) == 3 && side.hitRow(50, 350) == -1 && side.hitRow(50, 100) == -1,
               "favourites are cells above the middle; the wanted rows end a line short of the bottom");
         check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");

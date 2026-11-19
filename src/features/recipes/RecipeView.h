@@ -98,7 +98,9 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
 // station's recipes all take the same room; where one column holds them all
 // it sits in the middle.
 struct RecipeViewLayout {
-    static constexpr float width = 220, column = 110, block = 100, head = 29, foot = 12;
+    static constexpr float width = 220, column = 110, block = 100, head = 14, foot = 12;
+    // The game's tabs stand on the window's top edge, above it (windowTab's rise).
+    static constexpr float tabsAbove = 18;
     float left = 0, top = 0, height = 0;
     static float blockHeight(Station station) { return station == Station::Crafting ? 59.f : station == Station::Stonecutter ? 31.f : 53.f; }
     int rows(Station station) const { return std::max(1, static_cast<int>((height - head - foot) / blockHeight(station))); }
@@ -117,11 +119,11 @@ struct RecipeViewLayout {
     // window's three-unit edge below it (it reaches into the last row's spacing, which a block never fills).
     float hintY() const { return top + height - 13; }
 };
-// The window ends 4 above the search field.
+// The tabs start a unit below the screen's top, the window under them; it ends 4 above the search field.
 inline RecipeViewLayout recipeViewAt(float screenWidth, float screenHeight) {
     RecipeViewLayout out;
     out.left = (screenWidth - RecipeViewLayout::width) / 2;
-    out.top = 4;
+    out.top = 1 + RecipeViewLayout::tabsAbove;
     out.height = screenHeight - searchTop - 4 - out.top;
     return out;
 }

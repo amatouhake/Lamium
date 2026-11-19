@@ -457,7 +457,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         };
         std::string openText = translated("recipes.open");
         float const openWidth = textWidth(context, openText) + 8;
-        ListBox const openBox{side.left + side.width - 2 - openWidth, side.barY(), openWidth, 11};
+        ListBox const openBox{side.left + side.width - 2 - openWidth, side.barY() + (SideLayout::bar - 11) / 2, openWidth, 11};
         if (barButton2(openBox, std::move(openText), false)) openPlan();
         std::string listTexts[3];
         float listWidths[3], listsWidth = 0;
@@ -472,19 +472,20 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float const barRoom = openBox.x - 2 - barX2;
         bool const named = listsWidth <= barRoom;
         static constexpr char const* pictures[]{"minecraft:writable_book", "minecraft:iron_pickaxe", "minecraft:crafting_table"};
-        if (named || 3 * tabIconWidth <= barRoom) {
+        constexpr float pictureWidth = 20;
+        if (named || 3 * pictureWidth <= barRoom) {
             for (int i = 0; i < 3; ++i) {
-                float const w = named ? listWidths[i] : tabIconWidth;
-                ListBox const box{barX2, side.barY(), w, tabHeight};
-                drawTab(context, box.x, box.y, box.w, named ? std::move(listTexts[i]) : std::string(), i == listNow, box.has(px, py), i == 0);
+                float const w = named ? listWidths[i] : pictureWidth;
+                ListBox const box{barX2, side.barY(), w, SideLayout::bar};
+                drawTab(context, box.x, box.y, box.w, named ? std::move(listTexts[i]) : std::string(), i == listNow, box.has(px, py), i == 0, SideLayout::bar);
                 if (!named) {
-                    if (auto const* stack = schematic::items::iconStack(schematic::items::shown(pictures[i]).icon)) late.icons.push_back({stack, box.x + 3, box.y - .5f, .625f});
+                    if (auto const* stack = schematic::items::iconStack(schematic::items::shown(pictures[i]).icon)) late.icons.push_back({stack, box.x + 3, box.y, .875f});
                     if (box.has(px, py)) late.tip = std::move(listTexts[i]);
                 }
                 if (leftPress && took(box)) sideList = lists[i].list;
                 barX2 += w;
             }
-            tabRule(context, side.left + 2, side.barY() + tabHeight, side.width - 4);
+            tabRule(context, side.left + 2, side.barY() + SideLayout::bar, side.width - 4);
         }
         // The short list: an icon, the name where there is room, and how many; a wanted item's count has the stepper.
         struct SideRow {
@@ -681,7 +682,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     state::settleWanted(wantedHeld.load() ? std::string_view(wantedItem) : !late.wantedRow.empty() ? std::string_view(late.wantedRow) : std::string_view(hoverItem));
     std::string tipItem;
     // Under an open window, as wide as it is drawn, the game's slots are covered: they name no item.
-    bool const covered = open && px >= coverLeft && px < right && py >= viewLayout.top && py < viewLayout.top + viewLayout.height;
+    bool const covered = open && px >= coverLeft && px < right && py >= viewLayout.top - RecipeViewLayout::tabsAbove
+        && py < viewLayout.top + viewLayout.height;
     if (covered) inspection::dropDeferredTooltip();
     if (hoverItem.empty() && !covered) {
         // A slot of the game's own window, as its hover callbacks last said.
@@ -708,7 +710,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         auto over = [&](float bx, float by, float bw, float bh) { return bw > 0 && x < bx + bw && x + w > bx && y < by + bh && y + h > by; };
         return over(layout.left, layout.top, layout.width, layout.height) || over(field.x, field.y, field.w, field.h)
             || (side.usable() && over(side.left, side.top, side.width, side.height))
-            || (open && over(coverLeft, viewLayout.top, right - coverLeft, viewLayout.height));
+            || (open && over(coverLeft, viewLayout.top - RecipeViewLayout::tabsAbove, right - coverLeft, viewLayout.height + RecipeViewLayout::tabsAbove));
     });
     for (auto& icon : late.icons) icon.alpha *= shownOpacity;
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);

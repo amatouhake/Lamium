@@ -23,6 +23,9 @@ namespace lamium::ui {
 enum class ButtonKind { Plain, Primary };
 void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                 bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
+// One of joined on/off buttons (DESIGN "Each on or off"), green when on. On the game's window the off face
+// is the game's lighter grey with a black edge, as the switch's track there; the text stays white.
+void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, bool hovered, bool on);
 // The same box for a button whose content is not one centered label (an icon,
 // a chevron, colored key text); returns the color its content takes.
 Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, float h,

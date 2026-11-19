@@ -185,15 +185,20 @@ void windowSlot(MinecraftUIRenderContext&, float x, float y, bool hovered = fals
 // One of several, chosen (decided 2026-11-19, demos/switching-controls-2.html): names side by side with
 // no gap over a rule (tabRule) as wide as what they switch. On a dark Lamium panel the chosen one stands
 // on a faint accent face over an accent bar, as the settings sidebar's selected row does; on a window of
-// the game's grey (`window`, or inside OnWindow) they are the game's tabs instead: blocks in a darker grey
-// side by side, the chosen one in the window's grey and joined to it through the rule under them (draw
-// the rule first). On the dark panel the others are dim and lighten under the pointer; none is a filled
-// button, so a strip is not mistaken for actions. Without a text the
-// tab is an icon's place and the caller draws the icon. Height 11 like a button.
+// a window of the game's grey they are windowTab instead. The others are dim and lighten under the
+// pointer; none is a filled button, so a strip is not mistaken for actions. Without a text the tab is an
+// icon's place and the caller draws the icon. Height 11 like a button, or `height`.
 inline constexpr float tabHeight = 11, tabPad = 9, tabIconWidth = 16;
 void drawTab(MinecraftUIRenderContext&, float x, float y, float w, std::string text, bool selected, bool hovered, bool first,
-             bool window = false);
-void tabRule(MinecraftUIRenderContext&, float x, float y, float w, bool window = false);
+             float height = tabHeight);
+void tabRule(MinecraftUIRenderContext&, float x, float y, float w);
+// The game's tabs on a window of its grey (L-367): blocks standing windowTabRise above the window's top
+// edge, a unit apart; the others in the slots' grey with white names, the chosen one in the window's grey,
+// a unit taller and joined to the window through its edge. Drawn after the window. Without a text the
+// caller draws a 16-unit icon at the tab's x + (w - 17) / 2 and windowTabIconY.
+inline constexpr float windowTabRise = 18;
+inline constexpr float windowTabIconY(float windowTop) { return windowTop - 16; }
+void windowTab(MinecraftUIRenderContext&, float x, float windowTop, float w, std::string text, bool selected, bool hovered);
 void slotCount(MinecraftUIRenderContext&, float x, float y, std::string text);
 // Bedrock-style switch: the knob position carries the state as well as color.
 // `scale` sizes it with a HUD element (the toggle toast); the edge stays one unit.

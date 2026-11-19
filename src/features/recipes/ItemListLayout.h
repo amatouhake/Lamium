@@ -54,12 +54,14 @@ struct SideLayout {
         int const column = static_cast<int>((x - left - pad) / cell), line = static_cast<int>((y - top - head) / cell);
         return column < columns && line < favouriteRows() ? line * columns + column : -1;
     }
+    // The lists' tabs: 14 high, room for an item's picture at 14 units where the names do not fit (L-367).
+    static constexpr float bar = 14;
     float barY() const { return top + split() + 3; }
-    float rowsTop() const { return top + split() + 16; }
+    float rowsTop() const { return top + split() + 5 + bar; }
     // The last 18 units are the open container's line: a rule, the name and switch, and room under them.
     static constexpr float foot = 18;
     float footY() const { return top + height - 14; }
-    int rows() const { return std::max(0, static_cast<int>((height - (split() + 16) - foot) / row)); }
+    int rows() const { return std::max(0, static_cast<int>((height - (split() + 5 + bar) - foot) / row)); }
     float rowY(int index) const { return rowsTop() + static_cast<float>(index) * row; }
     int hitRow(float x, float y) const {
         if (!has(x, y) || y < rowsTop()) return -1;
