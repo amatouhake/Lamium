@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A world swapped behind one server (L-365, 2026-11-19)
+
+Build `27bc0af5` (DLL
+`ca4336408c521be66e440676a49f0f50f39e197f2e91310e622ecb73f19f8b62`),
+1.26.60.05 Dev instance with a local BDS 1.26.60.6 joined from the Servers
+tab, the maintainer:
+- World A (seed 12345) joined first: no question.
+- World B (seed 67890) in A's folder, so the same level id: the toast at
+  join and the docked notice "new data started (seed / name)" with Keep new
+  data / Use the saved data / Do not split here; data `<key>-w2`.
+- Keep new data, then a rejoin: no toast, no notice, `-w2` used.
+- A put back: no question, A's map and waypoints shown.
+- World B in its own folder (another level id) was a new server (L-343):
+  the fuller-data notice for A's data came instead, as built.
+- The same server joined from the Friends tab (LAN) has no address, so its
+  data goes by the level id, apart from the Servers tab's data.
+- Not seen: Use the saved data, Do not split here, a game-mode-only copy,
+  a Realm.
+
 ## A friend's two worlds, and the cancelled join again (L-358, 2026-11-19)
 
 Build `27bc0af5` (DLL

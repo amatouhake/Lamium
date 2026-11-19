@@ -172,7 +172,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Bugs
 
 - [L-358](backlog/L-358.md) Realms joined through a friend share one data set (Research): Built with L-365; a server join reads the cookie without a crash (2026-11-19); no Realm checked, the released log line is the check
-- [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; a server join logs the print (seed hidden there), the question not yet seen (2026-11-19)
+- [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; a world swapped behind one level id on a local BDS asked, kept the answer and went back silently (2026-11-19)
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
