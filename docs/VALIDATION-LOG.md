@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Crash cancelling a friend's world join, not isolated (L-358, 2026-11-19)
+
+Build `27bc0af5` (DLL
+`ca4336408c521be66e440676a49f0f50f39e197f2e91310e622ecb73f19f8b62`),
+1.26.60.05 Dev instance, the maintainer, once:
+- A friend's world joined fine (`reconnect cookie kind 1, Realm id 0`, seed
+  known, game mode 1). After leaving it, a join to a second friend's world
+  was cancelled while connecting, and the game crashed.
+- The crash is an uncaught `std::system_error` (generic category, code 36,
+  resource_deadlock_would_occur, from `std::_Throw_Cpp_error`), thrown in
+  the game's own code under `MinecraftGame::update`; Lamium's frame is only
+  the update hook calling the original. The pattern is a thread joining
+  itself.
+- Not yet known: whether it repeats, and whether Lamium (the cookie copy
+  that is never destroyed keeps `GameConnectionInfo`'s identity verifier
+  alive) or vanilla causes it. An A/B build without the cookie read
+  (`ae6b15e8...`) is in the Dev instance's lamium-validation-disabled.
+
 ## Realm key and world prints, first server join (L-358, L-365, 2026-11-19)
 
 Build `27bc0af5` (DLL
