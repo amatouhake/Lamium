@@ -231,6 +231,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-366](backlog/done/L-366.md) Recipe screens look like the game's window and tooltip
 - [L-320](backlog/done/L-320.md) Highlight designated block types in the world
 - [L-236](backlog/done/L-236.md) Rebuild only the ghost sections whose visible layer changed
 - [L-334](backlog/done/L-334.md) Game HUD: hide each part, from the settings and HUD layout

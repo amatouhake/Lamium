@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A listed item's tip on whole units (L-366, 2026-11-19)
+
+Build `5044280e` (DLL
+`3d13a9d69444f052e5c25b77e177bbe501467a55c7a84387c872826a186fe377`),
+1.26.60.05 Dev instance, the maintainer, Item details on: moving the pointer
+slowly over the list, the tip's frame and text stay together, and its
+steps of whole units do not look jerky. L-366 closed.
+
 ## A listed item's tip beside the game's (L-366, 2026-11-19)
 
 Build `974efe5f` (DLL
