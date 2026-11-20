@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Favorites spelled the American way in saved fields (2026-11-20)
+
+Build `ae53f38c` (DLL
+`eb9c088fd970a725d3857d7fb6eaf7bd7d67abe883d8d2b91113ff04430310cc`),
+1.26.60.05 Dev instance, the maintainer. Works: the favorites read from the
+development builds' "favourites" key; A putting items in and out, kept
+across a rejoin. As expected of an unreleased rename: the saved band layout
+named the page "favourites", so the favorites panel was left unplaced
+(back from the tray in the editor).
+
 ## The region above clear of the tabs, American English (L-375, 2026-11-20)
 
 Build `8afadb38` (DLL
