@@ -114,7 +114,7 @@ p{margin:0;max-width:95ch}
         <li><b>パネルのどこでも</b>つかめばパネルごと動く（編集中は中身を押せないので）。タブありのときは、タブをつかむとそのページだけ動く。</li>
         <li>ドラッグ中は、落とした後の配置をその場で見せる。動かしているパネルは緑の枠。</li>
         <li><b>同じ領域</b>の別パネルに重ねると<b>入れ替え</b>。別の領域のパネルに重ねると、その上か下（上下の領域では左か右）に入る。空の領域ならそこに入る。</li>
-        <li>置けない所では、つかんだ札が赤くなり「ここには置けない」と出る。離すと元のまま。</li>
+        <li>元の場所の上では何も出さない。置けない所（ゲームのウィンドウや編集パネルの上）に来たときだけ、つかんだ札が赤くなり「ここには置けない」と出る。離すと元のまま。</li>
         <li>「置いていないページ」に落とすと外れる。そこからドラッグで戻せる。</li>
         <li>パネルの間の線で大きさを 5 % 刻みで変える。1 段（1 列）は割らない。</li>
       </ul>
@@ -124,7 +124,7 @@ p{margin:0;max-width:95ch}
       <ul>
         <li><b>なし</b>：1 パネル＝1 ページ。見出しは 1 行で、ページ自身の切替（すべて／作れる、欲しい／集める／作る）とページ送りをそこに置く。入れ子のタブができない。</li>
         <li><b>あり</b>：パネルの上にページのタブが並び、その下にページ自身の切替がもう 1 段来る。2 段の切替になり、狭いと読みにくい。</li>
-        <li>推奨：まず「なし」で作る。タブは、ページが増えて場所が足りないと分かってから足す（作りは後から足せる）。</li>
+        <li>決定（2026-11-20）：「なし」で作る。タブは、ページが増えて場所が足りないと分かってから考える。</li>
       </ul>
     </div>
     <div class="card">
@@ -223,7 +223,7 @@ function geometry(L){
 
 // What a drop does; null where it changes nothing or cannot go.
 function apply(L, d, t){
-  if (!t) return null;
+  if (!t || t.kind === 'self') return null;
   const N = clone(L), ids = d.pages;
   const src = d.panel ? N[d.panel.region][d.panel.index] : null;
   if (t.kind === 'tray'){
@@ -292,7 +292,8 @@ function render(){
   if (drag){
     const bad = !drag.preview;
     const name = drag.panel && drag.pages.length > 1 ? drag.pages.map(id => PAGES[id].name).join('・') : PAGES[drag.pages[0]].name;
-    el('ghost' + (bad && drag.over ? ' bad' : ''), drag.px + 4, drag.py + 4, null, 11, bad && drag.over ? name + '：ここには置けない' : name, 7);
+    const warn = bad && drag.over && !(drag.target && drag.target.kind === 'self');
+    el('ghost' + (warn ? ' bad' : ''), drag.px + 4, drag.py + 4, null, 11, warn ? name + '：ここには置けない' : name, 7);
   }
 }
 
@@ -404,6 +405,8 @@ function hitTarget(px, py){
   if (tb && px >= tb.x && px <= tb.x + tb.w && py >= tb.y && py <= tb.y + tb.h) return {kind:'tray'};
   for (const P of G.panels){
     if (P.lent || px < P.x || px >= P.x + P.w || py < P.y || py >= P.y + P.h) continue;
+    // Over its own place: nothing changes, and nothing to warn about.
+    if (drag.panel && P.region === drag.panel.region && P.index === drag.panel.index) return {kind:'self'};
     if (tabs && py < P.y + HEAD) return {kind:'tabs', region:P.region, index:P.index};
     if (drag.panel && drag.panel.region === P.region) return {kind:'swap', region:P.region, index:P.index};
     const first = AXIS[P.region] === 'v' ? py < P.y + P.h / 2 : px < P.x + P.w / 2;
