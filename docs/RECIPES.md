@@ -241,6 +241,14 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   the RecipeTable capability ([GAME-UPDATES.md](GAME-UPDATES.md)).
 - `ItemKey.h`: an item's key, the name plus the aux where the table tells
   variants apart; `settled()` in `RecipeIndex.h` decides where.
+- `BandLayout.h` (pure, L-374): the bands as regions beside, above and
+  below the game's window, panels split along a region, one page to a
+  panel; the layout is kept in the settings (`inventory.bands`, today's
+  look by default; no editor yet, L-375). A page whose feature is off is
+  left out; each panel keeps one row; a region too low for one row lends
+  its panels to a side on that screen. `BandPages.cpp` draws the
+  favourites, the plan's list and the open container's line, which lies
+  in the left region's last panel.
 - `ItemListLayout.h`, `RecipeView.h`, `ListFilter.h` (pure): where the
   lists, the search field and the view sit, an item's recipes by station, a
   recipe's slots, the search and "can be made". `ItemList.cpp` is the host:

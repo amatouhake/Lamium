@@ -46,6 +46,33 @@ void preserveBroken(std::filesystem::path const& path) {
     std::filesystem::rename(path, broken);
 #endif
 }
+// The bands as regions of panels (L-374): {"left": [{"page": "favourites", "share": 50}, ...], ...}.
+Json bandsJson(recipes::band::Layout const& layout) {
+    Json out = Json::object();
+    for (int r = 0; r < recipes::band::regionCount; ++r) {
+        Json list = Json::array();
+        for (auto const& panel : layout.regions[static_cast<size_t>(r)])
+            list.push_back({{"page", recipes::band::pageNames[static_cast<size_t>(panel.page)]}, {"share", panel.share}});
+        out[std::string(recipes::band::regionNames[static_cast<size_t>(r)])] = std::move(list);
+    }
+    return out;
+}
+// Unknown pages and malformed entries are left out; a region missing is empty; nothing usable is the default.
+recipes::band::Layout bandsFrom(Json const& data, recipes::band::Layout const& fallback) {
+    if (!data.is_object()) return fallback;
+    recipes::band::Layout out;
+    for (int r = 0; r < recipes::band::regionCount; ++r) {
+        auto const found = data.find(std::string(recipes::band::regionNames[static_cast<size_t>(r)]));
+        if (found == data.end() || !found->is_array()) continue;
+        for (auto const& entry : *found) {
+            if (!entry.is_object() || !entry.contains("page") || !entry.at("page").is_string()) continue;
+            auto const page = recipes::band::pageNamed(entry.at("page").get<std::string>());
+            int const share = entry.contains("share") && entry.at("share").is_number_integer() ? entry.at("share").get<int>() : 50;
+            if (page) out.regions[static_cast<size_t>(r)].push_back({*page, share});
+        }
+    }
+    return recipes::band::normalized(out);
+}
 Json highlightJson(std::vector<visuals::highlight::Entry> const& entries) {
     Json out = Json::array();
     for (auto const& e : entries) out.push_back({{"name", e.name}, {"color", e.color}});
@@ -243,6 +270,7 @@ Json encode(Settings const& settings) {
                        {"recipes", settings.inventory.recipes},
                        {"recipesFavourites", settings.inventory.recipesFavourites}, {"plan", settings.inventory.plan},
                        {"stores", settings.inventory.stores}, {"storeMarks", settings.inventory.storeMarks},
+                       {"bands", bandsJson(settings.inventory.bands)},
                        {"massCraft", settings.inventory.massCraft},
                        {"massCraftDelay", settings.inventory.massCraftDelay},
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
@@ -707,6 +735,7 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.plan = settingsValue(data.at("inventory"), "plan", value.inventory.plan);
         value.inventory.stores = settingsValue(data.at("inventory"), "stores", value.inventory.stores);
         value.inventory.storeMarks = settingsValue(data.at("inventory"), "storeMarks", value.inventory.storeMarks);
+        if (data.at("inventory").contains("bands")) value.inventory.bands = bandsFrom(data.at("inventory").at("bands"), value.inventory.bands);
         value.inventory.massCraft = settingsValue(data.at("inventory"), "massCraft", value.inventory.massCraft);
         value.inventory.massCraftDelay = settingsValue(data.at("inventory"), "massCraftDelay", value.inventory.massCraftDelay);
         value.inventory.deathRestoreAll = settingsValue(data.at("inventory"), "deathRestoreAll", value.inventory.deathRestoreAll);

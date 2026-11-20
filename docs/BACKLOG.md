@@ -197,7 +197,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): Rebuilt as decided (2026-11-20), not checked in game
-- [L-374](backlog/L-374.md) Bands built from regions and pages (Refactor): Open, not started; waits for L-373
+- [L-374](backlog/L-374.md) Bands built from regions and pages (Refactor): Built 2026-11-20, not checked in game
 - [L-375](backlog/L-375.md) The band layout editor (Ready): Open, not started; waits for L-374
 - [L-376](backlog/L-376.md) Recipe view tabs by kind of work (Ready): Open, not started
 - [L-377](backlog/L-377.md) Search syntax and a key for the search field (Design): Open, not started

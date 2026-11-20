@@ -514,6 +514,51 @@ void recipeIndexTests() {
               && presses.decide(69, true, true, &first) && first, "a press the game saw is the game's until its release; the next one is decided anew");
     }
     {
+        // L-374: the bands as regions of panels. A 176-wide window at 232..408 on a 640x360 screen, the
+        // room the centre keeps from 210 to 430.
+        using namespace band;
+        auto const regions = regionsAround(640, 360, 210, 430, 97, 263, 330);
+        check(regions.boxes[Left] == Box{0, 0, 206, 360} && regions.boxes[Right] == Box{434, 0, 206, 360}
+              && regions.boxes[Top] == Box{210, 0, 220, 95} && regions.boxes[Bottom] == Box{210, 265, 220, 65},
+              "regions lie beside the window to the screen's edges, and above and below it");
+        std::array<bool, pageCount> const all{true, true, true};
+        auto placed = place(defaultLayout(), regions, all);
+        auto const* favourites = find(placed, Page::Favourites);
+        auto const* plan = find(placed, Page::Plan);
+        auto const* items = find(placed, Page::Items);
+        check(placed.size() == 3 && favourites && plan && items && favourites->box == Box{0, 0, 206, 180} && plan->box == Box{0, 180, 206, 180}
+              && items->box == Box{434, 0, 206, 360} && favourites->first && !plan->first,
+              "the default is today's: favourites over the plan on the left, the item list on the right");
+        auto const list = itemListIn(items->box);
+        auto const side = sidePanelIn(favourites->box, true);
+        check(list.columns == 11 && list.rows == 19 && side.favouriteRows() == 9 && side.columns == 11,
+              "a panel is a page's layout of whole cells");
+        placed = place(defaultLayout(), regions, {true, false, true});
+        check(find(placed, Page::Plan) && find(placed, Page::Plan)->box == Box{0, 0, 206, 360} && !find(placed, Page::Favourites),
+              "a page whose feature is off is left out and the others take its room");
+        Layout three;
+        three.regions[Left] = {{Page::Favourites, 90}, {Page::Plan, 5}, {Page::Items, 5}};
+        placed = place(three, regions, all);
+        bool const least = std::all_of(placed.begin(), placed.end(), [](Placed const& p) { return p.box.h >= minLength(Left); });
+        check(placed.size() == 3 && least && find(placed, Page::Items)->box.y + find(placed, Page::Items)->box.h == 360,
+              "every panel keeps one row, taken from the others; the last ends with the region");
+        Layout above;
+        above.regions[Top] = {{Page::Favourites, 100}};
+        above.regions[Right] = {{Page::Items, 100}};
+        placed = place(above, regions, all);
+        check(find(placed, Page::Favourites)->shownIn == Top && find(placed, Page::Favourites)->box == Box{210, 0, 220, 95},
+              "a panel above the window fills the room there");
+        placed = place(above, regionsAround(427, 240, 120, 307, 20, 186, 210), all);
+        check(find(placed, Page::Favourites) && find(placed, Page::Favourites)->shownIn == Left && find(placed, Page::Favourites)->region == Top,
+              "a region too low for one row lends its panels to a side, on this screen only");
+        Layout messy;
+        messy.regions[Left] = {{Page::Plan, 33}, {Page::Plan, 50}, {Page::Favourites, 33}};
+        auto const tidy = normalized(messy);
+        check(tidy.regions[Left].size() == 2 && tidy.regions[Left][0].share + tidy.regions[Left][1].share == 100
+              && tidy.regions[Left][0].share % 5 == 0 && normalized(defaultLayout()) == defaultLayout(),
+              "a page shows once, and a region's shares are steps of 5 that add up to 100");
+    }
+    {
         Index empty = build({});
         check(empty.items.empty() && choose(empty).recipe.empty() && plan(empty, choose(empty), {}).raw.empty(), "an empty table gives an empty index");
     }

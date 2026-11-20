@@ -13,6 +13,7 @@
 #include "features/map/MapMarks.h"
 #include "features/map/MapView.h"
 #include "features/visuals/BlockHighlight.h"
+#include "features/recipes/BandLayout.h"
 
 namespace lamium {
 struct Settings {
@@ -98,6 +99,7 @@ struct Settings {
         // Each works alone (L-373): the plan (wanted items, what to gather and make) and the stores (the
         // places counted as held, used by the plan and Schematics), with the stores' outlines in the world.
         bool plan = false, stores = false, storeMarks = true;
+        recipes::band::Layout bands = recipes::band::defaultLayout(); // the item screens' bands (L-374)
         bool massCraft = false; // The key that crafts and throws out an item's recipe, while held (L-165)
         float massCraftDelay = .3f; // Seconds the key is held before it starts
         bool deathRestoreAll = false; // Also the main inventory; off: the hotbar, armor and offhand

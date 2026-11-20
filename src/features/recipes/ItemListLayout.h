@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/BandLayout.h"
 #include "input/KeptPresses.h"
 #include <algorithm>
 #include <cmath>
@@ -43,7 +44,7 @@ struct SideLayout {
     // Which halves are in use; one alone has the whole band.
     bool favouritesOn = true, planOn = true;
     bool footOn = false; // an open container's line takes the band's last units
-    bool usable() const { return columns > 0 && height >= 120; }
+    bool usable() const { return columns > 0 && height >= band::minLength(band::Left); } // one row under its heading
     bool has(float x, float y) const { return usable() && x >= left && x < left + width && y >= top && y < top + height; }
     float split() const { return !favouritesOn ? 0 : !planOn ? height : std::floor(height * .5f); }
     int favouriteRows() const { return std::max(0, static_cast<int>((split() - head - pad) / cell)); }
@@ -79,6 +80,23 @@ inline SideLayout itemListLeft(float screenHeight, float right) {
     out.width = right - 4;
     out.height = screenHeight;
     out.columns = std::max(0, static_cast<int>((out.width - 2 * SideLayout::pad) / SideLayout::cell));
+    return out;
+}
+// A panel of the bands (BandLayout.h) as the item list: a bar for the pager, then as many whole cells as fit.
+inline ItemListLayout itemListIn(band::Box box) {
+    ItemListLayout out;
+    out.left = box.x, out.top = box.y, out.width = box.w, out.height = box.h;
+    out.columns = std::max(0, static_cast<int>((out.width - 2 * ItemListLayout::pad) / ItemListLayout::cell));
+    out.rows = std::max(0, static_cast<int>((out.height - ItemListLayout::bar - ItemListLayout::pad) / ItemListLayout::cell));
+    return out;
+}
+// A panel as the favourites (cells under a heading) or as the plan (its tabs and rows): a SideLayout with
+// that part alone.
+inline SideLayout sidePanelIn(band::Box box, bool favourites) {
+    SideLayout out;
+    out.left = box.x, out.top = box.y, out.width = box.w, out.height = box.h;
+    out.columns = std::max(0, static_cast<int>((out.width - 2 * SideLayout::pad) / SideLayout::cell));
+    out.favouritesOn = favourites, out.planOn = !favourites;
     return out;
 }
 // The band from the window's right side to the screen's edge, top to bottom:
