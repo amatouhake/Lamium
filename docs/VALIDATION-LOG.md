@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The rebuilt Recipes window (L-370, 2026-11-20)
+
+Builds `8fbdcdba` through `14608c13` (last DLL
+`2fba3dfc76585764ea9f3298208bdd731d193c7b4d303f0e61bfeee3440e4356`),
+1.26.60.05 Dev instance, the maintainer. Works: the wanted table with
+stepper and "x" under the pointer; state tags going to their line in "How
+to make"; choices there changing the recipe view's slots and placing; the
+tabs fitting the window; How to make lines staying put; chests showing
+only the any-planks recipe; white stained glass without bone meal made
+into dye first; "How to make" from a recipe's mark with the plan off; the
+window at the book-open width (326 units as the game logs it, 1 unit = 3
+px at 75%), the bands narrowing while it is open with the book closed;
+names read more fully; the star on a group's icon (band icons too) gone
+once a member is chosen; group names by tag or "Raw Gold etc.". Not
+right, fixed or recorded: overlapping tags and a candidate frame, lines
+moving on a choice, tabs past the window, a wider window than the game's
+with the book open; the open points in L-369 and proposals in L-370.
+
 ## The plan around the wanted items (L-370, 2026-11-20)
 
 Build `cb7abb67` (DLL
