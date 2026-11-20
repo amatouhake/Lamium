@@ -134,9 +134,9 @@ struct RecipeViewLayout {
 // The Recipes window (L-370) holds more than a recipe: it always takes the width the game's inventory has with
 // its recipe book open, whether the book is open or not. `coverLeft`/`coverRight`: what the game's window (or
 // the recipe view, if wider) spans now. Far wider than the recipe view, the book is open: that span exactly.
-// Otherwise `openWidth` (the book-open width last seen; 329 units, measured, before any) centred.
+// Otherwise `openWidth` (the book-open width last seen; before any, 326 units, as the game logged it) centred.
 struct WindowSpan { float left = 0, width = 0; };
-inline constexpr float planWindowWidth = 329;
+inline constexpr float planWindowWidth = 326;
 inline bool bookOpenSpan(float coverLeft, float coverRight) { return coverRight - coverLeft > RecipeViewLayout::width + 40; }
 inline WindowSpan planWindowAt(float screenWidth, float coverLeft, float coverRight, float openWidth = planWindowWidth) {
     if (bookOpenSpan(coverLeft, coverRight)) return {coverLeft, coverRight - coverLeft};

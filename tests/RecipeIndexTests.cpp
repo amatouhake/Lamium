@@ -365,8 +365,8 @@ void recipeIndexTests() {
               "made now: the members of a group count together, nothing is made first, and only crafting counts");
         check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
         {
-            auto const narrow = planWindowAt(653, 216, 436), open = planWindowAt(653, 165, 491), seen = planWindowAt(653, 216, 436, 326);
-            check(narrow.width == planWindowWidth && narrow.left == 162 && open.left == 165 && open.width == 326 && seen.width == 326 && seen.left == 163,
+            auto const narrow = planWindowAt(640, 210, 430), open = planWindowAt(640, 158, 482), seen = planWindowAt(640, 210, 430, 324);
+            check(narrow.width == planWindowWidth && narrow.left == 157 && open.left == 158 && open.width == 324 && seen.width == 324 && seen.left == 158,
                   "the Recipes window takes the game's book-open span exactly, and that width centred while the book is closed");
         }
         auto side = itemListLeft(360, 210);
