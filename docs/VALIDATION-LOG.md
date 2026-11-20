@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft laying cells straight from their slots (L-165, 2026-11-21)
+
+Build `04550c0b` (DLL
+`70b67960d8b962a3f8d67566debfdf0d1f20330441762a7039010a087d108b36`),
+1.26.60.05 Dev instance, a local world, the maintainer, one run each:
+- Logs into planks: 152 rounds, 289 takes, 1510 stacks thrown (16 for
+  room), 2011 requests in 13.5 s, about 13 a round and 11 rounds a
+  second (2026-11-18: 109 to 129 rounds, 1379 to 1850 requests in 10.7
+  to 16.8 s). The throws, most of them of planks picked up again, are
+  nearly all the requests; a cell is one of them.
+- Planks into chests: 66 rounds, 82 takes, 141 stacks thrown, 765
+  requests in 7.6 s, about 12 a round and 9 rounds a second (2026-11-18:
+  45 to 51 rounds, about 1000 requests in 9.1 to 13.2 s, about 20 a
+  round).
+- No world closed; nothing tried again; the pointer never cleared.
+
 ## Placing with the pointer full (L-381, 2026-11-21)
 
 Build `21e60bb1` (DLL
