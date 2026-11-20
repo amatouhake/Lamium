@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stonecutter Notice</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --edge:#000; --shadow:#555;
+  --tip:#100010; --tip-line:#2c0863; --world:#3b4a3a;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:7em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+#view{position:relative;margin:0 auto;font-family:var(--pix);background:var(--world)}
+#view *{position:absolute}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge)}
+.txt{color:var(--win-ink);white-space:nowrap}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.cell{background:#d8d8d8;cursor:pointer;box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow),0 0 0 calc(.5*var(--u)) #222}
+.cell.on{background:var(--accent-deep)}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25);pointer-events:none}
+.tip{background:var(--tip);box-shadow:inset 0 0 0 var(--u) var(--tip-line),0 0 0 var(--u) var(--tip);color:#fff;white-space:nowrap;display:grid;place-items:center}
+.ring{box-shadow:0 0 0 calc(1.5*var(--u)) var(--warn);pointer-events:none}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>石切台の「完成品を選んでください」（L-380）</h1>
+    <p class="lede">石切台で「並べる」や「作れる物」で材料を入れた後、完成品を選ぶまでの間だけ出す印の案。Lamium からは完成品を選べず、選んだかどうかも読めない（選択は画面の中だけにある）ので、一覧を押すまで出しておく。下の左の一覧を押すと消える（モックでも押せる）。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">印の形</span>
+      <button class="chip on" data-k="look" data-v="tip">A. 一覧の上に吹き出し</button>
+      <button class="chip" data-k="look" data-v="ring">B. 一覧を黄色の枠で囲む＋吹き出し</button>
+      <button class="chip" data-k="look" data-v="slot">C. 完成品の欄の上に吹き出し</button>
+    </div>
+    <div class="grp"><span class="lbl">状態</span>
+      <button class="chip on" data-k="state" data-v="placed">配置した直後</button>
+      <button class="chip" data-k="state" data-v="chosen">一覧を押した後</button>
+    </div>
+  </div>
+  <div class="stage"><div id="view"></div></div>
+  <div class="notes">
+    <div class="card">
+      <h2>いつ出て、いつ消えるか（案）</h2>
+      <ul>
+        <li>出る：石切台で Lamium が材料を入れたとき（「並べる」「作れる物」のどちらでも）。プレイヤーが手で入れたときは出さない。</li>
+        <li>消える：左の一覧のどれかを押したとき（押したのが完成品の一覧かは、ゲームのカーソルが重なっている欄で分かる）、材料の欄が空になったか別の物に替わったとき、石切台を閉じたとき。</li>
+        <li>前に選んでいた完成品が残っていて、もう選ばれて見える場合も出す。Lamium にはどちらか分からないため。</li>
+        <li>文字は「完成品を選んでください」。吹き出しはゲームの説明の箱と同じ見た目（色は Lamium の決まりどおりゲームの色）。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> 印の形：A・B・C のどれか。</li>
+        <li><span class="q">2.</span> 消える条件はこれでよいか。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3;
+const opt = {look:'tip', state:'placed'};
+let chosen = -1;
+const px = v => v * U + 'px';
+const view = document.getElementById('view');
+function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 340)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
+function icon(x, y, color, t, size = 16){ const d = el('ico', x, y, size, size, t); d.style.background = color; d.style.fontSize = px(size * .38); return d; }
+function slot(x, y){ el('slot', x, y, 18, 18); }
+const RESULTS = [['#909090','半'],['#8a8a8a','階'],['#7c7c7c','壁'],['#9a9a9a','レ'],['#a0a0a0','半'],['#8f8f8f','階'],['#888','壁'],['#a8a8a8','模'],['#999','ボ'],['#b0b0b0','磨'],['#a4a4a4','板']];
+function render(){
+  fit();
+  const W = 340, H = 186;
+  view.style.width = px(W); view.style.height = px(H); view.innerHTML = '';
+  // The stonecutter screen as the game lays it out (stone_book_panel 146 wide, then the inventory 176).
+  const L = 4, T = 10;
+  el('win', L, T, 146, 166);
+  el('txt', L + 8, T + 6, null, null, '石切台').style.fontSize = px(7);
+  // the result list (`stones`): 4 across
+  RESULTS.forEach(([c, t], i) => {
+    const x = L + 10 + (i % 4) * 22, y = T + 22 + Math.floor(i / 4) * 22;
+    const d = el('cell' + (chosen === i ? ' on' : ''), x, y, 20, 20);
+    d.onclick = () => { chosen = i; opt.state = 'chosen'; sync(); render(); };
+    icon(x + 2, y + 2, c, t);
+  });
+  const R = L + 150;
+  el('win', R, T, 176, 166);
+  el('txt', R + 8, T + 6, null, null, '石切台').style.fontSize = px(7);
+  slot(R + 20, T + 30); icon(R + 21, T + 31, '#9a9a9a', '石');
+  el('txt', R + 60, T + 32, null, null, '➜').style.fontSize = px(10);
+  slot(R + 100, T + 30);
+  if (chosen >= 0) icon(R + 101, T + 31, RESULTS[chosen][0], RESULTS[chosen][1]);
+  el('txt', R + 8, T + 72, null, null, 'インベントリ').style.fontSize = px(6);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 9; c++) slot(R + 8 + c * 18, T + 82 + r * 18 + (r === 3 ? 4 : 0));
+  // the notice
+  if (opt.state === 'placed') {
+    const text = '完成品を選んでください';
+    if (opt.look === 'ring') el('ring', L + 8, T + 20, 90, 68);
+    if (opt.look === 'slot') {
+      const t = el('tip', R + 70, T + 14, 78, 12, text); t.style.fontSize = px(6.5);
+    } else {
+      const t = el('tip', L + 10, T + 4 + 0, 86, 12, text); t.style.fontSize = px(6.5);
+      t.style.top = px(T - 4);
+    }
+  }
+}
+function sync(){ document.querySelectorAll('[data-k]').forEach(b => b.classList.toggle('on', opt[b.dataset.k] === b.dataset.v)); }
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  opt[b.dataset.k] = b.dataset.v;
+  if (b.dataset.k === 'state' && b.dataset.v === 'placed') chosen = -1;
+  if (b.dataset.k === 'state' && b.dataset.v === 'chosen' && chosen < 0) chosen = 1;
+  sync(); render();
+});
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
