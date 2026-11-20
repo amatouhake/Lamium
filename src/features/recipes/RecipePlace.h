@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/ListFilter.h"
 #include "features/recipes/PlacePlan.h"
 #include "features/recipes/RecipeService.h"
 #include <map>
@@ -13,13 +14,17 @@ class ScreenView;
 // Client thread only; the screen is the focused item screen of this frame.
 namespace lamium::recipes {
 namespace place {
+// The open screen as a place to lay a recipe in (L-380): the crafting grid, or a furnace, blast furnace, smoker,
+// stonecutter or smithing table; none where the slot calls are not confirmed.
+Bench bench(ScreenView& screen);
 // The side of the screen's crafting grid, 2 or 3; 0 where it has none or the slot calls are not confirmed.
 int gridSide(ScreenView& screen);
 // What the player carries, slot by slot (0-8 the hotbar, 9-35 the inventory), as PlacePlan wants it, and
 // what lies in the grid (from 100), which goes back to the inventory before a recipe is laid in.
 std::vector<PlaceSource> carried(ScreenView& screen, Index const& index);
 // Lays the recipe in now: one of each ingredient, or with `many` as many as divide evenly.
-// What lay in the grid goes back first; the recipe is then laid in once the grid reads empty.
+// What lay in the grid goes back first; the recipe is then laid in once the grid reads empty. At a station
+// (bench) its slots take the cells, a stack at most; a slot holding another item is emptied first.
 // False when nothing was done (something on the pointer, an ingredient missing).
 bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many);
 // Lays a waiting recipe in, if there is one; called every frame the item screen is drawn.

@@ -406,6 +406,22 @@ void recipeIndexTests() {
               "made now: the members of a group count together, nothing is made first, and only crafting counts");
         check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
         {
+            // A station as the place a recipe goes (L-380).
+            Bench const furnace{Station::Furnace, 0}, grid{Station::Crafting, 2};
+            auto atFurnace = canMakeNow(index, {{index.find("oak_planks"), 2}, {index.find("sand"), 9}}, furnace);
+            check(atFurnace[static_cast<size_t>(index.find("glass"))] && !atFurnace[static_cast<size_t>(index.find("stick"))],
+                  "at a furnace what can be made is what it smelts from what is carried");
+            auto const& glass = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("glass"))].front())];
+            check(benchMakes(furnace, glass) && !benchMakes(grid, glass) && !benchMakes({Station::Smoker, 0}, glass) && benchKind(furnace) == Kind::Smelting
+                      && benchAny(furnace) && !benchAny({}) && !benchAny({Station::Crafting, 0}),
+                  "a furnace takes what it smelts, in the smelting tab; a grid and a smoker do not");
+            Item const sand = index.find("sand");
+            auto const one = placePlan(index, glass, 0, {{4, sand, 9}}, {}, false), all = placePlan(index, glass, 0, {{4, sand, 9}, {7, sand, 70, 64}}, {}, true);
+            check(one.ready() && one.moves == std::vector<PlaceMove>{{4, 1, 0}} && all.ready() && all.crafts == 64
+                      && all.moves == std::vector<PlaceMove>{{4, 9, 0}, {7, 55, 0}} && !placePlan(index, glass, 2, {{4, sand, 9}}, {}, false).fits,
+                  "a station's input takes one, or with Shift a stack from the stacks carried");
+        }
+        {
             auto const narrow = planWindowAt(640, 210, 430), open = planWindowAt(640, 158, 482), seen = planWindowAt(640, 210, 430, 324);
             check(narrow.width == planWindowWidth && narrow.left == 157 && open.left == 158 && open.width == 324 && seen.width == 324 && seen.left == 158,
                   "the Recipes window takes the game's book-open span exactly, and that width centred while the book is closed");

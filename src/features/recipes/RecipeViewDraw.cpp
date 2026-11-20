@@ -86,7 +86,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Choose) state::setChoice(region.item, region.choice);
             else if (region.act == Act::PagePrev) trail.back().page -= 1;
             else if (region.act == Act::PageNext) trail.back().page += 1;
-            else if (region.act == Act::Place && input.placer && input.ctrl) input.placer->craft(region.tab);
+            else if (region.act == Act::Place && input.placer && input.ctrl && input.placer->places(Kind::Crafting)) input.placer->craft(region.tab);
             else if (region.act == Act::Place && input.placer) {
                 // Laid in: the grid is what the player wants to see next.
                 if (input.placer->run(region.tab, input.shift)) { late.placed = true; return; }
@@ -236,7 +236,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         };
         // Where the screen has a grid this recipe fits, it can be laid in; a cell nothing carried serves is marked.
         PlacePlan laid;
-        if (input.placer && recipe.station == Station::Crafting) laid = input.placer->preview(recipe, input.shift);
+        if (input.placer && input.placer->places(tab.kind)) laid = input.placer->preview(recipe, input.shift);
         auto const& picks = state::notes().picks;
         for (auto const& part : block.slots) {
             Item item = -1;
@@ -271,7 +271,10 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             placeMark(context, mx, my, mark);
             if (over) late.tip = translated(laid.ready() ? "recipes.place" : "recipes.placeMissing");
             // A button of its own explains its presses (not an item's tip, maintainer 2026-11-21).
-            if (over && laid.ready()) late.tipLines = {translated("recipes.place.many"), craftLine(input.placer->craftCheck(recipe))};
+            if (over && laid.ready()) {
+                late.tipLines = {translated("recipes.place.many")};
+                if (input.placer->places(Kind::Crafting)) late.tipLines.push_back(craftLine(input.placer->craftCheck(recipe)));
+            }
             if (laid.ready()) regions.push_back(region);
         }
         // Of an item made several ways, the check box left of "place" (L-379): empty for a recipe not in use, a

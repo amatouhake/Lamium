@@ -94,7 +94,7 @@ struct VisibleFor {
     std::string query;
     Filter filter = Filter::All;
     size_t named = 0, tooltips = 0;
-    int side = 0; // the screen's grid, which "can be made" depends on
+    Bench bench; // the screen's grid or station, which "can be made" depends on (L-380)
     std::chrono::steady_clock::time_point at{};
 } visibleFor;
 std::string viewScreen; // the screen the recipe view was opened on; it closes with it
@@ -144,34 +144,42 @@ void closeViews() {
     place::stop();
     place::abandonCraft();
 }
-// The crafting grid of the screen under the view, for its "place" buttons: what is carried is read once a frame.
+// The crafting grid or the station of the screen under the view (L-380), for its "place" buttons: what is carried
+// is read once a frame.
 struct GridPlacer : view::Placer {
     ScreenView& screen;
     std::shared_ptr<service::Table const> table;
     std::map<int, Item> picks;
-    int side = 0;
+    Bench bench;
     std::vector<PlaceSource> carried;
-    GridPlacer(ScreenView& screen, std::shared_ptr<service::Table const> table, std::map<int, Item> picks, int side)
-        : screen(screen), table(std::move(table)), picks(std::move(picks)), side(side), carried(place::carried(screen, this->table->index)) {}
-    PlacePlan preview(Recipe const& recipe, bool many) const override { return placePlan(table->index, recipe, side, carried, picks, many); }
+    GridPlacer(ScreenView& screen, std::shared_ptr<service::Table const> table, std::map<int, Item> picks, Bench bench)
+        : screen(screen), table(std::move(table)), picks(std::move(picks)), bench(bench), carried(place::carried(screen, this->table->index)) {}
+    bool crafting() const { return bench.station == Station::Crafting; }
+    PlacePlan preview(Recipe const& recipe, bool many) const override {
+        if (!benchMakes(bench, recipe)) return {};
+        return placePlan(table->index, recipe, crafting() ? bench.side : 0, carried, picks, many);
+    }
+    bool places(Kind kind) const override { return benchAny(bench) && kind == benchKind(bench); }
     bool run(int recipe, bool many) override { return place::run(screen, table, recipe, picks, many); }
-    CraftOnto craftCheck(Recipe const& recipe) const override { return place::craftCheck(screen, table->index, recipe, preview(recipe, false).ready()); }
-    bool craft(int recipe) override { return place::craft(screen, table, recipe, picks); }
+    CraftOnto craftCheck(Recipe const& recipe) const override {
+        return crafting() ? place::craftCheck(screen, table->index, recipe, preview(recipe, false).ready()) : CraftOnto::Missing;
+    }
+    bool craft(int recipe) override { return crafting() && place::craft(screen, table, recipe, picks); }
 };
 bool anyView() { return view::isOpen() || planView::isOpen(); }
-// "Can be made" (L-367): a press lays the item's recipe into the grid as the recipe view's "place" does,
-// with `many` as many as divide evenly: the recipe the player's choices name where it can be laid, else
-// the first crafting recipe that can. False when none can, or the screen has no grid.
+// "Can be made" (L-367): a press lays the item's recipe into the grid, or at a station into its slots (L-380), as
+// the recipe view's "place" does, with `many` as many as divide evenly: the recipe the player's choices name where
+// it can be laid, else the first the screen takes that can. False when none can, or the screen takes none.
 bool placeItem(ScreenView& screen, std::string const& key, bool many, LocalPlayer& player) {
-    int const side = place::gridSide(screen);
+    Bench const bench = place::bench(screen);
     auto table = service::table();
-    if (!side || !table) return false;
+    if (!benchAny(bench) || !table) return false;
     auto const& index = table->index;
     auto const split = splitItemKey(key);
     Item const id = index.find(split.name, split.aux);
     if (id < 0 || id >= static_cast<Item>(index.makers.size())) return false;
     auto const* plan = state::plan(player);
-    GridPlacer placer(screen, table, plan ? plan->request.picks : std::map<int, Item>{}, side);
+    GridPlacer placer(screen, table, plan ? plan->request.picks : std::map<int, Item>{}, bench);
     auto const choice = state::choice(table);
     int const chosen = choice && static_cast<size_t>(id) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(id)] : -1;
     std::vector<int> order;
@@ -179,7 +187,7 @@ bool placeItem(ScreenView& screen, std::string const& key, bool many, LocalPlaye
     for (int number : index.makers[static_cast<size_t>(id)]) if (number != chosen) order.push_back(number);
     for (int number : order) {
         auto const& recipe = index.recipes[static_cast<size_t>(number)];
-        if (recipe.station == Station::Crafting && placer.preview(recipe, false).ready()) return placer.run(number, many);
+        if (placer.preview(recipe, false).ready()) return placer.run(number, many);
     }
     return false;
 }
@@ -189,7 +197,7 @@ bool placeItem(ScreenView& screen, std::string const& key, bool many, LocalPlaye
 struct CraftAsk { int recipe = -1; CraftOnto check = CraftOnto::Missing; };
 CraftAsk craftAsk(GridPlacer const& placer, Item id) {
     auto const& index = placer.table->index;
-    if (id < 0 || id >= static_cast<Item>(index.makers.size())) return {};
+    if (!placer.crafting() || id < 0 || id >= static_cast<Item>(index.makers.size())) return {};
     auto const choice = state::choice(placer.table);
     int const chosen = choice && static_cast<size_t>(id) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(id)] : -1;
     std::vector<int> order;
@@ -198,7 +206,7 @@ CraftAsk craftAsk(GridPlacer const& placer, Item id) {
     CraftAsk out;
     for (int number : order) {
         auto const& recipe = index.recipes[static_cast<size_t>(number)];
-        if (recipe.station != Station::Crafting || !fitsGrid(recipe, placer.side)) continue;
+        if (!benchMakes(placer.bench, recipe)) continue;
         if (out.recipe < 0) out.recipe = number;
         if (placer.preview(recipe, false).ready()) { out.recipe = number; break; }
     }
@@ -206,11 +214,11 @@ CraftAsk craftAsk(GridPlacer const& placer, Item id) {
     return out;
 }
 std::optional<GridPlacer> gridPlacer(ScreenView& screen, LocalPlayer& player) {
-    int const side = place::gridSide(screen);
+    Bench const bench = place::bench(screen);
     auto table = service::table();
-    if (!side || !table) return std::nullopt;
+    if (!benchAny(bench) || !table) return std::nullopt;
     auto const* plan = state::plan(player);
-    return std::optional<GridPlacer>(std::in_place, screen, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, side);
+    return std::optional<GridPlacer>(std::in_place, screen, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, bench);
 }
 Item itemOf(service::Table const& table, std::string const& key) {
     auto const split = splitItemKey(key);
@@ -235,7 +243,7 @@ void releaseKeyboard() {
 }
 // The list as narrowed now. What can be made changes with the inventory, so it is asked again twice a second.
 // `side`: the screen's crafting grid, 0 without one.
-void narrow(LocalPlayer& player, int side) {
+void narrow(LocalPlayer& player, Bench const& bench) {
     for (int budget = 150; budget > 0 && lowNames.size() < names.size(); --budget)
         lowNames.push_back(search::folded(schematic::items::shown(names[lowNames.size()]).name));
     std::string query(search.value());
@@ -251,7 +259,7 @@ void narrow(LocalPlayer& player, int side) {
         }
     auto const now = std::chrono::steady_clock::now();
     if (visibleFor.valid && query == visibleFor.query && filter == visibleFor.filter && lowNames.size() == visibleFor.named
-        && tooltipTexts.size() == visibleFor.tooltips && side == visibleFor.side
+        && tooltipTexts.size() == visibleFor.tooltips && bench == visibleFor.bench
         && (filter != Filter::CanMake || now - visibleFor.at < std::chrono::milliseconds(500)))
         return;
     std::shared_ptr<service::Table const> table;
@@ -265,7 +273,7 @@ void narrow(LocalPlayer& player, int side) {
             if (stack.isNull() || stack.mCount <= 0) continue;
             if (Item const id = table->index.find(stack.getTypeName(), stack.getAuxValue()); id >= 0) held[id] += stack.mCount;
         }
-        can = canMakeNow(table->index, held, side);
+        can = canMakeNow(table->index, held, bench);
     }
     visible.clear();
     for (size_t i = 0; i < names.size(); ++i) {
@@ -282,7 +290,7 @@ void narrow(LocalPlayer& player, int side) {
         visible.push_back(static_cast<int>(i));
     }
     if (query != visibleFor.query || filter != visibleFor.filter) page = 0;
-    visibleFor = {true, std::move(query), filter, lowNames.size(), tooltipTexts.size(), side, now};
+    visibleFor = {true, std::move(query), filter, lowNames.size(), tooltipTexts.size(), bench, now};
 }
 void readNames(LocalPlayer& player) {
     names.clear();
@@ -650,7 +658,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The item list on the right: Recipes'.
     if (recipesOn && layout.usable()) {
         cost.lap();
-        narrow(*player, place::gridSide(screenView));
+        narrow(*player, place::bench(screenView));
         cost.list = cost.lap();
         int const count = static_cast<int>(visible.size()), pages = layout.pages(count);
         page = std::clamp(page + input.listTurns, 0, pages - 1);
@@ -788,12 +796,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     cost.at("field");
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
-        std::optional<GridPlacer> placer;
-        if (int const gridSide = place::gridSide(screenView))
-            if (auto table = service::table()) {
-                auto const* plan = state::plan(*player);
-                placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
-            }
+        auto placer = gridPlacer(screenView, *player);
         view::Input viewInput{screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn,
                               favoritesOn, placer ? &*placer : nullptr, coverLeft, right};
         viewInput.ctrl = ctrlHeld.load();

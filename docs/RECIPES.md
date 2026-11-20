@@ -189,6 +189,17 @@ after using the first build. What is still open is in the L-item.
   nothing goes through the empty pointer instead. An ingredient that is missing disables the
   button and turns its slot's face red, as the game does. Any of several items:
   the member "How to make" names while it lasts, else the one most carried.
+- At a station ([L-380](backlog/L-380.md)): the furnace, blast furnace,
+  smoker, stonecutter and smithing table take the recipes of their own
+  tab (smelting, blasting, smoking, stonecutting, smithing), whose faces
+  then have "place". A press lays one in, Shift as much as carried up to
+  a stack (the smithing table: as many as divide evenly, one of each
+  slot a round), each cell straight into its slot. A slot holding another
+  item is emptied into the inventory first, one holding the same item
+  gets more; fuel is never touched; the stonecutter's result is the
+  player's to pick. "Can be made" there lists what that station makes
+  from what is carried, and a press places it. Brewing waits on
+  [L-361](backlog/L-361.md).
 - An ingredient any one of several items satisfies (any planks) shows the
   member "How to make" names, else its members in turn with a star on the
   icon's corner (on every Recipes screen); it is named by its tag

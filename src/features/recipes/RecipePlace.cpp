@@ -118,8 +118,96 @@ bool lay(CraftingScreenController& controller, Index const& index, Recipe const&
     if (!plan.ready()) return false;
     return apply(controller, plan.moves, spent);
 }
+// A station's slots, one per recipe cell in order (L-380; the names from the game's UI files, 2026-11-21).
+std::vector<std::string> const& stationSlots(Station station) {
+    static std::vector<std::string> const furnace{"furnace_ingredient_items"}, stonecutter{"stonecutter_input_items"},
+        smithing{"smithing_table_template_items", "smithing_table_input_items", "smithing_table_material_items"}, none;
+    switch (station) {
+    case Station::Furnace: case Station::BlastFurnace: case Station::Smoker: return furnace;
+    case Station::Stonecutter: return stonecutter;
+    case Station::Smithing: return smithing;
+    default: return none;
+    }
+}
+// The open screen as a station whose slots take a recipe, by its container's type; null elsewhere, or where the
+// slot calls are not confirmed or a slot is not there.
+ContainerScreenController* station(ScreenView& screen, Station& out) {
+    if (!screen.mController || !screen.mController->_isContainerScreen()) return nullptr;
+    auto& controller = static_cast<ContainerScreenController&>(*screen.mController);
+    if (!inventory::game::transferRoutes::supported(controller)) return nullptr;
+    auto manager = controller.mContainerManagerController;
+    using Type = SharedTypes::Legacy::ContainerType;
+    switch (manager->getContainerType()) {
+    case Type::Furnace: out = Station::Furnace; break;
+    case Type::BlastFurnace: out = Station::BlastFurnace; break;
+    case Type::Smoker: out = Station::Smoker; break;
+    case Type::Stonecutter: out = Station::Stonecutter; break;
+    case Type::SmithingTable: out = Station::Smithing; break;
+    default: return nullptr;
+    }
+    for (auto const& slot : stationSlots(out))
+        if (!manager->hasContainerController(slot) || manager->getContainerSize(slot) < 1) return nullptr;
+    return &controller;
+}
+int slotCount(ContainerManagerController& manager, std::string const& slot) {
+    auto const& stack = manager.getItemStack(slot, 0);
+    return stack.isNull() ? 0 : static_cast<int>(stack.mCount);
+}
+// A station's recipe laid into its slots, each cell's amount straight from the slots carried. A slot that holds
+// another item is emptied into the inventory first; one that holds the same item gets more, as far as its stack
+// has room. False where nothing was laid in or the game did not do as planned.
+bool layAtStation(ContainerScreenController& controller, Station at, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks,
+                  bool many) {
+    auto& manager = *controller.mContainerManagerController;
+    auto const& slots = stationSlots(at);
+    if (static_cast<int>(recipe.cells.size()) != static_cast<int>(slots.size())) return false;
+    auto carried = carriedOf(manager, index);
+    auto plan = placePlan(index, recipe, 0, carried, picks, many);
+    if (!plan.ready()) return false;
+    auto itemAt = [&](std::vector<PlaceSource> const& from, int slot) {
+        for (auto const& source : from) if (source.slot == slot) return source.item;
+        return Item{-1};
+    };
+    bool emptied = false;
+    for (auto const& move : plan.moves) {
+        auto const& slot = slots[static_cast<size_t>(move.cell)];
+        auto const& stack = manager.getItemStack(slot, 0);
+        if (stack.isNull() || index.find(stack.getTypeName(), stack.getAuxValue()) == itemAt(carried, move.slot)) continue;
+        controller._handleAutoPlace(INT_MAX, slot, 0);
+        if (!manager.getItemStack(slot, 0).isNull()) return false;
+        emptied = true;
+    }
+    // What went back may have joined a stack the plan draws from: planned again.
+    if (emptied) {
+        carried = carriedOf(manager, index);
+        plan = placePlan(index, recipe, 0, carried, picks, many);
+        if (!plan.ready()) return false;
+    }
+    bool any = false;
+    for (auto const& move : plan.moves) {
+        auto const& slot = slots[static_cast<size_t>(move.cell)];
+        int stack = 64;
+        for (auto const& source : carried) if (source.slot == move.slot) stack = source.stack;
+        int const before = slotCount(manager, slot), amount = std::min(move.amount, stack - before);
+        if (amount <= 0) continue;
+        bool const top = move.slot < 9;
+        if (!manager.handlePlaceAmount(SlotData(top ? hotbar : inventory, top ? move.slot : move.slot - 9), amount, SlotData(slot, 0))
+            || slotCount(manager, slot) != before + amount)
+            return any;
+        any = true;
+    }
+    return any;
+}
 }
 namespace place {
+Bench bench(ScreenView& screen) {
+    try {
+        if (auto* controller = crafting(screen)) return {Station::Crafting, sideOf(*controller->mContainerManagerController)};
+        Station at = Station::Other;
+        if (station(screen, at)) return {at, 0};
+    } catch (...) {}
+    return {};
+}
 int gridSide(ScreenView& screen) {
     try {
         auto* controller = crafting(screen);
@@ -129,7 +217,12 @@ int gridSide(ScreenView& screen) {
 std::vector<PlaceSource> carried(ScreenView& screen, Index const& index) {
     try {
         auto* controller = crafting(screen);
-        if (!controller) return {};
+        Station at = Station::Other;
+        // At a station only what is carried counts: a slot's own stays where it is or goes back whole.
+        if (!controller) {
+            auto* other = station(screen, at);
+            return other ? carriedOf(*other->mContainerManagerController, index) : std::vector<PlaceSource>{};
+        }
         auto& manager = *controller->mContainerManagerController;
         auto out = carriedOf(manager, index);
         // What lies in the grid goes back to the inventory before a recipe is laid in, so it counts.
@@ -146,8 +239,18 @@ std::vector<PlaceSource> carried(ScreenView& screen, Index const& index) {
 bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many) {
     going = {};
     try {
+        if (!table || recipe < 0 || recipe >= static_cast<int>(table->index.recipes.size())) return false;
         auto* controller = crafting(screen);
-        if (!controller || !table || recipe < 0 || recipe >= static_cast<int>(table->index.recipes.size())) return false;
+        if (!controller) {
+            Station at = Station::Other;
+            auto* other = station(screen, at);
+            auto const& shape = table->index.recipes[static_cast<size_t>(recipe)];
+            if (!other || !benchMakes({at, 0}, shape)) return false;
+            bool const laid = layAtStation(*other, at, table->index, shape, picks, many);
+            static bool told = false;
+            if (laid && !told) told = true, Runtime::instance().self().getLogger().info("Recipes: a recipe laid in at a station, straight from its slots");
+            return laid;
+        }
         auto& manager = *controller->mContainerManagerController;
         if (!gridEmpty(manager)) {
             // Already laid as asked: taking it out and laying it in again only shows items flying (L-367).

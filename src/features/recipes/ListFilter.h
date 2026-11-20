@@ -1,5 +1,6 @@
 #pragma once
 #include "features/recipes/RecipeIndex.h"
+#include <algorithm>
 #include <map>
 #include <string>
 #include <string_view>
@@ -20,17 +21,44 @@ inline bool fitsGrid(Recipe const& recipe, int side) {
     int const count = static_cast<int>(recipe.cells.size()), across = recipe.width ? recipe.width : side;
     return across <= side && (count + across - 1) / across <= side;
 }
-// Per item: whether a crafting recipe for it can be made once from `held`
-// as it is, without making anything first, in a grid `side` cells wide (0:
-// any). An ingredient any of several items satisfies takes them together.
-inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> const& held, int side = 0) {
+// The open screen as a place to lay a recipe in (L-380): the crafting grid (`side` 2 or 3), or a station whose
+// slots take a recipe's cells one each: the furnaces' and the stonecutter's input, the smithing table's template,
+// base and addition. `Other`: none.
+struct Bench {
+    Station station = Station::Other;
+    int side = 0;
+    bool operator==(Bench const&) const = default;
+};
+inline int benchSlots(Station station) {
+    switch (station) {
+    case Station::Furnace: case Station::BlastFurnace: case Station::Smoker: case Station::Stonecutter: return 1;
+    case Station::Smithing: return 3;
+    default: return 0;
+    }
+}
+inline bool benchAny(Bench const& bench) { return bench.station == Station::Crafting ? bench.side > 0 : benchSlots(bench.station) > 0; }
+// Whether the bench can take the recipe: a crafting recipe that fits the grid, or one its station does with as many
+// cells as it has slots.
+inline bool benchMakes(Bench const& bench, Recipe const& recipe) {
+    if (bench.station == Station::Crafting) return bench.side > 0 && recipe.station == Station::Crafting && fitsGrid(recipe, bench.side);
+    int const slots = benchSlots(bench.station);
+    return slots > 0 && static_cast<int>(recipe.cells.size()) == slots
+        && std::find(recipe.stations.begin(), recipe.stations.end(), bench.station) != recipe.stations.end();
+}
+// The view's tab whose recipes the bench takes: crafting, or the station's process.
+inline Kind benchKind(Bench const& bench) { return bench.station == Station::Crafting ? Kind::Crafting : kindOf(bench.station); }
+// Per item: whether a recipe for it can be made once from `held` as it is, without making anything first: at a
+// bench (`bench`), one it takes; elsewhere a crafting recipe of any size. An ingredient any of several items
+// satisfies takes them together.
+inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> const& held, Bench const& bench = {}) {
     std::vector<bool> out(index.items.size(), false);
     auto have = [&](Item item) {
         auto found = held.find(item);
         return found == held.end() ? Count{0} : found->second;
     };
     for (auto const& recipe : index.recipes) {
-        if (recipe.station != Station::Crafting || recipe.own || out[static_cast<size_t>(recipe.makes)] || !fitsGrid(recipe, side)) continue;
+        if (recipe.own || out[static_cast<size_t>(recipe.makes)]) continue;
+        if (benchAny(bench) ? !benchMakes(bench, recipe) : recipe.station != Station::Crafting) continue;
         bool enough = !recipe.uses.empty();
         for (auto const& part : recipe.uses) {
             Count got = 0;

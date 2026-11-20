@@ -235,14 +235,20 @@ and `crafting_screen` it reads the collections `hotbar_items`,
 `_handleAutoPlace` (on `crafting_output_items`, which reads empty while a
 product shows), lays cells in with the manager's virtual `handlePlaceAmount`
 from a slot to a cell (L-381), takes the output onto the pointer with
-`_handleTakeAmount` (seen to craft, L-379), and reads `CraftingContainerManagerController::mCraftingRecipe`
+`_handleTakeAmount` (seen to craft, L-379). At a station (L-380) it tells
+the furnace, blast furnace, smoker, stonecutter and smithing table by
+`ContainerManagerController::getContainerType`, moves into
+`furnace_ingredient_items`, `stonecutter_input_items` and the smithing
+table's `_template_items`, `_input_items` and `_material_items` with
+`handlePlaceAmount`, and empties a slot with `_handleAutoPlace`. It reads `CraftingContainerManagerController::mCraftingRecipe`
 (a class-layout read) to tell that the grid makes something. Mass Craft
 (the same file) also reads `ContainerScreenController::mHoveredSlotData`
 and the hover tracker for the output slot and throws slots out with the
 slot routes' `drop`, `dropAmount` and `dropCursor`, after `pressAsPlainClick`
 on the output when the inventory is full. After a game update: lay a chest in
 with something on the pointer, Shift-place a stack of logs, Ctrl + press
-planks, and hold the Mass Craft key over the output.
+planks, place glass at a furnace and a netherite upgrade at the smithing
+table, and hold the Mass Craft key over the output.
 
 ## Inventory
 

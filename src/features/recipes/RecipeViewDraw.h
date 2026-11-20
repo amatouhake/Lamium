@@ -18,6 +18,9 @@ struct Placer {
     virtual PlacePlan preview(Recipe const& recipe, bool many) const = 0;
     // False when nothing was done.
     virtual bool run(int recipe, bool many) = 0;
+    // Whether the screen takes the recipes of a tab of this kind (L-380): crafting at a grid, smelting at a
+    // furnace, and so on.
+    virtual bool places(Kind kind) const = 0;
     // Crafting one round onto the pointer (L-379): what it meets now, and doing it.
     virtual CraftOnto craftCheck(Recipe const& recipe) const = 0;
     virtual bool craft(int recipe) = 0;

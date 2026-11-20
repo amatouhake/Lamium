@@ -66,8 +66,13 @@ inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, s
                            std::map<int, Item> const& picks, bool many) {
     PlacePlan out;
     int const count = static_cast<int>(recipe.cells.size());
-    int const across = recipe.width ? recipe.width : side;
-    if (recipe.station != Station::Crafting || side < 2 || side > 3 || across < 1 || across > side || (count + across - 1) / across > side) return out;
+    // A station's recipe (`side` 0, L-380): each cell into a slot of its own, in order (the furnaces' input; the
+    // smithing table's template, base and addition).
+    bool const station = recipe.station != Station::Crafting;
+    int const across = station ? 3 : recipe.width ? recipe.width : side;
+    if (station ? side != 0 || count < 1 || count > 3
+                : side < 2 || side > 3 || across < 1 || across > side || (count + across - 1) / across > side)
+        return out;
     out.fits = true;
     std::map<Item, int> total, used; // carried of an item; cells it serves
     std::map<Item, int> stack;
@@ -103,7 +108,7 @@ inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, s
         }
         if (chosen < 0) { out.missing.push_back(i); continue; }
         ++used[chosen];
-        served.emplace_back(i / across * side + i % across, chosen);
+        served.emplace_back(station ? i : i / across * side + i % across, chosen);
     }
     if (!out.missing.empty()) return out;
     int each = 1;
