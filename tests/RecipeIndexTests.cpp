@@ -364,6 +364,11 @@ void recipeIndexTests() {
         check(can[static_cast<size_t>(index.find("stick"))] && !can[static_cast<size_t>(index.find("torch"))] && !can[static_cast<size_t>(index.find("glass"))],
               "made now: the members of a group count together, nothing is made first, and only crafting counts");
         check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
+        {
+            auto const narrow = planWindowAt(653, 216, 436), wide = planWindowAt(653, 160, 492);
+            check(narrow.width == planWindowWidth && narrow.left == 162 && wide.left == 160 && wide.width == 332,
+                  "the Recipes window takes the book-open width, centred, even over a narrower game window; a wider one is kept");
+        }
         auto side = itemListLeft(360, 210);
         check(side.width == 206 && side.columns == 11 && side.split() == 180 && side.favouriteRows() == 9 && side.usable() && side.wide(),
               "the left band runs from the screen's edge to the room the centre keeps, halved between favourites and wanted");

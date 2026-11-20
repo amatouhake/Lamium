@@ -303,13 +303,18 @@ bool drawList(ll::event::UIRenderEvent& event) {
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     float const shownOpacity = windowFade.opacity(at.y, screen.y);
     DrawOpacity const fade{shownOpacity};
-    // The centre keeps the recipe view's two columns free, so the list never moves when it opens.
+    // The centre keeps the recipe view's two columns free, so the list never moves when it opens. The Recipes
+    // window is wider (planWindowAt): while it is open the bands give it room from their inner sides.
     auto const viewLayout = recipeViewAt(screen.x, screen.y);
-    float const right = std::max(at.x + size.x, viewLayout.left + RecipeViewLayout::width);
+    float right = std::max(at.x + size.x, viewLayout.left + RecipeViewLayout::width);
+    // Between the two bands: what a Lamium window covers, so the game's window does not show beside it.
+    float coverLeft = std::min(windowLeft, viewLayout.left);
+    if (planView::isOpen()) {
+        auto const span = planWindowAt(screen.x, coverLeft, right);
+        coverLeft = std::min(coverLeft, span.left), right = std::max(right, span.left + span.width);
+    }
     auto const layout = itemListRight(screen.x, screen.y, 0, right);
     if (!layout.usable()) { closeViews(); return false; }
-    // Between the two bands: what a Lamium window covers, so the game's window does not show beside it.
-    float const coverLeft = std::min(windowLeft, viewLayout.left);
     auto const prefs = Runtime::instance().snapshot();
     bool const planOn = prefs->inventory.recipesPlan;
     // The band left of the game's window holds the favourites and the plan: one alone has all of it, and

@@ -62,8 +62,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     };
     auto const l = recipeViewAt(input.screenWidth, input.screenHeight);
     // In the recipe view's place and look: the game's window under it must not show.
-    float const coverLeft = input.coverRight > input.coverLeft ? std::min(l.left, input.coverLeft) : l.left;
-    float const coverRight = input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width;
+    // The window's own span is wider than the recipe view's (planWindowAt); the grey covers that and the game's window.
+    auto const span = planWindowAt(input.screenWidth, input.coverRight > input.coverLeft ? std::min(l.left, input.coverLeft) : l.left,
+                                   input.coverRight > input.coverLeft ? std::max(l.left + l.width, input.coverRight) : l.left + l.width);
+    float const coverLeft = input.coverRight > input.coverLeft ? std::min(span.left, input.coverLeft) : span.left;
+    float const coverRight = input.coverRight > input.coverLeft ? std::max(span.left + span.width, input.coverRight) : span.left + span.width;
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
     OnWindow const onWindowScope;
     // The lists are the game's tabs on the window's top edge; they name the window, which needs no title.
@@ -76,8 +79,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         // One width for all, as wide as the widest name needs and no wider than the window allows.
         float widest = 0;
         for (int i = first; i < first + shown; ++i) widest = std::max(widest, textWidth(context, translated(allNames[i])));
-        float const w = std::floor(std::min(widest + 12, (l.width - 10 + static_cast<float>(shown - 1)) / static_cast<float>(shown)));
-        float x = l.left + 5;
+        float const w = std::floor(std::min(widest + 12, (span.width - 10 + static_cast<float>(shown - 1)) / static_cast<float>(shown)));
+        float x = span.left + 5;
         for (int i = first; i < first + shown; ++i) {
             std::string name = translated(allNames[i]);
             windowTab(context, x, l.top, w, std::move(name), tab == all[i], over(x, l.top - windowTabRise, w - 1, windowTabRise));
@@ -86,7 +89,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         }
     }
     auto const* plan = state::plan(player);
-    float const left = l.left + 6, right = l.left + l.width - 6;
+    float const left = span.left + 6, right = span.left + span.width - 6;
     float top = l.top + headTop;
     float const bottom = l.top + l.height - RecipeViewLayout::foot;
     int& offset = scroll[static_cast<int>(tab)];

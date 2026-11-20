@@ -131,6 +131,15 @@ struct RecipeViewLayout {
 };
 // Between a unit below the screen's top (the tabs) and 4 above the search field: the window keeps the
 // height of three rows and stands in the middle of that room, or fills it where it is lower.
+// The Recipes window (L-370) holds more than a recipe: it always takes the width the game's inventory has with
+// its recipe book open (measured at 329 units), centred as that window is, whether the book is open or not.
+// `coverLeft`/`coverRight`: what the game's window spans now; a wider span is kept.
+struct WindowSpan { float left = 0, width = 0; };
+inline constexpr float planWindowWidth = 329;
+inline WindowSpan planWindowAt(float screenWidth, float coverLeft, float coverRight) {
+    if (coverRight - coverLeft >= planWindowWidth) return {coverLeft, coverRight - coverLeft};
+    return {std::floor((screenWidth - planWindowWidth) / 2), planWindowWidth};
+}
 inline RecipeViewLayout recipeViewAt(float screenWidth, float screenHeight) {
     RecipeViewLayout out;
     out.left = (screenWidth - RecipeViewLayout::width) / 2;

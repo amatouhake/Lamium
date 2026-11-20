@@ -162,8 +162,9 @@ after using the first build. What is still open is in the L-item.
   opens the window there. The window sits where the recipe view does; the
   recipe view opens over it (a press on an item) and gives it back.
 - The window ("wanted", "to gather", "to make", "How to make",
-  "stores") is the Recipes feature's (L-370); with the plan off it holds
-  only "How to make", reached from a recipe's in-use mark.
+  "stores") is the Recipes feature's (L-370), always as wide as the game's
+  inventory with its book open (the bands narrow while it is open); with
+  the plan off it holds only "How to make", from a recipe's in-use mark.
 - "Wanted" is a table: fold, icon, name, held, wanted, a bar of held
   against wanted (what is gathered shows in "to gather"). The player's
   own rows turn "wanted" into "- N +" and show "x" only under the
@@ -186,8 +187,7 @@ after using the first build. What is still open is in the L-item.
   count is set where the item was added; an item that was wanted goes
   out when the key is released without the wheel having turned (a key
   of several inputs or a mouse button takes it out at once, and has no
-  wheel). An item taken out keeps its count until the world is left;
-  the short list then shows the wanted items.
+  wheel); an item taken out keeps its count until the world is left.
 - A wanted item's count is changed with the shared stepper (- N +), on the
   short list and in the window alike: minus at one takes the item out at
   once; the wheel (also with the wanted key held over the list) takes it
