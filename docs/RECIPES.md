@@ -114,7 +114,9 @@ after using the first build. What is still open is in the L-item.
   several stations' tags; it shows in the tab of each process that does
   it (steak in three). A tab is its usual station as an icon (campfire
   cooking: the campfire), named under the pointer by the process alone
-  ("Smelting"); each the same size.
+  ("Smelting"); each the same size. An item's tabs keep that order
+  whatever recipe is in use (maintainer 2026-11-21); the first shown is
+  the open station's own tab, else the tab of the recipe in use.
 - A two-line heading: the item's icon and name across the width (under
   the pointer, the item's tooltip, so a name cut short can be read) with
   its own actions at the right end, a favorite button (the key works
@@ -146,7 +148,7 @@ after using the first build. What is still open is in the L-item.
   empty for a recipe not in use, a dark check for the one the rule
   picked, a green check for the player's choice. A press chooses that
   recipe; a press on the player's choice goes back to automatic. The
-  order (the recipe in use first, its tab first) is taken when the item
+  order (the recipe in use first in its tab) is taken when the item
   is shown and kept while it stays shown, so a press moves nothing. "How to
   make" still lists them all. One small mark, "any order" for a
   shapeless recipe, stands under the arrow. That a recipe fits the

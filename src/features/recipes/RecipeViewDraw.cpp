@@ -156,13 +156,18 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     if (at.from != table) at.tabs = viewTabs(index, *choice, id, at.uses), at.from = table;
     auto const& tabs = at.tabs;
     if (tabs.empty()) { line(at.uses ? "recipes.none.uses" : "recipes.none.makes"); return; }
-    // Shown at a station, the item opens on that station's tab where it has one (maintainer 2026-11-21): beef at
-    // the smoker on smoking. Once, so a tab chosen afterwards stays.
+    // The tab first shown (maintainer 2026-11-21), once, so a tab chosen afterwards stays: at a station its own tab
+    // where the item has one (beef at the smoker on smoking); elsewhere the tab of the recipe in use, which leads
+    // it: the tabs keep their order, so this is where the choice is seen.
     if (!at.tabTaken) {
         at.tabTaken = true;
+        int const inUse = !at.uses && id >= 0 && static_cast<size_t>(id) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(id)] : -1;
+        bool found = false;
         if (input.placer)
-            for (size_t i = 0; i < tabs.size(); ++i)
-                if (input.placer->places(tabs[i].kind)) { at.tab = static_cast<int>(i); break; }
+            for (size_t i = 0; i < tabs.size() && !found; ++i)
+                if (input.placer->places(tabs[i].kind)) at.tab = static_cast<int>(i), found = true;
+        for (size_t i = 0; i < tabs.size() && !found && inUse >= 0; ++i)
+            if (std::find(tabs[i].recipes.begin(), tabs[i].recipes.end(), inUse) != tabs[i].recipes.end()) at.tab = static_cast<int>(i), found = true;
     }
     at.tab = std::clamp(at.tab, 0, static_cast<int>(tabs.size()) - 1);
     auto const& tab = tabs[static_cast<size_t>(at.tab)];

@@ -41,8 +41,9 @@ inline bool usesItem(Index const& index, Recipe const& recipe, Item item) {
     }
     return false;
 }
-// The recipes that make an item (the one in use first, so its kind is the first tab) or that use it (kinds
-// in their own order), by kind of work. A station's uses begin with what it does, none twice.
+// The recipes that make an item or that use it, by kind of work, the tabs in the kinds' own order whatever is in
+// use (maintainer 2026-11-21: tabs that moved with the choice were hard to follow); in a tab the recipe in use comes
+// first. A station's uses begin with what it does, none twice.
 inline std::vector<ViewTab> viewTabs(Index const& index, Choice const& choice, Item item, bool uses) {
     if (item < 0 || item >= static_cast<Item>(index.items.size())) return {};
     std::vector<int> list;
@@ -84,6 +85,7 @@ inline std::vector<ViewTab> viewTabs(Index const& index, Choice const& choice, I
             if (tab == tabs.end()) tab = tabs.insert(tabs.end(), ViewTab{usualStation(kind), {}, kind, std::nullopt});
             if (std::find(tab->recipes.begin(), tab->recipes.end(), recipe) == tab->recipes.end()) tab->recipes.push_back(recipe);
         }
+    if (!uses) std::stable_sort(tabs.begin(), tabs.end(), [](ViewTab const& a, ViewTab const& b) { return a.kind < b.kind; });
     return tabs;
 }
 // A crafting recipe the inventory's own 2x2 grid can make.

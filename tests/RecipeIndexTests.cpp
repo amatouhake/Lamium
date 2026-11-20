@@ -265,6 +265,19 @@ void recipeIndexTests() {
         check(furnaceUses.size() == 2 && furnaceUses[0].only == Station::Furnace && furnaceUses[0].recipes.size() == 2
                   && furnaceUses[1].kind == Kind::Crafting && furnaceUses[1].recipes.size() == 1,
               "a station's uses begin with what it does, then what it goes into");
+        {
+            // An item made at the furnace by the rule and at the crafting table too: crafting stays the first tab.
+            Source both;
+            both.recipes.push_back({"furnace", "ingot_smelted", 0, {{"ingot", 1}}, {{"ore", false}}});
+            both.recipes.push_back({"crafting_table", "ingot_from_nuggets", 0, {{"ingot", 1}}, {{"nugget", false}, {"nugget", false}}});
+            Index const two = build(both);
+            Choice picked = choose(two);
+            Item const ingot = two.find("ingot");
+            picked.recipe[static_cast<size_t>(ingot)] = two.makers[static_cast<size_t>(ingot)][two.recipes[static_cast<size_t>(two.makers[static_cast<size_t>(ingot)][0])].station == Station::Furnace ? 0 : 1];
+            auto const tabs = viewTabs(two, picked, ingot, false);
+            check(tabs.size() == 2 && tabs[0].kind == Kind::Crafting && tabs[1].kind == Kind::Smelting,
+                  "an item's tabs keep the kinds' order whatever recipe is in use (L-380)");
+        }
         check(viewTabs(index, choice, index.find("minecraft:furnace"), false).front().kind == Kind::Crafting,
               "a station's recipes are how it is made");
         check(index.recipes[static_cast<size_t>(makes[0].recipes[0])].cells.size() == 1 && index.recipes[static_cast<size_t>(makes[0].recipes[0])].cells[0].group,
