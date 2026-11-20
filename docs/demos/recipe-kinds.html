@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Kinds</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* One GUI unit is 3 px here (1920x1080 at UI 75 %). The recipe view in the game's grey. */
+:root{
+  color-scheme: dark;
+  --u:3px;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --edge:#000; --shadow:#555;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{display:flex;justify-content:center;padding:calc(30*var(--u)) 0 calc(6*var(--u));overflow-x:auto}
+.win{position:relative;width:calc(220*var(--u));background:var(--win);color:var(--win-ink);font:calc(8*var(--u))/1 var(--pix);
+  box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge)}
+.tabs{position:absolute;left:calc(5*var(--u));top:calc(-21*var(--u));display:flex}
+.tab{width:calc(26*var(--u));height:calc(21*var(--u));display:grid;place-items:center;background:#626262;border:var(--u) solid var(--edge);border-bottom:0;
+  box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #c4c4c4;margin-right:calc(-1*var(--u));cursor:pointer;border-radius:calc(2*var(--u)) calc(2*var(--u)) 0 0;position:relative}
+.tab.on{background:var(--win);height:calc(24*var(--u));margin-bottom:calc(-3*var(--u));box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) 0 var(--shadow);z-index:1}
+.tab .tip{display:none;position:absolute;bottom:calc(24*var(--u));left:0;white-space:nowrap;background:#100010f0;color:#fff;padding:calc(2*var(--u)) calc(3*var(--u));
+  border:var(--u) solid #2a0a5a;font-size:calc(7*var(--u));z-index:5}
+.tab:hover .tip{display:block}
+.head{height:calc(35*var(--u));padding:calc(6*var(--u)) calc(7*var(--u)) 0;position:relative}
+.head .item{display:flex;align-items:center;gap:calc(3*var(--u));height:calc(14*var(--u))}
+.line2{display:flex;align-items:center;gap:calc(2*var(--u));height:calc(13*var(--u));margin-top:calc(1*var(--u));color:var(--win-faint);font-size:calc(7*var(--u))}
+.line2 .grow{flex:1}
+.pager{display:flex;align-items:center;gap:calc(2*var(--u));color:var(--win-ink)}
+.pbtn{width:calc(9*var(--u));height:calc(9*var(--u));display:grid;place-items:center;background:#a8a8a8;box-shadow:0 0 0 var(--u) var(--edge);font-size:calc(6*var(--u))}
+.body{position:relative;height:calc(198*var(--u))}
+.ico{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:0 0 2px #000;
+  box-shadow:inset calc(-2*var(--u)) calc(-2*var(--u)) rgba(0,0,0,.25),inset calc(2*var(--u)) calc(2*var(--u)) rgba(255,255,255,.25)}
+.mini{width:calc(12*var(--u));height:calc(12*var(--u));font-size:calc(5*var(--u))}
+.block{position:absolute;width:calc(92*var(--u));height:calc(53*var(--u))}
+.face{position:absolute;left:calc(-3*var(--u));top:calc(-3*var(--u));width:calc(98*var(--u));height:calc(54*var(--u));background:var(--win);
+  box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow)}
+.slot{position:absolute;width:calc(18*var(--u));height:calc(18*var(--u));background:var(--slot);display:grid;place-items:center;
+  box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.slot .ico{box-shadow:none}
+.arrow{position:absolute;font-size:calc(11*var(--u));color:var(--win-ink)}
+.station{position:absolute;cursor:pointer}
+.station:hover{outline:var(--u) solid #fff}
+.strip{position:absolute;display:flex;flex-direction:column;gap:calc(1*var(--u));background:var(--win);padding:calc(2*var(--u));
+  box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge)}
+.inline{display:flex;gap:calc(1*var(--u))}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>焼くレシピのタブ（L-376）</h1>
+    <p class="lede">工程ごとのタブ（製錬・溶鉱・燻製・焚き火調理）で、作業場所をタブに 1 回だけ並べる案 A を 3 通りの置き場所で、今の形（案 B：焼くタブ 1 つ、レシピごとにアイコン）と並べた。作業場所のアイコンを押すと、その作業場所でできるレシピが開く想定。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">案</span>
+      <button class="chip on" data-v="a1">A1 見出しの 2 行目</button>
+      <button class="chip" data-v="a2">A2 ウィンドウの左に縦</button>
+      <button class="chip" data-v="a3">A3 ウィンドウの左下</button>
+      <button class="chip" data-v="b">B 今の形</button>
+    </div>
+    <div class="grp"><span class="lbl">アイテム</span>
+      <button class="chip on" data-item="steak">ステーキ</button>
+      <button class="chip" data-item="iron">鉄インゴット</button>
+      <button class="chip" data-item="glass">ガラス</button>
+    </div>
+  </div>
+  <div class="stage"><div id="view"></div></div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>A はタブが増え、同じレシピ（ステーキ）が 3 つのタブに出る。タブを替えると、そこで使う作業場所が 1 か所で分かる。</li>
+        <li>A1 は見出しに入るので場所を取らない。A2 は JEI 風に窓の外、A3 は EMI 風に窓の中の左下（レシピの場所が 1 段分減る）。</li>
+        <li>B はタブが 1 つで済み、レシピごとにどこで作れるかが分かるが、同じアイコンがどのレシピにも並ぶ。</li>
+        <li>配置（後で作る）：A ならかまどの画面では製錬タブ、溶鉱炉の画面では溶鉱タブのレシピを置ける、と画面とタブが対応する。</li>
+        <li>計画と保存データはどの案でも変わらない（内部では 1 つのレシピのまま）。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> A か B か。</li>
+        <li><span class="q">2.</span> A なら、作業場所の一覧をどこに置くか（A1・A2・A3）。</li>
+        <li><span class="q">3.</span> クラフト・石切・鍛冶のタブにも同じ場所に作業台などを 1 つ出すか（EMI・JEI は出している）。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3;
+const px = v => v * U + 'px';
+// One GUI unit in pixels: 3 where the page is wide enough, less on a narrow one.
+function fitUnit(){ U = Math.max(1.5, Math.min(3, (innerWidth - 80) / 250)); document.documentElement.style.setProperty('--u', U + 'px'); }
+const ICONS = {
+  furnace:{c:'#6f6f6f', t:'か', name:'かまど'}, blast:{c:'#4b4f5a', t:'溶', name:'溶鉱炉'}, smoker:{c:'#6a5238', t:'燻', name:'燻製器'},
+  campfire:{c:'#c0662a', t:'焚', name:'焚き火'}, soul:{c:'#2fa0b0', t:'魂', name:'魂の焚き火'}, table:{c:'#9a6b3a', t:'作', name:'作業台'},
+  beef:{c:'#c0504a', t:'牛'}, steak:{c:'#7a4a2a', t:'ス'}, raw_iron:{c:'#c8a080', t:'鉄'}, iron:{c:'#d8d8d8', t:'延'}, sand:{c:'#e0d090', t:'砂'}, glass:{c:'#bfe6ef', t:'ガ'},
+  nugget:{c:'#e8e8e8', t:'粒'}, block:{c:'#e0e0e0', t:'塊'}
+};
+const KINDS = {
+  smelt:{name:'製錬', stations:['furnace']}, blast:{name:'溶鉱', stations:['blast']}, smoke:{name:'燻製', stations:['smoker']},
+  camp:{name:'焚き火調理', stations:['campfire','soul']}, craft:{name:'クラフト', stations:['table']}, cook:{name:'焼く', stations:['furnace','blast','smoker','campfire','soul']}
+};
+// Each item: its cooking recipe (input, the stations that do it) and crafting recipes.
+const ITEMS = {
+  steak:{name:'ステーキ', icon:'steak', cook:[{in:'beef', at:['furnace','smoker','campfire','soul']}], craft:[]},
+  iron:{name:'鉄インゴット', icon:'iron', cook:[{in:'raw_iron', at:['furnace','blast']}], craft:[{grid:['nugget','nugget','nugget','nugget','nugget','nugget','nugget','nugget','nugget'], n:1},{grid:['block'], n:9}]},
+  glass:{name:'ガラス', icon:'glass', cook:[{in:'sand', at:['furnace']}], craft:[]},
+};
+const STATION_KIND = {furnace:'smelt', blast:'blast', smoker:'smoke', campfire:'camp', soul:'camp'};
+let variant = 'a1', item = 'steak', tab = 0;
+
+function icon(key, mini){ const i = ICONS[key]; return `<div class="ico${mini?' mini':''}" style="background:${i.c}">${i.t}</div>`; }
+function tabsFor(it){
+  const out = [];
+  if (variant === 'b') {
+    if (it.craft.length) out.push({kind:'craft', recipes:it.craft.map(r => ({craft:r}))});
+    if (it.cook.length) out.push({kind:'cook', recipes:it.cook.map(r => ({cook:r}))});
+    return out;
+  }
+  if (it.craft.length) out.push({kind:'craft', recipes:it.craft.map(r => ({craft:r}))});
+  for (const k of ['smelt','blast','smoke','camp']) {
+    const rs = it.cook.filter(r => r.at.some(s => STATION_KIND[s] === k));
+    if (rs.length) out.push({kind:k, recipes:rs.map(r => ({cook:r}))});
+  }
+  return out;
+}
+function stationList(kind, vertical){
+  return `<div class="${vertical ? '' : 'inline'}" style="${vertical ? 'display:flex;flex-direction:column;gap:3px' : ''}">` +
+    KINDS[kind].stations.map(s => `<div class="station" style="position:relative" title="${ICONS[s].name}：押すとこの作業場所のレシピ">${icon(s, true)}</div>`).join('') + `</div>`;
+}
+function block(r, x, y, kind){
+  let h = `<div class="block" style="left:${px(x)};top:${px(y)}"><div class="face"></div>`;
+  if (r.cook) {
+    h += `<div class="slot" style="left:0;top:0">${icon(r.cook.in)}</div><div class="slot" style="left:0;top:${px(30)}"></div>`;
+    h += `<div class="arrow" style="left:${px(22)};top:${px(15)}">➜</div><div class="slot" style="left:${px(34)};top:${px(15)}">${icon(ITEMS[item].icon)}</div>`;
+    if (variant === 'b') r.cook.at.forEach((s, k) => { h += `<div class="station" title="${ICONS[s].name}" style="left:${px(58 + (k % 2) * 16)};top:${px(2 + Math.floor(k / 2) * 16)}">${icon(s, true)}</div>`; });
+  } else {
+    const g = r.craft.grid;
+    for (let i = 0; i < 9; i++) h += `<div class="slot" style="left:${px((i % 3) * 18)};top:${px(Math.floor(i / 3) * 18 - 3)}">${g[i] ? icon(g[i]) : ''}</div>`;
+    h += `<div class="arrow" style="left:${px(58)};top:${px(12)}">➜</div><div class="slot" style="left:${px(70)};top:${px(6)}">${icon(ITEMS[item].icon)}</div>`;
+  }
+  return h + `</div>`;
+}
+function render(){
+  fitUnit();
+  const it = ITEMS[item], tabs = tabsFor(it);
+  tab = Math.min(tab, tabs.length - 1);
+  const t = tabs[tab], kind = KINDS[t.kind];
+  const listed = variant === 'b' ? (t.kind === 'cook' ? [...new Set(it.cook.flatMap(r => r.at))] : kind.stations) : kind.stations;
+  const tabName = `${kind.name}（${listed.map(s => ICONS[s].name).join('・')}）`;
+  let h = `<div class="win" style="height:${px(233)}">`;
+  h += `<div class="tabs">` + tabs.map((x, i) => {
+    const k = KINDS[x.kind], st = variant === 'b' && x.kind === 'cook' ? 'furnace' : k.stations[0];
+    const names = (variant === 'b' && x.kind === 'cook' ? [...new Set(it.cook.flatMap(r => r.at))] : k.stations).map(s => ICONS[s].name).join('・');
+    return `<div class="tab${i === tab ? ' on' : ''}" data-tab="${i}">${icon(st)}<span class="tip">${k.name}（${names}）</span></div>`;
+  }).join('') + `</div>`;
+  h += `<div class="head"><div class="item">${icon(it.icon)}<span>${it.name}</span></div><div class="line2">`;
+  if (variant === 'a1') h += stationList(t.kind, false) + `<span style="margin-left:${px(2)}">${kind.name}</span>`;
+  else h += `<span>${variant === 'b' ? tabName : kind.name}</span>`;
+  h += `<span class="grow"></span><div class="pager"><div class="pbtn">◀</div>1 / 1<div class="pbtn">▶</div></div></div></div>`;
+  h += `<div class="body">`;
+  const rows = variant === 'a3' ? 2 : 3;
+  t.recipes.forEach((r, i) => {
+    const one = t.recipes.length <= rows;
+    const x = one ? (220 - 92) / 2 : 10 + (i % 2) * 100 + 4;
+    const y = 8 + (one ? i : Math.floor(i / 2)) * 64;
+    h += block(r, x, y, t.kind);
+  });
+  if (variant === 'a3') h += `<div style="position:absolute;left:${px(7)};bottom:${px(14)};display:flex;align-items:center;gap:${px(3)};font-size:${px(6)};color:var(--win-faint)">${stationList(t.kind, false)}<span>ここで作る</span></div>`;
+  h += `</div>`;
+  if (variant === 'a2') h += `<div class="strip" style="left:${px(-20)};top:${px(2)}">${stationList(t.kind, true)}</div>`;
+  h += `</div>`;
+  const v = document.getElementById('view');
+  v.innerHTML = h;
+  v.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => { tab = +el.dataset.tab; render(); });
+}
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { variant = b.dataset.v; document.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === b)); tab = 0; render(); });
+document.querySelectorAll('[data-item]').forEach(b => b.onclick = () => { item = b.dataset.item; document.querySelectorAll('[data-item]').forEach(x => x.classList.toggle('on', x === b)); tab = 0; render(); });
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
