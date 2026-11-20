@@ -13,7 +13,9 @@
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemDescriptor.h"
 #include "mc/world/item/ItemInstance.h"
+#include "mc/world/item/ItemStack.h"
 #include "mc/world/item/NetworkItemInstanceDescriptor.h"
+#include "mc/world/item/alchemy/PotionBrewing.h"
 #include "mc/world/item/crafting/Recipe.h"
 #include "mc/world/item/crafting/RecipeIngredient.h"
 #include "mc/world/item/crafting/Recipes.h"
@@ -33,8 +35,10 @@ namespace {
 // again when its size changes. Nothing is loaded or resolved: a result the
 // client holds unloaded is written as the descriptor it came as. Sizes too
 // large to be real mean a member is not where this build expects it; the
-// walk stops there. Potion mixes are left out: the SDK gives `Mix<T>` no
-// layout.
+// walk stops there. Potion mixes (L-361): the SDK gives `Mix<T>` no layout,
+// so they are found by asking `PotionBrewing::mix` for every ingredient on
+// every potion, splash and lingering potion by aux, written to
+// `logs/brewing-<time>-<local|remote>.txt`.
 ll::event::ListenerPtr tickListener, joinListener, exitListener;
 TraceBudget summaryBudget, failBudget, indexBudget;
 bool local = false;
@@ -300,6 +304,42 @@ void report() {
         traceLog(indexBudget, 60, "L-359 plan: {} ({:.2f} ms)", text.size() > 1500 ? text.substr(0, 1500) + " ..." : text, took);
     }
 }
+// Every mix the client knows, by asking for each: an item `isPotionIngredient` says is one, put on each potion
+// kind by aux (0 to 63). A result that is empty or the same as what it was put on is no mix.
+void dumpBrewing(Level& level) {
+    auto registry = level.getItemRegistry();
+    if (registry.mWeakRegistry.expired()) return;
+    auto const& all = registry.getNameToItemMap();
+    guard(all.size(), 100000, "the item registry");
+    std::vector<Item const*> ingredients, bases;
+    for (auto const& [name, weak] : all) {
+        auto const* item = weak.get();
+        if (!item) continue;
+        std::string const full = item->mFullName->getString();
+        if (full == "minecraft:potion" || full == "minecraft:splash_potion" || full == "minecraft:lingering_potion") bases.push_back(item);
+        if (PotionBrewing::isPotionIngredient(ItemDescriptor(*item, 0))) ingredients.push_back(item);
+    }
+    std::string text = std::format("# L-361 brewing, {} ingredients, {} potion kinds\n# B: from:aux, ingredient, to:aux\n", ingredients.size(), bases.size());
+    int mixes = 0;
+    for (auto const* base : bases)
+        for (int aux = 0; aux < 64; ++aux) {
+            ItemStack from;
+            from.reinit(*base, 1, aux);
+            ItemInstance const source(from);
+            for (auto const* ingredient : ingredients) {
+                ItemInstance const to = PotionBrewing::mix(ItemDescriptor(*ingredient, 0), source);
+                if (to.isNull()) continue;
+                if (to.getTypeName() == from.getTypeName() && to.getAuxValue() == aux) continue;
+                ++mixes;
+                text += std::format("B\t{}:{}\t{}\t{}:{}\n", from.getTypeName(), aux, ingredient->mFullName->getString(), to.getTypeName(), to.getAuxValue());
+            }
+        }
+    auto const path = Runtime::instance().self().getModDir() / "logs" / std::format("brewing-{}-{}.txt", timeStamp(), local ? "local" : "remote");
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    file << text;
+    traceLog(summaryBudget, 12, "L-361 brewing: {} mixes from {} ingredients on {} potion kinds, written to {}", mixes, ingredients.size(), bases.size(),
+             path.filename().string());
+}
 void reset() {
     ticks = steady = 0;
     seen = dumped = -1;
@@ -328,6 +368,7 @@ void tick() noexcept {
         dumped = size;
         ++written;
         dump(level, recipes);
+        try { dumpBrewing(level); } catch (...) { traceLog(failBudget, 4, "L-361 brewing unreadable"); }
         snapshot.reset();
         indexSteps = 0;
         longestStep = 0;
