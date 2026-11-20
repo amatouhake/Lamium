@@ -41,6 +41,10 @@ CraftOnto craftCheck(ScreenView& screen, Index const& index, Recipe const& recip
 bool craft(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks);
 // Forgets a round being crafted, without a game call: its screen or world is gone.
 void abandonCraft();
+// Whether the stonecutter's "choose a result" notice shows (L-380): Lamium laid this screen's input in and no
+// result was chosen since, as far as can be told: `pressed`, the left button went down on the game's window this
+// frame, which on the result list ends it, as does the input changing or the screen going.
+bool stonecutterNotice(ScreenView& screen, bool pressed);
 }
 // Mass Craft (L-165): while its key is held, the recipe of the item under the pointer (over the output
 // slot: the one lying in the grid) is laid in again as many times as divide evenly, all of it taken and the product thrown out of the

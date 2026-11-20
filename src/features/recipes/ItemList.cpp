@@ -135,6 +135,7 @@ std::string wantedItem;      // client thread
 bool wantedLeaves = false;   // client thread: it goes out when the key is released
 std::atomic<bool> leftHeld{false}; // the left button is down, as the mouse listener last saw it: a scrollbar's drag
 std::atomic<bool> shiftHeld{false}, dropFocus{false}, focusAsked{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
+std::atomic<bool> gamePress{false}; // the left button went down on the game's window (the stonecutter's notice, L-380)
 // The recipe view lies over the window of what is wanted; both go with the screen they were opened on.
 void closeViews() {
     bandEditor::stop();
@@ -896,6 +897,24 @@ bool drawList(ll::event::UIRenderEvent& event) {
     for (auto const& mark : late.marks) anyMark(context, mark.x, mark.y, mark.scale);
     if (!late.counts.empty() || !late.marks.empty()) context.flushText(0, std::nullopt);
     cost.at("windows and icons");
+    // At the stonecutter, after Lamium laid its input in: a tip over the result list asks for a result (L-380).
+    if (bool const pressedGame = gamePress.exchange(false); place::stonecutterNotice(screenView, pressedGame) && !anyView() && !editing)
+        if (auto* tree = screenView.mVisualTree.get()) {
+            static std::string const listPanel = "stone_book_panel"; // the stonecutter's left panel (seen 2026-11-21)
+            auto panel = tree->getControlByName(listPanel, true);
+            if (panel && (static_cast<int>(panel->mVisible) & 1) && !panel->mCachedPositionDirty && panel->mSize->x > 0) {
+                namespace vf = vanilla_frame;
+                glm::vec2 const p = *panel->mCachedPosition, s = *panel->mSize;
+                std::string const text = translated("recipes.stonecutter.choose");
+                float const w = std::ceil(vf::tooltipWidth(textWidth(context, text))), h = vf::tooltipHeight(1);
+                // Standing on the panel's top edge, over the list, on whole units.
+                float const x = std::round(p.x + (s.x - w) / 2), y = std::round(std::max(2.f, p.y - h / 2));
+                context.flushText(0, std::nullopt);
+                gameTooltipBox(context, x, y, w, h);
+                label(context, x + vf::tooltipTextLeft, y + vf::tooltipTextTop - 1, w - 2 * vf::tooltipTextLeft, text);
+                context.flushText(0, std::nullopt);
+            }
+        }
     if (!late.tip.empty()) {
         // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
         // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.
@@ -981,6 +1000,7 @@ bool press(int button, bool left, bool right, bool down) {
     bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY) || shown.field.has(shown.pointerX, shown.pointerY)
         || std::any_of(shown.bands.begin(), shown.bands.end(), [](ListBox const& b) { return b.has(shown.pointerX, shown.pointerY); }));
     if (!ours && down && fresh() && (shown.searchFocus || shown.countFocus)) queued.outside = true;
+    if (!ours && down && left) gamePress = true;
     bool first = false;
     if (!keptButtons.decide(button, down, ours, &first)) return false;
     if (left) leftHeld = down;

@@ -1108,6 +1108,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.placeMissing", "缺少材料（红框）"},
     {"recipes.craft", "Ctrl + 点击: 合成一次到指针上"},
     {"recipes.place.many", "Shift + 点击: 尽可能平均放置"},
+    {"recipes.stonecutter.choose", "请选择成品"},
     {"recipes.craft.placeOnly", "Ctrl + 点击: 指针已被占用，只放置"},
     {"recipes.hint.favorite", "{}: 收藏"},
     {"recipes.hint.wanted", "{}: 想要"},

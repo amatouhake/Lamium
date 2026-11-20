@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inventory/game/TransferRoutes.h"
+#include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemList.h"
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/RecipeState.h"
@@ -198,8 +199,25 @@ bool layAtStation(ContainerScreenController& controller, Station at, Index const
     }
     return any;
 }
+// The stonecutter's input Lamium laid in, until a result is chosen (L-380): Lamium can neither choose it nor read
+// the choice, so a notice asks for it while this screen keeps that input and its result list was not pressed.
+struct Notice { void const* screen = nullptr; std::string input; } notice;
+std::string keyOf(ItemStack const& stack) { return stack.isNull() ? std::string() : itemKey(stack.getTypeName(), stack.getAuxValue()); }
 }
 namespace place {
+bool stonecutterNotice(ScreenView& screen, bool pressed) {
+    if (!notice.screen) return false;
+    try {
+        Station at = Station::Other;
+        auto* controller = station(screen, at);
+        if (!controller || at != Station::Stonecutter || controller != notice.screen) { notice = {}; return false; }
+        auto& manager = *controller->mContainerManagerController;
+        if (keyOf(manager.getItemStack(stationSlots(at).front(), 0)) != notice.input) { notice = {}; return false; }
+        // A press on the result list (the screen's own collection `stones`, seen 2026-11-21) chooses one.
+        if (pressed && *controller->mHoveredSlotData->mCollectionName == "stones") { notice = {}; return false; }
+        return true;
+    } catch (...) { notice = {}; return false; }
+}
 Bench bench(ScreenView& screen) {
     try {
         if (auto* controller = crafting(screen)) return {Station::Crafting, sideOf(*controller->mContainerManagerController)};
@@ -247,6 +265,8 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             auto const& shape = table->index.recipes[static_cast<size_t>(recipe)];
             if (!other || !benchMakes({at, 0}, shape)) return false;
             bool const laid = layAtStation(*other, at, table->index, shape, picks, many);
+            if (laid && at == Station::Stonecutter)
+                notice = {other, keyOf(other->mContainerManagerController->getItemStack(stationSlots(at).front(), 0))};
             static bool told = false;
             if (laid && !told) told = true, Runtime::instance().self().getLogger().info("Recipes: a recipe laid in at a station, straight from its slots");
             return laid;

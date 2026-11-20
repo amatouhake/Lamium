@@ -240,7 +240,7 @@ the furnace, blast furnace, smoker, stonecutter and smithing table by
 `ContainerManagerController::getContainerType`, moves into
 `furnace_ingredient_items`, `stonecutter_input_items` and the smithing
 table's `_template_items`, `_input_items` and `_material_items` with
-`handlePlaceAmount`, and empties a slot with `_handleAutoPlace`. It reads `CraftingContainerManagerController::mCraftingRecipe`
+`handlePlaceAmount`, and empties a slot with `_handleAutoPlace`. After laying the stonecutter's input in it reads `mHoveredSlotData` for a press on the screen's result list `stones` and draws a notice over the control `stone_book_panel`. It reads `CraftingContainerManagerController::mCraftingRecipe`
 (a class-layout read) to tell that the grid makes something. Mass Craft
 (the same file) also reads `ContainerScreenController::mHoveredSlotData`
 and the hover tracker for the output slot and throws slots out with the
