@@ -1,4 +1,5 @@
 #include "ui/SettingsTableView.h"
+#include "features/recipes/ItemList.h"
 #include "ui/CapabilityStatus.h"
 #include "ui/HighlightView.h"
 #include "ui/EnchantView.h"
@@ -279,6 +280,12 @@ void openLayout(std::optional<HudElementId> element) {
         element = hudGameDrawn(*element) ? settings::firstGameHudPart(preferences) : std::nullopt;
     hud_editor::select(element);
 }
+// The bands' editor opens over the inventory once the settings are closed (L-375).
+void openBandLayout(recipes::band::Page page) {
+    if (!game_language::inWorld()) return;
+    recipes::itemList::editLayout(page);
+    screen::close();
+}
 void setSlider(settings::Option const& option, float fraction) {
     auto const& range = *option.numeric;
     float value = SettingsTable::sliderValue(fraction, range.minimum, range.maximum, range.step);
@@ -315,6 +322,7 @@ void activateRow(int row, bool space) {
         return;
     case RowKind::Action: startCapture(*entry.action); return;
     case RowKind::Layout: openLayout(*entry.layout); return;
+    case RowKind::BandLayout: openBandLayout(*entry.bandPage); return;
     case RowKind::MapCache: pressMapCache(); return;
     case RowKind::SavedData: row_pages::begin(row_pages::savedData()); return;
     }
@@ -439,6 +447,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         if (hit.column == Column::Key) startCapture(*entry.action);
         return;
     case RowKind::Layout: openLayout(*entry.layout); return;
+    case RowKind::BandLayout: openBandLayout(*entry.bandPage); return;
     case RowKind::MapCache: if (onMapCacheButton(hit.x)) pressMapCache(); return;
     case RowKind::SavedData: row_pages::begin(row_pages::savedData()); return;
     default: return;
@@ -684,6 +693,7 @@ std::string baseDescription() {
             + (help != helpKey ? help + " " : std::string{}) + behaviorText(*entry.action);
     }
     case RowKind::Layout: return translated("help.layoutLink");
+    case RowKind::BandLayout: return translated(game_language::inWorld() ? "help.band.layoutLink" : "help.band.layoutLinkOutside");
     case RowKind::MapCache: return translated("help.mapCache");
     case RowKind::SavedData: {
         // The footer has the name in full, however little of it the row has room for.
@@ -1083,6 +1093,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawGuide(context,y,entry.lastChild);
             label(context,t.nameX+12,y+3,nameRight-t.nameX-12,translated(layoutLinkLabel(*entry.layout)),palette::dim);
             label(context,t.stateX,y+3,t.controlWidth(),translated("layoutLinkValue"),palette::accent,Align::Right);
+            break;
+        }
+        case RowKind::BandLayout: {
+            // Like the HUD's link; outside a world there is no inventory to edit over.
+            bool const can = game_language::inWorld();
+            drawGuide(context,y,entry.lastChild);
+            label(context,t.nameX+12,y+3,nameRight-t.nameX-12,translated("band.layoutLink"),can ? palette::dim : palette::faint);
+            label(context,t.stateX,y+3,t.controlWidth(),translated("band.layoutLinkValue"),can ? palette::accent : palette::faint,Align::Right);
             break;
         }
         case RowKind::SavedData: {

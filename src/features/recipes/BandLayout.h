@@ -100,6 +100,7 @@ struct Placed {
     Box box;
     int region = Left; // where the layout puts it
     int shownIn = Left; // where it shows: a side region for one lent by a region too low
+    int index = 0;      // its place in its region's list in the layout
     bool first = true;  // the first panel shown in its region, which has no rule above it
 };
 // Each panel's box. A page whose feature is off (`on`) is left out and its share goes to the others. Every
@@ -107,11 +108,13 @@ struct Placed {
 // one row lends its panels to the end of a side region (above to the left, below to the right) on this
 // screen only.
 inline std::vector<Placed> place(Layout const& layout, Regions const& regions, std::array<bool, pageCount> const& on) {
-    struct Entry { Panel panel; int region; };
+    struct Entry { Panel panel; int region; int index; };
     std::array<std::vector<Entry>, regionCount> lists;
     for (int r = 0; r < regionCount; ++r)
-        for (auto const& panel : layout.regions[static_cast<size_t>(r)])
-            if (on[static_cast<size_t>(panel.page)]) lists[static_cast<size_t>(r)].push_back({panel, r});
+        for (size_t i = 0; i < layout.regions[static_cast<size_t>(r)].size(); ++i) {
+            auto const& panel = layout.regions[static_cast<size_t>(r)][i];
+            if (on[static_cast<size_t>(panel.page)]) lists[static_cast<size_t>(r)].push_back({panel, r, static_cast<int>(i)});
+        }
     for (int r : {Top, Bottom}) {
         auto& list = lists[static_cast<size_t>(r)];
         if (list.empty() || regions.usable(r)) continue;
@@ -143,7 +146,7 @@ inline std::vector<Placed> place(Layout const& layout, Regions const& regions, s
         for (size_t i = 0; i < list.size(); ++i) {
             float const size = i + 1 == list.size() ? end - at : std::floor(sizes[i]);
             Box const box = side ? Box{at, area.y, size, area.h} : Box{area.x, at, area.w, size};
-            out.push_back({list[i].panel.page, box, list[i].region, r, i == 0});
+            out.push_back({list[i].panel.page, box, list[i].region, r, list[i].index, i == 0});
             at += size;
         }
     }

@@ -244,7 +244,10 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
 - `BandLayout.h` (pure, L-374): the bands as regions beside, above and
   below the game's window, panels split along a region, one page to a
   panel; the layout is kept in the settings (`inventory.bands`, today's
-  look by default; no editor yet, L-375). A page whose feature is off is
+  look by default). `BandEditor.h` (pure, L-375): where a dragged panel
+  goes and the layout after the drop; `BandEditorDraw.cpp` draws the
+  editor over the inventory, which the "Layout of the bands" link rows
+  (Recipes, Plan) open after closing the settings. A page whose feature is off is
   left out; each panel keeps one row; a region too low for one row lends
   its panels to a side on that screen. `BandPages.cpp` draws the
   favourites, the plan's list and the open container's line, which lies

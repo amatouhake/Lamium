@@ -242,7 +242,7 @@ inline bool effectsPaused(std::string_view id, Settings const& value) {
 
 // MapCache: the world map's saved data for this world, with a delete button.
 // SavedData: which saved data the joined server uses, linking to General > Saved data (L-343).
-enum class RowKind { Section, Feature, Option, Action, Layout, MapCache, SavedData };
+enum class RowKind { Section, Feature, Option, Action, Layout, MapCache, SavedData, BandLayout };
 // While its feature's switch is off, a setting row is drawn dimmed whole;
 // command rows (actions, the HUD layout link, the saved data and map data
 // rows) stay at full strength (DESIGN "Screens", L-335).
@@ -269,6 +269,12 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "usedSlots") return HudElementId::UsedSlots;
     if (feature == "gameHud") return HudElementId::Chat;
     if (feature == "statusEffects") return HudElementId::StatusEffects;
+    return std::nullopt;
+}
+// Features with a page on the item screens' bands link to the bands' editor with that page (L-375).
+inline std::optional<recipes::band::Page> bandPageOf(std::string_view feature) {
+    if (feature == "recipes") return recipes::band::Page::Items;
+    if (feature == "plan") return recipes::band::Page::Plan;
     return std::nullopt;
 }
 // Every element a feature places: Game HUD has four, its row links to the first.
@@ -315,6 +321,7 @@ struct SettingsRow {
     std::optional<input::Action> action;
     std::string_view section;
     std::optional<HudElementId> layout; // Layout rows
+    std::optional<recipes::band::Page> bandPage; // BandLayout rows: the page the bands' editor opens with
     int children = 0;       // Feature rows: expandable content
     bool expanded = false;  // Feature rows
     bool lastChild = false; // Child rows: end of the tree guide
@@ -322,11 +329,11 @@ struct SettingsRow {
     bool selectable() const { return kind != RowKind::Section; }
     bool child() const {
         return kind == RowKind::Option || kind == RowKind::Action || kind == RowKind::Layout || kind == RowKind::MapCache
-            || kind == RowKind::SavedData;
+            || kind == RowKind::SavedData || kind == RowKind::BandLayout;
     }
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
-            && action == other.action && section == other.section && layout == other.layout;
+            && action == other.action && section == other.section && layout == other.layout && bandPage == other.bandPage;
     }
 };
 // Category is a section key, or empty for all sections. A query searches every
@@ -391,10 +398,13 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             // order: the HUD layout arranges them (L-219).
             if (auto element = layoutElement(feature.id))
                 children.push_back({RowKind::Layout, &feature, nullptr, {}, section, element});
+            if (auto page = bandPageOf(feature.id))
+                children.push_back({RowKind::BandLayout, &feature, nullptr, {}, section, std::nullopt, page});
             if (feature.id == "worldMap") children.push_back({RowKind::MapCache, &feature, nullptr, {}, section});
             if (keepsSavedData(feature.id)) children.push_back({RowKind::SavedData, &feature, nullptr, {}, section});
             auto childText = [&](SettingsRow const& row) {
                 if (row.kind == RowKind::MapCache) return std::string(translate("mapCache"));
+                if (row.kind == RowKind::BandLayout) return std::string(translate("band.layoutLink"));
                 if (row.kind == RowKind::SavedData) return std::string(translate("savedData.row")) + " " + translate("feature.savedData");
                 if (row.layout) return std::string(translate(layoutLinkLabel(*row.layout))) + " " + translate("nav.hudLayout");
                 if (row.option) return std::string(row.option->id) + " " + translate(row.option->label);

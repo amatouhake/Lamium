@@ -1,4 +1,5 @@
 #include <cmath>
+#include "features/recipes/BandEditor.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/ListFilter.h"
@@ -557,6 +558,42 @@ void recipeIndexTests() {
         check(tidy.regions[Left].size() == 2 && tidy.regions[Left][0].share + tidy.regions[Left][1].share == 100
               && tidy.regions[Left][0].share % 5 == 0 && normalized(defaultLayout()) == defaultLayout(),
               "a page shows once, and a region's shares are steps of 5 that add up to 100");
+    }
+    {
+        // L-375: arranging the bands by dragging.
+        using namespace band;
+        using namespace band::editor;
+        auto const regions = regionsAround(640, 360, 210, 430, 97, 263, 330);
+        auto const layout = defaultLayout();
+        std::array<bool, pageCount> const all{true, true, true};
+        auto const placed = place(layout, regions, all);
+        Box const tray{250, 120, 140, 26};
+        Drag const plan{Page::Plan, Left, 1};
+        check(hit(placed, regions, layout, plan, 50, 300, tray) == Target{Kind::Self, Left, 1}, "over its own place a drop does nothing");
+        check(hit(placed, regions, layout, plan, 50, 50, tray) == Target{Kind::Swap, Left, 0}, "over another panel of its region it swaps");
+        check(hit(placed, regions, layout, plan, 500, 50, tray) == Target{Kind::Before, Right, 0}
+                  && hit(placed, regions, layout, plan, 500, 300, tray) == Target{Kind::After, Right, 0},
+              "in another region it goes before or after the panel it is over");
+        check(hit(placed, regions, layout, plan, 300, 40, tray) == Target{Kind::Fill, Top}
+                  && hit(placed, regions, layout, plan, 300, 130, tray).kind == Kind::Tray
+                  && hit(placed, regions, layout, plan, 300, 200, tray).kind == Kind::None,
+              "an empty region takes it whole, the tray takes it out, the game's window takes nothing");
+        auto swapped = apply(layout, plan, {Kind::Swap, Left, 0});
+        check(swapped && swapped->regions[Left][0].page == Page::Plan && swapped->regions[Left][1].page == Page::Favourites,
+              "a swap trades the two panels' places");
+        auto moved = apply(layout, plan, {Kind::After, Right, 0});
+        check(moved && moved->regions[Left].size() == 1 && moved->regions[Left][0].share == 100 && moved->regions[Right].size() == 2
+                  && moved->regions[Right][1].page == Page::Plan && moved->regions[Right][0].share == 50,
+              "a panel moved to another region takes half of the one it goes beside");
+        auto out = apply(layout, plan, {Kind::Tray});
+        check(out && unplaced(*out) == std::vector<Page>{Page::Plan} && out->regions[Left][0].share == 100
+                  && apply(*out, Drag{Page::Plan}, {Kind::Fill, Top})->regions[Top][0].page == Page::Plan
+                  && !apply(*out, Drag{Page::Plan}, {Kind::Tray}),
+              "the tray takes a page out and gives it back; a page not placed cannot go into it again");
+        auto sized = resize(layout, Left, 0, 50, 36, 360);
+        check(sized.regions[Left][0].share == 60 && sized.regions[Left][1].share == 40
+                  && resize(layout, Left, 0, 50, -400, 360).regions[Left][0].share == 10,
+              "the line between two panels moves their shares in steps of 5, never under one row");
     }
     {
         Index empty = build({});

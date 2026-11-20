@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/BandLayout.h"
 #include <string>
 // L-359: every item in a band right of the game's window on the item
 // screens, in pages, with the name under the pointer; a press shows the
@@ -33,4 +34,7 @@ void favourite();
 void want();
 // The item under the pointer as the keys above see it, by its key; empty when there is none.
 std::string hoveredItem();
+// The bands' editor (L-375), asked for from the settings: it starts over the inventory, which is opened
+// once no screen of Lamium's is in the way. Client thread.
+void editLayout(band::Page page);
 }

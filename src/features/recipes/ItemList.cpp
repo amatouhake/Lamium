@@ -6,6 +6,7 @@
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inspection/render/HeldItem.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "features/recipes/BandEditorDraw.h"
 #include "features/recipes/BandPages.h"
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/ItemKey.h"
@@ -20,6 +21,7 @@
 #include "features/recipes/RecipeView.h"
 #include "features/recipes/RecipeViewDraw.h"
 #include "features/schematic/SchematicItems.h"
+#include "ui/SettingsScreen.h"
 #include "ui/VanillaFrame.h"
 #include "ui/WindowFade.h"
 #include "input/Actions.h"
@@ -125,6 +127,7 @@ std::atomic<bool> leftHeld{false}; // the left button is down, as the mouse list
 std::atomic<bool> shiftHeld{false}, dropFocus{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
 // The recipe view lies over the window of what is wanted; both go with the screen they were opened on.
 void closeViews() {
+    bandEditor::stop();
     view::close();
     planView::close();
     countEdit::cancel();
@@ -264,10 +267,24 @@ bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size, float& left) {
     }
     return false;
 }
+// The bands' editor asked for from the settings (L-375): the page, and when the inventory was asked for.
+std::optional<band::Page> pendingEdit;
+std::chrono::steady_clock::time_point editAsked{}, inventoryAsked{};
+// With the settings gone and the game's HUD in front, the inventory is opened once for the editor.
+void openInventoryForEdit(ScreenView& screenView) {
+    auto const now = std::chrono::steady_clock::now();
+    if (now - editAsked > std::chrono::seconds(5)) { pendingEdit.reset(); return; }
+    if (!screenView.mHasFocus || screenView.getScreenName() != "hud_screen" || ui::ownsInput()) return;
+    if (now - inventoryAsked < std::chrono::seconds(2)) return;
+    inventoryAsked = now;
+    if (auto client = ll::service::getClientInstance())
+        if (auto* player = client->getLocalPlayer()) player->openInventory();
+}
 // False when nothing was drawn. The listeners then keep nothing once `fresh` runs out.
 bool drawList(ll::event::UIRenderEvent& event) {
     using namespace lamium::ui;
     auto& screenView = event.screenView();
+    if (pendingEdit) openInventoryForEdit(screenView);
     // Several screens are drawn a frame (the HUD under a container); any but a focused item screen is not
     // this list's business and changes nothing here.
     std::string const screenName = screenView.mHasFocus && screenView.mController && screenView.mController->_isContainerScreen()
@@ -327,7 +344,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto const openPlace = storesOn ? placesGame::open(screenView) : std::nullopt;
     // The bands (L-374): regions beside, above and below the game's window, each page in its panel.
     auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y, at.y + size.y, viewLayout.hintY() - 1);
-    auto placed = band::place(prefs->inventory.bands, regions, {recipesOn, favouritesOn, planOn});
+    // Asked for from the settings, the editor starts on the first item screen drawn.
+    static std::string editScreen; // the editor belongs to the screen it started on
+    if (pendingEdit) closeViews(), bandEditor::start(*pendingEdit), pendingEdit.reset(), editScreen = screenName;
+    if (bandEditor::active() && screenName != editScreen) bandEditor::stop();
+    bool const editing = bandEditor::active();
+    auto const shownBands = editing ? bandEditor::layout(prefs->inventory.bands) : prefs->inventory.bands;
+    std::array<bool, band::pageCount> const pagesOn{recipesOn, favouritesOn, planOn};
+    auto placed = band::place(shownBands, regions, pagesOn);
     // The line lies in the left region's last panel, so opening a chest moves nothing above it: the plan
     // keeps it in its rows' room, another page gives up those units.
     band::Placed* lastLeft = nullptr;
@@ -398,6 +422,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (pressed || input.outside || input.close || stopRun.exchange(false)) place::stop();
     place::tick(screenView);
     bool const leftPress = pressed && input.clicks.front();
+    // While the bands are arranged every press is the editor's, and nothing under it acts.
+    bool const editPress = editing && leftPress;
+    if (editing) pressed = false;
     auto took = [&](ListBox const& box) {
         if (!pressed || !box.has(px, py)) return false;
         pressed = false;
@@ -513,6 +540,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // A press on a band that nothing took stays there: it must not reach the view under the pointer's line.
     if (pressed && std::any_of(bandBoxes.begin(), bandBoxes.end(), [&](ListBox const& box) { return box.has(px, py); })) pressed = false;
+    if (editing)
+        bandEditor::draw(context, {px, py, editPress, leftHeld.load(), input.close}, prefs->inventory.bands, regions, pagesOn, placed,
+                         {windowLeft, at.y, at.x + size.x - windowLeft, size.y}, late);
+    if (editing) input.close = false;
     if (!pressed) input.clicks.clear();
     if (!recipesOn) searchFocus = false;
     else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
@@ -550,7 +581,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The recipe view asked for an item's line in "How to make" (L-370): the window opens there over the view.
     if (!late.howTo.empty()) view::close(), planView::openHowTo(late.howTo), viewScreen = screenName;
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
-    bool const open = anyView();
+    bool const open = anyView() || bandEditor::active();
     static std::vector<int> inventoryKeys;
     static std::string backKey, favouriteKey, wantedKey; // the actions' keys as the keymap names them; empty without one
     static std::chrono::steady_clock::time_point keysRead;
@@ -572,7 +603,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
         }
     }
-    if ((open || viewLayout.hintY() >= at.y + size.y + 2) && (recipesOn || planOn)) {
+    if ((open || viewLayout.hintY() >= at.y + size.y + 2) && (recipesOn || planOn) && !bandEditor::active()) {
         // One line whatever the language: the keys, with the presses before them where both fit; shrunk a
         // little to the window's width where it is still longer.
         std::string keys;
@@ -774,13 +805,19 @@ std::string hovered() {
 }
 }
 std::string hoveredItem() { return hovered(); }
+void editLayout(band::Page page) {
+    pendingEdit = page;
+    editAsked = std::chrono::steady_clock::now();
+    inventoryAsked = {};
+}
 void favourite() {
+    if (bandEditor::active()) return;
     auto const prefs = Runtime::instance().snapshot();
     if (!prefs->inventory.recipes || !prefs->inventory.recipesFavourites) return;
     if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
 }
 void want() {
-    if (!Runtime::instance().snapshot()->inventory.plan) return;
+    if (bandEditor::active() || !Runtime::instance().snapshot()->inventory.plan) return;
     auto item = hovered();
     if (item.empty()) return;
     bool const was = state::wanted().has(item);
@@ -794,6 +831,7 @@ void want() {
     wantedHeld = true;
 }
 void show(bool uses) {
+    if (bandEditor::active()) return;
     std::string item;
     {
         std::scoped_lock lock(shownLock);

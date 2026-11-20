@@ -222,7 +222,10 @@ ingredient count is ignored, and the log says how many did. The item held
 on the pointer is drawn again over the bands and the windows as beside the
 anvil (`inspection/render/HeldItem.cpp`: the container manager's
 `cursor_items`, the controls `selected_item_icon` and
-`selected_stack_size_text`); a screen without those controls shows nothing.
+`selected_stack_size_text`); a screen without those controls shows nothing. The bands' editor
+(L-375), asked for from the settings, opens the inventory by calling
+`LocalPlayer::openInventory` once the `hud_screen` has the focus; if no item
+screen follows within a few seconds the request is dropped.
 "Place" (`features/recipes/RecipePlace.cpp`, L-165) has no hook either and
 asks the TransferRoutes capability: on the screens named `inventory_screen`
 and `crafting_screen` it reads the collections `hotbar_items`,
