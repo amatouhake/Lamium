@@ -10,6 +10,8 @@
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/world/item/ItemStack.h"
 #include <chrono>
+#include <format>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -51,6 +53,30 @@ void walk(UIControl& control, int depth, std::vector<Cell>& out) {
     }
 }
 }
+#ifdef LAMIUM_SLOT_TRACE
+// slot_trace: once per screen, every shown control down the tree with its size, and the cells the game names
+// for it, so the slot controls can be told from the rest (L-378).
+std::set<std::string> traced;
+void trace(UIControl& control, int depth, int& budget) {
+    if (depth > 24 || budget <= 0) return;
+    auto const& children = *control.mChildren;
+    if (children.size() > 600) return;
+    for (auto const& child : children) {
+        if (!child || budget <= 0) continue;
+        glm::vec2 const at = *child->mCachedPosition, size = *child->mSize;
+        std::string cells;
+        child->findAllCollectionIndices([&](std::string const& name, int i) { if (cells.size() < 120) cells += std::format(" {}[{}]", name, i); });
+        int const inv = child->findCollectionIndex("inventory_items");
+        if (size.x > 0 && size.y > 0 && (size.x < 60 || !cells.empty() || depth < 6)) {
+            --budget;
+            Runtime::instance().self().getLogger().info("slot_trace {}{} '{}' vis={} dirty={} at {:.0f},{:.0f} size {:.0f}x{:.0f} inv={}{}",
+                std::string(static_cast<size_t>(depth), ' '), depth, *child->mName, static_cast<int>(child->mVisible),
+                static_cast<int>(child->mCachedPositionDirty), at.x, at.y, size.x, size.y, inv, cells);
+        }
+        trace(*child, depth + 1, budget);
+    }
+}
+#endif
 void forget() { cells.clear(), cellsScreen.clear(), cellsAt = {}; }
 void draw(MinecraftUIRenderContext& context, ScreenView& screen, std::function<bool(ItemStack const&)> const& matches) {
     if (!versionSensitiveAllowed(capabilities::Id::SearchHighlight)) return;
@@ -62,6 +88,13 @@ void draw(MinecraftUIRenderContext& context, ScreenView& screen, std::function<b
         auto const now = std::chrono::steady_clock::now();
         if (name != cellsScreen || now - cellsAt > std::chrono::milliseconds(500)) {
             cells.clear();
+#ifdef LAMIUM_SLOT_TRACE
+            if (auto* tree = screen.mVisualTree.get(); tree && traced.insert(name).second) {
+                std::shared_ptr<UIControl> const& root = tree->mRootControl;
+                int budget = 600;
+                if (root) trace(*root, 0, budget);
+            }
+#endif
             if (auto* tree = screen.mVisualTree.get()) {
                 std::shared_ptr<UIControl> const& root = tree->mRootControl;
                 if (root) walk(*root, 0, cells);
