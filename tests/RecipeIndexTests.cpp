@@ -228,6 +228,8 @@ void recipeIndexTests() {
         source.recipes.push_back({"furnace", "steak", 0, {{"steak", 1}}, {{"beef", false}}});
         source.recipes.push_back({"smoker", "steak", 0, {{"steak", 1}}, {{"beef", false}}});
         source.recipes.push_back({"campfire", "steak", 0, {{"steak", 1}}, {{"beef", false}}});
+        source.recipes.push_back({"soul_campfire", "steak", 0, {{"steak", 1}}, {{"beef", false}}});
+        source.recipes.push_back({"crafting_table", "campfire", 0, {{"minecraft:campfire", 1}}, {{"stick", false}, {"coal", false}}});
         source.recipes.push_back({"crafting_table", "furnace", 0, {{"minecraft:furnace", 1}}, {{"cobblestone", false}}});
         source.recipes.push_back({"crafting_table", "minecart_furnace", 0, {{"furnace_minecart", 1}}, {{"minecraft:furnace", false}, {"minecart", false}}});
         Index index = build(source);
@@ -252,9 +254,12 @@ void recipeIndexTests() {
                   && index.recipes[static_cast<size_t>(makes[0].recipes[0])].stations == std::vector<Station>{Station::Furnace, Station::BlastFurnace},
               "one recipe several stations do shows in the tab of each process, smelting alternatives being one recipe (L-376)");
         auto steak = viewTabs(index, choice, index.find("steak"), false);
-        check(steak.size() == 3 && steak[2].kind == Kind::CampfireCooking && tabStations(index, steak[2]) == std::vector<Station>{Station::Campfire}
+        check(steak.size() == 3 && steak[2].kind == Kind::CampfireCooking && tabStations(index, steak[2]) == std::vector<Station>{Station::Campfire, Station::SoulCampfire}
                   && tabStations(index, steak[0]) == std::vector<Station>{Station::Furnace},
               "a tab names the stations of its own process");
+        auto campfireUses = viewTabs(index, choice, index.find("minecraft:campfire"), true);
+        check(!campfireUses.empty() && campfireUses[0].only == Station::Campfire && tabStations(index, campfireUses[0]) == tabStations(index, steak[2]),
+              "a station's own tab names its process's stations as the process's tab does");
         auto furnaceUses = viewTabs(index, choice, index.find("minecraft:furnace"), true);
         check(furnaceUses.size() == 2 && furnaceUses[0].only == Station::Furnace && furnaceUses[0].recipes.size() == 2
                   && furnaceUses[1].kind == Kind::Crafting && furnaceUses[1].recipes.size() == 1,

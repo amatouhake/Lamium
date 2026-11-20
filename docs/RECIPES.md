@@ -147,7 +147,8 @@ after using the first build. What is still open is in the L-item.
   icon's corner (on every Recipes screen); it is named by its tag
   ("Planks") or "Raw Gold etc.", and under the pointer shows its members.
 - A station's recipes (R, a left press) are how it is made; its uses (U, a
-  right press) first what it does, only the recipes it can do, then the
+  right press) first what it does, only the recipes it can do, its
+  heading naming all the process's stations as elsewhere, then the
   recipes it goes into, none twice.
 
 ### Mass Craft

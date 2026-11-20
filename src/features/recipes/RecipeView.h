@@ -23,9 +23,9 @@ inline std::optional<Station> stationOfItem(std::string_view key) {
         if (stationItem(static_cast<Station>(s)) == key) return static_cast<Station>(s);
     return std::nullopt;
 }
-// The stations of a tab's process its recipes are done at, in order (campfire cooking: both campfires).
+// The stations of a tab's process its recipes are done at, in order (campfire cooking: both campfires). A
+// station's own tab names them all too, so the process looks the same however it was opened.
 inline std::vector<Station> tabStations(Index const& index, ViewTab const& tab) {
-    if (tab.only) return {*tab.only};
     std::vector<Station> out;
     for (int number : tab.recipes)
         for (Station s : index.recipes[static_cast<size_t>(number)].stations)
