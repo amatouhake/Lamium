@@ -199,7 +199,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): Rebuilt as decided (2026-11-20), not checked in game
 - [L-373](backlog/L-373.md) Recipes, Plan and Stores as three features (Design): Agreed (maintainer 2026-11-20); not built, waits for the settings format to be confirmed
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Open; the direction is agreed (maintainer 2026-11-20), the details are not
-- [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Open; the direction is agreed (maintainer 2026-11-20), the groundwork is not yet discussed
+- [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Open; the direction and most of the groundwork are agreed (maintainer 2026-11-20)
 - [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): Open; collected 2026-11-20 from the L-366 and L-367 rounds
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
