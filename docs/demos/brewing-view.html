@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brewing View</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --edge:#363636; --shadow:#555;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:7em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+#view{position:relative;margin:0 auto;font-family:var(--pix)}
+#view *{position:absolute}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) #000}
+.txt{color:var(--win-ink);white-space:nowrap}
+.faint{color:var(--win-faint);white-space:nowrap}
+.face{background:var(--win);box-shadow:inset calc(.5*var(--u)) calc(.5*var(--u)) #fff,inset calc(-.5*var(--u)) calc(-.5*var(--u)) #646464,0 0 0 var(--u) var(--edge)}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.slot.dim{opacity:.55}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.ico.faded{opacity:.45}
+.count{color:#fff;text-shadow:calc(.6*var(--u)) calc(.6*var(--u)) #3f3f3f;white-space:nowrap}
+.btn{display:grid;place-items:center;background:#d8d8d8;box-shadow:inset calc(.5*var(--u)) calc(.5*var(--u)) #fff,inset calc(-.5*var(--u)) calc(-.5*var(--u)) #646464,0 0 0 var(--u) var(--edge)}
+table{border-collapse:collapse;font-size:14px}
+td,th{border:1px solid var(--line);padding:4px 10px;text-align:left}
+th{color:var(--ink-2);font-weight:500}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>醸造をレシピ画面に（L-361）</h1>
+    <p class="lede">醸造台の調合を、レシピ画面の「醸造」タブに出す案。面の大きさと余白は今のレシピ画面と同じ（幅 92、余白 5）。下の切り替えで、面の形・燃料の出し方・計画での数え方を見比べる。例は俊敏のポーション（奇妙なポーション＋砂糖）と、奇妙なポーション（水入り瓶＋ネザーウォート）。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">面の形</span>
+      <button class="chip on" data-k="shape" data-v="one">A. 瓶 1 本（材料の下に瓶、矢印、完成品）</button>
+      <button class="chip" data-k="shape" data-v="three">B. 瓶 3 本（醸造台のように 3 本並べる）</button>
+      <button class="chip" data-k="shape" data-v="count">C. A に「×3」（1 回で 3 本まで）</button>
+    </div>
+    <div class="grp"><span class="lbl">燃料</span>
+      <button class="chip on" data-k="fuel" data-v="empty">空の燃料欄（かまどと同じ）</button>
+      <button class="chip" data-k="fuel" data-v="faded">ブレイズパウダーを薄く</button>
+      <button class="chip" data-k="fuel" data-v="none">出さない</button>
+    </div>
+    <div class="grp"><span class="lbl">計画での数え方</span>
+      <button class="chip on" data-k="plan" data-v="batch">まとめて（材料 1 つで 3 本まで）</button>
+      <button class="chip" data-k="plan" data-v="each">1 本ずつ（材料 1 つで 1 本）</button>
+    </div>
+  </div>
+  <div id="view"></div>
+  <div class="card">
+    <h2>計画の例：俊敏のポーションが欲しいとき、集める物</h2>
+    <table id="plan"></table>
+    <p class="lede" id="planNote"></p>
+  </div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>醸造台の本物は、上に材料、下に瓶 3 本、左に燃料（ブレイズパウダー）。A は瓶を 1 本にして、かまどの面と同じ並び（材料の下に燃料の欄）にそろえた形。</li>
+        <li>B は本物に近いが、面の幅 92 に瓶 3 本と完成品 3 本は入らないので、完成品は 1 つに「×3」。</li>
+        <li>燃料：かまどの面は燃料の欄を空で描いている（燃料はレシピの一部ではない）。醸造も同じにするか、ブレイズパウダーを薄く描いて「燃料が要る」と分かるようにするか。</li>
+        <li>醸造台への「並べる」は、この後に作る（材料の欄に材料、瓶の欄に下のポーション。燃料は触らない、かまどと同じ）。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> 面の形：A・B・C。</li>
+        <li><span class="q">2.</span> 燃料：空の欄・薄く・出さない。</li>
+        <li><span class="q">3.</span> 計画での数え方：まとめて（材料 1 つで 3 本まで）か、1 本ずつか。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3;
+const opt = {shape:'one', fuel:'empty', plan:'batch'};
+const px = v => v * U + 'px';
+const view = document.getElementById('view');
+function fit(){ U = Math.max(1.5, Math.min(3.2, (document.querySelector('.wrap').clientWidth - 20) / 245)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
+function icon(x, y, color, t, faded){ const d = el('ico' + (faded ? ' faded' : ''), x, y, 16, 16, t); d.style.background = color; d.style.fontSize = px(6); return d; }
+function slot(x, y, item, count, dim){
+  el('slot' + (dim ? ' dim' : ''), x, y, 18, 18);
+  if (item) icon(x + 1, y + 1, item[0], item[1], item[2]);
+  if (count) { const c = el('count', x + 9, y + 9, 9, null, count); c.style.fontSize = px(7); c.style.textAlign = 'right'; }
+}
+const ITEMS = {sugar:['#e8e8f0','砂'], wart:['#8a2a2a','ウ'], awkward:['#5a6ad0','奇'], water:['#3a5ad8','水'], swift:['#7ad0f0','俊'], blaze:['#e8a020','ブ',true]};
+const placeIcon = `<span style="position:absolute;left:${5*U}px;top:${2*U}px;width:${U}px;height:${4*U}px;background:#3f3f3f"></span><span style="position:absolute;left:${3*U}px;top:${5*U}px;width:${5*U}px;height:${U}px;background:#3f3f3f;clip-path:polygon(0 0,100% 0,50% 100%)"></span><span style="position:absolute;left:${2*U}px;top:${8*U}px;width:${7*U}px;height:${U}px;background:#3f3f3f"></span>`;
+function face(bx, by, ingredient, from, to){
+  const B = 92, H = opt.shape === 'three' ? 54 : 48, pad = 5; // B: as tall as a crafting face, so place clears the result
+  el('face', bx - pad, by - pad, B + 2 * pad, H + 2 * pad);
+  const fuelX = bx, fuelY = by + 30;
+  if (opt.shape === 'three') {
+    // ingredient over three bottles, the result with x3
+    // the stand's own order: the fuel at the top left, the ingredient over the middle bottle
+    slot(bx + 18, by, ingredient);
+    if (opt.fuel !== 'none') slot(bx, by, opt.fuel === 'faded' ? ITEMS.blaze : null);
+    for (let i = 0; i < 3; i++) slot(bx + i * 18, by + 22, from);
+    el('txt', bx + 57, by + 24, null, null, '➜').style.fontSize = px(10);
+    slot(bx + 70, by + 22, to, '3');
+  } else {
+    slot(bx, by, ingredient);
+    if (opt.fuel !== 'none') slot(fuelX, fuelY, opt.fuel === 'faded' ? ITEMS.blaze : null);
+    slot(bx + 22, by + 15, from, opt.shape === 'count' ? '3' : null);
+    el('txt', bx + 44, by + 17, null, null, '➜').style.fontSize = px(10);
+    slot(bx + 56, by + 15, to, opt.shape === 'count' ? '3' : null);
+  }
+  const b = el('btn', bx + B - 11, by + H - 11, 11, 11, placeIcon);
+}
+function render(){
+  fit();
+  const W = 236, margin = 10, column = (W - 2 * margin) / 2;
+  view.style.width = px(W); view.innerHTML = '';
+  el('win', 0, 0, W, 118).style.zIndex = -1;
+  view.style.height = px(118);
+  el('txt', 8, 8, null, null, 'レシピ: 俊敏のポーション').style.fontSize = px(8);
+  el('faint', 8, 22, null, null, '醸造').style.fontSize = px(7);
+  const by = 44;
+  face(margin + (column - 92) / 2, by, ITEMS.sugar, ITEMS.awkward, ITEMS.swift);
+  face(margin + column + (column - 92) / 2, by, ITEMS.wart, ITEMS.water, ITEMS.awkward);
+  // the plan
+  const t = document.getElementById('plan');
+  const rows = [1, 3, 4].map(n => {
+    const batches = opt.plan === 'batch' ? Math.ceil(n / 3) : n;
+    return `<tr><td>${n} 本</td><td>水入り瓶 ${n}</td><td>ネザーウォート ${batches}</td><td>砂糖 ${batches}</td><td>ブレイズパウダー（燃料）別</td></tr>`;
+  }).join('');
+  t.innerHTML = `<tr><th>欲しい数</th><th>瓶</th><th>ネザーウォート</th><th>砂糖</th><th>燃料</th></tr>` + rows;
+  document.getElementById('planNote').textContent = opt.plan === 'batch'
+    ? 'まとめて：材料 1 つで瓶 3 本まで醸造できるので、材料は 3 本ごとに 1 つ。4 本なら 2 回（3 本 ＋ 1 本）。本物の醸造台の通り。'
+    : '1 本ずつ：材料 1 つで 1 本と数える。計算は単純だが、実際より材料を多く集めることになる。';
+}
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  opt[b.dataset.k] = b.dataset.v;
+  document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
