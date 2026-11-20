@@ -44,6 +44,7 @@ struct Late {
     std::vector<Mark> marks; // icons that stand for any of a group (anyMark), by their top left
     std::string tip;
     std::vector<std::string> tipLines; // further lines under `tip`
+    std::vector<std::pair<std::string, std::string>> tipTable; // under those, two columns: what to type, what it does
     std::string hovered; // the item under the pointer, by its id
     std::string wantedRow; // the wanted item whose row is under the pointer, controls and all
     std::vector<std::string> tipItems; // items shown as small icons under the tip's lines (a group's members)

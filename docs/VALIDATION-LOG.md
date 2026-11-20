@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The search field's wording and history (L-377, 2026-11-21)
+
+Build `c1f5e56d` (DLL
+`ccc0277018f1a8c57a01c2bf834dc640f13858b0ece066abcab7a4eb3e1ef9a8`),
+1.26.60.05 Dev instance, the maintainer. Works: the field saying "Search
+(name, ID, #tag…)"; searches typed and left standing kept for Up. Noted
+(changed after, not seen): "#tag…" in the field said more than needed;
+the tip on the field was hard to read and came up whenever the pointer
+passed; the field, low and small at the screen's edge, was hard to hit.
+
 ## The item list's search syntax (L-377, 2026-11-21)
 
 Build `48a16389` (DLL

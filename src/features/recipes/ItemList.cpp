@@ -439,6 +439,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (focusAsked.exchange(false) && prefs->inventory.recipes && !bandEditor::active()) searchFocus = true, search.selectAll(), countEdit::commit();
     // The search field: what was typed since the last frame, then where this frame's press went.
     auto const field = searchFieldAt(screen.x, screen.y);
+    // What the listeners keep from the game for the field: around it, and its help beside it.
+    ListBox const fieldArea = [&] {
+        auto const hit = searchFieldHit(field), help = searchHelpAt(field);
+        return ListBox{hit.x, hit.y, help.x + help.w + 2 - hit.x, hit.h};
+    }();
     if (countEdit::active()) {
         // A count being typed: digits, Enter keeps it, Esc leaves it as it was.
         for (int pressed : input.fieldKeys) {
@@ -495,7 +500,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     };
     bool caretPress = false;
     if (pressed || input.outside) searchFocus = false, countEdit::commit();
-    if (recipesOn && took(field)) searchFocus = caretPress = true;
+    if (recipesOn && took(searchHelpAt(field))) {} // the help is read, not pressed
+    else if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
     std::string hoverItem;
     auto& context = event.uiRenderContext();
     view::Late late;
@@ -616,11 +622,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!recipesOn) searchFocus = false;
     else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
     if (caretPress) placeCaret(context, search, px, py);
-    // Over the field, the syntax in short (L-377).
-    if (recipesOn && !searchFocus && field.has(px, py) && late.tip.empty())
-        late.tip = translated("recipes.search"),
-        late.tipLines = {translated("recipes.search.tip1"), translated("recipes.search.tip2"), translated("recipes.search.tip3"),
-                         translated("recipes.search.tip4")};
+    // The field's help (L-377): a small "?" beside it whose tip is the syntax as a table; the field itself has none.
+    if (recipesOn) {
+        auto const help = searchHelpAt(field);
+        bool const over = help.has(px, py);
+        drawButton(context, help.x, help.y, help.w, help.h, "?", over);
+        if (over) {
+            late.tip = translated("recipes.search.help");
+            late.tipTable = {{"word word", translated("recipes.search.all")}, {"-word", translated("recipes.search.not")},
+                             {"a|b", translated("recipes.search.either")}, {"\"a b\"", translated("recipes.search.phrase")},
+                             {"#…", translated("recipes.search.tag")}, {"$…", translated("recipes.search.tooltip")},
+                             {"@…", translated("recipes.search.namespace")}, {translated("recipes.search.upDown"), translated("recipes.search.history")}};
+        }
+    }
     // Typing needs the platform's keyboard: claimed while the field has the focus, given back with it.
     if (searchFocus && !keyboardOwned) {
         auto& keyboard = client->getKeyboardManager();
@@ -720,7 +734,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     {
         std::scoped_lock lock(shownLock);
         tipItem = hoverItem; // kept for the tooltip: what is shown takes the string
-        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, side, searchFocus,
+        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, recipesOn ? fieldArea : ListBox{}, side, searchFocus,
                  countEdit::active(), bandBoxes, favoritesBox};
     }
     context.flushText(0, std::nullopt);
@@ -761,7 +775,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float w = textWidth(context, late.tip);
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
         for (auto const& line : more) w = std::max(w, textWidth(context, line.text));
-        int const lines = 1 + static_cast<int>(late.tipLines.size() + more.size());
+        // A table's first column as wide as its widest entry, the second after a gap.
+        float tableLeft = 0;
+        for (auto const& [left, right] : late.tipTable) tableLeft = std::max(tableLeft, textWidth(context, left));
+        if (!late.tipTable.empty()) tableLeft += 8;
+        for (auto const& [left, right] : late.tipTable) w = std::max(w, tableLeft + textWidth(context, right));
+        int const lines = 1 + static_cast<int>(late.tipLines.size() + more.size() + late.tipTable.size());
         // A group's members as small icons under the lines, ten to a row (L-370).
         constexpr size_t perRow = 10;
         size_t const members = std::min<size_t>(late.tipItems.size(), 40);
@@ -786,6 +805,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
         label(context, x + inset, y + top, w - 2 * inset, late.tip);
         float line = y + top + 10;
         for (auto const& text : late.tipLines) label(context, x + inset, line, w - 2 * inset, text, palette::dim), line += 10;
+        for (auto const& [left, right] : late.tipTable) {
+            label(context, x + inset, line, tableLeft, left, palette::accent);
+            label(context, x + inset + tableLeft, line, w - 2 * inset - tableLeft, right, palette::dim);
+            line += 10;
+        }
         // The game's lines in the game's colors; a line without a color is white, as in the game's tooltip.
         for (auto const& text : more) label(context, x + inset, line, w - 2 * inset, text.text, item ? palette::vanilla::textCode(text.color) : palette::faint), line += 10;
         context.flushText(0, std::nullopt);
