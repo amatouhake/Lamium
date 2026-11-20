@@ -37,4 +37,6 @@ std::string hoveredItem();
 // The bands' editor (L-375), asked for from the settings: it starts over the inventory, which is opened
 // once no screen of Lamium's is in the way. Client thread.
 void editLayout(band::Page page);
+// The search key (L-377): the cursor in the search field on the next frame, its text selected. Client thread.
+void focusSearch();
 }

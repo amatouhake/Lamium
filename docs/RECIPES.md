@@ -57,9 +57,16 @@ after using the first build. What is still open is in the L-item.
   it again after the bands are painted. A slot under an open Lamium
   window has none, nor a container preview. The bundle's tooltip is a UI panel and still goes
   under the bands.
-- The agent's choices while building, to confirm: the search takes the
-  name as the game shows it or the item's id, every word typed must be in
-  one of them, letters match in either case; "can be made" is a crafting
+- The search (L-377): words must all be in the name as shown, the id or
+  (with English search on) the English name; `-word` leaves out, `a|b`
+  either (AND binding tighter), `"…"` a phrase, `#` a tag, `$` the
+  tooltip text (read only once a search asks), `@` the id's namespace.
+  Full-width signs read as ASCII, hiragana and katakana alike, case
+  ignored; no regular expressions. Ctrl+F puts the cursor in the field
+  (in it, selects all); Up and Down step through earlier searches, kept
+  when the field gives up the focus; a tip over the field gives the
+  syntax. The usual editing clears it (Ctrl+A, Backspace).
+- The agent's choices while building, to confirm: "can be made" is a crafting
   recipe that what lies in the inventory itself (not what shulker boxes
   and bundles hold) makes once, without making anything first, and that
   fits the screen's grid (any size where there is none; L-367); the wanted mark being the count; the left band is

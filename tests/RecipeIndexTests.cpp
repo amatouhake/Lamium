@@ -1,6 +1,7 @@
 #include <cmath>
 #include "features/recipes/BandEditor.h"
 #include "features/recipes/ItemListLayout.h"
+#include "features/recipes/ItemSearch.h"
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/ListFilter.h"
 #include "features/recipes/PlacePlan.h"
@@ -374,11 +375,7 @@ void recipeIndexTests() {
               && itemKey("a:b", 0) == "a:b" && itemKey("a:b", 3) == "a:b@3", "a key is the name, with the aux after an @ when it is not 0");
     }
     {
-        // Narrowing the list: by words, and to what the held items make at once.
-        check(searchMatches("", "oak planks", "minecraft:oak_planks") && searchMatches("oak pl", "oak planks", "minecraft:oak_planks")
-              && searchMatches("oak_", "オークの板材", "minecraft:oak_planks") && !searchMatches("oak iron", "oak planks", "minecraft:oak_planks")
-              && searchMatches(lowered("OAK"), lowered("Oak Planks"), "") && searchMatches("板材", "オークの板材", "minecraft:oak_planks"),
-              "every word of the query is in the name or the key; letters match whatever their case");
+        // Narrowing the list to what the held items make at once (the words: ItemSearch.h, L-377).
         Source source;
         source.tags["planks"] = {"oak_planks", "birch_planks"};
         source.recipes.push_back({"crafting_table", "stick", 0, {{"stick", 4}}, {{"planks", true}, {"planks", true}}, 1, 2});
@@ -620,6 +617,37 @@ void recipeIndexTests() {
         check(sized.regions[Left][0].share == 60 && sized.regions[Left][1].share == 40
                   && resize(layout, Left, 0, 50, -400, 360).regions[Left][0].share == 10,
               "the line between two panels moves their shares in steps of 5, never under one row");
+    }
+    {
+        // L-377: the item list's search.
+        using namespace search;
+        std::string const planksName = folded("Oak Planks"), planksTags = folded("minecraft:planks\nminecraft:wooden");
+        std::string const tip = folded("Fuel: smelts 1.5 items");
+        Fields const planks{planksName, "minecraft:oak_planks", "oak planks", planksTags, tip};
+        Fields const log{"oak log", "minecraft:oak_log", "oak log", "minecraft:logs", ""};
+        Fields const modded{"ruby", "gems:ruby_gem", "ruby", "", ""};
+        check(matches(parse("oak planks"), planks) && !matches(parse("oak planks"), log) && matches(parse(""), log),
+              "every word must match; an empty search matches all");
+        check(matches(parse("oak -log"), planks) && !matches(parse("oak -log"), log), "a leading minus leaves out");
+        check(matches(parse("ruby|log"), modded) && matches(parse("ruby|log"), log) && !matches(parse("ruby|log"), planks)
+                  && parse("oak planks | ruby").size() == 2 && parse("oak planks | ruby")[0].size() == 2,
+              "a bar is either, the words beside it binding tighter");
+        check(matches(parse("#planks"), planks) && !matches(parse("#planks"), log) && matches(parse("-#logs"), planks),
+              "a hash searches the tags, also left out with a minus");
+        check(matches(parse("$fuel"), planks) && !matches(parse("$fuel"), log) && uses(parse("a $b"), Field::Tooltip) && !uses(parse("ab"), Field::Tooltip),
+              "a dollar searches the tooltip, which is read only when asked for");
+        check(matches(parse("@gems"), modded) && matches(parse("@minecraft"), log) && !matches(parse("@gems"), log),
+              "an at sign searches the id's namespace");
+        check(parse("\"#\"")[0][0] == Term{Field::Plain, "#", false} && matches(parse("\"oak planks\""), planks),
+              "quotes keep a phrase together and a sign as text");
+        check(folded("ＯＡＫ　＃ｐｌａｎｋｓ") == "oak #planks" && folded("ブロック") == folded("ぶろっく") && folded("ブロック") == "ぶろっく",
+              "full-width signs and spaces read as ASCII, katakana as hiragana");
+        check(matches(parse("ｏａｋ　－ｌｏｇ"), planks), "a search typed full-width works the same");
+        History history;
+        history.keep("oak"), history.keep("stone"), history.keep("oak");
+        check(history.entries == std::vector<std::string>{"stone", "oak"} && history.step(true) == "oak" && history.step(true) == "stone"
+                  && history.step(true) == "stone" && history.step(false) == "oak" && history.step(false).empty(),
+              "Up steps back through earlier searches without repeats, Down forward to an empty field");
     }
     {
         Index empty = build({});

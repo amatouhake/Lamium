@@ -11,7 +11,9 @@
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemListLayout.h"
+#include "features/recipes/ItemSearch.h"
 #include "features/recipes/ListFilter.h"
+#include "features/inspection/EnglishSearch.h"
 #include "features/recipes/PlanViewDraw.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
@@ -41,6 +43,8 @@
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/player/Inventory.h"
+#include "mc/world/item/Item.h"
+#include "mc/world/item/ItemTag.h"
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/world/item/ItemInstance.h"
 #include "mc/world/item/ItemStack.h"
@@ -77,14 +81,17 @@ enum class Filter { All, CanMake };
 Filter filter = Filter::All;
 ui::TextEdit search{64};
 bool searchFocus = false, keyboardOwned = false;
-// The items' names as the game shows them, lowered, for searching: read a part a frame (each asks the game).
-std::vector<std::string> lowNames;
+// The items' names as the game shows them, folded for searching (ItemSearch.h): read a part a frame (each asks
+// the game). Their English names and tags are read with the list; their tooltips only once a search asks for
+// them, a part a frame.
+std::vector<std::string> lowNames, englishNames, tagTexts, tooltipTexts;
+search::History searchHistory;
 std::vector<int> visible; // positions in `names`
 struct VisibleFor {
     bool valid = false;
     std::string query;
     Filter filter = Filter::All;
-    size_t named = 0;
+    size_t named = 0, tooltips = 0;
     int side = 0; // the screen's grid, which "can be made" depends on
     std::chrono::steady_clock::time_point at{};
 } visibleFor;
@@ -125,7 +132,7 @@ std::atomic<int> wantedCode{0};
 std::string wantedItem;      // client thread
 bool wantedLeaves = false;   // client thread: it goes out when the key is released
 std::atomic<bool> leftHeld{false}; // the left button is down, as the mouse listener last saw it: a scrollbar's drag
-std::atomic<bool> shiftHeld{false}, dropFocus{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
+std::atomic<bool> shiftHeld{false}, dropFocus{false}, focusAsked{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
 // The recipe view lies over the window of what is wanted; both go with the screen they were opened on.
 void closeViews() {
     bandEditor::stop();
@@ -187,11 +194,22 @@ void releaseKeyboard() {
 // `side`: the screen's crafting grid, 0 without one.
 void narrow(LocalPlayer& player, int side) {
     for (int budget = 150; budget > 0 && lowNames.size() < names.size(); --budget)
-        lowNames.push_back(lowered(schematic::items::shown(names[lowNames.size()]).name));
-    std::string query = lowered(search.value());
+        lowNames.push_back(search::folded(schematic::items::shown(names[lowNames.size()]).name));
+    std::string query(search.value());
+    auto const parsed = search::parse(query);
+    // The tooltips' text, only for a search that asks for it: a few dozen a frame, as the game builds each.
+    if (search::uses(parsed, search::Field::Tooltip))
+        for (int budget = 40; budget > 0 && tooltipTexts.size() < names.size(); --budget) {
+            std::string text;
+            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(names[tooltipTexts.size()]).icon))
+                for (auto const& line : hoverLines(stack->getFormattedHovertext(player.getLevel(), false).mUnredactedString, 24))
+                    text += line.text + "\n";
+            tooltipTexts.push_back(search::folded(text));
+        }
     auto const now = std::chrono::steady_clock::now();
     if (visibleFor.valid && query == visibleFor.query && filter == visibleFor.filter && lowNames.size() == visibleFor.named
-        && side == visibleFor.side && (filter != Filter::CanMake || now - visibleFor.at < std::chrono::milliseconds(500)))
+        && tooltipTexts.size() == visibleFor.tooltips && side == visibleFor.side
+        && (filter != Filter::CanMake || now - visibleFor.at < std::chrono::milliseconds(500)))
         return;
     std::shared_ptr<service::Table const> table;
     std::vector<bool> can;
@@ -208,7 +226,10 @@ void narrow(LocalPlayer& player, int side) {
     }
     visible.clear();
     for (size_t i = 0; i < names.size(); ++i) {
-        if (!query.empty() && !searchMatches(query, i < lowNames.size() ? std::string_view(lowNames[i]) : std::string_view(), names[i])) continue;
+        auto field = [&](std::vector<std::string> const& from) { return i < from.size() ? std::string_view(from[i]) : std::string_view(); };
+        if (!parsed.empty()
+            && !search::matches(parsed, {field(lowNames), names[i], field(englishNames), field(tagTexts), field(tooltipTexts)}))
+            continue;
         if (filter == Filter::CanMake) {
             if (!table) continue; // not read yet
             auto const key = splitItemKey(names[i]);
@@ -218,13 +239,16 @@ void narrow(LocalPlayer& player, int side) {
         visible.push_back(static_cast<int>(i));
     }
     if (query != visibleFor.query || filter != visibleFor.filter) page = 0;
-    visibleFor = {true, std::move(query), filter, lowNames.size(), side, now};
+    visibleFor = {true, std::move(query), filter, lowNames.size(), tooltipTexts.size(), side, now};
 }
 void readNames(LocalPlayer& player) {
     names.clear();
     listed.clear();
-    lowNames.clear();
+    lowNames.clear(), englishNames.clear(), tagTexts.clear(), tooltipTexts.clear();
     visibleFor = {};
+    // English names where English search is on; tags where reading item data is confirmed for this version.
+    bool const english = Runtime::instance().snapshot()->inspection.englishSearch;
+    bool const tags = versionSensitiveAllowed(capabilities::Id::ItemDetails);
     auto const* registry = player.getLevel().getItemRegistry().getCreativeItemRegistry().get();
     if (!registry) return;
     auto const& entries = registry->mCreativeItems.get();
@@ -234,7 +258,13 @@ void readNames(LocalPlayer& player) {
         if (item.isNull()) continue;
         int const aux = item.getAuxValue();
         std::string name = itemKey(item.getTypeName(), aux == anyAux ? 0 : aux);
-        if (name.size() <= 200 && listed.insert(name).second) names.push_back(std::move(name));
+        if (name.size() > 200 || !listed.insert(name).second) continue;
+        names.push_back(std::move(name));
+        englishNames.push_back(english ? search::folded(inspection::englishSearch::englishNameOf(item)) : std::string());
+        std::string tagText;
+        if (::Item const* type = tags && item.mItem ? item.mItem.get() : nullptr)
+            for (auto const& tag : *type->mTags) tagText += tag.getString() + "\n";
+        tagTexts.push_back(search::folded(tagText));
     }
 }
 // The game's window on this screen: the chest's and anvil's panel, the inventory's and crafting table's
@@ -405,6 +435,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The table is read while the list shows, a part a frame, so the first recipe opens at once.
     service::want();
     if (dropFocus.exchange(false)) searchFocus = false, countEdit::cancel();
+    // The search key (L-377): the cursor in the field, what is there selected.
+    if (focusAsked.exchange(false) && prefs->inventory.recipes && !bandEditor::active()) searchFocus = true, search.selectAll(), countEdit::commit();
     // The search field: what was typed since the last frame, then where this frame's press went.
     auto const field = searchFieldAt(screen.x, screen.y);
     if (countEdit::active()) {
@@ -426,7 +458,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
             else if (code == 0x27) search.right(ctrl);
             else if (code == 0x24) search.home();
             else if (code == 0x23) search.end();
-            else if (ctrl && code == 0x41) search.selectAll();
+            else if (ctrl && (code == 0x41 || code == 0x46)) search.selectAll();
+            else if ((code == 0x26 || code == 0x28) && !searchHistory.entries.empty()) {
+                // Up and Down step through earlier searches; Down past the newest empties the field.
+                std::string const earlier = searchHistory.step(code == 0x26);
+                search.clear();
+                search.append(earlier);
+            }
         }
         if (!input.text.empty()) search.type(input.text);
     }
@@ -578,6 +616,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!recipesOn) searchFocus = false;
     else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
     if (caretPress) placeCaret(context, search, px, py);
+    // Over the field, the syntax in short (L-377).
+    if (recipesOn && !searchFocus && field.has(px, py) && late.tip.empty())
+        late.tip = translated("recipes.search"),
+        late.tipLines = {translated("recipes.search.tip1"), translated("recipes.search.tip2"), translated("recipes.search.tip3"),
+                         translated("recipes.search.tip4")};
     // Typing needs the platform's keyboard: claimed while the field has the focus, given back with it.
     if (searchFocus && !keyboardOwned) {
         auto& keyboard = client->getKeyboardManager();
@@ -588,6 +631,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (!keyboardOwned) searchFocus = false;
     }
     if (!searchFocus) releaseKeyboard();
+    // A search is kept for Up and Down once the field gives up the focus.
+    static bool wasFocused = false;
+    if (wasFocused && !searchFocus) searchHistory.keep(search.value());
+    wasFocused = searchFocus;
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
         std::optional<GridPlacer> placer;
@@ -836,6 +883,7 @@ std::string hovered() {
 }
 }
 std::string hoveredItem() { return hovered(); }
+void focusSearch() { focusAsked = true; }
 void editLayout(band::Page page) {
     pendingEdit = page;
     editAsked = std::chrono::steady_clock::now();

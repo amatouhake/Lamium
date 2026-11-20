@@ -44,3 +44,8 @@ bool start();
 void stop();
 void forget();
 }
+class ItemInstance;
+namespace lamium::inspection::englishSearch {
+// An item's English name from the game's en_US strings; empty where there is none (L-377 searches by it).
+std::string englishNameOf(ItemInstance const& item);
+}

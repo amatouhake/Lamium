@@ -112,4 +112,5 @@ void forget() {
     enchantNames.clear();
     english.reset();
 }
+std::string englishNameOf(ItemInstance const& item) { return englishName(item); }
 }

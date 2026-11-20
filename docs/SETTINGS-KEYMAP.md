@@ -73,6 +73,7 @@ append-only action ids and default keys in `src/input/Binding.h`.
   Current defaults: `L` settings (L-01, replacing F8), `C` zoom, `R`, `U`,
   `A` and `W` for an item's recipes, uses, favorite and wanted on item
   screens and `Backspace` for back in the recipe view (L-359; Sort lost `R`),
+  `Ctrl+F` the item list's search field (2026-11-21, L-377),
   `M` world map, `Tab` player list (hold), `F3` Debug View, `F3+B` Hitboxes,
   `F3+G` Chunk Borders (Java's debug keys, 2026-09-27), right button Fake
   Offhand use, `F` swap with offhand (2026-10-06, Java's key; Bedrock has

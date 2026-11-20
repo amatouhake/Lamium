@@ -196,6 +196,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::RecipeBack) { recipes::itemList::back(); return; }
     if (action == input::Action::RecipeFavorite) { recipes::itemList::favorite(); return; }
     if (action == input::Action::RecipeWanted) { recipes::itemList::want(); return; }
+    if (action == input::Action::FocusSearch) { recipes::itemList::focusSearch(); return; }
     if (action == input::Action::MassCraft) { recipes::massCraft::setHeld(true); return; }
     if (action == input::Action::ShowRecipes || action == input::Action::ShowUses) {
         recipes::itemList::show(action == input::Action::ShowUses);

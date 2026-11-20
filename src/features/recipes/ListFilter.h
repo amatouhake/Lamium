@@ -14,22 +14,6 @@ inline std::string lowered(std::string_view text) {
     for (char& c : out) if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
     return out;
 }
-// Every word of the query is somewhere in the item's name or its key. `query`
-// and both texts are lowered already. An empty query matches everything.
-inline bool searchMatches(std::string_view query, std::string_view name, std::string_view key) {
-    size_t at = 0;
-    while (at < query.size()) {
-        while (at < query.size() && query[at] == ' ') ++at;
-        size_t end = query.find(' ', at);
-        if (end == std::string_view::npos) end = query.size();
-        if (end > at) {
-            auto const word = query.substr(at, end - at);
-            if (name.find(word) == std::string_view::npos && key.find(word) == std::string_view::npos) return false;
-        }
-        at = end;
-    }
-    return true;
-}
 // Whether a recipe's shape fits a grid `side` cells wide (0: any grid), as placePlan lays it.
 inline bool fitsGrid(Recipe const& recipe, int side) {
     if (side <= 0) return true;
