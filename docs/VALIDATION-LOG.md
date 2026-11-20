@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Search highlight darkens slots (L-378, 2026-11-21)
+
+Build `258268aa` (DLL
+`2c7606e03d12d663b4a9be8ede7fdb625d5036b188d0cddabdf422778cd7b8b4`),
+1.26.60.05 Dev instance, the maintainer. Works: with the switch on and
+`oak_log` typed, the slots that do not match darkened at the inventory, a
+large chest, the crafting table and the furnace, the game's tooltip over
+them. Noted (changed after, not seen): the game heavy with the switch on;
+the darkening chasing the window's opening slide and falling out of
+place; the crafting table's unused input and output cells darkened too.
+
 ## Search highlight found no slots; slot_trace (L-378, 2026-11-21)
 
 Build `ed533f7d` (DLL

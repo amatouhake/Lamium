@@ -72,11 +72,14 @@ after using the first build. What is still open is in the L-item.
 - Beside the field, a square switch of its height (picture: three by three
   cells, the middle one light; green while on) and a settings row,
   "Highlight search matches in the inventory", off by default (L-378):
-  while it is on and the field holds text, the open screen's slots whose
-  items do not match are darkened, an empty slot too. The slots are the
-  screen's small square controls the game places in a container's cell,
-  found again when the screen changes or every half second, behind the
-  SearchHighlight capability. The usual editing clears it (Ctrl+A, Backspace).
+  while it is on and the field holds text, the slots where items are kept
+  (the inventory, the hotbar, a container's) whose items do not match are
+  darkened, an empty one too; a crafting grid, its output, armor and a
+  furnace's slots are left alone. The slots are the screen's small square
+  controls the game places in a container's cell, found once the window
+  rests (nothing is drawn while it slides in or out) and again when it
+  moves; a slot is matched again only when its item or the search
+  changes. Behind the SearchHighlight capability. The usual editing clears it (Ctrl+A, Backspace).
 - The agent's choices while building, to confirm: "can be made" is a crafting
   recipe that what lies in the inventory itself (not what shulker boxes
   and bundles hold) makes once, without making anything first, and that

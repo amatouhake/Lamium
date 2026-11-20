@@ -1,6 +1,7 @@
 #include "features/recipes/SlotHighlight.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "features/recipes/ItemKey.h"
 #include "ui/Widgets.h"
 #include "mc/client/gui/controls/UIControl.h"
 #include "mc/client/gui/controls/VisualTree.h"
@@ -21,9 +22,12 @@ struct Cell {
     float x = 0, y = 0, w = 0, h = 0;
     std::string collection;
     int index = 0;
+    std::string seen; // the item last matched there, by key
+    bool matched = false;
 };
 std::vector<Cell> cells;
-std::string cellsScreen;
+std::string cellsScreen, cellsQuery;
+float cellsX = 0, cellsY = 0; // where the window rested when they were found
 std::chrono::steady_clock::time_point cellsAt{};
 bool logged = false;
 
@@ -79,16 +83,19 @@ void trace(UIControl& control, int depth, int& budget) {
     }
 }
 #endif
-void forget() { cells.clear(), cellsScreen.clear(), cellsAt = {}; }
-void draw(MinecraftUIRenderContext& context, ScreenView& screen, std::function<bool(ItemStack const&)> const& matches) {
+void forget() { cells.clear(), cellsScreen.clear(), cellsAt = {}, cellsQuery.clear(); }
+void draw(MinecraftUIRenderContext& context, ScreenView& screen, bool settled, float windowX, float windowY, std::string const& query,
+          std::function<bool(ItemStack const&)> const& matches) {
     if (!versionSensitiveAllowed(capabilities::Id::SearchHighlight)) return;
+    // While the window slides in or out its slots are on their way: nothing is drawn, and they are looked for
+    // once it rests (a walk of the screen's controls is not for every frame).
+    if (!settled) { cells.clear(), cellsScreen.clear(); return; }
     try {
         if (!screen.mController || !screen.mController->_isContainerScreen()) return;
         auto manager = static_cast<ContainerScreenController&>(*screen.mController).mContainerManagerController;
         if (!manager || manager->mContainersClosed) return;
         std::string const name = screen.getScreenName();
-        auto const now = std::chrono::steady_clock::now();
-        if (name != cellsScreen || now - cellsAt > std::chrono::milliseconds(500)) {
+        if (name != cellsScreen || windowX != cellsX || windowY != cellsY) {
             cells.clear();
 #ifdef LAMIUM_SLOT_TRACE
             if (auto* tree = screen.mVisualTree.get(); tree && traced.insert(name).second) {
@@ -101,17 +108,29 @@ void draw(MinecraftUIRenderContext& context, ScreenView& screen, std::function<b
                 std::shared_ptr<UIControl> const& root = tree->mRootControl;
                 if (root) walk(*root, 0, cells);
             }
-            // Only cells of a container the screen's manager knows: the inventory, a chest, a grid.
-            std::erase_if(cells, [&](Cell const& c) { return c.index >= manager->getContainerSize(c.collection); });
+            // Only where items are kept (the inventory, the hotbar, a container's), in cells the screen's manager
+            // knows: a crafting grid, its output, armor or a furnace's slots are not searched.
+            std::erase_if(cells, [&](Cell const& c) {
+                bool const storage = c.collection.find("inventory") != std::string::npos || c.collection.find("hotbar") != std::string::npos
+                    || c.collection.find("container") != std::string::npos;
+                return !storage || c.index >= manager->getContainerSize(c.collection);
+            });
             if (!logged && !cells.empty()) {
                 logged = true;
                 Runtime::instance().self().getLogger().info("Search highlight: {} slots on '{}', first in '{}'", cells.size(), name, cells.front().collection);
             }
-            cellsScreen = name, cellsAt = now;
+            cellsScreen = name, cellsX = windowX, cellsY = windowY;
         }
-        for (auto const& cell : cells) {
+        // A slot is matched again only when what lies there or the search changed.
+        if (query != cellsQuery) {
+            for (auto& cell : cells) cell.seen.clear();
+            cellsQuery = query;
+        }
+        for (auto& cell : cells) {
             auto const& stack = manager->getItemStack(cell.collection, cell.index);
-            if (!stack.isNull() && matches(stack)) continue;
+            std::string key = stack.isNull() ? std::string() : itemKey(stack.getTypeName(), stack.getAuxValue());
+            if (key != cell.seen || key.empty()) cell.matched = !key.empty() && matches(stack), cell.seen = std::move(key);
+            if (cell.matched) continue;
             ui::fill(context, cell.x, cell.y, cell.w, cell.h, ui::palette::shade, .55f);
         }
     } catch (...) { cells.clear(); }

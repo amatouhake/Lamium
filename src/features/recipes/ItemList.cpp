@@ -515,7 +515,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The game's slots that do not match the search darkened (L-378), under everything of Lamium's.
     if (recipesOn && prefs->inventory.searchHighlight && !anyView() && !editing && search.value().find_first_not_of(' ') != std::string::npos) {
         auto const query = search::parse(search.value());
-        slotHighlight::draw(context, screenView, [&](ItemStack const& stack) {
+        slotHighlight::draw(context, screenView, shownOpacity >= .999f, at.x, at.y, search.value(), [&](ItemStack const& stack) {
             int const aux = stack.getAuxValue();
             std::string const key = itemKey(stack.getTypeName(), aux == anyAux ? 0 : aux);
             if (auto found = nameIndex.find(key); found != nameIndex.end()) {
