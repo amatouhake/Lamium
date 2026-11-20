@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The close hitch, split up (L-378, 2026-11-21)
+
+Build `7c8e079b`, 1.26.60.05 Dev instance, the maintainer. With Recipes,
+the Plan and the stores all off, a chest still sometimes hitched on
+opening or closing; with them all on, sometimes not; with Lamium off no
+hitch at that moment, but the world's loading hitched now and then. Not
+told apart further: with the world loading at the same time any setting
+can hitch. Left as it is (maintainer); the slow-frame, slow-save and
+keyboard logs stay to catch a clear case.
+
 ## The recipe index off the client thread (L-378, 2026-11-21)
 
 Build `7c8e079b` (DLL

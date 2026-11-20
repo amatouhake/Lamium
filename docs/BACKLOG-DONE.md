@@ -231,6 +231,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-378](backlog/done/L-378.md) Light up the game's slots that match the search
 - [L-377](backlog/done/L-377.md) Search syntax and a key for the search field
 - [L-376](backlog/done/L-376.md) Recipe view tabs per process, stations named once
 - [L-375](backlog/done/L-375.md) The band layout editor
