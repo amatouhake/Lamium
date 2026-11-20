@@ -328,8 +328,29 @@ void openInventoryForEdit(ScreenView& screenView) {
         if (auto* player = client->getLocalPlayer()) player->openInventory();
 }
 // False when nothing was drawn. The listeners then keep nothing once `fresh` runs out.
+// A slow frame of the item screens' parts, told in the log with where its time went (at most a few times a
+// session), so what makes a screen heavy is known.
+struct FrameCost {
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now(), mark = start;
+    long long walk = 0, highlight = 0, list = 0, plan = 0;
+    long long lap() {
+        auto const now = std::chrono::steady_clock::now();
+        auto const us = std::chrono::duration_cast<std::chrono::microseconds>(now - mark).count();
+        mark = now;
+        return us;
+    }
+    ~FrameCost() {
+        static int told = 0;
+        auto const total = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
+        if (total < 12000 || told >= 12) return;
+        ++told;
+        Runtime::instance().self().getLogger().warn("Recipes: a slow frame of {} us (window top {} us, highlight {} us, item list {} us, plan {} us)",
+                                                    total, walk, highlight, list, plan);
+    }
+};
 bool drawList(ll::event::UIRenderEvent& event) {
     using namespace lamium::ui;
+    FrameCost cost;
     auto& screenView = event.screenView();
     if (pendingEdit) openInventoryForEdit(screenView);
     // Several screens are drawn a frame (the HUD under a container); any but a focused item screen is not
@@ -392,17 +413,26 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The bands (L-374): regions beside, above and below the game's window, each page in its panel.
     // The window's top with the game's tabs on it, so a region above leaves them free: looked at again when
     // the window moves or every half second (a walk of the screen's controls).
-    static struct { std::string screen; glm::vec2 at{}, size{}; float left = 0, right = 0, top = 0; std::chrono::steady_clock::time_point when{}; } tabs;
-    if (auto const now = std::chrono::steady_clock::now(); tabs.screen != screenName || tabs.at != at || tabs.size != size || tabs.left != coverLeft
-        || tabs.right != right || now - tabs.when > std::chrono::milliseconds(500)) {
-        std::vector<band::Box> controls;
-        if (auto* tree = screenView.mVisualTree.get()) {
-            std::shared_ptr<UIControl> const& root = tree->mRootControl;
-            if (root) shownControls(*root, 0, controls);
+    // The walk is made while the window rests, at most twice a second; while it slides the tabs move with it, so
+    // the top keeps its distance from the window's (a walk every frame of the slide made the screen heavy).
+    static struct { std::string screen; glm::vec2 at{}, size{}; float left = 0, right = 0, above = 0; std::chrono::steady_clock::time_point when{}; } tabs;
+    cost.lap();
+    {
+        auto const now = std::chrono::steady_clock::now();
+        bool const resting = shownOpacity >= .999f, fresh = tabs.screen != screenName;
+        bool const changed = std::abs(tabs.at.x - at.x) > .5f || std::abs(tabs.at.y - at.y) > .5f || std::abs(tabs.size.x - size.x) > .5f
+            || std::abs(tabs.size.y - size.y) > .5f || std::abs(tabs.left - coverLeft) > .5f || std::abs(tabs.right - right) > .5f;
+        if (fresh || (resting && changed && now - tabs.when > std::chrono::milliseconds(500))) {
+            std::vector<band::Box> controls;
+            if (auto* tree = screenView.mVisualTree.get()) {
+                std::shared_ptr<UIControl> const& root = tree->mRootControl;
+                if (root) shownControls(*root, 0, controls);
+            }
+            tabs = {screenName, at, size, coverLeft, right, at.y - band::windowTop(at.y, windowLeft, at.x + size.x, controls), now};
         }
-        tabs = {screenName, at, size, coverLeft, right, band::windowTop(at.y, windowLeft, at.x + size.x, controls), now};
     }
-    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, tabs.top, at.y + size.y, viewLayout.hintY() - 1);
+    cost.walk = cost.lap();
+    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, viewLayout.hintY() - 1);
     // Asked for from the settings, the editor starts on the first item screen drawn.
     static std::string editScreen; // the editor belongs to the screen it started on
     if (pendingEdit) closeViews(), bandEditor::start(*pendingEdit), pendingEdit.reset(), editScreen = screenName;
@@ -515,6 +545,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The game's slots that do not match the search darkened (L-378), under everything of Lamium's.
     if (recipesOn && prefs->inventory.searchHighlight && !anyView() && !editing && search.value().find_first_not_of(' ') != std::string::npos) {
         auto const query = search::parse(search.value());
+        cost.lap();
         slotHighlight::draw(context, screenView, shownOpacity >= .999f, at.x, at.y, search.value(), [&](ItemStack const& stack) {
             int const aux = stack.getAuxValue();
             std::string const key = itemKey(stack.getTypeName(), aux == anyAux ? 0 : aux);
@@ -527,6 +558,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             std::string const name = search::folded(schematic::items::shown(key).name);
             return search::matches(query, {name, key, {}, {}, {}});
         });
+        cost.highlight = cost.lap();
     }
     view::Late late;
     // A favorite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
@@ -553,7 +585,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     };
     // The item list on the right: Recipes'.
     if (recipesOn && layout.usable()) {
+        cost.lap();
         narrow(*player, place::gridSide(screenView));
+        cost.list = cost.lap();
         int const count = static_cast<int>(visible.size()), pages = layout.pages(count);
         page = std::clamp(page + input.listTurns, 0, pages - 1);
         int const first = page * layout.perPage(), hovered = layout.hit(px, py);
@@ -621,12 +655,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
             favoritesBox = {panel.box.x, panel.box.y, panel.box.w, panel.box.h};
             bandPages::favorites(frame, sidePanelIn(panel.box, true));
         }
-        else bandPages::plan(frame, planSide(panel.box), *player, handed, [&](planView::Tab tab) {
+        else {
+            cost.lap();
+            bandPages::plan(frame, planSide(panel.box), *player, handed, [&](planView::Tab tab) {
             // The recipe view lies over the window: asked for, the window comes to the front.
             view::close();
             planView::open(tab);
             viewScreen = screenName;
         });
+            cost.plan += cost.lap();
+        }
     }
     if (openPlace && regions.usable(band::Left)) {
         // The line's units at the left region's end, under its panels.

@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Search highlight still heavy (L-378, 2026-11-21)
+
+Build `bae1bb61` (DLL
+`1d529e1d2b3d48824888e34cc9f7d39200786c69bd9fb070a310eb288d96ebd1`),
+1.26.60.05 Dev instance, the maintainer. Works: nothing drawn while the
+window slides, then in place; the crafting table's cells left alone; only
+storage slots darkened. Still heavy: about 50 fps in play (Info HUD), much
+lower around opening and closing an item screen with the switch on or off,
+once 4 fps with it on. The next build walks the controls for the window's
+top only at rest, at most twice a second, re-finds slots on a move of over
+half a unit at most every 300 ms, and logs a frame over 12 ms with where its
+time went.
+
 ## Search highlight darkens slots (L-378, 2026-11-21)
 
 Build `258268aa` (DLL

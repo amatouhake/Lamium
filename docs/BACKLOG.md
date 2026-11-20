@@ -198,7 +198,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): Rebuilt as decided (2026-11-20), not checked in game
 - [L-380](backlog/L-380.md) Place a cooking recipe into the furnace (Research): Open, not started
-- [L-378](backlog/L-378.md) Light up the game's slots that match the search (Research): Built and seen working 2026-11-21; lighter, still while sliding and storage only built after, not seen
+- [L-378](backlog/L-378.md) Light up the game's slots that match the search (Research): Built and seen working 2026-11-21; still heavy around opening a screen, a lighter build with a slow-frame log out, not seen
 - [L-379](backlog/L-379.md) A recipe's own controls and crafting onto the pointer (Design): Open, not started; easier after L-376
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Open; the direction is agreed (maintainer 2026-11-20), the details are not
 - [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); split into L-373 to L-379 and existing items

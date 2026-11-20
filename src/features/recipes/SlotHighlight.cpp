@@ -11,6 +11,7 @@
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/world/item/ItemStack.h"
 #include <chrono>
+#include <cmath>
 #include <format>
 #include <set>
 #include <string>
@@ -95,7 +96,11 @@ void draw(MinecraftUIRenderContext& context, ScreenView& screen, bool settled, f
         auto manager = static_cast<ContainerScreenController&>(*screen.mController).mContainerManagerController;
         if (!manager || manager->mContainersClosed) return;
         std::string const name = screen.getScreenName();
-        if (name != cellsScreen || windowX != cellsX || windowY != cellsY) {
+        // Again when the window moved more than half a unit, at most every 300 ms (a window that jitters must not
+        // make the walk every frame).
+        auto const now = std::chrono::steady_clock::now();
+        bool const moved = std::abs(windowX - cellsX) > .5f || std::abs(windowY - cellsY) > .5f;
+        if (name != cellsScreen || (moved && now - cellsAt > std::chrono::milliseconds(300))) {
             cells.clear();
 #ifdef LAMIUM_SLOT_TRACE
             if (auto* tree = screen.mVisualTree.get(); tree && traced.insert(name).second) {
@@ -119,7 +124,7 @@ void draw(MinecraftUIRenderContext& context, ScreenView& screen, bool settled, f
                 logged = true;
                 Runtime::instance().self().getLogger().info("Search highlight: {} slots on '{}', first in '{}'", cells.size(), name, cells.front().collection);
             }
-            cellsScreen = name, cellsX = windowX, cellsY = windowY;
+            cellsScreen = name, cellsX = windowX, cellsY = windowY, cellsAt = now;
         }
         // A slot is matched again only when what lies there or the search changed.
         if (query != cellsQuery) {
