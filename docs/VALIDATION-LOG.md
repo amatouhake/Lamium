@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Recipes, Plan and Stores as three features (L-373, 2026-11-20)
+
+Build `c6ca9ae6` (DLL
+`455ea1354afe826a18589e5ee637da7aaeedabe8c4348659c38f0952f42bb25c`),
+1.26.60.05 Dev instance, the maintainer. Works: all three on, the bands and
+the window as before; Recipes off, the plan left on the left band and W
+putting an item among the wanted; the stores alone, a chest made a store
+from the band's last line and its outline in the world. Not seen: the plan
+alone with no stores, the settings rows' text in other languages, the
+stores list being unreachable with the plan off (a known limit), a server.
+
 ## The rebuilt Recipes window (L-370, 2026-11-20)
 
 Builds `8fbdcdba` through `14608c13` (last DLL
