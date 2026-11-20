@@ -14,7 +14,7 @@ struct Token {
     int code;
     auto operator<=>(Token const&) const = default;
 };
-enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, CycleMoveTarget, CycleLayerAxis, CycleLayerMode, ToggleLayerKeep, ResetPlacementTurn, RotatePlacementBack, PreviousPlacement, TogglePlacementShown, TogglePlacementExtras, TogglePlacementEntities, ClearSchematicArea, OpenSchematicKeys, ToggleMistakeMarks, ToggleIgnoreSignal, ToggleLitAsState, ToggleIgnoreGrowth, ToggleBookPaste, SneakPlacement, ToggleMapMarks, ToggleSlimeChunks, ToggleIgnoreSignText, ToggleIgnoreBlockEntities, TargetMeasure, TargetDetails, TargetPosition, CycleToolDrop, ToggleBlockHighlight, HighlightAimedBlock, OpenBlockHighlight, TogglePaperDollPosition, ToggleScoreboardPosition, ToggleGameHud, OpenEnchantOrder, ToggleWorkPenalty, ToggleItemDetails, ToggleItemTooltip, ToggleItemStew, ToggleItemId, ToggleItemTags, ToggleItemNbt, ToggleBossBarPosition, OpenSavedData, OpenGameLanguage, MinimapNetherView, IgnoreLookedBlock, ToggleRecipes, ShowRecipes, ShowUses, RecipeBack, RecipeFavourite, RecipeWanted, MassCraft, ToggleMassCraft, Count };
+enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, CycleMoveTarget, CycleLayerAxis, CycleLayerMode, ToggleLayerKeep, ResetPlacementTurn, RotatePlacementBack, PreviousPlacement, TogglePlacementShown, TogglePlacementExtras, TogglePlacementEntities, ClearSchematicArea, OpenSchematicKeys, ToggleMistakeMarks, ToggleIgnoreSignal, ToggleLitAsState, ToggleIgnoreGrowth, ToggleBookPaste, SneakPlacement, ToggleMapMarks, ToggleSlimeChunks, ToggleIgnoreSignText, ToggleIgnoreBlockEntities, TargetMeasure, TargetDetails, TargetPosition, CycleToolDrop, ToggleBlockHighlight, HighlightAimedBlock, OpenBlockHighlight, TogglePaperDollPosition, ToggleScoreboardPosition, ToggleGameHud, OpenEnchantOrder, ToggleWorkPenalty, ToggleItemDetails, ToggleItemTooltip, ToggleItemStew, ToggleItemId, ToggleItemTags, ToggleItemNbt, ToggleBossBarPosition, OpenSavedData, OpenGameLanguage, MinimapNetherView, IgnoreLookedBlock, ToggleRecipes, ShowRecipes, ShowUses, RecipeBack, RecipeFavourite, RecipeWanted, MassCraft, ToggleMassCraft, TogglePlan, ToggleStores, Count };
 enum class Behavior { Press, Hold, Toggle };
 // Ordinary chords are order-sensitive and yield to a more specific chord
 // completed by the same press. Modifier-like chords (held camera keys) match
@@ -192,11 +192,13 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"showuses", "recipes", Behavior::Press, 0x55},
     {"recipeback", "recipes", Behavior::Press, 0x08}, // Backspace, while the recipe view is open
     {"recipefavourite", "recipes", Behavior::Press, 0x41}, // A and W over an item: into the favourites or the wanted items, or out
-    {"recipewanted", "recipes", Behavior::Press, 0x57},
+    {"recipewanted", "plan", Behavior::Press, 0x57},
     // Over an item on a crafting screen (L-165). Its keys match in any order: pressed in another order, a
     // chord that ends in a click left the click to the game, which crafted a stack onto the pointer.
     {"masscrafthold", "massCraft", Behavior::Hold, 0, Matching::Modifier},
     {"masscraft", "massCraft", Behavior::Toggle},
+    {"plan", "plan", Behavior::Toggle},
+    {"stores", "stores", Behavior::Toggle},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 // Kept for its saved id but no longer shown or dispatched.
@@ -321,13 +323,15 @@ constexpr bool containerOnly(Action action) {
         || action == Action::RecipeFavourite || action == Action::RecipeWanted || action == Action::MassCraft;
 }
 // The recipe view's own keys: the only actions an open view lets through, and
-// the game's own while Recipes is off. Back is a key only while it is open.
+// the game's own while their feature is off (wanted: the Plan; the rest: Recipes).
+// Back is a key only while the view is open.
 constexpr bool recipeKey(Action action) {
     return action == Action::ShowRecipes || action == Action::ShowUses || action == Action::RecipeBack
         || action == Action::RecipeFavourite || action == Action::RecipeWanted;
 }
-constexpr bool recipeKeyAllowed(Action action, bool recipesOn, bool viewOpen) {
+constexpr bool recipeKeyAllowed(Action action, bool recipesOn, bool planOn, bool viewOpen) {
     if (!recipeKey(action)) return !viewOpen;
+    if (action == Action::RecipeWanted) return planOn;
     return recipesOn && (viewOpen || action != Action::RecipeBack);
 }
 inline bool sameInputContext(Action a, Action b) {

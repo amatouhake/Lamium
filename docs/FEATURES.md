@@ -444,11 +444,23 @@ Lists every item beside the inventory and other item screens (not the
 anvil). Click an item for its recipes, right click for what it is used in;
 `R` and `U` do the same for the item under the pointer, also in the game's
 own slots. A search field at the bottom narrows the list, as does "Can be
-made". `A` keeps an item as a favourite and `W` puts it on the list of
-wanted items, both on the left; the wanted items' window shows what to
-gather and what to make for them, counting what you carry, your ender
-chest and the containers you mark as stores. Off by default; details and what is
-still to come in [RECIPES.md](RECIPES.md).
+made". `A` keeps an item as a favourite, on the left. Off by default;
+details and what is still to come in [RECIPES.md](RECIPES.md).
+
+### Plan (experimental)
+
+`W` puts the item under the pointer on the list of wanted items, on the
+left of item screens; the plan's window shows what to gather and what to
+make for them. Works with Recipes off. Off by default; details in
+[PLAN.md](PLAN.md).
+
+### Stores (experimental)
+
+Containers you mark as stores, and your ender chest, count as held with
+what they held when last opened: for the plan and for the schematic's
+materials and HUD. While a container is open its switch is on the left;
+optional outlines show the stores in the world. Off by default; details in
+[PLAN.md](PLAN.md).
 
 ### Mass Craft (experimental)
 

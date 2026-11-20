@@ -21,7 +21,7 @@ inline constexpr auto sections = std::to_array<std::string_view>({
     "section.interaction", "section.interface"});
 inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures" || id == "blockHighlight") return "section.camera";
-    if (id == "previews" || id == "itemDetails" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore" || id == "enchantOrder" || id == "recipes" || id == "massCraft") return "section.inventory";
+    if (id == "previews" || id == "itemDetails" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore" || id == "enchantOrder" || id == "recipes" || id == "plan" || id == "stores" || id == "massCraft") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "sneakPlacement" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "gameLanguage" || id == "savedData" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
@@ -57,6 +57,8 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"deathRestore", "feature.deathRestore", "help.deathRestore", "inventory.deathRestore", true, input::Action::ToggleDeathRestore},
     {"enchantOrder", "feature.enchantOrder", "help.enchantOrder", "", true, input::Action::OpenEnchantOrder},
     {"recipes", "feature.recipes", "help.recipes", "inventory.recipes", true, input::Action::ToggleRecipes},
+    {"plan", "feature.plan", "help.plan", "inventory.plan", true, input::Action::TogglePlan},
+    {"stores", "feature.stores", "help.stores", "inventory.stores", true, input::Action::ToggleStores},
     {"massCraft", "feature.massCraft", "help.massCraft", "inventory.massCraft", true, input::Action::ToggleMassCraft},
     {"restrictions", "feature.restrictions", "help.restrictions", ""},
     {"permanentSneak", "feature.permanentSneak", "help.permanentSneak", "", false, input::Action::PermanentSneak},

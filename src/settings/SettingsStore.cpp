@@ -241,8 +241,8 @@ Json encode(Settings const& settings) {
                        {"offhandSwap", settings.inventory.offhandSwap},
                        {"deathRestore", settings.inventory.deathRestore},
                        {"recipes", settings.inventory.recipes},
-                       {"recipesFavourites", settings.inventory.recipesFavourites}, {"recipesPlan", settings.inventory.recipesPlan},
-                       {"recipesStoreMarks", settings.inventory.recipesStoreMarks},
+                       {"recipesFavourites", settings.inventory.recipesFavourites}, {"plan", settings.inventory.plan},
+                       {"stores", settings.inventory.stores}, {"storeMarks", settings.inventory.storeMarks},
                        {"massCraft", settings.inventory.massCraft},
                        {"massCraftDelay", settings.inventory.massCraftDelay},
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
@@ -704,8 +704,9 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.deathRestore = settingsValue(data.at("inventory"), "deathRestore", value.inventory.deathRestore);
         value.inventory.recipes = settingsValue(data.at("inventory"), "recipes", value.inventory.recipes);
         value.inventory.recipesFavourites = settingsValue(data.at("inventory"), "recipesFavourites", value.inventory.recipesFavourites);
-        value.inventory.recipesPlan = settingsValue(data.at("inventory"), "recipesPlan", value.inventory.recipesPlan);
-        value.inventory.recipesStoreMarks = settingsValue(data.at("inventory"), "recipesStoreMarks", value.inventory.recipesStoreMarks);
+        value.inventory.plan = settingsValue(data.at("inventory"), "plan", value.inventory.plan);
+        value.inventory.stores = settingsValue(data.at("inventory"), "stores", value.inventory.stores);
+        value.inventory.storeMarks = settingsValue(data.at("inventory"), "storeMarks", value.inventory.storeMarks);
         value.inventory.massCraft = settingsValue(data.at("inventory"), "massCraft", value.inventory.massCraft);
         value.inventory.massCraftDelay = settingsValue(data.at("inventory"), "massCraftDelay", value.inventory.massCraftDelay);
         value.inventory.deathRestoreAll = settingsValue(data.at("inventory"), "deathRestoreAll", value.inventory.deathRestoreAll);

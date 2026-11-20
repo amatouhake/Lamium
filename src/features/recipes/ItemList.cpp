@@ -274,8 +274,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
     std::string const screenName = screenView.mHasFocus && screenView.mController && screenView.mController->_isContainerScreen()
         ? screenView.getScreenName() : std::string();
     if (screenName.empty()) return false;
-    // Off, or reading the game's item and recipe tables not confirmed for this version: nothing of it shows.
-    if (!Runtime::instance().enabled() || !Runtime::instance().snapshot()->inventory.recipes
+    // All three off (Recipes, the Plan, the stores; each works alone, L-373), or reading the game's item and
+    // recipe tables not confirmed for this version: nothing of it shows.
+    auto const& on = Runtime::instance().snapshot()->inventory;
+    if (!Runtime::instance().enabled() || !(on.recipes || on.plan || on.stores)
         || !versionSensitiveAllowed(capabilities::Id::RecipeTable)) {
         closeViews();
         return false;
@@ -317,17 +319,20 @@ bool drawList(ll::event::UIRenderEvent& event) {
         auto const span = planWindowAt(screen.x, coverLeft, right, bookOpenWidth);
         coverLeft = std::min(coverLeft, span.left), right = std::max(right, span.left + span.width);
     }
-    auto const layout = itemListRight(screen.x, screen.y, 0, right);
-    if (!layout.usable()) { closeViews(); return false; }
     auto const prefs = Runtime::instance().snapshot();
-    bool const planOn = prefs->inventory.recipesPlan;
-    // The band left of the game's window holds the favourites and the plan: one alone has all of it, and
-    // with neither there is no band.
-    bool const favouritesOn = prefs->inventory.recipesFavourites;
-    auto side = favouritesOn || planOn ? itemListLeft(screen.y, coverLeft) : SideLayout{};
+    // Recipes has the item list on the right, the search field, the favourites and the recipe view.
+    bool const recipesOn = prefs->inventory.recipes;
+    auto const layout = itemListRight(screen.x, screen.y, 0, right);
+    if (recipesOn && !layout.usable()) { closeViews(); return false; }
+    bool const planOn = prefs->inventory.plan, storesOn = prefs->inventory.stores;
+    // The band left of the game's window holds the favourites and the plan: one alone has all of it. With
+    // neither it holds only the open container's line, where the stores are on.
+    bool const favouritesOn = recipesOn && prefs->inventory.recipesFavourites;
+    auto const openPlace = storesOn ? placesGame::open(screenView) : std::nullopt;
+    auto side = favouritesOn || planOn || openPlace ? itemListLeft(screen.y, coverLeft) : SideLayout{};
     side.favouritesOn = favouritesOn;
     side.planOn = planOn;
-    side.footOn = planOn && placesGame::open(screenView).has_value();
+    side.footOn = openPlace.has_value();
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
     {
@@ -389,49 +394,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
     };
     bool caretPress = false;
     if (pressed || input.outside) searchFocus = false, countEdit::commit();
-    if (took(field)) searchFocus = caretPress = true;
-    narrow(*player, place::gridSide(screenView));
-    int const count = static_cast<int>(visible.size()), pages = layout.pages(count);
-    page = std::clamp(page + input.listTurns, 0, pages - 1);
-    int const first = page * layout.perPage(), hovered = layout.hit(px, py);
-    auto nameAt = [&](int cell) -> std::string const& { return names[static_cast<size_t>(visible[static_cast<size_t>(first + cell)])]; };
+    if (recipesOn && took(field)) searchFocus = caretPress = true;
     std::string hoverItem;
-    if (hovered >= 0 && first + hovered < count) hoverItem = nameAt(hovered);
     auto& context = event.uiRenderContext();
-    // A dimmed band to the screen's edge: the game dims the world too little for bare icons.
-    fill(context, layout.left, layout.top, layout.width, layout.height, palette::panel, .5f);
-    // The pager at the bar's right end; the wheel turns pages too.
-    auto const pager = drawPager(context, layout.left + layout.width - 3, layout.top + 1, page, pages, px, py);
-    if (leftPress && took({pager.prevX, pager.y, Pager::size, Pager::size})) page = std::max(0, page - 1);
-    else if (leftPress && took({pager.nextX, pager.y, Pager::size, Pager::size})) page = std::min(pages - 1, page + 1);
-    // The filters keep the bar's left end: both where the band is wide, one switch where it is not.
-    float barX = layout.left + 2;
-    auto barButton = [&](std::string text, bool on) {
-        ListBox const box{barX, layout.top + 1, textWidth(context, text) + 10, 11};
-        drawButton(context, box.x, box.y, box.w, box.h, std::move(text), box.has(px, py), on ? ButtonKind::Primary : ButtonKind::Plain);
-        barX += box.w + 2;
-        return leftPress && took(box);
-    };
-    if (layout.width >= 130) {
-        // One of the two is chosen: tabs, as the band's lists are.
-        auto barTab = [&](std::string text, bool on, bool first) {
-            ListBox const box{barX, layout.top + 1, textWidth(context, text) + tabPad, tabHeight};
-            drawTab(context, box.x, box.y, box.w, std::move(text), on, box.has(px, py), first);
-            barX += box.w;
-            return leftPress && took(box);
-        };
-        if (barTab(translated("recipes.filter.all"), filter == Filter::All, true)) filter = Filter::All;
-        if (barTab(translated("recipes.filter.canMake"), filter == Filter::CanMake, false)) filter = Filter::CanMake;
-        tabRule(context, layout.left + 2, layout.top + 1 + tabHeight, layout.width - 4);
-    } else if (barButton(translated("recipes.filter.canMakeShort"), filter == Filter::CanMake))
-        filter = filter == Filter::CanMake ? Filter::All : Filter::CanMake;
-    if (!count) label(context, layout.left + 4, layout.top + ItemListLayout::bar + 4, layout.width - 8,
-                      translated(filter == Filter::CanMake && !service::table() ? "schematic.raw.reading" : "recipes.notFound"), palette::dim);
     view::Late late;
     // A favourite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
     std::set<std::string_view> favouriteKeys;
     std::map<std::string_view, Count> wantedCounts;
-    if (prefs->inventory.recipesFavourites) for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
+    if (favouritesOn) for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
     if (planOn) for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
     // What a feature handed over is wanted too.
     auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
@@ -444,33 +414,72 @@ bool drawList(ll::event::UIRenderEvent& event) {
         Count const n = wanted->second;
         late.counts.push_back({x, y, n < 1000 ? std::to_string(n) : n < 100000 ? std::format("{}k", n / 1000) : std::string("++")});
     };
-    for (int i = 0; i < layout.perPage() && first + i < count; ++i) {
-        auto const& item = schematic::items::shown(nameAt(i));
-        float const x = layout.cellX(i), y = layout.cellY(i);
-        if (i == hovered) {
-            fill(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::white, .14f);
-            late.tip = item.name;
-        }
-        if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
-        mark(nameAt(i), x, y, true);
-    }
     // A press on an item shows its recipes, a right press what it is used in, also beside an open view.
     auto show = [&](std::string const& item) {
         view::open(item, !leftPress);
         viewScreen = screenName;
         pressed = false;
     };
-    if (pressed && hovered >= 0 && first + hovered < count) {
-        // Under "can be made" a press lays the recipe into the screen's grid, as the game's recipe book does;
-        // where nothing can be laid (no grid, nothing that fits) it shows the recipes as elsewhere.
-        if (filter == Filter::CanMake && leftPress && placeItem(screenView, nameAt(hovered), shiftHeld.load(), *player))
-            pressed = false, view::close(), planView::close();
-        else show(nameAt(hovered));
+    // The item list on the right: Recipes'.
+    if (recipesOn) {
+        narrow(*player, place::gridSide(screenView));
+        int const count = static_cast<int>(visible.size()), pages = layout.pages(count);
+        page = std::clamp(page + input.listTurns, 0, pages - 1);
+        int const first = page * layout.perPage(), hovered = layout.hit(px, py);
+        auto nameAt = [&](int cell) -> std::string const& { return names[static_cast<size_t>(visible[static_cast<size_t>(first + cell)])]; };
+        if (hovered >= 0 && first + hovered < count) hoverItem = nameAt(hovered);
+        // A dimmed band to the screen's edge: the game dims the world too little for bare icons.
+        fill(context, layout.left, layout.top, layout.width, layout.height, palette::panel, .5f);
+        // The pager at the bar's right end; the wheel turns pages too.
+        auto const pager = drawPager(context, layout.left + layout.width - 3, layout.top + 1, page, pages, px, py);
+        if (leftPress && took({pager.prevX, pager.y, Pager::size, Pager::size})) page = std::max(0, page - 1);
+        else if (leftPress && took({pager.nextX, pager.y, Pager::size, Pager::size})) page = std::min(pages - 1, page + 1);
+        // The filters keep the bar's left end: both where the band is wide, one switch where it is not.
+        float barX = layout.left + 2;
+        auto barButton = [&](std::string text, bool on) {
+            ListBox const box{barX, layout.top + 1, textWidth(context, text) + 10, 11};
+            drawButton(context, box.x, box.y, box.w, box.h, std::move(text), box.has(px, py), on ? ButtonKind::Primary : ButtonKind::Plain);
+            barX += box.w + 2;
+            return leftPress && took(box);
+        };
+        if (layout.width >= 130) {
+            // One of the two is chosen: tabs, as the band's lists are.
+            auto barTab = [&](std::string text, bool on, bool first) {
+                ListBox const box{barX, layout.top + 1, textWidth(context, text) + tabPad, tabHeight};
+                drawTab(context, box.x, box.y, box.w, std::move(text), on, box.has(px, py), first);
+                barX += box.w;
+                return leftPress && took(box);
+            };
+            if (barTab(translated("recipes.filter.all"), filter == Filter::All, true)) filter = Filter::All;
+            if (barTab(translated("recipes.filter.canMake"), filter == Filter::CanMake, false)) filter = Filter::CanMake;
+            tabRule(context, layout.left + 2, layout.top + 1 + tabHeight, layout.width - 4);
+        } else if (barButton(translated("recipes.filter.canMakeShort"), filter == Filter::CanMake))
+            filter = filter == Filter::CanMake ? Filter::All : Filter::CanMake;
+        if (!count) label(context, layout.left + 4, layout.top + ItemListLayout::bar + 4, layout.width - 8,
+                          translated(filter == Filter::CanMake && !service::table() ? "schematic.raw.reading" : "recipes.notFound"), palette::dim);
+        for (int i = 0; i < layout.perPage() && first + i < count; ++i) {
+            auto const& item = schematic::items::shown(nameAt(i));
+            float const x = layout.cellX(i), y = layout.cellY(i);
+            if (i == hovered) {
+                fill(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::white, .14f);
+                late.tip = item.name;
+            }
+            if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
+            mark(nameAt(i), x, y, true);
+        }
+        if (pressed && hovered >= 0 && first + hovered < count) {
+            // Under "can be made" a press lays the recipe into the screen's grid, as the game's recipe book does;
+            // where nothing can be laid (no grid, nothing that fits) it shows the recipes as elsewhere.
+            if (filter == Filter::CanMake && leftPress && placeItem(screenView, nameAt(hovered), shiftHeld.load(), *player))
+                pressed = false, view::close(), planView::close();
+            else show(nameAt(hovered));
+        }
     }
     // The left band: favourites above, what is wanted below.
     constexpr float smallIcon = .625f;
     if (side.usable()) {
-        fill(context, side.left, side.top, side.width, side.height, palette::panel, .5f);
+        if (favouritesOn || planOn) fill(context, side.left, side.top, side.width, side.height, palette::panel, .5f);
+        else fill(context, side.left, side.footY() - 4, side.width, side.top + side.height - side.footY() + 4, palette::panel, .5f);
         if (favouritesOn) label(context, side.left + 4, side.top + 3, side.width - 8, translated("recipes.favourites"), palette::dim);
         auto const favourites = favouritesOn ? state::notes().favourites : std::vector<std::string>{};
         int const favouriteHover = side.hitFavourite(px, py), favouriteCount = std::min(static_cast<int>(favourites.size()), side.favourites());
@@ -641,9 +650,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
             label(context, side.left + 4, side.rowY(0) + 2, side.width - 8,
                   translated(sideList == SideList::Wanted || (plan && sideList == SideList::Make) ? "recipes.nothingWanted"
                              : plan ? "schematic.raw.nothing" : "schematic.raw.reading"), palette::faint);
+        }
         // The band's last line, kept free for it: the open container made a store, or taken out again
-        // (L-359 step 8). What it holds is noted while it is open, for the ender chest and for stores.
-        if (auto const& open = placesGame::open(screenView)) {
+        // (L-359 step 8). What it holds is noted while it is open, for the ender chest and for stores. The
+        // stores' own (L-373): it shows with them, whether or not the plan does.
+        if (auto const& open = openPlace) {
             state::seePlace(open->ender, open->spot, open->pair, open->block, open->items);
             // A name and a switch, as Lamium's rows are: on makes the open container a store (off takes it
             // out again); the ender chest, which is noted anyway, is switched in or out of the count.
@@ -663,12 +674,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 else state::unmarkStore(index);
             }
         }
-        }
         // A press on the band that nothing took stays there: it must not reach the view under the pointer's line.
-        if (pressed && side.has(px, py)) pressed = false;
+        // A band of the container's line alone keeps only that line.
+        bool const footOnly = !favouritesOn && !planOn;
+        if (pressed && (footOnly ? ListBox{side.left, side.footY() - 4, side.width, side.top + side.height - side.footY() + 4}.has(px, py) : side.has(px, py))) pressed = false;
     }
     if (!pressed) input.clicks.clear();
-    drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
+    if (!recipesOn) searchFocus = false;
+    else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
     if (caretPress) placeCaret(context, search, px, py);
     // Typing needs the platform's keyboard: claimed while the field has the focus, given back with it.
     if (searchFocus && !keyboardOwned) {
@@ -694,9 +707,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), planOn, true, nullptr, coverLeft, right}, late, *player,
-                       shiftHeld.load(), showItem, showChoice);
-        if (!showItem.empty()) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
+        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), planOn, true, nullptr, coverLeft, right,
+                                 recipesOn, storesOn}, late, *player, shiftHeld.load(), showItem, showChoice);
+        if (!showItem.empty() && recipesOn) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
     // A recipe laid into the grid: nothing of Lamium's stays over it.
     if (late.placed) view::close(), planView::close(), countEdit::cancel();
@@ -725,15 +738,15 @@ bool drawList(ll::event::UIRenderEvent& event) {
             wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
         }
     }
-    if (open || viewLayout.hintY() >= at.y + size.y + 2) {
+    if ((open || viewLayout.hintY() >= at.y + size.y + 2) && (recipesOn || planOn)) {
         // One line whatever the language: the keys, with the presses before them where both fit; shrunk a
         // little to the window's width where it is still longer.
         std::string keys;
         auto add = [&](std::string part) { keys += (keys.empty() ? "" : " | ") + part; };
-        if (!favouriteKey.empty()) add(translated("recipes.hint.favourite", favouriteKey));
-        if (!wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
+        if (favouritesOn && !favouriteKey.empty()) add(translated("recipes.hint.favourite", favouriteKey));
+        if (planOn && !wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
         if (view::isOpen() && !backKey.empty()) add(translated("recipes.hint.back", backKey));
-        std::string hint = translated("recipes.hint") + (keys.empty() ? "" : " | " + keys);
+        std::string hint = recipesOn ? translated("recipes.hint") + (keys.empty() ? "" : " | " + keys) : keys;
         if (!keys.empty() && labelWidth(context, hint, 1) * .8f > RecipeViewLayout::width - 8) hint = std::move(keys);
         // On the open window it is the window's text: dark, without a shadow.
         float const room = RecipeViewLayout::width - 8, wide = labelWidth(context, hint, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
@@ -928,11 +941,12 @@ std::string hovered() {
 }
 std::string hoveredItem() { return hovered(); }
 void favourite() {
-    if (!Runtime::instance().snapshot()->inventory.recipesFavourites) return;
+    auto const prefs = Runtime::instance().snapshot();
+    if (!prefs->inventory.recipes || !prefs->inventory.recipesFavourites) return;
     if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
 }
 void want() {
-    if (!Runtime::instance().snapshot()->inventory.recipesPlan) return;
+    if (!Runtime::instance().snapshot()->inventory.plan) return;
     auto item = hovered();
     if (item.empty()) return;
     bool const was = state::wanted().has(item);

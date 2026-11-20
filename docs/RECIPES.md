@@ -1,16 +1,17 @@
-# Recipes and the material plan
+# Recipes
 
-Looking recipes up in the game and planning what to gather, inside Lamium:
-an item list beside the inventory, a recipe view, and a plan that traces
-what features and the player want down to what must be gathered. The design
-is agreed with mockups and built in steps ([L-359](backlog/L-359.md)).
-Built: the schematic Materials tab's raw view ([SCHEMATIC.md](SCHEMATIC.md))
-and, behind the Recipes switch (Inventory, experimental, off by default),
-the item list with its search field and filter, the recipe view,
-favourites and the wanted items with their window. Keys, all rebindable,
-mouse buttons included: R (recipes of the item under the pointer), U (its
-uses), A (favourite), W (wanted) and Backspace (back, while the recipe view
-is open). What of this nobody has seen in game is under "Limits".
+Looking recipes up in the game, inside Lamium: an item list beside the
+inventory and the game's other item screens, a search field, a recipe view,
+favourites, placing a recipe into the grid and Mass Craft. The design is
+agreed with mockups and built in steps ([L-359](backlog/L-359.md)); the
+plan of what to gather and the stores counted as held are in
+[PLAN.md](PLAN.md), features of their own that work with Recipes off
+(L-373). Built behind the Recipes switch (Inventory, experimental, off by
+default): the item list with its search field and filter, the recipe view
+and favourites. Keys, all rebindable, mouse buttons included: R (recipes of
+the item under the pointer), U (its uses), A (favourite) and Backspace
+(back, while the recipe view is open). What of this nobody has seen in game
+is under "Limits".
 
 ## Behavior
 
@@ -141,100 +142,6 @@ after using the first build. What is still open is in the L-item.
   ("Planks") or "Raw Gold etc.", and under the pointer shows its members.
 - Every station that can do a recipe is named, as icons.
 
-### The plan
-- Its words name what the player sees. The list the player fills is
-  "wanted" (the panel's title, the window's title and its first tab; the
-  recipe window's button is "add to wanted"); what comes out is "to gather"
-  and "to make". On a row, "gather" moves an item that would be made to the
-  gather list and "make" moves it back. "Back to any" undoes a picked
-  group member.
-  "Plan" stays the feature's name in settings only.
-- There is one plan, built around the wanted items (L-370): it says how
-  far each is, what is left to gather for all, and what to make. Several
-  named plans are not built until one proves too few.
-- Targets come from features (a schematic's materials still to place,
-  while "Put what is left into the plan" on its Materials tab is on: a
-  saved switch, off unless the player turns it on) and can be added by
-  hand. Hand-added targets are saved per world, under the
-  waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
-  be edited; it looks like the others and says where it comes from.
-- The left band's short list shows the wanted items, what to gather or
-  what to make, named as the window's tabs; a press on a line or "Open"
-  opens the window there. The window sits where the recipe view does; the
-  recipe view opens over it (a press on an item) and gives it back.
-- The window ("wanted", "to gather", "to make", "How to make",
-  "stores") is the Recipes feature's (L-370), always as wide as the game's
-  inventory with its book open (the bands narrow while it is open); with
-  the plan off it holds only "How to make", from a recipe's in-use mark.
-- "Wanted" is a table: fold, icon, name, held, wanted, a bar of held
-  against wanted (what is gathered shows in "to gather"). The player's
-  own rows turn "wanted" into "- N +" and show "x" only under the
-  pointer; handed rows show their source. Held stock goes to the rows in
-  the order added; a row that lost stock to one above says so under the
-  pointer. A press opens its read-only breakdown: steps as slots, then
-  what it needs gathered. A recipe's state and an any-of input's slot (framed green
-  when chosen) go to "How to make"; "gather" on a step, "make" on a
-  material set to gather.
-- "To gather" uses the same columns, "All" as the first row; done rows
-  faint below. "To make" is the work: steps that can be made now from
-  what is held first, the others faint; a press opens the breakdown.
-- "How to make" holds the choices for all plans and worlds: a group's
-  member (a grid of slots, "any" first) and an item's recipe (rows,
-  "automatic" first), by name; lines for the current plan, or with a
-  switch all chosen before. Placing follows it, else what is held.
-- A key (W by default, beside A for favourites; both rebindable) puts the
-  hovered item into "wanted" or takes it out, wherever the favourite key
-  works. While it is held the wheel changes how many are wanted, so the
-  count is set where the item was added; an item that was wanted goes
-  out when the key is released without the wheel having turned (a key
-  of several inputs or a mouse button takes it out at once, and has no
-  wheel); an item taken out keeps its count until the world is left.
-- A wanted item's count is changed with the shared stepper (- N +), on the
-  short list and in the window alike: minus at one takes the item out at
-  once; the wheel (also with the wanted key held over the list) takes it
-  to 0, shown faint, and it goes out once the pointer leaves its row or
-  the key is up, so a turn too far can be turned back (maintainer
-  2026-11-19, L-367). A Shift step stops at one; Shift steps to the next
-  multiple of the item's stack, 1 to 64 to 128. A press on the number types it
-  (Enter or a press elsewhere keeps it, Esc does not; 0 takes the item
-  out).
-- "To gather" lists everything to gather: what the recipes ask for and,
-  after it, wanted items the recipe table does not know because no
-  recipe makes or uses them (a grass block), gathered as they are.
-- What is held is the sum over what is counted: what is carried (a
-  switch, on unless the player turns it off, so a plan can be served
-  from a store alone); the ender chest from the first time it is seen
-  open; and the containers the player makes stores (a chest, barrel or
-  placed shulker box; a double chest is one store by either half; a
-  minecart's chest is none). A store counts what it held when it was
-  last seen open, and is noted while it is open and Recipes is on. One
-  count serves the plan, the schematic Materials tab and the Schematic
-  HUD; Enchantment Order and "can be made" keep counting what is carried.
-- What a shulker box or a bundle holds counts with it, carried or in a
-  store; there is no switch for it. A bundle keeps only an id, and what
-  it holds is read through an open item screen: it is read whenever one
-  is open and remembered by the id, so the plan, which only shows on
-  item screens, has it as it is, and the HUD and the Materials tab have
-  what the last item screen saw (nothing before the world's first).
-- While a container is open, the last line of the left band, under a
-  rule and clear of the screen's edge, is "Count as a store" with a
-  switch: on makes it a store, off takes it out; at the
-  ender chest it switches the chest in or out of the count. The plan's
-  window has a "Stores" tab: what is carried, the ender chest and the
-  stores, each a name and a switch in one column, a store also with
-  "Remove". A store where another block stands,
-  or none, is dropped: looked at once a second within 48 blocks, in
-  loaded chunks, and when the container is opened. The word is "store" throughout.
-- In "to gather", a "have" number that includes a place's last-seen count
-  is starred and says under the pointer where the items are.
-- Kept between sessions: only what the player enters (recipe choices, group
-  picks, "stop here" marks), in one file for all worlds; an entry the
-  current world's recipes lack is ignored, not deleted.
-- The schematic Materials tab shows what is left as things to gather, no
-  more. The steps to make belong to the plan.
-- Which recipe makes an item by default, groups, fuel, spare output and
-  held items: the rules in [L-116](backlog/L-116.md).
-
 ### Mass Craft
 A setting of its own, off by default, and it works with Recipes off
 ([L-165](backlog/L-165.md), maintainer 2026-11-18).
@@ -314,21 +221,14 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   hover text, which Lamium's hook has added to, each line in the color it
   starts in, without the name and lines of icon glyphs (`hoverLines`). A
   row of the plan's window also says its count in chests and stacks.
+- Settings (L-373): Recipes (experimental, off by default) with
+  "Favourites" (on): without favourites, no favourites in the band, no
+  marks, no button, and A does nothing. The Plan and the stores are
+  features of their own ([PLAN.md](PLAN.md)); the band shows while any of
+  the three has something in it.
 - Lamium's parts stand still and fade with the game's window as it
   slides in and out, by how far it is from where it rests, as the anvil's
   panels do (`ui/WindowFade.h`; maintainer 2026-11-19).
-- The wanted tab has "Include what the schematic still needs", the
-  switch of the schematic's Materials tab, while Schematics is on.
-- The stores are outlined in the world within 48 blocks, in the accent
-  color, by the world overlay (`WorldOverlay.cpp`, from `storeMarks`).
-  They show once the world's places were read, which the first item
-  screen does.
-- Settings, all on by default: "Favourites" and "Plan" (maintainer
-  2026-11-19, in place of a switch for the band, which overlapped the
-  plan's) and "Outline stores in the world". The band shows while
-  either of the first two is on, and one alone has all of it. Without
-  favourites: no favourites in the band, no marks, no button, and A does
-  nothing. Without the plan: no wanted items, lists, stores or W.
 
 ## Code
 - `src/features/recipes/RecipeIndex.h`: the game's table by name, the
@@ -390,9 +290,6 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Items are told apart by name and aux. Items that differ only in their
   data (enchanted books, a filled map) are one item. The schematic
   Materials tab still counts what is carried by name alone.
-- The wanted items' and the counted places' files go when a world's or a
-  server's saved data is deleted, but the Saved data screen does not count or show it, and moving
-  a server's data to another key leaves it ([L-358](backlog/L-358.md)).
 - Trades and drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated
   Server; other servers and Realms are not.

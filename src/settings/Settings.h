@@ -94,9 +94,10 @@ struct Settings {
         bool offhandSwap = true; // The Swap with offhand key works (L-94)
         bool deathRestore = false; // Put picked-up items back in their death-time slots (L-109, experimental)
         bool recipes = false; // The item list beside item screens and the recipe view (L-359, experimental)
-        // Parts of Recipes a player may not want: the favourites, the plan (wanted items, what to gather
-        // and make, stores), and the stores' outlines in the world. The left band shows while either is on.
-        bool recipesFavourites = true, recipesPlan = true, recipesStoreMarks = true;
+        bool recipesFavourites = true; // A part of Recipes: the favourites and their key
+        // Each works alone (L-373): the plan (wanted items, what to gather and make) and the stores (the
+        // places counted as held, used by the plan and Schematics), with the stores' outlines in the world.
+        bool plan = false, stores = false, storeMarks = true;
         bool massCraft = false; // The key that crafts and throws out an item's recipe, while held (L-165)
         float massCraftDelay = .3f; // Seconds the key is held before it starts
         bool deathRestoreAll = false; // Also the main inventory; off: the hotbar, armor and offhand

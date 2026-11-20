@@ -32,6 +32,8 @@ struct Input {
     // The span between the two bands. The window's grey covers all of it, so a game window wider than
     // the view (its recipe book out) does not show at the view's sides; what the view shows keeps its place.
     float coverLeft = 0, coverRight = 0;
+    // Which features are on, for the window's tabs (L-373): Recipes has "How to make", the stores theirs.
+    bool recipes = true, stores = true;
 };
 // Drawn by the host after its own: item icons, then counts and the name under the pointer on top of them.
 struct Late {

@@ -639,7 +639,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
         && capabilities::registry().status(capabilities::Id::BlockHighlight).available();
     if (!glowShown && glow.revision) releaseGlow();
     // The containers made stores for the plan of Recipes are outlined, so they can be told from the others.
-    auto const stores = settings->inventory.recipes && settings->inventory.recipesPlan && settings->inventory.recipesStoreMarks
+    auto const stores = settings->inventory.stores && settings->inventory.storeMarks
         ? recipes::state::storeMarks() : nullptr;
     bool const storesShown = stores && !stores->empty();
     if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown && !glowShown && !storesShown) return;

@@ -86,7 +86,7 @@ std::chrono::steady_clock::time_point bundlesAt{}, storesAt{};
 // player, in chunks that are loaded (a chunk on its way shows a placeholder block, which says nothing).
 void dropMissingStores(LocalPlayer& player) {
     auto const settings = Runtime::instance().snapshot();
-    if (!Runtime::instance().enabled() || !settings->inventory.recipes || !settings->inventory.recipesPlan) return;
+    if (!Runtime::instance().enabled() || !settings->inventory.stores) return;
     auto const& list = state::places().list;
     if (list.empty()) return;
     int const dimension = static_cast<int>(player.getDimensionId());

@@ -39,6 +39,8 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleDeathRestore: field = &value.inventory.deathRestore; break;
     case Action::ToggleRecipes: field = &value.inventory.recipes; break;
     case Action::ToggleMassCraft: field = &value.inventory.massCraft; break;
+    case Action::TogglePlan: field = &value.inventory.plan; break;
+    case Action::ToggleStores: field = &value.inventory.stores; break;
     case Action::ToggleHideEffects: field = &value.visuals.hideEffects; break;
     case Action::ToggleConnectedTextures: field = &value.visuals.connectedTextures; break;
     case Action::ToggleBlockHighlight: field = &value.visuals.blockHighlight; break;

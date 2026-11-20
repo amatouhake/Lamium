@@ -163,9 +163,9 @@ void setCarriedCounted(bool carried) {
     writePlaces();
 }
 std::map<std::string, std::uint64_t> heldByName(LocalPlayer& player) {
-    // The stores and the switch for what is carried belong to the plan: without it, what is carried counts.
+    // Without the stores (L-373) what is carried counts; with them, the places switched on, carried among them.
     auto const settings = Runtime::instance().snapshot();
-    if (!settings->inventory.recipes || !settings->inventory.recipesPlan) return schematic::items::carried(player);
+    if (!settings->inventory.stores) return schematic::items::carried(player);
     auto out = places().carried ? schematic::items::carried(player) : std::map<std::string, std::uint64_t>{};
     for (auto const& item : placeTotals(places())) out[item.name] += item.count;
     return out;

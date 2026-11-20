@@ -70,18 +70,22 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     windowPanel(context, coverLeft, l.top, coverRight - coverLeft, l.height);
     OnWindow const onWindowScope;
     // The lists are the game's tabs on the window's top edge; they name the window, which needs no title.
-    // Without the plan the window holds only "How to make", which is the whole Recipes feature's.
-    if (!input.plan) tab = Tab::HowTo;
+    // Each feature brings its own (L-373): the Plan its three lists, Recipes "How to make", the stores theirs.
     {
         Tab const all[]{Tab::Wanted, Tab::Gather, Tab::Make, Tab::HowTo, Tab::Places};
         char const* const allNames[]{"recipes.wanted", "recipes.gather", "recipes.make", "recipes.howTo", "recipes.places"};
-        int const first = input.plan ? 0 : 3, shown = input.plan ? 5 : 1;
+        bool const on[]{input.plan, input.plan, input.plan, input.recipes, input.stores};
+        std::vector<int> shownTabs;
+        for (int i = 0; i < 5; ++i) if (on[i]) shownTabs.push_back(i);
+        if (shownTabs.empty()) { close(); return; }
+        if (std::find_if(shownTabs.begin(), shownTabs.end(), [&](int i) { return all[i] == tab; }) == shownTabs.end()) tab = all[shownTabs.front()];
+        int const shown = static_cast<int>(shownTabs.size());
         // One width for all, as wide as the widest name needs and no wider than the window allows.
         float widest = 0;
-        for (int i = first; i < first + shown; ++i) widest = std::max(widest, textWidth(context, translated(allNames[i])));
+        for (int i : shownTabs) widest = std::max(widest, textWidth(context, translated(allNames[i])));
         float const w = std::floor(std::min(widest + 12, (span.width - 10 + static_cast<float>(shown - 1)) / static_cast<float>(shown)));
         float x = span.left + 5;
-        for (int i = first; i < first + shown; ++i) {
+        for (int i : shownTabs) {
             std::string name = translated(allNames[i]);
             windowTab(context, x, l.top, w, std::move(name), tab == all[i], over(x, l.top - windowTabRise, w - 1, windowTabRise));
             if (took(x, l.top - windowTabRise, w - 1, windowTabRise)) tab = all[i];

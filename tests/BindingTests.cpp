@@ -56,15 +56,16 @@ void bindingTests() {
         && actionAllowed(Action::ToggleRecipes, true, false),
         "the recipe keys are R and U on item screens only, where they share the context with Sort");
     check(defaultChord(Action::RecipeBack) == Chord{Token{Device::Key, 0x08}} && actionAllowed(Action::RecipeBack, false, true)
-        && recipeKeyAllowed(Action::ShowRecipes, true, false) && recipeKeyAllowed(Action::ShowRecipes, true, true)
-        && !recipeKeyAllowed(Action::RecipeBack, true, false) && recipeKeyAllowed(Action::RecipeBack, true, true)
-        && !recipeKeyAllowed(Action::ShowUses, false, false) && !recipeKeyAllowed(Action::RecipeBack, false, true)
-        && recipeKeyAllowed(Action::Sort, false, false) && !recipeKeyAllowed(Action::Sort, true, true),
+        && recipeKeyAllowed(Action::ShowRecipes, true, false, false) && recipeKeyAllowed(Action::ShowRecipes, true, false, true)
+        && !recipeKeyAllowed(Action::RecipeBack, true, false, false) && recipeKeyAllowed(Action::RecipeBack, true, false, true)
+        && !recipeKeyAllowed(Action::ShowUses, false, true, false) && !recipeKeyAllowed(Action::RecipeBack, false, true, true)
+        && recipeKeyAllowed(Action::Sort, false, false, false) && !recipeKeyAllowed(Action::Sort, true, true, true),
         "back is a key only while the view is open, which lets no other action through; off, the recipe keys are the game's");
     check(defaultChord(Action::RecipeFavourite) == Chord{Token{Device::Key, 0x41}} && defaultChord(Action::RecipeWanted) == Chord{Token{Device::Key, 0x57}}
         && actionAllowed(Action::RecipeFavourite, false, true) && !actionAllowed(Action::RecipeWanted, true, false)
-        && recipeKeyAllowed(Action::RecipeFavourite, true, true) && !recipeKeyAllowed(Action::RecipeWanted, false, false),
-        "A and W over an item, on item screens and in the open view, while Recipes is on");
+        && recipeKeyAllowed(Action::RecipeFavourite, true, false, true) && !recipeKeyAllowed(Action::RecipeWanted, true, false, false)
+        && recipeKeyAllowed(Action::RecipeWanted, false, true, false),
+        "A and W over an item, on item screens and in the open view: A while Recipes is on, W while the Plan is (L-373)");
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)
         && !actionAllowed(Action::Settings, false, false), "outside a world only the settings key opens (L-175)");
     check(lamium::outsideWorldMenu("ui://./hbui/index.html", false) && !lamium::outsideWorldMenu("ui://./hbui/index.html", true)

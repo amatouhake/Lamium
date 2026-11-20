@@ -117,11 +117,11 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false, b
     bool const container = tracker.current() && !inventory::game::TextInputTracker::getInstance().isEditing(tracker.currentView());
     ChordSet allowed;
     bool const freeCamera = CameraSessions::instance().blocksPerspective();
-    // The recipe keys are plain letters (R, U): with Recipes off they stay the game's on its item screens.
-    bool const recipeKeys = Runtime::instance().preferences().inventory.recipes;
+    // The recipe keys are plain letters (R, U, W): with their feature off they stay the game's on its item screens.
+    auto const& inventoryPrefs = Runtime::instance().preferences().inventory;
     for (size_t i = 0; i < allowed.size(); ++i)
         if (actionAllowed(static_cast<Action>(i), gameplay, container, freeCamera, outside)
-            && recipeKeyAllowed(static_cast<Action>(i), recipeKeys, recipeKeysOnly))
+            && recipeKeyAllowed(static_cast<Action>(i), inventoryPrefs.recipes, inventoryPrefs.plan, recipeKeysOnly))
             allowed[i] = previous[i];
     // A different consumer (notably Zoom's wheel adjustment) may own this
     // event. Preserve held inputs, but always observe key-up releases.
