@@ -126,7 +126,7 @@ struct Queued {
     std::string text;           // text the game handed the focused field
     bool outside = false;       // a press the game kept, which takes the focus from the field
 } queued;
-bool ctrlHeld = false; // the listeners' own
+std::atomic<bool> ctrlHeld{false}; // set by the listeners, read by the frame too (Ctrl + press, L-379)
 // The wanted key held over an item (a single key only): the wheel then changes how many are wanted. An
 // item that was wanted already goes out on the key's release, unless the wheel turned meanwhile.
 std::atomic<bool> wantedHeld{false};
@@ -154,6 +154,8 @@ struct GridPlacer : view::Placer {
         : screen(screen), table(std::move(table)), picks(std::move(picks)), side(side), carried(place::carried(screen, this->table->index)) {}
     PlacePlan preview(Recipe const& recipe, bool many) const override { return placePlan(table->index, recipe, side, carried, picks, many); }
     bool run(int recipe, bool many) override { return place::run(screen, table, recipe, picks, many); }
+    CraftOnto craftCheck(Recipe const& recipe) const override { return place::craftCheck(screen, table->index, recipe, preview(recipe, false).ready()); }
+    bool craft(int recipe) override { return place::craft(screen, table, recipe, picks); }
 };
 bool anyView() { return view::isOpen() || planView::isOpen(); }
 // "Can be made" (L-367): a press lays the item's recipe into the grid as the recipe view's "place" does,
@@ -179,6 +181,39 @@ bool placeItem(ScreenView& screen, std::string const& key, bool many, LocalPlaye
         if (recipe.station == Station::Crafting && placer.preview(recipe, false).ready()) return placer.run(number, many);
     }
     return false;
+}
+// Ctrl + a press on a listed item (L-379): one round of its crafting recipe onto the pointer, the recipe in use where
+// it fits the grid, else the first that does; which recipe and what that meets now, or none (no grid, no crafting
+// recipe that fits it), for the item's tip.
+struct CraftAsk { int recipe = -1; CraftOnto check = CraftOnto::Missing; };
+CraftAsk craftAsk(GridPlacer const& placer, Item id) {
+    auto const& index = placer.table->index;
+    if (id < 0 || id >= static_cast<Item>(index.makers.size())) return {};
+    auto const choice = state::choice(placer.table);
+    int const chosen = choice && static_cast<size_t>(id) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(id)] : -1;
+    std::vector<int> order;
+    if (chosen >= 0) order.push_back(chosen);
+    for (int number : index.makers[static_cast<size_t>(id)]) if (number != chosen) order.push_back(number);
+    CraftAsk out;
+    for (int number : order) {
+        auto const& recipe = index.recipes[static_cast<size_t>(number)];
+        if (recipe.station != Station::Crafting || !fitsGrid(recipe, placer.side)) continue;
+        if (out.recipe < 0) out.recipe = number;
+        if (placer.preview(recipe, false).ready()) { out.recipe = number; break; }
+    }
+    if (out.recipe >= 0) out.check = placer.craftCheck(index.recipes[static_cast<size_t>(out.recipe)]);
+    return out;
+}
+std::optional<GridPlacer> gridPlacer(ScreenView& screen, LocalPlayer& player) {
+    int const side = place::gridSide(screen);
+    auto table = service::table();
+    if (!side || !table) return std::nullopt;
+    auto const* plan = state::plan(player);
+    return std::optional<GridPlacer>(std::in_place, screen, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, side);
+}
+Item itemOf(service::Table const& table, std::string const& key) {
+    auto const split = splitItemKey(key);
+    return table.index.find(split.name, split.aux);
 }
 KeptPresses keptButtons, keptKeys; // under shownLock
 // Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
@@ -590,8 +625,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
         Count const n = wanted->second;
         late.counts.push_back({x, y, n < 1000 ? std::to_string(n) : n < 100000 ? std::format("{}k", n / 1000) : std::string("++")});
     };
-    // A press on an item shows its recipes, a right press what it is used in, also beside an open view.
+    // A press on an item shows its recipes, a right press what it is used in, also beside an open view. With Ctrl
+    // a press crafts one round onto the pointer where it can (L-379), and otherwise does nothing.
     auto show = [&](std::string const& item) {
+        if (leftPress && ctrlHeld.load()) {
+            pressed = false;
+            if (auto placer = gridPlacer(screenView, *player))
+                if (auto const ask = craftAsk(*placer, itemOf(*placer->table, item)); ask.recipe >= 0 && ask.check == CraftOnto::Ready)
+                    placer->craft(ask.recipe);
+            return;
+        }
         view::open(item, !leftPress);
         viewScreen = screenName;
         pressed = false;
@@ -649,7 +692,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (pressed && hovered >= 0 && first + hovered < count) {
             // Under "can be made" a press lays the recipe into the screen's grid, as the game's recipe book does;
             // where nothing can be laid (no grid, nothing that fits) it shows the recipes as elsewhere.
-            if (filter == Filter::CanMake && leftPress && placeItem(screenView, nameAt(hovered), shiftHeld.load(), *player))
+            if (filter == Filter::CanMake && leftPress && !ctrlHeld.load() && placeItem(screenView, nameAt(hovered), shiftHeld.load(), *player))
                 pressed = false, view::close(), planView::close();
             else show(nameAt(hovered));
         }
@@ -735,6 +778,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
         searchHistory.typed(search.value(), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     wasFocused = searchFocus;
     cost.at("field");
+    // A listed item under the pointer that can be crafted onto it says so in its tip (L-379); while Ctrl is held,
+    // also why not.
+    if (!hoverItem.empty() && !late.tip.empty() && late.tipLines.empty() && !anyView() && !editing)
+        if (auto placer = gridPlacer(screenView, *player))
+            if (auto const ask = craftAsk(*placer, itemOf(*placer->table, hoverItem)); ask.recipe >= 0 && (ask.check == CraftOnto::Ready || ctrlHeld.load()))
+                late.tipLines.push_back(view::craftLine(ask.check));
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
         std::optional<GridPlacer> placer;
@@ -743,8 +792,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 auto const* plan = state::plan(*player);
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
-        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn, favoritesOn,
-                             placer ? &*placer : nullptr, coverLeft, right}, late);
+        view::Input viewInput{screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn,
+                              favoritesOn, placer ? &*placer : nullptr, coverLeft, right};
+        viewInput.ctrl = ctrlHeld.load();
+        view::draw(context, viewInput, late);
     }
     else if (planView::isOpen()) {
         std::string showItem;

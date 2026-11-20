@@ -127,4 +127,15 @@ inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, s
     }
     return out;
 }
+// Crafting one round onto the pointer (L-379): `ready`, the round can be laid from what is carried; the pointer
+// holds `heldCount` of `held` (at most `heldMost` a stack). A pointer holding the product is set down in a free
+// slot while the round is laid, then picked up with the new round, so it needs one.
+enum class CraftOnto { Ready, Missing, PointerOther, PointerFull, NoSlot };
+inline CraftOnto craftOnto(bool ready, Item product, int makes, Item held, int heldCount, int heldMost, bool freeSlot) {
+    if (!ready) return CraftOnto::Missing;
+    if (heldCount <= 0) return CraftOnto::Ready;
+    if (held != product) return CraftOnto::PointerOther;
+    if (heldCount + makes > heldMost) return CraftOnto::PointerFull;
+    return freeSlot ? CraftOnto::Ready : CraftOnto::NoSlot;
+}
 }

@@ -18,6 +18,9 @@ struct Placer {
     virtual PlacePlan preview(Recipe const& recipe, bool many) const = 0;
     // False when nothing was done.
     virtual bool run(int recipe, bool many) = 0;
+    // Crafting one round onto the pointer (L-379): what it meets now, and doing it.
+    virtual CraftOnto craftCheck(Recipe const& recipe) const = 0;
+    virtual bool craft(int recipe) = 0;
 };
 struct Input {
     float screenWidth = 0, screenHeight = 0, pointerX = -1, pointerY = -1;
@@ -34,6 +37,7 @@ struct Input {
     float coverLeft = 0, coverRight = 0;
     // Which features are on, for the window's tabs (L-373): Recipes has "How to make", the stores theirs.
     bool recipes = true, stores = true;
+    bool ctrl = false; // held: "place" crafts one round onto the pointer instead (L-379)
 };
 // Drawn by the host after its own: item icons, then counts and the name under the pointer on top of them.
 struct Late {
@@ -50,6 +54,8 @@ struct Late {
     std::vector<std::string> tipItems; // items shown as small icons under the tip's lines (a group's members)
     bool placed = false; // a recipe was laid into the grid: the host clears the windows off it
 };
+// The tip's line for a Ctrl + press that crafts onto the pointer (L-379), or why it would not.
+std::string craftLine(CraftOnto check);
 bool isOpen();
 // Shows an item's recipes, or what it is used in; the item shown before stays one step back.
 // `choose`: asked from the list of what to make, where an item with several recipes says which is

@@ -25,7 +25,14 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
 // Lays a waiting recipe in, if there is one; called every frame the item screen is drawn.
 void tick(ScreenView& screen);
 // Gives a waiting recipe up: the screen went, the player pressed something, the window lost the focus.
+// A round being crafted onto the pointer goes on: it must pick up what it set down.
 void stop();
+// L-379: what crafting one round of the recipe onto the pointer meets now; `ready`, the round can be laid from
+// what is carried (PlacePlan, the grid counted in).
+CraftOnto craftCheck(ScreenView& screen, Index const& index, Recipe const& recipe, bool ready);
+// Crafts one round onto the pointer, over the next frames (tick): the grid emptied first, a pointer holding the
+// product set down and picked up again with it. False when it cannot start (craftCheck, a run going on).
+bool craft(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks);
 }
 // Mass Craft (L-165): while its key is held, the recipe of the item under the pointer (over the output
 // slot: the one lying in the grid) is laid in again as many times as divide evenly, all of it taken and the product thrown out of the

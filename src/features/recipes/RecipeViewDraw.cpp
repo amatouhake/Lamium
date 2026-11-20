@@ -56,6 +56,17 @@ void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb colo
     fill(context, x + 2, y + 8, 7, 1, color);
 }
 }
+std::string craftLine(CraftOnto check) {
+    using lamium::ui::translated;
+    switch (check) {
+    case CraftOnto::Ready: return translated("recipes.craft");
+    case CraftOnto::Missing: return translated("recipes.craft.missing");
+    case CraftOnto::PointerOther: return translated("recipes.craft.pointer");
+    case CraftOnto::PointerFull: return translated("recipes.craft.full");
+    case CraftOnto::NoSlot: return translated("recipes.craft.room");
+    }
+    return {};
+}
 void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     using namespace lamium::ui;
     if (trail.empty()) return;
@@ -75,6 +86,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Choose) state::setChoice(region.item, region.choice);
             else if (region.act == Act::PagePrev) trail.back().page -= 1;
             else if (region.act == Act::PageNext) trail.back().page += 1;
+            else if (region.act == Act::Place && input.placer && input.ctrl) input.placer->craft(region.tab);
             else if (region.act == Act::Place && input.placer) {
                 // Laid in: the grid is what the player wants to see next.
                 if (input.placer->run(region.tab, input.shift)) { late.placed = true; return; }
@@ -258,6 +270,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             Rgb const mark = drawButtonBox(context, mx, my, size, size, laid.ready() && over, ButtonKind::Plain, laid.ready());
             placeMark(context, mx, my, mark);
             if (over) late.tip = translated(laid.ready() ? "recipes.place" : "recipes.placeMissing");
+            if (over && laid.ready()) late.tipLines = {craftLine(input.placer->craftCheck(recipe))};
             if (laid.ready()) regions.push_back(region);
         }
         // Of an item made several ways, the check box left of "place" (L-379): empty for a recipe not in use, a

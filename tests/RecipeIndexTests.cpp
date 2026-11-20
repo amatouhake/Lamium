@@ -312,6 +312,10 @@ void recipeIndexTests() {
               && !alreadyLaid(index, pickaxe, 3, {iron, iron, -1, -1, sticks, -1, -1, sticks, -1}) && !alreadyLaid(index, pickaxe, 2, {iron, iron, iron, -1}),
               "a grid that holds the recipe where it would be laid, and nothing else, is already laid");
         check(fitsGrid(pickaxe, 3) && !fitsGrid(pickaxe, 2) && fitsGrid(pickaxe, 0), "a three-wide recipe fits only a three-wide grid");
+        check(craftOnto(true, iron, 1, -1, 0, 64, false) == CraftOnto::Ready && craftOnto(false, iron, 1, -1, 0, 64, true) == CraftOnto::Missing
+                  && craftOnto(true, iron, 4, sticks, 3, 64, true) == CraftOnto::PointerOther && craftOnto(true, iron, 4, iron, 61, 64, true) == CraftOnto::PointerFull
+                  && craftOnto(true, iron, 4, iron, 60, 64, true) == CraftOnto::Ready && craftOnto(true, iron, 4, iron, 60, 64, false) == CraftOnto::NoSlot,
+              "a round goes onto an empty pointer, or one holding the product with room and a slot to set it down in (L-379)");
         {
             std::vector<Item> const laid{iron, iron, iron, -1, sticks, -1, -1, sticks, -1};
             std::vector<int> const ones{1, 1, 1, 0, 1, 0, 0, 1, 0}, full{64, 1, 1, 0, 1, 0, 0, 1, 0};
