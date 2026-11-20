@@ -544,6 +544,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             int step = -1; // a row of what to make: its place among the plan's steps
             std::string source; // a wanted item a feature handed over: whose it is; not edited here
             bool faint = false; // a step that cannot be made from what is held yet
+            bool group = false; // stands for any of a group
         };
         std::vector<SideRow> rows;
         auto const* plan = state::plan(*player);
@@ -562,8 +563,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
                     rows.push_back({key, schematic::items::shown(key).name, line.left});
                 } else {
                     auto const& members = index.groups[static_cast<size_t>(line.id - items)].members;
-                    rows.push_back({members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])],
-                                    groupName(index, line.id - items), line.left});
+                    SideRow row{members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])],
+                                groupName(index, line.id - items), line.left};
+                    row.group = true;
+                    rows.push_back(std::move(row));
                 }
             }
             // What the recipe table does not know (a grass block) is gathered as it is.
@@ -608,6 +611,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             if (!row.key.empty())
                 if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon))
                     late.icons.push_back({stack, side.left + 3, y + 1, smallIcon, 0, row.faint ? .45f : 1.f});
+            if (row.group) late.marks.push_back({side.left + 3, y + 1, smallIcon});
             float nameEnd = end - 30;
             if (sideList == SideList::Wanted && row.source.empty()) {
                 // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
@@ -779,7 +783,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         inspection::render::drawHeldMarks(context, held);
     }
     for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
-    if (!late.counts.empty()) context.flushText(0, std::nullopt);
+    for (auto const& mark : late.marks) anyMark(context, mark.x, mark.y, mark.scale);
+    if (!late.counts.empty() || !late.marks.empty()) context.flushText(0, std::nullopt);
     if (!late.tip.empty()) {
         // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
         // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.

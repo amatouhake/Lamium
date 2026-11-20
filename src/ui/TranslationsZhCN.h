@@ -1065,7 +1065,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.hint.back", "{}: 上一个配方"},
     {"recipes.reading", "正在读取配方..."},
     {"recipes.anyOf", "{}（任意）"},
-    {"recipes.andOthers", "{} 等 {} 种"},
+    {"recipes.andOthers", "{}等"},
     {"recipes.tag.planks", "木板"},
     {"recipes.tag.wooden_slabs", "木台阶"},
     {"recipes.tag.logs", "原木"},

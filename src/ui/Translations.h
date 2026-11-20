@@ -1074,7 +1074,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.hint.back", "{}: previous recipe", "{}: 前のレシピ"},
     {"recipes.reading", "Reading recipes...", "レシピを読み込み中..."},
     {"recipes.anyOf", "{} (any)", "{}（どれでも）"},
-    {"recipes.andOthers", "{} +{}", "{} ほか {} 種"},
+    {"recipes.andOthers", "{} etc.", "{}など"},
     {"recipes.tag.planks", "Planks", "板材"},
     {"recipes.tag.wooden_slabs", "Wooden slabs", "木のハーフブロック"},
     {"recipes.tag.logs", "Logs", "原木"},

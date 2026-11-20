@@ -390,6 +390,9 @@ void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
 void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string text) {
     label(context, x, y + 9, 18, std::move(text), palette::text, Align::Right);
 }
+void anyMark(MinecraftUIRenderContext& context, float x, float y, float scale) {
+    labelScaled(context, x - 1, y - 1, 8, "*", scale < 1 ? .625f : .875f, palette::text, Align::Left, true);
+}
 void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on, float scale) {
     if (!(scale > 0)) scale = 1;
     float const w = switchWidth * scale, h = switchHeight * scale;

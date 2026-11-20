@@ -38,6 +38,8 @@ struct Late {
     struct Count { float x, y; std::string text; };
     std::vector<inspection::render::IconAt> icons;
     std::vector<Count> counts;
+    struct Mark { float x, y, scale = 1; };
+    std::vector<Mark> marks; // icons that stand for any of a group (anyMark), by their top left
     std::string tip;
     std::vector<std::string> tipLines; // further lines under `tip`
     std::string hovered; // the item under the pointer, by its id

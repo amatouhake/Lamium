@@ -136,8 +136,9 @@ after using the first build. What is still open is in the L-item.
   button and turns its slot's face red, as the game does. Any of several items:
   the member "How to make" names while it lasts, else the one most carried.
 - An ingredient any one of several items satisfies (any planks) shows the
-  member "How to make" names, else its members in turn; under the pointer
-  it names the group and shows its members as small icons.
+  member "How to make" names, else its members in turn with a star on the
+  icon's corner (on every Recipes screen); it is named by its tag
+  ("Planks") or "Raw Gold etc.", and under the pointer shows its members.
 - Every station that can do a recipe is named, as icons.
 
 ### The plan

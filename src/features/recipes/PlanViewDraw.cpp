@@ -204,6 +204,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (key.empty()) return;
         if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, x, y, scale, 0, alpha});
     };
+    // An item or a group as its picture; a group any member of which will do carries the mark.
+    auto itemIcon = [&](Item id, float x, float y, float alpha = 1.f) {
+        icon(pictureOf(id), x, y, 1.f, alpha);
+        if (id >= itemCount && !request.picks.contains(id - itemCount)) late.marks.push_back({x, y});
+    };
     // Under the pointer a group names itself and shows its members as small icons.
     auto groupTip = [&](int group) {
         late.tip = groupName(index, group);
@@ -267,7 +272,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             float const sx = arrowX - static_cast<float>(shown - u) * 18;
             Item const item = partItem(index, request, part);
             windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18));
-            icon(pictureOf(item), sx + 1, y + 2);
+            itemIcon(item, sx + 1, y + 2);
             if (Count const n = step.crafts * part.count; n > 1) late.counts.push_back({sx, y + 1, std::to_string(n)});
             auto const picked = part.group ? request.picks.find(part.id) : request.picks.end();
             if (picked != request.picks.end()) frame(context, sx, y + 1, 18, 18, palette::accentDeep);
@@ -362,7 +367,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 // One icon column with the steps: the material under the inputs' last slot, its name after.
                 float const room = inputsRoom(target->view.steps);
                 float const iconX = x0 + room - 17, labelX = x0 + room + 3;
-                icon(pictureOf(material.id), iconX, y + 1);
+                itemIcon(material.id, iconX, y + 1);
                 float end = right - 3;
                 std::string const amounts = std::format("{} / {}", material.held, material.need);
                 float const amountsW = textWidth(context, amounts);
@@ -464,6 +469,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             std::string const picture = row.key.empty() ? pictureOf(line.id) : row.key;
             std::string const name = row.key.empty() ? nameOf(line.id) : schematic::items::shown(row.key).name;
             icon(picture, left + 8, y + 1, 1.f, alpha);
+            if (row.key.empty() && line.id >= itemCount && !request.picks.contains(line.id - itemCount)) late.marks.push_back({left + 8, y + 1});
             number(heldX, heldW, y + 5, line.held, row.done);
             number(wantX, wantW, y + 5, line.need, row.done);
             progressBar(context, barX, y + 9, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
@@ -639,12 +645,13 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
             if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
             icon(groupFace(line.group), left + 1, y + 2);
+            late.marks.push_back({left + 1, y + 2});
             std::string const name = groupName(index, line.group);
             windowLabel(context, left + 20, y + 6, arrowX - left - 22, name);
             changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
             windowSlot(context, slotX, y + 1);
             icon(chosen ? index.items[static_cast<size_t>(picked->second)] : groupPicture(line.group), slotX + 1, y + 2);
-            if (!chosen) labelScaled(context, slotX + 2, y + 1, 8, "*", .75f, palette::text, Align::Left, true);
+            if (!chosen) late.marks.push_back({slotX + 1, y + 2});
             if (chosen) words(y, nameOf(picked->second), translated("recipes.howTo.chosen"));
             else words(y, translated("recipes.howTo.any"), translated("recipes.howTo.anyTip"));
             if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group);
@@ -661,7 +668,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 windowSlot(context, cx, cy, hot);
                 if (c == 0) {
                     icon(groupPicture(line.group), cx + 1, cy + 1);
-                    labelScaled(context, cx + 1, cy, 8, "*", .75f, palette::text, Align::Left, true);
+                    late.marks.push_back({cx + 1, cy + 1});
                     if (picked == request.picks.end()) frame(context, cx, cy, 18, 18, palette::accentDeep);
                     if (hot) late.tip = translated("recipes.howTo.any"), late.tipLines = {translated("recipes.howTo.anyTip")};
                     if (took(cx, cy, 18, 18)) state::setPick(key, {}), howOpen.clear();

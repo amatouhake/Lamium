@@ -204,6 +204,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             auto const& shown = schematic::items::shown(region.item);
             if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, sx + 1, sy + 1});
             if (amount > 1) late.counts.push_back({sx, sy, std::to_string(amount)});
+            if (group >= 0 && !state::notes().picks.contains(groupKey(index, group))) late.marks.push_back({sx + 1, sy + 1});
             if (hovered && group >= 0) {
                 late.tip = groupName(index, group);
                 late.tipItems.clear();

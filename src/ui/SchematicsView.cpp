@@ -1224,8 +1224,8 @@ std::map<std::string, std::uint64_t> carriedItems() {
     // With what the counted places of Recipes hold: one count for the plan and for this tab (L-359).
     return player ? recipes::state::heldByName(*player) : std::map<std::string, std::uint64_t>{};
 }
-// A group as one name: a known tag as "Planks (any)", else its first member and how many more.
-std::string rawGroupName(recipes::Index const& index, int group) { return recipes::groupName(index, group); }
+// A group as one name with "(any)": Schematics' list has no mark on its icons.
+std::string rawGroupName(recipes::Index const& index, int group) { return recipes::groupNameAny(index, group); }
 // What a gather line (or a recipe's part) shows: an item as the game names it, a group under its first member's icon.
 schematic::items::Shown rawShown(RawGather const& line) {
     if (line.group < 0 || !rawTable) return schematic::items::shown(line.item);

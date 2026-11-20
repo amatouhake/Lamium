@@ -209,6 +209,9 @@ inline constexpr float windowTabRise = 21, windowTabWidth = 24;
 inline constexpr float windowTabIconY(float windowTop) { return windowTop - 18; }
 void windowTab(MinecraftUIRenderContext&, float x, float windowTop, float w, std::string text, bool selected, bool hovered);
 void slotCount(MinecraftUIRenderContext&, float x, float y, std::string text);
+// An icon that stands for any of several items (L-370): a star on its top left corner, over the icon, so draw it
+// after the icons. `x`, `y`: the icon's top left; `scale`: the icon's (1 for 16 units).
+void anyMark(MinecraftUIRenderContext&, float x, float y, float scale = 1);
 // Bedrock-style switch: the knob position carries the state as well as color.
 // `scale` sizes it with a HUD element (the toggle toast); the edge stays one unit.
 void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on, float scale = 1);
