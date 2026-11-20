@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Placing with the pointer full (L-381, 2026-11-21)
+
+Build `21e60bb1` (DLL
+`040a58626c6bb9236d19493e8d94240cfb9f42a6e81c0135a44bf5bf4e12747f`),
+1.26.60.05 Dev instance, a local world, the maintainer. Works: with dirt
+on the pointer a press and Shift + press under "can be made" laid the
+recipe in and the dirt stayed held; with the pointer empty, placing as
+before (a press, Shift, "place"); Ctrl + press on planks while holding
+planks added the round to the held stack; with dirt held Ctrl + press laid
+the round in only. The log: "a cell laid in straight from its slot", never
+"through the pointer"; "onto the held stack by taking the output" (2 to 4
+ms); "the pointer is taken, laid in only". Not seen: a server.
+
 ## Item tips without presses, Shift-place from every list (L-379, 2026-11-21)
 
 Build `fa4b2149` (DLL

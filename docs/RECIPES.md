@@ -163,25 +163,30 @@ after using the first build. What is still open is in the L-item.
 - Crafting onto the pointer (L-379): Ctrl + a press on a listed item
   crafts one round of it onto the pointer, by the recipe in use where it
   fits the grid, else the first that fits; Ctrl + "place" by that recipe.
-  What lay in the grid goes back first; a pointer holding the product is
-  set down in a free slot and picked up again with the new round.
-  `RecipePlace.cpp` takes the output by the slot call (seen to craft),
-  else Shift-takes it and picks the round up; one log line says which.
+  What lay in the grid goes back first. The round goes onto an empty
+  pointer or onto what it holds of the product; a pointer holding another
+  item or with no room gets the round laid in only, and nothing it holds
+  moves ([L-381](backlog/done/L-381.md)). `RecipePlace.cpp` takes the
+  output by the slot call (seen to craft), else, with an empty pointer,
+  Shift-takes it and picks the round up; one log line says which.
 - Presses on a listed item: a press shows its recipes (under "can be
   made" it places one round), Shift + press places as many as divide
   evenly, Ctrl + press crafts onto the pointer, a right press shows its
   uses. One that cannot act (no grid, nothing that fits, something
-  missing, the pointer full) shows the recipes, whose red slots tell
-  why. An item's tip explains no press; the place button's names Shift
-  and Ctrl, and why Ctrl would not work now. With the pointer full,
-  placing waits on [L-381](backlog/L-381.md).
+  missing) shows the recipes, whose red slots tell why. Whatever the
+  pointer holds stays on it. An item's tip explains no press; the place
+  button's names Shift and Ctrl, and that Ctrl only places while the
+  pointer is taken.
 - "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): on the
   inventory and the crafting table, a crafting recipe that fits the grid
   has the button. A press lays one of each ingredient into the grid (one
   more of each onto the same recipe, 2026-11-20), with Shift as many as
   divide evenly from every stack carried, and closes the view. Crafting is the player's: laying in and crafting at one press was
   tried and is not what a recipe view is expected to do. What lay in the
-  grid goes back to the inventory first. An ingredient that is missing disables the
+  grid goes back to the inventory first. Each cell is moved straight from
+  its slot (the manager's place-amount, as Sort and Item transfer move
+  stacks), so the pointer keeps what it holds (L-381); a move that shows
+  nothing goes through the empty pointer instead. An ingredient that is missing disables the
   button and turns its slot's face red, as the game does. Any of several items:
   the member "How to make" names while it lasts, else the one most carried.
 - An ingredient any one of several items satisfies (any planks) shows the
