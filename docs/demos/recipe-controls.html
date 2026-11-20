@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Controls</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --edge:#000; --shadow:#555;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+#view{position:relative;margin:0 auto;font-family:var(--pix)}
+#view *{position:absolute}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge)}
+.txt{color:var(--win-ink);white-space:nowrap}
+.faint{color:var(--win-faint);white-space:nowrap}
+.face{background:var(--win);box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow)}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light);display:grid;place-items:center}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.btn{display:grid;place-items:center;background:#d8d8d8;color:var(--win-ink);cursor:pointer;box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge);line-height:1}
+.btn:hover{background:#e8e8e8}
+.btn.on{background:var(--accent-deep);color:#fff}
+.box{display:grid;place-items:center;cursor:pointer;border:var(--u) solid var(--win-ink);background:#e0e0e0;color:#fff;line-height:1}
+.box.on{background:var(--accent-deep);border-color:#1f5a14}
+.box:hover{outline:var(--u) solid #fff}
+.tip{background:#100010f0;border:var(--u) solid #2a0a5a;color:#fff;white-space:nowrap;padding:calc(2*var(--u)) calc(4*var(--u));z-index:5;pointer-events:none}
+.toast{background:#1d2226f0;border:1px solid #4a545a;color:#e6ebe8;white-space:nowrap;padding:4px 8px;z-index:6}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>レシピの面の操作（L-379）</h1>
+    <p class="lede">レシピビューの 1 つのレシピに、「このレシピで作る（既定にする）」と「欲しい物に入れて内訳を開く」を足す案。今ある「並べる」ボタンと、製品の下の使用中の印（チェックか「自動」）との置き方を 3 通り比べる。例はトーチ（石炭か木炭の 2 通り）。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">案</span>
+      <button class="chip on" data-v="v2">V2 製品の下がチェック、欲しいは右上</button>
+      <button class="chip" data-v="v1">V1 右上に 3 つ並べる</button>
+      <button class="chip" data-v="v3">V3 乗せたときだけ出す</button>
+    </div>
+  </div>
+  <div id="view"></div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>V2：使用中の印の場所をそのまま「選ぶ」チェック欄にする。選べるレシピ（その品に作り方が 2 つ以上）には空の欄が出て、押すと緑のチェックになり既定になる。誰も選んでいないときは自動で決まった方に「自動」が付く。右上に「並べる」と「欲しい物」の 2 つの小さなボタン。</li>
+        <li>V1：右上に「並べる」「選ぶ」「欲しい物」の 3 つを並べる。製品の下の印は今まで通り（押すと作り方へ）。</li>
+        <li>V3：ポインタを乗せたレシピにだけ、右上に「選ぶ」「欲しい物」が出る。普段は今の見た目のまま。</li>
+        <li>「欲しい物」を押すと、そのレシピの品が欲しい物に入り、計画のウィンドウが内訳を開いた状態で出る（モックでは右下に通知だけ）。</li>
+        <li>選んだレシピは「作り方」のタブにも同じように載る。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> V1・V2・V3 のどれにするか。</li>
+        <li><span class="q">2.</span> 「欲しい物」ボタンの絵（モックでは「＋」）。</li>
+        <li><span class="q">3.</span> 選んだチェックをもう一度押したら「自動」に戻すか。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3, variant = 'v2', chosen = null, hover = null, toast = '';
+const px = v => v * U + 'px';
+const ICONS = {coal:['#222','炭'], charcoal:['#3a2a20','木'], stick:['#9a7040','棒'], torch:['#e8b040','ト'], sand:['#e0d090','砂'], glass:['#bfe6ef','ガ']};
+const RECIPES = [
+  {id:'coal', grid:[null,'coal',null,null,'stick',null,null,null,null], n:4, auto:true},
+  {id:'charcoal', grid:[null,'charcoal',null,null,'stick',null,null,null,null], n:4},
+];
+function fitUnit(){ U = Math.max(1.6, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 240)); document.documentElement.style.setProperty('--u', U + 'px'); }
+const view = document.getElementById('view');
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
+function icon(x, y, key, size = 16){ const [c, t] = ICONS[key]; const d = el('ico', x, y, size, size, t); d.style.background = c; d.style.fontSize = px(size * .38); return d; }
+function tip(x, y, text){ const t = el('tip', x, y, null, null, text); t.style.fontSize = px(7); }
+function render(){
+  fitUnit();
+  view.style.width = px(230); view.style.height = px(170); view.innerHTML = '';
+  el('win', 5, 22, 220, 140);
+  // Tabs and heading
+  const tab = el('win', 10, 2, 26, 22); icon(15, 5, 'stick');
+  icon(12, 28, 'torch');
+  el('txt', 32, 31, null, null, 'トーチ').style.fontSize = px(8);
+  el('faint', 12, 45, null, null, 'クラフト').style.fontSize = px(7);
+  RECIPES.forEach((r, i) => {
+    const bx = 15 + i * 105, by = 62;
+    const over = !!hover && hover.split(':')[0] === r.id;
+    const f = el('face', bx - 3, by - 3, 98, 60);
+    f.style.zIndex = 0;
+    f.onmouseenter = () => { if (hover !== r.id) { hover = r.id; render(); } };
+    f.onmouseleave = e => { if (!e.relatedTarget || !f.parentNode.contains(e.relatedTarget) || e.relatedTarget.closest && false) {} };
+    for (let k = 0; k < 9; k++) {
+      const s = el('slot', bx + (k % 3) * 18, by + Math.floor(k / 3) * 18, 18, 18);
+      if (r.grid[k]) icon(bx + (k % 3) * 18 + 1, by + Math.floor(k / 3) * 18 + 1, r.grid[k]);
+    }
+    el('txt', bx + 57, by + 20, null, null, '➜').style.fontSize = px(10);
+    el('slot', bx + 70, by + 18, 18, 18); icon(bx + 71, by + 19, 'torch');
+    const cnt = el('txt', bx + 82, by + 28, null, null, '4'); cnt.style.color = '#fff'; cnt.style.fontSize = px(7); cnt.style.textShadow = '1px 1px #3f3f3f';
+    const isChosen = chosen === r.id, isAuto = !chosen && r.auto;
+    const buttons = [];
+    buttons.push({label:'⇩', tipText:'並べる（Shift: 割れるだけ）', act:() => { toast = 'グリッドに並べた'; }});
+    const chooseBtn = {label:'✓', tipText: isChosen ? 'このレシピで作る：選択中（押すと自動に戻す）' : 'このレシピで作る', on:isChosen, act:() => { chosen = isChosen ? null : r.id; }};
+    const wantBtn = {label:'＋', tipText:'欲しい物に入れて内訳を開く', act:() => { toast = 'トーチを欲しい物に入れ、計画の内訳を開いた'; }};
+    if (variant === 'v1') buttons.push(chooseBtn, wantBtn);
+    else if (variant === 'v2') buttons.push(wantBtn);
+    else if (variant === 'v3' && over) buttons.push(chooseBtn, wantBtn);
+    buttons.forEach((b, k) => {
+      const x = bx + 92 - 11 - (buttons.length - 1 - k) * 12, y = by + 2;
+      const d = el('btn' + (b.on ? ' on' : ''), x, y, 11, 11, b.label);
+      d.style.fontSize = px(7); d.style.zIndex = 2;
+      d.onmousedown = e => { e.preventDefault(); b.act(); render(); };
+      d.onmouseenter = () => { hover = r.id + ':' + b.label; render(); };
+      if (hover === r.id + ':' + b.label) tip(x, y - 13, b.tipText);
+    });
+    // Under the product: V2's choose box, or today's mark.
+    const ux = bx + 69, uy = by + 39;
+    if (variant === 'v2') {
+      const d = el('box' + (isChosen ? ' on' : ''), ux + 6, uy, 8, 8, isChosen ? '✓' : '');
+      d.style.fontSize = px(6); d.style.zIndex = 2;
+      d.onmousedown = e => { e.preventDefault(); chosen = isChosen ? null : r.id; render(); };
+      d.onmouseenter = () => { hover = r.id + ':box'; render(); };
+      if (isAuto) { const a = el('faint', ux - 2, uy + 9, 24, null, '自動'); a.style.fontSize = px(5); a.style.textAlign = 'center'; }
+      if (hover === r.id + ':box') tip(ux, uy - 13, isChosen ? 'このレシピで作る：選択中（押すと自動に戻す）' : 'このレシピで作る');
+    } else {
+      if (isChosen) { const c = el('txt', ux + 6, uy - 1, null, null, '✓'); c.style.color = '#3c8527'; c.style.fontSize = px(8); }
+      else if (isAuto) { const a = el('faint', ux - 2, uy, 24, null, '自動'); a.style.fontSize = px(5); a.style.textAlign = 'center'; }
+    }
+  });
+  const hint = el('faint', 12, 150, null, null, 'クリック: レシピ | 右クリック: 使い道 | A: お気に入り | W: 欲しい物');
+  hint.style.fontSize = px(6);
+  if (toast) { const t = el('toast', 120, 166, null, null, toast); t.style.fontSize = '13px'; setTimeout(() => { toast = ''; render(); }, 1600); }
+}
+view.onmouseleave = () => { hover = null; render(); };
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { variant = b.dataset.v; document.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
