@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A recipe's check box and the lighter edges (L-379, 2026-11-21)
+
+Build `b1812b5e` (DLL
+`2341949f866e4578502d84043f6db7bd12f5bdda0d5d26ca1c76cbb08e75383a`),
+1.26.60.05 Dev instance, the maintainer. Works: the faces' padding and the
+236-wide window; "place" at the bottom right with the check box of the
+same size left of it, on crafting and stonecutting; the dark check for the
+rule's pick and the green one for the player's, told apart easily;
+choosing oak planks and stone brick stairs moves no recipe and no tab; the
+controls' dark grey edge sits in the window. Seen on `97af8627` and fixed
+since: the box's black edge stood out, a choice reordered the recipes and
+changed the tab. Not seen: smelting and smithing faces with several
+recipes, a server.
+
 ## The close hitch, split up (L-378, 2026-11-21)
 
 Build `7c8e079b`, 1.26.60.05 Dev instance, the maintainer. With Recipes,
