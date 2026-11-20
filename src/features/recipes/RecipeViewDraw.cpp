@@ -25,7 +25,7 @@ struct Target {
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, a pager's
 // button or a recipe's "place".
-enum class Act { Item, Tab, Favorite, Wanted, Place, PagePrev, PageNext, HowTo, Station };
+enum class Act { Item, Tab, Favorite, Wanted, Place, PagePrev, PageNext, HowTo };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
@@ -76,7 +76,6 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (!region.has(input.pointerX, input.pointerY)) continue;
             std::string const shownItem = trail.back().item; // open() below may move the trail
             if (region.act == Act::Item) open(std::string(region.item), !left);
-            else if (region.act == Act::Station) open(std::string(region.item), true); // what the station does
             else if (!left) {}
             else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
             else if (region.act == Act::Favorite) state::toggleFavorite(shownItem);
@@ -155,8 +154,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     Station const station = tab.station;
     int const count = static_cast<int>(tab.recipes.size()), pages = l.pages(station, count);
     at.page = std::clamp(at.page, 0, pages - 1);
-    // Processes are tabs (L-376), each by its usual station's icon and named under the pointer with its stations.
-    auto tabName = [&](ViewTab const& t) { return kindName(t.kind, tabStations(index, t)); };
+    // Processes are tabs (L-376), each by its usual station's icon and named under the pointer.
+    auto tabName = [&](ViewTab const& t) { return kindName(t.kind); };
     float x = l.left + 5;
     float const tabEnd = l.left + l.width - 5;
     for (size_t i = 0; i < tabs.size(); ++i) {
@@ -176,8 +175,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         regions.push_back(region);
         x += w - 1; // neighbours share their edge
     }
-    // The second line: the tab's stations as their icons, each once (a press shows what that station does), the
-    // process's name, and the pager at its right end.
+    // The second line: the tab's stations as items, each once (the item's tip; a press its recipes, a right press
+    // its uses, as anywhere), the process's name, and the pager at its right end.
     float const lineTwo = l.top + lineOne + 14, lineEnd = l.left + l.width - 7;
     auto const pager = drawPager(context, lineEnd, lineTwo, at.page, pages, input.pointerX, input.pointerY);
     float nameX = l.left + 7;
@@ -187,16 +186,13 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         std::string key(picture);
         float const sy = lineTwo - 1;
         if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, nameX, sy, .75f});
-        Region region{nameX, sy, 12, 12, Act::Station, key, -1};
-        if (region.has(input.pointerX, input.pointerY)) {
-            late.tip = stationName(s), late.tipLines = {translated("recipes.station.uses")};
-            late.hovered = key;
-        }
+        Region region{nameX, sy, 12, 12, Act::Item, key, -1};
+        if (region.has(input.pointerX, input.pointerY)) late.tip = schematic::items::shown(key).name, late.hovered = key;
         regions.push_back(std::move(region));
         nameX += 13;
     }
     if (nameX > l.left + 7) nameX += 2;
-    windowLabel(context, nameX, lineTwo + 1, pager.prevX - 4 - nameX, kindName(tab.kind, {}), true);
+    windowLabel(context, nameX, lineTwo + 1, pager.prevX - 4 - nameX, kindName(tab.kind), true);
     if (pager.prevOn) regions.push_back({pager.prevX, pager.y, Pager::size, Pager::size, Act::PagePrev, {}, -1});
     if (pager.nextOn) regions.push_back({pager.nextX, pager.y, Pager::size, Pager::size, Act::PageNext, {}, -1});
     // An ingredient any of several items satisfies shows them in turn.

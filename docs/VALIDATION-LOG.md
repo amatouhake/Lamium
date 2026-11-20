@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Recipe view tabs per process (L-376, 2026-11-20)
+
+Build `da544285` (DLL
+`f91c8d932dd6afe78d30e183692a5051c307e5d4f0ee781df6025ff78ffc74d4`),
+1.26.60.05 Dev instance, the maintainer. Works: steak in smelting, smoking
+and campfire cooking, both campfires in the last tab's heading and the
+crafting table in crafting's; a heading's station icon opening what it
+does; favorites past the panel scrolling with the wheel and the bar.
+Asked to change (built after, not seen): no station list after the
+process's name, and the heading's station icons acting as ordinary items
+(the item's tooltip, recipes and uses) instead of their own tip and press.
+
 ## Recipe view tabs by kind of work (L-376, 2026-11-20)
 
 Build `07ac927c` (DLL

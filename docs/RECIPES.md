@@ -92,13 +92,14 @@ after using the first build. What is still open is in the L-item.
   cooking, stonecutting, smithing. The game files one cooking recipe under
   several stations' tags; it shows in the tab of each process that does
   it (steak in three). A tab is its usual station as an icon (campfire
-  cooking: the campfire), named under the pointer with its stations; each
-  the same size.
+  cooking: the campfire), named under the pointer by the process alone
+  ("Smelting"); each the same size.
 - A two-line heading: the item's icon and name across the width (under
   the pointer, the item's tooltip, so a name cut short can be read) with
   its own actions at the right end, a favorite button (the key works
-  too) and "wanted"; under it the tab's stations as icons, each once (a
-  press shows what that station does), the process's name and the pager (previous,
+  too) and "wanted"; under it the tab's stations as items, each once (the
+  item's tooltip, a press its recipes, a right press its uses, as any
+  item), the process's name and the pager (previous,
   "1 / 3", next, as wide as two-digit pages so the buttons stay put). The wheel turns pages too. Recipes carry no favorite
   button of their own: any item in a recipe can be opened, and the key is
   there.
