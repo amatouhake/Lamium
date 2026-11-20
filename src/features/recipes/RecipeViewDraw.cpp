@@ -25,7 +25,7 @@ struct Target {
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, a pager's
 // button or a recipe's "place".
-enum class Act { Item, Tab, Favorite, Wanted, Place, PagePrev, PageNext, HowTo };
+enum class Act { Item, Tab, Favorite, Wanted, Place, PagePrev, PageNext, HowTo, Station };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
@@ -76,6 +76,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (!region.has(input.pointerX, input.pointerY)) continue;
             std::string const shownItem = trail.back().item; // open() below may move the trail
             if (region.act == Act::Item) open(std::string(region.item), !left);
+            else if (region.act == Act::Station) open(std::string(region.item), true); // what the station does
             else if (!left) {}
             else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
             else if (region.act == Act::Favorite) state::toggleFavorite(shownItem);
@@ -154,11 +155,13 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     Station const station = tab.station;
     int const count = static_cast<int>(tab.recipes.size()), pages = l.pages(station, count);
     at.page = std::clamp(at.page, 0, pages - 1);
-    // Stations are tabs, each by its block's icon and named under the pointer; the pager keeps the line's right end.
+    // Kinds of work are tabs (L-376), each by its usual station's icon and named under the pointer with the stations
+    // that do it; the pager keeps the line's right end.
+    auto tabName = [&](ViewTab const& t) { return kindName(t.kind, tabStations(index, t)); };
     float x = l.left + 5;
     float const tabEnd = l.left + l.width - 5;
     for (size_t i = 0; i < tabs.size(); ++i) {
-        std::string name = stationName(tabs[i].station);
+        std::string name = tabName(tabs[i]);
         auto const picture = stationItem(tabs[i].station);
         auto const* stack = picture.empty() ? nullptr : schematic::items::iconStack(schematic::items::shown(std::string(picture)).icon);
         float const w = stack ? windowTabWidth : textWidth(context, name) + 14;
@@ -177,7 +180,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     // The second line: the station's name, and the pager at its right end.
     float const lineTwo = l.top + lineOne + 14, lineEnd = l.left + l.width - 7;
     auto const pager = drawPager(context, lineEnd, lineTwo, at.page, pages, input.pointerX, input.pointerY);
-    windowLabel(context, l.left + 7, lineTwo + 1, pager.prevX - 4 - (l.left + 7), stationName(station), true);
+    windowLabel(context, l.left + 7, lineTwo + 1, pager.prevX - 4 - (l.left + 7), tabName(tab), true);
     if (pager.prevOn) regions.push_back({pager.prevX, pager.y, Pager::size, Pager::size, Act::PagePrev, {}, -1});
     if (pager.nextOn) regions.push_back({pager.nextX, pager.y, Pager::size, Pager::size, Act::PageNext, {}, -1});
     // An ingredient any of several items satisfies shows them in turn.
@@ -266,6 +269,21 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                 late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.change")};
             regions.push_back(region);
         }
+        // A cooking recipe names the stations that do it, as their icons; a press shows what that station does.
+        if (block.stations)
+            for (size_t k = 0; k < recipe.stations.size() && k < 6; ++k) {
+                auto const picture = stationItem(recipe.stations[k]);
+                if (picture.empty()) continue;
+                float const sx = bx + block.marksX + static_cast<float>(k % 2) * 16, sy = by + block.marksY + static_cast<float>(k / 2) * 16;
+                std::string key(picture);
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, sx, sy, .875f});
+                Region region{sx, sy, 14, 14, Act::Station, key, -1};
+                if (region.has(input.pointerX, input.pointerY)) {
+                    late.tip = stationName(recipe.stations[k]), late.tipLines = {translated("recipes.station.uses")};
+                    late.hovered = key;
+                }
+                regions.push_back(std::move(region));
+            }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;
             anyOrderMark(context, nx, ny, palette::vanilla::windowInk);

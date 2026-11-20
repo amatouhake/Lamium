@@ -20,6 +20,29 @@ using Item = int; // position in Index::items
 using Count = std::uint64_t;
 enum class Station { Crafting, Stonecutter, Furnace, BlastFurnace, Smoker, Campfire, SoulCampfire, Smithing, Other };
 inline bool smelts(Station station) { return station >= Station::Furnace && station <= Station::SoulCampfire; }
+// Kinds of work (L-376): the recipe view's tabs. Cooking is what the furnace, blast furnace, smoker and both
+// campfires do: the game files one recipe under those stations' tags.
+enum class Kind { Crafting, Cooking, Stonecutting, Smithing, Other };
+inline Kind kindOf(Station station) {
+    if (smelts(station)) return Kind::Cooking;
+    switch (station) {
+    case Station::Crafting: return Kind::Crafting;
+    case Station::Stonecutter: return Kind::Stonecutting;
+    case Station::Smithing: return Kind::Smithing;
+    default: return Kind::Other;
+    }
+}
+// The station a kind is known by: its tab's picture and its layout.
+inline Station usualStation(Kind kind) {
+    switch (kind) {
+    case Kind::Crafting: return Station::Crafting;
+    case Kind::Cooking: return Station::Furnace;
+    case Kind::Stonecutting: return Station::Stonecutter;
+    case Kind::Smithing: return Station::Smithing;
+    case Kind::Other: break;
+    }
+    return Station::Other;
+}
 inline Station stationOf(std::string_view tag) {
     static constexpr std::pair<std::string_view, Station> known[]{
         {"crafting_table", Station::Crafting}, {"stonecutter", Station::Stonecutter}, {"furnace", Station::Furnace},
@@ -70,7 +93,8 @@ struct Part {
 };
 struct Recipe {
     std::string id;
-    Station station = Station::Other;
+    Station station = Station::Other; // the first of `stations`, which names the recipe in the notes
+    std::vector<Station> stations;    // every station that does it, in order (cooking: often several)
     int priority = 0;
     Item makes = 0;
     Count count = 1;
@@ -215,7 +239,8 @@ inline Index build(Source const& given) {
     for (auto const& from : source.recipes) {
         if (from.station == "deprecated" || from.makes.empty() || from.makes.front().first.empty() || !from.makes.front().second)
             continue;
-        Recipe recipe{from.id, stationOf(from.station), from.priority, item(from.makes.front().first), from.makes.front().second, {}, {}};
+        Recipe recipe{from.id, stationOf(from.station), {stationOf(from.station)}, from.priority, item(from.makes.front().first),
+                      from.makes.front().second, {}, {}};
         for (size_t i = 1; i < from.makes.size(); ++i)
             if (!from.makes[i].first.empty() && from.makes[i].second) recipe.extra.emplace_back(item(from.makes[i].first), from.makes[i].second);
         bool own = false;
@@ -241,12 +266,28 @@ inline Index build(Source const& given) {
         recipe.own = own;
         if (!recipe.uses.empty()) all.push_back(std::move(recipe));
     }
-    // Smelting alternatives: same station, product and amount, one input each.
-    std::map<std::tuple<Station, Item, Count>, std::vector<size_t>> alike;
-    for (size_t i = 0; i < all.size(); ++i)
-        if (!all[i].own && smelts(all[i].station) && all[i].uses.size() == 1 && all[i].uses[0].count == 1)
-            alike[{all[i].station, all[i].makes, all[i].count}].push_back(i);
+    // One cooking recipe filed under several stations (L-376): the same product, amount and cells become one
+    // recipe that names every station, the first of them standing for it.
     std::vector<bool> dropped(all.size(), false);
+    for (size_t i = 0; i < all.size(); ++i) {
+        if (dropped[i] || !smelts(all[i].station)) continue;
+        for (size_t j = i + 1; j < all.size(); ++j) {
+            auto const& other = all[j];
+            if (dropped[j] || !smelts(other.station) || other.makes != all[i].makes || other.count != all[i].count || other.cells != all[i].cells
+                || other.extra != all[i].extra || other.own != all[i].own)
+                continue;
+            for (Station s : other.stations)
+                if (std::find(all[i].stations.begin(), all[i].stations.end(), s) == all[i].stations.end()) all[i].stations.push_back(s);
+            dropped[j] = true;
+        }
+        std::sort(all[i].stations.begin(), all[i].stations.end());
+        all[i].station = all[i].stations.front();
+    }
+    // Smelting alternatives: the same stations, product and amount, one input each.
+    std::map<std::tuple<std::vector<Station>, Item, Count>, std::vector<size_t>> alike;
+    for (size_t i = 0; i < all.size(); ++i)
+        if (!dropped[i] && !all[i].own && smelts(all[i].station) && all[i].uses.size() == 1 && all[i].uses[0].count == 1)
+            alike[{all[i].stations, all[i].makes, all[i].count}].push_back(i);
     for (auto const& [key, list] : alike) {
         if (list.size() < 2) continue;
         size_t best = list.front();

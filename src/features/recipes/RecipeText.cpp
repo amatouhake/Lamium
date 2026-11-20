@@ -8,6 +8,17 @@ std::string stationName(Station station) {
     auto const item = stationItem(station);
     return item.empty() ? std::string("-") : schematic::items::shown(std::string(item)).name;
 }
+std::string kindName(Kind kind, std::vector<Station> const& stations) {
+    static constexpr char const* keys[]{"recipes.kind.crafting", "recipes.kind.cooking", "recipes.kind.stonecutting", "recipes.kind.smithing",
+                                        "recipes.kind.other"};
+    std::string const name = ui::translated(keys[static_cast<size_t>(kind)]);
+    std::string list;
+    for (Station s : stations) {
+        if (stationItem(s).empty()) continue;
+        list += (list.empty() ? "" : ui::translated("recipes.kind.sep")) + stationName(s);
+    }
+    return list.empty() ? name : ui::translated("recipes.kind.at", name, list);
+}
 std::string groupName(Index const& index, int group) {
     auto const& entry = index.groups[static_cast<size_t>(group)];
     if (!entry.name.empty()) {

@@ -37,6 +37,7 @@ void recipeIndexTests() {
         {"furnace", "furnace_iron", 100, {{"iron_ingot", 1}}, cells("raw_iron", 1)},
         {"furnace", "furnace_iron_ore", 100, {{"iron_ingot", 1}}, cells("iron_ore", 1)},
         {"blast_furnace", "furnace_iron", 100, {{"iron_ingot", 1}}, cells("raw_iron", 1)},
+        {"blast_furnace", "furnace_iron_ore", 100, {{"iron_ingot", 1}}, cells("iron_ore", 1)},
         {"furnace", "furnace_iron_axe", 110, {{"iron_nugget", 1}}, cells("iron_axe", 1)},
         {"crafting_table", "bucket", 0, {{"bucket", 1}}, cells("iron_ingot", 3)},
         {"crafting_table", "emerald_block", 0, {{"emerald_block", 1}}, cells("emerald", 9)},
@@ -223,6 +224,12 @@ void recipeIndexTests() {
         source.recipes.push_back({"furnace", "iron_a", 0, {{"iron", 1}}, {{"raw_iron", false}}});
         source.recipes.push_back({"furnace", "iron_b", 0, {{"iron", 1}}, {{"iron_ore", false}}});
         source.recipes.push_back({"blast_furnace", "iron_c", 0, {{"iron", 1}}, {{"raw_iron", false}}});
+        source.recipes.push_back({"blast_furnace", "iron_d", 0, {{"iron", 1}}, {{"iron_ore", false}}});
+        source.recipes.push_back({"furnace", "steak", 0, {{"steak", 1}}, {{"beef", false}}});
+        source.recipes.push_back({"smoker", "steak", 0, {{"steak", 1}}, {{"beef", false}}});
+        source.recipes.push_back({"campfire", "steak", 0, {{"steak", 1}}, {{"beef", false}}});
+        source.recipes.push_back({"crafting_table", "furnace", 0, {{"minecraft:furnace", 1}}, {{"cobblestone", false}}});
+        source.recipes.push_back({"crafting_table", "minecart_furnace", 0, {{"furnace_minecart", 1}}, {{"minecraft:furnace", false}, {"minecart", false}}});
         Index index = build(source);
         Choice choice = choose(index);
         auto const& pickaxe = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("pickaxe"))].front())];
@@ -240,8 +247,19 @@ void recipeIndexTests() {
         check(anyOrder(button) && !odd.width && odd.cells.size() == 2 && !anyOrder(odd),
               "a shape that does not fit its cells is laid out without it, and only the game's word marks any order");
         auto makes = viewTabs(index, choice, index.find("iron"), false);
-        check(makes.size() == 2 && makes[0].station == Station::Furnace && makes[0].recipes.size() == 1 && makes[1].station == Station::BlastFurnace,
-              "an item's recipes are split by station, smelting alternatives being one recipe");
+        check(makes.size() == 1 && makes[0].kind == Kind::Cooking && makes[0].station == Station::Furnace && makes[0].recipes.size() == 1
+                  && index.recipes[static_cast<size_t>(makes[0].recipes[0])].stations == std::vector<Station>{Station::Furnace, Station::BlastFurnace},
+              "a recipe several stations do shows once in its kind's tab, with its stations; smelting alternatives are one recipe (L-376)");
+        auto steak = viewTabs(index, choice, index.find("steak"), false);
+        check(steak.size() == 1 && steak[0].recipes.size() == 1
+                  && tabStations(index, steak[0]) == std::vector<Station>{Station::Furnace, Station::Smoker, Station::Campfire},
+              "one cooking recipe filed under three stations is one recipe naming all three");
+        auto furnaceUses = viewTabs(index, choice, index.find("minecraft:furnace"), true);
+        check(furnaceUses.size() == 2 && furnaceUses[0].only == Station::Furnace && furnaceUses[0].recipes.size() == 2
+                  && furnaceUses[1].kind == Kind::Crafting && furnaceUses[1].recipes.size() == 1,
+              "a station's uses begin with what it does, then what it goes into");
+        check(viewTabs(index, choice, index.find("minecraft:furnace"), false).front().kind == Kind::Crafting,
+              "a station's recipes are how it is made");
         check(index.recipes[static_cast<size_t>(makes[0].recipes[0])].cells.size() == 1 && index.recipes[static_cast<size_t>(makes[0].recipes[0])].cells[0].group,
               "merged smelting shows its inputs as one slot");
         auto uses = viewTabs(index, choice, index.find("birch_planks"), true);
@@ -571,26 +589,26 @@ void recipeIndexTests() {
         auto const placed = place(layout, regions, all);
         Box const tray{250, 120, 140, 26};
         Drag const plan{Page::Plan, Left, 1};
-        check(hit(placed, regions, layout, plan, 50, 300, tray) == Target{Kind::Self, Left, 1}, "over its own place a drop does nothing");
-        check(hit(placed, regions, layout, plan, 50, 50, tray) == Target{Kind::Swap, Left, 0}, "over another panel of its region it swaps");
-        check(hit(placed, regions, layout, plan, 500, 50, tray) == Target{Kind::Before, Right, 0}
-                  && hit(placed, regions, layout, plan, 500, 300, tray) == Target{Kind::After, Right, 0},
+        check(hit(placed, regions, layout, plan, 50, 300, tray) == Target{editor::Kind::Self, Left, 1}, "over its own place a drop does nothing");
+        check(hit(placed, regions, layout, plan, 50, 50, tray) == Target{editor::Kind::Swap, Left, 0}, "over another panel of its region it swaps");
+        check(hit(placed, regions, layout, plan, 500, 50, tray) == Target{editor::Kind::Before, Right, 0}
+                  && hit(placed, regions, layout, plan, 500, 300, tray) == Target{editor::Kind::After, Right, 0},
               "in another region it goes before or after the panel it is over");
-        check(hit(placed, regions, layout, plan, 300, 40, tray) == Target{Kind::Fill, Top}
-                  && hit(placed, regions, layout, plan, 300, 130, tray).kind == Kind::Tray
-                  && hit(placed, regions, layout, plan, 300, 200, tray).kind == Kind::None,
+        check(hit(placed, regions, layout, plan, 300, 40, tray) == Target{editor::Kind::Fill, Top}
+                  && hit(placed, regions, layout, plan, 300, 130, tray).kind == editor::Kind::Tray
+                  && hit(placed, regions, layout, plan, 300, 200, tray).kind == editor::Kind::None,
               "an empty region takes it whole, the tray takes it out, the game's window takes nothing");
-        auto swapped = apply(layout, plan, {Kind::Swap, Left, 0});
+        auto swapped = apply(layout, plan, {editor::Kind::Swap, Left, 0});
         check(swapped && swapped->regions[Left][0].page == Page::Plan && swapped->regions[Left][1].page == Page::Favorites,
               "a swap trades the two panels' places");
-        auto moved = apply(layout, plan, {Kind::After, Right, 0});
+        auto moved = apply(layout, plan, {editor::Kind::After, Right, 0});
         check(moved && moved->regions[Left].size() == 1 && moved->regions[Left][0].share == 100 && moved->regions[Right].size() == 2
                   && moved->regions[Right][1].page == Page::Plan && moved->regions[Right][0].share == 50,
               "a panel moved to another region takes half of the one it goes beside");
-        auto out = apply(layout, plan, {Kind::Tray});
+        auto out = apply(layout, plan, {editor::Kind::Tray});
         check(out && unplaced(*out) == std::vector<Page>{Page::Plan} && out->regions[Left][0].share == 100
-                  && apply(*out, Drag{Page::Plan}, {Kind::Fill, Top})->regions[Top][0].page == Page::Plan
-                  && !apply(*out, Drag{Page::Plan}, {Kind::Tray}),
+                  && apply(*out, Drag{Page::Plan}, {editor::Kind::Fill, Top})->regions[Top][0].page == Page::Plan
+                  && !apply(*out, Drag{Page::Plan}, {editor::Kind::Tray}),
               "the tray takes a page out and gives it back; a page not placed cannot go into it again");
         auto sized = resize(layout, Left, 0, 50, 36, 360);
         check(sized.regions[Left][0].share == 60 && sized.regions[Left][1].share == 40

@@ -8,6 +8,8 @@
 namespace lamium::recipes {
 // A station by the name of its block's item, so it reads as the game names it; "-" for one without.
 std::string stationName(Station station);
+// A kind of work with the stations that do it: "Cooking (Furnace, Smoker)" (L-376).
+std::string kindName(Kind kind, std::vector<Station> const& stations);
 // An ingredient any of several items satisfies: a tag by its translated name with "(any)", any other
 // group by its first member "and N others".
 // A group by its name alone: a known tag's ("Planks"), else its first member's and "etc."; the Recipes screens

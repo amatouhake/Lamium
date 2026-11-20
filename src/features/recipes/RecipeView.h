@@ -3,12 +3,36 @@
 #include "features/recipes/RecipeIndex.h"
 #include <algorithm>
 #include <cmath>
+#include <optional>
+#include <string_view>
 #include <vector>
 
 // L-359: what the recipe view shows for an item and where, in GUI units. Pure.
 namespace lamium::recipes {
-// One station's recipes: a tab.
-struct ViewTab { Station station = Station::Other; std::vector<int> recipes; };
+// One kind of work's recipes: a tab (L-376). `station` stands for the kind (its picture and layout); `only`:
+// the tab of what one station does, which a station's uses open with.
+struct ViewTab {
+    Station station = Station::Other;
+    std::vector<int> recipes;
+    Kind kind = Kind::Other;
+    std::optional<Station> only;
+};
+// The station whose block an item is; none for other items.
+inline std::optional<Station> stationOfItem(std::string_view key) {
+    for (int s = 0; s < static_cast<int>(Station::Other); ++s)
+        if (stationItem(static_cast<Station>(s)) == key) return static_cast<Station>(s);
+    return std::nullopt;
+}
+// The stations a tab's recipes are done at, in order.
+inline std::vector<Station> tabStations(Index const& index, ViewTab const& tab) {
+    if (tab.only) return {*tab.only};
+    std::vector<Station> out;
+    for (int number : tab.recipes)
+        for (Station s : index.recipes[static_cast<size_t>(number)].stations)
+            if (std::find(out.begin(), out.end(), s) == out.end()) out.push_back(s);
+    std::sort(out.begin(), out.end());
+    return out;
+}
 inline bool usesItem(Index const& index, Recipe const& recipe, Item item) {
     for (auto const& part : recipe.uses) {
         if (!part.group) { if (part.id == item) return true; continue; }
@@ -17,8 +41,8 @@ inline bool usesItem(Index const& index, Recipe const& recipe, Item item) {
     }
     return false;
 }
-// The recipes that make an item (the one in use first, so its station is the
-// first tab) or that use it (stations in their own order), by station.
+// The recipes that make an item (the one in use first, so its kind is the first tab) or that use it (kinds
+// in their own order), by kind of work. A station's uses begin with what it does, none twice.
 inline std::vector<ViewTab> viewTabs(Index const& index, Choice const& choice, Item item, bool uses) {
     if (item < 0 || item >= static_cast<Item>(index.items.size())) return {};
     std::vector<int> list;
@@ -40,10 +64,22 @@ inline std::vector<ViewTab> viewTabs(Index const& index, Choice const& choice, I
         });
     }
     std::vector<ViewTab> tabs;
+    if (uses)
+        if (auto const station = stationOfItem(index.items[static_cast<size_t>(item)])) {
+            ViewTab does{*station, {}, kindOf(*station), *station};
+            for (size_t i = 0; i < index.recipes.size(); ++i) {
+                auto const& stations = index.recipes[i].stations;
+                if (std::find(stations.begin(), stations.end(), *station) != stations.end()) does.recipes.push_back(static_cast<int>(i));
+            }
+            if (!does.recipes.empty()) {
+                std::erase_if(list, [&](int r) { return std::find(does.recipes.begin(), does.recipes.end(), r) != does.recipes.end(); });
+                tabs.push_back(std::move(does));
+            }
+        }
     for (int recipe : list) {
-        Station const station = index.recipes[static_cast<size_t>(recipe)].station;
-        auto tab = std::find_if(tabs.begin(), tabs.end(), [&](ViewTab const& other) { return other.station == station; });
-        if (tab == tabs.end()) tab = tabs.insert(tabs.end(), ViewTab{station, {}});
+        Kind const kind = kindOf(index.recipes[static_cast<size_t>(recipe)].station);
+        auto tab = std::find_if(tabs.begin(), tabs.end(), [&](ViewTab const& other) { return other.kind == kind && !other.only; });
+        if (tab == tabs.end()) tab = tabs.insert(tabs.end(), ViewTab{usualStation(kind), {}, kind, std::nullopt});
         tab->recipes.push_back(recipe);
     }
     return tabs;
@@ -64,6 +100,7 @@ struct ViewSlot { float x = 0, y = 0; int cell = -1; };
 struct ViewBlock {
     std::vector<ViewSlot> slots;
     float arrowX = 0, arrowY = 0, productX = 0, productY = 0, marksX = 0, marksY = 0, noteX = 0, noteY = 0;
+    bool stations = false; // a cooking recipe names its stations as icons, two to a row from (marksX, marksY)
 };
 inline ViewBlock viewBlock(Recipe const& recipe) {
     constexpr float cell = 18;
@@ -85,6 +122,7 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
         out.slots.push_back({0, 0, count ? 0 : -1});
         out.slots.push_back({0, 30, -1});
         out.arrowX = 22, out.arrowY = 22, out.productX = 34, out.productY = 15, out.marksX = 58, out.marksY = 2;
+        out.stations = true;
     } else {
         int const shown = std::min(count, 4);
         for (int i = 0; i < shown; ++i) out.slots.push_back({static_cast<float>(i) * cell, 15, recipe.cells[static_cast<size_t>(i)].id >= 0 ? i : -1});
