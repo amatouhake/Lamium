@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The potion mixes the client knows (L-361, 2026-11-21)
+
+Trace build `a41069e4` (`recipe_trace`, DLL
+`0f959124f0edaa4ee2880becbe00e77f6c9ac5b854d701e07d4c61914b5f6ffd`),
+1.26.60.05 Dev instance, a local world, the maintainer joined; the agent
+read `logs/brewing-20261121-075745-local.txt`:
+- `PotionBrewing::isPotionIngredient` named 19 items; `PotionBrewing::mix`
+  of each on the potion, splash and lingering potion by aux 0 to 63 gave
+  210 mixes, 70 a kind: nether wart on water to awkward, stone on awkward
+  to infestation, cobweb to weaving, the breeze rod to wind charging,
+  redstone, glowstone and the fermented spider eye on many.
+- Missing: gunpowder (potion to splash) and dragon's breath (splash to
+  lingering), which that check does not count.
+- The asking took about 110 ms in one tick with the file written.
+
 ## An item's tabs in a fixed order (L-380, 2026-11-21)
 
 Build `7ae336bb` (DLL
