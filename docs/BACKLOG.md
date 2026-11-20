@@ -195,7 +195,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-361](backlog/L-361.md) Brewing in the recipe view (Research): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
-- [L-368](backlog/L-368.md) Close the game's recipe book while the recipe view is open (Research): Open, not started; may wait (maintainer 2026-11-20)
+- [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): Rebuilt as decided (2026-11-20), not checked in game
 - [L-373](backlog/L-373.md) Recipes, Plan and Stores as three features (Design): Agreed (maintainer 2026-11-20); not built, waits for the settings format to be confirmed
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Open; the direction is agreed (maintainer 2026-11-20), the details are not
