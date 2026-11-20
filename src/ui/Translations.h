@@ -1116,7 +1116,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.place", "Place", "配置"},
     {"recipes.placeMissing", "Something is missing: the red slots", "足りない材料があります（赤い枠）"},
     {"recipes.craft", "Ctrl + press: craft one onto the pointer", "Ctrl + 押す: ポインタに 1 回分クラフト"},
-    {"recipes.craft.missing", "Ctrl + press: ingredients are missing", "Ctrl + 押す: 材料が足りません"},
+    {"recipes.place.many", "Shift + press: as many as divide evenly", "Shift + 押す: 割れるだけ配置"},
     {"recipes.craft.pointer", "Ctrl + press: the pointer holds another item", "Ctrl + 押す: ポインタが別の物を持っています"},
     {"recipes.craft.full", "Ctrl + press: the pointer has no room for more", "Ctrl + 押す: ポインタにこれ以上持てません"},
     {"recipes.craft.room", "Ctrl + press: no free slot to set the pointer's stack down", "Ctrl + 押す: ポインタの物を置く空きスロットがありません"},

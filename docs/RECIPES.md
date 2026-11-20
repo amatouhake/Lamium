@@ -164,13 +164,17 @@ after using the first build. What is still open is in the L-item.
   crafts one round of it onto the pointer, by the recipe in use where it
   fits the grid, else the first that fits; Ctrl + "place" by that recipe.
   What lay in the grid goes back first; a pointer holding the product is
-  set down in a free slot and picked up again with the new round. A
-  pointer holding something else or full, a missing ingredient or no free
-  slot: nothing, and the item's tip says why while Ctrl is held (its tip
-  names the press when it can). Where no crafting recipe fits a grid the
-  press shows the recipes as without Ctrl. `RecipePlace.cpp` takes the
-  output by the slot call, else Shift-takes it and picks the round up;
-  one log line says which.
+  set down in a free slot and picked up again with the new round.
+  `RecipePlace.cpp` takes the output by the slot call (seen to craft),
+  else Shift-takes it and picks the round up; one log line says which.
+- Presses on a listed item: a press shows its recipes (under "can be
+  made" it places one round), Shift + press places as many as divide
+  evenly, Ctrl + press crafts onto the pointer, a right press shows its
+  uses. One that cannot act (no grid, nothing that fits, something
+  missing, the pointer full) shows the recipes, whose red slots tell
+  why. An item's tip explains no press; the place button's names Shift
+  and Ctrl, and why Ctrl would not work now. With the pointer full,
+  placing waits on [L-381](backlog/L-381.md).
 - "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): on the
   inventory and the crafting table, a crafting recipe that fits the grid
   has the button. A press lays one of each ingredient into the grid (one
@@ -337,8 +341,7 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - The search field takes no pasted text.
 - Mass Craft: seen in a local world (VALIDATION-LOG 2026-11-18); the
   throw from the pointer and the surplus are not, nor a server.
-- Crafting onto the pointer: not seen in game yet (which take works),
-  nor a server.
+- Crafting onto the pointer: a server is unchecked.
 - "Place": a server is unchecked, and stations other than the two
   crafting grids have none. Shift + place with Item transfer on and an
   inventory slot under the pointer was not tried.

@@ -56,16 +56,18 @@ void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb colo
     fill(context, x + 2, y + 8, 7, 1, color);
 }
 }
+namespace {
+// The place button's line for Ctrl (L-379): what it does, or why it would not now.
 std::string craftLine(CraftOnto check) {
     using lamium::ui::translated;
     switch (check) {
-    case CraftOnto::Ready: return translated("recipes.craft");
-    case CraftOnto::Missing: return translated("recipes.craft.missing");
+    case CraftOnto::Ready: case CraftOnto::Missing: return translated("recipes.craft");
     case CraftOnto::PointerOther: return translated("recipes.craft.pointer");
     case CraftOnto::PointerFull: return translated("recipes.craft.full");
     case CraftOnto::NoSlot: return translated("recipes.craft.room");
     }
     return {};
+}
 }
 void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     using namespace lamium::ui;
@@ -270,7 +272,8 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             Rgb const mark = drawButtonBox(context, mx, my, size, size, laid.ready() && over, ButtonKind::Plain, laid.ready());
             placeMark(context, mx, my, mark);
             if (over) late.tip = translated(laid.ready() ? "recipes.place" : "recipes.placeMissing");
-            if (over && laid.ready()) late.tipLines = {craftLine(input.placer->craftCheck(recipe))};
+            // A button of its own explains its presses (not an item's tip, maintainer 2026-11-21).
+            if (over && laid.ready()) late.tipLines = {translated("recipes.place.many"), craftLine(input.placer->craftCheck(recipe))};
             if (laid.ready()) regions.push_back(region);
         }
         // Of an item made several ways, the check box left of "place" (L-379): empty for a recipe not in use, a

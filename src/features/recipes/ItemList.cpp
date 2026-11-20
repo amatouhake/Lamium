@@ -626,9 +626,15 @@ bool drawList(ll::event::UIRenderEvent& event) {
         Count const n = wanted->second;
         late.counts.push_back({x, y, n < 1000 ? std::to_string(n) : n < 100000 ? std::format("{}k", n / 1000) : std::string("++")});
     };
-    // A press on an item shows its recipes, a right press what it is used in, also beside an open view. With Ctrl
-    // a press crafts one round onto the pointer where it can (L-379), and otherwise does nothing.
+    // A press on an item shows its recipes, a right press what it is used in, also beside an open view. With Shift
+    // a press lays in as many as divide evenly, with Ctrl it crafts one round onto the pointer (L-379); where the
+    // item cannot be (its recipes show the reason), it shows them.
     auto show = [&](std::string const& item) {
+        // Shift lays in as many as divide evenly, as under "can be made" (maintainer 2026-11-21).
+        if (leftPress && shiftHeld.load() && !ctrlHeld.load() && placeItem(screenView, item, true, *player)) {
+            pressed = false, view::close(), planView::close();
+            return;
+        }
         // Where nothing can be crafted (no grid, no crafting recipe that fits it) the press shows the recipes.
         if (leftPress && ctrlHeld.load())
             if (auto placer = gridPlacer(screenView, *player))
@@ -780,12 +786,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
         searchHistory.typed(search.value(), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     wasFocused = searchFocus;
     cost.at("field");
-    // A listed item under the pointer that can be crafted onto it says so in its tip (L-379); while Ctrl is held,
-    // also why not.
-    if (!hoverItem.empty() && !late.tip.empty() && late.tipLines.empty() && !anyView() && !editing)
-        if (auto placer = gridPlacer(screenView, *player))
-            if (auto const ask = craftAsk(*placer, itemOf(*placer->table, hoverItem)); ask.recipe >= 0 && (ask.check == CraftOnto::Ready || ctrlHeld.load()))
-                late.tipLines.push_back(view::craftLine(ask.check));
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
         std::optional<GridPlacer> placer;

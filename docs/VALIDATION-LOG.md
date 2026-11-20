@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Crafting onto the pointer (L-379, 2026-11-21)
+
+Build `250d384d` (DLL
+`6463851baa5d0a31c070ec71e0c85b1f9222fa673eac91a9464a43f0b8d32a03`),
+1.26.60.05 Dev instance, a local world, the maintainer. Works: Ctrl +
+press on oak planks at the inventory and the crafting table put a round on
+the pointer, the logs went down, the planks stayed when put down; each
+further press added a round; with another item held the tip said why.
+The log: every press "by taking the output", 2 to 4 ms, so the slot
+call's take off the output crafts; the Shift take was never needed. The
+tip lines were found unneeded and removed after. Not seen: a server.
+
 ## A recipe's check box and the lighter edges (L-379, 2026-11-21)
 
 Build `b1812b5e` (DLL

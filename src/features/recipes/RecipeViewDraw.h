@@ -54,8 +54,6 @@ struct Late {
     std::vector<std::string> tipItems; // items shown as small icons under the tip's lines (a group's members)
     bool placed = false; // a recipe was laid into the grid: the host clears the windows off it
 };
-// The tip's line for a Ctrl + press that crafts onto the pointer (L-379), or why it would not.
-std::string craftLine(CraftOnto check);
 bool isOpen();
 // Shows an item's recipes, or what it is used in; the item shown before stays one step back.
 // `choose`: asked from the list of what to make, where an item with several recipes says which is
