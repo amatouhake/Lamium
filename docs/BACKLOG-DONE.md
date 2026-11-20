@@ -231,6 +231,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-374](backlog/done/L-374.md) Bands built from regions and pages
 - [L-373](backlog/done/L-373.md) Recipes, Plan and Stores as three features
 - [L-367](backlog/done/L-367.md) Game-like controls on the recipe windows; wanted items down to 0 by the wheel
 - [L-366](backlog/done/L-366.md) Recipe screens look like the game's window and tooltip

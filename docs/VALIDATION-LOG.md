@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The bands from regions and pages (L-374, 2026-11-20)
+
+Build `cab131a2` (DLL
+`5d418c6ebc5d0ce889916063ecaa434e6bae02e24d10e5165462c0207123a8f8`),
+1.26.60.05 Dev instance, the maintainer. Works, looking as before: the
+favourites and the plan on the left and the item list on the right at the
+inventory; at a chest the open container's line and the plan's rows above
+it; the bands narrowing with the recipe book and with the plan's window.
+Not seen: any layout but the default (no editor yet), regions above and
+below the window, a region lent on a small screen.
+
 ## Recipes, Plan and Stores as three features (L-373, 2026-11-20)
 
 Build `c6ca9ae6` (DLL
