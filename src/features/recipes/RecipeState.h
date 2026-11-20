@@ -25,7 +25,7 @@ Wanted const& wanted();
 using Provider = std::vector<std::pair<std::string, Count>> (*)();
 void provide(std::string const& source, Provider provider);
 std::vector<Handed> const& handed();
-void toggleFavourite(std::string const& key);
+void toggleFavorite(std::string const& key);
 void toggleWanted(std::string const& key);
 void setWanted(std::string const& key, Count amount);
 void removeWanted(std::string const& key);

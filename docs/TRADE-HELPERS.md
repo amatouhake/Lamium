@@ -5,9 +5,9 @@ Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs
 **Repeated trading** (L-166 part 1, shipped in 0.2.1): Shift + right click
 on an unlocked trade row trades it as often as allowed. One saved switch
 `inventory.repeatTrades`, default on, with an unbound toggle key
-(`repeattrades`). Further trade helpers (favourites, trading all favourites,
+(`repeattrades`). Further trade helpers (favorites, trading all favorites,
 batching, display) are candidates in
-[L-166 Villager trade helpers: favourites and assisted trading](backlog/L-166.md);
+[L-166 Villager trade helpers: favorites and assisted trading](backlog/L-166.md);
 rerolling a villager for an offer is the separate
 [L-168 Trade finder](backlog/L-168.md).
 
@@ -36,7 +36,7 @@ part on 2026-10-13.
   checked after refill: one refill may free a consumed ingredient slot, but
   no trade is sent if output still cannot fit.
 - Disabled or unsupported paths leave ordinary trading intact.
-- Favourites and remaining-use presentation are undecided (L-166).
+- Favorites and remaining-use presentation are undecided (L-166).
 
 ## Code
 

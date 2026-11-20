@@ -10,9 +10,9 @@
 // arrangement"). Regions lie beside, above and below the game's window; a region's panels split it along
 // its length (top to bottom beside, left to right above and below) by their shares. Pure.
 namespace lamium::recipes::band {
-enum class Page { Items, Favourites, Plan };
+enum class Page { Items, Favorites, Plan };
 inline constexpr int pageCount = 3;
-inline constexpr std::array<std::string_view, pageCount> pageNames{"items", "favourites", "plan"};
+inline constexpr std::array<std::string_view, pageCount> pageNames{"items", "favorites", "plan"};
 inline std::optional<Page> pageNamed(std::string_view name) {
     for (int i = 0; i < pageCount; ++i) if (pageNames[static_cast<size_t>(i)] == name) return static_cast<Page>(i);
     return std::nullopt;
@@ -30,10 +30,10 @@ struct Layout {
     std::array<std::vector<Panel>, regionCount> regions;
     bool operator==(Layout const&) const = default;
 };
-// Today's look: favourites over the plan on the left, the item list on the right.
+// Today's look: favorites over the plan on the left, the item list on the right.
 inline Layout defaultLayout() {
     Layout out;
-    out.regions[Left] = {{Page::Favourites, 50}, {Page::Plan, 50}};
+    out.regions[Left] = {{Page::Favorites, 50}, {Page::Plan, 50}};
     out.regions[Right] = {{Page::Items, 100}};
     return out;
 }

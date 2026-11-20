@@ -25,7 +25,7 @@ struct Target {
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, a pager's
 // button or a recipe's "place".
-enum class Act { Item, Tab, Favourite, Wanted, Place, PagePrev, PageNext, HowTo };
+enum class Act { Item, Tab, Favorite, Wanted, Place, PagePrev, PageNext, HowTo };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
@@ -78,7 +78,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (region.act == Act::Item) open(std::string(region.item), !left);
             else if (!left) {}
             else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
-            else if (region.act == Act::Favourite) state::toggleFavourite(shownItem);
+            else if (region.act == Act::Favorite) state::toggleFavorite(shownItem);
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
             else if (region.act == Act::HowTo) late.howTo = region.item;
             else if (region.act == Act::PagePrev) trail.back().page -= 1;
@@ -105,23 +105,23 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     float headEnd = l.left + l.width - 7;
     // Each on or off, like the world map's layers: two buttons sharing a border, green when on (a trial
     // beside "a name and a switch", 2026-11-19). The one that is on is drawn last, so its frame is whole.
-    bool const wanted = state::wanted().has(at.item), liked = state::notes().favourite(at.item);
-    std::string const in = translated("recipes.wanted"), favourite = translated("recipes.favourite");
-    float const wantedWidth = textWidth(context, in) + 10, likedWidth = textWidth(context, favourite) + 10;
-    // Without the plan there is nothing to want an item for: the favourite button stands alone.
+    bool const wanted = state::wanted().has(at.item), liked = state::notes().favorite(at.item);
+    std::string const in = translated("recipes.wanted"), favorite = translated("recipes.favorite");
+    float const wantedWidth = textWidth(context, in) + 10, likedWidth = textWidth(context, favorite) + 10;
+    // Without the plan there is nothing to want an item for: the favorite button stands alone.
     // The heading's first line keeps room from the window's edge (L-367).
     constexpr float lineOne = 7;
     Region const wantedRegion{headEnd - (input.plan ? wantedWidth : 1), l.top + lineOne - 1, input.plan ? wantedWidth : 1, 11, Act::Wanted, {}, -1};
-    Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + lineOne - 1, likedWidth, 11, Act::Favourite, {}, -1};
+    Region const likedRegion{wantedRegion.x - likedWidth + 1, l.top + lineOne - 1, likedWidth, 11, Act::Favorite, {}, -1};
     for (bool pass : {false, true}) {
-        if (input.favourites && liked == pass)
-            drawOnOffButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favourite, likedRegion.has(input.pointerX, input.pointerY), liked);
+        if (input.favorites && liked == pass)
+            drawOnOffButton(context, likedRegion.x, likedRegion.y, likedRegion.w, likedRegion.h, favorite, likedRegion.has(input.pointerX, input.pointerY), liked);
         if (input.plan && wanted == pass)
             drawOnOffButton(context, wantedRegion.x, wantedRegion.y, wantedRegion.w, wantedRegion.h, in, wantedRegion.has(input.pointerX, input.pointerY), wanted);
     }
     if (input.plan) regions.push_back(wantedRegion);
-    if (input.favourites) regions.push_back(likedRegion);
-    headEnd = (input.favourites ? likedRegion.x : input.plan ? wantedRegion.x : headEnd) - 6;
+    if (input.favorites) regions.push_back(likedRegion);
+    headEnd = (input.favorites ? likedRegion.x : input.plan ? wantedRegion.x : headEnd) - 6;
     // The item's icon leads its name; under the pointer either names the item in its own tooltip, so a name
     // cut short on a narrow screen can still be read.
     {

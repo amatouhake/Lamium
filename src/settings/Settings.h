@@ -95,7 +95,7 @@ struct Settings {
         bool offhandSwap = true; // The Swap with offhand key works (L-94)
         bool deathRestore = false; // Put picked-up items back in their death-time slots (L-109, experimental)
         bool recipes = false; // The item list beside item screens and the recipe view (L-359, experimental)
-        bool recipesFavourites = true; // A part of Recipes: the favourites and their key
+        bool recipesFavorites = true; // A part of Recipes: the favorites and their key
         // Each works alone (L-373): the plan (wanted items, what to gather and make) and the stores (the
         // places counted as held, used by the plan and Schematics), with the stores' outlines in the world.
         bool plan = false, stores = false, storeMarks = true;

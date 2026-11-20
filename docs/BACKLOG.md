@@ -190,7 +190,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favourites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
+- [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-361](backlog/L-361.md) Brewing in the recipe view (Research): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
@@ -220,7 +220,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-169](backlog/L-169.md) Item Transfer: remaining gesture and screen extensions (Design): Waiting for the maintainer to choose any extension; none approved
 - [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design): Waiting for the maintainer's choices below; not chosen for building, no release.
 - [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research): Partly done: Game language and Skip server resource packs shipped in 0.2.1; global pack stack work not chosen.
-- [L-166](backlog/L-166.md) Villager trade helpers: favourites and assisted trading (Design): Part 1 (Shift + right-click repeated trading) shipped in 0.2.1; part 2 is candidates waiting for the maintainer, not approved to build
+- [L-166](backlog/L-166.md) Villager trade helpers: favorites and assisted trading (Design): Part 1 (Shift + right-click repeated trading) shipped in 0.2.1; part 2 is candidates waiting for the maintainer, not approved to build
 - [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Open; built behind its own setting and seen in a local world; a server is unchecked. No release
 - [L-163](backlog/L-163.md) A Lamium-drawn inventory screen (Research): Open, not started; recorded for later.
 - [L-132](backlog/L-132.md) Move while the inventory screen is open (Research): Parked 2026-10-10 after eight trial rounds without smooth movement; resume from Next

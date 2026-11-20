@@ -51,7 +51,7 @@ how it got there is in git.
 | The map's region file format (LMR2) | [MAP-FORMAT.md](MAP-FORMAT.md) |
 | Schematics, checking, materials and area save | [SCHEMATIC.md](SCHEMATIC.md) |
 | Schematic controls: move target, repeat, cut-plane layers, menu and keys | [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) |
-| Recipes: the item list, the recipe view, favourites and Mass Craft (L-359) | [RECIPES.md](RECIPES.md) |
+| Recipes: the item list, the recipe view, favorites and Mass Craft (L-359) | [RECIPES.md](RECIPES.md) |
 | The plan and the stores (L-359, L-373) | [PLAN.md](PLAN.md) |
 | Integration between features (proposal, L-111) | [INTEGRATION.md](INTEGRATION.md) |
 

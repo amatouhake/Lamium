@@ -23,7 +23,7 @@ void ground(Frame& frame, band::Box box, bool rule) {
     fill(frame.context, box.x, box.y, box.w, box.h, palette::panel, .5f);
     if (rule) fill(frame.context, box.x + 3, box.y, box.w - 6, 1, palette::white, .2f);
 }
-void favourites(Frame& frame, SideLayout const& panel) {
+void favorites(Frame& frame, SideLayout const& panel) {
     using namespace lamium::ui;
     auto& context = frame.context;
     float const px = frame.px, py = frame.py;
@@ -33,21 +33,21 @@ void favourites(Frame& frame, SideLayout const& panel) {
     auto& hoverItem = frame.hoverItem;
     auto& mark = frame.mark;
     bool& pressed = frame.pressed;
-    label(context, panel.left + 4, panel.top + 3, panel.width - 8, translated("recipes.favourites"), palette::dim);
-    auto const favourites = state::notes().favourites;
-    int const favouriteHover = panel.hitFavourite(px, py), favouriteCount = std::min(static_cast<int>(favourites.size()), panel.favourites());
-    for (int i = 0; i < favouriteCount; ++i) {
-        auto const& item = schematic::items::shown(favourites[static_cast<size_t>(i)]);
+    label(context, panel.left + 4, panel.top + 3, panel.width - 8, translated("recipes.favorites"), palette::dim);
+    auto const favorites = state::notes().favorites;
+    int const favoriteHover = panel.hitFavorite(px, py), favoriteCount = std::min(static_cast<int>(favorites.size()), panel.favorites());
+    for (int i = 0; i < favoriteCount; ++i) {
+        auto const& item = schematic::items::shown(favorites[static_cast<size_t>(i)]);
         float const x = panel.cellX(i), y = panel.cellY(i);
-        if (i == favouriteHover) {
+        if (i == favoriteHover) {
             fill(context, x, y, SideLayout::cell, SideLayout::cell, palette::white, .14f);
             late.tip = item.name;
-            hoverItem = favourites[static_cast<size_t>(i)];
+            hoverItem = favorites[static_cast<size_t>(i)];
         }
         if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
-        mark(favourites[static_cast<size_t>(i)], x, y, false); // all here are favourites
+        mark(favorites[static_cast<size_t>(i)], x, y, false); // all here are favorites
     }
-    if (pressed && favouriteHover >= 0 && favouriteHover < favouriteCount) frame.show(favourites[static_cast<size_t>(favouriteHover)]);
+    if (pressed && favoriteHover >= 0 && favoriteHover < favoriteCount) frame.show(favorites[static_cast<size_t>(favoriteHover)]);
     (void)leftPress, (void)took;
 }
 void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vector<Handed> const& handed,
@@ -221,7 +221,7 @@ void storeLine(Frame& frame, band::Box region, placesGame::Open const& open) {
     // out again); the ender chest, which is noted anyway, is switched in or out of the count.
     int const index = open.ender ? state::places().ender() : state::places().store(open.spot);
     bool const on = index >= 0 && (!open.ender || state::places().list[static_cast<size_t>(index)].counted);
-    // One switch about the open container, under a rule like the one between the favourites and the
+    // One switch about the open container, under a rule like the one between the favorites and the
     // plan (no stronger a division than that), with room above and below it.
     float const footY = region.y + region.h - 12;
     ListBox const box{region.x + 2, footY, region.w - 4, 11};

@@ -23,16 +23,20 @@ std::string encodeNotes(Notes const& notes) {
     Json choices = Json::object(), picks = Json::object();
     for (auto const& [item, recipe] : notes.choices) choices[item] = recipe;
     for (auto const& [group, member] : notes.picks) picks[group] = member;
-    return Json{{"version", 1}, {"favourites", notes.favourites}, {"recipes", std::move(choices)}, {"picks", std::move(picks)},
+    return Json{{"version", 1}, {"favorites", notes.favorites}, {"recipes", std::move(choices)}, {"picks", std::move(picks)},
                 {"gathered", notes.stops}}.dump(2);
 }
 Notes decodeNotes(std::string_view document) {
     Notes out;
     Json const root = parsed(document);
     if (!root.is_object()) return out;
-    if (auto list = root.find("favourites"); list != root.end() && list->is_array())
+    // Development builds wrote "favourites" before the English became American (2026-11-20); never released,
+    // read until the release (backlog/pre-release-checks.md).
+    auto list = root.find("favorites");
+    if (list == root.end()) list = root.find("favourites");
+    if (list != root.end() && list->is_array())
         for (auto const& entry : *list)
-            if (auto key = text(entry); !key.empty() && !out.favourite(key) && out.favourites.size() < 512) out.favourites.push_back(std::move(key));
+            if (auto key = text(entry); !key.empty() && !out.favorite(key) && out.favorites.size() < 512) out.favorites.push_back(std::move(key));
     auto pairs = [&](char const* name, std::map<std::string, std::string>& to) {
         auto found = root.find(name);
         if (found == root.end() || !found->is_object()) return;

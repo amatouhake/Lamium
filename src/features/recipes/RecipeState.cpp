@@ -188,9 +188,9 @@ std::vector<Handed> const& handed() {
     if (next != handedNow) handedNow = std::move(next), ++revision;
     return handedNow;
 }
-void toggleFavourite(std::string const& key) {
+void toggleFavorite(std::string const& key) {
     readNotes();
-    held.toggleFavourite(key);
+    held.toggleFavorite(key);
     writeNotes();
 }
 void toggleWanted(std::string const& key) {

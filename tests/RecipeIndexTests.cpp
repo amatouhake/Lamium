@@ -371,11 +371,11 @@ void recipeIndexTests() {
                   "the Recipes window takes the game's book-open span exactly, and that width centred while the book is closed");
         }
         auto side = itemListLeft(360, 210);
-        check(side.width == 206 && side.columns == 11 && side.split() == 180 && side.favouriteRows() == 9 && side.usable() && side.wide(),
-              "the left band runs from the screen's edge to the room the centre keeps, halved between favourites and wanted");
-        check(side.hitFavourite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavourite(100, 178) == -1 && side.rows() == 13
+        check(side.width == 206 && side.columns == 11 && side.split() == 180 && side.favoriteRows() == 9 && side.usable() && side.wide(),
+              "the left band runs from the screen's edge to the room the centre keeps, halved between favorites and wanted");
+        check(side.hitFavorite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavorite(100, 178) == -1 && side.rows() == 13
               && side.hitRow(50, side.rowY(3) + 1) == 3 && side.hitRow(50, 359) == -1 && side.hitRow(50, 100) == -1,
-              "favourites are cells above the middle; the wanted rows reach the bottom");
+              "favorites are cells above the middle; the wanted rows reach the bottom");
         {
             auto withFoot = side;
             withFoot.footOn = true;
@@ -412,12 +412,12 @@ void recipeIndexTests() {
               "a step of several lands on its multiples, so Shift gives whole stacks");
     }
     {
-        // What the player enters: favourites, wanted items, and the notes a plan follows.
+        // What the player enters: favorites, wanted items, and the notes a plan follows.
         Notes notes;
-        notes.toggleFavourite("torch");
-        notes.toggleFavourite("stick");
-        notes.toggleFavourite("torch");
-        check(notes.favourites == std::vector<std::string>{"stick"} && notes.favourite("stick") && !notes.favourite("torch"), "a favourite goes in and out");
+        notes.toggleFavorite("torch");
+        notes.toggleFavorite("stick");
+        notes.toggleFavorite("torch");
+        check(notes.favorites == std::vector<std::string>{"stick"} && notes.favorite("stick") && !notes.favorite("torch"), "a favorite goes in and out");
         Wanted wanted;
         wanted.toggle("lantern");
         wanted.set("lantern", 4);
@@ -524,38 +524,38 @@ void recipeIndexTests() {
               "regions lie beside the window to the screen's edges, and above and below it");
         std::array<bool, pageCount> const all{true, true, true};
         auto placed = place(defaultLayout(), regions, all);
-        auto const* favourites = find(placed, Page::Favourites);
+        auto const* favorites = find(placed, Page::Favorites);
         auto const* plan = find(placed, Page::Plan);
         auto const* items = find(placed, Page::Items);
-        check(placed.size() == 3 && favourites && plan && items && favourites->box == Box{0, 0, 206, 180} && plan->box == Box{0, 180, 206, 180}
-              && items->box == Box{434, 0, 206, 360} && favourites->first && !plan->first,
-              "the default is today's: favourites over the plan on the left, the item list on the right");
+        check(placed.size() == 3 && favorites && plan && items && favorites->box == Box{0, 0, 206, 180} && plan->box == Box{0, 180, 206, 180}
+              && items->box == Box{434, 0, 206, 360} && favorites->first && !plan->first,
+              "the default is today's: favorites over the plan on the left, the item list on the right");
         auto const list = itemListIn(items->box);
-        auto const side = sidePanelIn(favourites->box, true);
-        check(list.columns == 11 && list.rows == 19 && side.favouriteRows() == 9 && side.columns == 11,
+        auto const side = sidePanelIn(favorites->box, true);
+        check(list.columns == 11 && list.rows == 19 && side.favoriteRows() == 9 && side.columns == 11,
               "a panel is a page's layout of whole cells");
         placed = place(defaultLayout(), regions, {true, false, true});
-        check(find(placed, Page::Plan) && find(placed, Page::Plan)->box == Box{0, 0, 206, 360} && !find(placed, Page::Favourites),
+        check(find(placed, Page::Plan) && find(placed, Page::Plan)->box == Box{0, 0, 206, 360} && !find(placed, Page::Favorites),
               "a page whose feature is off is left out and the others take its room");
         Layout three;
-        three.regions[Left] = {{Page::Favourites, 90}, {Page::Plan, 5}, {Page::Items, 5}};
+        three.regions[Left] = {{Page::Favorites, 90}, {Page::Plan, 5}, {Page::Items, 5}};
         placed = place(three, regions, all);
         bool const least = std::all_of(placed.begin(), placed.end(), [](Placed const& p) { return p.box.h >= minLength(Left); });
         check(placed.size() == 3 && least && find(placed, Page::Items)->box.y + find(placed, Page::Items)->box.h == 360,
               "every panel keeps one row, taken from the others; the last ends with the region");
         Layout above;
-        above.regions[Top] = {{Page::Favourites, 100}};
+        above.regions[Top] = {{Page::Favorites, 100}};
         above.regions[Right] = {{Page::Items, 100}};
         placed = place(above, regions, all);
-        check(find(placed, Page::Favourites)->shownIn == Top && find(placed, Page::Favourites)->box == Box{210, 0, 220, 95},
+        check(find(placed, Page::Favorites)->shownIn == Top && find(placed, Page::Favorites)->box == Box{210, 0, 220, 95},
               "a panel above the window fills the room there");
         placed = place(above, regionsAround(427, 240, 120, 307, 20, 186, 210), all);
-        check(find(placed, Page::Favourites) && find(placed, Page::Favourites)->shownIn == Left && find(placed, Page::Favourites)->region == Top,
+        check(find(placed, Page::Favorites) && find(placed, Page::Favorites)->shownIn == Left && find(placed, Page::Favorites)->region == Top,
               "a region too low for one row lends its panels to a side, on this screen only");
         check(windowTop(97, 232, 408, {{0, 0, 640, 360}, {240, 72, 26, 26}, {300, 70, 20, 20}, {450, 60, 20, 30}, {240, 20, 20, 20}}) == 72,
               "the window's top takes in the tabs on its edge, not backdrops, controls beside it or far above");
         Layout messy;
-        messy.regions[Left] = {{Page::Plan, 33}, {Page::Plan, 50}, {Page::Favourites, 33}};
+        messy.regions[Left] = {{Page::Plan, 33}, {Page::Plan, 50}, {Page::Favorites, 33}};
         auto const tidy = normalized(messy);
         check(tidy.regions[Left].size() == 2 && tidy.regions[Left][0].share + tidy.regions[Left][1].share == 100
               && tidy.regions[Left][0].share % 5 == 0 && normalized(defaultLayout()) == defaultLayout(),
@@ -581,7 +581,7 @@ void recipeIndexTests() {
                   && hit(placed, regions, layout, plan, 300, 200, tray).kind == Kind::None,
               "an empty region takes it whole, the tray takes it out, the game's window takes nothing");
         auto swapped = apply(layout, plan, {Kind::Swap, Left, 0});
-        check(swapped && swapped->regions[Left][0].page == Page::Plan && swapped->regions[Left][1].page == Page::Favourites,
+        check(swapped && swapped->regions[Left][0].page == Page::Plan && swapped->regions[Left][1].page == Page::Favorites,
               "a swap trades the two panels' places");
         auto moved = apply(layout, plan, {Kind::After, Right, 0});
         check(moved && moved->regions[Left].size() == 1 && moved->regions[Left][0].share == 100 && moved->regions[Right].size() == 2

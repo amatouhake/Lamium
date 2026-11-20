@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-// L-359: what the player enters. Notes are kept for all worlds: favourites,
+// L-359: what the player enters. Notes are kept for all worlds: favorites,
 // the recipe an item is made by where it is not the default, the member
 // picked for an ingredient any of several items satisfies, and the items
 // marked as gathered, not made. Wanted is the hand-filled list of one world.
@@ -37,16 +37,16 @@ inline std::string choiceKey(Recipe const& recipe) {
     return std::string(stations[static_cast<size_t>(recipe.station)]) + "|" + recipe.id;
 }
 struct Notes {
-    std::vector<std::string> favourites;          // item keys, oldest first
+    std::vector<std::string> favorites;          // item keys, oldest first
     std::map<std::string, std::string> choices;   // item key -> the recipe's choiceKey
     std::map<std::string, std::string> picks;     // group key -> member's item key
     std::set<std::string> stops;                  // item keys
     bool operator==(Notes const&) const = default;
-    bool favourite(std::string_view key) const { return std::find(favourites.begin(), favourites.end(), key) != favourites.end(); }
-    void toggleFavourite(std::string const& key) {
-        auto found = std::find(favourites.begin(), favourites.end(), key);
-        if (found != favourites.end()) favourites.erase(found);
-        else if (!key.empty() && favourites.size() < 512) favourites.push_back(key);
+    bool favorite(std::string_view key) const { return std::find(favorites.begin(), favorites.end(), key) != favorites.end(); }
+    void toggleFavorite(std::string const& key) {
+        auto found = std::find(favorites.begin(), favorites.end(), key);
+        if (found != favorites.end()) favorites.erase(found);
+        else if (!key.empty() && favorites.size() < 512) favorites.push_back(key);
     }
 };
 // The default choice with the player's recipes put in, where the table still has them.

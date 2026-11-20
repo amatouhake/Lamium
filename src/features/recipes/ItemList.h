@@ -29,8 +29,8 @@ void back();
 // The game's window lost the focus: releases that were on their way will not come, so nothing stays
 // kept, and the search field gives up the keyboard. Any thread.
 void focusLost();
-// The favourite and wanted keys: the item under the pointer goes in, or out when it is in.
-void favourite();
+// The favorite and wanted keys: the item under the pointer goes in, or out when it is in.
+void favorite();
 void want();
 // The item under the pointer as the keys above see it, by its key; empty when there is none.
 std::string hoveredItem();

@@ -61,9 +61,9 @@ void bindingTests() {
         && !recipeKeyAllowed(Action::ShowUses, false, true, false) && !recipeKeyAllowed(Action::RecipeBack, false, true, true)
         && recipeKeyAllowed(Action::Sort, false, false, false) && !recipeKeyAllowed(Action::Sort, true, true, true),
         "back is a key only while the view is open, which lets no other action through; off, the recipe keys are the game's");
-    check(defaultChord(Action::RecipeFavourite) == Chord{Token{Device::Key, 0x41}} && defaultChord(Action::RecipeWanted) == Chord{Token{Device::Key, 0x57}}
-        && actionAllowed(Action::RecipeFavourite, false, true) && !actionAllowed(Action::RecipeWanted, true, false)
-        && recipeKeyAllowed(Action::RecipeFavourite, true, false, true) && !recipeKeyAllowed(Action::RecipeWanted, true, false, false)
+    check(defaultChord(Action::RecipeFavorite) == Chord{Token{Device::Key, 0x41}} && defaultChord(Action::RecipeWanted) == Chord{Token{Device::Key, 0x57}}
+        && actionAllowed(Action::RecipeFavorite, false, true) && !actionAllowed(Action::RecipeWanted, true, false)
+        && recipeKeyAllowed(Action::RecipeFavorite, true, false, true) && !recipeKeyAllowed(Action::RecipeWanted, true, false, false)
         && recipeKeyAllowed(Action::RecipeWanted, false, true, false),
         "A and W over an item, on item screens and in the open view: A while Recipes is on, W while the Plan is (L-373)");
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)

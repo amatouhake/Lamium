@@ -2,14 +2,14 @@
 
 Looking recipes up in the game, inside Lamium: an item list beside the
 inventory and the game's other item screens, a search field, a recipe view,
-favourites, placing a recipe into the grid and Mass Craft. The design is
+favorites, placing a recipe into the grid and Mass Craft. The design is
 agreed with mockups and built in steps ([L-359](backlog/L-359.md)); the
 plan of what to gather and the stores counted as held are in
 [PLAN.md](PLAN.md), features of their own that work with Recipes off
 (L-373). Built behind the Recipes switch (Inventory, experimental, off by
 default): the item list with its search field and filter, the recipe view
-and favourites. Keys, all rebindable, mouse buttons included: R (recipes of
-the item under the pointer), U (its uses), A (favourite) and Backspace
+and favorites. Keys, all rebindable, mouse buttons included: R (recipes of
+the item under the pointer), U (its uses), A (favorite) and Backspace
 (back, while the recipe view is open). What of this nobody has seen in game
 is under "Limits".
 
@@ -33,11 +33,11 @@ after using the first build. What is still open is in the L-item.
   Not at the anvil for now, where Enchantment Order's panels are.
 - A store can only be a storage block (chest, barrel, shulker box, ender
   chest): what a furnace or hopper holds changes by itself.
-- On the left: favourites at the top, the plan in the lower part (its
+- On the left: favorites at the top, the plan in the lower part (its
   lines carry item icons; what else it shows is decided with the plan).
 - Both side lists lie on a dimmed band that runs to the screen's edge, with
   no frame and no margin: the game dims the world too little for bare icons.
-- The favourite key puts the hovered item in or takes it out, wherever it
+- The favorite key puts the hovered item in or takes it out, wherever it
   is pressed.
 - One search field at the bottom centre of the screen, low enough that it
   never has to move when the centre shows more and high enough for
@@ -47,7 +47,7 @@ after using the first build. What is still open is in the L-item.
 - The list can be narrowed, at least to what can be made now. The filters
   have their place from the start: the list's bar, "All" and "Can be made"
   (one switch where the band is narrow).
-- In the item list a favourite's cell is framed in the accent color; in
+- In the item list a favorite's cell is framed in the accent color; in
   both lists a wanted item carries how many are wanted where a stack has
   its count.
 - An item held on the pointer is drawn over the bands and the windows, as
@@ -63,7 +63,7 @@ after using the first build. What is still open is in the L-item.
   recipe that what lies in the inventory itself (not what shulker boxes
   and bundles hold) makes once, without making anything first, and that
   fits the screen's grid (any size where there is none; L-367); the wanted mark being the count; the left band is
-  halved between favourites and wanted; favourites are kept with the notes
+  halved between favorites and wanted; favorites are kept with the notes
   for all worlds; a chosen recipe is kept by station and id; deleting a
   world's or a server's saved data removes its wanted items; "any order"
   is a small mark of three squares, named under the pointer.
@@ -92,15 +92,15 @@ after using the first build. What is still open is in the L-item.
   named under the pointer.
 - A two-line heading: the item's icon and name across the width (under
   the pointer, the item's tooltip, so a name cut short can be read) with
-  its own actions at the right end, a favourite button (the key works
+  its own actions at the right end, a favorite button (the key works
   too) and "wanted"; under it the station's name and the pager (previous,
-  "1 / 3", next, as wide as two-digit pages so the buttons stay put). The wheel turns pages too. Recipes carry no favourite
+  "1 / 3", next, as wide as two-digit pages so the buttons stay put). The wheel turns pages too. Recipes carry no favorite
   button of their own: any item in a recipe can be opened, and the key is
   there.
 - Every tip over the view or the plan window is the game's tooltip box.
 - One line of key hints sits just above the search field, in the same
   place whether a recipe is open (the window's last line) or not: click
-  for recipes, right click for uses, the favourite key, and Backspace for
+  for recipes, right click for uses, the favorite key, and Backspace for
   back while a recipe is open.
 - The game's inventory key closes the view like Esc and leaves the screen
   under it open; a second press closes that. Every key but the two recipe
@@ -207,7 +207,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   stations, the plan's window, the band's lists (pictures where the band
   is narrow), the item list's "all / can be made".
 - The recipe view's slots as the game draws its own, a missing
-  ingredient's face on the game's red. "Favourite" and "wanted" are two
+  ingredient's face on the game's red. "Favorite" and "wanted" are two
   joined buttons, green when on (chosen over a name and a switch and over
   icon toggles), at the heading's right end.
 - A Lamium window's grey covers the whole span between the two bands, so
@@ -222,7 +222,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   starts in, without the name and lines of icon glyphs (`hoverLines`). A
   row of the plan's window also says its count in chests and stacks.
 - Settings (L-373): Recipes (experimental, off by default) with
-  "Favourites" (on): without favourites, no favourites in the band, no
+  "Favorites" (on): without favorites, no favorites in the band, no
   marks, no button, and A does nothing. The Plan and the stores are
   features of their own ([PLAN.md](PLAN.md)); the band shows while any of
   the three has something in it.
@@ -250,7 +250,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   (Recipes, Plan) open after closing the settings. A page whose feature is off is
   left out; each panel keeps one row; a region too low for one row lends
   its panels to a side on that screen. `BandPages.cpp` draws the
-  favourites, the plan's list and the open container's line, which lies
+  favorites, the plan's list and the open container's line, which lies
   in the left region's last panel.
 - `ItemListLayout.h`, `RecipeView.h`, `ListFilter.h` (pure): where the
   lists, the search field and the view sit, an item's recipes by station, a
@@ -265,7 +265,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   its capability. `MassCraftPlan.h` (pure): the recipe a grid lays out,
   what a take added, the stacks beyond an ingredient's share; the run is
   `massCraft` in `RecipePlace.cpp`.
-- `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favourites,
+- `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favorites,
   chosen recipes, picked members and items marked as gathered, for all
   worlds in the config folder's `recipes.json`; the wanted items per world
   in `wanted.json` beside its waypoints, the counted places (`Places.h`,

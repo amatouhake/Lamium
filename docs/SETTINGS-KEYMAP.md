@@ -71,7 +71,7 @@ append-only action ids and default keys in `src/input/Binding.h`.
 - Default keys exist only where a convention exists or the action is used
   constantly; defaults are decided per feature, there is no general policy.
   Current defaults: `L` settings (L-01, replacing F8), `C` zoom, `R`, `U`,
-  `A` and `W` for an item's recipes, uses, favourite and wanted on item
+  `A` and `W` for an item's recipes, uses, favorite and wanted on item
   screens and `Backspace` for back in the recipe view (L-359; Sort lost `R`),
   `M` world map, `Tab` player list (hold), `F3` Debug View, `F3+B` Hitboxes,
   `F3+G` Chunk Borders (Java's debug keys, 2026-09-27), right button Fake

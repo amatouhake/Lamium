@@ -55,7 +55,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first), by name; lines for the current plan, or with a
   switch all chosen before. Placing follows it, else what is held.
-- A key (W by default, beside A for favourites; both rebindable) puts the
+- A key (W by default, beside A for favorites; both rebindable) puts the
   hovered item into "wanted" or takes it out, on item screens and in the
   recipe view, with Recipes on or off. While it is held the wheel changes how many are wanted, so the
   count is set where the item was added; an item that was wanted goes
@@ -108,7 +108,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
   what the last item screen saw (nothing before the world's first).
 - While a container is open, the last line of the left band, under a
   rule and clear of the screen's edge, is "Count as a store" with a
-  switch, whether or not the favourites or the plan are on: on makes it
+  switch, whether or not the favorites or the plan are on: on makes it
   a store, off takes it out; at the ender chest it switches the chest in
   or out of the count. The window has a "Stores" tab: what is carried, the ender chest and the
   stores, each a name and a switch in one column, a store also with

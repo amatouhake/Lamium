@@ -348,10 +348,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         coverLeft = std::min(coverLeft, span.left), right = std::max(right, span.left + span.width);
     }
     auto const prefs = Runtime::instance().snapshot();
-    // Recipes has the item list on the right, the search field, the favourites and the recipe view.
+    // Recipes has the item list on the right, the search field, the favorites and the recipe view.
     bool const recipesOn = prefs->inventory.recipes;
     bool const planOn = prefs->inventory.plan, storesOn = prefs->inventory.stores;
-    bool const favouritesOn = recipesOn && prefs->inventory.recipesFavourites;
+    bool const favoritesOn = recipesOn && prefs->inventory.recipesFavorites;
     // The open container's line (the stores') takes the left region's last units.
     auto const openPlace = storesOn ? placesGame::open(screenView) : std::nullopt;
     // The bands (L-374): regions beside, above and below the game's window, each page in its panel.
@@ -374,7 +374,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (bandEditor::active() && screenName != editScreen) bandEditor::stop();
     bool const editing = bandEditor::active();
     auto const shownBands = editing ? bandEditor::layout(prefs->inventory.bands) : prefs->inventory.bands;
-    std::array<bool, band::pageCount> const pagesOn{recipesOn, favouritesOn, planOn};
+    std::array<bool, band::pageCount> const pagesOn{recipesOn, favoritesOn, planOn};
     auto placed = band::place(shownBands, regions, pagesOn);
     // The line lies in the left region's last panel, so opening a chest moves nothing above it: the plan
     // keeps it in its rows' room, another page gives up those units.
@@ -460,16 +460,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
     std::string hoverItem;
     auto& context = event.uiRenderContext();
     view::Late late;
-    // A favourite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
-    std::set<std::string_view> favouriteKeys;
+    // A favorite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
+    std::set<std::string_view> favoriteKeys;
     std::map<std::string_view, Count> wantedCounts;
-    if (favouritesOn) for (auto const& key : state::notes().favourites) favouriteKeys.insert(key);
+    if (favoritesOn) for (auto const& key : state::notes().favorites) favoriteKeys.insert(key);
     if (planOn) for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
     // What a feature handed over is wanted too.
     auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
     if (planOn) for (auto const& target : handed) wantedCounts[target.key] += target.count;
     auto mark = [&](std::string const& key, float x, float y, bool framed) {
-        if (framed && favouriteKeys.contains(key)) frame(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::accent, .9f);
+        if (framed && favoriteKeys.contains(key)) frame(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::accent, .9f);
         auto wanted = wantedCounts.find(key);
         if (wanted == wantedCounts.end()) return;
         // Three characters fit a cell: thousands above that, and "++" past them.
@@ -538,7 +538,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             else show(nameAt(hovered));
         }
     }
-    // The bands' other pages, each in its panel (L-374): the favourites, the plan, and the open container's
+    // The bands' other pages, each in its panel (L-374): the favorites, the plan, and the open container's
     // line at the left region's end.
     bandPages::Frame frame{context, px, py, leftPress, pressed, late, hoverItem, mark, show, input.sideTurns, shiftHeld.load(), leftHeld.load()};
     std::vector<ListBox> bandBoxes; // where a press stays from the game and the view
@@ -546,7 +546,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (panel.page == band::Page::Items) continue;
         bandPages::ground(frame, panel.box, !panel.first);
         bandBoxes.push_back({panel.box.x, panel.box.y, panel.box.w, panel.box.h});
-        if (panel.page == band::Page::Favourites) bandPages::favourites(frame, sidePanelIn(panel.box, true));
+        if (panel.page == band::Page::Favorites) bandPages::favorites(frame, sidePanelIn(panel.box, true));
         else bandPages::plan(frame, planSide(panel.box), *player, handed, [&](planView::Tab tab) {
             // The recipe view lies over the window: asked for, the window comes to the front.
             view::close();
@@ -590,7 +590,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 auto const* plan = state::plan(*player);
                 placer.emplace(screenView, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, gridSide);
             }
-        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn, favouritesOn,
+        view::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, input.back, input.close, shiftHeld.load(), leftHeld.load(), planOn, favoritesOn,
                              placer ? &*placer : nullptr, coverLeft, right}, late);
     }
     else if (planView::isOpen()) {
@@ -607,7 +607,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView() || bandEditor::active();
     static std::vector<int> inventoryKeys;
-    static std::string backKey, favouriteKey, wantedKey; // the actions' keys as the keymap names them; empty without one
+    static std::string backKey, favoriteKey, wantedKey; // the actions' keys as the keymap names them; empty without one
     static std::chrono::steady_clock::time_point keysRead;
     if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
         keysRead = now;
@@ -620,7 +620,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             return input::effectiveChord(bindings, action).empty() ? std::string() : actionBindingName(*client, action);
         };
         backKey = keyOf(input::Action::RecipeBack);
-        favouriteKey = keyOf(input::Action::RecipeFavourite);
+        favoriteKey = keyOf(input::Action::RecipeFavorite);
         wantedKey = keyOf(input::Action::RecipeWanted);
         {
             auto const chord = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::RecipeWanted);
@@ -632,7 +632,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         // little to the window's width where it is still longer.
         std::string keys;
         auto add = [&](std::string part) { keys += (keys.empty() ? "" : " | ") + part; };
-        if (favouritesOn && !favouriteKey.empty()) add(translated("recipes.hint.favourite", favouriteKey));
+        if (favoritesOn && !favoriteKey.empty()) add(translated("recipes.hint.favorite", favoriteKey));
         if (planOn && !wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
         if (view::isOpen() && !backKey.empty()) add(translated("recipes.hint.back", backKey));
         std::string hint = recipesOn ? translated("recipes.hint") + (keys.empty() ? "" : " | " + keys) : keys;
@@ -834,11 +834,11 @@ void editLayout(band::Page page) {
     editAsked = std::chrono::steady_clock::now();
     inventoryAsked = {};
 }
-void favourite() {
+void favorite() {
     if (bandEditor::active()) return;
     auto const prefs = Runtime::instance().snapshot();
-    if (!prefs->inventory.recipes || !prefs->inventory.recipesFavourites) return;
-    if (auto item = hovered(); !item.empty()) state::toggleFavourite(item);
+    if (!prefs->inventory.recipes || !prefs->inventory.recipesFavorites) return;
+    if (auto item = hovered(); !item.empty()) state::toggleFavorite(item);
 }
 void want() {
     if (bandEditor::active() || !Runtime::instance().snapshot()->inventory.plan) return;

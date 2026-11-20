@@ -5,8 +5,8 @@ Lamium's UI ships in English (default), Japanese, Simplified Chinese
 language; any other language shows English. The Traditional Chinese text is
 its own translation from English, not converted from Simplified Chinese.
 The English is American English, as the game's own default (`en_US`):
-color, center, armor, favorites (maintainer 2026-11-20). Keys and saved ids
-keep their spelling (`recipefavourite`).
+color, center, armor, favorites (maintainer 2026-11-20). Keys, saved ids
+and code names are spelled the same way.
 
 ## Where the text lives
 

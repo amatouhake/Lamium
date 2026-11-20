@@ -19,6 +19,10 @@ Do not infer game success from a build or unit-test result.
   input in the field included. Sort no longer has a default key, which the
   release notes must say.
 
+- `recipes.json` still reads the development builds' "favourites" key
+  (`RecipeNotesStore.cpp`, 2026-11-20); remove that fallback before the
+  release, which never wrote it.
+
 ## Left from 0.7.0
 
 The tag (VALIDATION-LOG 2026-11-16; release published the same day): the

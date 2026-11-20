@@ -164,7 +164,7 @@ dark look. No control plays a sound.
   in the same direction, right under the tabs, would be hard to read.
 - **Each on or off**: a name and a switch. Where several are packed into
   a bar, joined buttons, green when on, pictures where the names do not
-  fit (the world map's layers; "favourite" and "wanted" in the recipe
+  fit (the world map's layers; "favorite" and "wanted" in the recipe
   view). A single switch that is not a row of a
   list (the open container's in the band of Recipes) stands in a frame
   of its own.

@@ -22,7 +22,7 @@ void settingsStoreTests() {
     {
         using namespace recipes::band;
         check(decodeSettings("{}").inventory.bands == defaultLayout(), "the bands start as today's (L-374)");
-        auto bands = decodeSettings(R"({"inventory":{"bands":{"right":[{"page":"items","share":60},{"page":"plan","share":40},{"page":"nope"}],"top":[{"page":"favourites"}],"left":"x"}}})").inventory.bands;
+        auto bands = decodeSettings(R"({"inventory":{"bands":{"right":[{"page":"items","share":60},{"page":"plan","share":40},{"page":"nope"}],"top":[{"page":"favorites"}],"left":"x"}}})").inventory.bands;
         check(bands.regions[Left].empty() && bands.regions[Right].size() == 2 && bands.regions[Right][1] == Panel{Page::Plan, 40}
                   && bands.regions[Top].size() == 1 && bands.regions[Top][0].share == 100,
               "the bands load by region and page, leaving out what is unknown or malformed");

@@ -34,7 +34,7 @@ struct ListBox {
 // nothing above it ever has to move. High enough for Japanese and for letters that reach under the line.
 inline constexpr float searchTop = 16; // its top, from the screen's bottom
 inline ListBox searchFieldAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - searchTop, 176, 14}; }
-// The band left of the game's window, from the screen's edge: favourites in its upper half, the wanted
+// The band left of the game's window, from the screen's edge: favorites in its upper half, the wanted
 // items in the lower. The lower half is a bar, rows, and a last line kept free for the open container's
 // control, so the rows never shift.
 struct SideLayout {
@@ -42,19 +42,19 @@ struct SideLayout {
     float left = 0, top = 0, width = 0, height = 0;
     int columns = 0;
     // Which halves are in use; one alone has the whole band.
-    bool favouritesOn = true, planOn = true;
+    bool favoritesOn = true, planOn = true;
     bool footOn = false; // an open container's line takes the band's last units
     bool usable() const { return columns > 0 && height >= band::minLength(band::Left); } // one row under its heading
     bool has(float x, float y) const { return usable() && x >= left && x < left + width && y >= top && y < top + height; }
-    float split() const { return !favouritesOn ? 0 : !planOn ? height : std::floor(height * .5f); }
-    int favouriteRows() const { return std::max(0, static_cast<int>((split() - head - pad) / cell)); }
-    int favourites() const { return columns * favouriteRows(); }
+    float split() const { return !favoritesOn ? 0 : !planOn ? height : std::floor(height * .5f); }
+    int favoriteRows() const { return std::max(0, static_cast<int>((split() - head - pad) / cell)); }
+    int favorites() const { return columns * favoriteRows(); }
     float cellX(int index) const { return left + pad + static_cast<float>(index % columns) * cell; }
     float cellY(int index) const { return top + head + static_cast<float>(index / columns) * cell; }
-    int hitFavourite(float x, float y) const {
+    int hitFavorite(float x, float y) const {
         if (!usable() || x < left + pad || y < top + head) return -1;
         int const column = static_cast<int>((x - left - pad) / cell), line = static_cast<int>((y - top - head) / cell);
-        return column < columns && line < favouriteRows() ? line * columns + column : -1;
+        return column < columns && line < favoriteRows() ? line * columns + column : -1;
     }
     // The lists' tabs: 14 high, room for an item's picture at 14 units where the names do not fit (L-367).
     static constexpr float bar = 14;
@@ -90,13 +90,13 @@ inline ItemListLayout itemListIn(band::Box box) {
     out.rows = std::max(0, static_cast<int>((out.height - ItemListLayout::bar - ItemListLayout::pad) / ItemListLayout::cell));
     return out;
 }
-// A panel as the favourites (cells under a heading) or as the plan (its tabs and rows): a SideLayout with
+// A panel as the favorites (cells under a heading) or as the plan (its tabs and rows): a SideLayout with
 // that part alone.
-inline SideLayout sidePanelIn(band::Box box, bool favourites) {
+inline SideLayout sidePanelIn(band::Box box, bool favorites) {
     SideLayout out;
     out.left = box.x, out.top = box.y, out.width = box.w, out.height = box.h;
     out.columns = std::max(0, static_cast<int>((out.width - 2 * SideLayout::pad) / SideLayout::cell));
-    out.favouritesOn = favourites, out.planOn = !favourites;
+    out.favoritesOn = favorites, out.planOn = !favorites;
     return out;
 }
 // The band from the window's right side to the screen's edge, top to bottom:

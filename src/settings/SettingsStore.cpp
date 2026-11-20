@@ -46,7 +46,7 @@ void preserveBroken(std::filesystem::path const& path) {
     std::filesystem::rename(path, broken);
 #endif
 }
-// The bands as regions of panels (L-374): {"left": [{"page": "favourites", "share": 50}, ...], ...}.
+// The bands as regions of panels (L-374): {"left": [{"page": "favorites", "share": 50}, ...], ...}.
 Json bandsJson(recipes::band::Layout const& layout) {
     Json out = Json::object();
     for (int r = 0; r < recipes::band::regionCount; ++r) {
@@ -268,7 +268,7 @@ Json encode(Settings const& settings) {
                        {"offhandSwap", settings.inventory.offhandSwap},
                        {"deathRestore", settings.inventory.deathRestore},
                        {"recipes", settings.inventory.recipes},
-                       {"recipesFavourites", settings.inventory.recipesFavourites}, {"plan", settings.inventory.plan},
+                       {"recipesFavorites", settings.inventory.recipesFavorites}, {"plan", settings.inventory.plan},
                        {"stores", settings.inventory.stores}, {"storeMarks", settings.inventory.storeMarks},
                        {"bands", bandsJson(settings.inventory.bands)},
                        {"massCraft", settings.inventory.massCraft},
@@ -731,7 +731,7 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.offhandSwap = settingsValue(data.at("inventory"), "offhandSwap", value.inventory.offhandSwap);
         value.inventory.deathRestore = settingsValue(data.at("inventory"), "deathRestore", value.inventory.deathRestore);
         value.inventory.recipes = settingsValue(data.at("inventory"), "recipes", value.inventory.recipes);
-        value.inventory.recipesFavourites = settingsValue(data.at("inventory"), "recipesFavourites", value.inventory.recipesFavourites);
+        value.inventory.recipesFavorites = settingsValue(data.at("inventory"), "recipesFavorites", value.inventory.recipesFavorites);
         value.inventory.plan = settingsValue(data.at("inventory"), "plan", value.inventory.plan);
         value.inventory.stores = settingsValue(data.at("inventory"), "stores", value.inventory.stores);
         value.inventory.storeMarks = settingsValue(data.at("inventory"), "storeMarks", value.inventory.storeMarks);
