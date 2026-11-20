@@ -49,7 +49,7 @@ th{color:var(--ink-2);font-weight:500}
 <body>
 <div class="wrap">
   <header>
-    <h1>醸造をレシピ画面に 2（L-361）</h1>
+    <h1>醸造をレシピ画面に 3（L-361）</h1>
     <p class="lede">醸造台の調合を、レシピ画面の「醸造」タブに出す案。面の大きさと余白は今のレシピ画面と同じ（幅 92、余白 5）。下の切り替えで、面の形・燃料の出し方・計画での数え方を見比べる。例は俊敏のポーション（奇妙なポーション＋砂糖）と、奇妙なポーション（水入り瓶＋ネザーウォート）。</p>
   </header>
   <div class="controls">
@@ -58,6 +58,10 @@ th{color:var(--ink-2);font-weight:500}
       <button class="chip" data-k="shape" data-v="one">A. 瓶 1 本（材料の下に瓶、矢印、完成品）</button>
       <button class="chip" data-k="shape" data-v="three">B. 瓶 3 本（醸造台のように 3 本並べる）</button>
       <button class="chip" data-k="shape" data-v="count">C. A に「×3」（1 回で 3 本まで）</button>
+    </div>
+    <div class="grp"><span class="lbl">醸造台の部品</span>
+      <button class="chip on" data-k="parts" data-v="1">描く（燃料の管・コイル・燃料計・泡・材料からの管・空き瓶の形）</button>
+      <button class="chip" data-k="parts" data-v="">描かない</button>
     </div>
     <div class="grp"><span class="lbl">燃料</span>
       <button class="chip on" data-k="fuel" data-v="solid">ブレイズパウダー</button>
@@ -89,15 +93,16 @@ th{color:var(--ink-2);font-weight:500}
     <div class="card">
       <h2>決めたいこと</h2>
       <ul>
-        <li>決まったこと（2026-11-21）：面は醸造台どおり（D）、燃料はブレイズパウダーを描く（醸造台の燃料はそれだけ）、数え方はまとめて。</li>
-        <li><span class="q">1.</span> D の並び（燃料・材料・矢印・3 つの瓶の位置）がこれで醸造台と結び付くか。</li>
+        <li>決まったこと（2026-11-21）：面は醸造台どおり（D）、燃料はブレイズパウダーを描く、数え方はまとめて、計画にブレイズパウダーは数えない。</li>
+        <li><span class="q">1.</span> 醸造台の部品の描き方（管・コイル・燃料計・泡・空き瓶の形）がこれで醸造台に結び付くか。</li>
+        <li><span class="q">2.</span> 醸造台への「並べる」：押すと材料 1 つと左の瓶 1 本、Shift で材料 1 つと瓶 3 本（3 つの欄すべて）。燃料は触らない。</li>
       </ul>
     </div>
   </div>
 </div>
 <script>
 let U = 3;
-const opt = {shape:'stand', fuel:'solid', plan:'batch'};
+const opt = {shape:'stand', fuel:'solid', plan:'batch', parts:true};
 const px = v => v * U + 'px';
 const view = document.getElementById('view');
 function fit(){ U = Math.max(1.5, Math.min(3.2, (document.querySelector('.wrap').clientWidth - 20) / 245)); document.documentElement.style.setProperty('--u', U + 'px'); }
@@ -118,11 +123,26 @@ function face(bx, by, ingredient, from, to){
   if (opt.shape === 'stand') {
     // As the brewing stand's screen: the fuel at the top left, the ingredient at the top in the middle with the
     // progress arrow right of it, and the three bottles below, the left one before, the middle empty, the right after.
+    const ink = '#3f3f3f', pale = '#f4f4f4', dark = '#2a2a2a';
+    const line = (x, y, w, h, c) => { const d = el('', bx + x, by + y, w, h, ''); d.style.background = c; return d; };
+    if (opt.parts) {
+      // The stand's own parts, drawn in its colors: the fuel's tube to the coil, the coil, the fuel gauge, the
+      // bubbles over it, and the tubes from the ingredient down to the three bottles.
+      line(18, 9, 4, 1, ink); line(18, 8, 4, 1, pale);
+      for (let i = 0; i < 4; i++) { line(22, 4 + i * 3, 6, 1, dark); line(22, 5 + i * 3, 6, 1, pale); }
+      line(28, 15, 3, 1, ink);
+      line(31, 14, 15, 3, ink); line(32, 15, 13, 1, '#e8a020');
+      for (const [x, y] of [[36, 9], [38, 5], [35, 2], [40, 10]]) line(x, y, 1.5, 1.5, pale);
+      line(58.5, 18, 1, 12, ink); line(59.5, 18, 1, 12, pale);           // down to the middle bottle
+      line(46, 26, 13, 1, ink); line(46, 27, 13, 1, pale);               // to the left bottle
+      line(60, 26, 12, 1, ink); line(60, 27, 12, 1, pale);               // to the right bottle
+    }
     if (opt.fuel !== 'none') slot(bx, by + 2, fuelItem);
     slot(bx + 50, by, ingredient);
-    const a = el('', bx + 72, by + 2, 3, 14, ''); a.style.background = '#3f3f3f'; a.style.clipPath = 'polygon(35% 0,65% 0,65% 70%,100% 70%,50% 100%,0 70%,35% 70%)';
+    const a = el('', bx + 72, by + 2, 3, 14, ''); a.style.background = ink; a.style.clipPath = 'polygon(35% 0,65% 0,65% 70%,100% 70%,50% 100%,0 70%,35% 70%)';
     slot(bx + 28, by + 22, from);
-    slot(bx + 50, by + 30, null, null, true);
+    slot(bx + 50, by + 30, null, null, false);
+    if (opt.parts) { const b = el('', bx + 54, by + 33, 10, 12, ''); b.style.border = `${U}px solid #6f6f6f`; b.style.borderRadius = `${2*U}px ${2*U}px ${4*U}px ${4*U}px`; }
     slot(bx + 72, by + 22, to);
     el('btn', bx + B - 11, by + H - 11, 11, 11, placeIcon);
     return;
@@ -151,6 +171,7 @@ function render(){
   el('win', 0, 0, W, 118).style.zIndex = -1;
   view.style.height = px(118);
   el('txt', 8, 8, null, null, 'レシピ: 俊敏のポーション').style.fontSize = px(8);
+  // the plan's table no longer has a fuel column
   el('faint', 8, 22, null, null, '醸造').style.fontSize = px(7);
   const by = 44;
   face(margin + (column - 92) / 2, by, ITEMS.sugar, ITEMS.awkward, ITEMS.swift);
@@ -159,15 +180,15 @@ function render(){
   const t = document.getElementById('plan');
   const rows = [1, 3, 4].map(n => {
     const batches = opt.plan === 'batch' ? Math.ceil(n / 3) : n;
-    return `<tr><td>${n} 本</td><td>水入り瓶 ${n}</td><td>ネザーウォート ${batches}</td><td>砂糖 ${batches}</td><td>ブレイズパウダー（燃料）別</td></tr>`;
+    return `<tr><td>${n} 本</td><td>水入り瓶 ${n}</td><td>ネザーウォート ${batches}</td><td>砂糖 ${batches}</td></tr>`;
   }).join('');
-  t.innerHTML = `<tr><th>欲しい数</th><th>瓶</th><th>ネザーウォート</th><th>砂糖</th><th>燃料</th></tr>` + rows;
+  t.innerHTML = `<tr><th>欲しい数</th><th>瓶</th><th>ネザーウォート</th><th>砂糖</th></tr>` + rows;
   document.getElementById('planNote').textContent = opt.plan === 'batch'
     ? 'まとめて：材料 1 つで瓶 3 本まで醸造できるので、材料は 3 本ごとに 1 つ。4 本なら 2 回（3 本 ＋ 1 本）。本物の醸造台の通り。'
     : '1 本ずつ：材料 1 つで 1 本と数える。計算は単純だが、実際より材料を多く集めることになる。';
 }
 document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
-  opt[b.dataset.k] = b.dataset.v;
+  opt[b.dataset.k] = b.dataset.k === 'parts' ? !!b.dataset.v : b.dataset.v;
   document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
   render();
 });
