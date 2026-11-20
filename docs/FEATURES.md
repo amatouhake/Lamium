@@ -345,7 +345,7 @@ other switches keep their values. Every row has a toggle key (unbound).
   gives (set by a command, say) is shown without the count. It does not predict what
   an operation will cost: that depends on the other item too.
 - Above the food icons, a suspicious stew's effect outside Creative, in the game's
-  words and colours.
+  words and colors.
 - Property values, the values of the item's kind that the game knows and does not print,
   each only where the item has one, under the food icons: enchantability; a stack limit below 64 (above 1); the cooldown and the time the
   item takes to use, in seconds; how many items it smelts as fuel.
@@ -444,7 +444,9 @@ Lists every item beside the inventory and other item screens (not the
 anvil). Click an item for its recipes, right click for what it is used in;
 `R` and `U` do the same for the item under the pointer, also in the game's
 own slots. A search field at the bottom narrows the list, as does "Can be
-made". `A` keeps an item as a favourite, on the left. Off by default;
+made". `A` keeps an item as a favorite, on the left. The bands' layout is
+arranged in an editor over the inventory ("Layout of the bands" in the
+settings). Off by default;
 details and what is still to come in [RECIPES.md](RECIPES.md).
 
 ### Plan (experimental)
@@ -514,7 +516,7 @@ The same plan is shown right of the anvil screen ("List the steps beside the anv
 off until you turn it on), with the step whose two items lie in the slots highlighted and the
 last line speaking of that pair (it matches a step, the game's cost differs, an item
 is not part of the plan). The slots themselves are tinted: in the inventory the stack
-to put left in cyan and the one to put right in pink, with the same colours on the
+to put left in cyan and the one to put right in pink, with the same colors on the
 anvil's two slots while they wait; a slot holding the wrong thing in red; and the
 result slot green when the pair is a step at the planned cost, yellow when the game's
 cost differs, red when it is no step. Left of the anvil screen the same choices as in the
