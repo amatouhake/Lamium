@@ -222,8 +222,9 @@ A setting of its own, off by default, and it works with Recipes off
   up again. A round goes out in one frame where the game shows each
   part at once, the next 50 ms later; a take that found room for a part
   only is followed by the next in the same frame.
-- A step makes at most 16 slot calls (a move into a cell is two; a
-  round with more cells is laid in by a step of its own), so a run
+- A step makes at most 16 slot calls (a move into a cell is one, straight
+  from its slot, two where it goes by the pointer, L-381; a round with
+  more cells is laid in by a step of its own), so a run
   stays under some 320 requests a second: a local world closed with a
   network error during a run without that limit.
 - With no room in the inventory for the product, the smallest stack of

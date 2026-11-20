@@ -86,19 +86,21 @@ int cellCount(ContainerManagerController& manager, int cell) {
 // move stacks (the manager's place-amount), so what the pointer holds stays there (L-381). Where a move shows
 // nothing, it goes as a hand would: taken onto the pointer and put down, only while the pointer is empty. False
 // where the game did not do as planned; what the pointer holds then is left to the player. The first of each
-// way a session is logged.
-bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& moves) {
+// way a session is logged. `spent`, if given, grows by the requests sent: one a straight move, two by the pointer.
+bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& moves, int* spent = nullptr) {
     auto& manager = *controller.mContainerManagerController;
     static bool toldDirect = false, toldHand = false;
     for (auto const& move : moves) {
         bool const top = move.slot < 9;
         std::string const& from = top ? hotbar : inventory;
         int const slot = top ? move.slot : move.slot - 9, before = cellCount(manager, move.cell);
+        if (spent) ++*spent;
         if (manager.handlePlaceAmount(SlotData(from, slot), move.amount, SlotData(grid, move.cell)) && cellCount(manager, move.cell) == before + move.amount) {
             if (!toldDirect) toldDirect = true, Runtime::instance().self().getLogger().info("Recipes: a cell laid in straight from its slot");
             continue;
         }
         if (cellCount(manager, move.cell) != before || held(manager)) return false;
+        if (spent) *spent += 2;
         controller._handleTakeAmount(move.amount, from, slot);
         if (held(manager) != move.amount) return false;
         controller._handlePlaceAll(grid, move.cell);
@@ -108,12 +110,13 @@ bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& m
     return true;
 }
 // The recipe laid into an empty grid.
-bool lay(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many) {
+bool lay(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many,
+         int* spent = nullptr) {
     auto& manager = *controller.mContainerManagerController;
     if (!gridEmpty(manager)) return false;
     auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, many);
     if (!plan.ready()) return false;
-    return apply(controller, plan.moves);
+    return apply(controller, plan.moves, spent);
 }
 }
 namespace place {
@@ -217,7 +220,8 @@ constexpr int mostStalls = 20;
 constexpr int slots = 36;
 // Hand: the inventory has no room for the product, so it is taken onto the pointer and thrown from there.
 enum class Phase { Lay, Take, Throw, Hand };
-// `mostRequests`: the slot calls a step may make (a move into a cell is two). A local world closed with a
+// `mostRequests`: the slot calls a step may make (a move into a cell is one, two where it goes by the pointer;
+// L-381). A local world closed with a
 // network error under some hundreds a step's worth a second; a step stays well under that.
 constexpr int mostPasses = 10, mostRequests = 16;
 struct Run {
@@ -575,12 +579,15 @@ void advance(CraftingScreenController& controller) {
         auto const plan = placePlan(index, recipe, sideOf(manager), carried, run.picks, true);
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
         if (plan.ready()) {
-            // A round is laid in by a step that has all its calls left, however many cells it has.
-            int const cost = 2 * static_cast<int>(plan.moves.size());
+            // A round is laid in by a step that has all its calls left, however many cells it has: a move straight
+            // from its slot is one call (L-381), what went by the pointer two, counted as sent.
+            int const cost = static_cast<int>(plan.moves.size());
             if (cost > budget && budget < mostRequests) { run.wait = "the step has no calls left to lay in"; return; }
-            budget -= cost;
+            int calls = 0;
             // Laid in part: the take that follows finds no product, and what was laid goes back.
-            if (!lay(controller, index, recipe, run.picks, true) && held(manager)) { again("laying the recipe in failed", now); return; }
+            bool const laid = lay(controller, index, recipe, run.picks, true, &calls);
+            budget -= calls;
+            if (!laid && held(manager)) { again("laying the recipe in failed", now); return; }
             ++run.rounds;
             run.phase = Phase::Take;
             run.since = now;
