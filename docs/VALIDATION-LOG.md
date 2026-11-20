@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The region above clear of the tabs, American English (L-375, 2026-11-20)
+
+Build `8afadb38` (DLL
+`4337c5f10553703ca000c697934a9ceb820634bfd9e7179c9f3c4c5797dadaf8`),
+1.26.60.05 Dev instance, the maintainer. Works: a panel above the window
+ending over the game's tabs on the inventory, the crafting table and the
+furnace, the tabs pressable; "Favorites" in English. Not seen: the narrower
+screen widths.
+
 ## The bands' layout editor (L-375, 2026-11-20)
 
 Build `a3ef7300` (DLL
