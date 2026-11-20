@@ -309,8 +309,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     float right = std::max(at.x + size.x, viewLayout.left + RecipeViewLayout::width);
     // Between the two bands: what a Lamium window covers, so the game's window does not show beside it.
     float coverLeft = std::min(windowLeft, viewLayout.left);
+    // The game's window with its book open, as last seen on the screens that have the book (a villager's is wide too).
+    static float bookOpenWidth = planWindowWidth;
+    if ((screenName == "inventory_screen" || screenName == "crafting_screen") && bookOpenSpan(coverLeft, right)) bookOpenWidth = right - coverLeft;
     if (planView::isOpen()) {
-        auto const span = planWindowAt(screen.x, coverLeft, right);
+        auto const span = planWindowAt(screen.x, coverLeft, right, bookOpenWidth);
         coverLeft = std::min(coverLeft, span.left), right = std::max(right, span.left + span.width);
     }
     auto const layout = itemListRight(screen.x, screen.y, 0, right);
