@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The search syntax over the field, its text centred (L-377, 2026-11-21)
+
+Build `105d50de` (DLL
+`7f8659a869e79ad1e72451f5de84520f2382a94d4209c91e133e170a8a1b1ccf`),
+1.26.60.05 Dev instance, the maintainer. Works: the table under the pointer
+over the field while it is not typed in, none while typing; the field's
+placeholder and typed text in the middle of its height.
+
 ## The search field's help button (L-377, 2026-11-21)
 
 Build `36b9d215` (DLL
