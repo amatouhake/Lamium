@@ -87,16 +87,18 @@ after using the first build. What is still open is in the L-item.
 - A page is two columns of three rows, six recipes, with room between
   them and inside the window's edge (L-367; ten without margins read as
   crowded, two were too few for an item with dozens of uses).
-- Kinds of work are tabs on the window's top edge (L-376): crafting,
-  cooking (the furnace, blast furnace, smoker and both campfires, under
-  whose tags the game files one recipe), stonecutting, smithing. Each
-  recipe shows once. A tab is its kind's usual station as an icon, named
-  under the pointer with the stations that do its recipes ("Cooking
-  (Furnace, Blast Furnace)"); each the same size.
+- Processes are tabs on the window's top edge (L-376), as other recipe
+  viewers keep them: crafting, smelting, blasting, smoking, campfire
+  cooking, stonecutting, smithing. The game files one cooking recipe under
+  several stations' tags; it shows in the tab of each process that does
+  it (steak in three). A tab is its usual station as an icon (campfire
+  cooking: the campfire), named under the pointer with its stations; each
+  the same size.
 - A two-line heading: the item's icon and name across the width (under
   the pointer, the item's tooltip, so a name cut short can be read) with
   its own actions at the right end, a favorite button (the key works
-  too) and "wanted"; under it the tab's name and the pager (previous,
+  too) and "wanted"; under it the tab's stations as icons, each once (a
+  press shows what that station does), the process's name and the pager (previous,
   "1 / 3", next, as wide as two-digit pages so the buttons stay put). The wheel turns pages too. Recipes carry no favorite
   button of their own: any item in a recipe can be opened, and the key is
   there.
@@ -143,11 +145,9 @@ after using the first build. What is still open is in the L-item.
   member "How to make" names, else its members in turn with a star on the
   icon's corner (on every Recipes screen); it is named by its tag
   ("Planks") or "Raw Gold etc.", and under the pointer shows its members.
-- A cooking recipe names the stations that do it as their icons, two to a
-  row at its upper right; a press on one shows what that station does.
 - A station's recipes (R, a left press) are how it is made; its uses (U, a
-  right press) first what it does, only the recipes it can do ("Cooking
-  (Blast Furnace)"), then the recipes it goes into, none twice.
+  right press) first what it does, only the recipes it can do, then the
+  recipes it goes into, none twice.
 
 ### Mass Craft
 A setting of its own, off by default, and it works with Recipes off

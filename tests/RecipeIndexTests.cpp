@@ -247,13 +247,14 @@ void recipeIndexTests() {
         check(anyOrder(button) && !odd.width && odd.cells.size() == 2 && !anyOrder(odd),
               "a shape that does not fit its cells is laid out without it, and only the game's word marks any order");
         auto makes = viewTabs(index, choice, index.find("iron"), false);
-        check(makes.size() == 1 && makes[0].kind == Kind::Cooking && makes[0].station == Station::Furnace && makes[0].recipes.size() == 1
+        check(makes.size() == 2 && makes[0].kind == Kind::Smelting && makes[1].kind == Kind::Blasting && makes[0].recipes == makes[1].recipes
+                  && makes[0].recipes.size() == 1 && makes[1].station == Station::BlastFurnace
                   && index.recipes[static_cast<size_t>(makes[0].recipes[0])].stations == std::vector<Station>{Station::Furnace, Station::BlastFurnace},
-              "a recipe several stations do shows once in its kind's tab, with its stations; smelting alternatives are one recipe (L-376)");
+              "one recipe several stations do shows in the tab of each process, smelting alternatives being one recipe (L-376)");
         auto steak = viewTabs(index, choice, index.find("steak"), false);
-        check(steak.size() == 1 && steak[0].recipes.size() == 1
-                  && tabStations(index, steak[0]) == std::vector<Station>{Station::Furnace, Station::Smoker, Station::Campfire},
-              "one cooking recipe filed under three stations is one recipe naming all three");
+        check(steak.size() == 3 && steak[2].kind == Kind::CampfireCooking && tabStations(index, steak[2]) == std::vector<Station>{Station::Campfire}
+                  && tabStations(index, steak[0]) == std::vector<Station>{Station::Furnace},
+              "a tab names the stations of its own process");
         auto furnaceUses = viewTabs(index, choice, index.find("minecraft:furnace"), true);
         check(furnaceUses.size() == 2 && furnaceUses[0].only == Station::Furnace && furnaceUses[0].recipes.size() == 2
                   && furnaceUses[1].kind == Kind::Crafting && furnaceUses[1].recipes.size() == 1,
@@ -264,7 +265,7 @@ void recipeIndexTests() {
               "merged smelting shows its inputs as one slot");
         auto uses = viewTabs(index, choice, index.find("birch_planks"), true);
         check(uses.size() == 1 && uses[0].recipes.size() == 2, "an item is used where a group it belongs to is");
-        check(viewTabs(index, choice, index.find("iron_ore"), true).size() == 1 && viewTabs(index, choice, -1, false).empty(),
+        check(viewTabs(index, choice, index.find("iron_ore"), true).size() == 2 && viewTabs(index, choice, -1, false).empty(),
               "a merged input counts as used, and an item the table lacks has no tabs");
         auto view = recipeViewAt(640, 360);
         check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,

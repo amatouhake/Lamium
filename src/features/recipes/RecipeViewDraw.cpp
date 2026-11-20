@@ -155,8 +155,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     Station const station = tab.station;
     int const count = static_cast<int>(tab.recipes.size()), pages = l.pages(station, count);
     at.page = std::clamp(at.page, 0, pages - 1);
-    // Kinds of work are tabs (L-376), each by its usual station's icon and named under the pointer with the stations
-    // that do it; the pager keeps the line's right end.
+    // Processes are tabs (L-376), each by its usual station's icon and named under the pointer with its stations.
     auto tabName = [&](ViewTab const& t) { return kindName(t.kind, tabStations(index, t)); };
     float x = l.left + 5;
     float const tabEnd = l.left + l.width - 5;
@@ -177,10 +176,27 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         regions.push_back(region);
         x += w - 1; // neighbours share their edge
     }
-    // The second line: the station's name, and the pager at its right end.
+    // The second line: the tab's stations as their icons, each once (a press shows what that station does), the
+    // process's name, and the pager at its right end.
     float const lineTwo = l.top + lineOne + 14, lineEnd = l.left + l.width - 7;
     auto const pager = drawPager(context, lineEnd, lineTwo, at.page, pages, input.pointerX, input.pointerY);
-    windowLabel(context, l.left + 7, lineTwo + 1, pager.prevX - 4 - (l.left + 7), tabName(tab), true);
+    float nameX = l.left + 7;
+    for (Station s : tabStations(index, tab)) {
+        auto const picture = stationItem(s);
+        if (picture.empty() || nameX + 12 > pager.prevX - 4) continue;
+        std::string key(picture);
+        float const sy = lineTwo - 1;
+        if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, nameX, sy, .75f});
+        Region region{nameX, sy, 12, 12, Act::Station, key, -1};
+        if (region.has(input.pointerX, input.pointerY)) {
+            late.tip = stationName(s), late.tipLines = {translated("recipes.station.uses")};
+            late.hovered = key;
+        }
+        regions.push_back(std::move(region));
+        nameX += 13;
+    }
+    if (nameX > l.left + 7) nameX += 2;
+    windowLabel(context, nameX, lineTwo + 1, pager.prevX - 4 - nameX, kindName(tab.kind, {}), true);
     if (pager.prevOn) regions.push_back({pager.prevX, pager.y, Pager::size, Pager::size, Act::PagePrev, {}, -1});
     if (pager.nextOn) regions.push_back({pager.nextX, pager.y, Pager::size, Pager::size, Act::PageNext, {}, -1});
     // An ingredient any of several items satisfies shows them in turn.
@@ -269,21 +285,6 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                 late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.change")};
             regions.push_back(region);
         }
-        // A cooking recipe names the stations that do it, as their icons; a press shows what that station does.
-        if (block.stations)
-            for (size_t k = 0; k < recipe.stations.size() && k < 6; ++k) {
-                auto const picture = stationItem(recipe.stations[k]);
-                if (picture.empty()) continue;
-                float const sx = bx + block.marksX + static_cast<float>(k % 2) * 16, sy = by + block.marksY + static_cast<float>(k / 2) * 16;
-                std::string key(picture);
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(key).icon)) late.icons.push_back({stack, sx, sy, .875f});
-                Region region{sx, sy, 14, 14, Act::Station, key, -1};
-                if (region.has(input.pointerX, input.pointerY)) {
-                    late.tip = stationName(recipe.stations[k]), late.tipLines = {translated("recipes.station.uses")};
-                    late.hovered = key;
-                }
-                regions.push_back(std::move(region));
-            }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;
             anyOrderMark(context, nx, ny, palette::vanilla::windowInk);

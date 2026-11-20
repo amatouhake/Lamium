@@ -9,8 +9,8 @@ std::string stationName(Station station) {
     return item.empty() ? std::string("-") : schematic::items::shown(std::string(item)).name;
 }
 std::string kindName(Kind kind, std::vector<Station> const& stations) {
-    static constexpr char const* keys[]{"recipes.kind.crafting", "recipes.kind.cooking", "recipes.kind.stonecutting", "recipes.kind.smithing",
-                                        "recipes.kind.other"};
+    static constexpr char const* keys[]{"recipes.kind.crafting", "recipes.kind.smelting", "recipes.kind.blasting", "recipes.kind.smoking",
+                                        "recipes.kind.campfire", "recipes.kind.stonecutting", "recipes.kind.smithing", "recipes.kind.other"};
     std::string const name = ui::translated(keys[static_cast<size_t>(kind)]);
     std::string list;
     for (Station s : stations) {

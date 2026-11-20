@@ -20,12 +20,15 @@ using Item = int; // position in Index::items
 using Count = std::uint64_t;
 enum class Station { Crafting, Stonecutter, Furnace, BlastFurnace, Smoker, Campfire, SoulCampfire, Smithing, Other };
 inline bool smelts(Station station) { return station >= Station::Furnace && station <= Station::SoulCampfire; }
-// Kinds of work (L-376): the recipe view's tabs. Cooking is what the furnace, blast furnace, smoker and both
-// campfires do: the game files one recipe under those stations' tags.
-enum class Kind { Crafting, Cooking, Stonecutting, Smithing, Other };
+// Kinds of work (L-376): the recipe view's tabs, one per process as other viewers keep them. The game files one
+// cooking recipe under several stations' tags; it shows in the tab of each process that does it.
+enum class Kind { Crafting, Smelting, Blasting, Smoking, CampfireCooking, Stonecutting, Smithing, Other };
 inline Kind kindOf(Station station) {
-    if (smelts(station)) return Kind::Cooking;
     switch (station) {
+    case Station::Furnace: return Kind::Smelting;
+    case Station::BlastFurnace: return Kind::Blasting;
+    case Station::Smoker: return Kind::Smoking;
+    case Station::Campfire: case Station::SoulCampfire: return Kind::CampfireCooking;
     case Station::Crafting: return Kind::Crafting;
     case Station::Stonecutter: return Kind::Stonecutting;
     case Station::Smithing: return Kind::Smithing;
@@ -36,7 +39,10 @@ inline Kind kindOf(Station station) {
 inline Station usualStation(Kind kind) {
     switch (kind) {
     case Kind::Crafting: return Station::Crafting;
-    case Kind::Cooking: return Station::Furnace;
+    case Kind::Smelting: return Station::Furnace;
+    case Kind::Blasting: return Station::BlastFurnace;
+    case Kind::Smoking: return Station::Smoker;
+    case Kind::CampfireCooking: return Station::Campfire;
     case Kind::Stonecutting: return Station::Stonecutter;
     case Kind::Smithing: return Station::Smithing;
     case Kind::Other: break;
