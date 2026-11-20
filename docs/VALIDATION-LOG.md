@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## An item's tabs in a fixed order (L-380, 2026-11-21)
+
+Build `7ae336bb` (DLL
+`fed94a135dbc0ce05d1aca33d7d7c504a3a2bbd41272d58cf7578e4c1320f6cf`),
+1.26.60.05 Dev instance, the maintainer. Works: the iron ingot's tabs in
+the order crafting, smelting, blasting; at a chest the view opened on
+smelting, the tab of the recipe in use; at the crafting table on
+crafting; at the smoker and the blast furnace on their own tab.
+
 ## The stonecutter's notice and a station's own tab (L-380, 2026-11-21)
 
 Builds `ad4b7c64` and `4bfc1703` (last DLL
