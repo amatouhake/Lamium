@@ -36,7 +36,7 @@ p{margin:0;max-width:95ch}
 .ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
 .btn{display:grid;place-items:center;background:#d8d8d8;color:var(--win-ink);cursor:pointer;box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge);line-height:1;overflow:hidden;white-space:nowrap}
 .btn:hover{background:#e8e8e8}
-.cb{cursor:pointer;background:#8b8b8b;box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.cb{cursor:pointer;background:#8b8b8b;box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff,0 0 0 var(--u) var(--edge)}
 .cb:hover{background:#a0a0a0}
 .tick{pointer-events:none;line-height:1}
 .tip{background:#100010f0;border:var(--u) solid #2a0a5a;color:#fff;white-space:nowrap;padding:calc(2*var(--u)) calc(4*var(--u));z-index:5;pointer-events:none;line-height:1.4}
@@ -94,7 +94,7 @@ p{margin:0;max-width:95ch}
 </div>
 <script>
 let U = 3, hover = null;
-const opt = {where:'corner', pad:'5', w:'236'};
+const opt = {where:'corner', pad:'5', w:'236'}; // decided: the corner, padding 5, window 236
 const chosen = {};
 const px = v => v * U + 'px';
 const ICONS = {coal:['#222','炭'], charcoal:['#3a2a20','木'], stick:['#9a7040','棒'], torch:['#e8b040','ト'], sand:['#e0d090','砂'], redsand:['#c8703a','赤'], glass:['#bfe6ef','ガ'],
