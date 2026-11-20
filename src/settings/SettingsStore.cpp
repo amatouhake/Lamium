@@ -270,7 +270,7 @@ Json encode(Settings const& settings) {
                        {"recipes", settings.inventory.recipes},
                        {"recipesFavorites", settings.inventory.recipesFavorites}, {"plan", settings.inventory.plan},
                        {"stores", settings.inventory.stores}, {"storeMarks", settings.inventory.storeMarks},
-                       {"bands", bandsJson(settings.inventory.bands)},
+                       {"bands", bandsJson(settings.inventory.bands)}, {"searchHighlight", settings.inventory.searchHighlight},
                        {"massCraft", settings.inventory.massCraft},
                        {"massCraftDelay", settings.inventory.massCraftDelay},
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
@@ -735,6 +735,7 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.plan = settingsValue(data.at("inventory"), "plan", value.inventory.plan);
         value.inventory.stores = settingsValue(data.at("inventory"), "stores", value.inventory.stores);
         value.inventory.storeMarks = settingsValue(data.at("inventory"), "storeMarks", value.inventory.storeMarks);
+        value.inventory.searchHighlight = settingsValue(data.at("inventory"), "searchHighlight", value.inventory.searchHighlight);
         if (data.at("inventory").contains("bands")) value.inventory.bands = bandsFrom(data.at("inventory").at("bands"), value.inventory.bands);
         value.inventory.massCraft = settingsValue(data.at("inventory"), "massCraft", value.inventory.massCraft);
         value.inventory.massCraftDelay = settingsValue(data.at("inventory"), "massCraftDelay", value.inventory.massCraftDelay);

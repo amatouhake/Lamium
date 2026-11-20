@@ -68,7 +68,15 @@ after using the first build. What is still open is in the L-item.
   gives up the focus. The field says "Search (name, ID)"; under the
   pointer over it, while it is not typed in, the syntax shows as a
   two-column table. The field is 16 units high, its text in the middle,
-  18 above the screen's bottom, and takes presses a few units around it. The usual editing clears it (Ctrl+A, Backspace).
+  18 above the screen's bottom, and takes presses a few units around it.
+- Beside the field, a square switch of its height (picture: three by three
+  cells, the middle one light; green while on) and a settings row,
+  "Highlight search matches in the inventory", off by default (L-378):
+  while it is on and the field holds text, the open screen's slots whose
+  items do not match are darkened, an empty slot too. The slots are the
+  screen's small square controls the game places in a container's cell,
+  found again when the screen changes or every half second, behind the
+  SearchHighlight capability. The usual editing clears it (Ctrl+A, Backspace).
 - The agent's choices while building, to confirm: "can be made" is a crafting
   recipe that what lies in the inventory itself (not what shulker boxes
   and bundles hold) makes once, without making anything first, and that

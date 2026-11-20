@@ -12,6 +12,7 @@
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ItemSearch.h"
+#include "features/recipes/SlotHighlight.h"
 #include "features/recipes/ListFilter.h"
 #include "features/inspection/EnglishSearch.h"
 #include "features/recipes/PlanViewDraw.h"
@@ -74,6 +75,7 @@ ll::event::ListenerPtr renderListener, exitListener;
 // where it is not 0, so every bed color and potion is listed). Read again after a world exit.
 std::vector<std::string> names;
 std::set<std::string, std::less<>> listed; // the same keys, to look one up
+std::map<std::string, size_t, std::less<>> nameIndex; // a key's place in `names`, for a slot's item (L-378)
 std::atomic<bool> forget{false};
 int page = 0;
 // The list narrowed: by the search field's text and to what can be made from what is carried.
@@ -244,7 +246,8 @@ void narrow(LocalPlayer& player, int side) {
 void readNames(LocalPlayer& player) {
     names.clear();
     listed.clear();
-    lowNames.clear(), englishNames.clear(), tagTexts.clear(), tooltipTexts.clear();
+    lowNames.clear(), englishNames.clear(), tagTexts.clear(), tooltipTexts.clear(), nameIndex.clear();
+    slotHighlight::forget();
     visibleFor = {};
     // English names where English search is on; tags where reading item data is confirmed for this version.
     bool const english = Runtime::instance().snapshot()->inspection.englishSearch;
@@ -259,6 +262,7 @@ void readNames(LocalPlayer& player) {
         int const aux = item.getAuxValue();
         std::string name = itemKey(item.getTypeName(), aux == anyAux ? 0 : aux);
         if (name.size() > 200 || !listed.insert(name).second) continue;
+        nameIndex.emplace(name, names.size());
         names.push_back(std::move(name));
         englishNames.push_back(english ? search::folded(inspection::englishSearch::englishNameOf(item)) : std::string());
         std::string tagText;
@@ -441,7 +445,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto const field = searchFieldAt(screen.x, screen.y);
     // What the listeners keep from the game for the field: around it, and its help beside it.
     ListBox const fieldArea = [&] {
-        return searchFieldHit(field);
+        auto const hit = searchFieldHit(field), button = searchHighlightAt(field);
+        return ListBox{hit.x, hit.y, button.x + button.w + 2 - hit.x, hit.h};
     }();
     if (countEdit::active()) {
         // A count being typed: digits, Enter keeps it, Esc leaves it as it was.
@@ -499,9 +504,30 @@ bool drawList(ll::event::UIRenderEvent& event) {
     };
     bool caretPress = false;
     if (pressed || input.outside) searchFocus = false, countEdit::commit();
-    if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
+    // The highlight switch beside the field (L-378): saved at once, as a setting row would.
+    if (recipesOn && took(searchHighlightAt(field))) {
+        auto preferences = Runtime::instance().preferences();
+        preferences.inventory.searchHighlight = !preferences.inventory.searchHighlight;
+        Runtime::instance().save(preferences);
+    } else if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
     std::string hoverItem;
     auto& context = event.uiRenderContext();
+    // The game's slots that do not match the search darkened (L-378), under everything of Lamium's.
+    if (recipesOn && prefs->inventory.searchHighlight && !anyView() && !editing && search.value().find_first_not_of(' ') != std::string::npos) {
+        auto const query = search::parse(search.value());
+        slotHighlight::draw(context, screenView, [&](ItemStack const& stack) {
+            int const aux = stack.getAuxValue();
+            std::string const key = itemKey(stack.getTypeName(), aux == anyAux ? 0 : aux);
+            if (auto found = nameIndex.find(key); found != nameIndex.end()) {
+                size_t const i = found->second;
+                auto field = [&](std::vector<std::string> const& from) { return i < from.size() ? std::string_view(from[i]) : std::string_view(); };
+                return search::matches(query, {field(lowNames), names[i], field(englishNames), field(tagTexts), field(tooltipTexts)});
+            }
+            // An item the list does not hold: its shown name and its id.
+            std::string const name = search::folded(schematic::items::shown(key).name);
+            return search::matches(query, {name, key, {}, {}, {}});
+        });
+    }
     view::Late late;
     // A favorite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
     std::set<std::string_view> favoriteKeys;
@@ -620,6 +646,17 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!recipesOn) searchFocus = false;
     else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"), 4, Align::Left, true);
     if (caretPress) placeCaret(context, search, px, py);
+    if (recipesOn) {
+        // Its picture: three by three cells, only the middle one light (L-378, picture B); green while on.
+        auto const box = searchHighlightAt(field);
+        bool const on = Runtime::instance().preferences().inventory.searchHighlight, over = box.has(px, py);
+        drawButtonBox(context, box.x, box.y, box.w, box.h, over, on ? ButtonKind::Primary : ButtonKind::Plain);
+        float const cell = 2, gap = 1, left = box.x + std::floor((box.w - 3 * cell - 2 * gap) / 2), top = box.y + std::floor((box.h - 3 * cell - 2 * gap) / 2);
+        for (int i = 0; i < 9; ++i)
+            fill(context, left + static_cast<float>(i % 3) * (cell + gap), top + static_cast<float>(i / 3) * (cell + gap), cell, cell,
+                 i == 4 ? palette::white : palette::faint, i == 4 ? 1.f : .8f);
+        if (over) late.tip = translated("recipes.highlight", translated(on ? "on" : "off"));
+    }
     // The syntax as a table under the pointer over the field while it is not typed in (L-377): one there means
     // to search anyway.
     if (recipesOn && !searchFocus && searchFieldHit(field).has(px, py) && late.tip.empty()) {

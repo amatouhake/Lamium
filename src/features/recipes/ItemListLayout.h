@@ -34,6 +34,8 @@ struct ListBox {
 // nothing above it ever has to move. High enough for Japanese and for letters that reach under the line.
 inline constexpr float searchTop = 18; // its top, from the screen's bottom
 inline ListBox searchFieldAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - searchTop, 176, 16}; }
+// The highlight switch (L-378): a square of the field's height right of it.
+inline ListBox searchHighlightAt(ListBox field) { return {field.x + field.w + 2, field.y, field.h, field.h}; }
 // Where a press takes the field: a few units around it too, the screen's edge being close (L-377).
 inline ListBox searchFieldHit(ListBox field) { return {field.x - 4, field.y - 4, field.w + 8, field.h + 6}; }
 

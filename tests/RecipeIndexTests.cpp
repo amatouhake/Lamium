@@ -405,8 +405,8 @@ void recipeIndexTests() {
         check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
         check(field.x == 232 && field.y == 342 && field.w == 176 && field.h == 16 && field.has(300, 350) && !field.has(300, 340)
-                  && searchFieldHit(field).has(230, 340),
-              "the search field sits at the bottom centre, taking presses a little around it");
+                  && searchFieldHit(field).has(230, 340) && searchHighlightAt(field).x == 410 && searchHighlightAt(field).w == field.h,
+              "the search field sits at the bottom centre, taking presses a little around it, the highlight switch a square beside it");
         check(steppedWanted(1, false, 1) == 0 && steppedWanted(1, false, 16) == 0 && steppedWanted(5, false, 1) == 4
               && steppedWanted(9, false, 16) == 1 && steppedWanted(0, true, 1) == 1 && steppedWanted(0, false, 1) == 0
               && steppedWanted(Wanted::most, true, 16) == Wanted::most,

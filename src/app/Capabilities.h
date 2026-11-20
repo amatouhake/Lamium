@@ -14,7 +14,7 @@ enum class Id {
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
     NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, BossBarPosition,
-    ItemDetails, MapMaterialInstances, EnglishSearchEnchants, WorkPenalty, WorldMapMaterialInstances, RecipeTable, CountedPlaces, RealmIdentity, Count
+    ItemDetails, MapMaterialInstances, EnglishSearchEnchants, WorkPenalty, WorldMapMaterialInstances, RecipeTable, CountedPlaces, RealmIdentity, SearchHighlight, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -82,6 +82,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::CountedPlaces, "Counted places (an open container's position and its paired chest)", "recipes", "capability.CountedPlaces", Impact::Partly, true, true},
     // Read for the name of a Realm's saved data; without it a Realm's data goes by its level id, as before L-358.
     {Id::RealmIdentity, "Realm identity (reconnect cookie)", "", "", Impact::None, true, true},
+    {Id::SearchHighlight, "Search highlight (the screen's slot controls)", "recipes", "capability.SearchHighlight", Impact::Partly, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);
