@@ -63,9 +63,10 @@ after using the first build. What is still open is in the L-item.
   tooltip text (read only once a search asks), `@` the id's namespace.
   Full-width signs read as ASCII, hiragana and katakana alike, case
   ignored; no regular expressions. Ctrl+F puts the cursor in the field
-  (in it, selects all); Up and Down step through earlier searches, kept
-  when the field gives up the focus; a tip over the field gives the
-  syntax. The usual editing clears it (Ctrl+A, Backspace).
+  (in it, selects all); Up and Down step through earlier searches, a
+  search kept once it has stood a second while typed or when the field
+  gives up the focus; the field says "Search (name, ID, #tag…)" and a tip
+  over it gives the syntax. The usual editing clears it (Ctrl+A, Backspace).
 - The agent's choices while building, to confirm: "can be made" is a crafting
   recipe that what lies in the inventory itself (not what shulker boxes
   and bundles hold) makes once, without making anything first, and that

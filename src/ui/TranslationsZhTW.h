@@ -1046,7 +1046,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"recipes.filter.all", "全部"},
     {"recipes.filter.canMake", "可製作"},
     {"recipes.filter.canMakeShort", "可製作"},
-    {"recipes.search", "搜尋（物品名稱）"},
+    {"recipes.search", "搜尋（名稱、ID、#標籤…）"},
     {"recipes.search.tip1", "詞語：全部包含　-詞語：排除"},
     {"recipes.search.tip2", "a|b：任一　\"a b\"：照原樣的詞組"},
     {"recipes.search.tip3", "#標籤　$提示文字　@命名空間"},

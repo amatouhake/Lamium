@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The item list's search syntax (L-377, 2026-11-21)
+
+Build `48a16389` (DLL
+`6cea6faf99c3622dfbf83674d361de1d87bd86c50490f0c2060436ca211d75f7`),
+1.26.60.05 Dev instance, the maintainer. Works: `#planks`, `#logs -oak`,
+`stone|glass`, the same typed full-width; `$` with a word of the tooltip;
+`-@minecraft` leaving the add-ons' items; Ctrl+F into the field with its
+text selected, Up and Down through earlier searches, Ctrl+A and Backspace
+clearing, the tip over the field. Noted (changed after, not seen): the
+field still said "item name" though it searches the id too; the history
+kept a search only when the field was left, fewer than were searched.
+
 ## Process names alone, stations as items, a station's tab (L-376, 2026-11-20)
 
 Builds `3b7b57c1` and `53fe1979` (last DLL

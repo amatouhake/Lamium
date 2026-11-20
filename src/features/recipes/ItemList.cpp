@@ -631,9 +631,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (!keyboardOwned) searchFocus = false;
     }
     if (!searchFocus) releaseKeyboard();
-    // A search is kept for Up and Down once the field gives up the focus.
+    // A search is kept for Up and Down once it has stood a moment while typed, or the field gives up the focus.
     static bool wasFocused = false;
     if (wasFocused && !searchFocus) searchHistory.keep(search.value());
+    else if (searchFocus)
+        searchHistory.typed(search.value(), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     wasFocused = searchFocus;
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {

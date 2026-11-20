@@ -137,13 +137,24 @@ inline bool matches(Query const& query, Fields const& item) {
     return false;
 }
 
-// The searches typed before, newest last, for Up and Down in the field.
+// The searches typed before, newest last, for Up and Down in the field. The list follows what is typed
+// as it goes (`typed`), so a search is kept once it has stood a moment, not only when the field is left.
 struct History {
     std::vector<std::string> entries;
     int at = -1; // stepping: an index into entries; -1 when not stepping
     static constexpr size_t most = 20;
+    static constexpr double settleMs = 1000;
+    std::string seen;       // the field's text as last seen
+    double seenSince = 0;   // when it became that
+    bool seenKept = true;   // it was kept already, or came from stepping
+    // The field's text at `nowMs`: kept once it has stood `settleMs`. Text Up or Down put there is not kept again.
+    void typed(std::string const& text, double nowMs) {
+        if (text != seen) seen = text, seenSince = nowMs, seenKept = false;
+        else if (!seenKept && nowMs - seenSince >= settleMs) keep(text);
+    }
     void keep(std::string const& text) {
         at = -1;
+        seen = text, seenKept = true;
         if (text.find_first_not_of(' ') == std::string::npos) return;
         std::erase(entries, text);
         entries.push_back(text);
@@ -155,7 +166,9 @@ struct History {
         int const n = static_cast<int>(entries.size());
         if (older) at = at < 0 ? n - 1 : std::max(0, at - 1);
         else if (at >= 0) at = at + 1 >= n ? -1 : at + 1;
-        return at < 0 ? std::string() : entries[static_cast<size_t>(at)];
+        std::string out = at < 0 ? std::string() : entries[static_cast<size_t>(at)];
+        seen = out, seenKept = true;
+        return out;
     }
 };
 }

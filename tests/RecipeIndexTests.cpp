@@ -648,6 +648,13 @@ void recipeIndexTests() {
         check(history.entries == std::vector<std::string>{"stone", "oak"} && history.step(true) == "oak" && history.step(true) == "stone"
                   && history.step(true) == "stone" && history.step(false) == "oak" && history.step(false).empty(),
               "Up steps back through earlier searches without repeats, Down forward to an empty field");
+        History live;
+        live.typed("st", 0), live.typed("stone", 300), live.typed("stone", 1400), live.typed("stone bri", 1500), live.typed("glass", 1700),
+            live.typed("glass", 2800);
+        check(live.entries == std::vector<std::string>{"stone", "glass"}, "a search that stood a moment while typed is kept, passing text is not");
+        std::string const back = live.step(true);
+        live.typed(back, 5000), live.typed(back, 9000);
+        check(back == "glass" && live.entries.size() == 2 && live.at == 1, "text Up put in the field is not kept again while stepping");
     }
     {
         Index empty = build({});
