@@ -33,6 +33,8 @@ CraftOnto craftCheck(ScreenView& screen, Index const& index, Recipe const& recip
 // Crafts one round onto the pointer, over the next frames (tick): the grid emptied first, a pointer holding the
 // product set down and picked up again with it. False when it cannot start (craftCheck, a run going on).
 bool craft(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks);
+// Forgets a round being crafted, without a game call: its screen or world is gone.
+void abandonCraft();
 }
 // Mass Craft (L-165): while its key is held, the recipe of the item under the pointer (over the output
 // slot: the one lying in the grid) is laid in again as many times as divide evenly, all of it taken and the product thrown out of the

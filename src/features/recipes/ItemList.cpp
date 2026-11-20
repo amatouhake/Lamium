@@ -142,6 +142,7 @@ void closeViews() {
     planView::close();
     countEdit::cancel();
     place::stop();
+    place::abandonCraft();
 }
 // The crafting grid of the screen under the view, for its "place" buttons: what is carried is read once a frame.
 struct GridPlacer : view::Placer {
@@ -628,13 +629,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // A press on an item shows its recipes, a right press what it is used in, also beside an open view. With Ctrl
     // a press crafts one round onto the pointer where it can (L-379), and otherwise does nothing.
     auto show = [&](std::string const& item) {
-        if (leftPress && ctrlHeld.load()) {
-            pressed = false;
+        // Where nothing can be crafted (no grid, no crafting recipe that fits it) the press shows the recipes.
+        if (leftPress && ctrlHeld.load())
             if (auto placer = gridPlacer(screenView, *player))
-                if (auto const ask = craftAsk(*placer, itemOf(*placer->table, item)); ask.recipe >= 0 && ask.check == CraftOnto::Ready)
-                    placer->craft(ask.recipe);
-            return;
-        }
+                if (auto const ask = craftAsk(*placer, itemOf(*placer->table, item)); ask.recipe >= 0) {
+                    pressed = false;
+                    if (ask.check == CraftOnto::Ready) placer->craft(ask.recipe);
+                    return;
+                }
         view::open(item, !leftPress);
         viewScreen = screenName;
         pressed = false;

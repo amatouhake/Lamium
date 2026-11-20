@@ -639,13 +639,15 @@ struct Onto {
     int recipe = -1;
     std::map<int, Item> picks;
     std::string screen;
-    enum class Step { Clear, Take, Fetch } step = Step::Clear;
+    enum class Step { Clear, Laid, Take, Fetch } step = Step::Clear;
     std::string stash; // where the pointer's stack was set down, if it held one
     int stashIndex = -1;
     int tries = 0;
     std::vector<int> before; // Fetch: the product per slot (0-8 the hotbar, 9-35 the inventory) before the Shift take
-    Clock::time_point began, since;
+    Clock::time_point began, since, ticked;
 } onto;
+// A run not ticked for this long belongs to a screen that was closed: it is dropped without a game call.
+constexpr auto ontoStale = std::chrono::milliseconds(500);
 Item heldItem(ContainerManagerController& manager, Index const& index) {
     auto const& stack = manager.getItemStack(pointer, 0);
     return stack.isNull() || stack.mCount <= 0 ? -1 : index.find(stack.getTypeName(), stack.getAuxValue());
@@ -697,6 +699,8 @@ void advanceOnto(CraftingScreenController& controller) {
     auto const& recipe = index.recipes[static_cast<size_t>(onto.recipe)];
     auto const now = Clock::now();
     auto shows = [&] { return held(manager) && heldItem(manager, index) == recipe.makes; };
+    // Crafted: the product on the pointer and the round gone from the grid (one round was laid in).
+    auto crafted = [&] { return shows() && !massCraft::makesProduct(manager, index, recipe.makes); };
     switch (onto.step) {
     case Onto::Step::Clear:
         if (!gridEmpty(manager)) {
@@ -707,14 +711,23 @@ void advanceOnto(CraftingScreenController& controller) {
             }
         }
         if (!lay(controller, index, recipe, onto.picks, false)) { finishOnto(controller, "given up: the round could not be laid in"); return; }
-        if (!massCraft::makesProduct(manager, index, recipe.makes)) { finishOnto(controller, "given up: the grid does not make it"); return; }
+        onto.step = Onto::Step::Laid, onto.since = now;
+        [[fallthrough]];
+    case Onto::Step::Laid:
+        // The output may show a few frames after the round is laid in.
+        if (!massCraft::makesProduct(manager, index, recipe.makes)) {
+            if (now - onto.since > ontoWait) finishOnto(controller, "given up: the grid did not make it");
+            return;
+        }
         controller._handleTakeAmount(static_cast<int>(recipe.count), output, 0);
         onto.step = Onto::Step::Take, onto.since = now;
-        if (shows()) finishOnto(controller, "by taking the output");
+        if (crafted()) finishOnto(controller, "by taking the output");
         return;
     case Onto::Step::Take:
-        if (shows()) { finishOnto(controller, "by taking the output, a moment later"); return; }
+        if (crafted()) { finishOnto(controller, "by taking the output, a moment later"); return; }
         if (now - onto.since < ontoWait) return;
+        // On the pointer while the grid still makes it: shown by the client only, not crafted.
+        if (shows()) { finishOnto(controller, "not confirmed: the pointer shows it but the grid still holds the round"); return; }
         // Nothing came onto the pointer: the Shift take, which puts the round in the inventory.
         if (held(manager)) { finishOnto(controller, "given up: the pointer holds something else"); return; }
         onto.before = productCounts(manager, index, recipe.makes);
@@ -727,7 +740,7 @@ void advanceOnto(CraftingScreenController& controller) {
             int const more = after[static_cast<size_t>(i)] - onto.before[static_cast<size_t>(i)];
             if (more <= 0) continue;
             controller._handleTakeAmount(more, i < 9 ? hotbar : inventory, i < 9 ? i : i - 9);
-            finishOnto(controller, shows() ? "by the Shift take, then from the inventory" : "given up: the Shift take's product could not be picked up");
+            finishOnto(controller, crafted() ? "by the Shift take, then from the inventory" : "given up: the Shift take's product could not be picked up");
             return;
         }
         if (now - onto.since > ontoGiveUp) finishOnto(controller, "given up: nothing came");
@@ -736,8 +749,14 @@ void advanceOnto(CraftingScreenController& controller) {
     }
 }
 }
+void abandonCraft() { onto = {}; }
 void tickOnto(ScreenView& screen) {
     if (onto.recipe < 0) return;
+    if (auto const now = Clock::now(); now - onto.ticked > ontoStale) {
+        logOnto("crafting onto the pointer dropped: its screen was not drawn");
+        onto = {};
+        return;
+    } else onto.ticked = now;
     try {
         auto* controller = crafting(screen);
         if (!controller || screen.getScreenName() != onto.screen) {
@@ -769,7 +788,7 @@ bool craft(ScreenView& screen, std::shared_ptr<service::Table const> const& tabl
         if (craftCheck(screen, index, shape, ready) != CraftOnto::Ready) return false;
         onto = {};
         onto.table = table, onto.recipe = recipe, onto.picks = picks, onto.screen = screen.getScreenName();
-        onto.began = onto.since = Clock::now();
+        onto.began = onto.since = onto.ticked = Clock::now();
         if (held(manager)) {
             auto const [collection, slot] = freeSlot(manager);
             controller->_handlePlaceAll(collection, slot);
