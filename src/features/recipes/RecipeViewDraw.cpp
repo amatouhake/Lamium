@@ -20,7 +20,6 @@ struct Target {
     // Its recipes by station, found once: what uses an item is a walk over the whole table.
     std::vector<ViewTab> tabs;
     std::shared_ptr<service::Table const> from;
-    std::shared_ptr<Choice const> chosen;
 };
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, a pager's
@@ -40,7 +39,7 @@ bool isOpen() { return !trail.empty(); }
 void open(std::string item, bool uses, bool choose) {
     if (!trail.empty() && trail.back().item == item && trail.back().uses == uses) { trail.back().choose = choose; return; }
     if (trail.size() >= 64) trail.erase(trail.begin());
-    trail.push_back({std::move(item), uses, choose, 0, 0, {}, {}, {}});
+    trail.push_back({std::move(item), uses, choose, 0, 0, {}, {}});
 }
 void close() {
     trail.clear();
@@ -139,7 +138,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     auto const key = splitItemKey(at.item);
     Item const id = index.find(key.name, key.aux);
     auto const choice = state::choice(table);
-    if (at.from != table || at.chosen != choice) at.tabs = viewTabs(index, *choice, id, at.uses), at.from = table, at.chosen = choice;
+    // The order (the recipe in use first, its tab first) is taken when the item is shown and kept while it stays
+    // shown: choosing a recipe here must not move it or change the tab (L-379).
+    if (at.from != table) at.tabs = viewTabs(index, *choice, id, at.uses), at.from = table;
     auto const& tabs = at.tabs;
     if (tabs.empty()) { line(at.uses ? "recipes.none.uses" : "recipes.none.makes"); return; }
     at.tab = std::clamp(at.tab, 0, static_cast<int>(tabs.size()) - 1);
@@ -260,7 +261,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (laid.ready()) regions.push_back(region);
         }
         // Of an item made several ways, the check box left of "place" (L-379): empty for a recipe not in use, a
-        // faint check for the one the rule picked, the dark check for the player's own choice. A press chooses
+        // dark check for the one the rule picked, a green check for the player's own choice. A press chooses
         // this recipe; on the player's choice it goes back to automatic. "How to make" still lists them all.
         if (id >= 0 && !at.uses) {
             auto const options = recipeOptions(index, id);
@@ -270,7 +271,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                 Region region{bx + block.chooseX, by + block.chooseY, viewButton, viewButton, Act::Choose, itemKey, -1,
                               mine ? std::string() : choiceKey(recipe)};
                 bool const over = region.has(input.pointerX, input.pointerY);
-                windowCheckBox(context, region.x, region.y, viewButton, mine ? Check::Full : inUse ? Check::Faint : Check::None, over);
+                windowCheckBox(context, region.x, region.y, viewButton, mine ? Check::Mine : inUse ? Check::Auto : Check::None, over);
                 if (over) {
                     late.tip = translated(mine ? "recipes.use.mine" : inUse ? "recipes.use.auto" : "recipes.use");
                     if (inUse) late.tipLines = {translated(mine ? "recipes.use.back" : "recipes.use.pick")};

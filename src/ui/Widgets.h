@@ -55,6 +55,10 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     // The game's controls on its window (L-367): a raised button's shadow, a switch's empty track, a tab
     // not chosen and the light along its top.
     buttonShadow{.392f,.392f,.392f}, switchTrack{.498f,.498f,.498f}, tabBack{.384f,.384f,.384f}, tabRim{.769f,.769f,.769f},
+    // Lamium's own, not sampled: the edge of a control on the game's window (a button, a switch, a recipe's face),
+    // lighter than the game's black, which stood out against the window (maintainer 2026-11-21, L-379). The
+    // window's frame and its tabs keep the black.
+    controlEdge{.353f,.353f,.353f},
     // A face sunk into the game's window (a breakdown, a list of candidates), under a dark upper-left edge (L-370).
     windowSunk{.706f,.706f,.706f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
@@ -170,7 +174,7 @@ void progressBar(MinecraftUIRenderContext&, float x, float y, float w, float h, 
 // A face sunk into the game's window (L-370): the sunk grey under a dark top and left edge and a light bottom
 // and right one. `top`/`bottom`: whether this piece draws those edges, so a long face can be drawn in slices.
 void sunkFace(MinecraftUIRenderContext&, float x, float y, float w, float h, bool top = true, bool bottom = true);
-// The game's raised button shape: a black edge, half a unit of `light` along the top and left inside it
+// The game's raised button shape: an edge (vanilla::controlEdge), half a unit of `light` along the top and left inside it
 // and of `shadow` along the bottom and right, `face` inside.
 void raisedBox(MinecraftUIRenderContext&, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow);
 void windowLabel(MinecraftUIRenderContext&, float x, float y, float width, std::string text, bool faint = false,
@@ -190,10 +194,9 @@ void slot(MinecraftUIRenderContext&, float x, float y, bool hovered = false);
 // for what the player lacks.
 void windowSlot(MinecraftUIRenderContext&, float x, float y, bool hovered = false, bool missing = false);
 // A check box on the game's grey, only where one marks which of a few things is in use (DESIGN "Switch",
-// L-379): the slots' sunk grey inside a black edge, `size` wide counting the edge, as a raised button of the
-// same size beside it. `Check::Faint` is a light check (the game's own pick), `Check::Full` the dark one (the
-// player's).
-enum class Check { None, Faint, Full };
+// L-379): sunk as a slot is, `size` wide counting its edges, as a raised button of the same size beside it.
+// `Check::Auto` is the dark check (in use by the rule), `Check::Mine` the green one (the player's choice).
+enum class Check { None, Auto, Mine };
 void windowCheckBox(MinecraftUIRenderContext&, float x, float y, float size, Check check, bool hovered);
 // One of several, chosen (decided 2026-11-19, demos/switching-controls-2.html): names side by side with
 // no gap over a rule (tabRule) as wide as what they switch. On a dark Lamium panel the chosen one stands

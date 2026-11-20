@@ -143,9 +143,11 @@ after using the first build. What is still open is in the L-item.
   line), named under the pointer, flat and darker with the reason when
   something is missing. Of an item made several ways, a check box of the
   same size stands left of it (DESIGN's exception for the game's grey):
-  empty for a recipe not in use, a faint check for the one the rule
-  picked, the dark check for the player's choice. A press chooses that
-  recipe; a press on the player's choice goes back to automatic. "How to
+  empty for a recipe not in use, a dark check for the one the rule
+  picked, a green check for the player's choice. A press chooses that
+  recipe; a press on the player's choice goes back to automatic. The
+  order (the recipe in use first, its tab first) is taken when the item
+  is shown and kept while it stays shown, so a press moves nothing. "How to
   make" still lists them all. One small mark, "any order" for a
   shapeless recipe, stands under the arrow. That a recipe fits the
   inventory's own grid is seen from its shape.

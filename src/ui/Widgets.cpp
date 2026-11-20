@@ -248,7 +248,7 @@ void raisedBox(MinecraftUIRenderContext& context, float x, float y, float w, flo
     fill(context, x + 1, y + 1 + e, e, h - 2 - e, light);
     fill(context, x + 1, y + h - 1 - e, w - 2, e, shadow);
     fill(context, x + w - 1 - e, y + 1, e, h - 2 - e, shadow);
-    frame(context, x, y, w, h, palette::vanilla::windowEdge);
+    frame(context, x, y, w, h, palette::vanilla::controlEdge);
 }
 void progressBar(MinecraftUIRenderContext& context, float x, float y, float w, float h, float fraction) {
     if (w <= 0 || h <= 0) return;
@@ -358,17 +358,16 @@ void windowSlot(MinecraftUIRenderContext& context, float x, float y, bool hovere
 void windowCheckBox(MinecraftUIRenderContext& context, float x, float y, float size, Check check, bool hovered) {
     namespace v = palette::vanilla;
     if (size < 7) return;
+    // As windowSlot: the face, dark above and left, light below and right, no black edge.
     fill(context, x, y, size, size, v::slot);
-    // Sunk as a slot is, inside the edge: dark above and left, light below and right.
-    fill(context, x + 1, y + 1, size - 2, .5f, v::slotDark);
-    fill(context, x + 1, y + 1.5f, .5f, size - 2.5f, v::slotDark);
-    fill(context, x + 1.5f, y + size - 1.5f, size - 2.5f, .5f, v::slotLight);
-    fill(context, x + size - 1.5f, y + 1.5f, .5f, size - 3, v::slotLight);
-    frame(context, x, y, size, size, v::windowEdge);
+    fill(context, x, y, size, 1, v::slotDark);
+    fill(context, x, y + 1, 1, size - 1, v::slotDark);
+    fill(context, x + 1, y + size - 1, size - 1, 1, v::slotLight);
+    fill(context, x + size - 1, y + 1, 1, size - 2, v::slotLight);
     if (hovered) fill(context, x + 1, y + 1, size - 2, size - 2, palette::white, .3f);
     if (check == Check::None) return;
     // A check drawn in steps, as wide as the box allows: down to the corner, then up to the right.
-    Rgb const ink = check == Check::Full ? v::windowInk : v::window;
+    Rgb const ink = check == Check::Mine ? palette::accentDeep : v::windowInk;
     float const k = (size - 2) / 9, ox = x + 1, oy = y + 1;
     for (int i = 0; i < 3; ++i) fill(context, ox + (1 + i) * k, oy + (4 + i) * k, 1.5f * k, 1.5f * k, ink);
     for (int i = 0; i < 5; ++i) fill(context, ox + (3 + i) * k, oy + (6 - i) * k, 1.5f * k, 1.5f * k, ink);
@@ -417,7 +416,7 @@ void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on, 
     // On the game's window the empty track is the game's lighter grey and the edge black, as its controls'.
     bool const light = onWindow();
     fill(context,x,y,w,h,on ? palette::accentDeep : light ? palette::vanilla::switchTrack : palette::off);
-    frame(context,x,y,w,h,light ? palette::vanilla::windowEdge : on ? palette::accent : palette::controlEdge);
+    frame(context,x,y,w,h,light ? palette::vanilla::controlEdge : on ? palette::accent : palette::controlEdge);
     float knob = h - 2;
     float knobX = on ? x + w - 1 - knob : x + 1;
     fill(context,knobX,y+1,knob,knob,on ? palette::knobOn : palette::knobOff);

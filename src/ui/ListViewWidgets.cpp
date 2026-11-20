@@ -32,7 +32,7 @@ Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, 
         namespace v = palette::vanilla;
         if (!enabled) {
             fill(context,x,y,w,h,v::slot);
-            frame(context,x,y,w,h,v::windowEdge);
+            frame(context,x,y,w,h,v::controlEdge);
             return v::buttonShadow;
         }
         raisedBox(context,x,y,w,h,primary ? palette::accentDeep : v::window,primary ? palette::accent : v::windowLight,
@@ -83,7 +83,7 @@ void drawOnOffButton(MinecraftUIRenderContext& context, float x, float y, float 
     if (!onWindow()) { drawButton(context,x,y,w,h,std::move(text),hovered,on ? ButtonKind::Primary : ButtonKind::Plain); return; }
     fill(context,x,y,w,h,on ? palette::accentDeep : palette::vanilla::switchTrack);
     if (hovered) fill(context,x,y,w,h,palette::white,.12f);
-    frame(context,x,y,w,h,palette::vanilla::windowEdge);
+    frame(context,x,y,w,h,palette::vanilla::controlEdge);
     centered(context,x,y,w,h,std::move(text),palette::text);
 }
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
@@ -255,7 +255,7 @@ void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w,
             else if (look.pointerX >= x + w - aw && look.pointerX < x + w) hotEnd = 1;
         }
         fill(context,x+aw,top,w-2*aw,h,v::slot);
-        frame(context,x+aw-1,top,w-2*aw+2,h,look.editing ? palette::accent : look.warn ? palette::warning : v::windowEdge);
+        frame(context,x+aw-1,top,w-2*aw+2,h,look.editing ? palette::accent : look.warn ? palette::warning : v::controlEdge);
         for (int side = 0; side < 2; ++side) {
             float cx = side ? x + w - aw : x;
             bool enabled = side ? look.highEnabled : look.lowEnabled;
