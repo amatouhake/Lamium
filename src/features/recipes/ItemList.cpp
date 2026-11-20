@@ -311,7 +311,15 @@ bool drawList(ll::event::UIRenderEvent& event) {
     float coverLeft = std::min(windowLeft, viewLayout.left);
     // The game's window with its book open, as last seen on the screens that have the book (a villager's is wide too).
     static float bookOpenWidth = planWindowWidth;
-    if ((screenName == "inventory_screen" || screenName == "crafting_screen") && bookOpenSpan(coverLeft, right)) bookOpenWidth = right - coverLeft;
+    if ((screenName == "inventory_screen" || screenName == "crafting_screen") && bookOpenSpan(coverLeft, right)) {
+        bookOpenWidth = right - coverLeft;
+        // Once: the span in GUI units and the screen in units and pixels, to set planWindowWidth from.
+        static bool told = false;
+        if (!told) {
+            told = true;
+            try { Runtime::instance().self().getLogger().info("Recipes: {}", std::format("recipe book open: window {} units wide ({} to {}), screen {} x {} units", bookOpenWidth, coverLeft, right, screen.x, screen.y)); } catch (...) {}
+        }
+    }
     if (planView::isOpen()) {
         auto const span = planWindowAt(screen.x, coverLeft, right, bookOpenWidth);
         coverLeft = std::min(coverLeft, span.left), right = std::max(right, span.left + span.width);
