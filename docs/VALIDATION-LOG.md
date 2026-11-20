@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Placing at the stations (L-380, 2026-11-21)
+
+Build `0bdef6f3` (DLL
+`eced98ea4a944fe5e974df4fe186e9739585e4310dca88cd488a996ef7877d4a`),
+1.26.60.05 Dev instance, a local world, the maintainer. Works: sand at
+the furnace, one and with Shift a stack, the fuel untouched; another item
+in the input went back first; "place" only on the open station's tab
+(raw iron at the blast furnace, beef at the smoker); stone into the
+stonecutter's input; the netherite upgrade into the smithing table's
+three slots; "can be made" at each station listing what it makes and
+placing it. The log: "a recipe laid in at a station, straight from its
+slots". Found: the stonecutter's result is not chosen, which may be taken
+for chosen (maintainer). Not seen: a server.
+
 ## Mass Craft laying cells straight from their slots (L-165, 2026-11-21)
 
 Build `04550c0b` (DLL
