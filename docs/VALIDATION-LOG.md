@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe index off the client thread (L-378, 2026-11-21)
+
+Build `7c8e079b` (DLL
+`bc4229c4d7048edf7adaecd22923884fc2b3aa3d5ca8536e2522171c9fde7e4b`),
+1.26.60.05 Dev instance, the maintainer. Works: a world's first inventory
+no heavier than other screens. Still seen: closing a chest after typing in
+the search field, with the highlight off, sometimes dropped to about 14
+fps, not only the first time. The log had no slow item-screen frame, no
+slow save and no slow return of the keyboard: the hitch is outside what
+the item list draws and saves.
+
 ## Where the item screens' slow frames go (L-378, 2026-11-21)
 
 Builds `d26d024e` and `f1ac25f6` (last DLL
