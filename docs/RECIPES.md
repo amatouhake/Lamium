@@ -136,15 +136,19 @@ after using the first build. What is still open is in the L-item.
   shows that item, not the others in turn.
 - R over an item shows its recipes and U what it is used in, in the lists,
   the view and the game's own slots. Sorting therefore has no default key.
-- Each recipe carries one control, "place" (with Shift: as many as divide
+- Each recipe lies on a raised face of the window's grey, 5 units around
+  its slots; faces are 102 wide and 6 apart in a window 236 wide (L-379).
+  At its bottom right stands "place" (with Shift: as many as divide
   evenly), a small square button with a picture (an arrow down onto a
-  line) at its upper right, named under the pointer, flat and darker with
-  the reason when something is missing;
-  and one small mark, "any order" for a shapeless recipe. That a recipe
-  fits the inventory's own grid is seen from its shape. Each recipe lies
-  on a raised face. An item with several recipes marks the one in use
-  under its product, a check when chosen in "How to make", "automatic"
-  when not; a press goes to its line there (L-370).
+  line), named under the pointer, flat and darker with the reason when
+  something is missing. Of an item made several ways, a check box of the
+  same size stands left of it (DESIGN's exception for the game's grey):
+  empty for a recipe not in use, a faint check for the one the rule
+  picked, the dark check for the player's choice. A press chooses that
+  recipe; a press on the player's choice goes back to automatic. "How to
+  make" still lists them all. One small mark, "any order" for a
+  shapeless recipe, stands under the arrow. That a recipe fits the
+  inventory's own grid is seen from its shape.
 - The arrow and the product stand at the middle of the ingredients.
 - A recipe that uses its own product (copying a smithing template, dyeing
   a shulker box) is shown after the others and is never the recipe a plan

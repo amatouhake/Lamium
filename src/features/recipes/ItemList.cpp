@@ -756,7 +756,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // A recipe laid into the grid: nothing of Lamium's stays over it.
     if (late.placed) view::close(), planView::close(), countEdit::cancel();
     // The recipe view asked for an item's line in "How to make" (L-370): the window opens there over the view.
-    if (!late.howTo.empty()) view::close(), planView::openHowTo(late.howTo), viewScreen = screenName;
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView() || bandEditor::active();
     static std::vector<int> inventoryKeys;

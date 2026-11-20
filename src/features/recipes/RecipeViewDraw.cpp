@@ -24,13 +24,14 @@ struct Target {
 };
 std::vector<Target> trail; // the last is shown; the back key goes one back
 // What the last frame drew that a press acts on: an item, a tab, one of the heading's buttons, a pager's
-// button or a recipe's "place".
-enum class Act { Item, Tab, Favorite, Wanted, Place, PagePrev, PageNext, HowTo };
+// button, a recipe's "place" or its check box.
+enum class Act { Item, Tab, Favorite, Wanted, Place, PagePrev, PageNext, Choose };
 struct Region {
     float x, y, w, h;
     Act act = Act::Item;
-    std::string item; // Item: its key
+    std::string item; // Item: its key; Choose: the item whose recipe it sets
     int tab = -1; // Tab: which; Place: the recipe
+    std::string choice; // Choose: the recipe's choiceKey, empty to go back to automatic
     bool has(float px, float py) const { return px >= x && px < x + w && py >= y && py < y + h; }
 };
 std::vector<Region> regions;
@@ -55,14 +56,6 @@ void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb colo
     fill(context, x + 5, y + 7, 1, 1, color);
     fill(context, x + 2, y + 8, 7, 1, color);
 }
-// In use: a small check.
-void inUseMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb color) {
-    using namespace lamium::ui;
-    fill(context, x, y + 2, 1, 2, color);
-    fill(context, x + 1, y + 3, 1, 2, color);
-    fill(context, x + 2, y + 4, 1, 1, color);
-    for (int i = 0; i < 5; ++i) fill(context, x + 3 + static_cast<float>(i), y + 3 - static_cast<float>(i) * .75f, 1, 1.5f, color);
-}
 }
 void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     using namespace lamium::ui;
@@ -80,7 +73,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             else if (region.act == Act::Tab) trail.back().tab = region.tab, trail.back().page = 0;
             else if (region.act == Act::Favorite) state::toggleFavorite(shownItem);
             else if (region.act == Act::Wanted) state::toggleWanted(shownItem);
-            else if (region.act == Act::HowTo) late.howTo = region.item;
+            else if (region.act == Act::Choose) state::setChoice(region.item, region.choice);
             else if (region.act == Act::PagePrev) trail.back().page -= 1;
             else if (region.act == Act::PageNext) trail.back().page += 1;
             else if (region.act == Act::Place && input.placer) {
@@ -205,8 +198,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         float const bx = l.blockX(station, count, i), by = l.blockY(station, count, i);
         auto const block = viewBlock(recipe);
         // Each recipe on a raised face of the window's own edge, so where one ends is seen (L-370).
-        raisedBox(context, bx - 3, by - 3, RecipeViewLayout::block + 6, RecipeViewLayout::blockHeight(station) + 1, palette::vanilla::window,
-                  palette::vanilla::windowLight, palette::vanilla::buttonShadow);
+        constexpr float pad = RecipeViewLayout::pad;
+        raisedBox(context, bx - pad, by - pad, RecipeViewLayout::block + 2 * pad, RecipeViewLayout::blockHeight(station) + 2 * pad,
+                  palette::vanilla::window, palette::vanilla::windowLight, palette::vanilla::buttonShadow);
         // A slot as the game draws its own; `lacks`: on the game's red, an ingredient nothing carried serves. `group`:
         // the slot takes any of a group's members, and names the group and shows them under the pointer.
         auto place = [&](float sx, float sy, Item item, Count amount, bool lacks = false, int group = -1) {
@@ -254,10 +248,10 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         }
         changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
-        // "Place": a small square button with a picture, named under the pointer; faint, with the reason,
-        // when something is missing.
+        // "Place": a small square button with a picture at the block's bottom right, named under the pointer;
+        // faint, with the reason, when something is missing.
         if (laid.fits) {
-            float const mx = bx + block.marksX, my = by + block.marksY, size = 11;
+            float const mx = bx + block.placeX, my = by + block.placeY, size = viewButton;
             Region const region{mx, my, size, size, Act::Place, {}, number};
             bool const over = region.has(input.pointerX, input.pointerY);
             Rgb const mark = drawButtonBox(context, mx, my, size, size, laid.ready() && over, ButtonKind::Plain, laid.ready());
@@ -265,21 +259,24 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (over) late.tip = translated(laid.ready() ? "recipes.place" : "recipes.placeMissing");
             if (laid.ready()) regions.push_back(region);
         }
-        // The recipe an item with several is made by, as "How to make" has it: a check when the player chose it,
-        // "automatic" when the rule did; a press goes to its line there (L-370).
-        bool const inUse = id >= 0 && !at.uses && choice->recipe[static_cast<size_t>(id)] == number && recipeOptions(index, id).size() > 1;
-        if (inUse) {
-            // The item as the table keys it, as "How to make" and the notes do.
-            std::string const& itemKey = index.items[static_cast<size_t>(id)];
-            bool const chosen = state::notes().choices.contains(itemKey);
-            float const ux = bx + block.productX - 1, uy = by + block.productY + 20, uw = 20, uh = 8;
-            if (chosen) inUseMark(context, ux + 6, uy, palette::accentDeep);
-            else labelScaled(context, ux, uy - 1, uw, translated("recipes.howTo.auto"), .5f, palette::vanilla::windowFaint, Align::Center, false);
-            // A press goes to "How to make", the Recipes window's (with the plan off it holds only that).
-            Region const region{ux, uy - 2, uw, uh + 2, Act::HowTo, itemKey, -1};
-            if (region.has(input.pointerX, input.pointerY))
-                late.tip = translated(chosen ? "recipes.mark.default" : "recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.change")};
-            regions.push_back(region);
+        // Of an item made several ways, the check box left of "place" (L-379): empty for a recipe not in use, a
+        // faint check for the one the rule picked, the dark check for the player's own choice. A press chooses
+        // this recipe; on the player's choice it goes back to automatic. "How to make" still lists them all.
+        if (id >= 0 && !at.uses) {
+            auto const options = recipeOptions(index, id);
+            if (options.size() > 1 && std::find(options.begin(), options.end(), number) != options.end()) {
+                std::string const& itemKey = index.items[static_cast<size_t>(id)];
+                bool const inUse = choice->recipe[static_cast<size_t>(id)] == number, mine = inUse && state::notes().choices.contains(itemKey);
+                Region region{bx + block.chooseX, by + block.chooseY, viewButton, viewButton, Act::Choose, itemKey, -1,
+                              mine ? std::string() : choiceKey(recipe)};
+                bool const over = region.has(input.pointerX, input.pointerY);
+                windowCheckBox(context, region.x, region.y, viewButton, mine ? Check::Full : inUse ? Check::Faint : Check::None, over);
+                if (over) {
+                    late.tip = translated(mine ? "recipes.use.mine" : inUse ? "recipes.use.auto" : "recipes.use");
+                    if (inUse) late.tipLines = {translated(mine ? "recipes.use.back" : "recipes.use.pick")};
+                }
+                regions.push_back(std::move(region));
+            }
         }
         if (anyOrder(recipe)) {
             float const nx = bx + block.noteX, ny = by + block.noteY;

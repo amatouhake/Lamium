@@ -48,7 +48,6 @@ struct Late {
     std::string hovered; // the item under the pointer, by its id
     std::string wantedRow; // the wanted item whose row is under the pointer, controls and all
     std::vector<std::string> tipItems; // items shown as small icons under the tip's lines (a group's members)
-    std::string howTo; // an item's or group's key whose line in "How to make" was asked for (L-370)
     bool placed = false; // a recipe was laid into the grid: the host clears the windows off it
 };
 bool isOpen();

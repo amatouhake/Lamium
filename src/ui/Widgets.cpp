@@ -355,6 +355,24 @@ void windowSlot(MinecraftUIRenderContext& context, float x, float y, bool hovere
     fill(context, x + 17, y + 1, 1, 16, v::slotLight);
     if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .3f);
 }
+void windowCheckBox(MinecraftUIRenderContext& context, float x, float y, float size, Check check, bool hovered) {
+    namespace v = palette::vanilla;
+    if (size < 7) return;
+    fill(context, x, y, size, size, v::slot);
+    // Sunk as a slot is, inside the edge: dark above and left, light below and right.
+    fill(context, x + 1, y + 1, size - 2, .5f, v::slotDark);
+    fill(context, x + 1, y + 1.5f, .5f, size - 2.5f, v::slotDark);
+    fill(context, x + 1.5f, y + size - 1.5f, size - 2.5f, .5f, v::slotLight);
+    fill(context, x + size - 1.5f, y + 1.5f, .5f, size - 3, v::slotLight);
+    frame(context, x, y, size, size, v::windowEdge);
+    if (hovered) fill(context, x + 1, y + 1, size - 2, size - 2, palette::white, .3f);
+    if (check == Check::None) return;
+    // A check drawn in steps, as wide as the box allows: down to the corner, then up to the right.
+    Rgb const ink = check == Check::Full ? v::windowInk : v::window;
+    float const k = (size - 2) / 9, ox = x + 1, oy = y + 1;
+    for (int i = 0; i < 3; ++i) fill(context, ox + (1 + i) * k, oy + (4 + i) * k, 1.5f * k, 1.5f * k, ink);
+    for (int i = 0; i < 5; ++i) fill(context, ox + (3 + i) * k, oy + (6 - i) * k, 1.5f * k, 1.5f * k, ink);
+}
 void drawTab(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool selected, bool hovered, bool first, float height) {
     (void)first;
     if (selected) {

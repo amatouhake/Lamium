@@ -276,7 +276,22 @@ void recipeIndexTests() {
         auto view = recipeViewAt(640, 360);
         check(block.productY + 9 == 27 && block.arrowY + 2 == 27 && block.noteY >= block.productY + 18,
               "the arrow and the product stand at the grid's middle, the small mark under them");
-        check(view.left == 210 && view.top == 57 && view.height == 245 && view.hintY() == 289
+        check(block.placeX + viewButton == viewBlockWidth && block.placeY + viewButton == viewBlockHeight(Station::Crafting)
+                  && block.chooseX + viewButton + 2 == block.placeX && block.chooseY == block.placeY && block.chooseY >= block.productY + 18
+                  && block.noteX >= 54 && block.noteX + 9 <= block.chooseX, // the any-order mark is 9 wide (Widgets.h)
+              "place stands at the block's bottom right, the check box beside it, clear of the product and the small mark (L-379)");
+        bool cornersClear = true;
+        for (Station s : {Station::Stonecutter, Station::Furnace, Station::Smithing}) {
+            Recipe one;
+            one.station = s, one.cells = {{false, 0, 1}, {false, 0, 1}, {false, 0, 1}};
+            auto const b = viewBlock(one);
+            cornersClear = cornersClear && b.placeY + viewButton == viewBlockHeight(s) && b.chooseX + viewButton <= b.placeX
+                && (b.chooseX >= b.productX + 18 || b.chooseY >= b.productY + 18) && b.productY + 18 <= viewBlockHeight(s);
+        }
+        check(cornersClear, "every station's block keeps place and the check box at its corner, off the product");
+        check(RecipeViewLayout::gap == 6 && RecipeViewLayout::block + 2 * RecipeViewLayout::pad == 102,
+              "faces are 102 wide and 6 apart (L-379)");
+        check(view.left == 202 && view.top == 51 && view.height == 257 && view.hintY() == 295
               && recipeViewAt(640, 200).height == 200 - 18 - 4 - 22 && recipeViewAt(640, 200).top == 22,
               "the view is centred, three rows high, under its tabs; on a low screen it fills the room");
         check(view.rows(Station::Crafting) == 3 && view.perPage(Station::Crafting) == 6 && view.columns(Station::Crafting, 3) == 1
@@ -341,8 +356,8 @@ void recipeIndexTests() {
         check(surplusSlots(index, pickaxe, {{0, iron, 1, 1}, {1, iron, 1, 1}, {2, iron, 1, 1}, {3, iron, 1, 1}}).empty()
               && recipeInGrid(index, 2, {-1, -1, -1, birch}, "none") == at(button) && recipeInGrid(index, 2, {-1, -1, -1, birch}, button.id) == at(button),
               "what does not stack is never thrown, and the recipe the game names is taken where it fits");
-        check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 324
-              && std::abs(view.blockY(Station::Crafting, 8, 3) - (57 + 35 + 66 + (66.f - 59) / 2)) < .01f,
+        check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 328
+              && std::abs(view.blockY(Station::Crafting, 8, 3) - (51 + 35 + 70 + (70.f - 54) / 2)) < .01f,
               "one column sits in the middle; two fill left to right, then down");
     }
     {

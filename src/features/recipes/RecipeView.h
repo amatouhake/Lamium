@@ -94,18 +94,24 @@ inline bool fitsSmallGrid(Recipe const& recipe) {
 }
 inline bool anyOrder(Recipe const& recipe) { return recipe.station == Station::Crafting && recipe.anyOrder; }
 
+// A recipe's block: its slots and its buttons, as wide for every station, as high as the station's slots.
+inline constexpr float viewBlockWidth = 92, viewButton = 11;
+inline float viewBlockHeight(Station station) { return station == Station::Crafting ? 54.f : station == Station::Stonecutter ? 24.f : 48.f; }
 // One recipe as its station's screen lays it out, from the block's corner.
 // `cell` is a position in Recipe::cells, -1 an empty slot. The arrow and the
-// product stand at the middle of the ingredients' height. `marks` is a line
-// for the recipe's button, `note` the place of its small mark.
+// product stand at the middle of the ingredients' height. `place` is the
+// recipe's "place" button at the block's bottom right, `choose` its check box
+// (the same size) left of it (L-379), `note` the place of its small mark.
 struct ViewSlot { float x = 0, y = 0; int cell = -1; };
 struct ViewBlock {
     std::vector<ViewSlot> slots;
-    float arrowX = 0, arrowY = 0, productX = 0, productY = 0, marksX = 0, marksY = 0, noteX = 0, noteY = 0;
+    float arrowX = 0, arrowY = 0, productX = 0, productY = 0, placeX = 0, placeY = 0, chooseX = 0, chooseY = 0, noteX = 0, noteY = 0;
 };
 inline ViewBlock viewBlock(Recipe const& recipe) {
     constexpr float cell = 18;
     ViewBlock out;
+    out.placeX = viewBlockWidth - viewButton, out.placeY = viewBlockHeight(recipe.station) - viewButton;
+    out.chooseX = out.placeX - 2 - viewButton, out.chooseY = out.placeY;
     int const count = static_cast<int>(recipe.cells.size());
     if (recipe.station == Station::Crafting) {
         // A shaped recipe keeps its place in the 3x3 grid; one in any order is packed from the top left.
@@ -113,21 +119,21 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
         for (int i = 0; i < 9; ++i) out.slots.push_back({static_cast<float>(i % 3) * cell, static_cast<float>(i / 3) * cell, -1});
         for (int i = 0; i < count && i / across < 3; ++i)
             if (recipe.cells[static_cast<size_t>(i)].id >= 0) out.slots[static_cast<size_t>(i / across * 3 + i % across)].cell = i;
-        out.arrowX = 58, out.arrowY = 25, out.productX = 70, out.productY = 18, out.marksX = 58, out.marksY = 2;
-        out.noteX = 58, out.noteY = 42;
+        out.arrowX = 58, out.arrowY = 25, out.productX = 70, out.productY = 18;
+        out.noteX = 56, out.noteY = out.chooseY;
     } else if (recipe.station == Station::Stonecutter) {
-        out.slots.push_back({0, 6, count ? 0 : -1});
-        out.arrowX = 22, out.arrowY = 13, out.productX = 34, out.productY = 6, out.marksX = 58, out.marksY = 10;
+        out.slots.push_back({0, 3, count ? 0 : -1});
+        out.arrowX = 22, out.arrowY = 10, out.productX = 34, out.productY = 3;
     } else if (smelts(recipe.station)) {
         // The input over the fuel's slot, which stays empty: fuel is not part of a recipe.
         out.slots.push_back({0, 0, count ? 0 : -1});
         out.slots.push_back({0, 30, -1});
-        out.arrowX = 22, out.arrowY = 22, out.productX = 34, out.productY = 15, out.marksX = 58, out.marksY = 2;
+        out.arrowX = 22, out.arrowY = 22, out.productX = 34, out.productY = 15;
     } else {
         int const shown = std::min(count, 4);
         for (int i = 0; i < shown; ++i) out.slots.push_back({static_cast<float>(i) * cell, 15, recipe.cells[static_cast<size_t>(i)].id >= 0 ? i : -1});
         out.arrowX = static_cast<float>(shown) * cell + 4, out.arrowY = 22;
-        out.productX = out.arrowX + 12, out.productY = 15, out.marksX = 0, out.marksY = 38;
+        out.productX = out.arrowX + 12, out.productY = 15;
     }
     return out;
 }
@@ -137,17 +143,21 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
 // station's recipes all take the same room; where one column holds them all
 // it sits in the middle.
 struct RecipeViewLayout {
-    // Two columns of three rows a page, with room between them and inside the window's edge (L-367).
-    static constexpr float width = 220, margin = 10, column = (width - 2 * margin) / 2, block = 92, head = 35, foot = 12;
+    // Two columns of three rows a page, with room between them and inside the window's edge (L-367). Each
+    // recipe stands on a raised face `pad` around its block, faces `gap` apart (L-379: 102 wide, 6 apart).
+    static constexpr float width = 236, margin = 10, column = (width - 2 * margin) / 2, block = viewBlockWidth, head = 35, foot = 12;
+    static constexpr float pad = 5, gap = column - block - 2 * pad;
     static constexpr int mostRows = 3;
     // The game's tabs stand on the window's top edge, above it (windowTab's rise).
     static constexpr float tabsAbove = 21;
+    static float blockHeight(Station station) { return viewBlockHeight(station); }
+    // A row's least room: the face and the gap under it.
+    static float rowRoom(Station station) { return blockHeight(station) + 2 * pad + gap; }
     // Three rows of crafting recipes with room between them: taller only moved the eye further (L-367).
-    static constexpr float mostHeight = head + foot + 3 * 66;
+    static constexpr float mostHeight = head + foot + 3 * (54 + 2 * pad + gap);
     float left = 0, top = 0, height = 0;
-    static float blockHeight(Station station) { return station == Station::Crafting ? 59.f : station == Station::Stonecutter ? 31.f : 53.f; }
     int rows(Station station) const {
-        return std::clamp(static_cast<int>((height - head - foot) / blockHeight(station)), 1, mostRows);
+        return std::clamp(static_cast<int>((height - head - foot) / rowRoom(station)), 1, mostRows);
     }
     // The rows share the height between the heading and the key hints.
     float rowStep(Station station) const { return (height - head - foot) / static_cast<float>(rows(station)); }

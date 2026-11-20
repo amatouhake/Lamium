@@ -189,6 +189,12 @@ void slot(MinecraftUIRenderContext&, float x, float y, bool hovered = false);
 // slots so a Lamium window that takes a game window's place reads like one; `missing` is the game's red
 // for what the player lacks.
 void windowSlot(MinecraftUIRenderContext&, float x, float y, bool hovered = false, bool missing = false);
+// A check box on the game's grey, only where one marks which of a few things is in use (DESIGN "Switch",
+// L-379): the slots' sunk grey inside a black edge, `size` wide counting the edge, as a raised button of the
+// same size beside it. `Check::Faint` is a light check (the game's own pick), `Check::Full` the dark one (the
+// player's).
+enum class Check { None, Faint, Full };
+void windowCheckBox(MinecraftUIRenderContext&, float x, float y, float size, Check check, bool hovered);
 // One of several, chosen (decided 2026-11-19, demos/switching-controls-2.html): names side by side with
 // no gap over a rule (tabRule) as wide as what they switch. On a dark Lamium panel the chosen one stands
 // on a faint accent face over an accent bar, as the settings sidebar's selected row does; on a window of
