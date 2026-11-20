@@ -333,6 +333,8 @@ void openInventoryForEdit(ScreenView& screenView) {
 struct FrameCost {
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now(), mark = start;
     long long walk = 0, highlight = 0, list = 0, plan = 0;
+    std::vector<std::pair<char const*, long long>> steps; // the rest of the frame, by where it was spent
+    void at(char const* name) { steps.emplace_back(name, lap()); }
     long long lap() {
         auto const now = std::chrono::steady_clock::now();
         auto const us = std::chrono::duration_cast<std::chrono::microseconds>(now - mark).count();
@@ -344,8 +346,10 @@ struct FrameCost {
         auto const total = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
         if (total < 12000 || told >= 12) return;
         ++told;
-        Runtime::instance().self().getLogger().warn("Recipes: a slow frame of {} us (window top {} us, highlight {} us, item list {} us, plan {} us)",
-                                                    total, walk, highlight, list, plan);
+        std::string rest;
+        for (auto const& [name, us] : steps) if (us >= 300) rest += std::format(", {} {} us", name, us);
+        Runtime::instance().self().getLogger().warn("Recipes: a slow frame of {} us (window top {} us, highlight {} us, item list {} us, plan {} us{})",
+                                                    total, walk, highlight, list, plan, rest);
     }
 };
 bool drawList(ll::event::UIRenderEvent& event) {
@@ -378,7 +382,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return false;
     if (forget.exchange(false)) names.clear(), closeViews(), search.clear(), searchFocus = false;
+    cost.at("start");
     if (names.empty()) readNames(*player);
+    cost.at("names");
     glm::vec2 at{}, size{};
     float windowLeft = 0;
     if (names.empty() || !windowOf(screenView, at, size, windowLeft)) return false;
@@ -467,7 +473,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
         queued = {};
     }
     // The table is read while the list shows, a part a frame, so the first recipe opens at once.
+    cost.at("window");
     service::want();
+    cost.at("table");
     if (dropFocus.exchange(false)) searchFocus = false, countEdit::cancel();
     // The search key (L-377): the cursor in the field, what is there selected.
     if (focusAsked.exchange(false) && prefs->inventory.recipes && !bandEditor::active()) searchFocus = true, search.selectAll(), countEdit::commit();
@@ -680,6 +688,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         bandEditor::draw(context, {px, py, editPress, leftHeld.load(), input.close}, prefs->inventory.bands, regions, pagesOn, placed,
                          {windowLeft, at.y, at.x + size.x - windowLeft, size.y}, late);
     if (editing) input.close = false;
+    cost.at("bands");
     if (!pressed) input.clicks.clear();
     if (!recipesOn) searchFocus = false;
     else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"), 4, Align::Left, true);
@@ -720,6 +729,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     else if (searchFocus)
         searchHistory.typed(search.value(), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     wasFocused = searchFocus;
+    cost.at("field");
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
         std::optional<GridPlacer> placer;
@@ -825,6 +835,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
     for (auto const& mark : late.marks) anyMark(context, mark.x, mark.y, mark.scale);
     if (!late.counts.empty() || !late.marks.empty()) context.flushText(0, std::nullopt);
+    cost.at("windows and icons");
     if (!late.tip.empty()) {
         // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
         // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.

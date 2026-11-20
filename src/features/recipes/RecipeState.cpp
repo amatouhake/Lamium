@@ -56,7 +56,18 @@ void readNotes() {
         if (notesKeep) log("recipes.json could not be read; changes are kept for this session only");
     } catch (...) { notesKeep = true; }
 }
+// A save that took long is told in the log (a few times a session): files are written on the client thread.
+struct SaveCost {
+    char const* what;
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    ~SaveCost() {
+        static int told = 0;
+        auto const us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
+        if (us >= 4000 && told < 10) ++told, log(std::format("{} took {} us", what, us));
+    }
+};
 void writeNotes() {
+    SaveCost const saveCost{"writeNotes"};
     ++revision;
     if (notesKeep) return;
     try { writeFileReplacing(notesPath(), encodeNotes(held), "recipe notes"); }
@@ -101,6 +112,7 @@ void followWorld() {
     publishMarks();
 }
 void writePlaces() {
+    SaveCost const saveCost{"writePlaces"};
     ++revision;
     publishMarks();
     if (!placedFile || placedKeep) return;
@@ -114,6 +126,7 @@ std::int64_t nowSeconds() {
     return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 void writeWanted() {
+    SaveCost const saveCost{"writeWanted"};
     ++revision;
     if (!listFile || listKeep) return;
     try {
