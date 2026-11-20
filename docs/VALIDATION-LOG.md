@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The search field's help button (L-377, 2026-11-21)
+
+Build `36b9d215` (DLL
+`b1645acf46a59503af9329c292ea4fda90e4f920329e80a7f12e9295d2b63144`),
+1.26.60.05 Dev instance, the maintainer. Works: "Search (name, ID)"; the
+"?" opening the table; the larger target. Turned down after seeing it: the
+"?" beside the field (not its height, its glyph off centre, a button that
+could only be hovered), the field's text set high. Agreed instead with
+`demos/search-bar.html`: the table over the field, the text centred, and a
+highlight switch for L-378.
+
 ## The search field's wording and history (L-377, 2026-11-21)
 
 Build `c1f5e56d` (DLL

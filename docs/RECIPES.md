@@ -65,10 +65,10 @@ after using the first build. What is still open is in the L-item.
   ignored; no regular expressions. Ctrl+F puts the cursor in the field
   (in it, selects all); Up and Down step through earlier searches, a
   search kept once it has stood a second while typed or when the field
-  gives up the focus. The field says "Search (name, ID)"; a small "?"
-  beside it gives the syntax as a table under the pointer (the field
-  itself has no tip). The field is 16 units high, 18 above the screen's
-  bottom, and takes presses a few units around it. The usual editing clears it (Ctrl+A, Backspace).
+  gives up the focus. The field says "Search (name, ID)"; under the
+  pointer over it, while it is not typed in, the syntax shows as a
+  two-column table. The field is 16 units high, its text in the middle,
+  18 above the screen's bottom, and takes presses a few units around it. The usual editing clears it (Ctrl+A, Backspace).
 - The agent's choices while building, to confirm: "can be made" is a crafting
   recipe that what lies in the inventory itself (not what shulker boxes
   and bundles hold) makes once, without making anything first, and that

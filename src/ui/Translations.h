@@ -1056,7 +1056,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.filter.canMake", "Can be made", "作れる物"},
     {"recipes.filter.canMakeShort", "Can make", "作れる"},
     {"recipes.search", "Search (name, ID)", "検索（名前・ID）"},
-    {"recipes.search.help", "How to search", "検索の書き方"},
     {"recipes.search.all", "all of the words", "すべてを含む"},
     {"recipes.search.not", "leaves the word out", "含まない"},
     {"recipes.search.either", "either", "どちらか"},

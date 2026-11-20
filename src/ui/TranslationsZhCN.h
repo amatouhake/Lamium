@@ -1047,7 +1047,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.filter.canMake", "可制作"},
     {"recipes.filter.canMakeShort", "可制作"},
     {"recipes.search", "搜索（名称、ID）"},
-    {"recipes.search.help", "搜索写法"},
     {"recipes.search.all", "包含所有词"},
     {"recipes.search.not", "排除该词"},
     {"recipes.search.either", "任一"},

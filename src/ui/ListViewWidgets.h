@@ -173,8 +173,11 @@ void drawFieldBox(MinecraftUIRenderContext& context, float x, float y, float w, 
 // While `editing` (and `input` given) the typed text with its caret, else
 // `text`, or `placeholder` faintly when `text` is empty. `inset` leaves room
 // on the left (an icon).
+// `centred`: the text stands in the middle of a field taller than a line (the item list's search, L-377);
+// otherwise at its top, as every older field has it.
 void drawTextField(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing, TextEdit const* input,
-                   std::string const& text, std::string const& placeholder = {}, float inset = 4, Align align = Align::Left);
+                   std::string const& text, std::string const& placeholder = {}, float inset = 4, Align align = Align::Left,
+                   bool centred = false);
 // A click inside the field drawn last for `field` puts its caret at the
 // nearest character boundary; false when the click was elsewhere.
 bool placeCaret(MinecraftUIRenderContext& context, TextEdit& field, float x, float y);

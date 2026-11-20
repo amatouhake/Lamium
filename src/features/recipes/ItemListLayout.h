@@ -36,8 +36,7 @@ inline constexpr float searchTop = 18; // its top, from the screen's bottom
 inline ListBox searchFieldAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - searchTop, 176, 16}; }
 // Where a press takes the field: a few units around it too, the screen's edge being close (L-377).
 inline ListBox searchFieldHit(ListBox field) { return {field.x - 4, field.y - 4, field.w + 8, field.h + 6}; }
-// The field's help: a small "?" right of it, whose tip gives the syntax.
-inline ListBox searchHelpAt(ListBox field) { return {field.x + field.w + 2, field.y + 2, 12, field.h - 4}; }
+
 // The band left of the game's window, from the screen's edge: favorites in its upper half, the wanted
 // items in the lower. The lower half is a bar, rows, and a last line kept free for the open container's
 // control, so the rows never shift.

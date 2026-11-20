@@ -307,13 +307,14 @@ void drawFieldBox(MinecraftUIRenderContext& context, float x, float y, float w, 
     frame(context,x,y,w,h,editing ? palette::accent : palette::keyEdge);
 }
 void drawTextField(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing, TextEdit const* input,
-                   std::string const& text, std::string const& placeholder, float inset, Align align) {
+                   std::string const& text, std::string const& placeholder, float inset, Align align, bool centred) {
     drawFieldBox(context,x,y,w,h,editing);
+    float const shift = centred ? std::max(0.f, std::floor((h - 12) / 2)) : 0.f;
     float textX = x + inset, textW = w - inset - 4;
-    float textY = y + 1 + boxTextInset(); // where drawEditField puts typed text, so clicking does not move it
+    float textY = y + shift + 1 + boxTextInset(); // where drawEditField puts typed text, so clicking does not move it
     if (editing && input) {
         if (input->value().empty() && !placeholder.empty()) label(context,textX,textY,textW,placeholder,palette::faint,align);
-        drawEditField(context,textX,y,h,textW,*input,align);
+        drawEditField(context,textX,y + shift,h - 2 * shift,textW,*input,align);
     } else if (text.empty()) label(context,textX,textY,textW,placeholder,palette::faint,align);
     else label(context,textX,textY,textW,text,palette::text,align);
 }

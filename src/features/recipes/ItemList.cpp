@@ -441,8 +441,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto const field = searchFieldAt(screen.x, screen.y);
     // What the listeners keep from the game for the field: around it, and its help beside it.
     ListBox const fieldArea = [&] {
-        auto const hit = searchFieldHit(field), help = searchHelpAt(field);
-        return ListBox{hit.x, hit.y, help.x + help.w + 2 - hit.x, hit.h};
+        return searchFieldHit(field);
     }();
     if (countEdit::active()) {
         // A count being typed: digits, Enter keeps it, Esc leaves it as it was.
@@ -500,8 +499,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     };
     bool caretPress = false;
     if (pressed || input.outside) searchFocus = false, countEdit::commit();
-    if (recipesOn && took(searchHelpAt(field))) {} // the help is read, not pressed
-    else if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
+    if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
     std::string hoverItem;
     auto& context = event.uiRenderContext();
     view::Late late;
@@ -620,20 +618,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (editing) input.close = false;
     if (!pressed) input.clicks.clear();
     if (!recipesOn) searchFocus = false;
-    else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"));
+    else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"), 4, Align::Left, true);
     if (caretPress) placeCaret(context, search, px, py);
-    // The field's help (L-377): a small "?" beside it whose tip is the syntax as a table; the field itself has none.
-    if (recipesOn) {
-        auto const help = searchHelpAt(field);
-        bool const over = help.has(px, py);
-        drawButton(context, help.x, help.y, help.w, help.h, "?", over);
-        if (over) {
-            late.tip = translated("recipes.search.help");
-            late.tipTable = {{"word word", translated("recipes.search.all")}, {"-word", translated("recipes.search.not")},
-                             {"a|b", translated("recipes.search.either")}, {"\"a b\"", translated("recipes.search.phrase")},
-                             {"#…", translated("recipes.search.tag")}, {"$…", translated("recipes.search.tooltip")},
-                             {"@…", translated("recipes.search.namespace")}, {translated("recipes.search.upDown"), translated("recipes.search.history")}};
-        }
+    // The syntax as a table under the pointer over the field while it is not typed in (L-377): one there means
+    // to search anyway.
+    if (recipesOn && !searchFocus && searchFieldHit(field).has(px, py) && late.tip.empty()) {
+        late.tip = translated("recipes.search");
+        late.tipTable = {{"word word", translated("recipes.search.all")}, {"-word", translated("recipes.search.not")},
+                         {"a|b", translated("recipes.search.either")}, {"\"a b\"", translated("recipes.search.phrase")},
+                         {"#…", translated("recipes.search.tag")}, {"$…", translated("recipes.search.tooltip")},
+                         {"@…", translated("recipes.search.namespace")}, {translated("recipes.search.upDown"), translated("recipes.search.history")}};
     }
     // Typing needs the platform's keyboard: claimed while the field has the focus, given back with it.
     if (searchFocus && !keyboardOwned) {
