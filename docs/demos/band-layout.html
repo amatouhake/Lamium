@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Band Layout</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Positions are GUI units; the page scales one unit to fit the width (3 px is 1920x1080 at UI 75 %). */
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040; --danger:#d0483c;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --slot:#8b8b8b; --slot-dark:#373737; --shadow:#555;
+  --band:rgba(0,0,0,.55); --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.controls .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.controls .lbl{color:var(--ink-2);font-size:13px;margin-right:4px}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{overflow:hidden}
+#screen{position:relative;background:linear-gradient(#5b7a4a,#3f5a35 55%,#5a4632);overflow:hidden;font-family:var(--pix);user-select:none;margin:0 auto}
+#screen *{position:absolute}
+.gwin{background:var(--win);color:var(--win-ink);box-shadow:inset 2px 2px #fff,inset -2px -2px var(--shadow),0 0 0 1px #000}
+.band{background:var(--band)}
+.panel{overflow:hidden}
+.tabbar{display:flex;gap:1px}
+.tabbar .t{position:relative;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;color:#cfd6d2;background:rgba(255,255,255,.06);cursor:pointer}
+.tabbar .t.on{color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 -2px var(--accent)}
+.tabbar .t.folded{color:var(--warn)}
+.cell{background:rgba(255,255,255,.07)}
+.ico{box-shadow:inset -1px -1px rgba(0,0,0,.3),inset 1px 1px rgba(255,255,255,.3)}
+.rowtxt{color:#e8ece9;white-space:nowrap;overflow:hidden}
+.field{background:#000;border:1px solid #a0a0a0;color:#888}
+.hint{color:#ddd;white-space:nowrap;text-align:center}
+.foot{color:#e8ece9;border-top:1px solid rgba(255,255,255,.25);display:flex;align-items:center}
+.sw{border-radius:99px;background:var(--accent-deep)}
+/* Editing */
+.editing .gwin{filter:brightness(.55)}
+.edge{outline:1px dashed rgba(255,255,255,.55);outline-offset:-1px;pointer-events:none}
+.sel{outline:2px solid var(--accent);outline-offset:-2px;pointer-events:none}
+.tag{background:#000c;color:#fff;padding:0 3px;white-space:nowrap;pointer-events:none}
+.drop{background:rgba(108,195,73,.35);outline:2px solid var(--accent);outline-offset:-2px;pointer-events:none}
+.split{cursor:ns-resize;background:rgba(255,255,255,.35)}
+.split:hover,.split.drag{background:var(--accent)}
+.ghost{pointer-events:none;background:var(--accent-deep);color:#fff;display:flex;align-items:center;padding:0 4px;opacity:.9;z-index:9}
+.ed{background:#1d2226f0;border:1px solid #3a4248;color:#e6ebe8;z-index:5}
+.ed .title{position:static;font-weight:bold}
+.btn{display:flex;align-items:center;justify-content:center;cursor:pointer;background:#2c3337;color:#e6ebe8;border:1px solid #4a545a}
+.btn.ok{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.btn.armed{background:var(--danger);border-color:var(--danger);color:#fff}
+.tray .t{background:#2c3337;border:1px dashed #6b757b;color:#e6ebe8;display:flex;align-items:center;justify-content:center;cursor:grab}
+.warnTag{background:#000c;color:var(--warn);padding:0 3px;white-space:nowrap;pointer-events:none}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>バンドの配置（L-371）</h1>
+    <p class="lede">アイテム画面の左右にあるバンドを、領域・パネル・ページ（タブ）で組み立てる案。HUD エディタに倣い、置いた場所で決まり、実物を見ながら編集する。座標で置かないのは、ゲームのウィンドウの幅が画面ごとに変わるため。画面や GUI の大きさを切り替えて、配置がどう追従するかを見られる。</p>
+  </header>
+
+  <div class="controls">
+    <div class="grp"><span class="lbl">画面</span>
+      <button class="chip on" data-win="inv">インベントリ</button>
+      <button class="chip" data-win="chest">チェスト</button>
+      <button class="chip" data-win="book">レシピブック／計画ウィンドウ</button>
+    </div>
+    <div class="grp"><span class="lbl">GUI の広さ</span>
+      <button class="chip on" data-gui="640">640×360</button>
+      <button class="chip" data-gui="480">480×270</button>
+      <button class="chip" data-gui="427">427×240</button>
+    </div>
+    <div class="grp"><span class="lbl">例</span>
+      <button class="chip" data-preset="default">初期配置</button>
+      <button class="chip" data-preset="right">右にまとめる</button>
+      <button class="chip" data-preset="swap">一覧を左に</button>
+      <button class="chip" data-preset="three">左を三段</button>
+    </div>
+    <div class="grp"><button class="chip" id="editBtn">配置を編集</button></div>
+  </div>
+
+  <div class="stage"><div id="screen"></div></div>
+
+  <div class="notes">
+    <div class="card">
+      <h2>操作（編集中）</h2>
+      <ul>
+        <li>タブをドラッグ：別パネルのタブ列に落とすとタブとして加わる。パネルの上半分／下半分に落とすと、そこで上下に分割。空の領域に落とすとその領域の最初のパネルになる。</li>
+        <li>上の「置いていないページ」に落とすとバンドから外れる。そこからドラッグで戻せる。</li>
+        <li>パネルの間の線をドラッグ：高さの比率を 5 % 刻みで変える（10 % 未満にはしない）。</li>
+        <li>パネルをクリックで選択。「上下を入れ替え」と「パネルを外す」が出る。</li>
+        <li>「配置をリセット」は 2 回押し、「完了 (Esc)」で終わる（HUD エディタと同じ）。</li>
+        <li>編集していないときはタブを押してページを切り替える。編集の入口は各バンドの右上の小さなボタン（と設定の「レシピ」の「配置」リンク）。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>狭いときのルール（案）</h2>
+      <ul>
+        <li>列数は、バンドの幅に収まる 18 単位のマスの数。</li>
+        <li>最低限の高さ（タブ列＋2 段）に満たないパネルは、同じ領域の上のパネル（なければ下）のタブにたたまれる。たたまれたタブは黄色。比率は保存したまま。</li>
+        <li>名前が入らないタブは絵（ページの記号）になる（今の「狭いとタブが絵になる」と同じ）。</li>
+        <li>固定のまま：下中央の検索欄、その上のキーのヒント、チェストなどでの左バンド最下行「倉庫として数える」。</li>
+        <li>配置は 1 種類で、全部のアイテム画面で共通。金床は今のまま例外。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> 「領域＋分割＋タブ」の形でよいか。</li>
+        <li><span class="q">2.</span> 領域は左右だけか。上下も置けるようにするか（Bedrock は縦の空きが少ない）。</li>
+        <li><span class="q">3.</span> たたむ順：上のパネルへ寄せる案でよいか。それともページに優先順位を持たせるか。</li>
+        <li><span class="q">4.</span> ページを外すことと、機能の設定（お気に入り・計画の切替）との関係。外す＝非表示にするだけか、外した時点で設定も切るか。</li>
+        <li><span class="q">5.</span> 編集の入口：バンドのボタン＋設定のリンクでよいか。HUD エディタの中から入れる必要はあるか。</li>
+        <li><span class="q">6.</span> 「履歴」はページの候補として置いてあるだけ（作るかどうかは別に決める）。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const PAGES = {
+  index:  {name:'アイテム一覧', short:'一', kind:'grid', color:'#7aa0d8', sub:['すべて','作れる']},
+  fav:    {name:'お気に入り', short:'★', kind:'grid', color:'#d8b45a'},
+  wanted: {name:'欲しい', short:'欲', kind:'rows', color:'#8fd07a', sub:['欲しい','集める','作る']},
+  history:{name:'履歴', short:'履', kind:'grid', color:'#b08ad8'},
+};
+const PRESETS = {
+  default:{left:[{pages:['fav'],share:50},{pages:['wanted'],share:50}], right:[{pages:['index'],share:100}]},
+  right:{left:[], right:[{pages:['index'],share:65},{pages:['fav','wanted'],share:35}]},
+  swap:{left:[{pages:['index'],share:100}], right:[{pages:['fav'],share:50},{pages:['wanted'],share:50}]},
+  three:{left:[{pages:['fav'],share:35},{pages:['wanted'],share:40},{pages:['history'],share:25}], right:[{pages:['index'],share:100}]},
+};
+const WINS = {inv:{w:176,h:166,name:'インベントリ'}, chest:{w:176,h:222,name:'チェスト'}, book:{w:326,h:166,name:'インベントリ＋レシピブック'}};
+const clone = o => JSON.parse(JSON.stringify(o));
+let layout = clone(PRESETS.default), active = {}, win = 'inv', gui = 640, editing = false, selected = null, armed = false;
+let drag = null, splitDrag = null;
+const scr = document.getElementById('screen');
+let u = 2;
+
+function screenH(){ return Math.round(gui * 9 / 16); }
+function placed(){ return new Set([...layout.left, ...layout.right].flatMap(p => p.pages)); }
+function normalize(region){
+  const list = layout[region] = layout[region].filter(p => p.pages.length);
+  const sum = list.reduce((a, p) => a + p.share, 0) || 1;
+  list.forEach(p => p.share = Math.round(p.share / sum * 100 / 5) * 5);
+  if (list.length){ const diff = 100 - list.reduce((a,p)=>a+p.share,0); list[0].share += diff; }
+}
+
+// Geometry: where each region lies, and each panel's box after folding.
+function geometry(){
+  const H = screenH(), W = gui, g = WINS[win];
+  const wx = Math.round((W - g.w) / 2), wy = Math.max(4, Math.round((H - 30 - g.h) / 2));
+  const footer = win === 'chest' ? 12 : 0;
+  const regions = {
+    left:{x:0, y:0, w:wx - 2, h:H - footer},
+    right:{x:wx + g.w + 2, y:0, w:W - (wx + g.w + 2), h:H},
+  };
+  const out = {wx, wy, g, H, W, footer, regions, panels:[]};
+  for (const region of ['left','right']){
+    const r = regions[region], list = layout[region];
+    const minH = 14 + 2 * 18 + 4;
+    // Fold panels too short to show two rows into a neighbour (above, else below).
+    let shown = list.map((p, i) => ({p, i, share:p.share, pages:[...p.pages], folded:[]}));
+    let changed = true;
+    while (changed && shown.length > 1){
+      changed = false;
+      const total = shown.reduce((a, s) => a + s.share, 0);
+      for (let k = 0; k < shown.length; ++k){
+        const h = r.h * shown[k].share / total;
+        if (h < minH){
+          const into = k > 0 ? k - 1 : k + 1;
+          shown[into].pages.push(...shown[k].pages);
+          shown[into].folded.push(...shown[k].pages);
+          shown[into].share += shown[k].share;
+          shown.splice(k, 1); changed = true; break;
+        }
+      }
+    }
+    const total = shown.reduce((a, s) => a + s.share, 0);
+    let y = r.y;
+    shown.forEach((s, k) => {
+      const h = k === shown.length - 1 ? r.y + r.h - y : Math.round(r.h * s.share / total);
+      out.panels.push({region, index:s.i, pages:s.pages, folded:s.folded, x:r.x, y, w:r.w, h});
+      y += h;
+    });
+  }
+  return out;
+}
+
+function el(cls, x, y, w, h, html){
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.style.left = x * u + 'px'; d.style.top = y * u + 'px';
+  if (w != null) d.style.width = w * u + 'px';
+  if (h != null) d.style.height = h * u + 'px';
+  if (html != null) d.innerHTML = html;
+  scr.appendChild(d); return d;
+}
+function icon(x, y, color, size = 16){ const d = el('ico', x, y, size, size); d.style.background = color; return d; }
+const palette = ['#c96b4b','#7aa0d8','#8fd07a','#d8b45a','#b08ad8','#6fc2c0','#c9c9c9','#8b5a3c','#e07a9a','#5a8a5a'];
+
+function render(){
+  const G = geometry();
+  const width = Math.min(document.querySelector('.stage').clientWidth, 1400);
+  u = width / G.W;
+  scr.style.width = G.W * u + 'px'; scr.style.height = G.H * u + 'px';
+  scr.innerHTML = ''; scr.classList.toggle('editing', editing);
+  scr.style.fontSize = 8 * u + 'px';
+
+  // The game's window
+  const gw = el('gwin', G.wx, G.wy, G.g.w, G.g.h);
+  el('', G.wx + 8, G.wy + 6, null, null, G.g.name).style.color = '#3f3f3f';
+  // Bands
+  for (const region of ['left','right']){ const r = G.regions[region]; if (r.w > 0) el('band', r.x, r.y, r.w, G.H); }
+
+  for (const P of G.panels) drawPanel(P, G);
+
+  // Fixed parts
+  const sx = (G.W - 176) / 2;
+  el('hint', sx - 40, G.H - 27, 256, 9, 'クリック: レシピ ・ 右クリック: 使い道 ・ A: お気に入り ・ W: 欲しい').style.fontSize = 6.5 * u + 'px';
+  el('field', sx, G.H - 16, 176, 14, '&nbsp;検索').style.fontSize = 8 * u + 'px';
+  if (G.footer){
+    const r = G.regions.left;
+    const f = el('foot', r.x + 2, G.H - 12, r.w - 4, 12);
+    f.innerHTML = '';
+    el('rowtxt', r.x + 4, G.H - 11, r.w - 26, 10, '倉庫として数える').style.fontSize = 7 * u + 'px';
+    el('sw', r.x + r.w - 20, G.H - 9, 14, 6);
+  }
+
+  if (editing) drawEditor(G);
+  else for (const region of ['left','right']){
+    const first = G.panels.find(p => p.region === region);
+    const r = G.regions[region];
+    const b = el('btn', r.x + r.w - 12, (first ? first.y : 0) + 1, 11, 12, '✎');
+    b.title = '配置を編集'; b.style.fontSize = 7 * u + 'px'; b.style.zIndex = 3;
+    b.onclick = () => setEditing(true);
+  }
+  if (drag && drag.target) drawDrop(drag.target, G);
+}
+
+function drawPanel(P, G){
+  const key = P.region + P.index;
+  const pages = P.pages;
+  if (!pages.includes(active[key])) active[key] = pages[0];
+  const cur = active[key];
+  const innerW = P.w - 4 - (editing ? 0 : 0);
+  const tabsW = P.w - 4 - (!editing && P === G.panels.find(p => p.region === P.region) ? 13 : 0);
+  // Tab bar: names where they fit, else pictures.
+  const tw = Math.floor(tabsW / pages.length) - 1;
+  const names = pages.map(id => PAGES[id].name);
+  const fits = names.every(n => n.length * 8 + 6 <= tw);
+  const bar = el('tabbar', P.x + 2, P.y + 1, tabsW, 12);
+  bar.style.position = 'absolute';
+  pages.forEach((id, k) => {
+    const t = document.createElement('div');
+    t.className = 't' + (id === cur ? ' on' : '') + (P.folded.includes(id) ? ' folded' : '');
+    t.style.position = 'relative';
+    t.style.width = tw * u + 'px'; t.style.height = 12 * u + 'px';
+    t.style.fontSize = 7 * u + 'px';
+    t.textContent = fits ? PAGES[id].name : PAGES[id].short;
+    t.title = PAGES[id].name + (P.folded.includes(id) ? '（狭いのでたたまれています）' : '');
+    t.onmousedown = e => {
+      if (editing){ startDrag(e, id, P); return; }
+      active[key] = id; render();
+    };
+    bar.appendChild(t);
+  });
+  // Body
+  const top = P.y + 15, bodyH = P.h - 17;
+  const page = PAGES[cur];
+  const cols = Math.max(0, Math.floor(innerW / 18));
+  if (page.kind === 'grid'){
+    let subH = 0;
+    if (page.sub){
+      subTabs(P, page, top);
+      subH = 10;
+    }
+    const rows = Math.floor((bodyH - subH) / 18);
+    const count = cur === 'fav' ? Math.min(cols * rows, 9) : cur === 'history' ? Math.min(cols * rows, 6) : cols * rows;
+    for (let i = 0; i < count; ++i){
+      const cx = P.x + 2 + (i % cols) * 18, cy = top + subH + Math.floor(i / cols) * 18;
+      el('cell', cx, cy, 17, 17); icon(cx + 1, cy + 1, palette[(i * 7 + cur.length) % palette.length]);
+    }
+    if (cur === 'index' && rows > 0){ const pg = el('rowtxt', P.x + P.w - 30, P.y + P.h - 10, 28, 9, '1 / 12'); pg.style.fontSize = 6.5*u+'px'; pg.style.textAlign='right'; }
+  } else {
+    subTabs(P, page, top);
+    const items = [['鉄インゴット','12 / 64'],['樫の原木','30 / 48'],['レッドストーン','4 / 32'],['ガラス','64 / 64'],['石レンガ','96 / 256'],['ホッパー','1 / 4'],['チェスト','0 / 8']];
+    const rows = Math.floor((bodyH - 10) / 12);
+    for (let i = 0; i < Math.min(rows, items.length); ++i){
+      const ry = top + 10 + i * 12;
+      icon(P.x + 3, ry + 1, palette[(i * 3 + 2) % palette.length], 10);
+      // Narrow: the count alone beside the icon, the name under the pointer.
+      if (P.w >= 90){ const n = el('rowtxt', P.x + 16, ry + 1, P.w - 50, 10, items[i][0]); n.style.fontSize = 7 * u + 'px'; }
+      const c = el('rowtxt', P.x + P.w - 34, ry + 1, 30, 10, P.w >= 90 ? items[i][1] : items[i][1].split(' ')[0]); c.style.fontSize = 7 * u + 'px'; c.style.textAlign = 'right';
+    }
+  }
+  if (editing){
+    const d = el('edge', P.x, P.y, P.w, P.h);
+    d.style.pointerEvents = 'auto'; d.style.zIndex = 1; d.style.background = 'transparent';
+    d.onmousedown = e => { if (e.target === d){ selected = {region:P.region, index:P.index}; render(); } };
+    const t = el('tag', P.x + 2, P.y + P.h - 10, null, 9, pages.map(id => PAGES[id].name).join('・')); t.style.fontSize = 6.5 * u + 'px'; t.style.zIndex = 2;
+    if (P.folded.length){ const w = el('warnTag', P.x + 2, P.y + P.h - 20, null, 9, '狭いのでたたんでいます'); w.style.fontSize = 6.5*u+'px'; w.style.zIndex = 2; }
+    if (selected && selected.region === P.region && selected.index === P.index){ const s = el('sel', P.x, P.y, P.w, P.h); s.style.zIndex = 2; drawToolbar(P, G); }
+  }
+}
+
+// A page's own choices (all / can be made): words where they fit, else one picture switch.
+function subTabs(P, page, top){
+  const step = 30, fit = page.sub.length * step <= P.w - 4;
+  if (fit) page.sub.forEach((s, k) => { const c = el('rowtxt', P.x + 2 + k * step, top, step - 2, 9, s); c.style.fontSize = 6.5 * u + 'px'; if (!k) c.style.color = '#6cc349'; });
+  else { const c = el('rowtxt', P.x + 2, top, P.w - 4, 9, '◀ ' + page.sub[0][0] + ' ▶'); c.style.fontSize = 6.5 * u + 'px'; c.style.color = '#6cc349'; }
+}
+function drawToolbar(P, G){
+  const w = 96, x = P.region === 'left' ? P.x + P.w + 4 : P.x - w - 4;
+  const y = Math.min(P.y + 4, G.H - 40);
+  const box = el('ed', x, y, w, 34); box.style.zIndex = 6;
+  const list = layout[P.region];
+  const a = el('btn', x + 3, y + 3, w - 6, 13, '上下を入れ替え'); a.style.zIndex = 7; a.style.fontSize = 6.5*u+'px';
+  a.onclick = () => { const i = P.index, j = i + 1 < list.length ? i + 1 : i - 1; if (j >= 0 && j !== i){ [list[i], list[j]] = [list[j], list[i]]; selected.index = j; } render(); };
+  const b = el('btn', x + 3, y + 18, w - 6, 13, 'パネルを外す'); b.style.zIndex = 7; b.style.fontSize = 6.5*u+'px';
+  b.onclick = () => { list.splice(P.index, 1); normalize(P.region); selected = null; render(); };
+}
+
+function drawEditor(G){
+  const w = Math.min(G.g.w - 8, 220), x = (G.W - w) / 2, y = G.wy + 8;
+  const box = el('ed', x, y, w, 70); box.style.zIndex = 4;
+  const t = el('', x + 5, y + 3, w - 10, 10, '<b>バンドの配置</b>'); t.style.zIndex = 5; t.style.color = '#fff'; t.style.fontSize = 8*u+'px';
+  const h = el('', x + 5, y + 14, w - 10, 9, 'タブをドラッグして移動・線で高さを変える'); h.style.zIndex = 5; h.style.color = '#a6b0ab'; h.style.fontSize = 6.5*u+'px';
+  const tray = el('tray', x + 5, y + 26, w - 10, 18); tray.style.zIndex = 5; tray.style.border = '1px solid #3a4248';
+  tray.dataset.tray = '1';
+  const hl = el('', x + 7, y + 27, null, 8, '置いていないページ'); hl.style.zIndex = 5; hl.style.color = '#6b757b'; hl.style.fontSize = 5.5*u+'px';
+  const out = Object.keys(PAGES).filter(id => !placed().has(id));
+  out.forEach((id, k) => {
+    const c = el('', x + 7 + k * 46, y + 34, 44, 9, PAGES[id].name); c.className = 'tray';
+    c.innerHTML = ''; const tt = document.createElement('div'); tt.className = 't'; tt.style.position='absolute'; tt.style.inset = '0'; tt.textContent = PAGES[id].name; tt.style.fontSize = 6.5*u+'px'; c.appendChild(tt);
+    c.style.zIndex = 6; tt.onmousedown = e => startDrag(e, id, null);
+  });
+  const r = el('btn' + (armed ? ' armed' : ''), x + 5, y + 50, (w - 14) / 2, 14, armed ? 'もう一度押してリセット' : '配置をリセット');
+  r.style.zIndex = 5; r.style.fontSize = 6.5*u+'px';
+  r.onclick = () => { if (armed){ layout = clone(PRESETS.default); armed = false; selected = null; } else armed = true; render(); };
+  const d = el('btn ok', x + 9 + (w - 14) / 2, y + 50, (w - 14) / 2, 14, '完了 (Esc)'); d.style.zIndex = 5; d.style.fontSize = 6.5*u+'px';
+  d.onclick = () => setEditing(false);
+  // Split lines between panels of one region.
+  for (const region of ['left','right']){
+    const ps = G.panels.filter(p => p.region === region);
+    for (let k = 0; k + 1 < ps.length; ++k){
+      const a = ps[k], b = ps[k + 1];
+      const s = el('split' + (splitDrag && splitDrag.a === a.index && splitDrag.region === region ? ' drag' : ''), a.x + 2, b.y - 1, a.w - 4, 2);
+      s.style.zIndex = 3;
+      s.onmousedown = e => { e.preventDefault(); splitDrag = {region, a:a.index, b:b.index, startY:e.clientY, sa:layout[region][a.index].share, sb:layout[region][b.index].share, h:G.regions[region].h}; };
+    }
+  }
+}
+
+function drawDrop(target, G){
+  if (target.kind === 'tray') return;
+  const d = el('drop', target.x, target.y, target.w, target.h); d.style.zIndex = 8;
+}
+
+function startDrag(e, id, P){
+  e.preventDefault();
+  drag = {id, from:P ? {region:P.region, index:P.index} : null, x:e.clientX, y:e.clientY, target:null};
+  move(e);
+}
+function hitTarget(px, py, G){
+  // Tray first
+  const trayEl = scr.querySelector('[data-tray]');
+  if (trayEl){ const b = trayEl.getBoundingClientRect(), s = scr.getBoundingClientRect(); if (px >= (b.left - s.left)/u && px <= (b.right - s.left)/u && py >= (b.top - s.top)/u && py <= (b.bottom - s.top)/u) return {kind:'tray'}; }
+  for (const P of G.panels){
+    if (px < P.x || px >= P.x + P.w || py < P.y || py >= P.y + P.h) continue;
+    if (py < P.y + 14) return {kind:'tabs', region:P.region, index:P.index, x:P.x, y:P.y, w:P.w, h:14};
+    const mid = P.y + 14 + (P.h - 14) / 2;
+    return py < mid ? {kind:'above', region:P.region, index:P.index, x:P.x, y:P.y, w:P.w, h:P.h / 2}
+                    : {kind:'below', region:P.region, index:P.index, x:P.x, y:P.y + P.h / 2, w:P.w, h:P.h / 2};
+  }
+  for (const region of ['left','right']){
+    const r = G.regions[region];
+    if (px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h && !layout[region].length) return {kind:'new', region, x:r.x, y:r.y, w:r.w, h:r.h};
+  }
+  return null;
+}
+function move(e){
+  if (splitDrag){
+    const dy = (e.clientY - splitDrag.startY) / u;
+    const L = layout[splitDrag.region];
+    let delta = Math.round(dy / splitDrag.h * 100 / 5) * 5;
+    const sum = splitDrag.sa + splitDrag.sb;
+    let na = Math.min(sum - 10, Math.max(10, splitDrag.sa + delta));
+    L[splitDrag.a].share = na; L[splitDrag.b].share = sum - na;
+    render(); return;
+  }
+  if (!drag) return;
+  const s = scr.getBoundingClientRect();
+  const px = (e.clientX - s.left) / u, py = (e.clientY - s.top) / u;
+  drag.target = hitTarget(px, py, geometry());
+  render();
+  const g = el('ghost', px + 4, py + 4, null, 11, PAGES[drag.id].name); g.style.fontSize = 7*u+'px';
+}
+function drop(){
+  if (splitDrag){ splitDrag = null; render(); return; }
+  if (!drag) return;
+  const t = drag.target, id = drag.id;
+  if (t){
+    let newShare = 50;
+    // Take the page out of where it was.
+    for (const region of ['left','right']) layout[region].forEach(p => p.pages = p.pages.filter(x => x !== id));
+    if (t.kind === 'tabs'){
+      const p = layout[t.region][t.index];
+      if (p) p.pages.push(id); else layout[t.region].push({pages:[id], share:100});
+    } else if (t.kind === 'above' || t.kind === 'below'){
+      const list = layout[t.region], p = list[t.index];
+      if (!p || !p.pages.length){ list.splice(t.index, p ? 1 : 0, {pages:[id], share:p ? p.share : 100}); }
+      else { const half = Math.max(10, Math.round(p.share / 2 / 5) * 5); p.share -= half;
+        list.splice(t.kind === 'above' ? t.index : t.index + 1, 0, {pages:[id], share:half}); }
+    } else if (t.kind === 'new'){
+      layout[t.region] = [{pages:[id], share:100}];
+    }
+    normalize('left'); normalize('right');
+    active[(t.region || '') + (t.index ?? 0)] = id;
+    selected = null;
+  }
+  drag = null; render();
+}
+function setEditing(on){ editing = on; selected = null; armed = false; document.getElementById('editBtn').classList.toggle('on', on); render(); }
+
+addEventListener('mousemove', move);
+addEventListener('mouseup', drop);
+addEventListener('keydown', e => { if (e.key === 'Escape' && editing){ if (selected){ selected = null; render(); } else setEditing(false); } });
+addEventListener('resize', render);
+document.getElementById('editBtn').onclick = () => setEditing(!editing);
+document.querySelectorAll('[data-win]').forEach(b => b.onclick = () => { win = b.dataset.win; document.querySelectorAll('[data-win]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+document.querySelectorAll('[data-gui]').forEach(b => b.onclick = () => { gui = +b.dataset.gui; document.querySelectorAll('[data-gui]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => { layout = clone(PRESETS[b.dataset.preset]); active = {}; selected = null; render(); });
+render();
+</script>
+</body>
+</html>
