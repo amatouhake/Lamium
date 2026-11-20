@@ -189,7 +189,7 @@ after using the first build. What is still open is in the L-item.
   nothing goes through the empty pointer instead. An ingredient that is missing disables the
   button and turns its slot's face red, as the game does. Any of several items:
   the member "How to make" names while it lasts, else the one most carried.
-- At a station ([L-380](backlog/L-380.md)): the furnace, blast furnace,
+- At a station ([L-380](backlog/done/L-380.md)): the furnace, blast furnace,
   smoker, stonecutter and smithing table take the recipes of their own
   tab (smelting, blasting, smoking, stonecutting, smithing), whose faces
   then have "place". A press lays one in, Shift as much as carried up to

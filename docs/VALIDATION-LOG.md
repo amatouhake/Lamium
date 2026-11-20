@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The stonecutter's notice and a station's own tab (L-380, 2026-11-21)
+
+Builds `ad4b7c64` and `4bfc1703` (last DLL
+`9ec5f4af25bde7aa1b81733f9eb672166e139c17ff2c9bfe25532085d829163e`),
+1.26.60.05 Dev instance, a local world, the maintainer. Works: after
+Lamium laid the stonecutter's input in, "Choose a result" showed; a
+press on the list ended it, a press elsewhere did not; taking the input
+out or changing it ended it; reopening or laying the input by hand
+showed none. On `ad4b7c64` the tip covered the list's first row (the
+list starts at its panel's top); on `4bfc1703` it stands above the panel,
+clear of it, and looks settled. Recipes opened at a station start on its
+tab (cooked beef at the smoker on smoking, an iron ingot at the blast
+furnace on blasting); the crafting table and the inventory on crafting.
+
 ## How the stonecutter's result is chosen (L-380, 2026-11-21)
 
 Trace builds `9353ccb6` and `b312365b` (`craft_trace`, last DLL

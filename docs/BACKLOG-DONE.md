@@ -233,6 +233,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 - [L-378](backlog/done/L-378.md) Light up the game's slots that match the search
 - [L-379](backlog/done/L-379.md) A recipe's own controls and crafting onto the pointer
+- [L-380](backlog/done/L-380.md) Place a recipe at every station
 - [L-381](backlog/done/L-381.md) Place a recipe while the pointer holds something
 - [L-377](backlog/done/L-377.md) Search syntax and a key for the search field
 - [L-376](backlog/done/L-376.md) Recipe view tabs per process, stations named once
