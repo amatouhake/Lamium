@@ -186,11 +186,16 @@ bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono
 void releaseKeyboard() {
     if (!keyboardOwned) return;
     keyboardOwned = false;
+    auto const started = std::chrono::steady_clock::now();
     if (auto client = ll::service::getClientInstance()) {
         auto& keyboard = client->getKeyboardManager();
         keyboard.disableKeyboard();
         keyboard.releaseKeyboardOwnership();
     }
+    // Giving the platform keyboard back is the game's; a slow one is told, a few times a session (L-378).
+    static int told = 0;
+    auto const us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - started).count();
+    if (us >= 4000 && told < 5) ++told, Runtime::instance().self().getLogger().warn("Recipes: giving the keyboard back took {} us", us);
 }
 // The list as narrowed now. What can be made changes with the inventory, so it is asked again twice a second.
 // `side`: the screen's crafting grid, 0 without one.
@@ -901,6 +906,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
         }
     }
+    cost.at("tooltip");
     return true;
 }
 }

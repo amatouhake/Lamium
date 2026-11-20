@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Where the item screens' slow frames go (L-378, 2026-11-21)
+
+Builds `d26d024e` and `f1ac25f6` (last DLL
+`1f26d47eb6d3d273d6439b47733b7d68f25a425d20d0ec27a9c25a9e404031ba`),
+1.26.60.05 Dev instance, the maintainer, with the slow-frame log. Heavy:
+the first inventory of a world, and the first close after typing with the
+highlight on. Logged: the window-top walk and the highlight at 0 us after
+the previous build; the first screen's slow frame (20 ms) mostly the recipe
+index built in one frame (11.5 ms) with drawing the windows and icons (3.8
+ms); another slow frame (16 ms) mostly after the icons (the tooltip, not
+yet measured then). The close after typing left no slow frame: it is not in
+the item list's drawing. The next build builds the index off the client
+thread, measures the tooltip, and logs a slow return of the platform
+keyboard.
+
 ## Search highlight still heavy (L-378, 2026-11-21)
 
 Build `bae1bb61` (DLL
