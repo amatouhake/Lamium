@@ -1049,6 +1049,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"recipes.kind.campfire", "營火烹飪"},
     {"recipes.kind.stonecutting", "切石"},
     {"recipes.kind.smithing", "鍛造"},
+    {"recipes.kind.brewing", "釀造"},
     {"recipes.kind.other", "其他"},
     {"recipes.hint", "點擊: 配方 | 右鍵: 用途"},
     {"recipes.filter.all", "全部"},

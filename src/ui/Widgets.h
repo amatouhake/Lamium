@@ -59,6 +59,8 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     // lighter than the game's black, which stood out against the window (maintainer 2026-11-21, L-379). The
     // window's frame and its tabs keep the black.
     controlEdge{.212f,.212f,.212f},
+    // The brewing stand's fuel gauge, drawn in the recipe view's brewing faces (L-361); near the game's, not sampled.
+    brewingFuel{.91f,.63f,.13f},
     // A face sunk into the game's window (a breakdown, a list of candidates), under a dark upper-left edge (L-370).
     windowSunk{.706f,.706f,.706f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the

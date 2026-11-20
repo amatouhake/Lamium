@@ -33,6 +33,7 @@ inline int benchSlots(Station station) {
     switch (station) {
     case Station::Furnace: case Station::BlastFurnace: case Station::Smoker: case Station::Stonecutter: return 1;
     case Station::Smithing: return 3;
+    case Station::BrewingStand: return 2; // the ingredient and the bottle before (L-361); the stand's own slots differ
     default: return 0;
     }
 }

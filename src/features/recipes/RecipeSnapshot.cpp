@@ -3,10 +3,14 @@
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemDescriptor.h"
 #include "mc/world/item/ItemInstance.h"
+#include "mc/world/item/ItemStack.h"
+#include "mc/world/item/alchemy/PotionBrewing.h"
+#include "mc/world/item/registry/ItemRegistryRef.h"
 #include "mc/world/item/crafting/Recipe.h"
 #include "mc/world/item/crafting/RecipeIngredient.h"
 #include "mc/world/item/crafting/Recipes.h"
 #include "mc/world/level/Level.h"
+#include <algorithm>
 #include <iterator>
 
 namespace lamium::recipes::game {
@@ -77,6 +81,58 @@ void Snapshot::reset() {
     size = -1;
     done = 0;
     broken = false;
+    ingredients.clear();
+    listed = false;
+    kind = aux = 0;
+    ingredient = 0;
+}
+// The three potion kinds a mix is put on, and the auxes asked of each: the game's potions end below 64.
+constexpr std::string_view potionKinds[]{"minecraft:potion", "minecraft:splash_potion", "minecraft:lingering_potion"};
+constexpr int mostAux = 64;
+bool Snapshot::brew(Level& level, int budget) {
+    auto registry = level.getItemRegistry();
+    if (registry.mWeakRegistry.expired()) return true;
+    if (!listed) {
+        // The ingredients by name, never as pointers kept for later: every item the game calls a potion
+        // ingredient, and gunpowder and dragon's breath, which turn a potion into a splash and a lingering one.
+        auto const& all = registry.getNameToItemMap();
+        guard(all.size(), 100000);
+        for (auto const& [name, weak] : all) {
+            auto const* item = weak.get();
+            if (!item) continue;
+            std::string const full = item->mFullName->getString();
+            guard(full.size(), 200);
+            if (full == "minecraft:gunpowder" || full == "minecraft:dragon_breath" || PotionBrewing::isPotionIngredient(ItemDescriptor(*item, 0)))
+                if (std::find(ingredients.begin(), ingredients.end(), full) == ingredients.end()) ingredients.push_back(full);
+        }
+        std::sort(ingredients.begin(), ingredients.end());
+        guard(ingredients.size(), 200);
+        listed = true;
+    }
+    while (kind < static_cast<int>(std::size(potionKinds))) {
+        auto const base = registry.lookupByName(HashedString(potionKinds[static_cast<size_t>(kind)]));
+        auto const* potion = base.get();
+        if (!potion) { ++kind; continue; }
+        ItemStack from;
+        from.reinit(*potion, 1, aux);
+        ItemInstance const source(from);
+        std::string const fromKey = itemKey(from.getTypeName(), aux);
+        for (; ingredient < ingredients.size(); ++ingredient) {
+            if (budget-- <= 0) return false;
+            auto const found = registry.lookupByName(HashedString(ingredients[ingredient]));
+            auto const* item = found.get();
+            if (!item) continue;
+            ItemInstance const to = PotionBrewing::mix(ItemDescriptor(*item, 0), source);
+            if (to.isNull() || (to.getTypeName() == from.getTypeName() && to.getAuxValue() == aux)) continue;
+            std::string const toKey = itemKey(to.getTypeName(), to.getAuxValue());
+            // The ingredient first: a brewing recipe counts it once a batch of three (RecipeIndex.h).
+            read.recipes.push_back({"brewing_stand", "brew:" + fromKey + "+" + ingredients[ingredient], 0, {{toKey, 1}},
+                                    {{itemKey(ingredients[ingredient], 0), false}, {fromKey, false}}});
+        }
+        ingredient = 0;
+        if (++aux >= mostAux) aux = 0, ++kind;
+    }
+    return true;
 }
 bool Snapshot::step(Level& level, int budget) noexcept {
     if (broken) return true;
@@ -102,7 +158,9 @@ bool Snapshot::step(Level& level, int budget) noexcept {
             }
             skip = 0;
         }
-        return true;
+        // The recipes are read; then the potion mixes, a twelfth of the budget a call (each asks the game to brew:
+        // a few thousand in all, so a few seconds of ticks).
+        return brew(level, std::max(1, budget / 12));
     } catch (...) {
         read = {};
         broken = true;

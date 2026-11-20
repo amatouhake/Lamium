@@ -10,7 +10,8 @@ std::string stationName(Station station) {
 }
 std::string kindName(Kind kind) {
     static constexpr char const* keys[]{"recipes.kind.crafting", "recipes.kind.smelting", "recipes.kind.blasting", "recipes.kind.smoking",
-                                        "recipes.kind.campfire", "recipes.kind.stonecutting", "recipes.kind.smithing", "recipes.kind.other"};
+                                        "recipes.kind.campfire", "recipes.kind.stonecutting", "recipes.kind.smithing", "recipes.kind.brewing",
+                                        "recipes.kind.other"};
     return ui::translated(keys[static_cast<size_t>(kind)]);
 }
 std::string groupName(Index const& index, int group) {

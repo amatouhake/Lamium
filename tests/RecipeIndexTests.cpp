@@ -419,6 +419,34 @@ void recipeIndexTests() {
               "made now: the members of a group count together, nothing is made first, and only crafting counts");
         check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
         {
+            // Brewing (L-361): a mix read from the game is a recipe of the stand, its ingredient first, counted once a
+            // batch of three bottles; the stand takes it with its ingredient and the bottle before.
+            Source brews;
+            brews.recipes.push_back({"brewing_stand", "brew:minecraft:potion+minecraft:nether_wart", 0, {{"minecraft:potion@4", 1}},
+                                     {{"minecraft:nether_wart", false}, {"minecraft:potion", false}}});
+            Index const brewed = build(brews);
+            Item const awkward = brewed.find("minecraft:potion", 4), water = brewed.find("minecraft:potion", 0), wart = brewed.find("minecraft:nether_wart", 0);
+            auto const& mix = brewed.recipes.front();
+            check(awkward >= 0 && water >= 0 && wart >= 0 && mix.station == Station::BrewingStand && mix.batch == 3 && mix.uses.front().id == wart
+                      && kindOf(mix.station) == Kind::Brewing,
+                  "a mix becomes a brewing recipe of the stand, its ingredient first, three bottles a batch");
+            Choice const brewChoice = choose(brewed);
+            auto const four = plan(brewed, brewChoice, {{{awkward, 4}}, {}, {}, {}});
+            auto has = [&](Item item, Count count) {
+                return std::find(four.raw.begin(), four.raw.end(), std::pair<Item, Count>{item, count}) != four.raw.end();
+            };
+            check(has(water, 4) && has(wart, 2), "four bottles brewed take four bottles before and two ingredients (L-361)");
+            auto const face = viewBlock(mix);
+            check(face.brewing && face.slots.size() == 3 && face.slots[0].cell == 0 && face.slots[1].cell == 1 && face.slots[2].cell == -1
+                      && face.productX == 72 && face.slots[0].x == 50 && face.placeY + viewButton == 54,
+                  "a brewing face is laid out as the stand: ingredient on top, the bottle before at the left, the one after at the right");
+            Bench const stand{Station::BrewingStand, 0};
+            check(benchMakes(stand, mix) && benchKind(stand) == Kind::Brewing
+                      && canMakeNow(brewed, {{wart, 1}, {water, 1}}, stand)[static_cast<size_t>(awkward)]
+                      && placePlan(brewed, mix, 0, {{3, wart, 5}, {4, water, 1, 1}}, {}, false).ready(),
+                  "the brewing stand takes a brew it can make from what is carried");
+        }
+        {
             // A station as the place a recipe goes (L-380).
             Bench const furnace{Station::Furnace, 0}, grid{Station::Crafting, 2};
             auto atFurnace = canMakeNow(index, {{index.find("oak_planks"), 2}, {index.find("sand"), 9}}, furnace);

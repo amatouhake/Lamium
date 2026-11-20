@@ -98,7 +98,9 @@ inline bool anyOrder(Recipe const& recipe) { return recipe.station == Station::C
 
 // A recipe's block: its slots and its buttons, as wide for every station, as high as the station's slots.
 inline constexpr float viewBlockWidth = 92, viewButton = 11;
-inline float viewBlockHeight(Station station) { return station == Station::Crafting ? 54.f : station == Station::Stonecutter ? 24.f : 48.f; }
+inline float viewBlockHeight(Station station) {
+    return station == Station::Crafting || station == Station::BrewingStand ? 54.f : station == Station::Stonecutter ? 24.f : 48.f;
+}
 // One recipe as its station's screen lays it out, from the block's corner.
 // `cell` is a position in Recipe::cells, -1 an empty slot. The arrow and the
 // product stand at the middle of the ingredients' height. `place` is the
@@ -108,6 +110,9 @@ struct ViewSlot { float x = 0, y = 0; int cell = -1; };
 struct ViewBlock {
     std::vector<ViewSlot> slots;
     float arrowX = 0, arrowY = 0, productX = 0, productY = 0, placeX = 0, placeY = 0, chooseX = 0, chooseY = 0, noteX = 0, noteY = 0;
+    // Brewing (L-361): laid out as the stand (no right arrow; its parts drawn), the fuel's slot showing blaze powder.
+    bool brewing = false;
+    float fuelX = 0, fuelY = 0;
 };
 inline ViewBlock viewBlock(Recipe const& recipe) {
     constexpr float cell = 18;
@@ -126,6 +131,14 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
     } else if (recipe.station == Station::Stonecutter) {
         out.slots.push_back({0, 3, count ? 0 : -1});
         out.arrowX = 22, out.arrowY = 10, out.productX = 34, out.productY = 3;
+    } else if (recipe.station == Station::BrewingStand) {
+        // As the stand (demos/brewing-view.html, F): the fuel at the top left, the ingredient at the top, the bottle
+        // before at the left, the middle bottle empty, the bottle after at the right.
+        out.brewing = true, out.fuelX = 0, out.fuelY = 2;
+        out.slots.push_back({50, 0, count > 0 ? 0 : -1});
+        out.slots.push_back({28, 22, count > 1 ? 1 : -1});
+        out.slots.push_back({50, 30, -1});
+        out.productX = 72, out.productY = 22;
     } else if (smelts(recipe.station)) {
         // The input over the fuel's slot, which stays empty: fuel is not part of a recipe.
         out.slots.push_back({0, 0, count ? 0 : -1});

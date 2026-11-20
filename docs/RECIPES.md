@@ -191,6 +191,19 @@ after using the first build. What is still open is in the L-item.
   nothing goes through the empty pointer instead. An ingredient that is missing disables the
   button and turns its slot's face red, as the game does. Any of several items:
   the member "How to make" names while it lasts, else the one most carried.
+- Brewing ([L-361](backlog/L-361.md)): the game's table holds no brewing,
+  so after the recipes the game is asked, a few dozen a tick, what each
+  potion ingredient (and gunpowder and dragon's breath) makes of each
+  potion, splash and lingering potion by aux; each answer is a recipe of
+  the brewing stand in its own tab. Its face follows the stand
+  ([demos/brewing-view.html](demos/brewing-view.html), F): blaze powder in
+  the fuel slot at the top left, the fuel's tube through a short coil
+  into the gauge, the ingredient at the top with three tubes to the
+  bottles, the bottle before at the left, the middle one empty, the one
+  after at the right. A plan counts the ingredient once a batch of three
+  bottles and never asks for blaze powder. At the stand a press lays the
+  ingredient and the bottle before into the left bottle, Shift into all
+  three; the fuel is untouched.
 - At a station ([L-380](backlog/done/L-380.md)): the furnace, blast furnace,
   smoker, stonecutter and smithing table take the recipes of their own
   tab (smelting, blasting, smoking, stonecutting, smithing), whose faces

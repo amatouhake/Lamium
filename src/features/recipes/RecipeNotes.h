@@ -33,7 +33,8 @@ inline std::string groupKey(Index const& index, int group) {
 // A recipe as notes name it: where it is made and its id. The game gives one id to the same smelting at
 // the furnace, the smoker and the campfires, so the id alone does not say which.
 inline std::string choiceKey(Recipe const& recipe) {
-    constexpr std::string_view stations[]{"crafting", "stonecutter", "furnace", "blast_furnace", "smoker", "campfire", "soul_campfire", "smithing", "other"};
+    constexpr std::string_view stations[]{"crafting", "stonecutter", "furnace", "blast_furnace", "smoker", "campfire", "soul_campfire", "smithing",
+                                          "brewing_stand", "other"};
     return std::string(stations[static_cast<size_t>(recipe.station)]) + "|" + recipe.id;
 }
 struct Notes {

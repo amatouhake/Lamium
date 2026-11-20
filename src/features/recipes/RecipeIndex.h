@@ -18,11 +18,11 @@
 namespace lamium::recipes {
 using Item = int; // position in Index::items
 using Count = std::uint64_t;
-enum class Station { Crafting, Stonecutter, Furnace, BlastFurnace, Smoker, Campfire, SoulCampfire, Smithing, Other };
+enum class Station { Crafting, Stonecutter, Furnace, BlastFurnace, Smoker, Campfire, SoulCampfire, Smithing, BrewingStand, Other };
 inline bool smelts(Station station) { return station >= Station::Furnace && station <= Station::SoulCampfire; }
 // Kinds of work (L-376): the recipe view's tabs, one per process as other viewers keep them. The game files one
 // cooking recipe under several stations' tags; it shows in the tab of each process that does it.
-enum class Kind { Crafting, Smelting, Blasting, Smoking, CampfireCooking, Stonecutting, Smithing, Other };
+enum class Kind { Crafting, Smelting, Blasting, Smoking, CampfireCooking, Stonecutting, Smithing, Brewing, Other };
 inline Kind kindOf(Station station) {
     switch (station) {
     case Station::Furnace: return Kind::Smelting;
@@ -32,6 +32,7 @@ inline Kind kindOf(Station station) {
     case Station::Crafting: return Kind::Crafting;
     case Station::Stonecutter: return Kind::Stonecutting;
     case Station::Smithing: return Kind::Smithing;
+    case Station::BrewingStand: return Kind::Brewing;
     default: return Kind::Other;
     }
 }
@@ -45,6 +46,7 @@ inline Station usualStation(Kind kind) {
     case Kind::CampfireCooking: return Station::Campfire;
     case Kind::Stonecutting: return Station::Stonecutter;
     case Kind::Smithing: return Station::Smithing;
+    case Kind::Brewing: return Station::BrewingStand;
     case Kind::Other: break;
     }
     return Station::Other;
@@ -53,7 +55,7 @@ inline Station stationOf(std::string_view tag) {
     static constexpr std::pair<std::string_view, Station> known[]{
         {"crafting_table", Station::Crafting}, {"stonecutter", Station::Stonecutter}, {"furnace", Station::Furnace},
         {"blast_furnace", Station::BlastFurnace}, {"smoker", Station::Smoker}, {"campfire", Station::Campfire},
-        {"soul_campfire", Station::SoulCampfire}, {"smithing_table", Station::Smithing}};
+        {"soul_campfire", Station::SoulCampfire}, {"smithing_table", Station::Smithing}, {"brewing_stand", Station::BrewingStand}};
     for (auto [name, station] : known) if (tag == name) return station;
     return Station::Other;
 }
@@ -69,6 +71,7 @@ inline std::string_view stationItem(Station station) {
     case Station::Campfire: return "minecraft:campfire";
     case Station::SoulCampfire: return "minecraft:soul_campfire";
     case Station::Smithing: return "minecraft:smithing_table";
+    case Station::BrewingStand: return "minecraft:brewing_stand";
     case Station::Other: break;
     }
     return {};
@@ -115,6 +118,9 @@ struct Recipe {
     // Uses its own product (copying a smithing template, dyeing a shulker box): shown, never the
     // recipe an item is made by, so a plan cannot go round it.
     bool own = false;
+    // Brewing (L-361): its first use, the ingredient, serves up to `batch` crafts (one brews three bottles); 0 for
+    // every other recipe.
+    Count batch = 0;
 };
 // Any one member will do: an item tag, or (without a name) the inputs that smelt to the same item.
 struct Group { std::string name; std::vector<Item> members; };
@@ -247,6 +253,7 @@ inline Index build(Source const& given) {
             continue;
         Recipe recipe{from.id, stationOf(from.station), {stationOf(from.station)}, from.priority, item(from.makes.front().first),
                       from.makes.front().second, {}, {}};
+        if (recipe.station == Station::BrewingStand) recipe.batch = 3; // one ingredient brews three bottles (L-361)
         for (size_t i = 1; i < from.makes.size(); ++i)
             if (!from.makes[i].first.empty() && from.makes[i].second) recipe.extra.emplace_back(item(from.makes[i].first), from.makes[i].second);
         bool own = false;
@@ -526,7 +533,7 @@ inline Planned planned(Index const& index, Choice const& choice, Request const& 
         int const chosen = choice.recipe[item];
         if (chosen < 0 || request.stops.contains(item)) continue;
         auto const& recipe = index.recipes[chosen];
-        raw::Recipe to{recipe.count, {}};
+        raw::Recipe to{recipe.count, {}, recipe.batch};
         for (auto const& part : recipe.uses) {
             Item id = part.id;
             if (part.group) {

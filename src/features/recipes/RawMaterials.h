@@ -17,6 +17,7 @@ using Count = std::uint64_t;
 struct Recipe {
     Count makes = 1; // Items per craft.
     std::vector<std::pair<Item, Count>> uses;
+    Count batch = 0; // brewing: the first use serves up to this many crafts (one ingredient, three bottles); 0: none
 };
 using Recipes = std::map<Item, Recipe>;
 struct Step {
@@ -110,7 +111,11 @@ inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes 
         if (!wantedCount) continue;
         Count const crafts = (wantedCount + recipe->makes - 1) / recipe->makes;
         result.steps.push_back({next, crafts, crafts * recipe->makes - wantedCount});
-        for (auto const& [part, count] : recipe->uses) if (count) need[part] += crafts * count;
+        for (size_t i = 0; i < recipe->uses.size(); ++i) {
+            auto const& [part, count] = recipe->uses[i];
+            if (!count) continue;
+            need[part] += i == 0 && recipe->batch > 1 ? (crafts + recipe->batch - 1) / recipe->batch * count : crafts * count;
+        }
     }
     for (auto const& [item, count] : need) {
         Count const have = std::min(count, stock[item]);

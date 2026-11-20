@@ -1049,6 +1049,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.kind.campfire", "营火烹饪"},
     {"recipes.kind.stonecutting", "切石"},
     {"recipes.kind.smithing", "锻造"},
+    {"recipes.kind.brewing", "酿造"},
     {"recipes.kind.other", "其他"},
     {"recipes.hint", "单击: 配方 | 右键: 用途"},
     {"recipes.filter.all", "全部"},

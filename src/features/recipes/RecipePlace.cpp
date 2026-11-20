@@ -122,11 +122,13 @@ bool lay(CraftingScreenController& controller, Index const& index, Recipe const&
 // A station's slots, one per recipe cell in order (L-380; the names from the game's UI files, 2026-11-21).
 std::vector<std::string> const& stationSlots(Station station) {
     static std::vector<std::string> const furnace{"furnace_ingredient_items"}, stonecutter{"stonecutter_input_items"},
-        smithing{"smithing_table_template_items", "smithing_table_input_items", "smithing_table_material_items"}, none;
+        smithing{"smithing_table_template_items", "smithing_table_input_items", "smithing_table_material_items"},
+        brewing{"brewing_input_item", "brewing_result_items"}, none; // the stand: the ingredient, then its three bottles
     switch (station) {
     case Station::Furnace: case Station::BlastFurnace: case Station::Smoker: return furnace;
     case Station::Stonecutter: return stonecutter;
     case Station::Smithing: return smithing;
+    case Station::BrewingStand: return brewing;
     default: return none;
     }
 }
@@ -144,6 +146,7 @@ ContainerScreenController* station(ScreenView& screen, Station& out) {
     case Type::Smoker: out = Station::Smoker; break;
     case Type::Stonecutter: out = Station::Stonecutter; break;
     case Type::SmithingTable: out = Station::Smithing; break;
+    case Type::BrewingStand: out = Station::BrewingStand; break;
     default: return nullptr;
     }
     for (auto const& slot : stationSlots(out))
@@ -196,6 +199,25 @@ bool layAtStation(ContainerScreenController& controller, Station at, Index const
             || slotCount(manager, slot) != before + amount)
             return any;
         any = true;
+    }
+    // The brewing stand with Shift (L-361): the bottle before into its other two bottles too, one ingredient brewing
+    // all three. A bottle holding another potion goes back first, as any slot.
+    if (at == Station::BrewingStand && many) {
+        Item const bottle = itemAt(carried, plan.moves.back().slot);
+        for (int i = 1; i < 3 && i < manager.getContainerSize(slots[1]); ++i) {
+            auto const& held = manager.getItemStack(slots[1], i);
+            if (!held.isNull() && index.find(held.getTypeName(), held.getAuxValue()) == bottle) continue;
+            if (!held.isNull()) {
+                controller._handleAutoPlace(INT_MAX, slots[1], i);
+                if (!manager.getItemStack(slots[1], i).isNull()) break;
+            }
+            int from = -1;
+            for (auto const& source : carriedOf(manager, index)) if (source.item == bottle && source.count > 0) { from = source.slot; break; }
+            if (from < 0) break;
+            bool const top = from < 9;
+            if (!manager.handlePlaceAmount(SlotData(top ? hotbar : inventory, top ? from : from - 9), 1, SlotData(slots[1], i))) break;
+            any = true;
+        }
     }
     return any;
 }

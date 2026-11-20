@@ -1058,6 +1058,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.kind.campfire", "Campfire Cooking", "焚き火調理"},
     {"recipes.kind.stonecutting", "Stonecutting", "石切"},
     {"recipes.kind.smithing", "Smithing", "鍛冶"},
+    {"recipes.kind.brewing", "Brewing", "醸造"},
     {"recipes.kind.other", "Other", "その他"},
     {"recipes.hint", "Click: recipes | Right click: uses", "クリック: レシピ | 右クリック: 使い道"},
     {"recipes.filter.all", "All", "すべて"},

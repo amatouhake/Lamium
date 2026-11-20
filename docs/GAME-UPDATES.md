@@ -199,7 +199,11 @@ nothing; sizes too large to be real stop the walk. Potion mixes are not
 read as such (the SDK gives `PotionBrewing::Mix` no layout): for L-361 it
 asks `PotionBrewing::isPotionIngredient` of every registered item and
 `PotionBrewing::mix` for each on every potion kind by aux, and writes
-what changes to `logs/brewing-*.txt`. Its result is in
+what changes to `logs/brewing-*.txt`. The shipped build does the same in
+`features/recipes/RecipeSnapshot.cpp` (L-361), a few dozen asks a tick
+after the recipe table, with gunpowder and dragon's breath added, behind
+the recipe table's capability; placing at the brewing stand moves into
+`brewing_input_item` and `brewing_result_items` (`ContainerType::BrewingStand`). Its result is in
 VALIDATION-LOG (2026-11-17). The same build fills the
 recipe index (`features/recipes/RecipeSnapshot.cpp`, L-359) from that table
 and logs sample plans; the shipped build does not call it yet.

@@ -58,6 +58,36 @@ void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb colo
 }
 }
 namespace {
+// The brewing stand's parts on a brewing face (L-361, demos/brewing-view.html F), from the block's corner: the fuel's
+// tube going right, down through a short coil and right into the gauge with bubbles over it; three tubes from the
+// ingredient, one to each bottle; the arrow at the ingredient's right; the empty middle bottle's outline.
+void brewingParts(MinecraftUIRenderContext& context, float x, float y) {
+    using namespace lamium::ui;
+    namespace v = palette::vanilla;
+    auto tube = [&](float tx, float ty, float w, float h) {
+        fill(context, x + tx, y + ty, w, h, v::windowInk);
+        if (w > h) fill(context, x + tx, y + ty + h, w, 1, v::windowLight); else fill(context, x + tx + w, y + ty, 1, h, v::windowLight);
+    };
+    tube(18, 9, 4, 1);
+    for (int i = 0; i < 2; ++i) {
+        fill(context, x + 21, y + 10.6f + 2.2f * static_cast<float>(i), 7, 1.2f, v::slotDark);
+        fill(context, x + 21, y + 11.8f + 2.2f * static_cast<float>(i), 7, .6f, v::windowLight);
+    }
+    tube(28, 15, 3, 1);
+    fill(context, x + 31, y + 14, 15, 3, v::windowInk);
+    fill(context, x + 32, y + 15, 13, 1, v::brewingFuel);
+    for (auto [bx, by] : {std::pair{36.f, 9.f}, {38.f, 5.f}, {35.f, 2.f}, {40.f, 10.f}}) fill(context, x + bx, y + by, 1.5f, 1.5f, v::windowLight);
+    tube(54, 18, 1, 8), tube(46, 26, 8, 1);
+    tube(59, 18, 1, 12);
+    tube(64, 18, 1, 8), tube(65, 26, 7, 1);
+    // The arrow down at the ingredient's right.
+    fill(context, x + 73, y + 2, 1, 10, v::windowInk);
+    fill(context, x + 72, y + 12, 3, 1, v::windowInk);
+    fill(context, x + 73, y + 13, 1, 1, v::windowInk);
+    // The empty middle bottle: a neck and a body in outline.
+    frame(context, x + 57, y + 33, 4, 3, v::windowFaint);
+    frame(context, x + 55, y + 36, 8, 9, v::windowFaint);
+}
 // The place button's line for Ctrl (L-379): what it does, or why it would not now.
 std::string craftLine(CraftOnto check) {
     using lamium::ui::translated;
@@ -273,7 +303,11 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             place(bx + part.x, by + part.y, item, 1,
                   part.cell >= 0 && std::find(laid.missing.begin(), laid.missing.end(), part.cell) != laid.missing.end(), group);
         }
-        changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
+        if (block.brewing) {
+            brewingParts(context, bx, by);
+            // Blaze powder in the fuel's slot: the stand takes no other fuel (it is not part of the recipe).
+            place(bx + block.fuelX, by + block.fuelY, index.find("minecraft:blaze_powder", 0), 1);
+        } else changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
         // "Place": a small square button with a picture at the block's bottom right, named under the pointer;
         // faint, with the reason, when something is missing.
