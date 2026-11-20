@@ -907,8 +907,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 glm::vec2 const p = *panel->mCachedPosition, s = *panel->mSize;
                 std::string const text = translated("recipes.stonecutter.choose");
                 float const w = std::ceil(vf::tooltipWidth(textWidth(context, text))), h = vf::tooltipHeight(1);
-                // Standing on the panel's top edge, over the list, on whole units.
-                float const x = std::round(p.x + (s.x - w) / 2), y = std::round(std::max(2.f, p.y - h / 2));
+                // Above the panel, clear of it: the list starts at its top edge (seen 2026-11-21). On whole units.
+                float const x = std::round(p.x + (s.x - w) / 2), y = std::round(std::max(2.f, p.y - h - 2));
                 context.flushText(0, std::nullopt);
                 gameTooltipBox(context, x, y, w, h);
                 label(context, x + vf::tooltipTextLeft, y + vf::tooltipTextTop - 1, w - 2 * vf::tooltipTextLeft, text);

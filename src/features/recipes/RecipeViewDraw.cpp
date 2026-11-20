@@ -17,6 +17,7 @@ struct Target {
     std::string item;
     bool uses = false, choose = false;
     int tab = 0, page = 0;
+    bool tabTaken = false; // the first tab was picked for the screen's station (L-380)
     // Its recipes by station, found once: what uses an item is a walk over the whole table.
     std::vector<ViewTab> tabs;
     std::shared_ptr<service::Table const> from;
@@ -39,7 +40,7 @@ bool isOpen() { return !trail.empty(); }
 void open(std::string item, bool uses, bool choose) {
     if (!trail.empty() && trail.back().item == item && trail.back().uses == uses) { trail.back().choose = choose; return; }
     if (trail.size() >= 64) trail.erase(trail.begin());
-    trail.push_back({std::move(item), uses, choose, 0, 0, {}, {}});
+    trail.push_back({std::move(item), uses, choose, 0, 0, false, {}, {}});
 }
 void close() {
     trail.clear();
@@ -155,6 +156,14 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     if (at.from != table) at.tabs = viewTabs(index, *choice, id, at.uses), at.from = table;
     auto const& tabs = at.tabs;
     if (tabs.empty()) { line(at.uses ? "recipes.none.uses" : "recipes.none.makes"); return; }
+    // Shown at a station, the item opens on that station's tab where it has one (maintainer 2026-11-21): beef at
+    // the smoker on smoking. Once, so a tab chosen afterwards stays.
+    if (!at.tabTaken) {
+        at.tabTaken = true;
+        if (input.placer)
+            for (size_t i = 0; i < tabs.size(); ++i)
+                if (input.placer->places(tabs[i].kind)) { at.tab = static_cast<int>(i); break; }
+    }
     at.tab = std::clamp(at.tab, 0, static_cast<int>(tabs.size()) - 1);
     auto const& tab = tabs[static_cast<size_t>(at.tab)];
     Station const station = tab.station;

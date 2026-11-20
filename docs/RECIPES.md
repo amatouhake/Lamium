@@ -198,9 +198,10 @@ after using the first build. What is still open is in the L-item.
   item is emptied into the inventory first, one holding the same item
   gets more; fuel is never touched. The stonecutter's result is the
   player's to pick (Lamium cannot choose it): after Lamium lays its input
-  in, a tip in the game's look over the result list says "Choose a
-  result" until the list is pressed, the input changes or the screen
-  goes. "Can be made" there lists what that station makes
+  in, a tip in the game's look above the result list's panel says
+  "Choose a result" until the list is pressed, the input changes or the
+  screen goes. Shown at a station, an item's recipes open on that
+  station's tab where it has one (beef at the smoker on smoking). "Can be made" there lists what that station makes
   from what is carried, and a press places it. Brewing waits on
   [L-361](backlog/L-361.md).
 - An ingredient any one of several items satisfies (any planks) shows the
