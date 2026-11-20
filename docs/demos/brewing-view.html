@@ -49,17 +49,19 @@ th{color:var(--ink-2);font-weight:500}
 <body>
 <div class="wrap">
   <header>
-    <h1>醸造をレシピ画面に（L-361）</h1>
+    <h1>醸造をレシピ画面に 2（L-361）</h1>
     <p class="lede">醸造台の調合を、レシピ画面の「醸造」タブに出す案。面の大きさと余白は今のレシピ画面と同じ（幅 92、余白 5）。下の切り替えで、面の形・燃料の出し方・計画での数え方を見比べる。例は俊敏のポーション（奇妙なポーション＋砂糖）と、奇妙なポーション（水入り瓶＋ネザーウォート）。</p>
   </header>
   <div class="controls">
     <div class="grp"><span class="lbl">面の形</span>
-      <button class="chip on" data-k="shape" data-v="one">A. 瓶 1 本（材料の下に瓶、矢印、完成品）</button>
+      <button class="chip on" data-k="shape" data-v="stand">D. 醸造台どおり（左に完成前、真ん中は空、右に完成後）</button>
+      <button class="chip" data-k="shape" data-v="one">A. 瓶 1 本（材料の下に瓶、矢印、完成品）</button>
       <button class="chip" data-k="shape" data-v="three">B. 瓶 3 本（醸造台のように 3 本並べる）</button>
       <button class="chip" data-k="shape" data-v="count">C. A に「×3」（1 回で 3 本まで）</button>
     </div>
     <div class="grp"><span class="lbl">燃料</span>
-      <button class="chip on" data-k="fuel" data-v="empty">空の燃料欄（かまどと同じ）</button>
+      <button class="chip on" data-k="fuel" data-v="solid">ブレイズパウダー</button>
+      <button class="chip" data-k="fuel" data-v="empty">空の燃料欄（かまどと同じ）</button>
       <button class="chip" data-k="fuel" data-v="faded">ブレイズパウダーを薄く</button>
       <button class="chip" data-k="fuel" data-v="none">出さない</button>
     </div>
@@ -87,16 +89,15 @@ th{color:var(--ink-2);font-weight:500}
     <div class="card">
       <h2>決めたいこと</h2>
       <ul>
-        <li><span class="q">1.</span> 面の形：A・B・C。</li>
-        <li><span class="q">2.</span> 燃料：空の欄・薄く・出さない。</li>
-        <li><span class="q">3.</span> 計画での数え方：まとめて（材料 1 つで 3 本まで）か、1 本ずつか。</li>
+        <li>決まったこと（2026-11-21）：面は醸造台どおり（D）、燃料はブレイズパウダーを描く（醸造台の燃料はそれだけ）、数え方はまとめて。</li>
+        <li><span class="q">1.</span> D の並び（燃料・材料・矢印・3 つの瓶の位置）がこれで醸造台と結び付くか。</li>
       </ul>
     </div>
   </div>
 </div>
 <script>
 let U = 3;
-const opt = {shape:'one', fuel:'empty', plan:'batch'};
+const opt = {shape:'stand', fuel:'solid', plan:'batch'};
 const px = v => v * U + 'px';
 const view = document.getElementById('view');
 function fit(){ U = Math.max(1.5, Math.min(3.2, (document.querySelector('.wrap').clientWidth - 20) / 245)); document.documentElement.style.setProperty('--u', U + 'px'); }
@@ -107,23 +108,36 @@ function slot(x, y, item, count, dim){
   if (item) icon(x + 1, y + 1, item[0], item[1], item[2]);
   if (count) { const c = el('count', x + 9, y + 9, 9, null, count); c.style.fontSize = px(7); c.style.textAlign = 'right'; }
 }
-const ITEMS = {sugar:['#e8e8f0','砂'], wart:['#8a2a2a','ウ'], awkward:['#5a6ad0','奇'], water:['#3a5ad8','水'], swift:['#7ad0f0','俊'], blaze:['#e8a020','ブ',true]};
+const ITEMS = {sugar:['#e8e8f0','砂'], wart:['#8a2a2a','ウ'], awkward:['#5a6ad0','奇'], water:['#3a5ad8','水'], swift:['#7ad0f0','俊'], blaze:['#e8a020','ブ',true], blazeSolid:['#e8a020','ブ']};
 const placeIcon = `<span style="position:absolute;left:${5*U}px;top:${2*U}px;width:${U}px;height:${4*U}px;background:#3f3f3f"></span><span style="position:absolute;left:${3*U}px;top:${5*U}px;width:${5*U}px;height:${U}px;background:#3f3f3f;clip-path:polygon(0 0,100% 0,50% 100%)"></span><span style="position:absolute;left:${2*U}px;top:${8*U}px;width:${7*U}px;height:${U}px;background:#3f3f3f"></span>`;
 function face(bx, by, ingredient, from, to){
-  const B = 92, H = opt.shape === 'three' ? 54 : 48, pad = 5; // B: as tall as a crafting face, so place clears the result
+  const B = 92, H = opt.shape === 'three' || opt.shape === 'stand' ? 54 : 48, pad = 5; // B: as tall as a crafting face, so place clears the result
   el('face', bx - pad, by - pad, B + 2 * pad, H + 2 * pad);
   const fuelX = bx, fuelY = by + 30;
+  const fuelItem = opt.fuel === 'faded' ? ITEMS.blaze : opt.fuel === 'solid' ? ITEMS.blazeSolid : null;
+  if (opt.shape === 'stand') {
+    // As the brewing stand's screen: the fuel at the top left, the ingredient at the top in the middle with the
+    // progress arrow right of it, and the three bottles below, the left one before, the middle empty, the right after.
+    if (opt.fuel !== 'none') slot(bx, by + 2, fuelItem);
+    slot(bx + 50, by, ingredient);
+    const a = el('', bx + 72, by + 2, 3, 14, ''); a.style.background = '#3f3f3f'; a.style.clipPath = 'polygon(35% 0,65% 0,65% 70%,100% 70%,50% 100%,0 70%,35% 70%)';
+    slot(bx + 28, by + 22, from);
+    slot(bx + 50, by + 30, null, null, true);
+    slot(bx + 72, by + 22, to);
+    el('btn', bx + B - 11, by + H - 11, 11, 11, placeIcon);
+    return;
+  }
   if (opt.shape === 'three') {
     // ingredient over three bottles, the result with x3
     // the stand's own order: the fuel at the top left, the ingredient over the middle bottle
     slot(bx + 18, by, ingredient);
-    if (opt.fuel !== 'none') slot(bx, by, opt.fuel === 'faded' ? ITEMS.blaze : null);
+    if (opt.fuel !== 'none') slot(bx, by, fuelItem);
     for (let i = 0; i < 3; i++) slot(bx + i * 18, by + 22, from);
     el('txt', bx + 57, by + 24, null, null, '➜').style.fontSize = px(10);
     slot(bx + 70, by + 22, to, '3');
   } else {
     slot(bx, by, ingredient);
-    if (opt.fuel !== 'none') slot(fuelX, fuelY, opt.fuel === 'faded' ? ITEMS.blaze : null);
+    if (opt.fuel !== 'none') slot(fuelX, fuelY, fuelItem);
     slot(bx + 22, by + 15, from, opt.shape === 'count' ? '3' : null);
     el('txt', bx + 44, by + 17, null, null, '➜').style.fontSize = px(10);
     slot(bx + 56, by + 15, to, opt.shape === 'count' ? '3' : null);
