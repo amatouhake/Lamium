@@ -442,12 +442,14 @@ std::string slotItem(ContainerScreenController& screen, std::string const& colle
     } catch (...) { return "?"; }
 }
 std::string lastStoneHover;
+int stonesHover = -1; // the cell of the result list (`stones`) hovered last
 LL_TYPE_INSTANCE_HOOK(StoneHovered, ll::memory::HookPriority::Normal, ContainerScreenController,
     &ContainerScreenController::$_onContainerSlotHovered, ::ui::ViewRequest, std::string const& collection, int index) {
     if (stonecutter(*this)) {
         observedAt = nowMs();
         std::string cell = std::format("{}:{}", collection, index);
         if (cell != lastStoneHover) log(stoneBudget, 600, "stone hovered {} item={}", cell, slotItem(*this, collection, index)), lastStoneHover = std::move(cell);
+        if (collection == "stones") stonesHover = index;
     }
     return origin(collection, index);
 }
@@ -473,7 +475,21 @@ void seeStonecutter(ContainerScreenController& screen) {
                 state += std::format("{}:{}x{} ", i, stack.getTypeName(), static_cast<int>(stack.mCount));
         state += "]";
     }
-    if (state != lastStoneState) log(stoneBudget, 600, "stone state{}", state), lastStoneState = std::move(state);
+    if (state != lastStoneState) {
+        log(stoneBudget, 600, "stone state{}", state);
+        lastStoneState = std::move(state);
+    }
+    // The experiment (not read-only): F6 presses the `stones` cell hovered last through the screen's virtual "slot
+    // pressed", with the pointer anywhere; F9 the cell after it. Does the choice move to it, without taking the result?
+    static bool f6 = false, f9 = false;
+    bool const press = edge(VK_F6, f6), next = edge(VK_F9, f9);
+    if ((press || next) && stonesHover >= 0) {
+        int const cell = stonesHover + (next ? 1 : 0);
+        log(stoneBudget, 600, "stone experiment: slot-pressed stones:{} (pointer over {})", cell, lastStoneHover);
+        auto const result = screen._onContainerSlotPressed("stones", cell);
+        log(stoneBudget, 600, "stone experiment return={} cursor={} result-slot={}", static_cast<int>(result), slotItem(screen, "cursor_items", 0),
+            slotItem(screen, "stonecutter_result_items", 0));
+    }
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {
