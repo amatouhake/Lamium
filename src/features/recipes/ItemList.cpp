@@ -635,12 +635,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
             pressed = false, view::close(), planView::close();
             return;
         }
-        // Where nothing can be crafted (no grid, no crafting recipe that fits it) the press shows the recipes.
+        // Where nothing can be crafted (no grid, nothing that fits it, something missing) the press shows the recipes.
         if (leftPress && ctrlHeld.load())
             if (auto placer = gridPlacer(screenView, *player))
-                if (auto const ask = craftAsk(*placer, itemOf(*placer->table, item)); ask.recipe >= 0) {
+                if (auto const ask = craftAsk(*placer, itemOf(*placer->table, item)); ask.recipe >= 0 && ask.check != CraftOnto::Missing) {
                     pressed = false;
-                    if (ask.check == CraftOnto::Ready) placer->craft(ask.recipe);
+                    placer->craft(ask.recipe);
                     return;
                 }
         view::open(item, !leftPress);

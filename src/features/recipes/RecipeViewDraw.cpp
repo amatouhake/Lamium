@@ -62,9 +62,7 @@ std::string craftLine(CraftOnto check) {
     using lamium::ui::translated;
     switch (check) {
     case CraftOnto::Ready: case CraftOnto::Missing: return translated("recipes.craft");
-    case CraftOnto::PointerOther: return translated("recipes.craft.pointer");
-    case CraftOnto::PointerFull: return translated("recipes.craft.full");
-    case CraftOnto::NoSlot: return translated("recipes.craft.room");
+    case CraftOnto::PlaceOnly: return translated("recipes.craft.placeOnly");
     }
     return {};
 }

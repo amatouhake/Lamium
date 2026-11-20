@@ -78,23 +78,39 @@ std::vector<PlaceSource> carriedOf(ContainerManagerController& manager, Index co
     add(inventory, 27, 9);
     return out;
 }
-// Moves from the inventory into the grid, each taken onto the pointer and put down. False where the
-// game did not do as planned; what the pointer holds then is left to the player.
+int cellCount(ContainerManagerController& manager, int cell) {
+    auto const& stack = manager.getItemStack(grid, cell);
+    return stack.isNull() ? 0 : static_cast<int>(stack.mCount);
+}
+// Moves from the inventory into the grid. Each goes straight from its slot to its cell, as Sort and Item transfer
+// move stacks (the manager's place-amount), so what the pointer holds stays there (L-381). Where a move shows
+// nothing, it goes as a hand would: taken onto the pointer and put down, only while the pointer is empty. False
+// where the game did not do as planned; what the pointer holds then is left to the player. The first of each
+// way a session is logged.
 bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& moves) {
     auto& manager = *controller.mContainerManagerController;
+    static bool toldDirect = false, toldHand = false;
     for (auto const& move : moves) {
         bool const top = move.slot < 9;
-        controller._handleTakeAmount(move.amount, top ? hotbar : inventory, top ? move.slot : move.slot - 9);
+        std::string const& from = top ? hotbar : inventory;
+        int const slot = top ? move.slot : move.slot - 9, before = cellCount(manager, move.cell);
+        if (manager.handlePlaceAmount(SlotData(from, slot), move.amount, SlotData(grid, move.cell)) && cellCount(manager, move.cell) == before + move.amount) {
+            if (!toldDirect) toldDirect = true, Runtime::instance().self().getLogger().info("Recipes: a cell laid in straight from its slot");
+            continue;
+        }
+        if (cellCount(manager, move.cell) != before || held(manager)) return false;
+        controller._handleTakeAmount(move.amount, from, slot);
         if (held(manager) != move.amount) return false;
         controller._handlePlaceAll(grid, move.cell);
         if (held(manager)) return false;
+        if (!toldHand) toldHand = true, Runtime::instance().self().getLogger().info("Recipes: a cell laid in through the pointer");
     }
     return true;
 }
 // The recipe laid into an empty grid.
 bool lay(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many) {
     auto& manager = *controller.mContainerManagerController;
-    if (held(manager) || !gridEmpty(manager)) return false;
+    if (!gridEmpty(manager)) return false;
     auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, many);
     if (!plan.ready()) return false;
     return apply(controller, plan.moves);
@@ -130,7 +146,6 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
         auto* controller = crafting(screen);
         if (!controller || !table || recipe < 0 || recipe >= static_cast<int>(table->index.recipes.size())) return false;
         auto& manager = *controller->mContainerManagerController;
-        if (held(manager)) return false;
         if (!gridEmpty(manager)) {
             // Already laid as asked: taking it out and laying it in again only shows items flying (L-367).
             // With `many`, only when every cell holds as many as dividing would lay, the grid counted in.
@@ -626,28 +641,27 @@ void stop() {
 }
 }
 // Crafting one round onto the pointer (L-379): the grid emptied, the round laid in, the output taken onto the
-// pointer. A pointer holding the product is set down in a free slot first and picked up with the new round after.
-// The take off the output by the slot call was not seen to craft before this; where nothing shows on the pointer
-// a moment later, the output is Shift-taken (as Mass Craft does, seen to craft) and the round picked up from
-// the inventory. One log line says which way it went.
+// pointer (the slot call's take off the output crafts, seen 2026-11-21), onto what it holds of the product. Where
+// it holds another item or no room is left, the round is laid in only, and nothing it holds moves (L-381). Where
+// nothing shows a moment after the take: with an empty pointer the output is Shift-taken (as Mass Craft does) and
+// the round picked up from the inventory; else the round stays laid in. One log line says which way it went.
 namespace place {
 namespace {
 using Clock = std::chrono::steady_clock;
 constexpr auto ontoWait = std::chrono::milliseconds(200), ontoGiveUp = std::chrono::milliseconds(1500);
+// A run not ticked for this long belongs to a screen that was closed: it is dropped without a game call.
+constexpr auto ontoStale = std::chrono::milliseconds(500);
 struct Onto {
     std::shared_ptr<service::Table const> table;
     int recipe = -1;
     std::map<int, Item> picks;
     std::string screen;
     enum class Step { Clear, Laid, Take, Fetch } step = Step::Clear;
-    std::string stash; // where the pointer's stack was set down, if it held one
-    int stashIndex = -1;
+    int heldBefore = 0; // what the pointer held of the product before the take
     int tries = 0;
     std::vector<int> before; // Fetch: the product per slot (0-8 the hotbar, 9-35 the inventory) before the Shift take
     Clock::time_point began, since, ticked;
 } onto;
-// A run not ticked for this long belongs to a screen that was closed: it is dropped without a game call.
-constexpr auto ontoStale = std::chrono::milliseconds(500);
 Item heldItem(ContainerManagerController& manager, Index const& index) {
     auto const& stack = manager.getItemStack(pointer, 0);
     return stack.isNull() || stack.mCount <= 0 ? -1 : index.find(stack.getTypeName(), stack.getAuxValue());
@@ -655,15 +669,6 @@ Item heldItem(ContainerManagerController& manager, Index const& index) {
 int heldMost(ContainerManagerController& manager) {
     auto const& stack = manager.getItemStack(pointer, 0);
     return stack.isNull() ? 64 : std::max(1, static_cast<int>(stack.getMaxStackSize()));
-}
-// A free slot, the hotbar first; the collection is empty when there is none.
-std::pair<std::string, int> freeSlot(ContainerManagerController& manager) {
-    for (auto const& [collection, size] : {std::pair{hotbar, 9}, std::pair{inventory, 27}}) {
-        if (!manager.hasContainerController(collection)) continue;
-        for (int i = 0; i < size && i < manager.getContainerSize(collection); ++i)
-            if (manager.getItemStack(collection, i).isNull()) return {collection, i};
-    }
-    return {};
 }
 std::vector<int> productCounts(ContainerManagerController& manager, Index const& index, Item product) {
     std::vector<int> out(36, 0);
@@ -677,20 +682,13 @@ std::vector<int> productCounts(ContainerManagerController& manager, Index const&
 void logOnto(std::string const& text) {
     try { Runtime::instance().self().getLogger().info("Recipes: {}", text); } catch (...) {}
 }
-// Ends the run: the stack set down is picked up again with what the pointer holds of the product, and what a
-// recipe left in the grid goes back to the inventory.
-void finishOnto(CraftingScreenController& controller, std::string const& how) {
+// Ends the run; `tidy`: what a recipe left in the grid goes back to the inventory (not when the round is left
+// laid in on purpose).
+void finishOnto(CraftingScreenController& controller, std::string const& how, bool tidy = true) {
     auto& manager = *controller.mContainerManagerController;
-    auto const& index = onto.table->index;
-    Item const product = index.recipes[static_cast<size_t>(onto.recipe)].makes;
-    if (onto.stashIndex >= 0) {
-        if (held(manager) && heldItem(manager, index) == product) controller._handlePlaceAll(onto.stash, onto.stashIndex);
-        auto const& kept = manager.getItemStack(onto.stash, onto.stashIndex);
-        if (!held(manager) && !kept.isNull() && kept.mCount > 0) controller._handleTakeAmount(static_cast<int>(kept.mCount), onto.stash, onto.stashIndex);
-    }
-    if (!gridEmpty(manager)) controller._evacuateCraftingGrid();
+    if (tidy && !gridEmpty(manager)) controller._evacuateCraftingGrid();
     auto const ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - onto.began).count();
-    logOnto(std::format("crafting {} onto the pointer {} ({} ms)", index.recipes[static_cast<size_t>(onto.recipe)].id, how, ms));
+    logOnto(std::format("crafting {} onto the pointer {} ({} ms)", onto.table->index.recipes[static_cast<size_t>(onto.recipe)].id, how, ms));
     onto = {};
 }
 void advanceOnto(CraftingScreenController& controller) {
@@ -698,9 +696,9 @@ void advanceOnto(CraftingScreenController& controller) {
     auto const& index = onto.table->index;
     auto const& recipe = index.recipes[static_cast<size_t>(onto.recipe)];
     auto const now = Clock::now();
-    auto shows = [&] { return held(manager) && heldItem(manager, index) == recipe.makes; };
-    // Crafted: the product on the pointer and the round gone from the grid (one round was laid in).
-    auto crafted = [&] { return shows() && !massCraft::makesProduct(manager, index, recipe.makes); };
+    auto holdsMore = [&] { return heldItem(manager, index) == recipe.makes && held(manager) > onto.heldBefore; };
+    // Crafted: more of the product on the pointer and the round gone from the grid (one round was laid in).
+    auto crafted = [&] { return holdsMore() && !massCraft::makesProduct(manager, index, recipe.makes); };
     switch (onto.step) {
     case Onto::Step::Clear:
         if (!gridEmpty(manager)) {
@@ -719,17 +717,18 @@ void advanceOnto(CraftingScreenController& controller) {
             if (now - onto.since > ontoWait) finishOnto(controller, "given up: the grid did not make it");
             return;
         }
+        onto.heldBefore = heldItem(manager, index) == recipe.makes ? held(manager) : 0;
         controller._handleTakeAmount(static_cast<int>(recipe.count), output, 0);
         onto.step = Onto::Step::Take, onto.since = now;
-        if (crafted()) finishOnto(controller, "by taking the output");
+        if (crafted()) finishOnto(controller, onto.heldBefore ? "onto the held stack by taking the output" : "by taking the output");
         return;
     case Onto::Step::Take:
         if (crafted()) { finishOnto(controller, "by taking the output, a moment later"); return; }
         if (now - onto.since < ontoWait) return;
-        // On the pointer while the grid still makes it: shown by the client only, not crafted.
-        if (shows()) { finishOnto(controller, "not confirmed: the pointer shows it but the grid still holds the round"); return; }
-        // Nothing came onto the pointer: the Shift take, which puts the round in the inventory.
-        if (held(manager)) { finishOnto(controller, "given up: the pointer holds something else"); return; }
+        // More on the pointer while the grid still makes it: shown by the client only, not crafted.
+        if (holdsMore()) { finishOnto(controller, "not confirmed: the pointer shows more but the grid still holds the round"); return; }
+        // With something held the round stays laid in, as when the pointer had no room.
+        if (held(manager)) { finishOnto(controller, "not taken onto the held stack: the round is left laid in", false); return; }
         onto.before = productCounts(manager, index, recipe.makes);
         controller._handleAutoPlace(INT_MAX, output, 0);
         onto.step = Onto::Step::Fetch, onto.since = now;
@@ -772,8 +771,7 @@ CraftOnto craftCheck(ScreenView& screen, Index const& index, Recipe const& recip
         auto* controller = crafting(screen);
         if (!controller) return CraftOnto::Missing;
         auto& manager = *controller->mContainerManagerController;
-        return craftOnto(ready, recipe.makes, static_cast<int>(recipe.count), heldItem(manager, index), held(manager), heldMost(manager),
-                         !freeSlot(manager).first.empty());
+        return craftOnto(ready, recipe.makes, static_cast<int>(recipe.count), heldItem(manager, index), held(manager), heldMost(manager));
     } catch (...) { return CraftOnto::Missing; }
 }
 bool craft(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks) {
@@ -785,16 +783,17 @@ bool craft(ScreenView& screen, std::shared_ptr<service::Table const> const& tabl
         auto const& index = table->index;
         auto const& shape = index.recipes[static_cast<size_t>(recipe)];
         bool const ready = placePlan(index, shape, sideOf(manager), carried(screen, index), picks, false).ready();
-        if (craftCheck(screen, index, shape, ready) != CraftOnto::Ready) return false;
+        auto const check = craftCheck(screen, index, shape, ready);
+        if (check == CraftOnto::Missing) return false;
+        if (check == CraftOnto::PlaceOnly) {
+            // The pointer cannot take the round: it is laid in only (maintainer 2026-11-21).
+            bool const laid = run(screen, table, recipe, picks, false);
+            logOnto(std::format("crafting {} onto the pointer: the pointer is taken, {}", shape.id, laid ? "laid in only" : "not laid in"));
+            return laid;
+        }
         onto = {};
         onto.table = table, onto.recipe = recipe, onto.picks = picks, onto.screen = screen.getScreenName();
         onto.began = onto.since = onto.ticked = Clock::now();
-        if (held(manager)) {
-            auto const [collection, slot] = freeSlot(manager);
-            controller->_handlePlaceAll(collection, slot);
-            if (held(manager)) { onto = {}; return false; }
-            onto.stash = collection, onto.stashIndex = slot;
-        }
         advanceOnto(*controller);
         return true;
     } catch (...) {
