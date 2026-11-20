@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Process names alone, stations as items, a station's tab (L-376, 2026-11-20)
+
+Builds `3b7b57c1` and `53fe1979` (last DLL
+`217053e5c3469b9012cdfbcd84dbd07b8e17012168d6c6b2c1a38339d7a18097`),
+1.26.60.05 Dev instance, the maintainer. Works: tabs' tips and the heading
+naming the process alone ("Smelting"); the heading's station icons with
+the item's own tooltip, a press its recipes and a right press its uses;
+the campfire's uses beginning with campfire cooking naming both
+campfires.
+
 ## Recipe view tabs per process (L-376, 2026-11-20)
 
 Build `da544285` (DLL
