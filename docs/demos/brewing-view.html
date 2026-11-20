@@ -49,7 +49,7 @@ th{color:var(--ink-2);font-weight:500}
 <body>
 <div class="wrap">
   <header>
-    <h1>醸造をレシピ画面に 5（L-361）</h1>
+    <h1>醸造をレシピ画面に 6（L-361）</h1>
     <p class="lede">醸造台の調合を、レシピ画面の「醸造」タブに出す案。面の大きさと余白は今のレシピ画面と同じ（幅 92、余白 5）。下の切り替えで、面の形・燃料の出し方・計画での数え方を見比べる。例は俊敏のポーション（奇妙なポーション＋砂糖）と、奇妙なポーション（水入り瓶＋ネザーウォート）。</p>
   </header>
   <div class="controls">
@@ -129,11 +129,13 @@ function face(bx, by, ingredient, from, to){
     const line = (x, y, w, h, c) => { const d = el('', bx + x, by + y, w, h, ''); d.style.background = c; return d; };
     const tube = (x, y, w, h) => { line(x, y, w, h, ink); if (w > h) line(x, y + h, w, 1, pale); else line(x + w, y, 1, h, pale); };
     if (opt.parts) {
-      tube(18, 10, 3, 1);                                                    // from the fuel
-      for (let i = 0; i < 3; i++) { line(21, 7 + i * 2.4, 6, 1.2, dark); line(21, 8.2 + i * 2.4, 6, .8, pale); } // a short coil
-      tube(27, 10, 4, 1);                                                    // on to the gauge
-      line(31, 9, 15, 3, ink); line(32, 10, 13, 1, '#e8a020');                // the gauge
-      for (const [x, y] of [[37, 5], [39, 1.5], [41, 5]]) line(x, y, 1.5, 1.5, pale); // bubbles
+      // From the fuel to the right, down through the coil, and to the right into the gauge (D's gauge and bubbles);
+      // the coil fills the drop between the two tubes' heights.
+      tube(18, 9, 4, 1);                                                     // from the fuel
+      for (let i = 0; i < 2; i++) { line(21, 10.6 + i * 2.2, 7, 1.2, dark); line(21, 11.8 + i * 2.2, 7, .6, pale); } // the coil, 10 to 15
+      tube(28, 15, 3, 1);                                                    // on to the gauge
+      line(31, 14, 15, 3, ink); line(32, 15, 13, 1, '#e8a020');               // the gauge
+      for (const [x, y] of [[36, 9], [38, 5], [35, 2], [40, 10]]) line(x, y, 1.5, 1.5, pale); // bubbles
       tube(54, 18, 1, 8); tube(46, 26, 8, 1);                                // left: down, then to the left bottle
       tube(59, 18, 1, 12);                                                   // middle: down to the middle bottle
       tube(64, 18, 1, 8); tube(65, 26, 7, 1);                                // right: down, then to the right bottle
