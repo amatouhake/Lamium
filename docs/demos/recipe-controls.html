@@ -51,21 +51,19 @@ p{margin:0;max-width:95ch}
 <body>
 <div class="wrap">
   <header>
-    <h1>レシピの面の操作 4（L-379）</h1>
-    <p class="lede">4 版目。決まったこと：選び方はチェックボックス、「並べる」は今の絵で右下、ウィンドウは広げる。残りの 3 つを切り替えで見比べる：チェックボックスの場所、「自動」の見せ方、レシピと枠の間の余白。チェックボックスを押すと選べ、もう一度押すと自動に戻る。印やボタンに重ねると説明が出る。</p>
+    <h1>レシピの面の操作 5（L-379）</h1>
+    <p class="lede">5 版目。決まったこと：選び方はチェックボックス、「自動」は薄いチェック、「並べる」は今の絵で右下、ウィンドウは広げる。チェックボックスを「並べる」と同じ 11 の大きさにした。残りの 2 つを切り替えで見比べる：チェックボックスの場所と、レシピと枠の間の余白。チェックボックスを押すと選べ、もう一度押すと自動に戻る。印やボタンに重ねると説明が出る。</p>
   </header>
   <div class="controls">
     <div class="grp"><span class="lbl">チェックの場所</span>
       <button class="chip on" data-k="where" data-v="corner">右下（「並べる」の左）</button>
       <button class="chip" data-k="where" data-v="top">右上（「並べる」と同じ列）</button>
     </div>
-    <div class="grp"><span class="lbl">「自動」の見せ方</span>
-      <button class="chip on" data-k="auto" data-v="grey">薄いチェック（文字なし）</button>
-      <button class="chip" data-k="auto" data-v="word">文字「自動」</button>
-    </div>
     <div class="grp"><span class="lbl">枠との余白</span>
       <button class="chip" data-k="pad" data-v="3">3（今）</button>
+      <button class="chip" data-k="pad" data-v="4">4</button>
       <button class="chip on" data-k="pad" data-v="5">5</button>
+      <button class="chip" data-k="pad" data-v="6">6</button>
       <button class="chip" data-k="pad" data-v="7">7</button>
     </div>
     <div class="grp"><span class="lbl">ウィンドウ幅</span>
@@ -79,8 +77,8 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>見るところ</h2>
       <ul>
-        <li>「薄いチェック」：チェックの濃さが状態を表す。空＝使っていない、薄いチェック＝自動でこれが選ばれている、濃いチェック＝自分で選んだ。何かは説明で出す（「自動で選ばれています。押すとこれに決めます」）。文字は増えない。</li>
-        <li>右下：チェックと「並べる」が右下の角にまとまる。どの形でも同じ並び。右上：右の端に縦の列（上にチェック、下に「並べる」）。</li>
+        <li>チェックの濃さが状態を表す。空＝使っていない、薄いチェック＝自動でこれが選ばれている、濃いチェック＝自分で選んだ。何かは説明で出す。</li>
+        <li>チェックボックスと「並べる」はどちらも 11×11（4 版目のチェックは 9）。右下：チェックと「並べる」が右下の角にまとまる。どの形でも同じ並び。右上：右の端に縦の列（上にチェック、下に「並べる」）。</li>
         <li>余白はスロットと面の縁の間（今は 3、そのうち 1 は縁の線）。バニラのウィンドウはスロットの外にもう少し間がある。</li>
         <li>余白を増やすと面が高くなる。クラフトは 3 行で並ぶので、行の間をいまの 6 に保つと、ウィンドウがその分高くなる（下に数字）。2 行目は行の間隔を見るためのもの。</li>
       </ul>
@@ -89,15 +87,14 @@ p{margin:0;max-width:95ch}
       <h2>決めたいこと</h2>
       <ul>
         <li><span class="q">1.</span> チェックの場所：右下（「並べる」の左）か、右上か。</li>
-        <li><span class="q">2.</span> 「自動」の見せ方：薄いチェックか、文字か。</li>
-        <li><span class="q">3.</span> 枠との余白とウィンドウ幅（余白 5 なら 236、7 なら 244 で面の間 6）。</li>
+        <li><span class="q">2.</span> 枠との余白とウィンドウ幅（面の間を 6 以上にするなら、余白 4・5 は 236、6・7 は 244）。</li>
       </ul>
     </div>
   </div>
 </div>
 <script>
 let U = 3, hover = null;
-const opt = {where:'corner', auto:'grey', pad:'5', w:'236'};
+const opt = {where:'corner', pad:'5', w:'236'};
 const chosen = {};
 const px = v => v * U + 'px';
 const ICONS = {coal:['#222','炭'], charcoal:['#3a2a20','木'], stick:['#9a7040','棒'], torch:['#e8b040','ト'], sand:['#e0d090','砂'], redsand:['#c8703a','赤'], glass:['#bfe6ef','ガ'],
@@ -173,15 +170,13 @@ function render(){
       }
       if (!many) return;
       // "Use this recipe": left of "place" at the corner, or above it in the right column.
-      const cx = opt.where === 'corner' ? pX - 2 - 9 : right - 10, cy = opt.where === 'corner' ? pY + 1 : by;
-      const d = el('cb', cx, cy, 9, 9);
+      // The same size as "place" (11), so the two sit side by side or one above the other as a pair.
+      const cS = 11, cx = opt.where === 'corner' ? pX - 2 - cS : right - cS, cy = opt.where === 'corner' ? pY : by;
+      const d = el('cb', cx, cy, cS, cS);
       d.onmousedown = e => { e.preventDefault(); chosen[block.kind] = isChosen ? undefined : r.id; render(); };
-      const tick = (color) => { const t = el('tick', cx + 1.2, cy + .3, 7, 8, '✔'); t.style.fontSize = px(8); t.style.color = color; };
+      const tick = (color) => { const t = el('tick', cx + 1.5, cy + .6, 9, 10, '✔'); t.style.fontSize = px(10); t.style.color = color; };
       if (isChosen) tick('#2a2a2a');
-      else if (isAuto && opt.auto === 'grey') tick('#b8b8b8');
-      if (isAuto && opt.auto === 'word') {
-        const w = el('faint', cx - 15, cy + 1.5, 13, null, '自動'); w.style.fontSize = px(5.5); w.style.textAlign = 'right';
-      }
+      else if (isAuto) tick('#b8b8b8');
       const text = isChosen ? 'このレシピで作る（自分で選んだ）<br>押すと自動に戻す'
         : isAuto ? '自動でこのレシピが選ばれています<br>押すとこれに決める' : 'このレシピで作る';
       hoverable(d, r.id + 'use', cx - 40, cy, text);
