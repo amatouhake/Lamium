@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search Bar</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* GUI units; the page fits one unit to the width (3 px at 1920x1080, UI 75 %). */
+:root{
+  color-scheme: dark;
+  --u:3px;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --edge:#000; --shadow:#555;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+#scene{position:relative;margin:0 auto;background:linear-gradient(#384a3a,#2a3a2c 60%,#2b2620);overflow:hidden;font-family:var(--pix)}
+#scene *{position:absolute}
+#scene .panel *, #scene .field input{position:static}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge)}
+.wtitle{color:var(--win-ink)}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.dim{background:rgba(0,0,0,.55)}
+.hit{outline:var(--u) solid var(--accent);outline-offset:calc(-1*var(--u))}
+.soft{outline:var(--u) solid rgba(108,195,73,.65);outline-offset:calc(-1*var(--u))}
+.field{background:#000;border:var(--u) solid #a0a0a0;display:flex;align-items:center;color:#fff;cursor:text}
+.field.focus{border-color:var(--accent)}
+.field .ph{color:#777}
+.field input{position:static;all:unset;width:100%;color:#fff;font-family:var(--pix)}
+.btn{display:grid;place-items:center;background:#3a3f43;border:var(--u) solid #6b757b;color:#fff;cursor:pointer;line-height:1}
+.btn:hover{background:#4a5156}
+.btn.on{background:var(--accent-deep);border-color:var(--accent)}
+.tip{background:#100010f0;border:var(--u) solid #2a0a5a;color:#fff;white-space:nowrap;padding:calc(2*var(--u)) calc(4*var(--u))}
+.panel{background:#1d2226f2;border:1px solid #4a545a;color:#e6ebe8}
+.panel .row{position:static;display:grid;grid-template-columns:max-content 1fr;column-gap:calc(8*var(--u))}
+.panel .k{position:static;color:var(--accent)}
+.panel .v{position:static;color:#b5bdb9}
+.hints{color:#ddd;white-space:nowrap}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>検索欄とボタン列（L-377・L-378）</h1>
+    <p class="lede">検索欄の右に、欄と同じ高さの正方形のボタンを並べる案。[ハイライト] は押すたびにインベントリの一致するスロットを光らせるかを切り替え、[?] は押すと書き方の表を検索欄の上に開く。ハイライトをいつも控えめに出す案とも比べられる。下の欄に打つと一致が変わる（名前の一部で一致）。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">ハイライト</span>
+      <button class="chip on" data-mode="toggle">切り替え式（ボタン）</button>
+      <button class="chip" data-mode="always">いつも控えめ</button>
+    </div>
+    <div class="grp"><span class="lbl">光らせ方</span>
+      <button class="chip on" data-style="frame">一致に枠</button>
+      <button class="chip" data-style="dim">一致しない所を暗く</button>
+    </div>
+    <div class="grp"><span class="lbl">例</span>
+      <button class="chip" data-q="">（空）</button>
+      <button class="chip" data-q="原木">原木</button>
+      <button class="chip" data-q="板">板</button>
+      <button class="chip" data-q="#logs">#logs</button>
+    </div>
+  </div>
+  <div id="scene"></div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>ボタンは検索欄と同じ 16 単位の正方形、記号は真ん中。押せるものだけをボタンの形にする。</li>
+        <li>[?] は押すと表が開き、もう一度押すか Esc で閉じる。乗せると名前（「検索の書き方」）だけが出る。</li>
+        <li>[ハイライト] はオンで緑。検索欄に文字があるときだけ光る。オンかどうかは保存し、既定はオフ。</li>
+        <li>検索欄の文字は欄の高さの真ん中に置く。</li>
+        <li>「いつも控えめ」ではボタンが 1 つ減り、検索するといつも薄い枠が付く。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> ハイライトは切り替え式か、いつも控えめか。</li>
+        <li><span class="q">2.</span> 光らせ方：一致に枠か、一致しない所を暗くか。</li>
+        <li><span class="q">3.</span> [?] を押して表を開く形でよいか。</li>
+        <li><span class="q">4.</span> ボタンの絵：ハイライトは何の絵にするか（このモックでは虫眼鏡に枠の記号）。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3, mode = 'toggle', style = 'frame', highlightOn = false, helpOpen = false, query = '', focused = false, hover = null;
+const px = v => v * U + 'px';
+const ITEMS = [
+  ['オークの原木','#a07040','原','logs'],['トウヒの原木','#5a3a20','原','logs'],['オークの板材','#c8a060','板','planks'],['棒','#9a7040','棒',''],
+  ['丸石','#808080','丸','stone'],['石','#9a9a9a','石','stone'],['トウヒの板材','#7a5030','板','planks'],['ガラス','#bfe6ef','ガ',''],
+  ['鉄インゴット','#d8d8d8','鉄',''],['チェスト','#9a6a2a','チ',''],['作業台','#9a6b3a','作',''],['かまど','#6f6f6f','か',''],
+  ['シラカバの原木','#d8d0b0','原','logs'],['石炭','#222','炭','coals'],['生の牛肉','#c0504a','牛',''],['パン','#c89a50','パ',''],
+];
+function fitUnit(){ U = Math.max(1.6, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 330)); }
+function matches(it){
+  const q = query.trim();
+  if (!q) return false;
+  if (q.startsWith('#')) return it[3] && it[3].includes(q.slice(1));
+  return it[0].includes(q);
+}
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; scene.appendChild(d); return d; }
+const scene = document.getElementById('scene');
+function render(){
+  fitUnit();
+  const W = 320, H = 180;
+  scene.style.width = px(W); scene.style.height = px(H); scene.innerHTML = '';
+  // The game's inventory window, its slots.
+  const wx = (W - 176) / 2, wy = 14;
+  el('win', wx, wy, 176, 110);
+  el('wtitle', wx + 8, wy + 5, null, null, 'インベントリ').style.fontSize = px(7);
+  const lit = (mode === 'always' || highlightOn) && query.trim();
+  ITEMS.forEach((it, i) => {
+    const x = wx + 7 + (i % 9) * 18, y = wy + 18 + Math.floor(i / 9) * 18;
+    el('slot', x, y, 18, 18);
+    const ic = el('ico', x + 1, y + 1, 16, 16, it[2]); ic.style.background = it[1]; ic.style.fontSize = px(6);
+    if (lit) {
+      const m = matches(it);
+      if (style === 'dim' && !m) el('dim', x, y, 18, 18);
+      if (style === 'frame' && m) el(mode === 'always' ? 'soft' : 'hit', x, y, 18, 18);
+    }
+  });
+  for (let i = ITEMS.length; i < 36; i++) el('slot', wx + 7 + (i % 9) * 18, wy + 18 + Math.floor(i / 9) * 18, 18, 18);
+  // Key hints, then the field and its buttons.
+  el('hints', wx - 10, H - 30, 196, 9, 'A キー: お気に入り | W キー: 欲しい物').style.fontSize = px(6.5);
+  const fx = (W - 176) / 2, fy = H - 18, fh = 16;
+  const field = el('field' + (focused ? ' focus' : ''), fx, fy, 176, fh);
+  field.style.padding = `0 ${px(3)}`; field.style.fontSize = px(8);
+  const input = document.createElement('input');
+  input.value = query; input.placeholder = '検索（名前・ID）'; input.style.fontSize = px(8);
+  input.oninput = () => { query = input.value; render(); const n = scene.querySelector('input'); n.focus(); n.setSelectionRange(query.length, query.length); };
+  input.onfocus = () => { if (!focused) { focused = true; render(); scene.querySelector('input').focus(); } };
+  input.onblur = () => { focused = false; setTimeout(render, 0); };
+  field.appendChild(input);
+  let bx = fx + 176 + 2;
+  const buttons = [];
+  if (mode === 'toggle') buttons.push({id:'hl', label:'⌕', name:'インベントリをハイライト', on: highlightOn, act: () => { highlightOn = !highlightOn; }});
+  buttons.push({id:'help', label:'?', name:'検索の書き方', on: helpOpen, act: () => { helpOpen = !helpOpen; }});
+  buttons.forEach(b => {
+    const d = el('btn' + (b.on ? ' on' : ''), bx, fy, fh, fh, b.label);
+    d.style.fontSize = px(b.id === 'hl' ? 10 : 8);
+    d.onmouseenter = () => { hover = b.id; render(); };
+    d.onmouseleave = () => { hover = null; render(); };
+    d.onmousedown = e => { e.preventDefault(); b.act(); render(); };
+    if (hover === b.id) { const t = el('tip', bx, fy - 15, null, 11, b.name + (b.id === 'hl' ? (b.on ? '：オン' : '：オフ') : '')); t.style.fontSize = px(7); }
+    bx += fh + 2;
+  });
+  if (helpOpen) {
+    const rows = [['word word','すべてを含む'],['-word','含まない'],['a|b','どちらか'],['"a b"','語句そのまま'],['#…','タグ'],['$…','ツールチップの文'],['@…','ID の名前空間'],['上下キー','前の検索']];
+    const p = el('panel', fx + 176 + 2 - 120, fy - 2 - 112, 140, 110);
+    p.style.padding = `${px(4)} ${px(6)}`; p.style.fontSize = px(7);
+    p.innerHTML = `<div style="position:static;color:#fff;margin-bottom:${px(3)}">検索の書き方</div>` + rows.map(([k, v]) => `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  }
+}
+addEventListener('keydown', e => { if (e.key === 'Escape' && helpOpen) { helpOpen = false; render(); } });
+addEventListener('resize', render);
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = b.dataset.mode; document.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+document.querySelectorAll('[data-style]').forEach(b => b.onclick = () => { style = b.dataset.style; document.querySelectorAll('[data-style]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { query = b.dataset.q; render(); });
+render();
+</script>
+</body>
+</html>
