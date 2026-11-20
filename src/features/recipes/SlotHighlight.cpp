@@ -27,8 +27,8 @@ std::string cellsScreen;
 std::chrono::steady_clock::time_point cellsAt{};
 bool logged = false;
 
-// Every shown slot under `control`: a small square control that sits in a collection's cell, as the game says
-// (`findAllCollectionIndices`); its own children, parts of the same slot, are not looked at again.
+// Every shown slot under `control`: a small square control that sits in a collection's cell, as the game says;
+// its own children, parts of the same slot, are not looked at again.
 void walk(UIControl& control, int depth, std::vector<Cell>& out) {
     if (depth > 20 || out.size() > 400) return;
     auto const& children = *control.mChildren;
@@ -38,11 +38,13 @@ void walk(UIControl& control, int depth, std::vector<Cell>& out) {
         if (!child->mCachedPositionDirty) {
             glm::vec2 const at = *child->mCachedPosition, size = *child->mSize;
             if (size.x >= 14 && size.x <= 24 && std::abs(size.x - size.y) < 2) {
+                // The collection's name from `findAllCollectionIndices`; its index from `findCollectionIndex`: the
+                // index the first hands its callback is not the cell's (slot_trace, 2026-11-21).
                 std::string collection;
-                int index = -1;
-                child->findAllCollectionIndices([&](std::string const& name, int i) {
-                    if (index < 0) collection = name, index = i;
+                child->findAllCollectionIndices([&](std::string const& name, int) {
+                    if (collection.empty()) collection = name;
                 });
+                int const index = collection.empty() ? -1 : child->findCollectionIndex(collection);
                 if (index >= 0 && !collection.empty()) {
                     out.push_back({at.x, at.y, size.x, size.y, std::move(collection), index});
                     continue;

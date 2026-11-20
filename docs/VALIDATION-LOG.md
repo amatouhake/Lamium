@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Search highlight found no slots; slot_trace (L-378, 2026-11-21)
+
+Build `ed533f7d` (DLL
+`78369ec603119a94ad44528df91b60b022131550bc497e2d558ae4fbef275a2d`),
+1.26.60.05 Dev instance, the maintainer: the switch turned green, no slot
+darkened at the inventory, a chest or the crafting table; no "Search
+highlight" line in the log. Trace build `bfebffce` with `slot_trace` (DLL
+`beebe14f3b33ba4a03d9470583393b1991baedc0b94e45b4e75b1dc7924c62d1`):
+`findAllCollectionIndices` names a slot's collection rightly
+(`inventory_items`, `container_items`, `armor_items`, `crafting_input_items`,
+`offhand_items`) but hands its callback a garbage index (about -1.1e9);
+`findCollectionIndex("inventory_items")` gives the inventory's cells 0, 1,
+2, ... in order. A slot is a `*_grid_item` of 18x18 units (`chest_grid_item`,
+`grid_item_for_inventory`, `head_grid_item`). The next build takes the index
+from `findCollectionIndex`.
+
 ## The search syntax over the field, its text centred (L-377, 2026-11-21)
 
 Build `105d50de` (DLL
