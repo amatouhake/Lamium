@@ -95,6 +95,18 @@ inline Regions regionsAround(float screenWidth, float screenHeight, float window
     return out;
 }
 
+// The top of the game's window with what stands on its upper edge: the tabs of the inventory, the crafting
+// table and the furnace lie above the window's panel. `controls` are the screen's shown controls; one counts
+// when it is small (not a backdrop), lies across the window's span and reaches down to the window's top.
+inline float windowTop(float panelTop, float left, float right, std::vector<Box> const& controls) {
+    float top = panelTop;
+    for (auto const& c : controls) {
+        if (!(c.w > 0 && c.h > 0) || c.h > 60 || c.w >= right - left) continue;
+        if (c.x + c.w <= left || c.x >= right) continue;
+        if (c.y < top && c.y + c.h >= panelTop - 2) top = c.y;
+    }
+    return top;
+}
 struct Placed {
     Page page = Page::Items;
     Box box;

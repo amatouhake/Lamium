@@ -239,6 +239,18 @@ void readNames(LocalPlayer& player) {
 // The game's window on this screen: the chest's and anvil's panel, the inventory's and crafting table's
 // (recipe book and all), the furnace's. Seen in game on 1.26.60 (VALIDATION-LOG 2026-11-18).
 // `left`: where the window begins, the game's recipe book included while it shows.
+// The screen's shown controls with a size, a bounded walk: for what stands on the window's top (tabs).
+void shownControls(UIControl const& control, int depth, std::vector<band::Box>& out) {
+    if (depth > 14 || out.size() > 1500) return;
+    auto const& children = *control.mChildren;
+    if (children.size() > 600) return; // not a child list
+    for (auto const& child : children) {
+        if (!child || out.size() > 1500 || !(static_cast<int>(child->mVisible) & 1) || child->mCachedPositionDirty) continue;
+        glm::vec2 const p = *child->mCachedPosition, s = *child->mSize;
+        if (s.x > 0 && s.y > 0) out.push_back({p.x, p.y, s.x, s.y});
+        shownControls(*child, depth + 1, out);
+    }
+}
 bool windowOf(ScreenView& view, glm::vec2& at, glm::vec2& size, float& left) {
     auto* tree = view.mVisualTree.get();
     if (!tree) return false;
@@ -343,7 +355,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The open container's line (the stores') takes the left region's last units.
     auto const openPlace = storesOn ? placesGame::open(screenView) : std::nullopt;
     // The bands (L-374): regions beside, above and below the game's window, each page in its panel.
-    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y, at.y + size.y, viewLayout.hintY() - 1);
+    // The window's top with the game's tabs on it, so a region above leaves them free: looked at again when
+    // the window moves or every half second (a walk of the screen's controls).
+    static struct { std::string screen; glm::vec2 at{}, size{}; float left = 0, right = 0, top = 0; std::chrono::steady_clock::time_point when{}; } tabs;
+    if (auto const now = std::chrono::steady_clock::now(); tabs.screen != screenName || tabs.at != at || tabs.size != size || tabs.left != coverLeft
+        || tabs.right != right || now - tabs.when > std::chrono::milliseconds(500)) {
+        std::vector<band::Box> controls;
+        if (auto* tree = screenView.mVisualTree.get()) {
+            std::shared_ptr<UIControl> const& root = tree->mRootControl;
+            if (root) shownControls(*root, 0, controls);
+        }
+        tabs = {screenName, at, size, coverLeft, right, band::windowTop(at.y, windowLeft, at.x + size.x, controls), now};
+    }
+    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, tabs.top, at.y + size.y, viewLayout.hintY() - 1);
     // Asked for from the settings, the editor starts on the first item screen drawn.
     static std::string editScreen; // the editor belongs to the screen it started on
     if (pendingEdit) closeViews(), bandEditor::start(*pendingEdit), pendingEdit.reset(), editScreen = screenName;

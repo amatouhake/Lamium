@@ -552,6 +552,8 @@ void recipeIndexTests() {
         placed = place(above, regionsAround(427, 240, 120, 307, 20, 186, 210), all);
         check(find(placed, Page::Favourites) && find(placed, Page::Favourites)->shownIn == Left && find(placed, Page::Favourites)->region == Top,
               "a region too low for one row lends its panels to a side, on this screen only");
+        check(windowTop(97, 232, 408, {{0, 0, 640, 360}, {240, 72, 26, 26}, {300, 70, 20, 20}, {450, 60, 20, 30}, {240, 20, 20, 20}}) == 72,
+              "the window's top takes in the tabs on its edge, not backdrops, controls beside it or far above");
         Layout messy;
         messy.regions[Left] = {{Page::Plan, 33}, {Page::Plan, 50}, {Page::Favourites, 33}};
         auto const tidy = normalized(messy);

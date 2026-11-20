@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The bands' layout editor (L-375, 2026-11-20)
+
+Build `a3ef7300` (DLL
+`0c960a165458d0044da8fa169b575a0ac8d5ed2283322d619b0eb099398a789a`),
+1.26.60.05 Dev instance, the maintainer. Works: the settings' "Layout of the
+bands" opening the inventory with the editor; the plan's panel moved under
+the item list and the favourites into the room above the window, kept after
+Done; a line sizing two panels; a page taken out to the tray and back;
+Reset layout. Fault: a region above the window lay over the game's tabs on
+the inventory, the crafting table and the furnace (a large chest has none),
+so the tabs were hard to press; the next build measures the window's top
+with the tabs. The English "Favourites" raised which English Lamium writes:
+American, as the game's default (TRANSLATING.md).
+
 ## The bands from regions and pages (L-374, 2026-11-20)
 
 Build `cab131a2` (DLL
