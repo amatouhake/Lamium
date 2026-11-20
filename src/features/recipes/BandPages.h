@@ -28,6 +28,7 @@ struct Frame {
     int sideTurns = 0;      // wheel notches over the plan's list
     bool shift = false;     // a stepper moves to the next stack
     bool held = false;      // the left button is down: a scrollbar is dragged
+    int favoriteTurns = 0;  // wheel notches over the favorites
     bool took(ListBox const& box) {
         if (!pressed || !box.has(px, py)) return false;
         pressed = false;

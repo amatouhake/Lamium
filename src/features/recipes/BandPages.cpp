@@ -35,19 +35,37 @@ void favorites(Frame& frame, SideLayout const& panel) {
     bool& pressed = frame.pressed;
     label(context, panel.left + 4, panel.top + 3, panel.width - 8, translated("recipes.favorites"), palette::dim);
     auto const favorites = state::notes().favorites;
-    int const favoriteHover = panel.hitFavorite(px, py), favoriteCount = std::min(static_cast<int>(favorites.size()), panel.favorites());
-    for (int i = 0; i < favoriteCount; ++i) {
-        auto const& item = schematic::items::shown(favorites[static_cast<size_t>(i)]);
-        float const x = panel.cellX(i), y = panel.cellY(i);
+    // More than the panel holds scrolls by rows, as the plan's list does: the wheel and the shared bar, the
+    // cells making room for it.
+    SideLayout grid = panel;
+    int const total = static_cast<int>(favorites.size());
+    bool const scrolls = total > grid.favorites();
+    if (scrolls) grid.columns = std::max(1, static_cast<int>((grid.width - 2 * SideLayout::pad - rowBarGutter) / SideLayout::cell));
+    int const columns = std::max(1, grid.columns), rows = grid.favoriteRows(), totalRows = (total + columns - 1) / columns;
+    static int firstRow = 0;
+    firstRow += frame.favoriteTurns;
+    firstRow = std::clamp(firstRow, 0, std::max(0, totalRows - rows));
+    if (scrolls) {
+        bool onBar = pressed && leftPress;
+        listScrollbar(context, grid.left + grid.width - 3, grid.top + SideLayout::head, static_cast<float>(rows) * SideLayout::cell, totalRows,
+                      std::max(1, rows), firstRow, px, py, onBar, frame.held);
+        if (pressed && leftPress && !onBar) pressed = false;
+    }
+    int const first = firstRow * columns, shownCount = std::clamp(total - first, 0, grid.favorites());
+    int const favoriteHover = grid.hitFavorite(px, py);
+    for (int i = 0; i < shownCount; ++i) {
+        auto const& key = favorites[static_cast<size_t>(first + i)];
+        auto const& item = schematic::items::shown(key);
+        float const x = grid.cellX(i), y = grid.cellY(i);
         if (i == favoriteHover) {
             fill(context, x, y, SideLayout::cell, SideLayout::cell, palette::white, .14f);
             late.tip = item.name;
-            hoverItem = favorites[static_cast<size_t>(i)];
+            hoverItem = key;
         }
         if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
-        mark(favorites[static_cast<size_t>(i)], x, y, false); // all here are favorites
+        mark(key, x, y, false); // all here are favorites
     }
-    if (pressed && favoriteHover >= 0 && favoriteHover < favoriteCount) frame.show(favorites[static_cast<size_t>(favoriteHover)]);
+    if (pressed && favoriteHover >= 0 && favoriteHover < shownCount) frame.show(favorites[static_cast<size_t>(first + favoriteHover)]);
     (void)leftPress, (void)took;
 }
 void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vector<Handed> const& handed,

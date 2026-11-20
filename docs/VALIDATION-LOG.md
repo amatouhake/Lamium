@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Recipe view tabs by kind of work (L-376, 2026-11-20)
+
+Build `07ac927c` (DLL
+`b95e0aa3a90df571d510be90eaec77ea387a004aaf966d4895794d69b5033df6`),
+1.26.60.05 Dev instance, the maintainer. Works: steak once in the cooking
+tab with the furnace, smoker and campfire icons, the iron ingot with the
+furnace and blast furnace; a station's icon opening "Cooking (Blast
+Furnace)" with the ores only; the furnace's uses beginning with what it
+does, its recipes being how it is made. Questioned: the stations' icons on
+each recipe, where other recipe viewers keep one category per process
+(smelting, blasting, smoking, campfire cooking) and list its stations once
+beside the category. Found: cooking recipes have no "place", where the
+game's furnace recipe book can place; favorites beyond the panel's cells
+were silently left out (scrolling added after).
+
 ## Favorites spelled the American way in saved fields (2026-11-20)
 
 Build `ae53f38c` (DLL

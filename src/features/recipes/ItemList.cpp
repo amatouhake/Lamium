@@ -106,10 +106,11 @@ struct Shown {
     bool searchFocus = false;
     bool countFocus = false;        // a wanted item's count is being typed
     std::vector<ListBox> bands;     // the other panels and the open container's line
+    ListBox favorites;              // the favorites' panel, which the wheel scrolls
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
-    int listTurns = 0, viewTurns = 0, sideTurns = 0, wantedTurns = 0;
+    int listTurns = 0, viewTurns = 0, sideTurns = 0, wantedTurns = 0, favoriteTurns = 0;
     bool wantedUp = false; // the wanted key was released
     bool back = false, close = false;
     std::vector<int> fieldKeys; // keys pressed while the search field has the focus; 0x10000 set with Ctrl
@@ -540,13 +541,18 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // The bands' other pages, each in its panel (L-374): the favorites, the plan, and the open container's
     // line at the left region's end.
-    bandPages::Frame frame{context, px, py, leftPress, pressed, late, hoverItem, mark, show, input.sideTurns, shiftHeld.load(), leftHeld.load()};
+    bandPages::Frame frame{context, px, py, leftPress, pressed, late, hoverItem, mark, show, input.sideTurns, shiftHeld.load(), leftHeld.load(),
+                           input.favoriteTurns};
+    ListBox favoritesBox;
     std::vector<ListBox> bandBoxes; // where a press stays from the game and the view
     for (auto const& panel : placed) {
         if (panel.page == band::Page::Items) continue;
         bandPages::ground(frame, panel.box, !panel.first);
         bandBoxes.push_back({panel.box.x, panel.box.y, panel.box.w, panel.box.h});
-        if (panel.page == band::Page::Favorites) bandPages::favorites(frame, sidePanelIn(panel.box, true));
+        if (panel.page == band::Page::Favorites) {
+            favoritesBox = {panel.box.x, panel.box.y, panel.box.w, panel.box.h};
+            bandPages::favorites(frame, sidePanelIn(panel.box, true));
+        }
         else bandPages::plan(frame, planSide(panel.box), *player, handed, [&](planView::Tab tab) {
             // The recipe view lies over the window: asked for, the window comes to the front.
             view::close();
@@ -666,7 +672,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         std::scoped_lock lock(shownLock);
         tipItem = hoverItem; // kept for the tooltip: what is shown takes the string
         shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, field, side, searchFocus,
-                 countEdit::active(), bandBoxes};
+                 countEdit::active(), bandBoxes, favoritesBox};
     }
     context.flushText(0, std::nullopt);
     // Painted after the screen, the bands and the windows cover the item held on the pointer: where it
@@ -752,6 +758,7 @@ bool wheel(int pages) {
     if (shown.viewOpen && shown.view.has(shown.pointerX, shown.pointerY)) queued.viewTurns += pages;
     else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
     else if (shown.side.has(shown.pointerX, shown.pointerY)) queued.sideTurns += pages;
+    else if (shown.favorites.has(shown.pointerX, shown.pointerY)) queued.favoriteTurns += pages;
     else return shown.viewOpen; // an open view lies over the game's window: its slots must not scroll
     return true;
 }
