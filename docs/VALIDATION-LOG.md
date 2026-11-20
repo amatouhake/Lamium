@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## How the stonecutter's result is chosen (L-380, 2026-11-21)
+
+Trace builds `9353ccb6` and `b312365b` (`craft_trace`, last DLL
+`8df757630dc7a86a7edb6513f8c1da6918ba03a8e97cda7aba42e5c072f923b5`),
+1.26.60.05 Dev instance, a local world, the maintainer choosing results
+with stone in the input:
+- The results are the screen's own collection `stones` (cells 1 to 10
+  hovered); the manager's collections are `stonecutter_input_items`,
+  `stonecutter_result_items` and the inventory's. Choosing a result
+  changed none of them and sent no request: the choice stays inside the
+  screen.
+- The screen's virtual `_onContainerSlotPressed("stones", n)`, with the
+  pointer elsewhere and over that cell: returned 0, nothing chosen.
+- `ContainerScreenController::$_onContainerSlotPressed` and
+  `$_onContainerSlotSelected`, `$_handleSelectSlot`, `_handleTakeAll`,
+  `_handleAddAllToCursor`, `StonecutterContainerManagerModel::$setSlot` and
+  `getResultForItem` do not link on the client.
+
 ## Placing at the stations (L-380, 2026-11-21)
 
 Build `0bdef6f3` (DLL
