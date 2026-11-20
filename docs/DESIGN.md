@@ -144,7 +144,10 @@ grey. A tip there is the game's tooltip box. Elsewhere they keep Lamium's
 dark look. No control plays a sound.
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
-  words, no check boxes.
+  words, no check boxes, except one on a window of the game's grey that
+  marks which of a few things is in use, where a switch would not sit
+  in the game's look (maintainer 2026-11-21, L-379: a recipe's "use this
+  recipe").
 - **One of several** (`drawTab`, `tabRule`; decided 2026-11-19 from
   [demos/switching-controls-2.html](demos/switching-controls-2.html)):
   names side by side over a one-unit rule as wide as what they switch. On

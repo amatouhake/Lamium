@@ -31,15 +31,15 @@ p{margin:0;max-width:95ch}
 .txt{color:var(--win-ink);white-space:nowrap}
 .faint{color:var(--win-faint);white-space:nowrap}
 .face{background:var(--win);box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow)}
+.face.ghost{opacity:.55}
 .slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
 .ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
 .btn{display:grid;place-items:center;background:#d8d8d8;color:var(--win-ink);cursor:pointer;box-shadow:inset var(--u) var(--u) #fff,inset calc(-1*var(--u)) calc(-1*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge);line-height:1;overflow:hidden;white-space:nowrap}
 .btn:hover{background:#e8e8e8}
-.btn.on{background:var(--accent-deep);color:#fff;box-shadow:0 0 0 var(--u) var(--edge)}
 .cb{cursor:pointer;background:#8b8b8b;box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
 .cb:hover{background:#a0a0a0}
-.tick{pointer-events:none}
-.tip{background:#100010f0;border:var(--u) solid #2a0a5a;color:#fff;white-space:nowrap;padding:calc(2*var(--u)) calc(4*var(--u));z-index:5;pointer-events:none}
+.tick{pointer-events:none;line-height:1}
+.tip{background:#100010f0;border:var(--u) solid #2a0a5a;color:#fff;white-space:nowrap;padding:calc(2*var(--u)) calc(4*var(--u));z-index:5;pointer-events:none;line-height:1.4}
 .pic{position:relative;display:block}
 .notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
 .card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
@@ -51,27 +51,26 @@ p{margin:0;max-width:95ch}
 <body>
 <div class="wrap">
   <header>
-    <h1>レシピの面の操作 3（L-379）</h1>
-    <p class="lede">3 版目。レシピごとの「欲しい物」はなくした（見出し右上の「お気に入り」「欲しい物」と、完成品の上の W で足りる）。「並べる」はどの作業場所の形にも、右下に置く。下の切り替えで、選び方（チェックボックスか「使う」ボタン）、「使う」の場所、「並べる」の絵（今の絵か ＋）、レシピの間隔を見比べられる。</p>
+    <h1>レシピの面の操作 4（L-379）</h1>
+    <p class="lede">4 版目。決まったこと：選び方はチェックボックス、「並べる」は今の絵で右下、ウィンドウは広げる。残りの 3 つを切り替えで見比べる：チェックボックスの場所、「自動」の見せ方、レシピと枠の間の余白。チェックボックスを押すと選べ、もう一度押すと自動に戻る。印やボタンに重ねると説明が出る。</p>
   </header>
   <div class="controls">
-    <div class="grp"><span class="lbl">選び方</span>
-      <button class="chip on" data-k="pick" data-v="check">チェックボックス（バニラ風）</button>
-      <button class="chip" data-k="pick" data-v="button">ボタン「使う」（使用中は緑）</button>
-    </div>
-    <div class="grp"><span class="lbl">「使う」の場所</span>
-      <button class="chip on" data-k="where" data-v="under">製品の下（下の行で「並べる」と並ぶ）</button>
+    <div class="grp"><span class="lbl">チェックの場所</span>
+      <button class="chip on" data-k="where" data-v="corner">右下（「並べる」の左）</button>
       <button class="chip" data-k="where" data-v="top">右上（「並べる」と同じ列）</button>
     </div>
-    <div class="grp"><span class="lbl">「並べる」の絵</span>
-      <button class="chip on" data-k="pic" data-v="arrow">今の絵（線へ下向きの矢印）</button>
-      <button class="chip" data-k="pic" data-v="plus">＋</button>
+    <div class="grp"><span class="lbl">「自動」の見せ方</span>
+      <button class="chip on" data-k="auto" data-v="grey">薄いチェック（文字なし）</button>
+      <button class="chip" data-k="auto" data-v="word">文字「自動」</button>
     </div>
-    <div class="grp"><span class="lbl">間隔</span>
-      <button class="chip on" data-k="space" data-v="now">今（幅 220）</button>
-      <button class="chip" data-k="space" data-v="wide">ウィンドウを広げる（幅 236）</button>
-      <button class="chip" data-k="space" data-v="tight">面を詰める（幅 220、面 92）</button>
-      <button class="chip" data-k="space" data-v="one">1 列</button>
+    <div class="grp"><span class="lbl">枠との余白</span>
+      <button class="chip" data-k="pad" data-v="3">3（今）</button>
+      <button class="chip on" data-k="pad" data-v="5">5</button>
+      <button class="chip" data-k="pad" data-v="7">7</button>
+    </div>
+    <div class="grp"><span class="lbl">ウィンドウ幅</span>
+      <button class="chip on" data-k="w" data-v="236">236</button>
+      <button class="chip" data-k="w" data-v="244">244</button>
     </div>
     <div class="dims" id="dims"></div>
   </div>
@@ -80,71 +79,56 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>見るところ</h2>
       <ul>
-        <li>「並べる」はどの形でも面の右下。開いている画面がその作業場所のときだけ出る（かまど系は L-380、石切台と鍛冶台はこれから調べる）。</li>
-        <li>選べるのは作り方が 2 つ以上ある品だけ。誰も選んでいないときは、自動で決まった方に「自動」と出る。選んだものをもう一度押すと「自動」に戻る。一つを選ぶと同じ品の他のレシピは外れる。</li>
-        <li>石切は面が低いので、どちらの場所でも製品の右に「使う」、その右下に「並べる」。</li>
-        <li>「使う」を製品の下にすると、クラフトの「順不同」の印（今は製品の下）は右上に移る。右上にすると、印は今の場所のまま。</li>
-        <li>「面を詰める」は面と面の間を 8 にするため、矢印と製品を格子に 4 寄せる。右上の「使う」と「自動」、石切の「使う」が窮屈になるのも見てほしい。</li>
-        <li>レシピごとの「欲しい物」はない。見出し右上のボタンか、完成品の上の W で入れる。</li>
+        <li>「薄いチェック」：チェックの濃さが状態を表す。空＝使っていない、薄いチェック＝自動でこれが選ばれている、濃いチェック＝自分で選んだ。何かは説明で出す（「自動で選ばれています。押すとこれに決めます」）。文字は増えない。</li>
+        <li>右下：チェックと「並べる」が右下の角にまとまる。どの形でも同じ並び。右上：右の端に縦の列（上にチェック、下に「並べる」）。</li>
+        <li>余白はスロットと面の縁の間（今は 3、そのうち 1 は縁の線）。バニラのウィンドウはスロットの外にもう少し間がある。</li>
+        <li>余白を増やすと面が高くなる。クラフトは 3 行で並ぶので、行の間をいまの 6 に保つと、ウィンドウがその分高くなる（下に数字）。2 行目は行の間隔を見るためのもの。</li>
       </ul>
     </div>
     <div class="card">
       <h2>決めたいこと</h2>
       <ul>
-        <li><span class="q">1.</span> 選び方：チェックボックス（DESIGN に「ゲームの灰色ウィンドウの上ではよい」と例外を書く）か、ボタン「使う」。</li>
-        <li><span class="q">2.</span> 「使う」の場所：製品の下か、右上か。</li>
-        <li><span class="q">3.</span> 「並べる」の絵：今の絵か ＋ か。</li>
-        <li><span class="q">4.</span> 間隔：今のまま、広げる、面を詰める、1 列のどれか（広げると帯の幅も変わる。1 列は 1 ページに 3 つ）。</li>
+        <li><span class="q">1.</span> チェックの場所：右下（「並べる」の左）か、右上か。</li>
+        <li><span class="q">2.</span> 「自動」の見せ方：薄いチェックか、文字か。</li>
+        <li><span class="q">3.</span> 枠との余白とウィンドウ幅（余白 5 なら 236、7 なら 244 で面の間 6）。</li>
       </ul>
     </div>
   </div>
 </div>
 <script>
 let U = 3, hover = null;
-const opt = {pick:'check', where:'under', pic:'arrow', space:'now'};
+const opt = {where:'corner', auto:'grey', pad:'5', w:'236'};
 const chosen = {};
 const px = v => v * U + 'px';
 const ICONS = {coal:['#222','炭'], charcoal:['#3a2a20','木'], stick:['#9a7040','棒'], torch:['#e8b040','ト'], sand:['#e0d090','砂'], redsand:['#c8703a','赤'], glass:['#bfe6ef','ガ'],
   stone:['#9a9a9a','石'], slab:['#a8a8a8','半'], stairs:['#909090','階'], tmpl:['#2a6a6a','型'], dia:['#7fe0e0','ダ'], neth:['#4a3a3a','ネ'], netherite:['#3a3030','剣'], book:['#7a5030','本'], star:['#d8b030','★']};
-// The four layouts as RecipeView.h's viewBlock lays them out, each with an item made two ways (smithing: one).
+// The four layouts; `ih` is the content's height (the slots and the buttons), the face is `pad` around it.
 const BLOCKS = [
-  {title:'クラフト（トーチ）', kind:'craft', h:59, items:[{id:'t1', grid:[null,'coal',null,null,'stick',null,null,null,null], out:'torch', auto:true}, {id:'t2', grid:[null,'charcoal',null,null,'stick',null,null,null,null], out:'torch'}]},
-  {title:'製錬（ガラス）', kind:'smelt', h:53, items:[{id:'g1', input:'sand', out:'glass', auto:true}, {id:'g2', input:'redsand', out:'glass'}]},
-  {title:'石切（石の階段）', kind:'cut', h:31, items:[{id:'s1', input:'stone', out:'stairs', auto:true}, {id:'s2', input:'slab', out:'stairs'}]},
-  {title:'鍛冶（ネザライトの剣）', kind:'smith', h:53, items:[{id:'n1', parts:['tmpl','dia','neth'], out:'netherite', auto:true}]},
+  {title:'クラフト（トーチ）', kind:'craft', ih:54, rows:2, items:[{id:'t1', grid:[null,'coal',null,null,'stick',null,null,null,null], out:'torch', auto:true}, {id:'t2', grid:[null,'charcoal',null,null,'stick',null,null,null,null], out:'torch'}]},
+  {title:'製錬（ガラス）', kind:'smelt', ih:48, items:[{id:'g1', input:'sand', out:'glass', auto:true}, {id:'g2', input:'redsand', out:'glass'}]},
+  {title:'石切（石の階段）', kind:'cut', ih:24, items:[{id:'s1', input:'stone', out:'stairs', auto:true}, {id:'s2', input:'slab', out:'stairs'}]},
+  {title:'鍛冶（ネザライトの剣）', kind:'smith', ih:48, items:[{id:'n1', parts:['tmpl','dia','neth'], out:'netherite', auto:true}]},
 ];
-// width, margin and block as RecipeViewLayout; the face is the block and 3 units around it.
-const SPACES = {
-  now:{w:220, margin:10, block:92, cols:2},
-  wide:{w:236, margin:12, block:92, cols:2},
-  tight:{w:220, margin:10, block:86, cols:2},
-  one:{w:220, margin:10, block:92, cols:1},
-};
-const PLACE = {
-  arrow:(u, c) => `<span class="pic" style="width:${7*u}px;height:${7*u}px"><span style="position:absolute;left:${3*u}px;top:0;width:${u}px;height:${4*u}px;background:${c}"></span><span style="position:absolute;left:${1*u}px;top:${3*u}px;width:${5*u}px;height:${u}px;background:${c};clip-path:polygon(0 0,100% 0,50% 100%)"></span><span style="position:absolute;left:0;top:${6*u}px;width:${7*u}px;height:${u}px;background:${c}"></span></span>`,
-  plus:(u, c) => `<span class="pic" style="width:${7*u}px;height:${7*u}px"><span style="position:absolute;left:${3*u}px;top:0;width:${u}px;height:${7*u}px;background:${c}"></span><span style="position:absolute;left:0;top:${3*u}px;width:${7*u}px;height:${u}px;background:${c}"></span></span>`,
-};
+const BLOCK = 92, MARGIN = 10, ROW_GAP = 6;
+const placePic = (u, c) => `<span class="pic" style="width:${7*u}px;height:${7*u}px"><span style="position:absolute;left:${3*u}px;top:0;width:${u}px;height:${4*u}px;background:${c}"></span><span style="position:absolute;left:${1*u}px;top:${3*u}px;width:${5*u}px;height:${u}px;background:${c};clip-path:polygon(0 0,100% 0,50% 100%)"></span><span style="position:absolute;left:0;top:${6*u}px;width:${7*u}px;height:${u}px;background:${c}"></span></span>`;
 const anyOrder = (u, c) => `<span class="pic" style="width:${7*u}px;height:${5*u}px"><span style="position:absolute;left:0;top:${u}px;width:${7*u}px;height:${u}px;background:${c}"></span><span style="position:absolute;left:0;top:${3*u}px;width:${7*u}px;height:${u}px;background:${c}"></span><span style="position:absolute;left:${5*u}px;top:0;width:${2*u}px;height:${2*u}px;background:${c};clip-path:polygon(0 0,100% 50%,0 100%)"></span><span style="position:absolute;left:0;top:${3*u}px;width:${2*u}px;height:${2*u}px;background:${c};clip-path:polygon(100% 0,0 50%,100% 100%)"></span></span>`;
 const view = document.getElementById('view');
-function fitUnit(){ U = Math.max(1.5, Math.min(3.2, (document.querySelector('.wrap').clientWidth - 20) / 245)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function fitUnit(){ U = Math.max(1.5, Math.min(3.2, (document.querySelector('.wrap').clientWidth - 20) / 250)); document.documentElement.style.setProperty('--u', U + 'px'); }
 function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
 function icon(x, y, key, size = 16){ const [c, t] = ICONS[key]; const d = el('ico', x, y, size, size, t); d.style.background = c; d.style.fontSize = px(size * .38); return d; }
 function slot(x, y, key){ el('slot', x, y, 18, 18); if (key) icon(x + 1, y + 1, key); }
 function hoverable(d, key, x, y, text){
   d.onmouseenter = () => { hover = key; render(); };
   d.onmouseleave = () => { hover = null; render(); };
-  if (hover === key) { const t = el('tip', x, y - 13, null, null, text); t.style.fontSize = px(7); }
+  if (hover === key) { const t = el('tip', x, y - 13 - (text.includes('<br>') ? 8 : 0), null, null, text); t.style.fontSize = px(7); }
 }
 function render(){
   fitUnit();
-  const sp = SPACES[opt.space], W = sp.w, column = (W - 2 * sp.margin) / 2;
-  const shift = sp.block < 92 ? -4 : 0; // a tighter face draws the arrow and the product 4 nearer the grid
-  const faceGap = column - sp.block - 6, faceEdge = sp.cols === 1 ? (W - sp.block) / 2 - 3 : sp.margin + (column - sp.block) / 2 - 3;
-  document.getElementById('dims').textContent = sp.cols === 1
-    ? `ウィンドウ幅 ${W}、レシピは 1 列で中央。ウィンドウの外縁から面まで ${faceEdge}。1 ページにクラフト 3 つ（今は 6 つ）。`
-    : `ウィンドウ幅 ${W}、列 ${column}、面 ${sp.block + 6}。面と面の間 ${faceGap}、ウィンドウの外縁から面まで ${faceEdge}（縁の 3 を含む）。`;
+  const W = +opt.w, pad = +opt.pad, column = (W - 2 * MARGIN) / 2, faceW = BLOCK + 2 * pad;
+  const gap = column - faceW, edge = MARGIN + (column - faceW) / 2;
+  const craftFace = 54 + 2 * pad, step = craftFace + ROW_GAP, taller = 3 * (step - 66);
+  document.getElementById('dims').textContent = `面 ${faceW}×${craftFace}（クラフト）。面と面の間 ${gap}、ウィンドウの外縁から面まで ${edge}（縁の 3 を含む）。クラフト 1 行 ${step}（今 66）：3 行でウィンドウが ${taller > 0 ? taller + ' 高くなる' : '今と同じ'}。`;
   view.style.width = px(W); view.innerHTML = '';
-  // The heading, as now: the item, and at its top right "favorite" and "wanted" for the whole item.
   let y = 6;
   icon(8, y, 'torch', 14);
   el('txt', 26, y + 3, null, null, 'トーチ').style.fontSize = px(8);
@@ -156,79 +140,64 @@ function render(){
   y += 22;
   BLOCKS.forEach(block => {
     el('faint', 8, y, null, null, block.title).style.fontSize = px(7);
-    y += 12;
-    const many = block.items.length > 1;
-    const chosenId = chosen[block.kind];
-    const blockH = block.h, rowStep = blockH + 8;
+    y += 10 + pad;
+    const chosenId = chosen[block.kind], many = block.items.length > 1, ih = block.ih;
     block.items.forEach((r, i) => {
-      const bx = sp.cols === 1 ? (W - sp.block) / 2 : sp.margin + (i % 2) * column + (column - sp.block) / 2;
-      const by = y + 3 + (sp.cols === 1 ? i * rowStep : 0);
+      const bx = MARGIN + (i % 2) * column + (column - BLOCK) / 2, by = y;
       const isChosen = chosenId === r.id, isAuto = !chosenId && r.auto;
-      el('face', bx - 3, by - 3, sp.block + 6, blockH + 1);
-      const right = bx + sp.block; // the block's right edge: the buttons stand against it
+      el('face', bx - pad, by - pad, faceW, ih + 2 * pad);
+      const right = bx + BLOCK;
       let product, arrow;
       if (block.kind === 'craft') {
         for (let k = 0; k < 9; k++) slot(bx + (k % 3) * 18, by + Math.floor(k / 3) * 18, r.grid[k]);
-        arrow = [57 + shift / 2, 20], product = [70 + shift, 18];
+        arrow = [57, 20], product = [70, 18];
       } else if (block.kind === 'smelt') {
         slot(bx, by, r.input); slot(bx, by + 30, null);
         arrow = [21, 17], product = [34, 15];
       } else if (block.kind === 'cut') {
-        slot(bx, by + 6, r.input);
-        arrow = [21, 8], product = [34, 6];
+        slot(bx, by + 3, r.input);
+        arrow = [21, 5], product = [34, 3];
       } else {
         r.parts.forEach((p, k) => slot(bx + k * 18, by + 15, p));
-        arrow = [57 + shift / 2, 17], product = [70 + shift, 15];
+        arrow = [57, 17], product = [70, 15];
       }
       el('txt', bx + arrow[0], by + arrow[1], null, null, '➜').style.fontSize = px(10);
       slot(bx + product[0], by + product[1], r.out);
-      // "Place": always at the bottom right.
-      // The face ends 2 above blockH (as raisedBox draws it): the button keeps a unit inside its edge.
-      const pS = 11, pX = right - pS, pY = by + blockH - 3 - pS;
-      const pd = el('btn', pX, pY, pS, pS, PLACE[opt.pic](U, '#3f3f3f')); pd.style.zIndex = 2;
+      // "Place", today's picture, at the content's bottom right.
+      const pX = right - 11, pY = by + ih - 11;
+      const pd = el('btn', pX, pY, 11, 11, placePic(U, '#3f3f3f')); pd.style.zIndex = 2;
       hoverable(pd, r.id + 'place', pX - 30, pY, '並べる（Shift: 割れるだけ）');
-      // The any-order mark of a crafting recipe (drawn on the first as an example): under the product now; at the top
-      // right when "use" takes the bottom row.
       if (block.kind === 'craft' && i === 0) {
-        const top = opt.where === 'under';
-        const ax = top ? right - 8 : bx + 58 + shift, ay = top ? by + 2 : by + 42;
-        const a = el('', ax, ay, 7, 5, anyOrder(U, '#3f3f3f'));
-        hoverable(a, r.id + 'any', ax - 14, ay, '順不同（例）');
+        const a = el('', bx + 58, by + 42, 7, 5, anyOrder(U, '#3f3f3f'));
+        hoverable(a, r.id + 'any', bx + 44, by + 42, '順不同（例）');
       }
       if (!many) return;
-      // "Use this recipe": a check box or a button, with its words or "automatic" beside it.
-      const low = blockH - (product[1] + 18) < 10; // stonecutting: right of the product
-      const cw = opt.pick === 'check' ? 9 : 22, ch = 9;
-      let cx = opt.pick === 'check' ? bx + product[0] : bx + product[0] - 2, cy;
-      if (low) cx = bx + product[0] + 21, cy = by + product[1] + 5;
-      else if (opt.where === 'under') cy = pY + 1;
-      else cx = right - cw, cy = by + 3; // in one column with "place" below
-      if ((low || opt.where === 'under') && cx + cw > pX - 2) cx = pX - 2 - cw;
-      // "Automatic" or "use" left of the control where the slots leave room for it, else under it.
-      // Without room: under it at the top, above it on the bottom row.
-      const leftEnd = bx + (block.kind === 'craft' ? 54 : 18), roomLeft = !low && cx - 15 >= leftEnd;
-      const aside = opt.where === 'under' && !low ? cy - 7 : cy + 10;
-      const press = e => { e.preventDefault(); chosen[block.kind] = isChosen ? undefined : r.id; render(); };
-      let d;
-      if (opt.pick === 'check') {
-        d = el('cb', cx, cy, cw, ch); d.onmousedown = press;
-        if (isChosen) el('tick txt', cx + 1.5, cy - 1.5, null, null, '✔').style.fontSize = px(8);
-        const words = isChosen ? '使う' : isAuto ? '自動' : '';
-        if (words) {
-          const w = el(isChosen ? 'txt' : 'faint', roomLeft ? cx - 15 : cx - 3, roomLeft ? cy + 1.5 : aside, roomLeft ? 13 : 15, null, words);
-          w.style.fontSize = px(5.5); w.style.textAlign = roomLeft ? 'right' : 'center';
-        }
-      } else {
-        d = el('btn' + (isChosen ? ' on' : ''), cx, cy, cw, ch, isChosen ? '使用中' : '使う');
-        d.style.fontSize = px(5.5); d.onmousedown = press;
-        if (isAuto) {
-          const a = el('faint', roomLeft ? cx - 15 : cx, roomLeft ? cy + 2 : aside, roomLeft ? 13 : cw, null, '自動');
-          a.style.fontSize = px(5); a.style.textAlign = roomLeft ? 'right' : 'center';
-        }
+      // "Use this recipe": left of "place" at the corner, or above it in the right column.
+      const cx = opt.where === 'corner' ? pX - 2 - 9 : right - 10, cy = opt.where === 'corner' ? pY + 1 : by;
+      const d = el('cb', cx, cy, 9, 9);
+      d.onmousedown = e => { e.preventDefault(); chosen[block.kind] = isChosen ? undefined : r.id; render(); };
+      const tick = (color) => { const t = el('tick', cx + 1.2, cy + .3, 7, 8, '✔'); t.style.fontSize = px(8); t.style.color = color; };
+      if (isChosen) tick('#2a2a2a');
+      else if (isAuto && opt.auto === 'grey') tick('#b8b8b8');
+      if (isAuto && opt.auto === 'word') {
+        const w = el('faint', cx - 15, cy + 1.5, 13, null, '自動'); w.style.fontSize = px(5.5); w.style.textAlign = 'right';
       }
-      hoverable(d, r.id + 'use', cx - 20, cy, isChosen ? 'このレシピで作る（もう一度で自動に戻る）' : 'このレシピで作る');
+      const text = isChosen ? 'このレシピで作る（自分で選んだ）<br>押すと自動に戻す'
+        : isAuto ? '自動でこのレシピが選ばれています<br>押すとこれに決める' : 'このレシピで作る';
+      hoverable(d, r.id + 'use', cx - 40, cy, text);
     });
-    y += (sp.cols === 1 ? block.items.length * rowStep - 8 : blockH) + 12;
+    y += ih + pad + 6;
+    // A second row of crafting faces, to see the room between rows.
+    if (block.rows === 2) {
+      y += ROW_GAP + pad - 6;
+      for (let i = 0; i < 2; i++) {
+        const bx = MARGIN + i * column + (column - BLOCK) / 2;
+        el('face ghost', bx - pad, y - pad, faceW, ih + 2 * pad);
+        for (let k = 0; k < 9; k++) { const s = el('slot', bx + (k % 3) * 18, y + Math.floor(k / 3) * 18, 18, 18); s.style.opacity = .55; }
+      }
+      const n = el('faint', MARGIN + 2, y + ih + pad + 1, null, null, `↑ 2 行目（行の間 ${ROW_GAP}）`); n.style.fontSize = px(5.5);
+      y += ih + pad + 12;
+    }
   });
   view.style.height = px(y);
   el('win', 0, 0, W, y).style.zIndex = -1;
