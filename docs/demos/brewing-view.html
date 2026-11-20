@@ -49,12 +49,13 @@ th{color:var(--ink-2);font-weight:500}
 <body>
 <div class="wrap">
   <header>
-    <h1>醸造をレシピ画面に 3（L-361）</h1>
+    <h1>醸造をレシピ画面に 4（L-361）</h1>
     <p class="lede">醸造台の調合を、レシピ画面の「醸造」タブに出す案。面の大きさと余白は今のレシピ画面と同じ（幅 92、余白 5）。下の切り替えで、面の形・燃料の出し方・計画での数え方を見比べる。例は俊敏のポーション（奇妙なポーション＋砂糖）と、奇妙なポーション（水入り瓶＋ネザーウォート）。</p>
   </header>
   <div class="controls">
     <div class="grp"><span class="lbl">面の形</span>
-      <button class="chip on" data-k="shape" data-v="stand">D. 醸造台どおり（左に完成前、真ん中は空、右に完成後）</button>
+      <button class="chip on" data-k="shape" data-v="close">E. 醸造台になるべく似せる（コイルは下へ、管は最初から 3 本）</button>
+      <button class="chip" data-k="shape" data-v="stand">D. 醸造台どおり（左に完成前、真ん中は空、右に完成後）</button>
       <button class="chip" data-k="shape" data-v="one">A. 瓶 1 本（材料の下に瓶、矢印、完成品）</button>
       <button class="chip" data-k="shape" data-v="three">B. 瓶 3 本（醸造台のように 3 本並べる）</button>
       <button class="chip" data-k="shape" data-v="count">C. A に「×3」（1 回で 3 本まで）</button>
@@ -94,7 +95,7 @@ th{color:var(--ink-2);font-weight:500}
       <h2>決めたいこと</h2>
       <ul>
         <li>決まったこと（2026-11-21）：面は醸造台どおり（D）、燃料はブレイズパウダーを描く、数え方はまとめて、計画にブレイズパウダーは数えない。</li>
-        <li><span class="q">1.</span> 醸造台の部品の描き方（管・コイル・燃料計・泡・空き瓶の形）がこれで醸造台に結び付くか。</li>
+        <li><span class="q">1.</span> E（なるべく似せる）か D（整理した形）か。E は面が 60 と高く、醸造のタブは 1 ページ 2 行になる（他は 3 行）。</li>
         <li><span class="q">2.</span> 醸造台への「並べる」：押すと材料 1 つと左の瓶 1 本、Shift で材料 1 つと瓶 3 本（3 つの欄すべて）。燃料は触らない。</li>
       </ul>
     </div>
@@ -102,7 +103,7 @@ th{color:var(--ink-2);font-weight:500}
 </div>
 <script>
 let U = 3;
-const opt = {shape:'stand', fuel:'solid', plan:'batch', parts:true};
+const opt = {shape:'close', fuel:'solid', plan:'batch', parts:true};
 const px = v => v * U + 'px';
 const view = document.getElementById('view');
 function fit(){ U = Math.max(1.5, Math.min(3.2, (document.querySelector('.wrap').clientWidth - 20) / 245)); document.documentElement.style.setProperty('--u', U + 'px'); }
@@ -116,10 +117,39 @@ function slot(x, y, item, count, dim){
 const ITEMS = {sugar:['#e8e8f0','砂'], wart:['#8a2a2a','ウ'], awkward:['#5a6ad0','奇'], water:['#3a5ad8','水'], swift:['#7ad0f0','俊'], blaze:['#e8a020','ブ',true], blazeSolid:['#e8a020','ブ']};
 const placeIcon = `<span style="position:absolute;left:${5*U}px;top:${2*U}px;width:${U}px;height:${4*U}px;background:#3f3f3f"></span><span style="position:absolute;left:${3*U}px;top:${5*U}px;width:${5*U}px;height:${U}px;background:#3f3f3f;clip-path:polygon(0 0,100% 0,50% 100%)"></span><span style="position:absolute;left:${2*U}px;top:${8*U}px;width:${7*U}px;height:${U}px;background:#3f3f3f"></span>`;
 function face(bx, by, ingredient, from, to){
-  const B = 92, H = opt.shape === 'three' || opt.shape === 'stand' ? 54 : 48, pad = 5; // B: as tall as a crafting face, so place clears the result
+  const B = 92, H = opt.shape === 'close' ? 60 : opt.shape === 'three' || opt.shape === 'stand' ? 54 : 48, pad = 5; // B: as tall as a crafting face, so place clears the result
   el('face', bx - pad, by - pad, B + 2 * pad, H + 2 * pad);
   const fuelX = bx, fuelY = by + 30;
   const fuelItem = opt.fuel === 'faded' ? ITEMS.blaze : opt.fuel === 'solid' ? ITEMS.blazeSolid : null;
+  if (opt.shape === 'close') {
+    // As close to the stand's screen as 92 by 60 allows (its own is about 111 by 59): the fuel at the top left, its
+    // tube to the right with the coil hanging under it, a tube on to the gauge with bubbles over it, the ingredient at
+    // the top with the arrow at its right, three tubes leaving it side by side and parting to the three bottles, the
+    // left and the right bottle level, the middle one lower. Taller than other faces so place clears the right bottle.
+    const ink = '#3f3f3f', pale = '#f4f4f4', dark = '#2a2a2a';
+    const line = (x, y, w, h, c) => { const d = el('', bx + x, by + y, w, h, ''); d.style.background = c; return d; };
+    const tube = (x, y, w, h) => { line(x, y, w, h, ink); if (w > h) line(x, y + h, w, 1, pale); else line(x + w, y, 1, h, pale); };
+    if (opt.parts) {
+      tube(18, 12, 4, 1);                                                    // from the fuel
+      for (let i = 0; i < 5; i++) { line(21, 13 + i * 2.4, 8, 1.2, dark); line(21, 14.2 + i * 2.4, 8, .8, pale); } // the coil, hanging
+      tube(29, 25, 3, 1);                                                    // on to the gauge
+      line(32, 24, 16, 3, ink); line(33, 25, 14, 1, '#e8a020');               // the gauge, over the left bottle
+      for (const [x, y] of [[39, 19], [41, 14], [38, 9], [42, 4]]) line(x, y, 1.5, 1.5, pale); // bubbles
+      // three tubes from the ingredient: left, middle, right
+      tube(55, 18, 1, 18); tube(46, 36, 10, 1);                              // left: down, then to the left bottle
+      tube(60.5, 18, 1, 22);                                                 // middle: down to the middle bottle
+      tube(66, 18, 1, 18); tube(66, 36, 8, 1);                               // right: down, then to the right bottle
+    }
+    if (opt.fuel !== 'none') slot(bx, by, fuelItem);
+    slot(bx + 52, by, ingredient);
+    const a = el('', bx + 73, by + 1, 3, 16, ''); a.style.background = ink; a.style.clipPath = 'polygon(35% 0,65% 0,65% 70%,100% 70%,50% 100%,0 70%,35% 70%)';
+    slot(bx + 28, by + 30, from);
+    slot(bx + 52, by + 40, null, null, false);
+    if (opt.parts) { const b = el('', bx + 56, by + 43, 10, 12, ''); b.style.border = `${U}px solid #6f6f6f`; b.style.borderRadius = `${2*U}px ${2*U}px ${4*U}px ${4*U}px`; }
+    slot(bx + 74, by + 30, to);
+    el('btn', bx + B - 11, by + H - 11, 11, 11, placeIcon);
+    return;
+  }
   if (opt.shape === 'stand') {
     // As the brewing stand's screen: the fuel at the top left, the ingredient at the top in the middle with the
     // progress arrow right of it, and the three bottles below, the left one before, the middle empty, the right after.
@@ -168,8 +198,8 @@ function render(){
   fit();
   const W = 236, margin = 10, column = (W - 2 * margin) / 2;
   view.style.width = px(W); view.innerHTML = '';
-  el('win', 0, 0, W, 118).style.zIndex = -1;
-  view.style.height = px(118);
+  el('win', 0, 0, W, 124).style.zIndex = -1;
+  view.style.height = px(124);
   el('txt', 8, 8, null, null, 'レシピ: 俊敏のポーション').style.fontSize = px(8);
   // the plan's table no longer has a fuel column
   el('faint', 8, 22, null, null, '醸造').style.fontSize = px(7);
