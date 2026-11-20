@@ -389,7 +389,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 icon(entry.key, left + 8, y + 1, 1.f, done ? .45f : 1.f);
                 windowLabel(context, nameX, y + 5, nameEnd - nameX, shown.name, done);
                 number(heldX, heldW, y + 5, have, done);
-                progressBar(context, barX, y + 7.5f, barW, 3, fraction);
+                progressBar(context, barX, y + 9, barW, 3, fraction);
                 // The player's own: "wanted" turns into the stepper and remove shows under the pointer; nothing moves.
                 bool onControl = false;
                 if (manual && hot) {
@@ -447,8 +447,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         windowLabel(context, nameX, top + 5, nameEnd - nameX, translated("recipes.all"));
         number(heldX, heldW, top + 5, total.need - total.left, false);
         number(wantX, wantW, top + 5, total.need, false);
-        progressBar(context, barX, top + 7.5f, barW, 3, total.fraction());
-        fill(context, left, top + rowHeight - 1, right - left, .5f, v::windowFaint);
+        progressBar(context, barX, top + 9, barW, 3, total.fraction());
+        fill(context, left, top + rowHeight - 1, right - left, 1, v::windowFaint);
         top += rowHeight;
         int const count = static_cast<int>(rows.size()), fits = static_cast<int>((bottom - top) / rowHeight);
         offset = std::clamp(offset + wheel, 0, std::max(0, count - fits));
@@ -463,10 +463,12 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             icon(picture, left + 8, y + 1, 1.f, alpha);
             number(heldX, heldW, y + 5, line.held, row.done);
             number(wantX, wantW, y + 5, line.need, row.done);
-            progressBar(context, barX, y + 7.5f, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
+            progressBar(context, barX, y + 9, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
             float end = nameEnd;
             if (row.stopped) rowButton(right, y + 4, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
-            else if (row.key.empty() && line.id >= itemCount) groupState(right, y + 4, line.id - itemCount);
+            // A group's choice: no tag (the row has no room for one); the row itself goes to "How to make".
+            bool const group = row.key.empty() && line.id >= itemCount;
+            if (group && !row.stopped && took(left, y, right - left, rowHeight)) jumpHowTo(groupKey(index, line.id - itemCount));
             // A count that includes what a place held when last seen is starred and says where the items are.
             if (line.id >= 0 && line.id < itemCount) {
                 auto const stored = plan->stored.find(line.id);
@@ -487,8 +489,12 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             }
             windowLabel(context, nameX, y + 5, end - nameX, name, row.done);
             if (late.tip.empty() && over(left, y, end - left, rowHeight)) {
-                if (row.key.empty() && line.id >= itemCount) groupTip(line.id - itemCount);
-                else late.tip = name, late.hovered = picture;
+                if (group) {
+                    groupTip(line.id - itemCount);
+                    auto picked = request.picks.find(line.id - itemCount);
+                    late.tipLines = {picked != request.picks.end() ? translated("recipes.howTo.chosen") + ": " + nameOf(picked->second) : translated("recipes.howTo.any"),
+                                     translated("recipes.howTo.change")};
+                } else late.tip = name, late.hovered = picture;
                 if (line.left > 0) late.tipLines.push_back(amountText(line.left, schematic::items::shown(picture).stack));
             }
         }

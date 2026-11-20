@@ -367,9 +367,14 @@ void recipeIndexTests() {
         auto side = itemListLeft(360, 210);
         check(side.width == 206 && side.columns == 11 && side.split() == 180 && side.favouriteRows() == 9 && side.usable() && side.wide(),
               "the left band runs from the screen's edge to the room the centre keeps, halved between favourites and wanted");
-        check(side.hitFavourite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavourite(100, 178) == -1 && side.rows() == 11
-              && side.hitRow(50, side.rowY(3) + 1) == 3 && side.hitRow(50, 350) == -1 && side.hitRow(50, 100) == -1,
-              "favourites are cells above the middle; the wanted rows end a line short of the bottom");
+        check(side.hitFavourite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavourite(100, 178) == -1 && side.rows() == 13
+              && side.hitRow(50, side.rowY(3) + 1) == 3 && side.hitRow(50, 359) == -1 && side.hitRow(50, 100) == -1,
+              "favourites are cells above the middle; the wanted rows reach the bottom");
+        {
+            auto withFoot = side;
+            withFoot.footOn = true;
+            check(withFoot.rows() == 12 && withFoot.rowY(12) <= withFoot.footY() - 3, "an open container's line takes the last units, under a rule");
+        }
         check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
         check(field.x == 232 && field.y == 344 && field.w == 176 && field.h == 14 && field.has(300, 350) && !field.has(300, 340), "the search field sits at the bottom centre");

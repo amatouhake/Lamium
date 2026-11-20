@@ -42,6 +42,7 @@ struct SideLayout {
     int columns = 0;
     // Which halves are in use; one alone has the whole band.
     bool favouritesOn = true, planOn = true;
+    bool footOn = false; // an open container's line takes the band's last units
     bool usable() const { return columns > 0 && height >= 120; }
     bool has(float x, float y) const { return usable() && x >= left && x < left + width && y >= top && y < top + height; }
     float split() const { return !favouritesOn ? 0 : !planOn ? height : std::floor(height * .5f); }
@@ -58,10 +59,11 @@ struct SideLayout {
     static constexpr float bar = 14;
     float barY() const { return top + split() + 3; }
     float rowsTop() const { return top + split() + 5 + bar; }
-    // The last 18 units are the open container's line: a rule, the name and switch, and room under them.
-    static constexpr float foot = 18;
-    float footY() const { return top + height - 14; }
-    int rows() const { return std::max(0, static_cast<int>((height - (split() + 5 + bar) - foot) / row)); }
+    // With a container open the last 16 units are its line: a rule, the name and switch, a little room under
+    // them. Without one the rows reach the band's end.
+    static constexpr float foot = 16;
+    float footY() const { return top + height - 12; }
+    int rows() const { return std::max(0, static_cast<int>((height - (split() + 5 + bar) - (footOn ? foot : 2)) / row)); }
     float rowY(int index) const { return rowsTop() + static_cast<float>(index) * row; }
     int hitRow(float x, float y) const {
         if (!has(x, y) || y < rowsTop()) return -1;

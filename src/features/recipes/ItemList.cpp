@@ -318,6 +318,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto side = favouritesOn || planOn ? itemListLeft(screen.y, coverLeft) : SideLayout{};
     side.favouritesOn = favouritesOn;
     side.planOn = planOn;
+    side.footOn = planOn && placesGame::open(screenView).has_value();
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
     Queued input;
     {
@@ -533,6 +534,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             Count count = 0;
             int step = -1; // a row of what to make: its place among the plan's steps
             std::string source; // a wanted item a feature handed over: whose it is; not edited here
+            bool faint = false; // a step that cannot be made from what is held yet
         };
         std::vector<SideRow> rows;
         auto const* plan = state::plan(*player);
@@ -558,12 +560,17 @@ bool drawList(ll::event::UIRenderEvent& event) {
             // What the recipe table does not know (a grass block) is gathered as it is.
             for (auto const& line : plan->loose) if (line.left > 0) rows.push_back({line.key, schematic::items::shown(line.key).name, line.left});
         } else if (plan) {
-            // What to make, in the order it can be made, each with how many come out.
+            // What to make, as the window's tab: what can be made now from what is held first, the rest faint.
             auto const& index = plan->table->index;
-            for (size_t i = 0; i < plan->view.steps.size(); ++i) {
-                auto const& key = index.items[static_cast<size_t>(plan->view.steps[i].item)];
-                rows.push_back({key, schematic::items::shown(key).name, plan->view.steps[i].made, static_cast<int>(i)});
-            }
+            std::map<Item, Count> stock;
+            for (auto const& [id, have] : plan->request.held) stock[id] += have;
+            for (bool ready : {true, false})
+                for (size_t i = 0; i < plan->view.steps.size(); ++i) {
+                    auto const& step = plan->view.steps[i];
+                    if (stepReady(index, plan->request, step, stock) != ready) continue;
+                    auto const& key = index.items[static_cast<size_t>(step.item)];
+                    rows.push_back({key, schematic::items::shown(key).name, step.made, static_cast<int>(i), {}, !ready});
+                }
         }
         // The list scrolls: the wheel over it (a stepper under the pointer takes the wheel for itself)
         // and the shared bar at its right, which the rows make room for.
@@ -590,7 +597,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
             float const y = side.rowY(i), end = rowsEnd;
             ListBox const whole{side.left, y, side.width, SideLayout::row};
             if (!row.key.empty())
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon)) late.icons.push_back({stack, side.left + 3, y + 1, smallIcon});
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon))
+                    late.icons.push_back({stack, side.left + 3, y + 1, smallIcon, 0, row.faint ? .45f : 1.f});
             float nameEnd = end - 30;
             if (sideList == SideList::Wanted && row.source.empty()) {
                 // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
@@ -604,8 +612,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 else if (took(box)) {}
                 else if (input.sideTurns && box.has(px, py)) state::stepWanted(row.key, input.sideTurns < 0, shiftHeld.load(), false);
                 nameEnd = sx - 3;
-            } else label(context, end - 40, y + 2, 40, std::to_string(row.count), palette::text, Align::Right);
-            if (side.wide()) label(context, side.left + 16, y + 2, nameEnd - side.left - 16, row.name, palette::dim);
+            } else label(context, end - 40, y + 2, 40, std::to_string(row.count), row.faint ? palette::faint : palette::text, Align::Right);
+            if (side.wide()) label(context, side.left + 16, y + 2, nameEnd - side.left - 16, row.name, row.faint ? palette::faint : palette::dim);
             if (whole.has(px, py)) {
                 if (hoverItem.empty()) hoverItem = row.key;
                 // A row of what to make says what its crafts take.
@@ -631,7 +639,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             // One switch about the open container, under a rule like the one between the favourites and the
             // plan (no stronger a division than that), with room above and below it.
             ListBox const box{side.left + 2, side.footY(), side.width - 4, 11};
-            fill(context, side.left + 3, box.y - 4, side.width - 6, 1, palette::white, .2f);
+            fill(context, side.left + 3, box.y - 3, side.width - 6, 1, palette::white, .2f);
             if (box.has(px, py)) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
             if (side.wide()) label(context, box.x + 2, box.y + 1, box.w - switchWidth - 8, translated("recipes.place.count"), palette::dim);
             else if (box.has(px, py)) late.tip = translated("recipes.place.count");
