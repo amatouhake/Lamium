@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item tips without presses, Shift-place from every list (L-379, 2026-11-21)
+
+Build `fa4b2149` (DLL
+`5282439835c2c0756163b765a1d722dd71591986cda8f15a947fca860d7bdf0c`),
+1.26.60.05 Dev instance, the maintainer. Works: no Ctrl line in an item's
+tip; Shift + press under "All" and in the favorites lays in as many as
+divide evenly; the place button's tip names Shift and Ctrl. Not seen: a
+server.
+
 ## Crafting onto the pointer (L-379, 2026-11-21)
 
 Build `250d384d` (DLL
