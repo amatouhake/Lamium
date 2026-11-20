@@ -143,7 +143,7 @@ from the file); never restate them here.
    and L-265 placement assist.
    Agree open choices before building.
    L-359 material plan (with L-116 raw materials) runs beside this list,
-   neither ahead of it nor behind it.
+   neither ahead of it nor behind it; its next steps are in L-371's order.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
    remaining L-117 schematic name tags.
@@ -197,9 +197,15 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): Rebuilt as decided (2026-11-20), not checked in game
+- [L-374](backlog/L-374.md) Bands built from regions and pages (Refactor): Open, not started; waits for L-373
+- [L-375](backlog/L-375.md) The band layout editor (Ready): Open, not started; waits for L-374
+- [L-376](backlog/L-376.md) Recipe view tabs by kind of work (Ready): Open, not started; carrying the chosen recipes over needs the maintainer's OK
+- [L-377](backlog/L-377.md) Search syntax and a key for the search field (Design): Open, not started
+- [L-378](backlog/L-378.md) Light up the game's slots that match the search (Research): Open, not started; after L-377
+- [L-379](backlog/L-379.md) A recipe's own controls and crafting onto the pointer (Design): Open, not started; easier after L-376
 - [L-373](backlog/L-373.md) Recipes, Plan and Stores as three features (Design): Agreed (maintainer 2026-11-20); not built, waits for the settings format to be confirmed
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Open; the direction is agreed (maintainer 2026-11-20), the details are not
-- [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); to be split into feature items
+- [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); split into L-373 to L-379 and existing items
 - [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): Open; collected 2026-11-20 from the L-366 and L-367 rounds
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
