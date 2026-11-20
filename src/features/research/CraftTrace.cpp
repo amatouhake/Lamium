@@ -395,10 +395,12 @@ void seePlace(ScreenView& view) {
         probeFilled = filled;
     }
 }
+void seeStonecutter(ContainerScreenController& screen);
 void seeScreen(ll::event::UIRenderEvent& event) {
     auto& view = event.screenView();
     if (!view.mHasFocus || !view.mController || !view.mController->_isContainerScreen()) return;
     try { seePlace(view); } catch (...) {}
+    try { seeStonecutter(static_cast<ContainerScreenController&>(*view.mController)); } catch (...) {}
     auto* tree = view.mVisualTree.get();
     UIControl* const root = tree ? tree->mRootControl.get() : nullptr;
     if (!root) return;
@@ -422,13 +424,65 @@ void seeScreen(ll::event::UIRenderEvent& event) {
     // The line can be long: in parts, so the log keeps all of it.
     for (size_t at = 0; at < controls.size(); at += 1500) log(screenBudget, 60, "screen '{}' controls:{}", name, controls.substr(at, 1500));
 }
+// L-380: how the game chooses the stonecutter's result. On a stonecutter screen only: each hover the screen handles
+// and each take it makes ( take-place and auto-place log as `recent`), with
+// the collection and index and what lies there; and, every frame, the stonecutter's collections whenever they change
+// (the result shows once one is chosen). Read-only.
+TraceBudget stoneBudget;
+bool stonecutter(ContainerScreenController& screen) {
+    auto manager = screen.mContainerManagerController.get();
+    return manager && manager->getContainerType() == SharedTypes::Legacy::ContainerType::Stonecutter;
+}
+std::string slotItem(ContainerScreenController& screen, std::string const& collection, int index) {
+    try {
+        auto manager = screen.mContainerManagerController.get();
+        if (!manager || !manager->hasContainerController(collection)) return "-";
+        auto const& stack = manager->getItemStack(collection, index);
+        return stack.isNull() ? std::string("-") : std::format("{}x{}", stack.getTypeName(), static_cast<int>(stack.mCount));
+    } catch (...) { return "?"; }
+}
+std::string lastStoneHover;
+LL_TYPE_INSTANCE_HOOK(StoneHovered, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::$_onContainerSlotHovered, ::ui::ViewRequest, std::string const& collection, int index) {
+    if (stonecutter(*this)) {
+        observedAt = nowMs();
+        std::string cell = std::format("{}:{}", collection, index);
+        if (cell != lastStoneHover) log(stoneBudget, 600, "stone hovered {} item={}", cell, slotItem(*this, collection, index)), lastStoneHover = std::move(cell);
+    }
+    return origin(collection, index);
+}
+LL_TYPE_INSTANCE_HOOK(StoneTakeAmount, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::_handleTakeAmount, void, int amount, std::string const& collection, int index) {
+    if (stonecutter(*this)) log(stoneBudget, 600, "stone take-amount {} {}:{} item={}", amount, collection, index, slotItem(*this, collection, index));
+    origin(amount, collection, index);
+}
+// Every frame on a stonecutter screen: its collections and what lies in them, logged when that changes.
+std::string lastStoneState;
+void seeStonecutter(ContainerScreenController& screen) {
+    if (!stonecutter(screen)) return;
+    auto manager = screen.mContainerManagerController.get();
+    if (!manager || manager->mContainersClosed) return;
+    std::string state;
+    unsigned seen = 0;
+    for (auto const& [collection, container] : manager->mContainers.get()) {
+        if (++seen > 40) break;
+        if (collection.find("inventory") != std::string::npos || collection.find("hotbar") != std::string::npos) continue;
+        state += " " + collection + "[";
+        for (int i = 0, size = manager->getContainerSize(collection); i < size && i < 64; ++i)
+            if (auto const& stack = manager->getItemStack(collection, i); !stack.isNull())
+                state += std::format("{}:{}x{} ", i, stack.getTypeName(), static_cast<int>(stack.mCount));
+        state += "]";
+    }
+    if (state != lastStoneState) log(stoneBudget, 600, "stone state{}", state), lastStoneState = std::move(state);
+}
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {
     {CraftSlotHovered::hook, CraftSlotHovered::unhook},
     {CraftAutoPlace::hook, CraftAutoPlace::unhook}, {CraftTakePlace::hook, CraftTakePlace::unhook},
     {CraftPlaceOne::hook, CraftPlaceOne::unhook}, {CraftEvacuate::hook, CraftEvacuate::unhook},
     {CraftServerAction::hook, CraftServerAction::unhook}, {CraftTick::hook, CraftTick::unhook},
-    {CraftResponse::hook, CraftResponse::unhook}
+    {CraftResponse::hook, CraftResponse::unhook},
+    {StoneHovered::hook, StoneHovered::unhook}, {StoneTakeAmount::hook, StoneTakeAmount::unhook}
 };
 }
 void start() {

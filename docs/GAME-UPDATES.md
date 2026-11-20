@@ -793,8 +793,8 @@ Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`
 Trace.
 
 ### `src/features/research/CraftTrace.cpp`
-Hooks: `CraftSlotHovered`, `CraftAutoPlace`, `CraftTakePlace`, `CraftPlaceOne`, `CraftEvacuate`, `CraftServerAction`, `CraftTick`, `CraftResponse`
-Trace (L-359 and L-165; `craft_trace`). Its F7, F8 and F9 move items on a crafting screen through `_handleTakeAmount`, `_handlePlaceAll`, `_handleAutoPlace` and `_evacuateCraftingGrid`; F6 and F10 call the virtual `_onContainerSlotPressed` and `_handleAutoPlace` on the recipe-book cell hovered last. It also logs an opened container's `mBlockPos`, `mEntityUniqueID`, type and `container_items` (L-359 step 8).
+Hooks: `CraftSlotHovered`, `CraftAutoPlace`, `CraftTakePlace`, `CraftPlaceOne`, `CraftEvacuate`, `CraftServerAction`, `CraftTick`, `CraftResponse`, `StoneHovered`, `StoneTakeAmount`
+Trace (L-359 and L-165; `craft_trace`). Its F7, F8 and F9 move items on a crafting screen through `_handleTakeAmount`, `_handlePlaceAll`, `_handleAutoPlace` and `_evacuateCraftingGrid`; F6 and F10 call the virtual `_onContainerSlotPressed` and `_handleAutoPlace` on the recipe-book cell hovered last. It also logs an opened container's `mBlockPos`, `mEntityUniqueID`, type and `container_items` (L-359 step 8). On a stonecutter screen (L-380) it logs `ContainerScreenController::$_onContainerSlotHovered` and `_handleTakeAmount` and, every frame, the screen's collections when they change, to find how the result is chosen.
 
 ### `src/features/research/RepeatTradeTrace.cpp`
 Hooks: `RepeatOffer`, `RepeatButton`, `RepeatSlotPressed`, `RepeatTick`, `RepeatLeave`, `RepeatRequestBatch`, `RepeatResponse`, `RepeatInventorySlot`, `RepeatInventoryContent`, `RepeatNotify`, `RepeatActorEvent`, `RepeatAutoPlace`, `RepeatViewButton`, `RepeatComponentButton`, `RepeatPressedMapping`
