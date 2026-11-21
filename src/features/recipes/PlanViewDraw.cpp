@@ -30,7 +30,7 @@ std::string howScroll;  // a line of "How to make" to bring into view
 std::string howFlash;   // a line just asked for, lit for a moment
 std::chrono::steady_clock::time_point howFlashAt{};
 bool howAll = false;    // "How to make" also lists what was chosen before, beyond the current plan
-constexpr float switchLine = 16, optionHeight = 24, rowHeight = 18, stepHeight = 20, labelHeight = 11, headHeight = 11, headTop = 4, small = .625f;
+constexpr float switchLine = 16, optionHeight = 24, rowHeight = 18, stepHeight = 20, labelHeight = 11, headHeight = 11, headTop = 4;
 }
 bool isOpen() { return opened; }
 void open(Tab which) {
@@ -224,15 +224,17 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // What comes before the table (icon, name, a step's slots) takes the window's left half at most; the table its
     // right half (L-370, 2026-11-22, demos/notes-table.html A): held, needed and the bar spread evenly before the
     // controls' column, every control always shown.
-    constexpr float barW = 30, numW = 30;
+    float const numW = std::ceil(textWidth(context, "88888")) + 2;
     float const mid = std::floor((left + right) / 2);
-    float const controlsW = std::max(26.f, textWidthScaled(context, translated("recipes.from.schematic"), .75f) + 2);
+    // The controls' column as wide as the widest control the tab shows.
+    float const controlsW = tab == Tab::Wanted ? std::max(11.f, std::ceil(textWidthScaled(context, translated("recipes.from.schematic"), .75f)) + 2)
+                          : tab == Tab::Gather ? rowButtonWidth(context, translated("recipes.toMake"))
+                          : tab == Tab::Make ? 24.f : 26.f;
     float const controlsX = right - controlsW;
-    float const spread = std::max(6.f, std::floor((controlsX - 4 - (mid + 4) - 2 * numW - barW) / 2));
-    float const heldX = mid + 4, wantX = heldX + numW + spread, barX = wantX + numW + spread;
+    // Held and needed close together after the store mark's room; the bar from them to the controls.
+    float const heldX = mid + 10, wantX = heldX + numW + 6, barX = wantX + numW + 8;
+    float const barW = std::max(16.f, controlsX - 6 - barX);
     float const wantW = numW, heldW = numW;
-    // A hand-added count being typed: the stepper, its value cell over the needed column.
-    float const stepW = textWidth(context, "88888") + 26, stepX = wantX + wantW + 11 - stepW;
     float const nameX = left + 26, nameEnd = mid - 4;
     auto columnHeads = [&](float y, char const* wantKey, bool withName = false, std::string name = {}, char const* heldKey = "recipes.col.held") {
         if (withName) windowLabel(context, nameX, y + 1, nameEnd - nameX, std::move(name), true);
@@ -333,10 +335,6 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             itemIcon(item, sx + 1, y + 2);
             if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
             bool const stored = storedParts && u < storedParts->size() && (*storedParts)[u];
-            if (stored) {
-                fill(context, sx + 9, y + 1, 9, 8, v::window);
-                drawStoreMark(context, sx + 10, y + 2, v::windowInk);
-            }
             if (over(sx, y + 1, 18, 18)) {
                 if (part.group) {
                     groupTip(part.id, sx, y + 1);
@@ -355,13 +353,16 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (interactive && over(productX, y + 1, 18, 18))
             late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
         if (interactive && took(productX, y + 1, 18, 18)) showItem = key;
+        // Where it is made, at full size and well apart from the step (L-370, 2026-11-22), so it does not read as a
+        // part of it.
+        float const stationX = productX + 18 + 14;
         if (auto const station = stationItem(recipe.station); !station.empty()) {
             auto const& at = schematic::items::shown(std::string(station));
-            icon(std::string(station), productX + 22, y + 5, small);
-            if (over(productX + 22, y + 4, 11, 12)) late.tip = at.name;
+            icon(std::string(station), stationX, y + 2);
+            if (over(stationX, y + 1, 16, 18)) late.tip = at.name;
         }
         if (faint) for (size_t k = iconsBefore; k < late.icons.size(); ++k) late.icons[k].alpha = .45f;
-        return productX + 36; // past the station's icon: productX + 22 + 11, and a gap
+        return stationX + 20; // past the station's icon, and a gap
     };
 
     if (tab == Tab::Wanted) {
@@ -504,13 +505,16 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 // Every row's count keeps the needed column.
                 bool onControl = false;
                 auto const* editing = countEdit::editing(entry.key);
-                float const boxX = wantX - 2, boxW = wantW + 4;
+                float const boxX = wantX - 2, boxW = wantW + 5;
                 if (manual && editing) {
-                    drawStepper(context, stepX, y + 4, stepW, 10, true, std::to_string(entry.count), {.editing = editing, .pointerX = px, .pointerY = py, .backed = true});
-                    onControl = over(stepX, y + 4, stepW, 10);
-                    if (took(stepX, y + 4, 11, 10)) state::stepWanted(entry.key, false, shift, true);
-                    else if (took(stepX + stepW - 11, y + 4, 11, 10)) state::stepWanted(entry.key, true, shift, true);
-                    else if (took(stepX, y + 4, stepW, 10)) {}
+                    // Typed as in a spreadsheet's cell (L-370, 2026-11-22): Enter keeps it, Esc does not.
+                    sunkFace(context, boxX, y + 3, boxW, 12, true, true);
+                    frame(context, boxX, y + 3, boxW, 12, palette::accentDeep);
+                    windowLabel(context, wantX, y + 5, wantW, editing->value(), false, Align::Right);
+                    if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 500 % 2 == 0)
+                        fill(context, wantX + wantW + 1, y + 5, 1, 9, v::windowInk);
+                    onControl = over(boxX, y + 3, boxW, 12);
+                    took(boxX, y + 3, boxW, 12);
                 } else {
                     if (manual) {
                         sunkFace(context, boxX, y + 3, boxW, 12, true, true);
@@ -743,7 +747,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     progressBar(context, barX, y + 10, barW, 3, line.step->made > 0 ? static_cast<float>(now) / static_cast<float>(line.step->made) : 1.f);
                     stepButtons(right, y + 4.5f, *line.step);
                 }
-                windowLabel(context, after + 2, y + 6, nameEnd - after - 2, schematic::items::shown(index.items[static_cast<size_t>(line.step->item)]).name, faint);
+                // No name on a step (L-370, 2026-11-22): the product's slot names it under the pointer. A step that
+                // takes something out of the stores has their chest before its counts.
+                (void)after, (void)nameEnd;
+                if (std::ranges::any_of(storedParts, [](bool b) { return b; })) drawStoreMark(context, heldX - 9, y + 7, v::windowInk);
                 if (line.state != StepState::Held && took(left, y, right - left, stepHeight))
                     if (auto const* shares = state::shares(player))
                         for (size_t e = 0; e < shares->targets.size() && e < shares->entries.size(); ++e)

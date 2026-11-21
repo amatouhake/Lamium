@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The Notes tables in halves (L-370, 2026-11-22)
+
+Build `01b7d7d1` (DLL
+`fd2eb72c257ff8262cc10f9bce3956de0b7f24c011b018eb30d6d274255a2adc`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: names stop at the
+middle on every tab, the columns line up, "to make"'s buttons always
+shown and calm, a count typed after a press and stepped by the wheel.
+Not right: the right half cramped (numbers in wide columns, controls
+spilling); "- +" while typing did nothing (the press ended the typing
+first; dropped); the store mark on a slot read as an unknown icon; "to
+make"'s names cut to a few letters.
+
 ## Making a plan's steps, the panel's buttons in one column (L-385, 2026-11-22)
 
 Build `593a3e05` (DLL

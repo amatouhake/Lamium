@@ -50,11 +50,12 @@ plan's recipes are in [L-116](backlog/L-116.md).
   from the rows and from the window's shadow, drawn in whole units.
 - "Wanted" is a table: fold, icon, name, held, needed, a bar of held
   against needed (what is gathered shows in "to gather"). On every tab
-  what comes before the table takes the left half at most and held,
-  needed, the bar and the controls the right half, evenly apart, every
-  control always shown. Items all held follow under "done", faint. The
-  player's own count sits on a faint sunk box: a press types it, the
-  wheel steps it, "- N +" shows while it is typed; "x" stands in the
+  what comes before the table takes the left half at most; in the right
+  half held and needed stand close, the controls' column is as wide as
+  the tab's widest control and the bar takes the rest; every control is
+  always shown. Items all held follow under "done", faint. The
+  player's own count sits on a faint sunk box: a press types it in place
+  as a spreadsheet's cell (Enter keeps it), the wheel steps it; "x" stands in the
   controls' column; handed rows show their source there; a hand-added and a handed row of one
   item stay two rows. Held stock goes to the rows in
   the order added; a row that lost stock to one above says so under the
@@ -67,8 +68,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   as the headings, then under headings what is still to gather (most left first) and what is
   gathered (faint). "To make" is the work (L-370): under headings the
   steps that can be made now, made in part (both from what is carried),
-  made after taking out (the stores would cover them; an input only they
-  hold carries their chest, its tip the stores, L-385), short (faint,
+  made after taking out (the stores would cover them; their chest before
+  the counts, an input's tip naming the stores, L-385), short (faint,
   inputs nobody holds on the game's red), and held (faint, a check); "can
   make now" and "needed" columns in items with a bar. A press opens the
   breakdown. Under the pointer a step offers "lay in" (the recipe view's
