@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Laying in and making a plan's steps (L-385, 2026-11-22)
+
+Build `b5b67f52` (DLL
+`d48ee9c2536c3377fb02b478beaa378da652e16afefd16934a9d8822fee3641e`),
+1.26.60.05 Dev instance, the maintainer, local world. Confirmed: the
+panel's "lay in" with a press, Shift and Ctrl. Not right: "make" laid
+what was needed and crafted nothing (the run waited to read the output,
+which the client does not show; it now takes as Mass Craft does); on
+"wanted" a count stepped below what is held moves the row under "done"
+at once, under the pointer; "make all" stands apart from the rows'
+buttons; the panel's rows are drawn small; controls only under the
+pointer feel restless; the tables' numbers crowd the right.
+
 ## Stores in the world, the layout button again (L-369, L-382, 2026-11-21)
 
 Builds `5d8553a3` and `72a0f79a` (last DLL

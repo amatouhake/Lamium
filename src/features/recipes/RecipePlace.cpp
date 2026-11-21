@@ -421,17 +421,12 @@ void tickMaking(ScreenView& screen) {
             making.tries = 0;
             return;
         }
-        if (!making.took) {
-            // Once the output shows the product, what a Shift click on it does: all the grid makes, as far as the
-            // inventory has room.
-            if (manager.getItemStack(output, 0).isNull()) {
-                if (++making.tries > mostTries) controller->_evacuateCraftingGrid(), finishMaking("the output showed nothing");
-                return;
-            }
+        // What a Shift click on the output does: all the grid makes, as far as the inventory has room. The client's
+        // output slot does not show the product to read (seen 2026-11-22: a run waiting for it never took), so the
+        // take is sent as Mass Craft sends it, and again every few steps while the grid stays laid.
+        if (!making.took || making.tries % 5 == 4) {
             controller->_handleAutoPlace(INT_MAX, output, 0);
             making.took = true;
-            making.tries = 0;
-            return;
         }
         if (++making.tries > mostTries) {
             // No room for the product, or the recipe leaves something in the grid (a bucket, L-362).
