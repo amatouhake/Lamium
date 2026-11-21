@@ -867,6 +867,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (favoritesOn && !favoriteKey.empty()) add(translated("recipes.hint.favorite", favoriteKey));
         if (planOn && !wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
         if (view::isOpen() && !backKey.empty()) add(translated("recipes.hint.back", backKey));
+        for (auto& part : late.hints) add(std::move(part)); // what the thing under the pointer does (L-369)
         std::string hint = recipesOn ? translated("recipes.hint") + (keys.empty() ? "" : " | " + keys) : keys;
         if (!keys.empty() && labelWidth(context, hint, 1) * .8f > RecipeViewLayout::width - 8) hint = std::move(keys);
         // On the open window it is the window's text: dark, without a shadow.

@@ -73,10 +73,14 @@ plan's recipes are in [L-116](backlog/L-116.md).
   every recipe screen: the member chosen, else the one most held, else
   the one it is known by. Resting the pointer on its slot a moment, the
   wheel looks through the members (it chooses nothing); its tip names
-  the one shown with what is held, says whether one is chosen ("Any"
-  explains the kinds held count together) and shows the members full
-  size with their counts, the shown one framed. In "How to make" a
-  line's tip shows over the whole line, its words "Any" alone.
+  the one shown, says whether one is chosen ("Any" explains the kinds
+  held count together) and shows the members full size, the shown one
+  framed, with no counts held. In "How to make" a line's left shows the
+  group's or item's tip, its right that of what is in use; its words
+  read "Any" alone.
+- Tips describe the item alone; what a press or the wheel does there
+  ("Wheel: look through the kinds", "Change it in How to make") is
+  added to the window's hint line while the pointer is on it.
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first, as its recipe's slots), by name, each line's state

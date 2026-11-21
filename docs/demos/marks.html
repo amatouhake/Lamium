@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Marks</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff;
+  --tip:#1b0c1b; --tip-line:#2c0863;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{overflow-x:auto}
+.panels{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;font-family:var(--pix)}
+.cap{font:500 13px/1.4 "Noto Sans JP",sans-serif;color:var(--ink-2);margin:0 0 6px}
+.dark{background:rgba(16,17,19,.86);padding:6px;display:grid;grid-template-columns:repeat(8,36px);gap:0}
+.win{background:var(--win);padding:10px;box-shadow:inset 3px 3px #fff,inset -3px -3px #555,0 0 0 2px #000}
+.cell{position:relative;width:36px;height:36px;display:grid;place-items:center}
+.slot{position:relative;width:36px;height:36px;background:var(--slot);box-shadow:inset 2px 2px var(--slot-dark),inset -2px -2px var(--slot-light);display:grid;place-items:center}
+.ico{width:28px;height:28px;display:grid;place-items:center;font-size:12px;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -3px -3px rgba(0,0,0,.25),inset 3px 3px rgba(255,255,255,.25)}
+.count{position:absolute;right:1px;bottom:-1px;color:#fff;font-size:13px;text-shadow:2px 2px #3f3f3f}
+.any{position:absolute;left:2px;top:0;color:#fff;font-size:12px;text-shadow:1px 1px #000}
+.row{display:flex;gap:4px;align-items:center}
+.arrow{color:var(--win-ink);font-size:20px;margin:0 6px}
+.tip{background:var(--tip);box-shadow:inset 0 0 0 2px var(--tip),inset 0 0 0 4px var(--tip-line),0 0 0 2px #100410;padding:10px 12px;color:#fff;font-size:15px;line-height:1.55;min-width:300px}
+.tip .dim{color:#a8a8a8}
+.tip .id{color:#7b6f8a;font-size:13px}
+.tip .members{display:grid;grid-template-columns:repeat(8,36px);margin-top:6px}
+.hint{color:var(--win-faint);font-size:14px;text-align:center;margin-top:10px}
+.hint b{color:var(--win-ink);font-weight:400}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>レシピ画面の印（L-369）</h1>
+    <p class="lede">お気に入り・欲しい物・選んだ物・表示中の印と、種類のツールチップの名前を、それぞれ切り替えて比べる。右のアイテム一覧、レシピのスロット、作り方の候補、ツールチップの仲間の並びに同じ決まりを当てる。種類のスロットにカーソルを置いたつもりで、窓の下のヒント行も変わる（操作の案内はツールチップに入れない：決定済み）。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">お気に入り</span>
+      <button class="chip on" data-k="fav" data-v="frame">緑の枠（今）</button>
+      <button class="chip" data-k="fav" data-v="star">左上に小さな星</button>
+      <button class="chip" data-k="fav" data-v="tint">背景をうっすら明るく</button>
+    </div>
+    <div class="grp"><span class="lbl">欲しい物</span>
+      <button class="chip on" data-k="want" data-v="count">数（今）</button>
+      <button class="chip" data-k="want" data-v="dot">右上に点（数はツールチップ）</button>
+      <button class="chip" data-k="want" data-v="bar">下に細い線（数はツールチップ）</button>
+    </div>
+    <div class="grp"><span class="lbl">選んだ物（作り方）</span>
+      <button class="chip on" data-k="chosen" data-v="green">緑の枠（今）</button>
+      <button class="chip" data-k="chosen" data-v="white">白い枠</button>
+      <button class="chip" data-k="chosen" data-v="check">右下に緑のチェック</button>
+    </div>
+    <div class="grp"><span class="lbl">表示中（仲間の並び）</span>
+      <button class="chip on" data-k="shown" data-v="white">白い枠（今）</button>
+      <button class="chip" data-k="shown" data-v="lift">明るいスロット</button>
+      <button class="chip" data-k="shown" data-v="same">選んだ物と同じ印</button>
+    </div>
+    <div class="grp"><span class="lbl">種類のツールチップの名前</span>
+      <button class="chip on" data-k="title" data-v="plain">板材（今）</button>
+      <button class="chip" data-k="title" data-v="any">板材（どれでも）</button>
+      <button class="chip" data-k="title" data-v="kinds">板材（12 種類）</button>
+    </div>
+  </div>
+  <div class="stage"><div class="panels" id="view"></div></div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>アイテム一覧：お気に入りだけ、欲しい物だけ、両方の物、種類のある物（*）が混ざっている。両方が重なっても読めるか。</li>
+        <li>作り方の候補：「どれでも」と各種類のうち、選んだ物の印がお気に入りの印と取り違えないか。</li>
+        <li>ツールチップ：名前が種類なのかアイテムなのか分かるか。表示中の印が選んだ物の印とどう違って見えるか。所持数は出さない（決定済み）。</li>
+        <li>ヒント行：種類のスロットの上では「ホイール: 種類を見る」が加わる。</li>
+        <li>緑（accent）は DESIGN で「オン・選択」の意味。お気に入りにも選んだ物にも使うと意味が重なる。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> お気に入りの印。</li>
+        <li><span class="q">2.</span> 欲しい物の印。</li>
+        <li><span class="q">3.</span> 選んだ物の印。</li>
+        <li><span class="q">4.</span> 表示中の印（選んだ物と同じにするか）。</li>
+        <li><span class="q">5.</span> 種類のツールチップの名前。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+const opt = {fav:'frame', want:'count', chosen:'green', shown:'white', title:'plain'};
+const C = {oak:'#b8945f', spruce:'#7a5a3a', birch:'#d7c98f', jungle:'#b5835a', acacia:'#c26a3a', dark:'#4a3220', mangrove:'#7a3030', cherry:'#e4b4b0', bamboo:'#d9c96a', crimson:'#6b2a45', warped:'#2b7a74', pale:'#cfcac2', cobble:'#7a7a7a', stick:'#9a7040', chest:'#a87830', table:'#9a6b3a', glass:'#bfe6ef', iron:'#d0d0d0', dia:'#5ad8d8', wool:'#f0f0f0', torch:'#e8b040', book:'#8a4a2a'};
+const planks = ['oak','spruce','birch','jungle','acacia','dark','mangrove','cherry','bamboo','crimson','warped','pale','oak'];
+const plankName = {oak:'オーク', spruce:'トウヒ', birch:'シラカバ', jungle:'ジャングル', acacia:'アカシア', dark:'ダークオーク', mangrove:'マングローブ', cherry:'サクラ', bamboo:'竹', crimson:'真紅', warped:'歪んだ', pale:'ペールオーク'};
+function ico(key, txt){ return `<div class="ico" style="background:${C[key]}">${txt || ''}</div>`; }
+function marks(m){
+  let s = '', style = '';
+  if (m.fav) {
+    if (opt.fav === 'frame') style += 'box-shadow:inset 0 0 0 2px #6cc349;';
+    if (opt.fav === 'star') s += `<span style="position:absolute;left:1px;top:-2px;color:#ffe36b;font-size:13px;text-shadow:1px 1px #000">★</span>`;
+    if (opt.fav === 'tint') style += 'background:rgba(255,255,255,.16);';
+  }
+  if (m.want) {
+    if (opt.want === 'count') s += `<span class="count">${m.want}</span>`;
+    if (opt.want === 'dot') s += `<span style="position:absolute;right:3px;top:3px;width:6px;height:6px;background:#fff;box-shadow:1px 1px #000"></span>`;
+    if (opt.want === 'bar') s += `<span style="position:absolute;left:5px;right:5px;bottom:2px;height:2px;background:#fff"></span>`;
+  }
+  if (m.any) s += `<span class="any">*</span>`;
+  return {s, style};
+}
+function chosenMark(on, inSlot){
+  if (!on) return {s:'', style:''};
+  if (opt.chosen === 'green') return {s:'', style:'box-shadow:inset 0 0 0 3px #3c8527;'};
+  if (opt.chosen === 'white') return {s:'', style:'box-shadow:inset 0 0 0 3px #fff;'};
+  return {s:`<span style="position:absolute;right:1px;bottom:0;color:#3c8527;font-size:16px;font-weight:700;text-shadow:1px 1px #fff">✓</span>`, style:''};
+}
+function shownMark(on){
+  if (!on) return {s:'', style:''};
+  if (opt.shown === 'white') return {s:'', style:'box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);'};
+  if (opt.shown === 'lift') return {s:'', style:'background:rgba(255,255,255,.22);'};
+  const c = chosenMark(true);
+  return c;
+}
+function list(){
+  const items = [
+    ['oak','',{fav:1}],['spruce','',{}],['birch','',{want:64}],['jungle','',{fav:1,want:8}],['acacia','',{}],['dark','',{}],['mangrove','',{}],['cherry','',{fav:1}],
+    ['cobble','',{}],['stick','',{want:4}],['chest','',{fav:1,want:129}],['table','',{}],['glass','',{}],['iron','',{fav:1}],['dia','',{want:41}],['wool','',{}],
+    ['torch','',{}],['book','',{}],['bamboo','',{fav:1}],['crimson','',{}],['warped','',{want:2}],['pale','',{}],['oak','',{}],['spruce','',{fav:1,want:1}],
+  ];
+  return `<div><p class="cap">右のアイテム一覧</p><div class="dark">${items.map(([k, t, m]) => { const x = marks(m); return `<div class="cell" style="${x.style}">${ico(k, t)}${x.s}</div>`; }).join('')}</div></div>`;
+}
+function recipe(){
+  const cell = (k, any) => { const x = marks({any}); return `<div class="slot">${k ? ico(k) : ''}${x.s}</div>`; };
+  return `<div><p class="cap">レシピのスロット（作業台）</p><div class="win"><div class="row">
+    <div style="display:grid;grid-template-columns:repeat(3,36px)">${cell('crimson',1)}${cell('crimson',1)}${cell('')}${cell('crimson',1)}${cell('crimson',1)}${cell('')}${cell('')}${cell('')}${cell('')}</div>
+    <span class="arrow">➜</span>${cell('table')}</div>
+    <div class="hint">A キー: お気に入り | W キー: 欲しい物 | <b>ホイール: 種類を見る</b></div></div></div>`;
+}
+function howTo(){
+  const cells = [['oak',true,true,'any']].concat(planks.slice(0, 11).map((k, i) => [k, false, i === 6, k]));
+  return `<div><p class="cap">作り方の候補（板材を開いたところ。マングローブを選択）</p><div class="win" style="display:grid;grid-template-columns:repeat(6,36px)">${cells.map(([k, any, chosen, n], i) => {
+    const c = chosenMark(i === 7); const x = marks({any: i === 0});
+    return `<div class="slot" style="${c.style}">${ico(k)}${x.s}${c.s}</div>`; }).join('')}</div></div>`;
+}
+function tip(){
+  const title = opt.title === 'plain' ? '板材' : opt.title === 'any' ? '板材（どれでも）' : '板材（12 種類）';
+  const members = planks.slice(0, 12).map((k, i) => { const s = shownMark(i === 6); return `<div class="cell" style="${s.style}">${ico(k)}${s.s}</div>`; }).join('');
+  return `<div><p class="cap">種類のツールチップ（表示中: マングローブ、選択なし）</p><div class="tip">
+    <div>${title}</div>
+    <div class="dim">表示中: マングローブの板材</div>
+    <div class="dim">どれでも: 持っている種類を合わせて数える</div>
+    <div class="members">${members}</div></div>
+    <p class="cap" style="margin-top:10px">比較：アイテムのツールチップ</p><div class="tip"><div>マングローブの板材</div><div class="dim">燃料: 1.5 個分</div><div class="id">minecraft:mangrove_planks</div></div></div>`;
+}
+function render(){ document.getElementById('view').innerHTML = list() + recipe() + howTo() + tip(); }
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  opt[b.dataset.k] = b.dataset.v;
+  document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+render();
+</script>
+</body>
+</html>

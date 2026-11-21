@@ -62,6 +62,9 @@ struct Late {
     std::vector<std::string> tipItems; // items shown as icons under the tip's lines (a group's members)
     std::vector<std::string> tipCounts; // beside tipItems: what is held of each, as a slot's count, or empty
     int tipCurrent = -1; // the one of tipItems a group's slot shows, framed
+    // What the thing under the pointer does with a press or the wheel: on the window's hint line, never in the
+    // tip, which describes the item alone (L-369).
+    std::vector<std::string> hints;
     bool placed = false; // a recipe was laid into the grid: the host clears the windows off it
 };
 bool isOpen();

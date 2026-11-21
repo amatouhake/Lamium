@@ -54,31 +54,22 @@ void tip(view::Late& late, Index const& index, int group, std::map<int, Item> co
     using ui::translated;
     auto const& members = index.groups[static_cast<size_t>(group)].members;
     Item const shown = face(index, group, picks, held);
-    auto heldOf = [&](Item item) -> Count {
-        if (!held) return 0;
-        auto found = held->find(item);
-        return found == held->end() ? 0 : found->second;
-    };
     late.tip = groupName(index, group);
     late.tipLines.clear();
     late.tipItems.clear();
     late.tipCounts.clear();
     late.tipCurrent = -1;
     late.hovered = shown >= 0 ? index.items[static_cast<size_t>(shown)] : std::string();
-    if (shown >= 0) {
-        std::string const name = schematic::items::shown(index.items[static_cast<size_t>(shown)]).name;
-        late.tipLines.push_back(held ? translated("recipes.group.showingHeld", name, heldOf(shown)) : translated("recipes.group.showing", name));
-    }
+    // No counts held (maintainer 2026-11-21): the tip says what the group is, the plan's tables what is held.
+    if (shown >= 0) late.tipLines.push_back(translated("recipes.group.showing", schematic::items::shown(index.items[static_cast<size_t>(shown)]).name));
     auto picked = picks.find(group);
     late.tipLines.push_back(picked != picks.end()
                                 ? translated("recipes.howTo.chosen") + ": " + schematic::items::shown(index.items[static_cast<size_t>(picked->second)]).name
                                 : translated("recipes.howTo.any") + ": " + translated("recipes.howTo.anyTip"));
     for (size_t i = 0; i < members.size(); ++i) {
         late.tipItems.push_back(index.items[static_cast<size_t>(members[i])]);
-        Count const have = heldOf(members[i]);
-        late.tipCounts.push_back(have ? slotCountText(have) : std::string());
         if (members[i] == shown) late.tipCurrent = static_cast<int>(i);
     }
-    if (members.size() > 1) late.tipLines.push_back(translated("recipes.group.wheel"));
+    if (members.size() > 1) late.hints.push_back(translated("recipes.group.wheel"));
 }
 }

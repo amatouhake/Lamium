@@ -1118,7 +1118,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.howTo.chosenIs", "Chosen: {}", "選択: {}"},
     {"recipes.howTo.anyLine", "Any", "どれでも"},
     {"recipes.group.showing", "Showing: {}", "表示中: {}"},
-    {"recipes.group.showingHeld", "Showing: {} ({} held)", "表示中: {}（所持 {}）"},
     {"recipes.group.wheel", "Wheel: look through the kinds", "ホイール: 種類を見る"},
     {"recipes.howTo.chosen", "Chosen", "選択"},
     {"recipes.howTo.from", "From {}", "{}から"},

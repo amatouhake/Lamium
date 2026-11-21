@@ -276,7 +276,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         float const w = std::min({64.f, room, textWidth(context, text) * .75f + 6}), x = end - w;
 
         bool const hot = over(x, y, w, 10);
-        if (hot) fill(context, x, y, w, 10, palette::white, .2f), late.tip = translated("recipes.howTo.change");
+        if (hot) fill(context, x, y, w, 10, palette::white, .2f), late.hints.push_back(translated("recipes.howTo.change"));
         labelScaled(context, x + 3, y + 2.5f, w - 6, std::move(text), .75f, chosen ? v::windowInk : v::windowFaint, Align::Left, false);
         if (took(x, y, w, 10)) jumpHowTo(key);
         return x - 3;
@@ -322,7 +322,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (over(sx, y + 1, 18, 18)) {
                 if (part.group) {
                     groupTip(part.id, sx, y + 1);
-                    if (interactive) late.tipLines.push_back(translated("recipes.howTo.change"));
+                    if (interactive) late.hints.push_back(translated("recipes.howTo.change"));
                 } else late.tip = nameOf(item), late.hovered = pictureOf(item);
             }
             if (interactive && part.group && took(sx, y + 1, 18, 18)) jumpHowTo(groupKey(index, part.id));
@@ -579,7 +579,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (late.tip.empty() && over(left, y, barX + barW - left, rowHeight)) {
                 if (group) groupLook::hover(line.id - itemCount, left, y);
                 gatherTip(late, *plan, line, row.key);
-                if (group) late.tipLines.push_back(translated("recipes.howTo.change"));
+                if (group) late.hints.push_back(translated("recipes.howTo.change"));
             }
         }
         return;
@@ -767,7 +767,12 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (!chosen) late.marks.push_back({slotX + 1, y + 2});
             if (chosen) words(y, translated("recipes.howTo.chosenIs", nameOf(picked->second)), true);
             else words(y, translated("recipes.howTo.anyLine"), false);
-            if (late.tip.empty() && over(left, y, right - left, stepHeight)) groupTip(line.group, left, y);
+            // Left the group; right what is in use: the member chosen as an item, or "any" as the group.
+            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group, left, y);
+            else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
+                if (chosen) late.tip = nameOf(picked->second), late.hovered = index.items[static_cast<size_t>(picked->second)];
+                else groupTip(line.group, slotX, y + 1);
+            }
             if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
         } else if (line.kind == Line::Kind::Members) {
             // The candidates as the game's slots: "any" first (the group's picture, marked), then each member.
@@ -815,7 +820,15 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (gathered) words(y, translated("recipes.howTo.chosenIs", translated("recipes.toGather")), true);
             else if (chosen) words(y, translated("recipes.howTo.chosenIs", recipeName(now)), true);
             else words(y, translated("recipes.howTo.autoIs", rule >= 0 ? recipeName(rule) : std::string()), false);
-            if (late.tip.empty() && over(left, y, right - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
+            // Left the item; right what it is made from now (gathered: the item itself).
+            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
+            else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
+                Item from = gathered ? line.item : -1;
+                if (!gathered && now >= 0)
+                    if (auto const& recipe = index.recipes[static_cast<size_t>(now)]; !recipe.uses.empty()) from = partItem(index, request, recipe.uses.front());
+                if (from >= itemCount) groupTip(from - itemCount, slotX, y + 1);
+                else if (from >= 0) late.tip = nameOf(from), late.hovered = index.items[static_cast<size_t>(from)];
+            }
             if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
         } else if (line.kind == Line::Kind::Option) {
             // The candidates as rows of slots on a sunk face: "automatic" first, then each recipe.

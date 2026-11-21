@@ -19,7 +19,7 @@ int rested();
 void turn(int group, int steps);
 // What `group` shows. `held`: what is held by item, or null where it is not known.
 Item face(Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held);
-// The tip over a group's slot: its name; the member shown with what is held of it; whether one is chosen; the
-// members as icons, each with what is held, the shown one framed; and how the wheel looks through them.
+// The tip over a group's slot: its name, the member shown, whether one is chosen and the members as icons, the
+// shown one framed; the wheel's use goes to the hint line. `held` only decides the member shown.
 void tip(view::Late& late, Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held);
 }

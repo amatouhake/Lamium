@@ -61,7 +61,8 @@ void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w,
     fill(context, x, y, w, rowButtonHeight, v::windowSunk);
     if (hovered) fill(context, x, y, w, rowButtonHeight, palette::white, .3f);
     frame(context, x, y, w, rowButtonHeight, v::controlEdge);
-    labelScaled(context, x, y + 1 + boxTextInset() * rowButtonText, w, std::move(text), rowButtonText, v::windowInk, Align::Center, false);
+    // Black, as the edge: in the window's grey the small letters read as a disabled button (L-369).
+    labelScaled(context, x, y + 1 + boxTextInset() * rowButtonText, w, std::move(text), rowButtonText, v::controlEdge, Align::Center, false);
 }
 Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int page, int pages, float pointerX, float pointerY) {
     Pager out;

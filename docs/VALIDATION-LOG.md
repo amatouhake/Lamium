@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Groups held still, the wheel looking through them (L-369, 2026-11-21)
+
+Build `b9c121d3` (DLL
+`1d59b46bb5c8dcf7df4ed8007fbbf9eca2759a0201c24259b71bfe8cd7ad60ae`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the wheel turns a
+rested group slot's picture and never takes a scrolling list's wheel;
+the tip's full-size members and frame; the breakdown's columns; flat
+row buttons; the stores' rows. Not right: the wheel's hint and the
+item's details (fuel) in one list of lines; a group tip's title reads
+like an item's; the buttons' letters faint, as if disabled; How to make
+shows one tip for the whole line and counts held; the item list's and
+groups' marks (green frame, counts, white frame) to be reviewed.
+
 ## Calmer plan window, How to make with the plan off (L-369, 2026-11-21)
 
 Builds `f9d52521` and `91708828` (last DLL
