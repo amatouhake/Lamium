@@ -433,7 +433,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             } else if (line.kind == Line::Kind::Step && target) {
                 auto const& step = target->view.steps[line.at];
                 float const after = stepSlots(x0, y, step, false, true, inputsRoom(target->view.steps));
-                float const end = rowButton(right, y + 5, translated("recipes.toGather"), [&] { state::setStop(index.items[static_cast<size_t>(step.item)], true); });
+                float const end = rowButton(right, y + 6, translated("recipes.toGather"), [&] { state::setStop(index.items[static_cast<size_t>(step.item)], true); });
                 // The recipe's state in the room left between the station and the button.
                 recipeState(end, y + 5, step.item, end - after);
             } else if (line.kind == Line::Kind::Material && target) {
@@ -447,7 +447,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 number(wantX, wantW, y + 5, material.need, false);
                 progressBar(context, barX, y + 9, barW, 3, material.need > 0 ? static_cast<float>(material.held) / static_cast<float>(material.need) : 1.f);
                 bool const stopped = material.id >= 0 && material.id < itemCount && request.stops.contains(material.id);
-                if (stopped) rowButton(right, y + 4, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(material.id)], false); });
+                if (stopped) rowButton(right, y + 5.5f, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(material.id)], false); });
                 float end = heldX - 3;
                 if (material.id >= itemCount) end = groupState(end, y + 4, material.id - itemCount);
                 windowLabel(context, labelX, y + 5, end - labelX, nameOf(material.id));
@@ -567,7 +567,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             number(wantX, wantW, y + 5, line.need, row.done);
             progressBar(context, barX, y + 9, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
             float end = nameEnd;
-            if (row.stopped) rowButton(right, y + 4, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
+            if (row.stopped) rowButton(right, y + 5.5f, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
             // A group's choice: no tag (the row has no room for one); the row itself goes to "How to make".
             bool const group = row.key.empty() && line.id >= itemCount;
             if (group && !row.stopped && took(left, y, right - left, rowHeight)) jumpHowTo(groupKey(index, line.id - itemCount));

@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Row buttons at full size, schematic "材料" (L-369, L-383, 2026-11-21)
+
+Builds `7893dcf7` to `ecac0c2a` (last DLL
+`8488a52473073d0a77d0c7feb2cfba014ccc5db0108f92580d6417589c18e881`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the wheel turns How
+to make's left pictures; row buttons' black words at full size read as
+enabled, the stores' beside their switches; the schematic's Materials
+tab without the raw view and its Japanese "材料". Not right: on "to
+gather" the buttons sat above the row's middle (lowered after).
+
 ## The store button settled, How to make's candidates (L-369, L-382, 2026-11-21)
 
 Builds `0030e9ad` to `f6e59139` (last DLL
