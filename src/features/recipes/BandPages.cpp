@@ -1,4 +1,5 @@
 #include "features/recipes/BandPages.h"
+#include "features/recipes/CountText.h"
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/GroupLook.h"
 #include "features/recipes/ListFilter.h"
@@ -320,7 +321,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             if (hoverItem.empty()) hoverItem = row.key;
             // A row of what to make says what its crafts take, each with what is held of it (L-370).
             auto amounts = [&](char const* lead) {
-                return translated(lead) + ": " + std::to_string(row.held) + "  " + translated("recipes.col.need") + ": " + std::to_string(row.need);
+                return translated(lead) + ": " + wholeCountText(static_cast<std::uint64_t>(row.held)) + "  " + translated("recipes.col.need") + ": "
+                     + wholeCountText(static_cast<std::uint64_t>(row.need));
             };
             if (sideList == SideList::Make && plan && !row.done && late.tip.empty()) {
                 // Each input as what is carried of it (as "can make now" counts, L-385); where the stores hold what is

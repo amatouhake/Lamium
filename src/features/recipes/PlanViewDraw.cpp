@@ -320,6 +320,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     constexpr float inputsW = 72;
     // Whether the step's row shows what it makes in a column ("to make"): its product's tip then leaves it out.
     bool madeInColumn = false;
+    // What "to make" counts as held: its steps' tips give each input as held/needed, as the panel's do.
+    std::map<Item, Count> const* tipStock = nullptr;
+    auto inputLines = [&](StepLine const& step) {
+        return tipStock ? stepInputLines(index, request, step, *tipStock) : stepInputLines(index, request, step);
+    };
     auto inputsRoom = [&](std::vector<StepLine> const& steps) {
         size_t most = 1;
         for (auto const& step : steps) most = std::max(most, index.recipes[static_cast<size_t>(step.recipe)].uses.size());
@@ -355,13 +360,13 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (interactive && part.group && took(sx, y + 1, 18, 18)) jumpHowTo(groupKey(index, part.id));
         }
         if (uses.size() > shown && over(x0, y, room, stepHeight))
-            late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step);
+            late.tip = schematic::items::shown(key).name, late.tipLines = inputLines(step);
         changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
         windowSlot(context, productX, y + 1, over(productX, y + 1, 18, 18));
         icon(key, productX + 1, y + 2);
         if (step.made > 1) late.counts.push_back({productX, y + 1, slotCountText(step.made)});
         if (interactive && over(productX, y + 1, 18, 18)) {
-            late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
+            late.tip = schematic::items::shown(key).name, late.tipLines = inputLines(step), late.hovered = key;
             if (step.made >= 1000 && !madeInColumn) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
         }
         if (interactive && took(productX, y + 1, 18, 18)) showItem = key;
@@ -752,8 +757,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     for (size_t k = 0; k < storedParts.size(); ++k) storedParts[k] = storedParts[k] && !shortParts[k];
                 }
                 madeInColumn = line.state != StepState::Held;
+                tipStock = line.state != StepState::Held ? &carried : nullptr;
                 float const after = stepSlots(left, y, *line.step, faint, true, inputsW, &shortParts, &storedParts);
-                madeInColumn = false;
+                madeInColumn = false, tipStock = nullptr;
                 float nameEnd = mid - 4;
                 if (line.state == StepState::Held) {
                     // Held: a check where the counts would be.

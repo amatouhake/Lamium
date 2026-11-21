@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Inputs name first in tips; redstone's red (L-370, 2026-11-22)
+
+Build `50cee5e8` (DLL
+`b2d7099e9e63d8c88e071f2e8b6c49e1467659fed458adae7b080547222226e7`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: redstone's category
+now the game's red; "Stone: 146/44,844" is the right form. Not right:
+the window's "to make" tip gave inputs without what is held, unlike the
+panel's; the panel's counts and "more" had no thousands apart.
+
 ## A step's tip without the row's count (L-370, 2026-11-22)
 
 Build `c74ec6a1` (DLL

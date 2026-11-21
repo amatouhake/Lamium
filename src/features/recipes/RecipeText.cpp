@@ -45,7 +45,7 @@ std::vector<std::string> stepInputLines(Index const& index, Request const& reque
         std::string const name = id >= items ? groupName(index, id - items) : schematic::items::shown(index.items[static_cast<size_t>(id)]).name;
         // Name first, then held/needed (L-370, 2026-11-22): "Stone: 146/44,844".
         std::string line = std::format("{}: {}/{}", name, wholeCountText(static_cast<std::uint64_t>(std::min(have, need))), wholeCountText(static_cast<std::uint64_t>(need)));
-        if (have < need) line += "  " + ui::translated("recipes.stepShort", need - have);
+        if (have < need) line += "  " + ui::translated("recipes.stepShort", wholeCountText(static_cast<std::uint64_t>(need - have)));
         out.push_back(std::move(line));
     }
     return out;
