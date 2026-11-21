@@ -203,8 +203,8 @@ after using the first build. What is still open is in the L-item.
   the fuel slot at the top left, the fuel's tube through a short coil
   into the gauge, the ingredient at the top with three tubes to the
   bottles, the bottle before at the left, the middle one empty, the one
-  after at the right. The gauge, the bubbles, the arrow and the empty
-  bottle are the game's own images; the tubes are drawn. A plan counts the ingredient once a batch of three
+  after at the right. The empty bottle is the game's own image at its
+  size; the rest is drawn on whole units after the game's. A plan counts the ingredient once a batch of three
   bottles and never asks for blaze powder. At the stand a press lays the
   ingredient and the bottle before into the left bottle, Shift into all
   three; the fuel is untouched.

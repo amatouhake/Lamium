@@ -60,9 +60,9 @@ void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb colo
 namespace {
 // The brewing stand's parts on a brewing face (L-361, demos/brewing-view.html F), from the block's corner: the fuel's
 // tube going right, down through a short coil and right into the gauge with bubbles over it; three tubes from the
-// ingredient, one to each bottle; the arrow at the ingredient's right; the empty middle bottle. The gauge, the
-// bubbles, the arrow and the bottle are the game's own images (the maintainer 2026-11-21: compact, with the stand's
-// parts where they stand alone); the tubes are drawn, the game's being shaped for its wider screen.
+// ingredient, one to each bottle; the arrow at the ingredient's right; the empty middle bottle. The bottle is the
+// game's own image, at its own size; the rest is drawn on whole units after the game's images, whose dots shrunk
+// to this face did not match the slots' (maintainer 2026-11-21).
 void brewingParts(MinecraftUIRenderContext& context, float x, float y) {
     using namespace lamium::ui;
     namespace v = palette::vanilla;
@@ -71,19 +71,30 @@ void brewingParts(MinecraftUIRenderContext& context, float x, float y) {
         if (w > h) fill(context, x + tx, y + ty + h, w, 1, v::windowLight); else fill(context, x + tx + w, y + ty, 1, h, v::windowLight);
     };
     tube(18, 9, 4, 1);
+    // The coil: two turns between the tube from the fuel and the one into the gauge.
     for (int i = 0; i < 2; ++i) {
-        fill(context, x + 21, y + 10.6f + 2.2f * static_cast<float>(i), 7, 1.2f, v::slotDark);
-        fill(context, x + 21, y + 11.8f + 2.2f * static_cast<float>(i), 7, .6f, v::windowLight);
+        fill(context, x + 21, y + 11 + 2 * static_cast<float>(i), 7, 1, v::slotDark);
+        fill(context, x + 21, y + 12 + 2 * static_cast<float>(i), 7, 1, v::windowLight);
     }
     tube(28, 15, 3, 1);
+    // The gauge: an outlined bar, the fuel in it with a lighter top.
+    frame(context, x + 31, y + 14, 12, 4, v::windowInk);
+    fill(context, x + 32, y + 15, 10, 1, v::brewingFuelLight);
+    fill(context, x + 32, y + 16, 10, 1, v::brewingFuel);
+    // The bubbles over it, rings low and dots higher, as the stand's rise.
+    frame(context, x + 34, y + 9, 3, 3, v::windowInk);
+    frame(context, x + 37, y + 5, 3, 3, v::windowInk);
+    fill(context, x + 35, y + 2, 2, 2, v::windowInk);
+    fill(context, x + 38, y + 0, 1, 1, v::windowInk);
+    // The arrow down at the ingredient's right: an outlined shaft and its head, empty as the stand's before it brews.
+    fill(context, x + 67, y + 1, 3, 12, v::windowInk);
+    fill(context, x + 68, y + 2, 1, 10, v::windowLight);
+    fill(context, x + 66, y + 12, 5, 1, v::windowInk);
+    fill(context, x + 67, y + 13, 3, 1, v::windowInk);
+    fill(context, x + 68, y + 14, 1, 1, v::windowInk);
     tube(50, 18, 1, 8), tube(42, 26, 8, 1);
     tube(55, 18, 1, 12);
     tube(60, 18, 1, 8), tube(61, 26, 7, 1);
-    // Each image keeps the game's own proportions (as the stand shows them: the gauge 4 to 1, the bubbles about 1 to
-    // 3, the arrow about 1 to 4.5); only its size is the face's.
-    images(context, "textures/ui/brewing_fuel_bar_full", {{x + 31, y + 14, 12, 3}});
-    images(context, "textures/ui/bubbles_empty", {{x + 35, y + 0, 4, 13}});
-    images(context, "textures/ui/brewing_arrow_empty", {{x + 66, y + 1, 4, 17}});
     images(context, "textures/ui/bottle_empty", {{x + 47, y + 31, 16, 16}});
 }
 // The place button's line for Ctrl (L-379): what it does, or why it would not now.
