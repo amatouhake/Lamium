@@ -302,7 +302,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
 
         bool const hot = over(x, y, w, 10);
         if (hot) fill(context, x, y, w, 10, palette::white, .2f), late.tip = translated("recipes.howTo.change");
-        labelScaled(context, x + 3, y + 2.5f, w - 6, std::move(text), .75f, chosen ? palette::accentDeep : v::windowFaint, Align::Left, false);
+        labelScaled(context, x + 3, y + 2.5f, w - 6, std::move(text), .75f, chosen ? v::windowInk : v::windowFaint, Align::Left, false);
         if (took(x, y, w, 10)) jumpHowTo(key);
         return x - 3;
     };
@@ -762,12 +762,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     bool const flashing = std::chrono::steady_clock::now() - howFlashAt < std::chrono::milliseconds(900);
     // The line's parts: item icon and name, an arrow, a slot, the words beside it (a second, small line under them).
     float const arrowX = left + 92, slotX = arrowX + 12, wordsX = slotX + 22;
-    // A line's state on one line (L-370): "Automatic: from planks", or the player's "Chosen: ..." in green, no
-    // face behind it (L-369).
-    auto words = [&](float y, std::string text, bool chosen) {
-        if (!chosen) { windowLabel(context, wordsX, y + 6, right - wordsX, std::move(text)); return; }
-        labelScaled(context, wordsX, y + 6, right - wordsX, std::move(text), 1.f, palette::accentDeep, Align::Left, false);
-    };
+    // A line's state on one line (L-370): "Automatic: from planks" or the player's "Chosen: ...", both in the
+    // window's ink; the words say which (L-369).
+    auto words = [&](float y, std::string text, bool) { windowLabel(context, wordsX, y + 6, right - wordsX, std::move(text)); };
     float y = top;
     for (int at = offset; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
         auto const& line = lines[static_cast<size_t>(at)];

@@ -71,7 +71,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first, as its recipe's slots), by name, each line's state
-  on one line ("Automatic: from planks", "Chosen: ..." in green) with one
+  on one line ("Automatic: from planks", "Chosen: ...", both in plain ink) with one
   arrow and aligned columns; lines for the current plan, or with a
   switch all chosen before. Placing follows it, else what is held. An
   item's options are "automatic", "gather" (the breakdown's "gather" and
