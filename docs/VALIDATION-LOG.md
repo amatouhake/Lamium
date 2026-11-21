@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The panel's typing and group tips (L-370, 2026-11-22)
+
+Builds `f32c41e0` (DLL
+`36b52f38726a2955a7ec35d54a11e0a6528e891ff7473fd5fc12b4ae38c2dd82`) and
+`ac727711` (DLL
+`08300977ac1b739b1329abdf8032987f20536ec59276dc3be86c389feb316434`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: a typed count keeps
+its right edge on the panel; only the box pressed types (window or
+panel); a group's tip on the panel is the game's tooltip box.
+
 ## The panel in the Notes window's columns (L-370, 2026-11-22)
 
 Build `2eb5e456` (DLL
