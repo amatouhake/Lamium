@@ -45,7 +45,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   does, and a press on it again ends that as Done does.
   Buttons with pictures are white and greys, green when on. The settings
   screen holds how the features behave, the window the player's data.
-  Only column headings stay put; a tab's switch line and "All" scroll
+  A switch line has its switch right after its words. Count columns
+  take six digits. Only column headings stay put; a tab's switch line and "All" scroll
   with the rows; every tab's scrollbar spans the same height, 3 units
   from the rows and from the window's shadow, drawn in whole units.
 - "Wanted" is a table: fold, icon, name, held, needed, a bar of held

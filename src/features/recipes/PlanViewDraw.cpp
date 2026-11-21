@@ -224,7 +224,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // What comes before the table (icon, name, a step's slots) takes the window's left 45% at most; the table the
     // rest, ending 8 units short of the scrollbar (L-370, 2026-11-22, demos/notes-table.html A), every control
     // always shown.
-    float const numW = std::ceil(textWidth(context, "88888")) + 2;
+    float const numW = std::ceil(textWidth(context, "888888")) + 2;
     float const mid = std::floor(left + (right - left) * .45f);
     float const tableRight = right - 8;
     // The controls' column as wide as the widest control the tab shows.
@@ -243,8 +243,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         labelScaled(context, heldX - 12, y + 2, heldW + 12, translated(heldKey), .75f, v::windowFaint, Align::Right, false);
         labelScaled(context, wantX - 6, y + 2, wantW + 6, translated(wantKey), .75f, v::windowFaint, Align::Right, false);
     };
+    // A count cut to fit its column shows whole under the pointer.
     auto number = [&](float x, float w, float y, Count count, bool faint) {
-        windowLabel(context, x, y, w, std::to_string(count), faint, Align::Right);
+        std::string text = std::to_string(count);
+        if (late.tip.empty() && textWidth(context, text) > w && over(x, y - 2, w, 12)) late.tip = wholeCountText(static_cast<std::uint64_t>(count));
+        windowLabel(context, x, y, w, std::move(text), faint, Align::Right);
     };
     // A group as its picture, holding still (GroupLook.h): the member chosen, else the one most held, else the one it
     // is known by, unless the wheel looks through them.
@@ -335,13 +338,16 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             // A use held too few of for all the crafts, on the game's red (L-370).
             windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18), shortParts && u < shortParts->size() && (*shortParts)[u]);
             itemIcon(item, sx + 1, y + 2);
-            if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
+            Count const n = partNeed(recipe, u, step.crafts);
+            if (n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
             bool const stored = storedParts && u < storedParts->size() && (*storedParts)[u];
             if (over(sx, y + 1, 18, 18)) {
                 if (part.group) {
                     groupTip(part.id, sx, y + 1);
                     if (interactive) late.hints.push_back(translated("recipes.howTo.change"));
                 } else late.tip = nameOf(item), late.hovered = pictureOf(item);
+                // The slot shows a count of a thousand and more cut ("44k"): the tip has it whole.
+                if (n >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(n)));
                 if (stored && item < itemCount) storedLines(late, *plan, item);
             }
             if (interactive && part.group && took(sx, y + 1, 18, 18)) jumpHowTo(groupKey(index, part.id));
@@ -352,8 +358,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         windowSlot(context, productX, y + 1, over(productX, y + 1, 18, 18));
         icon(key, productX + 1, y + 2);
         if (step.made > 1) late.counts.push_back({productX, y + 1, slotCountText(step.made)});
-        if (interactive && over(productX, y + 1, 18, 18))
+        if (interactive && over(productX, y + 1, 18, 18)) {
             late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
+            if (step.made >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
+        }
         if (interactive && took(productX, y + 1, 18, 18)) showItem = key;
         // Where it is made, at full size and well apart from the step (L-370, 2026-11-22), so it does not read as a
         // part of it.
@@ -376,8 +384,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         auto drawSwitch = [&](float y) {
             bool const on = Runtime::instance().preferences().schematic.planMaterials;
             if (over(left, y, right - left, switchLine)) fill(context, left - 2, y, right - left + 4, switchLine, palette::shade, .08f);
-            windowLabel(context, left, y + 4, right - left - switchWidth - 4, translated("recipes.plan.schematic"));
-            toggleSwitch(context, right - switchWidth, y + 3.5f, on);
+            // The switch right after its words (L-370, 2026-11-22), not at the window's far edge.
+            std::string const words = translated("recipes.plan.schematic");
+            float const wordsW = std::min(textWidth(context, words), right - left - switchWidth - 8);
+            windowLabel(context, left, y + 4, wordsW, words);
+            toggleSwitch(context, left + wordsW + 8, y + 3.5f, on);
             if (took(left, y, right - left, switchLine)) {
                 auto value = Runtime::instance().preferences();
                 value.schematic.planMaterials = !on;
@@ -864,8 +875,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         auto const& line = lines[static_cast<size_t>(at)];
         if (line.kind == Line::Kind::Switch) {
             if (over(left, y, right - left, switchLine)) fill(context, left - 2, y, right - left + 4, switchLine, palette::shade, .08f);
-            windowLabel(context, left, y + 4, right - left - switchWidth - 4, translated("recipes.howTo.showAll"));
-            toggleSwitch(context, right - switchWidth, y + 3.5f, howAll);
+            std::string const words = translated("recipes.howTo.showAll");
+            float const wordsW = std::min(textWidth(context, words), right - left - switchWidth - 8);
+            windowLabel(context, left, y + 4, wordsW, words);
+            toggleSwitch(context, left + wordsW + 8, y + 3.5f, howAll);
             if (took(left, y, right - left, switchLine)) howAll = !howAll;
         } else if (line.kind == Line::Kind::Label) {
             labelScaled(context, left, y + 3, right - left, translated(line.option == 0 ? "recipes.howTo.groups" : "recipes.howTo.recipes"), .75f, v::windowFaint,

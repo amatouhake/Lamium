@@ -176,6 +176,8 @@ dark look. No control plays a sound.
   list stands in a frame of its own. A button on a game window or under
   it carries a white-and-grey picture, named by its tip, green when on
   (L-382).
+- **A count cut to fit** (a slot's "44k", a cell's "…") shows whole,
+  thousands apart, in its tip (L-370).
 - **A list's scrollbar** (`listScrollbar`): a view without a layout of
   its own draws the shared bar, takes a press on it and follows the drag
   in one call; the rows leave it a gutter.

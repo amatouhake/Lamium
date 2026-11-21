@@ -492,6 +492,8 @@ void recipeIndexTests() {
                 check(held.size() == 1 && held[0].item == awkward && held[0].made == 3, "what held stock covers whole is a held step");
                 check(slotCountText(999) == "999" && slotCountText(2880) == "2k" && slotCountText(23040) == "23k" && slotCountText(100000) == "++",
                       "a slot's count fits three characters (L-370)");
+                check(wholeCountText(999) == "999" && wholeCountText(1000) == "1,000" && wholeCountText(2400008) == "2,400,008",
+                      "a cut count's tip shows it whole with its thousands apart");
             }
             auto const face = viewBlock(mix);
             check(face.brewing && face.slots.size() == 3 && face.slots[0].cell == 0 && face.slots[1].cell == 1 && face.slots[2].cell == -1
