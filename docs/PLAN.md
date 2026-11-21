@@ -88,7 +88,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
   "wanted" the count (the stepper under the pointer, done rows at the
   end, kept in place while the pointer is over the list); done rows
   checked; the tip gives held (or can make now) and
-  needed, a make row's also each input held/needed. A "to gather" row's
+  needed, a make row's also each input as "Stone: 146/44,844" (name, held/needed). A "to gather" row's
   tip is the same in the window and on the panel: name (a group's
   members), held and needed, what is left in chests and stacks, a
   group's choice, the stores holding some.
