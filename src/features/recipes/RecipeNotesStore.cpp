@@ -24,7 +24,7 @@ std::string encodeNotes(Notes const& notes) {
     for (auto const& [item, recipe] : notes.choices) choices[item] = recipe;
     for (auto const& [group, member] : notes.picks) picks[group] = member;
     return Json{{"version", 1}, {"favorites", notes.favorites}, {"recipes", std::move(choices)}, {"picks", std::move(picks)},
-                {"gathered", notes.stops}, {"made", notes.made}}.dump(2);
+                {"gathered", notes.stops}}.dump(2);
 }
 Notes decodeNotes(std::string_view document) {
     Notes out;
@@ -44,8 +44,6 @@ Notes decodeNotes(std::string_view document) {
     pairs("picks", out.picks);
     if (auto list = root.find("gathered"); list != root.end() && list->is_array())
         for (auto const& entry : *list) if (auto key = text(entry); !key.empty() && out.stops.size() < 4096) out.stops.insert(std::move(key));
-    if (auto list = root.find("made"); list != root.end() && list->is_array())
-        for (auto const& entry : *list) if (auto key = text(entry); !key.empty() && out.made.size() < 4096) out.made.insert(std::move(key));
     return out;
 }
 std::string encodeWanted(Wanted const& wanted) {

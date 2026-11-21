@@ -42,19 +42,12 @@ struct Notes {
     std::map<std::string, std::string> choices;   // item key -> the recipe's choiceKey
     std::map<std::string, std::string> picks;     // group key -> member's item key
     std::set<std::string> stops;                  // item keys, and group keys (groupKey) gathered as they are (L-386)
-    std::set<std::string> made;                   // usually gathered items the player set to be made
     bool operator==(Notes const&) const = default;
-    // Gathered, not made: the player's choice, or an item usually gathered (`usual`, usuallyGathered) the player
-    // left so.
-    bool gathered(std::string const& key, bool usual) const { return stops.contains(key) || (usual && !made.contains(key)); }
-    void setGathered(std::string const& key, bool gather, bool usual) {
-        if (gather) {
-            made.erase(key);
-            if (!usual) stops.insert(key); else stops.erase(key);
-        } else {
-            stops.erase(key);
-            if (usual) made.insert(key);
-        }
+    // Gathered, not made, by the player's choice (an item usually gathered is so by choose()'s rule, not here).
+    bool gathered(std::string const& key) const { return stops.contains(key); }
+    void setGathered(std::string const& key, bool gather) {
+        if (gather) stops.insert(key);
+        else stops.erase(key);
     }
     bool favorite(std::string_view key) const { return std::find(favorites.begin(), favorites.end(), key) != favorites.end(); }
     void toggleFavorite(std::string const& key) {
@@ -86,8 +79,6 @@ inline void apply(Index const& index, Notes const& notes, Request& request) {
     if (!notes.stops.empty())
         for (size_t group = 0; group < index.groups.size(); ++group)
             if (notes.stops.contains(groupKey(index, static_cast<int>(group)))) request.stops.insert(index.groupItem(static_cast<int>(group)));
-    for (size_t item = 0; item < index.items.size(); ++item)
-        if (usuallyGathered(index, static_cast<Item>(item)) && !notes.made.contains(index.items[item])) request.stops.insert(static_cast<Item>(item));
 }
 
 struct Wanted {

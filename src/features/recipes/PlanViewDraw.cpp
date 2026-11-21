@@ -785,20 +785,24 @@ struct Lists : Window {
         auto addItem = [&](Item item) { if (item >= 0 && std::ranges::find(items, item) == items.end()) items.push_back(item); };
         // An item has a line where there is a choice: several recipes, or one made that could be gathered instead
         // ("gather" is an option beside the recipes, L-370), which the plan gathers now.
-        // An item usually gathered (leather, diamond) has its line whatever is chosen for it, so a change can be taken
-        // back where it was made.
+        // An item has a line where there is a choice: several recipes, or one gathered (the player's "gather", or the
+        // rule giving it no recipe: leather, diamond, a loop's base) that a recipe could make.
+        auto gatheredNow = [&](Item item) {
+            return request.stops.contains(item) || (static_cast<size_t>(item) < plan->choice->recipe.size() && plan->choice->recipe[static_cast<size_t>(item)] < 0);
+        };
+        // A recipe the player chose keeps its line too, so the choice can be taken back where it was made.
         auto choosable = [&](Item item) {
             if (item < 0 || item >= itemCount) return false;
-            bool const gatherable = request.stops.contains(item) || usuallyGathered(index, item);
-            return recipeOptions(index, item).size() > 1 || (gatherable && !index.makers[static_cast<size_t>(item)].empty());
+            auto const options = recipeOptions(index, item).size();
+            return options > 1 || ((gatheredNow(item) || notes.choices.contains(index.items[static_cast<size_t>(item)])) && options > 0);
         };
         if (input.plan) {
             for (auto const& line : plan->view.gather) {
                 if (line.id >= itemCount) addGroup(line.id - itemCount);
-                else if ((request.stops.contains(line.id) || usuallyGathered(index, line.id)) && choosable(line.id)) addItem(line.id);
+                else if (gatheredNow(line.id) && choosable(line.id)) addItem(line.id);
             }
             for (auto const& line : plan->view.done)
-                if (line.id < itemCount && (request.stops.contains(line.id) || usuallyGathered(index, line.id)) && choosable(line.id)) addItem(line.id);
+                if (line.id >= 0 && line.id < itemCount && gatheredNow(line.id) && choosable(line.id)) addItem(line.id);
             for (auto const& step : plan->view.steps) {
                 for (auto const& part : stepParts(index, request, step)) if (part.part.group) addGroup(part.part.id);
                 if (groupStep(index, step)) addGroup(step.item - itemCount);
@@ -808,11 +812,9 @@ struct Lists : Window {
         if (showAll) {
             // Every group the player chose a member for is among the request's picks, plan or not.
             for (auto const& [group, member] : request.picks) addGroup(group);
-            for (auto const& [key, recipe] : notes.choices) if (Item const item = index.findKey(key); item >= 0 && recipeOptions(index, item).size() > 1) addItem(item);
-            // The player's own "gather", and an item usually gathered the player set to be made; the others usually
-            // gathered show only where the plan has them.
+            for (auto const& [key, recipe] : notes.choices) if (Item const item = index.findKey(key); choosable(item)) addItem(item);
+            // The player's own "gather"; what the rule gathers shows only where the plan has it.
             for (auto const& key : notes.stops) if (Item const item = index.findKey(key); choosable(item)) addItem(item);
-            for (auto const& key : notes.made) if (Item const item = index.findKey(key); choosable(item)) addItem(item);
         }
         // The line asked for (from a breakdown or the recipe view) always has a place, in the plan or not.
         if (!howOpen.empty()) {
@@ -968,7 +970,7 @@ struct Lists : Window {
                 else if (now >= 0)
                     if (auto const& recipe = index.recipes[static_cast<size_t>(now)]; !recipe.uses.empty()) icon(pictureOf(partItem(index, request, recipe.uses.front())), slotX + 1, y + 2);
                 changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
-                // Gathered reads as chosen: the player's, or the preset of an item usually gathered.
+                // The player's "gather" reads as chosen; the rule's (leather, diamond) as "Automatic: gather".
                 if (gathered) words(y, translated("recipes.howTo.chosenIs", translated("recipes.toGather")), true);
                 else if (chosen) words(y, translated("recipes.howTo.chosenIs", recipeName(now)), true);
                 else words(y, translated("recipes.howTo.autoIs", rule >= 0 ? recipeName(rule) : translated("recipes.toGather")), false);
@@ -1017,13 +1019,7 @@ struct Lists : Window {
                     }
                     if (!chosen && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
                     windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : translated("recipes.toGather")));
-                    if (took(left + 18, y, right - left - 18, h)) {
-                        state::setChoice(key, {});
-                        // With no recipe of its own the rule gathers it: an item usually gathered goes back to that.
-                        if (rule < 0 && usuallyGathered(index, line.item)) state::setStop(key, true);
-                        else make();
-                        howOpen.clear();
-                    }
+                    if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, {}), make(), howOpen.clear();
                 } else {
                     int const number = options[static_cast<size_t>(line.option)];
                     StepLine const one{line.item, number, 1, index.recipes[static_cast<size_t>(number)].count, 0, 0};

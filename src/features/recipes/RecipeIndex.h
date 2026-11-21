@@ -428,9 +428,9 @@ inline bool smeltsOreOnly(Index const& index, Recipe const& recipe) {
 }
 // Items players gather rather than make although a recipe makes them (L-370): one smelted from an ore that drops it
 // when mined (diamond, coal, redstone: smeltsOreOnly), or one whose recipe turns something rarer into it (rabbit hide
-// into leather, string into wool), named here. The one rule for "usually gathered": such an item starts as gathered
-// in "How to make", and only the player's change is saved (`made` in the notes), so an item added here later
-// reaches everyone and a choice to make one stays.
+// into leather, string into wool), named here. The one rule for "usually gathered" (maintainer 2026-11-22): choose()
+// gives such an item no recipe, so "automatic" gathers it, as a loop's base; the player makes one by choosing a
+// recipe, and nothing of the rule is kept in the notes.
 inline bool usuallyGathered(Index const& index, Item item) {
     if (item < 0 || static_cast<size_t>(item) >= index.items.size()) return false;
     std::string_view key = index.items[static_cast<size_t>(item)];
@@ -601,6 +601,8 @@ inline Choice choose(Index const& index) {
         }
         for (Item item : group) out.base[item] = base;
     }
+    // Usually gathered: no recipe unless the player chooses one. Loops keep the base and order worked out above.
+    for (Item item = 0; item < count; ++item) if (usuallyGathered(index, item)) out.recipe[item] = -1;
     return out;
 }
 

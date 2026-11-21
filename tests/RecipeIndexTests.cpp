@@ -123,7 +123,7 @@ void recipeIndexTests() {
               "a loop of three is not followed round: the base still comes from outside it");
         check(made("cobblestone").empty() && made("stone") == "furnace_cobblestone",
               "in a loop across stations the item more recipes use is gathered");
-        check(made("white_wool") == "string_to_wool" && choice.base[id("red_wool")] == id("white_wool"),
+        check(made("white_wool").empty() && choice.base[id("red_wool")] == id("white_wool"),
               "an item with a recipe from outside the loop is its base");
         check(made("black_wool") == "wool_black_from_white" && made("red_wool") == "wool_red_from_white",
               "among equal recipes the one closest to the base wins, not the first by name");
@@ -142,14 +142,13 @@ void recipeIndexTests() {
         check(usuallyGathered(index, id("diamond")) && usuallyGathered(index, id("quartz")) && !usuallyGathered(index, id("iron_ingot"))
                   && !usuallyGathered(index, id("diamond_block")) && !usuallyGathered(index, id("stick")),
               "an item smelted from an ore that drops it is usually gathered; iron (from raw iron) and what is made from it are not");
-        Request mined;
-        apply(index, Notes{}, mined);
+        check(made("diamond").empty() && made("white_wool").empty() && plan(index, choice, {{{id("diamond"), 2}}, {}, {}, {}}).raw == Raw{{id("diamond"), 2}},
+              "the rule gives an item usually gathered no recipe: automatic gathers it");
         Notes smelt;
-        smelt.setGathered("diamond", false, true);
-        Request smelted;
-        apply(index, smelt, smelted);
-        check(mined.stops.contains(id("diamond")) && !smelted.stops.contains(id("diamond")),
-              "a mined item starts as gathered in the plan, and the player's choice to make it is kept as for leather");
+        smelt.choices["diamond"] = choiceKey(index.recipes[static_cast<size_t>(index.makers[id("diamond")].front())]);
+        Choice const smelting = chosen(index, choice, smelt);
+        check(smelting.recipe[id("diamond")] >= 0 && plan(index, smelting, {{{id("diamond"), 2}}, {}, {}, {}}).raw != Raw{{id("diamond"), 2}},
+              "choosing a recipe for it makes it");
         check(index.makers[id("diamond")].size() == 2 && made("iron_ingot") == "furnace_iron",
               "the ore recipes stay in the index, and smelting with a raw form among the inputs is still chosen");
     }
@@ -338,7 +337,7 @@ void recipeIndexTests() {
         auto const oak = planned(woods, picked, {{{at("chest"), 1}}, {}, {{planks, at("oak_planks")}}, {}});
         check(oak.result.raw == Raw{{at("oak_log"), 2}}, "a picked member is traced through its own recipe");
         Notes notes;
-        notes.setGathered(groupKey(woods, planks), true, false);
+        notes.setGathered(groupKey(woods, planks), true);
         Request fromNotes;
         apply(woods, notes, fromNotes);
         check(fromNotes.stops.contains(planksItem), "a group's gather is saved by its key and reaches the plan");
@@ -787,21 +786,17 @@ void recipeIndexTests() {
               "picks and stops reach the plan by name");
         {
             Notes preset;
-            check(preset.gathered("white_wool", true) && !preset.stops.contains("white_wool") && !preset.gathered("stick", false),
-                  "items usually gathered start as gathered without being saved as the player's choice");
-            preset.setGathered("white_wool", false, true);
-            preset.setGathered("stick", true, false);
-            check(!preset.gathered("white_wool", true) && preset.made.contains("white_wool") && preset.stops == std::set<std::string>{"stick"},
-                  "a choice to make an item usually gathered is kept apart from the player's own stops");
-            check(decodeNotes(encodeNotes(preset)) == preset, "the choice to make it is saved");
-            preset.setGathered("white_wool", true, true);
-            check(preset.gathered("white_wool", true) && preset.made.empty() && !preset.stops.contains("white_wool"), "back to gathered it is the preset again");
+            preset.setGathered("stick", true);
+            check(preset.gathered("stick") && preset.stops == std::set<std::string>{"stick"} && decodeNotes(encodeNotes(preset)) == preset,
+                  "the player's own gather is kept and saved");
+            preset.setGathered("stick", false);
+            check(!preset.gathered("stick") && preset.stops.empty(), "and taken back");
             Source woolSource;
             woolSource.recipes.push_back({"crafting_table", "string_to_wool", 0, {{"white_wool", 1}}, cells("string", 4)});
             Index woolIndex = build(woolSource);
-            Request woolRequest;
-            apply(woolIndex, Notes{}, woolRequest);
-            check(woolRequest.stops.contains(woolIndex.find("white_wool")), "an item usually gathered is gathered in the plan unless the player says otherwise");
+            Choice const woolChoice = choose(woolIndex);
+            check(woolChoice.recipe[static_cast<size_t>(woolIndex.find("white_wool"))] < 0,
+                  "an item usually gathered has no recipe by the rule, even its only one, unless the player chooses it");
         }
         Wanted list;
         list.set("stick", 8);

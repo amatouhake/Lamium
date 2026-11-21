@@ -20,8 +20,9 @@ Do not infer game success from a build or unit-test result.
   both views, gathered rows on the panel. Not seen: a picked log kind, a
   group gathered from its breakdown step, the window's tabs beyond those
   (split by tab in `37301b53`, moves only), servers. Built after, not
-  seen: How to make keeping an item usually gathered after "automatic"
-  (`7c889219`); wanted.json written once changes settle (`66001edd`:
+  seen: items usually gathered (leather, wool, diamond) reading
+  "Automatic: gather" and made by choosing a recipe, their line kept in
+  How to make; wanted.json written once changes settle (`66001edd`:
   step a count with the wheel, leave the world, rejoin, the count kept).
 
 ## Left from 0.7.0
