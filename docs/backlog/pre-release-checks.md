@@ -19,9 +19,7 @@ Do not infer game success from a build or unit-test result.
   logs, make over two kinds, How to make's group gather, one tip form in
   both views, gathered rows on the panel. Not seen: a picked log kind, a
   group gathered from its breakdown step, the window's tabs beyond those
-  (split by tab in `37301b53`, moves only), servers. Built after, not
-  seen after: the bed and harness recipes the table repeats listed once,
-  and "Automatic: gather" showing the item in its slots.
+  (split by tab in `37301b53`, moves only), servers.
 
 ## Left from 0.7.0
 

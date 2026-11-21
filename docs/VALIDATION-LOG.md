@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Repeated recipes listed once, "Automatic: gather" slots (L-370, 2026-11-22)
+
+Build `27149e5f` (DLL
+`4f3f9a68970a1501211006d80364d7a710fa8bb4757ecb3d295b5c4e5d069b85`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: white wool's uses
+show the white bed and the white harness once each; How to make's line
+for an item the rule gathers (diamond, leather) and its "automatic"
+option show the item in their slots.
+
 ## Usually gathered by the automatic choice, wanted.json settling (L-370, 2026-11-22)
 
 Build `f8a42b7d` (DLL
