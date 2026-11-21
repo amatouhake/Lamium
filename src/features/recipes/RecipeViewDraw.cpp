@@ -1,5 +1,6 @@
 #include "features/recipes/CountText.h"
 #include "features/recipes/RecipeViewDraw.h"
+#include "features/recipes/GroupLook.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
@@ -257,9 +258,6 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
     windowLabel(context, nameX, lineTwo + 1, pager.prevX - 4 - nameX, kindName(tab.kind), true);
     if (pager.prevOn) regions.push_back({pager.prevX, pager.y, Pager::size, Pager::size, Act::PagePrev, {}, -1});
     if (pager.nextOn) regions.push_back({pager.nextX, pager.y, Pager::size, Pager::size, Act::PageNext, {}, -1});
-    // An ingredient any of several items satisfies shows them in turn.
-    auto const turn = static_cast<size_t>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
     int const first = at.page * l.perPage(station);
     for (int i = 0; i < l.perPage(station) && first + i < count; ++i) {
         int const number = tab.recipes[static_cast<size_t>(first + i)];
@@ -284,9 +282,11 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (amount > 1) late.counts.push_back({sx, sy, slotCountText(amount)});
             if (group >= 0 && !state::notes().picks.contains(groupKey(index, group))) late.marks.push_back({sx + 1, sy + 1});
             if (hovered && group >= 0) {
-                late.tip = groupName(index, group);
-                late.tipItems.clear();
-                for (Item member : index.groups[static_cast<size_t>(group)].members) late.tipItems.push_back(index.items[static_cast<size_t>(member)]);
+                groupLook::hover(group, sx, sy);
+                std::map<int, Item> picked;
+                if (auto found = state::notes().picks.find(groupKey(index, group)); found != state::notes().picks.end())
+                    if (Item const member = index.findKey(found->second); member >= 0) picked[group] = member;
+                groupLook::tip(late, index, group, picked, nullptr);
             } else if (hovered) late.tip = shown.name, late.hovered = region.item;
             regions.push_back(std::move(region));
         };
@@ -311,12 +311,14 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                     group = cell.id;
                     auto const& members = index.groups[static_cast<size_t>(cell.id)].members;
                     // Asked what an item is used in, a slot it fits shows it; else the member "How to make" names, or
-                    // the members in turn.
+                    // the one it is known by, still unless the wheel looks through them (L-369).
                     bool const asked = at.uses && std::find(members.begin(), members.end(), id) != members.end();
                     Item picked = -1;
                     if (auto found = picks.find(groupKey(index, cell.id)); found != picks.end()) picked = index.findKey(found->second);
                     if (std::find(members.begin(), members.end(), picked) == members.end()) picked = -1;
-                    item = members.empty() ? -1 : asked ? id : picked >= 0 ? picked : members[turn % members.size()];
+                    std::map<int, Item> one;
+                    if (picked >= 0) one[cell.id] = picked;
+                    item = members.empty() ? -1 : asked ? id : groupLook::face(index, cell.id, one, nullptr);
                 }
             }
             place(bx + part.x, by + part.y, item, 1,

@@ -59,7 +59,9 @@ struct Late {
     std::vector<std::pair<std::string, std::string>> tipTable; // under those, two columns: what to type, what it does
     std::string hovered; // the item under the pointer, by its id
     std::string wantedRow; // the wanted item whose row is under the pointer, controls and all
-    std::vector<std::string> tipItems; // items shown as small icons under the tip's lines (a group's members)
+    std::vector<std::string> tipItems; // items shown as icons under the tip's lines (a group's members)
+    std::vector<std::string> tipCounts; // beside tipItems: what is held of each, as a slot's count, or empty
+    int tipCurrent = -1; // the one of tipItems a group's slot shows, framed
     bool placed = false; // a recipe was laid into the grid: the host clears the windows off it
 };
 bool isOpen();

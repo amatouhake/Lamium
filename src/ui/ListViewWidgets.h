@@ -24,9 +24,9 @@ namespace lamium::ui {
 enum class ButtonKind { Plain, Primary };
 void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                 bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
-// A small button inside a table row (L-369): ten high, its text at three quarters as the row's other small
-// words, so the text sits inside the button with room around it.
-inline constexpr float rowButtonHeight = 10;
+// A small button inside a table row (L-369): flat, as high as a switch and edged as one, its text smaller than
+// the row's words so it sits inside with room around it. Off the game's window it is the plain button.
+inline constexpr float rowButtonHeight = switchHeight;
 float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text);
 void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered);
 // A pager (L-367): a previous button, "page / pages" and a next button, ending at `right`, `y` the

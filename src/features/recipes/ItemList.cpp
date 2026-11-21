@@ -1,4 +1,5 @@
 #include "features/recipes/CountText.h"
+#include "features/recipes/GroupLook.h"
 #include "features/recipes/ItemList.h"
 #include <cmath>
 #include "app/Runtime.h"
@@ -812,6 +813,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
         searchHistory.typed(search.value(), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     wasFocused = searchFocus;
     cost.at("field");
+    // The wheel over a group's slot the pointer has rested on looks through its members instead (L-369); the
+    // slots drawn below say where the pointer rests now.
+    if (input.viewTurns)
+        if (int const group = groupLook::rested(); group >= 0) groupLook::turn(group, input.viewTurns), input.viewTurns = 0;
+    groupLook::beginFrame();
     // The recipe view is on top; under it, the window of what is wanted.
     if (view::isOpen()) {
         auto placer = gridPlacer(screenView, *player);
@@ -957,11 +963,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (!late.tipTable.empty()) tableLeft += 8;
         for (auto const& [left, right] : late.tipTable) w = std::max(w, tableLeft + textWidth(context, right));
         int const lines = 1 + static_cast<int>(late.tipLines.size() + more.size() + late.tipTable.size());
-        // A group's members as small icons under the lines, ten to a row (L-370).
-        constexpr size_t perRow = 10;
+        // A group's members under the lines as slots' icons, full size, eight to a row, each with what is held and
+        // the one its slot shows framed (L-369).
+        constexpr size_t perRow = 8;
+        constexpr float cellSize = 18;
         size_t const members = std::min<size_t>(late.tipItems.size(), 40);
-        float const membersH = members ? static_cast<float>((members + perRow - 1) / perRow) * 11 + 2 : 0.f;
-        if (members) w = std::max(w, static_cast<float>(std::min(members, perRow)) * 11);
+        float const membersH = members ? static_cast<float>((members + perRow - 1) / perRow) * cellSize + 2 : 0.f;
+        if (members) w = std::max(w, static_cast<float>(std::min(members, perRow)) * cellSize);
         // An item's tip, and any tip over Lamium's light windows, is the game's tooltip box (VanillaFrame.h,
         // L-367); other tips are Lamium's, two units under the last line so letters that reach below it
         // (p, y) stay inside the frame.
@@ -991,10 +999,24 @@ bool drawList(ll::event::UIRenderEvent& event) {
         context.flushText(0, std::nullopt);
         if (members) {
             std::vector<inspection::render::IconAt> icons;
+            auto cellAt = [&](size_t i) { return std::pair{x + inset + static_cast<float>(i % perRow) * cellSize, line + 1 + static_cast<float>(i / perRow) * cellSize}; };
+            if (late.tipCurrent >= 0 && static_cast<size_t>(late.tipCurrent) < members) {
+                auto const [cx, cy] = cellAt(static_cast<size_t>(late.tipCurrent));
+                lamium::ui::frame(context, cx, cy, cellSize, cellSize, palette::white, .6f);
+            }
             for (size_t i = 0; i < members; ++i)
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(late.tipItems[i]).icon))
-                    icons.push_back({stack, x + inset + static_cast<float>(i % perRow) * 11, line + 1 + static_cast<float>(i / perRow) * 11, .625f});
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(late.tipItems[i]).icon)) {
+                    auto const [cx, cy] = cellAt(i);
+                    icons.push_back({stack, cx + 1, cy + 1});
+                }
             if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+            // What is held of each, over its icon as a slot's count.
+            for (size_t i = 0; i < members && i < late.tipCounts.size(); ++i)
+                if (!late.tipCounts[i].empty()) {
+                    auto const [cx, cy] = cellAt(i);
+                    label(context, cx, cy + 9, cellSize - 1, late.tipCounts[i], palette::text, Align::Right);
+                }
+            context.flushText(0, std::nullopt);
         }
     }
     cost.at("tooltip");

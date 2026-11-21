@@ -51,7 +51,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   item stay two rows. Held stock goes to the rows in
   the order added; a row that lost stock to one above says so under the
   pointer. A press opens its read-only breakdown: steps as slots, then
-  what it needs gathered. A recipe's state and an any-of input's slot (framed green
+  what it needs gathered on the table's held, needed and bar columns,
+  "gather" and "make" in the controls' column. A recipe's state and an any-of input's slot (framed green
   when chosen) go to "How to make"; "gather" on a step, "make" on a
   material set to gather.
 - "To gather" uses the same columns, "All" as the first row written
@@ -68,6 +69,14 @@ plan's recipes are in [L-116](backlog/L-116.md).
   tip is the same in the window and on the band: name (a group's
   members), held and needed, what is left in chests and stacks, a
   group's choice, the stores holding some.
+- A group (an ingredient any of its members serves) holds still on
+  every recipe screen: the member chosen, else the one most held, else
+  the one it is known by. Resting the pointer on its slot a moment, the
+  wheel looks through the members (it chooses nothing); its tip names
+  the one shown with what is held, says whether one is chosen ("Any"
+  explains the kinds held count together) and shows the members full
+  size with their counts, the shown one framed. In "How to make" a
+  line's tip shows over the whole line, its words "Any" alone.
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first, as its recipe's slots), by name, each line's state

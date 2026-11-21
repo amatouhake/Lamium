@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Calmer plan window, How to make with the plan off (L-369, 2026-11-21)
+
+Builds `f9d52521` and `91708828` (last DLL
+`4cfb391f363963cfad621c97bbd53fc9fb126cab8b64b5add4fd2a32f5de5741`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: How to make in plain
+words with "gather" second; the scrollbar's span and room; the same
+"to gather" tip on the window and the band. Not right: the breakdown's
+amounts sit far right; the small buttons' bevel; "Any (the kinds held
+count together)" long; a store switched off dims its row (only the
+ender chest shows it); a store's switch and "Remove" of unequal size;
+a group shows only icons, small, and turns every 1.5 s.
+
 ## Counts left, done items, gather presets (L-370, L-369, 2026-11-21)
 
 Build `f1b5823c` (DLL

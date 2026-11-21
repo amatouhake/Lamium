@@ -1,5 +1,6 @@
 #include "features/recipes/BandPages.h"
 #include "features/recipes/CountEdit.h"
+#include "features/recipes/GroupLook.h"
 #include "features/recipes/RecipeText.h"
 #include "features/schematic/SchematicItems.h"
 #include "ui/ListViewWidgets.h"
@@ -166,8 +167,6 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     } else if (plan && sideList == SideList::Gather) {
         auto const& index = plan->table->index;
         Item const items = static_cast<Item>(index.items.size());
-        auto const turn = static_cast<size_t>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
         // As the window's tab (L-370): what is left first, most left first, as the one number left; then what is
         // gathered, faint with a check; the tip says what is held and needed.
         auto add = [&](GatherLine const& line, bool done) {
@@ -177,7 +176,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 row.name = schematic::items::shown(row.key).name;
             } else {
                 auto const& members = index.groups[static_cast<size_t>(line.id - items)].members;
-                row.key = members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])];
+                Item const face = members.empty() ? -1 : groupLook::face(index, line.id - items, plan->request.picks, &plan->held);
+                row.key = face >= 0 ? index.items[static_cast<size_t>(face)] : std::string();
                 row.name = groupName(index, line.id - items), row.group = true;
             }
             row.count = line.left, row.held = line.held, row.need = line.need, row.faint = done, row.done = done, row.gather = true, row.gatherLine = line;
