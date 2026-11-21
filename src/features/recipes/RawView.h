@@ -52,7 +52,10 @@ inline RawView rawView(Index const& index, Choice const& choice, Planned plan) {
     std::stable_sort(out.gather.begin(), out.gather.end(), [](GatherLine const& a, GatherLine const& b) { return a.left > b.left; });
     // reduce() lists a product before what it is made from; making goes the other way.
     for (auto step = plan.result.steps.rbegin(); step != plan.result.steps.rend(); ++step) {
-        int const recipe = step->item >= 0 && step->item < static_cast<Item>(choice.recipe.size()) ? choice.recipe[step->item] : -1;
+        // A traced group's step (L-386) lays in the member's recipe planned() named for it.
+        auto const grouped = plan.groupRecipes.find(step->item);
+        int const recipe = grouped != plan.groupRecipes.end() ? grouped->second
+                         : step->item >= 0 && step->item < static_cast<Item>(choice.recipe.size()) ? choice.recipe[step->item] : -1;
         if (recipe < 0) continue;
         out.steps.push_back({step->item, recipe, step->crafts, step->crafts * index.recipes[recipe].count, step->spare, heldOf(step->item)});
     }
@@ -71,11 +74,36 @@ inline Count partNeed(Recipe const& recipe, size_t i, Count crafts) {
     Count const count = recipe.uses[i].count;
     return i == 0 && recipe.batch > 1 ? (crafts + recipe.batch - 1) / recipe.batch * count : crafts * count;
 }
+// One input of a step as the plan counts it: the part as its slot shows it (a group: any member, with how many a
+// craft takes), the item it stands for, and how many all the step's crafts take. A traced group's step (L-386) takes
+// its kind, whichever member's recipe it lays in; `batch`: a brewing ingredient's (L-361), 0 for every other.
+struct StepPart {
+    Part part;
+    Item item = 0;
+    Count need = 0, batch = 0;
+};
+// Whether a step makes a traced group (its item past Index::items) rather than an item.
+inline bool groupStep(Index const& index, StepLine const& step) { return step.item >= static_cast<Item>(index.items.size()); }
+inline std::vector<StepPart> stepParts(Index const& index, Request const& request, StepLine const& step) {
+    std::vector<StepPart> out;
+    if (groupStep(index, step)) {
+        size_t const group = static_cast<size_t>(step.item - static_cast<Item>(index.items.size()));
+        if (group < index.traces.size() && index.traces[group].kind >= 0) {
+            auto const& trace = index.traces[group];
+            Part const kind{true, trace.kind, trace.uses};
+            out.push_back({kind, partItem(index, request, kind), step.crafts * trace.uses, 0});
+            return out;
+        }
+    }
+    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+    for (size_t i = 0; i < recipe.uses.size(); ++i)
+        out.push_back({recipe.uses[i], partItem(index, request, recipe.uses[i]), partNeed(recipe, i, step.crafts), i == 0 ? recipe.batch : 0});
+    return out;
+}
 // What a step takes in all its crafts, each part as the item it stands for in the plan.
 inline std::vector<std::pair<Item, Count>> stepInputs(Index const& index, Request const& request, StepLine const& step) {
     std::vector<std::pair<Item, Count>> out;
-    auto const& recipe = index.recipes[step.recipe];
-    for (size_t i = 0; i < recipe.uses.size(); ++i) out.emplace_back(partItem(index, request, recipe.uses[i]), partNeed(recipe, i, step.crafts));
+    for (auto const& part : stepParts(index, request, step)) out.emplace_back(part.item, part.need);
     return out;
 }
 }

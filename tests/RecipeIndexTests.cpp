@@ -236,6 +236,88 @@ void recipeIndexTests() {
               "a wanted item holds its finished items, or what is held of it where the table does not know it");
     }
     {
+        // L-386: an "any" ingredient traced past its kind, where most members are made from one input in one amount.
+        Source wood;
+        wood.tags = {{"planks", {"oak_planks", "spruce_planks", "bamboo_planks"}}, {"wooden_slabs", {"oak_slab", "spruce_slab"}},
+                     {"coals", {"coal", "charcoal"}}, {"stone_crafting_materials", {"cobblestone", "cobbled_deepslate"}}};
+        wood.recipes = {
+            {"crafting_table", "oak_planks", 0, {{"oak_planks", 4}}, cells("oak_log", 1)},
+            {"crafting_table", "oak_planks_from_stripped", 0, {{"oak_planks", 4}}, cells("stripped_oak_log", 1)},
+            {"crafting_table", "spruce_planks", 0, {{"spruce_planks", 4}}, cells("spruce_log", 1)},
+            {"crafting_table", "bamboo_planks", 0, {{"bamboo_planks", 2}}, cells("bamboo_block", 1)},
+            {"crafting_table", "chest", 0, {{"chest", 1}}, cells("planks", 8, true)},
+            {"crafting_table", "oak_slab", 0, {{"oak_slab", 6}}, cells("oak_planks", 3)},
+            {"crafting_table", "spruce_slab", 0, {{"spruce_slab", 6}}, cells("spruce_planks", 3)},
+            {"crafting_table", "shelf", 0, {{"shelf", 1}}, cells("wooden_slabs", 2, true)},
+            {"crafting_table", "coal_from_block", 0, {{"coal", 9}}, cells("coal_block", 1)},
+            {"furnace", "charcoal", 0, {{"charcoal", 1}}, cells("oak_log", 1)},
+            {"crafting_table", "torch", 0, {{"torch", 4}}, cells("coals", 1, true)},
+            {"furnace", "coal_from_ore", 0, {{"coal", 1}}, cells("coal_ore", 1)},
+            {"stonecutter", "cobblestone_from_stone", 0, {{"cobblestone", 1}}, cells("stone", 1)},
+            {"furnace", "stone", 0, {{"stone", 1}}, cells("cobblestone", 1)},
+            {"stonecutter", "cobbled_deepslate_from_deepslate", 0, {{"cobbled_deepslate", 1}}, cells("deepslate", 1)},
+            {"furnace", "deepslate", 0, {{"deepslate", 1}}, cells("cobbled_deepslate", 1)},
+            {"crafting_table", "furnace", 0, {{"furnace", 1}}, cells("stone_crafting_materials", 8, true)},
+        };
+        Index const woods = build(wood);
+        Choice const picked = choose(woods);
+        auto at = [&](std::string const& name) { return woods.find(name); };
+        auto groupNamed = [&](std::string const& name) {
+            for (size_t g = 0; g < woods.groups.size(); ++g) if (woods.groups[g].name == name) return static_cast<int>(g);
+            return -1;
+        };
+        int const planks = groupNamed("planks"), slabs = groupNamed("wooden_slabs"), coals = groupNamed("coals");
+        auto const& trace = woods.traces[static_cast<size_t>(planks)];
+        std::vector<Item> logs = trace.kind >= 0 ? woods.groups[static_cast<size_t>(trace.kind)].members : std::vector<Item>{};
+        std::sort(logs.begin(), logs.end());
+        std::vector<Item> expected{at("oak_log"), at("stripped_oak_log"), at("spruce_log")};
+        std::sort(expected.begin(), expected.end());
+        check(trace.uses == 1 && trace.makes == 4 && logs == expected && trace.recipes.size() == 3,
+              "planks trace to every input of the members that line up, four from one; bamboo planks are left out");
+        check(woods.traces[static_cast<size_t>(coals)].kind < 0, "smelting an ore that drops the item does not line a member up (coal is mined)");
+        int const stones = groupNamed("stone_crafting_materials");
+        check(stones >= 0 && woods.traces[static_cast<size_t>(stones)].kind < 0,
+              "a member made from what is made from it (cobblestone from stone) is a loop's base, not traced");
+        auto const& slabTrace = woods.traces[static_cast<size_t>(slabs)];
+        check(slabTrace.kind >= 0 && slabTrace.uses == 3 && slabTrace.makes == 6 && woods.traces[static_cast<size_t>(slabTrace.kind)].kind == trace.kind,
+              "a kind is traced in turn: slabs to their planks, those planks to the logs");
+        Item const planksItem = woods.groupItem(planks), logsItem = woods.groupItem(trace.kind);
+        // A chest takes 8 planks of any wood: 3 oak planks and 1 oak log held.
+        Request chest{{{at("chest"), 1}}, {{at("oak_planks"), 3}, {at("oak_log"), 1}}, {}, {}};
+        auto const made = planned(woods, picked, chest);
+        check(made.result.raw == Raw{{logsItem, 1}}, "held planks cover the group first, held logs the kind, the rest is gathered as logs of any wood");
+        check(std::find(made.result.steps.begin(), made.result.steps.end(), rawMaterials::Step{planksItem, 2, 3}) != made.result.steps.end()
+                  && made.covered == std::vector<Cover>{{planks, at("oak_planks"), 3}, {trace.kind, at("oak_log"), 1}},
+              "the group is made from its kind for what held planks leave, and the members that cover each are named");
+        auto const view = rawView(woods, picked, chest);
+        auto const step = std::find_if(view.steps.begin(), view.steps.end(), [&](StepLine const& s) { return s.item == planksItem; });
+        check(step != view.steps.end() && groupStep(woods, *step) && step->made == 8 && woods.recipes[static_cast<size_t>(step->recipe)].makes == at("oak_planks"),
+              "the group's step shows, laying in the member whose input is most held");
+        check(step != view.steps.end() && stepInputs(woods, chest, *step) == std::vector<std::pair<Item, Count>>{{logsItem, 2}}
+                  && stepNow(woods, chest, *step, {{at("oak_log"), 1}, {at("spruce_log"), 1}}) == 2,
+              "the group's step takes its kind, any member counted together");
+        std::map<Item, Count> const carried{{at("oak_log"), 1}, {at("spruce_log"), 3}};
+        auto const runs = step != view.steps.end() ? stepRuns(woods, chest, *step, carried) : std::vector<std::pair<int, int>>{};
+        auto const two = step != view.steps.end() ? stepRuns(woods, chest, *step, {{at("oak_log"), 1}, {at("spruce_log"), 1}}) : runs;
+        check(runs.size() == 1 && woods.recipes[static_cast<size_t>(runs[0].first)].makes == at("spruce_planks") && runs[0].second == 2
+                  && two.size() == 2 && two[0].second == 1 && two[1].second == 1
+                  && woods.recipes[static_cast<size_t>(two[1].first)].makes == at("spruce_planks"),
+              "making the group's step makes the member whose input is most carried first, then the next");
+        // Held bamboo planks still count as planks: nothing to trace.
+        auto const bamboo = planned(woods, picked, {{{at("chest"), 1}}, {{at("bamboo_planks"), 8}}, {}, {}});
+        check(bamboo.result.raw.empty() && bamboo.result.steps.size() == 1 && bamboo.result.steps[0].item == at("chest"), "a member that does not line up still counts toward its group when held");
+        // Gathered as it is, or a member picked: as before.
+        auto const gathered = planned(woods, picked, {{{at("chest"), 1}}, {}, {}, {planksItem}});
+        check(gathered.result.raw == Raw{{planksItem, 8}}, "a group set to gather is not traced");
+        auto const oak = planned(woods, picked, {{{at("chest"), 1}}, {}, {{planks, at("oak_planks")}}, {}});
+        check(oak.result.raw == Raw{{at("oak_log"), 2}}, "a picked member is traced through its own recipe");
+        Notes notes;
+        notes.setGathered(groupKey(woods, planks), true);
+        Request fromNotes;
+        apply(woods, notes, fromNotes);
+        check(fromNotes.stops.contains(planksItem), "a group's gather is saved by its key and reaches the plan");
+    }
+    {
         // The item list in a panel from x 412 to the edge of a 640x360 screen.
         auto list = itemListIn({412, 0, 228, 360});
         check(list.left == 412 && list.width == 228 && list.columns == 12 && list.rows == 19, "the band runs from the window to the screen's edge in whole cells");

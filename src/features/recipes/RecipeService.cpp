@@ -1,6 +1,7 @@
 #include "features/recipes/RecipeService.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeSnapshot.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -9,6 +10,7 @@
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
 #include <atomic>
+#include <format>
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -65,6 +67,19 @@ void advance() noexcept {
                     }
                     Runtime::instance().self().getLogger().info("Recipe table read: {} recipes, {} with a grid, {} of them fit their cells",
                         source->recipes.size(), shaped, fits);
+                    // L-386: which "any" ingredients the plan traces past their kind, so the log says it.
+                    std::string traced;
+                    auto const& index = table->index;
+                    for (size_t g = 0; g < index.traces.size(); ++g) {
+                        auto const& trace = index.traces[g];
+                        if (trace.kind < 0) continue;
+                        auto const name = [&](size_t group) {
+                            return index.groups[group].name.empty() ? groupKey(index, static_cast<int>(group)).substr(0, 40) : index.groups[group].name;
+                        };
+                        traced += std::format("{}{} <- {} x{} ({} recipes)", traced.empty() ? "" : "; ", name(g), name(static_cast<size_t>(trace.kind)),
+                                              trace.uses, trace.recipes.size());
+                    }
+                    Runtime::instance().self().getLogger().info("Recipe groups traced past their kind: {}", traced.empty() ? "none" : traced);
                     std::lock_guard lock(mutex);
                     if (forWorld == generation.load()) built = std::move(table), state = State::Ready;
                 } catch (...) {

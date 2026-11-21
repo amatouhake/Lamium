@@ -18,7 +18,10 @@ Do not infer game success from a build or unit-test result.
 - Built after the 2026-11-22 in-game checks, not seen (each its own
   commit, so a fault can be found by build): the panel listing gathered
   rows as the window (`da60f484`); every tip's counts as "所持/必要:
-  x/y  あと z" in both views (L-387).
+  x/y  あと z" in both views (L-387); tracing "any" past its kind and a
+  group's "gather" (L-386), and held members covering a group within
+  the plan's one pass (a changed core: compare a plan with planks held
+  against what it showed before).
 
 ## Left from 0.7.0
 

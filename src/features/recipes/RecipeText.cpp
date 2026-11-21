@@ -26,6 +26,11 @@ std::string groupName(Index const& index, int group) {
     auto const& first = schematic::items::shown(index.items[static_cast<size_t>(groupLead(index, group))]).name;
     return entry.members.size() == 1 ? first : ui::translated("recipes.andOthers", first);
 }
+std::string planItemName(Index const& index, Item id) {
+    Item const items = static_cast<Item>(index.items.size());
+    if (id >= items) return groupName(index, id - items);
+    return id >= 0 ? schematic::items::shown(index.items[static_cast<size_t>(id)]).name : std::string();
+}
 std::string countsLine(char const* lead, Count held, Count need) {
     std::string line = ui::translated(lead) + "/" + ui::translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(held)) + "/"
                      + wholeCountText(static_cast<std::uint64_t>(need));
@@ -34,20 +39,15 @@ std::string countsLine(char const* lead, Count held, Count need) {
 }
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step) {
     std::vector<std::string> out;
-    Item const items = static_cast<Item>(index.items.size());
     for (auto const& [id, count] : stepInputs(index, request, step))
-        out.push_back(std::format("{}: {}", id >= items ? groupName(index, id - items) : schematic::items::shown(index.items[static_cast<size_t>(id)]).name,
-                                  wholeCountText(static_cast<std::uint64_t>(count))));
+        out.push_back(std::format("{}: {}", planItemName(index, id), wholeCountText(static_cast<std::uint64_t>(count))));
     return out;
 }
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
     std::vector<std::string> out;
-    Item const items = static_cast<Item>(index.items.size());
-    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
-    for (size_t i = 0; i < recipe.uses.size(); ++i) {
-        Item const id = partItem(index, request, recipe.uses[i]);
-        Count const need = partNeed(recipe, i, step.crafts), have = stockOf(index, request, recipe.uses[i], stock);
-        std::string const name = id >= items ? groupName(index, id - items) : schematic::items::shown(index.items[static_cast<size_t>(id)]).name;
+    for (auto const& part : stepParts(index, request, step)) {
+        Count const need = part.need, have = heldOf(index, stock, part.item);
+        std::string const name = planItemName(index, part.item);
         // Name first, then held/needed (L-370, 2026-11-22): "Stone: 146/44,844".
         std::string line = std::format("{}: {}/{}", name, wholeCountText(static_cast<std::uint64_t>(std::min(have, need))), wholeCountText(static_cast<std::uint64_t>(need)));
         if (have < need) line += "  " + ui::translated("recipes.stepShort", wholeCountText(static_cast<std::uint64_t>(need - have)));

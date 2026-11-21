@@ -115,6 +115,15 @@ plan's recipes are in [L-116](backlog/L-116.md).
 - Tips describe the item alone; what a press or the wheel does there
   ("Wheel: look through the kinds", "Change it in How to make") is
   added to the window's hint line while the pointer is on it.
+- A group "any" is traced past its kind where most of its members are,
+  by their usual recipe, made from one input in one amount (L-386):
+  planks from "Oak Log etc." (every log, wood, stripped one, stem and
+  hyphae), four from one; wooden slabs from planks. Held members count
+  first; "to make" has the group's step, which takes the kind and makes
+  the member whose input is most carried, then the next. Ore smelting
+  and loops (cobblestone, nuggets) do not line a member up. A group can
+  be gathered as it is instead ("gather" above its members in "How to
+  make", or on its breakdown step).
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first, as its recipe's slots), by name, each line's state

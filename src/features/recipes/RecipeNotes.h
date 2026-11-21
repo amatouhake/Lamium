@@ -48,7 +48,7 @@ struct Notes {
     std::vector<std::string> favorites;          // item keys, oldest first
     std::map<std::string, std::string> choices;   // item key -> the recipe's choiceKey
     std::map<std::string, std::string> picks;     // group key -> member's item key
-    std::set<std::string> stops;                  // item keys
+    std::set<std::string> stops;                  // item keys, and group keys (groupKey) gathered as they are (L-386)
     std::set<std::string> made;                   // usually gathered items the player set to be made
     bool operator==(Notes const&) const = default;
     // Gathered, not made: the player's choice, or an item usually gathered the player left so.
@@ -88,6 +88,10 @@ inline void apply(Index const& index, Notes const& notes, Request& request) {
             request.picks[static_cast<int>(group)] = member;
     }
     for (auto const& key : notes.stops) if (Item const item = index.findKey(key); item >= 0) request.stops.insert(item);
+    // A group gathered as it is (L-386): by its key, which no item has.
+    if (!notes.stops.empty())
+        for (size_t group = 0; group < index.groups.size(); ++group)
+            if (notes.stops.contains(groupKey(index, static_cast<int>(group)))) request.stops.insert(index.groupItem(static_cast<int>(group)));
     for (size_t item = 0; item < index.items.size(); ++item)
         if (usuallyGathered(index.items[item]) && !notes.made.contains(index.items[item])) request.stops.insert(static_cast<Item>(item));
 }

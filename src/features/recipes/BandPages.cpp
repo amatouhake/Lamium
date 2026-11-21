@@ -191,9 +191,10 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         for (auto const& [id, have] : plan->held) carried[id] += have;
         for (auto const& made : makeRows(index, plan->request, plan->view, heldSteps(index, *plan->choice, plan->view), carried, all)) {
             bool const held = made.state == StepState::Held;
-            auto const& key = index.items[static_cast<size_t>(made.step.item)];
-            SideRow row{key, schematic::items::shown(key).name, made.step.made, !held, {}, held || made.state == StepState::Missing};
-            row.stored = made.state == StepState::Stored, row.done = held;
+            // A traced group's step (L-386): the group's picture, marked, and its name.
+            SideRow row{planView::planPicture(*plan, made.step.item), planItemName(index, made.step.item), made.step.made, !held, {},
+                        held || made.state == StepState::Missing};
+            row.stored = made.state == StepState::Stored, row.done = held, row.group = groupStep(index, made.step);
             row.held = made.now, row.need = made.step.made, row.line = made.step;
             rows.push_back(std::move(row));
         }
@@ -283,8 +284,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             if (sideList == SideList::Make && plan && row.step) {
                 auto pressedOn = [&](float bx, float by, float bw, float bh) { return leftPress && took(ListBox{bx, by, bw, bh}); };
                 // An open window would cover the grid: laid in, it steps aside, as the recipe view does.
-                if (planView::stepButtons(context, late, frame.placer, plan->table->index, row.line, controlsX, y + .5f, px, py, pressedOn, frame.ctrl,
-                                          frame.shift))
+                if (planView::stepButtons(context, late, frame.placer, *plan, row.line, controlsX, y + .5f, px, py, pressedOn, frame.ctrl, frame.shift))
                     late.placed = true;
             }
         }

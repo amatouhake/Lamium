@@ -122,8 +122,19 @@ struct Recipe {
     // every other recipe.
     Count batch = 0;
 };
-// Any one member will do: an item tag, or (without a name) the inputs that smelt to the same item.
+// Any one member will do: an item tag, or (without a name) the inputs that smelt to the same item, or the
+// inputs a traced group is made from (Trace).
 struct Group { std::string name; std::vector<Item> members; };
+// L-386: an "any" ingredient traced past its kind. Where most of a group's members (two at least) are each made
+// from one input in the same amount, the group is made from those inputs as a group of their own, `kind`: `uses`
+// of it make `makes` (planks from logs, wood, stripped logs and stems, one for four). `recipes`: those members'
+// one-input recipes in that amount, what a step of the group lays in. A member that does not line up (bamboo
+// planks, two from a block) still counts toward the group when held.
+struct Trace {
+    int kind = -1;
+    Count uses = 0, makes = 0;
+    std::vector<int> recipes;
+};
 struct Index {
     std::vector<std::string> items;
     std::map<std::string, Item, std::less<>> ids;
@@ -131,6 +142,7 @@ struct Index {
     std::vector<Recipe> recipes;
     std::vector<std::vector<int>> makers; // per item: the recipes whose product it is, those that use it left out
     std::vector<std::vector<int>> copies; // per item: the recipes that make it from itself
+    std::vector<Trace> traces;            // per group: how it is traced past its kind, kind -1 where it is not
     std::set<std::string, std::less<>> variantNames; // names whose aux tells items apart
     Item find(std::string_view key) const {
         auto found = ids.find(key);
@@ -267,6 +279,9 @@ inline Source settled(Source const& given, std::set<std::string, std::less<>>* v
     return out;
 }
 
+// L-386: which groups are traced past their kind (below choose(), which it asks).
+inline void traceGroups(Index& index);
+
 // Left out: superseded recipes (the game's "deprecated" tag) and recipes
 // without a product or ingredients. Recipes that use their own product (an
 // ingredient that is the product, or any variant of its name: dyeing a
@@ -393,6 +408,7 @@ inline Index build(Source const& given) {
     index.copies.resize(index.items.size());
     for (size_t i = 0; i < index.recipes.size(); ++i)
         (index.recipes[i].own ? index.copies : index.makers)[index.recipes[i].makes].push_back(static_cast<int>(i));
+    traceGroups(index);
     return index;
 }
 
@@ -575,6 +591,76 @@ inline Choice choose(Index const& index) {
     return out;
 }
 
+// L-386: which groups are traced past their kind (Trace), a kind made a group of its own unless one of the same
+// members exists (planks for wooden slabs); kinds are traced in turn (slabs to planks to logs).
+inline void traceGroups(Index& index) {
+    // A member's recipe that counts: one input, not its own product, not brewing, not smelting an ore that drops the
+    // item (coal from coal ore: mined, as choose() has it), and not from an item made from the member itself (stone
+    // from cobblestone: a loop's base is gathered, L-116).
+    auto lines = [&](Recipe const& recipe, Item member) {
+        if (recipe.own || recipe.batch || recipe.uses.size() != 1 || smeltsOreOnly(index, recipe)) return false;
+        auto const& part = recipe.uses[0];
+        std::vector<Item> const inputs = part.group ? index.groups[static_cast<size_t>(part.id)].members : std::vector<Item>{part.id};
+        for (Item input : inputs)
+            for (int maker : index.makers[static_cast<size_t>(input)])
+                for (auto const& use : index.recipes[static_cast<size_t>(maker)].uses)
+                    if (serves(index, use, member)) return false;
+        return true;
+    };
+    Choice const chosen = choose(index);
+    index.traces.assign(index.groups.size(), {});
+    size_t const most = index.groups.size() * 2 + 16; // kinds of kinds stop here whatever the table holds
+    for (size_t g = 0; g < index.groups.size() && index.groups.size() < most; ++g) {
+        index.traces.resize(index.groups.size());
+        std::vector<Item> const members = index.groups[g].members; // a copy: a new kind may move the groups
+        // Members line up by the recipe they are made by unless the player chooses (nuggets from ingots, not from
+        // smelting tools; cobblestone gathered): the amount most share decides.
+        std::map<std::pair<Count, Count>, std::vector<Item>> byAmount; // (uses, makes) -> the members made so
+        for (Item member : members) {
+            int const number = static_cast<size_t>(member) < chosen.recipe.size() ? chosen.recipe[static_cast<size_t>(member)] : -1;
+            if (number < 0) continue;
+            auto const& recipe = index.recipes[static_cast<size_t>(number)];
+            if (lines(recipe, member)) byAmount[{recipe.uses[0].count, recipe.count}].push_back(member);
+        }
+        std::pair<Count, Count> amount{};
+        size_t best = 0;
+        bool tie = false;
+        for (auto const& [key, made] : byAmount) {
+            if (made.size() > best) best = made.size(), amount = key, tie = false;
+            else if (made.size() == best) tie = true;
+        }
+        if (best < 2 || tie) continue;
+        Trace trace{-1, amount.first, amount.second, {}};
+        std::vector<Item> kind;
+        bool own = false;
+        for (Item member : byAmount[amount])
+            for (int number : index.makers[static_cast<size_t>(member)]) {
+                auto const& recipe = index.recipes[static_cast<size_t>(number)];
+                if (!lines(recipe, member) || recipe.uses[0].count != amount.first || recipe.count != amount.second) continue;
+                trace.recipes.push_back(number);
+                auto const& part = recipe.uses[0];
+                std::vector<Item> const inputs = part.group ? index.groups[static_cast<size_t>(part.id)].members : std::vector<Item>{part.id};
+                for (Item input : inputs) {
+                    own = own || std::find(members.begin(), members.end(), input) != members.end();
+                    if (std::find(kind.begin(), kind.end(), input) == kind.end()) kind.push_back(input);
+                }
+            }
+        if (own || kind.empty()) continue; // members made from each other are a loop, not a kind
+        auto sorted = [](std::vector<Item> list) { std::sort(list.begin(), list.end()); return list; };
+        auto const wanted = sorted(kind);
+        for (size_t other = 0; other < index.groups.size() && trace.kind < 0; ++other)
+            if (sorted(index.groups[other].members) == wanted) trace.kind = static_cast<int>(other);
+        if (trace.kind < 0) {
+            index.groups.push_back({{}, std::move(kind)});
+            trace.kind = static_cast<int>(index.groups.size()) - 1;
+        }
+        if (trace.kind == static_cast<int>(g)) continue;
+        index.traces.resize(index.groups.size());
+        index.traces[g] = std::move(trace);
+    }
+    index.traces.resize(index.groups.size());
+}
+
 // An item's recipes to try in order: the one `choice` names first, then its other makers in the table's order.
 inline std::vector<int> recipesToTry(Index const& index, Choice const* choice, Item item) {
     std::vector<int> out;
@@ -598,7 +684,7 @@ inline Item partItem(Index const& index, Request const& request, Part const& par
     auto picked = request.picks.find(part.id);
     return picked != request.picks.end() ? picked->second : index.groupItem(part.id);
 }
-// A held member that covers part of a group's need.
+// A held member that covers part of a group's need (`group`: its position in Index::groups).
 struct Cover {
     int group = 0;
     Item member = 0;
@@ -608,10 +694,13 @@ struct Cover {
 struct Planned {
     Result result;
     std::vector<Cover> covered;
+    // A traced group's step (L-386): the member's recipe it lays in, the one whose input is most held.
+    std::map<Item, int> groupRecipes;
 };
 // Item ids in the result past Index::items are groups (Index::groupItem). A
 // group is covered by what is left of its members after their own needs, so
-// held planks are not counted for planks and for "any planks" both.
+// held planks are not counted for planks and for "any planks" both; a group
+// not picked or gathered is made from its kind where it is traced (L-386).
 inline Planned planned(Index const& index, Choice const& choice, Request const& request) {
     namespace raw = rawMaterials;
     Item const count = static_cast<Item>(index.items.size());
@@ -628,25 +717,31 @@ inline Planned planned(Index const& index, Choice const& choice, Request const& 
         }
         recipes.emplace(item, std::move(to));
     }
-    auto first = raw::reduce(request.wanted, recipes, request.held);
-    std::map<Item, Count> left;
-    for (auto [item, held] : request.held) left[item] += held;
-    for (auto [item, used] : first.fromHeld) left[item] -= std::min(left[item], used);
-    auto held = request.held;
-    Planned out;
-    for (auto [item, need] : first.raw) {
-        if (item < count || item - count >= static_cast<Item>(index.groups.size())) continue;
-        Count take = 0;
-        for (Item member : index.groups[item - count].members) {
-            Count const use = std::min(left[member], need - take);
-            if (!use) continue;
-            left[member] -= use;
-            take += use;
-            out.covered.push_back({item - count, member, use});
-        }
-        if (take) held.emplace_back(item, take);
+    raw::Groups groups;
+    for (size_t g = 0; g < index.groups.size(); ++g) {
+        Item const group = index.groupItem(static_cast<int>(g));
+        groups.emplace(group, index.groups[g].members);
+        Trace const* trace = g < index.traces.size() && index.traces[g].kind >= 0 ? &index.traces[g] : nullptr;
+        if (!trace || request.picks.contains(static_cast<int>(g)) || request.stops.contains(group)) continue;
+        Part const kind{true, trace->kind, trace->uses};
+        recipes.emplace(group, raw::Recipe{trace->makes, {{partItem(index, request, kind), trace->uses}}, 0});
     }
-    out.result = held.size() == request.held.size() ? std::move(first) : raw::reduce(request.wanted, recipes, held);
+    Planned out;
+    out.result = raw::reduce(request.wanted, recipes, request.held, groups);
+    for (auto const& cover : out.result.covered) out.covered.push_back({cover.group - count, cover.member, cover.count});
+    std::map<Item, Count> held;
+    for (auto [item, have] : request.held) held[item] += have;
+    for (auto const& step : out.result.steps) {
+        if (step.item < count) continue;
+        auto const& trace = index.traces[static_cast<size_t>(step.item - count)];
+        int best = -1;
+        Count most = 0;
+        for (int number : trace.recipes) {
+            Count const have = heldOf(index, held, partItem(index, request, index.recipes[static_cast<size_t>(number)].uses[0]));
+            if (best < 0 || have > most) best = number, most = have;
+        }
+        if (best >= 0) out.groupRecipes[step.item] = best;
+    }
     return out;
 }
 inline Result plan(Index const& index, Choice const& choice, Request const& request) { return planned(index, choice, request).result; }

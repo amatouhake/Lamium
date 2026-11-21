@@ -70,14 +70,13 @@ inline Count stockOf(Index const& index, Request const& request, Part const& par
 }
 // How many of a step's crafts `stock` makes now, at most all of them.
 inline Count stepNow(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
-    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
     Count now = step.crafts;
-    for (size_t i = 0; i < recipe.uses.size(); ++i) {
-        Count const each = recipe.uses[i].count;
+    for (auto const& part : stepParts(index, request, step)) {
+        Count const each = part.part.count;
         if (!each) continue;
-        Count const got = stockOf(index, request, recipe.uses[i], stock);
+        Count const got = heldOf(index, stock, part.item);
         // A brewing ingredient serves a batch of crafts (L-361).
-        now = std::min(now, i == 0 && recipe.batch > 1 ? got / each * recipe.batch : got / each);
+        now = std::min(now, part.batch > 1 ? got / each * part.batch : got / each);
     }
     return now;
 }
@@ -99,9 +98,31 @@ inline StepState stepState(Index const& index, Request const& request, StepLine 
 }
 // Which of a step's uses `stock` holds too few of for all its crafts: the slots shown in the game's red.
 inline std::vector<bool> stepShort(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
-    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
-    std::vector<bool> out(recipe.uses.size(), false);
-    for (size_t i = 0; i < recipe.uses.size(); ++i) out[i] = stockOf(index, request, recipe.uses[i], stock) < partNeed(recipe, i, step.crafts);
+    std::vector<bool> out;
+    for (auto const& part : stepParts(index, request, step)) out.push_back(heldOf(index, stock, part.item) < part.need);
+    return out;
+}
+// What "make" runs for a step (L-385): its recipe for all its crafts; a traced group's step (L-386) split over its
+// members' recipes, the one whose input is most carried first, each as far as `carried` holds its input.
+inline std::vector<std::pair<int, int>> stepRuns(Index const& index, Request const& request, StepLine const& step,
+                                                 std::map<Item, Count> const& carried) {
+    int const all = static_cast<int>(std::min<Count>(step.crafts, 1 << 20));
+    size_t const group = static_cast<size_t>(step.item - static_cast<Item>(index.items.size()));
+    if (!groupStep(index, step) || group >= index.traces.size() || index.traces[group].kind < 0) return {{step.recipe, all}};
+    auto const& trace = index.traces[group];
+    std::vector<std::pair<Count, int>> byHeld; // what is carried of a recipe's input, the recipe
+    for (int number : trace.recipes)
+        byHeld.emplace_back(heldOf(index, carried, partItem(index, request, index.recipes[static_cast<size_t>(number)].uses[0])), number);
+    std::stable_sort(byHeld.begin(), byHeld.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
+    std::vector<std::pair<int, int>> out;
+    int left = all;
+    for (auto const& [have, number] : byHeld) {
+        if (left <= 0 || have < trace.uses) break;
+        int const rounds = static_cast<int>(std::min<Count>(have / trace.uses, static_cast<Count>(left)));
+        out.emplace_back(number, rounds);
+        left -= rounds;
+    }
+    if (out.empty()) out.emplace_back(step.recipe, all);
     return out;
 }
 // What held stock covers whole and has a recipe: steps not to make, shown as held at the end of "to make".

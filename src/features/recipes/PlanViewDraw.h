@@ -27,12 +27,14 @@ void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step, Co
 // A wanted row under the pointer, the same in the window and on the panel: held/needed, whose a handed row is,
 // and whether rows above took a share of what is held.
 void wantedTip(view::Late& late, WantedEntry const& entry, Count held, bool sharedAbove);
+// An item or a group of the plan as its picture's key: a group as the member it shows (GroupLook.h).
+std::string planPicture(state::Plan const& plan, Item id);
 // What the counted stores hold of `item`, with what is carried, as tip lines (L-359, L-385).
 void storedLines(view::Late& late, state::Plan const& plan, Item item);
 // A step's two buttons (L-385), 11 units each, 2 apart, from `x`: lay in (one round; Shift what is still needed, as
 // much as the grid takes; Ctrl one round onto the pointer) and make what is still needed; greyed where the screen
 // cannot, the tip saying why. `took` takes the frame's press over a box. True when a recipe was laid in.
-bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Placer* placer, Index const& index, StepLine const& step, float x,
+bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Placer* placer, state::Plan const& plan, StepLine const& step, float x,
                  float y, float px, float py, std::function<bool(float, float, float, float)> const& took, bool ctrl, bool shift);
 // `shift`: a stepper moves by 16. `showItem` is set to the item whose name was pressed, for the recipe
 // view; `showChoice` with it when that was in the list of what to make.

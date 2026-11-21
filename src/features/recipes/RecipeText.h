@@ -16,6 +16,8 @@ std::string groupName(Index const& index, int group);
 // A row's counts as every tip writes them (L-387): "Held/Need: 146/44,845  44,699 more". `lead` is the first
 // column's heading key: recipes.col.held, or recipes.col.now for a step.
 std::string countsLine(char const* lead, Count held, Count need);
+// An item of a plan by its name, or a group (an item past Index::items) by groupName.
+std::string planItemName(Index const& index, Item id);
 // What a step of a plan takes in all its crafts, a line each: the count, then the name.
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step);
 // The same with what `stock` holds of each, "held/needed", and how many more where it is short (L-370).

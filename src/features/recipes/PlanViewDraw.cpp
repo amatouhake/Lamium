@@ -61,9 +61,19 @@ void storedLines(view::Late& late, state::Plan const& plan, Item item) {
         late.tipLines.push_back(translated("recipes.place.tipPlace", name, here));
     }
 }
-bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Placer* placer, Index const& index, StepLine const& step, float x,
+std::string planPicture(state::Plan const& plan, Item id) {
+    auto const& index = plan.table->index;
+    Item const items = static_cast<Item>(index.items.size());
+    if (id >= items) {
+        Item const face = groupLook::face(index, id - items, plan.request.picks, &plan.held);
+        return face >= 0 ? index.items[static_cast<size_t>(face)] : std::string();
+    }
+    return id >= 0 ? index.items[static_cast<size_t>(id)] : std::string();
+}
+bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Placer* placer, state::Plan const& plan, StepLine const& step, float x,
                  float y, float px, float py, std::function<bool(float, float, float, float)> const& took, bool ctrl, bool shift) {
     using namespace lamium::ui;
+    auto const& index = plan.table->index;
     constexpr float size = 11;
     auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
     bool const can = placer && placer->preview(recipe, false).ready();
@@ -86,21 +96,21 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     int const rounds = static_cast<int>(std::min<Count>(step.crafts, 1 << 20));
     if (took(x, y, size, size) && can)
         return ctrl ? placer->craft(step.recipe) : shift ? placer->runMost(step.recipe, std::min(rounds, 64)) : placer->run(step.recipe, false);
-    if (took(makeX, y, size, size) && can) placer->make({{step.recipe, rounds}});
+    // A traced group's step (L-386) makes its members, the one whose input is most carried first.
+    if (took(makeX, y, size, size) && can) placer->make(stepRuns(index, plan.request, step, plan.held));
     return false;
 }
 void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step, Count now, bool stored) {
     auto const& index = plan.table->index;
-    auto const& key = index.items[static_cast<size_t>(step.item)];
-    late.tip = schematic::items::shown(key).name, late.hovered = key;
+    late.tip = planItemName(index, step.item), late.hovered = planPicture(plan, step.item);
     late.tipLines = {countsLine("recipes.col.now", now, step.made)};
     for (auto& line : stepInputLines(index, plan.request, step, plan.held)) late.tipLines.push_back(std::move(line));
     if (!stored) return;
-    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+    auto const parts = stepParts(index, plan.request, step);
     auto const short_ = stepShort(index, plan.request, step, plan.held);
     Item const items = static_cast<Item>(index.items.size());
-    for (size_t k = 0; k < recipe.uses.size() && k < short_.size(); ++k)
-        if (Item const item = partItem(index, plan.request, recipe.uses[k]); short_[k] && item < items) storedLines(late, plan, item);
+    for (size_t k = 0; k < parts.size() && k < short_.size(); ++k)
+        if (short_[k] && parts[k].item < items) storedLines(late, plan, parts[k].item);
 }
 void wantedTip(view::Late& late, WantedEntry const& entry, Count held, bool sharedAbove) {
     using namespace lamium::ui;
@@ -372,20 +382,22 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     };
     auto stepSlots = [&](float x0, float y, StepLine const& step, bool faint, bool interactive = true, float room = inputsW,
                          std::vector<bool> const* shortParts = nullptr, std::vector<bool> const* storedParts = nullptr) {
-        auto const& key = index.items[static_cast<size_t>(step.item)];
+        // A traced group's step (L-386) shows the group made from its kind; an item's step its recipe's parts.
+        std::string const key = pictureOf(step.item);
+        bool const grouped = groupStep(index, step);
         auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
         size_t const iconsBefore = late.icons.size();
         float const arrowX = x0 + room, productX = arrowX + 12;
-        auto const& uses = recipe.uses;
+        auto const uses = stepParts(index, request, step);
         size_t const shown = std::min<size_t>(uses.size(), 4);
         for (size_t u = 0; u < shown; ++u) {
-            auto const& part = uses[u];
+            auto const& part = uses[u].part;
             float const sx = arrowX - static_cast<float>(shown - u) * 18;
-            Item const item = partItem(index, request, part);
+            Item const item = uses[u].item;
             // A use held too few of for all the crafts, on the game's red (L-370).
             windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18), shortParts && u < shortParts->size() && (*shortParts)[u]);
             itemIcon(item, sx + 1, y + 2);
-            Count const n = partNeed(recipe, u, step.crafts);
+            Count const n = uses[u].need;
             if (n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
             bool const stored = storedParts && u < storedParts->size() && (*storedParts)[u];
             if (over(sx, y + 1, 18, 18)) {
@@ -394,26 +406,27 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     if (interactive) late.hints.push_back(translated("recipes.howTo.change"));
                 } else late.tip = nameOf(item), late.hovered = pictureOf(item);
                 // Held/needed where what is held is counted (L-387); else the slot's count whole where it shows cut ("44k").
-                if (tipStock) late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", stockOf(index, request, part, *tipStock), n));
+                if (tipStock) late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", heldOf(index, *tipStock, item), n));
                 else if (n >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(n)));
                 if (stored && item < itemCount) storedLines(late, *plan, item);
             }
             if (interactive && part.group && took(sx, y + 1, 18, 18)) jumpHowTo(groupKey(index, part.id));
         }
         if (uses.size() > shown && over(x0, y, room, stepHeight))
-            late.tip = schematic::items::shown(key).name, late.tipLines = inputLines(step);
+            late.tip = nameOf(step.item), late.tipLines = inputLines(step);
         changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
         windowSlot(context, productX, y + 1, over(productX, y + 1, 18, 18));
-        icon(key, productX + 1, y + 2);
+        itemIcon(step.item, productX + 1, y + 2);
         if (step.made > 1) late.counts.push_back({productX, y + 1, slotCountText(step.made)});
         if (interactive && over(productX, y + 1, 18, 18)) {
             if (tipStock) stepTip(late, *plan, step, tipNow, tipStored);
+            else if (grouped) groupTip(step.item - itemCount, productX, y + 1), late.tipLines = inputLines(step);
             else {
-                late.tip = schematic::items::shown(key).name, late.tipLines = inputLines(step), late.hovered = key;
+                late.tip = nameOf(step.item), late.tipLines = inputLines(step), late.hovered = key;
                 if (step.made >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
             }
         }
-        if (interactive && took(productX, y + 1, 18, 18)) showItem = key;
+        if (interactive && !grouped && took(productX, y + 1, 18, 18)) showItem = key;
         // Where it is made, at full size and well apart from the step (L-370, 2026-11-22), so it does not read as a
         // part of it.
         float const stationX = productX + 18 + 14;
@@ -516,9 +529,13 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             } else if (line.kind == Line::Kind::Step && target) {
                 auto const& step = target->view.steps[line.at];
                 float const after = stepSlots(stepX0, y, step, false, true, inputsRoom(target->view.steps));
-                float const end = rowButton(tableRight, y + 6, translated("recipes.toGather"), [&] { state::setStop(index.items[static_cast<size_t>(step.item)], true); });
+                // A traced group's step (L-386) is gathered by the group's key; its choice is the group's.
+                bool const grouped = groupStep(index, step);
+                std::string const key = grouped ? groupKey(index, step.item - itemCount) : index.items[static_cast<size_t>(step.item)];
+                float const end = rowButton(tableRight, y + 6, translated("recipes.toGather"), [&] { state::setStop(key, true); });
                 // The recipe's state in the room left between the station and the button.
-                recipeState(end, y + 5, step.item, end - after);
+                if (grouped) groupState(end, y + 5, step.item - itemCount, end - after);
+                else recipeState(end, y + 5, step.item, end - after);
             } else if (line.kind == Line::Kind::Material && target) {
                 auto const& material = target->view.gather[line.at];
                 // One icon column with the steps: the material under the inputs' last slot, its name after.
@@ -721,7 +738,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     std::vector<std::pair<int, int>> ready;
                     for (auto const& other : made)
                         if (other.state == StepState::Ready && canLay(other.step))
-                            ready.emplace_back(other.step.recipe, static_cast<int>(std::min<Count>(other.step.crafts, 1 << 20)));
+                            for (auto const& run : stepRuns(index, request, other.step, plan->held)) ready.push_back(run);
                     bool const can = !ready.empty() && placer && placer->gridSide() > 0;
                     std::string const text = translated("recipes.makeAll");
                     float const w = rowButtonWidth(context, text), bx = tableRight - w, by = y;
@@ -756,7 +773,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     number(wantX, wantW, y + 6, step.made, faint);
                     progressBar(context, barX, y + 10, barW, 3, step.made > 0 ? static_cast<float>(now) / static_cast<float>(step.made) : 1.f);
                     // Laid in, the window steps aside as the recipe view does: the grid it covers shows the result.
-                    if (stepButtons(context, late, placer, index, step, tableRight - 24, y + 4.5f, px, py, took, input.ctrl, input.shift)) late.placed = true;
+                    if (stepButtons(context, late, placer, *plan, step, tableRight - 24, y + 4.5f, px, py, took, input.ctrl, input.shift)) late.placed = true;
                 }
                 // No name on a step (L-370, 2026-11-22): the product's slot names it under the pointer. No store mark
                 // either: the heading says the stores make it up, the slots' tips which.
@@ -797,7 +814,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         }
         for (auto const& line : plan->view.done) if (line.id < itemCount && request.stops.contains(line.id) && choosable(line.id)) addItem(line.id);
         for (auto const& step : plan->view.steps) {
-            for (auto const& part : index.recipes[static_cast<size_t>(step.recipe)].uses) if (part.group) addGroup(part.id);
+            for (auto const& part : stepParts(index, request, step)) if (part.part.group) addGroup(part.part.id);
+            if (groupStep(index, step)) addGroup(step.item - itemCount);
             if (recipeOptions(index, step.item).size() > 1) addItem(step.item);
         }
     }
@@ -819,7 +837,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // By name: a choice changes the plan, and its lines must not move under the pointer.
     std::ranges::stable_sort(groups, {}, [&](int group) { return groupName(index, group); });
     std::ranges::stable_sort(items, {}, [&](Item item) { return nameOf(item); });
-    struct Line { enum class Kind { Switch, Label, Group, Members, Recipe, Option } kind; int group = -1; Item item = -1; int option = -1; float height = 0; };
+    struct Line { enum class Kind { Switch, Label, Group, GroupGather, Members, Recipe, Option } kind; int group = -1; Item item = -1; int option = -1; float height = 0; };
     std::vector<Line> lines;
     // Which lines show: the first line, scrolling with them (only column headings stay put, L-370).
     if (input.plan) lines.push_back({Line::Kind::Switch, -1, -1, -1, switchLine});
@@ -831,6 +849,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (howScroll == key) offset = static_cast<int>(lines.size()), howScroll.clear();
         lines.push_back({Line::Kind::Group, group, -1, -1, stepHeight});
         if (howOpen == key) {
+            // A group the plan traces past its kind (L-386) can be gathered as it is instead, as an item can.
+            bool const traced = static_cast<size_t>(group) < index.traces.size() && index.traces[static_cast<size_t>(group)].kind >= 0;
+            if (traced || request.stops.contains(index.groupItem(group))) lines.push_back({Line::Kind::GroupGather, group, -1, -1, optionHeight});
             size_t const cells = index.groups[static_cast<size_t>(group)].members.size() + 1;
             lines.push_back({Line::Kind::Members, group, -1, -1, static_cast<float>((cells + across - 1) / across) * pitch + 6});
         }
@@ -880,6 +901,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             std::string const key = groupKey(index, line.group);
             auto picked = request.picks.find(line.group);
             bool const chosen = picked != request.picks.end();
+            bool const gathered = !chosen && request.stops.contains(index.groupItem(line.group));
             if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
             if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
             icon(groupFace(line.group), left + 8, y + 2);
@@ -891,6 +913,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             icon(chosen ? index.items[static_cast<size_t>(picked->second)] : groupFace(line.group), slotX + 1, y + 2);
             late.marks.push_back({slotX + 1, y + 2});
             if (chosen) words(y, translated("recipes.howTo.chosenIs", nameOf(picked->second)), true);
+            else if (gathered) words(y, translated("recipes.howTo.chosenIs", translated("recipes.toGather")), true);
             else words(y, translated("recipes.howTo.anyLine"), false);
             // Left the group; right what is in use: the member chosen as an item, or "any" as the group.
             if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group, left + 7, y + 1);
@@ -899,11 +922,28 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 else groupTip(line.group, slotX, y + 1);
             }
             if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
+        } else if (line.kind == Line::Kind::GroupGather) {
+            // "Gather" as an item's option row (L-386): the group itself in the slot; chosen, framed green.
+            std::string const key = groupKey(index, line.group);
+            bool const gathered = !request.picks.contains(line.group) && request.stops.contains(index.groupItem(line.group));
+            sunkFace(context, left + 18, y, right - left - 18, optionHeight, true, false);
+            if (over(left + 18, y, right - left - 18, optionHeight)) fill(context, left + 19, y, right - left - 20, optionHeight, palette::white, .2f);
+            windowSlot(context, slotX, y + 3, false);
+            icon(groupFace(line.group), slotX + 1, y + 4);
+            late.marks.push_back({slotX + 1, y + 4});
+            if (gathered) frame(context, left + 19, y + 1, right - left - 20, optionHeight - 2, palette::accentDeep);
+            windowLabel(context, slotX + 22, y + 8, right - slotX - 22, translated("recipes.toGather"));
+            if (took(left + 18, y, right - left - 18, optionHeight)) {
+                state::setPick(key, {});
+                state::setStop(key, true);
+                howOpen.clear();
+            }
         } else if (line.kind == Line::Kind::Members) {
             // The candidates as the game's slots: "any" first (the group's picture, marked), then each member.
             std::string const key = groupKey(index, line.group);
             auto picked = request.picks.find(line.group);
-            sunkFace(context, left + 18, y, right - left - 18, line.height);
+            bool const gathered = picked == request.picks.end() && request.stops.contains(index.groupItem(line.group));
+            sunkFace(context, left + 18, y, right - left - 18, line.height, at == 0 || lines[static_cast<size_t>(at - 1)].kind != Line::Kind::GroupGather);
             auto const& members = index.groups[static_cast<size_t>(line.group)].members;
             for (size_t c = 0; c <= members.size(); ++c) {
                 float const cx = left + 22 + static_cast<float>(c % across) * pitch, cy = y + 4 + static_cast<float>(c / across) * pitch;
@@ -912,9 +952,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 if (c == 0) {
                     icon(groupFace(line.group), cx + 1, cy + 1);
                     late.marks.push_back({cx + 1, cy + 1});
-                    if (picked == request.picks.end()) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
+                    if (picked == request.picks.end() && !gathered) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
                     if (hot) late.tip = translated("recipes.howTo.any"), late.tipLines = {translated("recipes.howTo.anyTip")};
-                    if (took(cx, cy, 18, 18)) state::setPick(key, {}), howOpen.clear();
+                    if (took(cx, cy, 18, 18)) state::setPick(key, {}), state::setStop(key, false), howOpen.clear();
                 } else {
                     Item const member = members[c - 1];
                     auto const& memberKey = index.items[static_cast<size_t>(member)];
@@ -922,7 +962,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     if (picked != request.picks.end() && picked->second == member) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
                     // No counts held in "How to make" (maintainer 2026-11-21).
                     if (hot) late.tip = nameOf(member), late.hovered = memberKey;
-                    if (took(cx, cy, 18, 18)) state::setPick(key, memberKey), howOpen.clear();
+                    if (took(cx, cy, 18, 18)) state::setPick(key, memberKey), state::setStop(key, false), howOpen.clear();
                 }
             }
         } else if (line.kind == Line::Kind::Recipe) {

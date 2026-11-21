@@ -25,20 +25,32 @@ struct Step {
     Count crafts = 0, spare = 0; // spare: made beyond what was needed.
     bool operator==(Step const&) const = default;
 };
+// A held member that covers part of a group's need: `group` is the group's item.
+struct Cover {
+    Item group = 0, member = 0;
+    Count count = 0;
+    bool operator==(Cover const&) const = default;
+};
 struct Result {
     std::vector<std::pair<Item, Count>> raw; // By item id.
     std::vector<Step> steps;                 // An item comes before the items it is made from.
     std::vector<Item> looped;                // Left raw because their recipes lead back to themselves.
-    std::vector<std::pair<Item, Count>> fromHeld; // What held stock covers, by item id.
+    std::vector<std::pair<Item, Count>> fromHeld; // What held stock covers, by item id (a group: what its members cover).
+    std::vector<Cover> covered;              // Which members cover each group, in the members' order.
 };
+// A group's item and its members: any member held serves it (L-370, L-386).
+using Groups = std::map<Item, std::vector<Item>>;
 
 // Needs are added up across the whole list before rounding to whole crafts,
 // so two wanted items sharing an intermediate share its spare output.
 // Held stock is used before anything is made or gathered: of the wanted item
 // itself, of an intermediate (which is then not traced further for that
-// part) and of a raw material.
+// part) and of a raw material. A group (`groups`) is covered by what its
+// members have left after their own needs: it waits until each member's need
+// is whole, so held planks count for planks and for "any planks" once, and a
+// group that is made (L-386) is covered before it is traced further.
 inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes const& recipes,
-                     std::vector<std::pair<Item, Count>> const& held = {}) {
+                     std::vector<std::pair<Item, Count>> const& held = {}, Groups const& groups = {}) {
     std::map<Item, Count> need, stock;
     for (auto [item, count] : held) stock[item] += count;
     std::set<Item> asked;
@@ -86,10 +98,37 @@ inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes 
         }
         return false;
     };
+    // What a member has left for its groups once its own need is whole (or, never needed, all it holds).
+    std::map<Item, Count> lent;
+    auto spare = [&](Item member) {
+        Count const have = stock[member], own = std::min(need[member], have);
+        return have - own - std::min(have - own, lent[member]);
+    };
+    auto ready = [&](Item item) {
+        if (users[item] != 0) return false;
+        auto group = groups.find(item);
+        if (group == groups.end()) return true;
+        return std::none_of(group->second.begin(), group->second.end(), [&](Item member) { return left.contains(member); });
+    };
+    auto cover = [&](Item item) {
+        auto group = groups.find(item);
+        if (group == groups.end()) return;
+        Count take = 0;
+        for (Item member : group->second) {
+            Count const use = std::min(spare(member), need[item] - std::min(need[item], stock[item] + take));
+            if (!use) continue;
+            lent[member] += use;
+            take += use;
+            result.covered.push_back({item, member, use});
+        }
+        stock[item] += take;
+    };
     while (!left.empty()) {
         Item next = 0;
         bool found = false, loop = false;
-        for (Item item : left) if (users[item] == 0) { next = item; found = true; break; }
+        for (Item item : left) if (ready(item)) { next = item; found = true; break; }
+        // A group whose member waits on the group itself: covered with what its members have left so far.
+        if (!found) for (Item item : left) if (users[item] == 0) { next = item; found = true; break; }
         if (!found) {
             // Only loops remain. Keep one item on a loop raw: one the player did not ask for, if any.
             loop = true;
@@ -98,6 +137,7 @@ inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes 
             if (!found) next = *left.begin();
         }
         left.erase(next);
+        cover(next);
         auto const* recipe = recipeOf(next);
         if (loop) {
             result.looped.push_back(next);
