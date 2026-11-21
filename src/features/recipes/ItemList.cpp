@@ -1024,7 +1024,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         // L-367); other tips are Lamium's, two units under the last line so letters that reach below it
         // (p, y) stay inside the frame.
         namespace vf = vanilla_frame;
-        bool const game = item || covered || late.tipGame;
+        bool const game = item || late.tipGroup || covered || late.tipGame; // a group's tip is an item's too
         float const inset = game ? vf::tooltipTextLeft : 4, top = game ? vf::tooltipTextTop - 1 : 2;
         w = std::min(game ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
         float const h = (game ? vf::tooltipHeight(lines) : 4 + 10 * static_cast<float>(lines)) + membersH;
