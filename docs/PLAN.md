@@ -50,26 +50,27 @@ plan's recipes are in [L-116](backlog/L-116.md).
   from the rows and from the window's shadow, drawn in whole units.
 - "Wanted" is a table: fold, icon, name, held, needed, a bar of held
   against needed (what is gathered shows in "to gather"). On every tab
-  what comes before the table takes the left half at most; in the right
-  half held and needed stand close, the controls' column is as wide as
+  what comes before the table takes the left 45% at most; in the rest,
+  ending 8 units short of the scrollbar, held and needed stand close, the controls' column is as wide as
   the tab's widest control and the bar takes the rest; every control is
   always shown. Items all held follow under "done", faint. The
   player's own count sits on a faint sunk box: a press types it in place
-  as a spreadsheet's cell (Enter keeps it), the wheel steps it; "x" stands in the
+  with the search field's keys (all selected at first; Enter keeps it), the wheel steps it; "x" stands in the
   controls' column; handed rows show their source there; a hand-added and a handed row of one
   item stay two rows. Held stock goes to the rows in
   the order added; a row that lost stock to one above says so under the
-  pointer. A press opens its read-only breakdown: steps as slots, then
+  pointer. A press opens its read-only breakdown: steps as slots one indent
+  in, the products in one column after the most inputs' room, then
   what it needs gathered on the table's held, needed and bar columns,
   "gather" and "make" in the controls' column. A recipe's state and an any-of input's slot (framed green
   when chosen) go to "How to make"; "gather" on a step, "make" on a
   material set to gather.
-- "To gather" uses the same columns, "All" as the first row written
-  as the headings, then under headings what is still to gather (most left first) and what is
+- "To gather" uses the same columns, "All" as the first row (a row as
+  the others, no icon, a rule under it), then under headings what is still to gather (most left first) and what is
   gathered (faint). "To make" is the work (L-370): under headings the
   steps that can be made now, made in part (both from what is carried),
-  made after taking out (the stores would cover them; their chest before
-  the counts, an input's tip naming the stores, L-385), short (faint,
+  made after taking out (the stores would cover them; an input's tip
+  names the stores, L-385), short (faint,
   inputs nobody holds on the game's red), and held (faint, a check); "can
   make now" and "needed" columns in items with a bar. A press opens the
   breakdown. Under the pointer a step offers "lay in" (the recipe view's
@@ -114,7 +115,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first, as its recipe's slots), by name, each line's state
   on one line ("Automatic: from planks", "Chosen: ...", both in plain ink) with one
-  arrow and aligned columns; lines for the current plan, or with a
+  arrow where the other tabs' table starts (the item on the left as their
+  rows have it, a candidate's arrow under the line's); lines for the current plan, or with a
   switch all chosen before. Placing follows it, else what is held. An
   item's options are "automatic", "gather" (the breakdown's "gather" and
   "make" set the same), then its recipes; leather and white wool start as gathered, shown as

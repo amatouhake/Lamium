@@ -561,12 +561,20 @@ bool drawList(ll::event::UIRenderEvent& event) {
         return ListBox{from, hit.y, end.x + end.w + 2 - from, hit.h};
     }();
     if (countEdit::active()) {
-        // A count being typed: digits, Enter keeps it, Esc leaves it as it was.
+        // A count being typed, with the search field's keys (L-370): digits, the caret's, Enter keeps it, Esc leaves
+        // it as it was.
         for (int pressed : input.fieldKeys) {
             int const code = pressed & 0xFFFF;
+            auto& typed = countEdit::typed;
             if (code == 0x1B) { countEdit::cancel(); break; }
             if (code == 0x0D || code == 0x09) { countEdit::commit(); break; }
-            countEdit::typed.digitKey(code);
+            if (code == 0x2E) typed.erase();
+            else if (code == 0x25) typed.left();
+            else if (code == 0x27) typed.right();
+            else if (code == 0x24) typed.home();
+            else if (code == 0x23) typed.end();
+            else if ((pressed & 0x10000) && code == 0x41) typed.selectAll();
+            else typed.digitKey(code);
         }
     } else if (searchFocus) {
         for (int pressed : input.fieldKeys) {

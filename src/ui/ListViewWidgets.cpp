@@ -384,12 +384,12 @@ void drawTextField(MinecraftUIRenderContext& context, float x, float y, float w,
     } else if (text.empty()) label(context,textX,textY,textW,placeholder,palette::faint,align);
     else label(context,textX,textY,textW,text,palette::text,align);
 }
-void caretBar(MinecraftUIRenderContext& context, float x, float top, float height) {
+void caretBar(MinecraftUIRenderContext& context, float x, float top, float height, Rgb color) {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    if (ms / 530 % 2 == 0) fill(context, x - 1, top + 2, 1, height - 4, palette::text);
+    if (ms / 530 % 2 == 0) fill(context, x - 1, top + 2, 1, height - 4, color);
 }
 void drawEditField(MinecraftUIRenderContext& context, float x, float top, float height, float width, TextEdit const& input,
-                   Align align, Rgb color) {
+                   Align align, Rgb color, bool shadow) {
     auto const& value = input.value();
     float room = width - 3;
     // Long text scrolls so the caret stays in the field.
@@ -400,14 +400,17 @@ void drawEditField(MinecraftUIRenderContext& context, float x, float top, float 
     }
     std::string shown = value.substr(start);
     float shownWidth = std::min(textWidth(context, shown), room);
-    float origin = align == Align::Center ? x + std::max(0.f, (width - shownWidth) / 2) : x;
+    float origin = align == Align::Center ? x + std::max(0.f, (width - shownWidth) / 2)
+                 : align == Align::Right ? x + std::max(0.f, room - shownWidth) : x;
     float markTop = top + 2, markHeight = height - 4;
     if (input.selectedAll() && !value.empty()) fill(context, origin - 1, markTop, shownWidth + 2, markHeight, palette::accentDeep);
-    label(context, origin, top + 1 + boxTextInset(), width - (origin - x), shown, color);
+    // Selected, the text stays light on the accent whatever the field's own color.
+    bool const marked = input.selectedAll() && !value.empty();
+    labelScaled(context, origin, top + 1 + boxTextInset(), width - (origin - x), shown, 1.f, marked ? palette::text : color, Align::Left, shadow || marked);
     // Each glyph's advance ends in a blank spacing column: the bar goes
     // there, not onto the next glyph (a "t" hid it, 2026-10-13).
     if (!input.selectedAll())
-        caretBar(context, origin + std::min(textWidth(context, std::string_view(value).substr(start, caret - start)), room), top, height);
+        caretBar(context, origin + std::min(textWidth(context, std::string_view(value).substr(start, caret - start)), room), top, height, color);
     lastField = {&input, x, top, width, height, origin, start};
 }
 bool placeCaret(MinecraftUIRenderContext& context, TextEdit& field, float x, float y) {

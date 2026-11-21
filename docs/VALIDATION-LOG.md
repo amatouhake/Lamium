@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The Notes tables, numbers close and counts in place (L-370, 2026-11-22)
+
+Build `4892c19a` (DLL
+`6b27de10baf36fde7bd4ff28f08425c51b2f0d8807427af409811df687cba55e`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: numbers, bar and
+controls mostly fit; the typed count's green frame and caret read
+fine; the station icon no longer reads as part of the step. Not right:
+typing behaved unlike the search field; the store mark repeated the
+heading; a breakdown's "gather" still spilled past its face; steps of
+two or more inputs lost the breakdown's indent; the right side still
+crowded the scrollbar; "All" drawn unlike the rows; "How to make" sat
+to the left.
+
 ## The Notes tables in halves (L-370, 2026-11-22)
 
 Build `01b7d7d1` (DLL

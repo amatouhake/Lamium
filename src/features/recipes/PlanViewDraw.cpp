@@ -221,16 +221,17 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // The table's columns, the same on every list: fold, icon, name, held, needed, a bar of held against that,
     // controls. Held, needed and the bar stand evenly apart (L-370, demos/plan-numbers.html A); the controls'
     // column holds a handed row's source whole.
-    // What comes before the table (icon, name, a step's slots) takes the window's left half at most; the table its
-    // right half (L-370, 2026-11-22, demos/notes-table.html A): held, needed and the bar spread evenly before the
-    // controls' column, every control always shown.
+    // What comes before the table (icon, name, a step's slots) takes the window's left 45% at most; the table the
+    // rest, ending 8 units short of the scrollbar (L-370, 2026-11-22, demos/notes-table.html A), every control
+    // always shown.
     float const numW = std::ceil(textWidth(context, "88888")) + 2;
-    float const mid = std::floor((left + right) / 2);
+    float const mid = std::floor(left + (right - left) * .45f);
+    float const tableRight = right - 8;
     // The controls' column as wide as the widest control the tab shows.
     float const controlsW = tab == Tab::Wanted ? std::max(11.f, std::ceil(textWidthScaled(context, translated("recipes.from.schematic"), .75f)) + 2)
                           : tab == Tab::Gather ? rowButtonWidth(context, translated("recipes.toMake"))
                           : tab == Tab::Make ? 24.f : 26.f;
-    float const controlsX = right - controlsW;
+    float const controlsX = tableRight - controlsW;
     // Held and needed close together after the store mark's room; the bar from them to the controls.
     float const heldX = mid + 10, wantX = heldX + numW + 6, barX = wantX + numW + 8;
     float const barW = std::max(16.f, controlsX - 6 - barX);
@@ -314,7 +315,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // column, the station. `x0` is where the inputs' room starts.
     constexpr float inputsW = 72;
     auto inputsRoom = [&](std::vector<StepLine> const& steps) {
-        size_t most = 2;
+        size_t most = 1;
         for (auto const& step : steps) most = std::max(most, index.recipes[static_cast<size_t>(step.recipe)].uses.size());
         return static_cast<float>(std::min<size_t>(most, 4)) * 18;
     };
@@ -443,6 +444,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         for (auto const& line : lines) heights.push_back(line.height);
         bar(count, offset, fitFromEnd(heights));
         float const faceX = left + 8, faceW = right - faceX, x0 = faceX + 4;
+        // A breakdown's steps and materials one indent in from its labels, the products in one column after the room
+        // the most inputs take (L-370, 2026-11-22).
+        float const stepX0 = x0 + 14;
         float y = top;
         for (int at = from; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
             auto const& line = lines[static_cast<size_t>(at)];
@@ -464,22 +468,22 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 labelScaled(context, x0, y + 3, faceW - 8, translated(line.at == 0 ? "recipes.make" : "recipes.gather"), .75f, v::windowFaint, Align::Left, false);
             } else if (line.kind == Line::Kind::Step && target) {
                 auto const& step = target->view.steps[line.at];
-                float const after = stepSlots(x0, y, step, false, true, inputsRoom(target->view.steps));
-                float const end = rowButton(right, y + 6, translated("recipes.toGather"), [&] { state::setStop(index.items[static_cast<size_t>(step.item)], true); });
+                float const after = stepSlots(stepX0, y, step, false, true, inputsRoom(target->view.steps));
+                float const end = rowButton(tableRight, y + 6, translated("recipes.toGather"), [&] { state::setStop(index.items[static_cast<size_t>(step.item)], true); });
                 // The recipe's state in the room left between the station and the button.
                 recipeState(end, y + 5, step.item, end - after);
             } else if (line.kind == Line::Kind::Material && target) {
                 auto const& material = target->view.gather[line.at];
                 // One icon column with the steps: the material under the inputs' last slot, its name after.
                 float const room = inputsRoom(target->view.steps);
-                float const iconX = x0 + room - 17, labelX = x0 + room + 3;
+                float const iconX = stepX0 + room - 17, labelX = stepX0 + room + 3;
                 itemIcon(material.id, iconX, y + 1);
                 // Held and needed in the table's columns, with its bar; "make" in the controls' column.
                 number(heldX, heldW, y + 5, material.held, false);
                 number(wantX, wantW, y + 5, material.need, false);
                 progressBar(context, barX, y + 9, barW, 3, material.need > 0 ? static_cast<float>(material.held) / static_cast<float>(material.need) : 1.f);
                 bool const stopped = material.id >= 0 && material.id < itemCount && request.stops.contains(material.id);
-                if (stopped) rowButton(right, y + 5.5f, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(material.id)], false); });
+                if (stopped) rowButton(tableRight, y + 5.5f, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(material.id)], false); });
                 float end = heldX - 3;
                 if (material.id >= itemCount) end = groupState(end, y + 4, material.id - itemCount);
                 windowLabel(context, labelX, y + 5, end - labelX, nameOf(material.id));
@@ -507,14 +511,13 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 auto const* editing = countEdit::editing(entry.key);
                 float const boxX = wantX - 2, boxW = wantW + 5;
                 if (manual && editing) {
-                    // Typed as in a spreadsheet's cell (L-370, 2026-11-22): Enter keeps it, Esc does not.
+                    // Typed as the search field is (L-370, 2026-11-22): all selected at first, the caret where a
+                    // press puts it; Enter keeps it, Esc does not.
                     sunkFace(context, boxX, y + 3, boxW, 12, true, true);
                     frame(context, boxX, y + 3, boxW, 12, palette::accentDeep);
-                    windowLabel(context, wantX, y + 5, wantW, editing->value(), false, Align::Right);
-                    if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 500 % 2 == 0)
-                        fill(context, wantX + wantW + 1, y + 5, 1, 9, v::windowInk);
+                    drawEditField(context, wantX, y + 4 - boxTextInset(), 12, wantW + 3, *editing, Align::Right, v::windowInk, false);
                     onControl = over(boxX, y + 3, boxW, 12);
-                    took(boxX, y + 3, boxW, 12);
+                    if (took(boxX, y + 3, boxW, 12)) placeCaret(context, countEdit::typed, px, py);
                 } else {
                     if (manual) {
                         sunkFace(context, boxX, y + 3, boxW, 12, true, true);
@@ -570,7 +573,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         // so what is done shows too.
         struct Entry { Row const* row = nullptr; char const* label = nullptr; float height = 0; };
         std::vector<Entry> entries;
-        entries.push_back({nullptr, nullptr, labelHeight + 2});
+        entries.push_back({nullptr, nullptr, rowHeight + 2});
         if (!rows.empty()) entries.push_back({nullptr, "recipes.gatherLeft", labelHeight});
         for (auto const& row : rows) entries.push_back({&row, nullptr, rowHeight});
         if (!finished.empty()) entries.push_back({nullptr, "recipes.gathered", labelHeight});
@@ -590,11 +593,12 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 continue;
             }
             if (!entry.row) {
-                // The whole, as the headings under it are written (L-369).
-                labelScaled(context, left, y + 3, nameEnd - left, translated("recipes.all"), .75f, v::windowFaint, Align::Left, false);
-                labelScaled(context, heldX, y + 3, heldW, std::to_string(total.need - total.left), .75f, v::windowFaint, Align::Right, false);
-                labelScaled(context, wantX, y + 3, wantW, std::to_string(total.need), .75f, v::windowFaint, Align::Right, false);
-                progressBar(context, barX, y + 5, barW, 3, total.fraction());
+                // The whole as a row of the table (L-370, 2026-11-22): no icon, a rule under it.
+                windowLabel(context, nameX, y + 5, nameEnd - nameX, translated("recipes.all"));
+                number(heldX, heldW, y + 5, total.need - total.left, false);
+                number(wantX, wantW, y + 5, total.need, false);
+                progressBar(context, barX, y + 9, barW, 3, total.fraction());
+                fill(context, left, y + rowHeight, tableRight - left, 1, v::windowFaint, .5f);
                 continue;
             }
             auto const& row = *entry.row;
@@ -608,7 +612,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             number(wantX, wantW, y + 5, line.need, row.done);
             progressBar(context, barX, y + 9, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
             float end = nameEnd;
-            if (row.stopped) rowButton(right, y + 5.5f, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
+            if (row.stopped) rowButton(tableRight, y + 5.5f, translated("recipes.toMake"), [&] { state::setStop(index.items[static_cast<size_t>(line.id)], false); });
             // A group's choice: no tag (the row has no room for one); the row itself goes to "How to make".
             bool const group = row.key.empty() && line.id >= itemCount;
             if (group && !row.stopped && took(left, y, right - left, rowHeight)) jumpHowTo(groupKey(index, line.id - itemCount));
@@ -714,7 +718,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                             ready.emplace_back(other.step->recipe, static_cast<int>(std::min<Count>(other.step->crafts, 1 << 20)));
                     bool const can = !ready.empty() && placer && placer->gridSide() > 0;
                     std::string const text = translated("recipes.makeAll");
-                    float const w = rowButtonWidth(context, text), bx = right - w, by = y;
+                    float const w = rowButtonWidth(context, text), bx = tableRight - w, by = y;
                     bool const hot = over(bx, by, w, rowButtonHeight);
                     if (can) drawRowButton(context, bx, by, w, text, hot);
                     else labelScaled(context, bx, by + 2, w, text, .75f, v::windowFaint, Align::Center, false);
@@ -745,12 +749,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     number(heldX, heldW, y + 6, now, faint);
                     number(wantX, wantW, y + 6, line.step->made, faint);
                     progressBar(context, barX, y + 10, barW, 3, line.step->made > 0 ? static_cast<float>(now) / static_cast<float>(line.step->made) : 1.f);
-                    stepButtons(right, y + 4.5f, *line.step);
+                    stepButtons(tableRight, y + 4.5f, *line.step);
                 }
-                // No name on a step (L-370, 2026-11-22): the product's slot names it under the pointer. A step that
-                // takes something out of the stores has their chest before its counts.
+                // No name on a step (L-370, 2026-11-22): the product's slot names it under the pointer. No store mark
+                // either: the heading says the stores make it up, the slots' tips which.
                 (void)after, (void)nameEnd;
-                if (std::ranges::any_of(storedParts, [](bool b) { return b; })) drawStoreMark(context, heldX - 9, y + 7, v::windowInk);
                 if (line.state != StepState::Held && took(left, y, right - left, stepHeight))
                     if (auto const* shares = state::shares(player))
                         for (size_t e = 0; e < shares->targets.size() && e < shares->entries.size(); ++e)
@@ -847,7 +850,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     bar(count, offset, fitFromEnd(heights));
     bool const flashing = std::chrono::steady_clock::now() - howFlashAt < std::chrono::milliseconds(900);
     // The line's parts: item icon and name, an arrow, a slot, the words beside it (a second, small line under them).
-    float const arrowX = left + 92, slotX = arrowX + 12, wordsX = slotX + 22;
+    // In the other tabs' halves (L-370, 2026-11-22): the item as their rows have it on the left, the arrow where the
+    // table starts; a candidate step's arrow under the line's.
+    float const arrowX = mid, slotX = arrowX + 12, wordsX = slotX + 22;
+    float const optionX = std::max(left + 18, arrowX - inputsW);
     // A line's state on one line (L-370): "Automatic: from planks" or the player's "Chosen: ...", both in the
     // window's ink; the words say which (L-369).
     auto words = [&](float y, std::string text, bool) { windowLabel(context, wordsX, y + 6, right - wordsX, std::move(text)); };
@@ -868,10 +874,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             bool const chosen = picked != request.picks.end();
             if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
             if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
-            icon(groupFace(line.group), left + 1, y + 2);
-            late.marks.push_back({left + 1, y + 2});
+            icon(groupFace(line.group), left + 8, y + 2);
+            late.marks.push_back({left + 8, y + 2});
             std::string const name = groupName(index, line.group);
-            windowLabel(context, left + 20, y + 6, arrowX - left - 22, name);
+            windowLabel(context, nameX, y + 6, arrowX - nameX - 4, name);
             changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
             windowSlot(context, slotX, y + 1);
             icon(chosen ? index.items[static_cast<size_t>(picked->second)] : groupFace(line.group), slotX + 1, y + 2);
@@ -879,7 +885,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (chosen) words(y, translated("recipes.howTo.chosenIs", nameOf(picked->second)), true);
             else words(y, translated("recipes.howTo.anyLine"), false);
             // Left the group; right what is in use: the member chosen as an item, or "any" as the group.
-            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group, left, y + 1);
+            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group, left + 7, y + 1);
             else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
                 if (chosen) late.tip = nameOf(picked->second), late.hovered = index.items[static_cast<size_t>(picked->second)];
                 else groupTip(line.group, slotX, y + 1);
@@ -918,8 +924,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             bool const chosen = notes.choices.contains(key) && now >= 0;
             if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
             if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
-            icon(key, left + 1, y + 2);
-            windowLabel(context, left + 20, y + 6, arrowX - left - 22, nameOf(line.item));
+            icon(key, left + 8, y + 2);
+            windowLabel(context, nameX, y + 6, arrowX - nameX - 4, nameOf(line.item));
             // Made from: the recipe in use shown by its first input; gathered, the item itself.
             windowSlot(context, slotX, y + 1);
             if (gathered) icon(key, slotX + 1, y + 2);
@@ -957,7 +963,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             auto make = [&] { if (gathered) state::setStop(key, false); };
             if (line.option == static_cast<int>(options.size())) {
                 // "Gather": the item itself in the product's slot.
-                float const productX = left + 18 + inputsW + 12;
+                float const productX = slotX;
                 windowSlot(context, productX, sy + 1, false);
                 icon(key, productX + 1, sy + 2);
                 if (gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
@@ -968,10 +974,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 }
             } else if (line.option < 0) {
                 // "Automatic" as the other options: the rule's recipe as slots, faint (L-370).
-                float after = left + 44;
+                float after = slotX + 20;
                 if (rule >= 0) {
                     StepLine const ruled{line.item, rule, 1, index.recipes[static_cast<size_t>(rule)].count, 0, 0};
-                    after = stepSlots(left + 18, sy, ruled, true, false);
+                    after = stepSlots(optionX, sy, ruled, true, false);
                 }
                 if (!chosen && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
                 windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : std::string()));
@@ -979,7 +985,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             } else {
                 int const number = options[static_cast<size_t>(line.option)];
                 StepLine const one{line.item, number, 1, index.recipes[static_cast<size_t>(number)].count, 0, 0};
-                float const after = stepSlots(left + 18, sy, one, false, false);
+                float const after = stepSlots(optionX, sy, one, false, false);
                 if (chosen && now == number && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
                 windowLabel(context, after + 2, sy + 6, right - after - 2, recipeName(number));
                 if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(number)])), make(), howOpen.clear();
