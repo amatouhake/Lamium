@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Usually gathered by the automatic choice, wanted.json settling (L-370, 2026-11-22)
+
+Build `f8a42b7d` (DLL
+`2faf1f028ec420b1bbd8d11b982090617d5bfac1b97af3477ffaa43154af0253`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: diamond and leather
+read "Automatic: gather" and are gathered in the plan; choosing their
+recipe makes them and the line stays, "automatic" puts it back; white
+wool is gathered and the colors are still made from it; a wanted count
+stepped with the wheel is kept over a rejoin. Faults seen: white wool's
+uses list the white bed and white harness twice (the game's table holds
+each under two ids, so do black, brown and blue); "Automatic: gather"
+had no slot on its line nor on its option; a group's "gather" stands as
+a row of its own while "any" and the members sit side by side (L-389).
+
 ## Ore-smelted items usually gathered (L-370, 2026-11-22)
 
 Build `3e8e1a69` (DLL
