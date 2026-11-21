@@ -250,7 +250,7 @@ void setPick(std::string const& group, std::string const& member) {
 }
 void setStop(std::string const& item, bool gathered) {
     readNotes();
-    if (gathered) held.stops.insert(item); else held.stops.erase(item);
+    held.setGathered(item, gathered);
     writeNotes();
 }
 std::shared_ptr<Choice const> choice(std::shared_ptr<service::Table const> const& table) {

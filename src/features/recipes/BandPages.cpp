@@ -105,16 +105,20 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     // is out), each is an item's picture, named under the pointer.
     float barX2 = panel.left + 2;
     float const barRoom = openBox.x - 2 - barX2;
-    bool const named = listsWidth <= barRoom;
+    // One width for the three, as the window's tabs (L-369).
+    float const tabWidth = std::max({listWidths[0], listWidths[1], listWidths[2]});
+    bool const named = 3 * tabWidth <= barRoom;
+    (void)listsWidth;
     static constexpr char const* pictures[]{"minecraft:writable_book", "minecraft:iron_pickaxe", "minecraft:crafting_table"};
     constexpr float pictureWidth = 20;
     if (named || 3 * pictureWidth <= barRoom) {
         for (int i = 0; i < 3; ++i) {
-            float const w = named ? listWidths[i] : pictureWidth;
+            float const w = named ? tabWidth : pictureWidth;
             ListBox const box{barX2, panel.barY(), w, SideLayout::bar};
             drawTab(context, box.x, box.y, box.w, named ? std::move(listTexts[i]) : std::string(), i == listNow, box.has(px, py), i == 0, SideLayout::bar);
             if (!named) {
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(pictures[i]).icon)) late.icons.push_back({stack, box.x + 3, box.y, .875f});
+                // Twelve high from the tab's top: the chosen tab's line under it stays clear (L-369).
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(pictures[i]).icon)) late.icons.push_back({stack, box.x + 4, box.y + 1, .75f});
                 if (box.has(px, py)) late.tip = std::move(listTexts[i]);
             }
             if (leftPress && took(box)) sideList = lists[i].list;
@@ -130,23 +134,40 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         std::string source; // a wanted item a feature handed over: whose it is; not edited here
         bool faint = false; // a step short of something, or held
         bool group = false; // stands for any of a group
-        std::string countText; // in place of `count`: a step made in part, "now/needed"
-        bool done = false;     // a step held stock covers whole: a check in place of the count
+        bool done = false;     // gathered, held or all wanted held: a check in place of the count
         StepLine line;         // a row of what to make: its step (a held one is not among the plan's)
-        bool gather = false;   // a row of what to gather: its tip says how many are left
+        bool gather = false;   // a row of what to gather
+        Count held = 0, need = 0; // for the tip: what is held (or can be made now) and what is needed
     };
     std::vector<SideRow> rows;
     auto const* plan = state::plan(player);
     if (sideList == SideList::Wanted) {
-        for (auto const& [key, amount] : state::wanted().targets) rows.push_back({key, schematic::items::shown(key).name, amount});
-        for (auto const& target : handed) rows.push_back({target.key, schematic::items::shown(target.key).name, target.count, -1, target.source});
+        // As the window's tab (L-370): the count only, the stepper under the pointer; what is all held follows at
+        // the end, faint with a check. A feature's row and the player's of the same item stay two rows.
+        std::vector<SideRow> done;
+        if (auto const* shares = plan ? state::shares(player) : nullptr) {
+            for (size_t e = 0; e < shares->entries.size(); ++e) {
+                auto const& entry = shares->entries[e];
+                Count have = 0;
+                if (e < shares->targets.size() && shares->targets[e].item >= 0) have = shares->targets[e].finished;
+                else for (auto const& loose : plan->loose) if (loose.key == entry.key) have = loose.held;
+                SideRow row{entry.key, schematic::items::shown(entry.key).name, entry.count, -1, entry.source};
+                row.held = have, row.need = entry.count;
+                row.done = row.faint = entry.count > 0 && have >= entry.count;
+                (row.done ? done : rows).push_back(std::move(row));
+            }
+        } else {
+            for (auto const& [key, amount] : state::wanted().targets) rows.push_back({key, schematic::items::shown(key).name, amount});
+            for (auto const& target : handed) rows.push_back({target.key, schematic::items::shown(target.key).name, target.count, -1, target.source});
+        }
+        for (auto& row : done) rows.push_back(std::move(row));
     } else if (plan && sideList == SideList::Gather) {
         auto const& index = plan->table->index;
         Item const items = static_cast<Item>(index.items.size());
         auto const turn = static_cast<size_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
-        // As the window's tab (L-370): what is left first, most left first, "held/needed"; then what is gathered,
-        // faint with a check; the tip says how many are left.
+        // As the window's tab (L-370): what is left first, most left first, as the one number left; then what is
+        // gathered, faint with a check; the tip says what is held and needed.
         auto add = [&](GatherLine const& line, bool done) {
             SideRow row;
             if (line.id < items) {
@@ -157,7 +178,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 row.key = members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])];
                 row.name = groupName(index, line.id - items), row.group = true;
             }
-            row.count = line.left, row.countText = std::format("{}/{}", line.held, line.need), row.faint = done, row.done = done, row.gather = true;
+            row.count = line.left, row.held = line.held, row.need = line.need, row.faint = done, row.done = done, row.gather = true;
             rows.push_back(std::move(row));
         };
         for (auto const& line : plan->view.gather) if (line.left) add(line, false);
@@ -165,13 +186,14 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         for (auto const& line : plan->loose)
             if (line.left > 0) {
                 SideRow row{line.key, schematic::items::shown(line.key).name, line.left};
-                row.countText = std::format("{}/{}", line.held, line.need), row.gather = true;
+                row.held = line.held, row.need = line.need, row.gather = true;
                 rows.push_back(std::move(row));
             }
         for (auto const& line : plan->view.done) add(line, true);
     } else if (plan) {
-        // What to make, as the window's tab (L-370): made now, made in part ("now/needed"), short (faint), and at the
-        // end what held stock covers whole (faint, a check for its count); no headings in rows this low.
+        // What to make, as the window's tab (L-370): made now, made in part, short (faint), each as the one number
+        // still to make, and at the end what held stock covers whole (faint, a check); no headings in rows this low.
+        // What can be made now is in the tip.
         auto const& index = plan->table->index;
         std::map<Item, Count> stock;
         for (auto const& [id, have] : plan->request.held) stock[id] += have;
@@ -181,10 +203,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 if (stepState(index, plan->request, step, stock) != state) continue;
                 auto const& key = index.items[static_cast<size_t>(step.item)];
                 SideRow row{key, schematic::items::shown(key).name, step.made, static_cast<int>(i), {}, state == StepState::Missing};
-                if (state == StepState::Partly) {
-                    Count const each = std::max<Count>(1, index.recipes[static_cast<size_t>(step.recipe)].count);
-                    row.countText = std::format("{}/{}", stepNow(index, plan->request, step, stock) * each, step.made);
-                }
+                Count const each = std::max<Count>(1, index.recipes[static_cast<size_t>(step.recipe)].count);
+                row.held = std::min(step.made, stepNow(index, plan->request, step, stock) * each), row.need = step.made;
                 row.line = step;
                 rows.push_back(std::move(row));
             }
@@ -198,7 +218,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     // The list scrolls: the wheel over it (a stepper under the pointer takes the wheel for itself)
     // and the shared bar at its right, which the rows make room for.
     int const fits = panel.rows(), total = static_cast<int>(rows.size());
-    constexpr float stepperWidth = 46;
+    float const stepperWidth = textWidth(context, "88888") + 26; // five digits
     static int sideFirst[3]{};
     int& first = sideFirst[listNow];
     float const rowsEnd = panel.left + panel.width - 3 - (total > fits ? rowBarGutter : 0.f);
@@ -224,7 +244,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 late.icons.push_back({stack, panel.left + 3, y + 1, smallIcon, 0, row.faint ? .45f : 1.f});
         if (row.group) late.marks.push_back({panel.left + 3, y + 1, smallIcon});
         float nameEnd = end - 30;
-        if (sideList == SideList::Wanted && row.source.empty()) {
+        bool const hot = whole.has(px, py);
+        if (sideList == SideList::Wanted && row.source.empty() && (hot || countEdit::editing(row.key))) {
             // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
             float const sx = end - stepperWidth;
             ListBox const box{sx, y + 1, stepperWidth, 10};
@@ -241,22 +262,32 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             float const cx = end - 9, cy = y + 3;
             for (int k = 0; k < 2; ++k) fill(context, cx + static_cast<float>(k), cy + 3 + static_cast<float>(k), 1, 1, palette::faint);
             for (int k = 0; k < 4; ++k) fill(context, cx + 2 + static_cast<float>(k), cy + 4 - static_cast<float>(k), 1, 1, palette::faint);
-        } else label(context, end - 40, y + 2, 40, row.countText.empty() ? std::to_string(row.count) : row.countText,
-                     row.faint ? palette::faint : palette::text, Align::Right);
+        } else {
+            std::string const number = std::to_string(row.count);
+            float const numberW = textWidth(context, number);
+            label(context, end - numberW - 1, y + 2, numberW + 1, number, row.faint ? palette::faint : palette::text, Align::Right);
+            nameEnd = end - numberW - 4;
+        }
         if (panel.wide()) label(context, panel.left + 16, y + 2, nameEnd - panel.left - 16, row.name, row.faint ? palette::faint : palette::dim);
         if (whole.has(px, py)) {
             if (hoverItem.empty()) hoverItem = row.key;
             // A row of what to make says what its crafts take, each with what is held of it (L-370).
+            auto amounts = [&](char const* lead) {
+                return translated(lead) + ": " + std::to_string(row.held) + "  " + translated("recipes.col.need") + ": " + std::to_string(row.need);
+            };
             if (sideList == SideList::Make && plan && !row.done) {
                 std::map<Item, Count> stock;
                 for (auto const& [id, have] : plan->request.held) stock[id] += have;
-                late.tip = row.name, late.tipLines = stepInputLines(plan->table->index, plan->request, row.line, stock);
+                late.tip = row.name, late.tipLines = {amounts("recipes.col.now")};
+                for (auto& line : stepInputLines(plan->table->index, plan->request, row.line, stock)) late.tipLines.push_back(std::move(line));
             } else if (row.gather) {
                 late.tip = row.name;
-                late.tipLines = {row.done ? translated("recipes.gathered") : translated("recipes.stepShort", row.count)};
+                late.tipLines = {row.done ? translated("recipes.gathered") : amounts("recipes.col.held")};
+            } else if (sideList == SideList::Wanted) {
+                late.tip = row.name, late.tipLines = {amounts("recipes.col.held")};
+                // A row a feature handed over says whose it is.
+                if (!row.source.empty()) late.tipLines.push_back(translated("recipes.from." + row.source));
             } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
-            // A row a feature handed over says whose it is.
-            else if (!row.source.empty()) late.tip = row.name, late.tipLines = {translated("recipes.from." + row.source)};
             else if (!panel.wide()) late.tip = row.name;
         }
         if (leftPress && took(whole)) openList();

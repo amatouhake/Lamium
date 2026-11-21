@@ -40,7 +40,7 @@ namespace {
 HashedString const kFillMaterial{"ui_fillColor"};
 
 constexpr mce::Color kFrameBackground{0.10f, 0.10f, 0.10f, 1.0f};
-constexpr auto kTooltipBorder = ui::palette::vanilla::tooltipBorder;
+constexpr auto kTooltipBorder = ui::palette::vanilla::tooltipLine; // the game tooltip's line (L-369)
 constexpr mce::Color kFrameBorder{kTooltipBorder.r, kTooltipBorder.g, kTooltipBorder.b, 1.0f};
 constexpr mce::Color kSlotBackground{0.23f, 0.23f, 0.23f, 1.0f};
 constexpr mce::Color kCountText{1.0f, 1.0f, 1.0f, 1.0f};

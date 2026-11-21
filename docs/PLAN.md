@@ -36,13 +36,18 @@ plan's recipes are in [L-116](backlog/L-116.md).
   shown while its feature is on (L-373): "wanted", "to gather" and "to
   make" (the Plan), "How to make" (Recipes), "stores" (the stores). It is
   always as wide as the game's inventory with its book open (the bands
-  narrow while it is open). With the plan off it is reached from a
-  recipe's in-use mark. The settings screen holds how the features
-  behave, the window the player's data.
-- "Wanted" is a table: fold, icon, name, held, wanted, a bar of held
-  against wanted (what is gathered shows in "to gather"). The player's
-  own rows turn "wanted" into "- N +" and show "x" only under the
-  pointer; handed rows show their source. Held stock goes to the rows in
+  narrow while it is open). With the plan off nothing leads to it since
+  the recipe view's in-use mark became a check box (L-369, open). The
+  settings screen holds how the features behave, the window the player's
+  data. Only column headings stay put; a tab's switch line and "All"
+  scroll with the rows.
+- "Wanted" is a table: fold, icon, name, held, needed, a bar of held
+  against needed (what is gathered shows in "to gather"); held, needed
+  and the bar stand evenly apart, on every tab. Items all held follow
+  under "done", faint. The player's own rows turn the count and bar
+  into "- N +" (five digits) and show "x" only under the pointer;
+  handed rows show their source; a hand-added and a handed row of one
+  item stay two rows. Held stock goes to the rows in
   the order added; a row that lost stock to one above says so under the
   pointer. A press opens its read-only breakdown: steps as slots, then
   what it needs gathered. A recipe's state and an any-of input's slot (framed green
@@ -54,15 +59,20 @@ plan's recipes are in [L-116](backlog/L-116.md).
   steps that can be made now, made in part, short (faint, short inputs on
   the game's red), and held (faint, a check); "can make now" and
   "needed" columns in items with a bar. A press opens the breakdown. The
-  band's lists keep the window's order: "to gather" as "held/needed",
-  gathered rows checked, the tip giving what is left; "to make" with
-  "now/needed" for a partly row, its tip each input held/needed.
+  band's lists keep the window's order, each row one number, what is
+  left: "to gather" needed less held, "to make" what is still to make,
+  "wanted" the count (the stepper under the pointer, done rows at the
+  end); done rows checked; the tip gives held (or can make now) and
+  needed, a make row's also each input held/needed.
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first, as its recipe's slots), by name, each line's state
   on one line ("Automatic: from planks", "Chosen: ..." on green) with one
   arrow and aligned columns; lines for the current plan, or with a
-  switch all chosen before. Placing follows it, else what is held.
+  switch all chosen before. Placing follows it, else what is held. An
+  item's options end with "gather" (the breakdown's "gather" and "make"
+  set the same); leather and white wool start as gathered, shown as
+  chosen, and only a change from that is saved ("made" in the notes).
 - A key (W by default, beside A for favorites; both rebindable) puts the
   hovered item into "wanted" or takes it out, on item screens and in the
   recipe view, with Recipes on or off. While it is held the wheel changes how many are wanted, so the

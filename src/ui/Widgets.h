@@ -44,7 +44,6 @@ namespace vanilla {
 inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     armor{.722f,.725f,.769f}, // #B8B9C4, the armor icon
     curse{1.f,.333f,.333f}, // curses in an item's tooltip
-    tooltipBorder{.55f,.35f,.7f}, // the container preview's frame, as the item tooltip's
     // A window of the game's own grey and the text written on it, for a Lamium window that lies over
     // a game window and takes its place (the recipe view, L-359).
     window{.776f,.776f,.776f}, windowInk{.247f,.247f,.247f}, windowFaint{.42f,.42f,.42f},

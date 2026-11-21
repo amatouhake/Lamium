@@ -637,6 +637,24 @@ void recipeIndexTests() {
         apply(index, notes, request);
         check(request.picks.size() == 1 && request.picks.begin()->second == index.find("oak_planks") && request.stops.contains(index.find("oak_planks")),
               "picks and stops reach the plan by name");
+        {
+            Notes preset;
+            check(preset.gathered("minecraft:leather") && preset.gathered("white_wool") && !preset.chosenGather("white_wool") && !preset.gathered("stick"),
+                  "items usually gathered start as gathered without being saved as the player's choice");
+            preset.setGathered("white_wool", false);
+            preset.setGathered("stick", true);
+            check(!preset.gathered("white_wool") && preset.made.contains("white_wool") && preset.stops == std::set<std::string>{"stick"},
+                  "a choice to make an item usually gathered is kept apart from the player's own stops");
+            check(decodeNotes(encodeNotes(preset)) == preset, "the choice to make it is saved");
+            preset.setGathered("white_wool", true);
+            check(preset.gathered("white_wool") && preset.made.empty() && !preset.stops.contains("white_wool"), "back to gathered it is the preset again");
+            Source woolSource;
+            woolSource.recipes.push_back({"crafting_table", "string_to_wool", 0, {{"white_wool", 1}}, cells("string", 4)});
+            Index woolIndex = build(woolSource);
+            Request woolRequest;
+            apply(woolIndex, Notes{}, woolRequest);
+            check(woolRequest.stops.contains(woolIndex.find("white_wool")), "an item usually gathered is gathered in the plan unless the player says otherwise");
+        }
         Wanted list;
         list.set("stick", 8);
         list.set("unknown_item", 3);

@@ -37,12 +37,33 @@ inline std::string choiceKey(Recipe const& recipe) {
                                           "brewing_stand", "other"};
     return std::string(stations[static_cast<size_t>(recipe.station)]) + "|" + recipe.id;
 }
+// Items usually gathered, not made (L-370): their recipe turns something rarer into them (rabbit hide into
+// leather, string into wool). They start as gathered in "How to make"; only the player's change is saved
+// (`made`), so an item added here later reaches everyone and a choice to make one stays.
+inline bool usuallyGathered(std::string_view key) {
+    if (key.starts_with("minecraft:")) key.remove_prefix(10);
+    return key == "leather" || key == "white_wool";
+}
 struct Notes {
     std::vector<std::string> favorites;          // item keys, oldest first
     std::map<std::string, std::string> choices;   // item key -> the recipe's choiceKey
     std::map<std::string, std::string> picks;     // group key -> member's item key
     std::set<std::string> stops;                  // item keys
+    std::set<std::string> made;                   // usually gathered items the player set to be made
     bool operator==(Notes const&) const = default;
+    // Gathered, not made: the player's choice, or an item usually gathered the player left so.
+    bool gathered(std::string const& key) const { return stops.contains(key) || (usuallyGathered(key) && !made.contains(key)); }
+    // Whether the gathering is the player's own choice rather than the preset.
+    bool chosenGather(std::string const& key) const { return stops.contains(key); }
+    void setGathered(std::string const& key, bool gather) {
+        if (gather) {
+            made.erase(key);
+            if (!usuallyGathered(key)) stops.insert(key); else stops.erase(key);
+        } else {
+            stops.erase(key);
+            if (usuallyGathered(key)) made.insert(key);
+        }
+    }
     bool favorite(std::string_view key) const { return std::find(favorites.begin(), favorites.end(), key) != favorites.end(); }
     void toggleFavorite(std::string const& key) {
         auto found = std::find(favorites.begin(), favorites.end(), key);
@@ -70,6 +91,8 @@ inline void apply(Index const& index, Notes const& notes, Request& request) {
         if (member >= 0 && std::find(members.begin(), members.end(), member) != members.end()) request.picks[static_cast<int>(group)] = member;
     }
     for (auto const& key : notes.stops) if (Item const item = index.findKey(key); item >= 0) request.stops.insert(item);
+    for (size_t item = 0; item < index.items.size(); ++item)
+        if (usuallyGathered(index.items[item]) && !notes.made.contains(index.items[item])) request.stops.insert(static_cast<Item>(item));
 }
 
 struct Wanted {

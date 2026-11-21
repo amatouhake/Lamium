@@ -49,6 +49,11 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
     // Dark text on the game's grey has no shadow, as the window's own text.
     centered(context,x,y,w,h,std::move(text),color,!onWindow() || (enabled && kind == ButtonKind::Primary));
 }
+float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text) { return textWidthScaled(context, text, .75f) + 8; }
+void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered) {
+    Rgb const color = drawButtonBox(context, x, y, w, rowButtonHeight, hovered, ButtonKind::Plain, true);
+    labelScaled(context, x, y + 1.5f + boxTextInset() * .75f, w, std::move(text), .75f, color, Align::Center, !onWindow());
+}
 Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int page, int pages, float pointerX, float pointerY) {
     Pager out;
     out.y = y;
