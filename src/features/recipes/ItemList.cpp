@@ -161,6 +161,10 @@ struct GridPlacer : view::Placer {
         return placePlan(table->index, recipe, crafting() ? bench.side : 0, carried, picks, many);
     }
     bool places(Kind kind) const override { return benchAny(bench) && kind == benchKind(bench); }
+    PlacePlan need(Recipe const& recipe) const override {
+        return placePlan(table->index, recipe, recipe.station == Station::Crafting ? 3 : 0, carried, picks, false);
+    }
+    int gridSide() const override { return crafting() ? bench.side : 0; }
     bool run(int recipe, bool many) override { return place::run(screen, table, recipe, picks, many); }
     CraftOnto craftCheck(Recipe const& recipe) const override {
         return crafting() ? place::craftCheck(screen, table->index, recipe, preview(recipe, false).ready()) : CraftOnto::Missing;
@@ -214,10 +218,12 @@ CraftAsk craftAsk(GridPlacer const& placer, Item id) {
     if (out.recipe >= 0) out.check = placer.craftCheck(index.recipes[static_cast<size_t>(out.recipe)]);
     return out;
 }
+// On any item screen, for the recipe view's place buttons (which check what is missing anywhere); its `bench` says
+// whether the screen takes any recipe.
 std::optional<GridPlacer> gridPlacer(ScreenView& screen, LocalPlayer& player) {
     Bench const bench = place::bench(screen);
     auto table = service::table();
-    if (!benchAny(bench) || !table) return std::nullopt;
+    if (!table) return std::nullopt;
     auto const* plan = state::plan(player);
     return std::optional<GridPlacer>(std::in_place, screen, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, bench);
 }

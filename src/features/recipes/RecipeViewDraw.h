@@ -21,6 +21,11 @@ struct Placer {
     // Whether the screen takes the recipes of a tab of this kind (L-380): crafting at a grid, smelting at a
     // furnace, and so on.
     virtual bool places(Kind kind) const = 0;
+    // What laying one in would take from what is carried, wherever the recipe is shown: a crafting recipe in a 3x3
+    // grid, another in its station's slots; its `missing` turns those slots red under the place button's pointer.
+    virtual PlacePlan need(Recipe const& recipe) const = 0;
+    // The screen's crafting grid, 0 for none: a recipe too wide for it is told so.
+    virtual int gridSide() const = 0;
     // Crafting one round onto the pointer (L-379): what it meets now, and doing it.
     virtual CraftOnto craftCheck(Recipe const& recipe) const = 0;
     virtual bool craft(int recipe) = 0;

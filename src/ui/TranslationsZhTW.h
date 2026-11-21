@@ -1109,6 +1109,8 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"recipes.placeMissing", "缺少材料（紅框）"},
     {"recipes.craft", "Ctrl + 點擊: 合成一次到指標上"},
     {"recipes.place.many", "Shift + 點擊: 盡可能平均放置"},
+    {"recipes.place.fit", "放不進這個合成格"},
+    {"recipes.place.station", "可在{}放置"},
     {"recipes.stonecutter.choose", "請選擇成品"},
     {"recipes.craft.placeOnly", "Ctrl + 點擊: 指標已被佔用，只放置"},
     {"recipes.hint.favorite", "{}: 收藏"},

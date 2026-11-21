@@ -138,6 +138,13 @@ after using the first build. What is still open is in the L-item.
   shows that item, not the others in turn.
 - R over an item shows its recipes and U what it is used in, in the lists,
   the view and the game's own slots. Sorting therefore has no default key.
+- "Place" is on every recipe (maintainer 2026-11-21): pressable where the
+  screen takes the tab's recipes and they can be laid, else flat and
+  darker with the reason in its tip (the grid is too small, or the
+  station it is placed at). Under its pointer, wherever it is shown, the
+  slots of what is carried short turn red; elsewhere no slot is red.
+- The heading's item answers presses as any item (a press its recipes, a
+  right press its uses), so an item with neither is no dead end.
 - Each recipe lies on a raised face of the window's grey, 5 units around
   its slots; faces are 102 wide and 6 apart in a window 236 wide (L-379).
   At its bottom right stands "place" (with Shift: as many as divide
@@ -179,18 +186,14 @@ after using the first build. What is still open is in the L-item.
   pointer holds stays on it. An item's tip explains no press; the place
   button's names Shift and Ctrl, and that Ctrl only places while the
   pointer is taken.
-- "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): on the
-  inventory and the crafting table, a crafting recipe that fits the grid
-  has the button. A press lays one of each ingredient into the grid (one
-  more of each onto the same recipe, 2026-11-20), with Shift as many as
-  divide evenly from every stack carried, and closes the view. Crafting is the player's: laying in and crafting at one press was
-  tried and is not what a recipe view is expected to do. What lay in the
-  grid goes back to the inventory first. Each cell is moved straight from
-  its slot (the manager's place-amount, as Sort and Item transfer move
-  stacks), so the pointer keeps what it holds (L-381); a move that shows
-  nothing goes through the empty pointer instead. An ingredient that is missing disables the
-  button and turns its slot's face red, as the game does. Any of several items:
-  the member "How to make" names while it lasts, else the one most carried.
+- "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): at the
+  inventory and the crafting table a crafting recipe that fits the grid is
+  laid in, one of each (one more onto the same recipe), with Shift as many
+  as divide evenly, and the view closes; crafting stays the player's.
+  What lay in the grid goes back first. Each cell moves straight from its
+  slot (the manager's place-amount), so the pointer keeps what it holds
+  (L-381); a move that shows nothing goes through the empty pointer. Any
+  of several items: the member "How to make" names, else the most carried.
 - Brewing ([L-361](backlog/L-361.md)): the game's table holds no brewing,
   so after the recipes the game is asked, a few dozen a tick, what each
   potion ingredient (and gunpowder and dragon's breath) makes of each
@@ -200,7 +203,8 @@ after using the first build. What is still open is in the L-item.
   the fuel slot at the top left, the fuel's tube through a short coil
   into the gauge, the ingredient at the top with three tubes to the
   bottles, the bottle before at the left, the middle one empty, the one
-  after at the right. A plan counts the ingredient once a batch of three
+  after at the right. The gauge, the bubbles, the arrow and the empty
+  bottle are the game's own images; the tubes are drawn. A plan counts the ingredient once a batch of three
   bottles and never asks for blaze powder. At the stand a press lays the
   ingredient and the bottle before into the left bottle, Shift into all
   three; the fuel is untouched.

@@ -1118,6 +1118,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.placeMissing", "Something is missing: the red slots", "足りない材料があります（赤い枠）"},
     {"recipes.craft", "Ctrl + press: craft one onto the pointer", "Ctrl + 押す: ポインタに 1 回分クラフト"},
     {"recipes.place.many", "Shift + press: as many as divide evenly", "Shift + 押す: 割れるだけ配置"},
+    {"recipes.place.fit", "Does not fit this grid", "この格子には入りません"},
+    {"recipes.place.station", "Placed at the {}", "{}で配置できます"},
     {"recipes.stonecutter.choose", "Choose a result", "完成品を選んでください"},
     {"recipes.craft.placeOnly", "Ctrl + press: the pointer is taken, so it only places", "Ctrl + 押す: ポインタが埋まっているので配置だけ"},
     {"recipes.hint.favorite", "{}: favorite", "{}: お気に入り"},

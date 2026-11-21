@@ -60,7 +60,9 @@ void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb colo
 namespace {
 // The brewing stand's parts on a brewing face (L-361, demos/brewing-view.html F), from the block's corner: the fuel's
 // tube going right, down through a short coil and right into the gauge with bubbles over it; three tubes from the
-// ingredient, one to each bottle; the arrow at the ingredient's right; the empty middle bottle's outline.
+// ingredient, one to each bottle; the arrow at the ingredient's right; the empty middle bottle. The gauge, the
+// bubbles, the arrow and the bottle are the game's own images (the maintainer 2026-11-21: compact, with the stand's
+// parts where they stand alone); the tubes are drawn, the game's being shaped for its wider screen.
 void brewingParts(MinecraftUIRenderContext& context, float x, float y) {
     using namespace lamium::ui;
     namespace v = palette::vanilla;
@@ -74,19 +76,13 @@ void brewingParts(MinecraftUIRenderContext& context, float x, float y) {
         fill(context, x + 21, y + 11.8f + 2.2f * static_cast<float>(i), 7, .6f, v::windowLight);
     }
     tube(28, 15, 3, 1);
-    fill(context, x + 31, y + 14, 15, 3, v::windowInk);
-    fill(context, x + 32, y + 15, 13, 1, v::brewingFuel);
-    for (auto [bx, by] : {std::pair{36.f, 9.f}, {38.f, 5.f}, {35.f, 2.f}, {40.f, 10.f}}) fill(context, x + bx, y + by, 1.5f, 1.5f, v::windowLight);
     tube(54, 18, 1, 8), tube(46, 26, 8, 1);
     tube(59, 18, 1, 12);
     tube(64, 18, 1, 8), tube(65, 26, 7, 1);
-    // The arrow down at the ingredient's right.
-    fill(context, x + 73, y + 2, 1, 10, v::windowInk);
-    fill(context, x + 72, y + 12, 3, 1, v::windowInk);
-    fill(context, x + 73, y + 13, 1, 1, v::windowInk);
-    // The empty middle bottle: a neck and a body in outline.
-    frame(context, x + 57, y + 33, 4, 3, v::windowFaint);
-    frame(context, x + 55, y + 36, 8, 9, v::windowFaint);
+    images(context, "textures/ui/brewing_fuel_bar_full", {{x + 31, y + 14, 15, 3}});
+    images(context, "textures/ui/bubbles_empty", {{x + 34, y + 1, 7, 12}});
+    images(context, "textures/ui/brewing_arrow_empty", {{x + 70, y + 1, 6, 17}});
+    images(context, "textures/ui/bottle_empty", {{x + 51, y + 31, 16, 16}});
 }
 // The place button's line for Ctrl (L-379): what it does, or why it would not now.
 std::string craftLine(CraftOnto check) {
@@ -164,8 +160,11 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, l.left + 7, l.top + lineOne - 1, .625f});
         float const nameX = l.left + 20;
         windowLabel(context, nameX, l.top + lineOne, headEnd - nameX, translated(at.uses ? "recipes.heading.uses" : "recipes.heading.makes", shown.name));
-        if (input.pointerX >= l.left + 7 && input.pointerX < headEnd && input.pointerY >= l.top + lineOne - 1 && input.pointerY < l.top + lineOne + 10)
-            late.tip = shown.name, late.hovered = at.item;
+        // The item itself answers presses as any item does (a press its recipes, a right press its uses), so an
+        // item with none of one kind is no dead end for the mouse (maintainer 2026-11-21).
+        Region heading{l.left + 7, l.top + lineOne - 1, headEnd - (l.left + 7), 11, Act::Item, at.item, -1};
+        if (heading.has(input.pointerX, input.pointerY)) late.tip = shown.name, late.hovered = at.item;
+        regions.push_back(std::move(heading));
     }
     auto line = [&](std::string_view key) {
         windowLabel(context, l.left + 6, l.top + RecipeViewLayout::head + 4, l.width - 12, translated(key), true);
@@ -279,8 +278,15 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             regions.push_back(std::move(region));
         };
         // Where the screen has a grid this recipe fits, it can be laid in; a cell nothing carried serves is marked.
+        // "Place" is on every recipe (maintainer 2026-11-21); it can be pressed where the screen takes the tab's
+        // recipes and they can be laid. Under its pointer the slots of what is missing turn red, wherever it is
+        // shown, so a recipe can be checked anywhere and none is red unasked.
+        bool const placeable = input.placer && input.placer->places(tab.kind);
         PlacePlan laid;
-        if (input.placer && input.placer->places(tab.kind)) laid = input.placer->preview(recipe, input.shift);
+        if (placeable) laid = input.placer->preview(recipe, input.shift);
+        Region const placeRegion{bx + block.placeX, by + block.placeY, viewButton, viewButton, Act::Place, {}, number};
+        bool const overPlace = placeRegion.has(input.pointerX, input.pointerY);
+        PlacePlan const asked = overPlace && input.placer ? input.placer->need(recipe) : PlacePlan{};
         auto const& picks = state::notes().picks;
         for (auto const& part : block.slots) {
             Item item = -1;
@@ -301,7 +307,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                 }
             }
             place(bx + part.x, by + part.y, item, 1,
-                  part.cell >= 0 && std::find(laid.missing.begin(), laid.missing.end(), part.cell) != laid.missing.end(), group);
+                  part.cell >= 0 && std::find(asked.missing.begin(), asked.missing.end(), part.cell) != asked.missing.end(), group);
         }
         if (block.brewing) {
             brewingParts(context, bx, by);
@@ -309,21 +315,26 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             place(bx + block.fuelX, by + block.fuelY, index.find("minecraft:blaze_powder", 0), 1);
         } else changeArrow(context, bx + block.arrowX, by + block.arrowY, 1, palette::vanilla::windowInk);
         place(bx + block.productX, by + block.productY, recipe.makes, recipe.count);
-        // "Place": a small square button with a picture at the block's bottom right, named under the pointer;
-        // faint, with the reason, when something is missing.
-        if (laid.fits) {
-            float const mx = bx + block.placeX, my = by + block.placeY, size = viewButton;
-            Region const region{mx, my, size, size, Act::Place, {}, number};
-            bool const over = region.has(input.pointerX, input.pointerY);
-            Rgb const mark = drawButtonBox(context, mx, my, size, size, laid.ready() && over, ButtonKind::Plain, laid.ready());
-            placeMark(context, mx, my, mark);
-            if (over) late.tip = translated(laid.ready() ? "recipes.place" : "recipes.placeMissing");
-            // A button of its own explains its presses (not an item's tip, maintainer 2026-11-21).
-            if (over && laid.ready()) {
-                late.tipLines = {translated("recipes.place.many")};
-                if (input.placer->places(Kind::Crafting)) late.tipLines.push_back(craftLine(input.placer->craftCheck(recipe)));
+        // "Place": a small square button with a picture at the block's bottom right, named under the pointer; flat
+        // and darker where it cannot be pressed, its tip saying why.
+        {
+            bool const ready = placeable && laid.ready();
+            Rgb const mark = drawButtonBox(context, placeRegion.x, placeRegion.y, viewButton, viewButton, ready && overPlace, ButtonKind::Plain, ready);
+            placeMark(context, placeRegion.x, placeRegion.y, mark);
+            if (overPlace) {
+                // A button of its own explains its presses (not an item's tip, maintainer 2026-11-21).
+                if (ready) {
+                    late.tip = translated("recipes.place");
+                    late.tipLines = {translated("recipes.place.many")};
+                    if (input.placer->places(Kind::Crafting)) late.tipLines.push_back(craftLine(input.placer->craftCheck(recipe)));
+                } else if (placeable && laid.fits) late.tip = translated("recipes.placeMissing");
+                else if (placeable && input.placer->gridSide() > 0) late.tip = translated("recipes.place.fit");
+                else {
+                    late.tip = translated("recipes.place.station", stationName(usualStation(tab.kind)));
+                    if (!asked.missing.empty()) late.tipLines = {translated("recipes.placeMissing")};
+                }
             }
-            if (laid.ready()) regions.push_back(region);
+            if (ready) regions.push_back(placeRegion);
         }
         // Of an item made several ways, the check box left of "place" (L-379): empty for a recipe not in use, a
         // dark check for the one the rule picked, a green check for the player's own choice. A press chooses

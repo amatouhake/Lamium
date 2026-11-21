@@ -258,10 +258,13 @@ std::vector<PlaceSource> carried(ScreenView& screen, Index const& index) {
     try {
         auto* controller = crafting(screen);
         Station at = Station::Other;
-        // At a station only what is carried counts: a slot's own stays where it is or goes back whole.
+        // At a station only what is carried counts: a slot's own stays where it is or goes back whole. On any other
+        // item screen too, for what a recipe would miss (the recipe view's place buttons).
         if (!controller) {
-            auto* other = station(screen, at);
-            return other ? carriedOf(*other->mContainerManagerController, index) : std::vector<PlaceSource>{};
+            if (auto* other = station(screen, at)) return carriedOf(*other->mContainerManagerController, index);
+            if (!screen.mController || !screen.mController->_isContainerScreen()) return {};
+            auto manager = static_cast<ContainerScreenController&>(*screen.mController).mContainerManagerController;
+            return manager && !manager->mContainersClosed ? carriedOf(*manager, index) : std::vector<PlaceSource>{};
         }
         auto& manager = *controller->mContainerManagerController;
         auto out = carriedOf(manager, index);
