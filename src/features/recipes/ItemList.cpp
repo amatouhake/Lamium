@@ -118,6 +118,9 @@ struct Shown {
     bool countFocus = false;        // a wanted item's count is being typed
     std::vector<ListBox> bands;     // the other panels and the open container's line
     ListBox favorites;              // the favorites' panel, which the wheel scrolls
+    // An open Notes window's span, wider than the recipe view's: the wheel over any of it is the window's, also
+    // at its left end where a group's picture stands (L-369).
+    ListBox window;
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
@@ -918,6 +921,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         tipItem = hoverItem; // kept for the tooltip: what is shown takes the string
         shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, (recipesOn || windowButton || layoutButton) ? fieldArea : ListBox{}, side, searchFocus,
                  countEdit::active(), bandBoxes, favoritesBox};
+        if (planView::isOpen() && !view::isOpen()) {
+            float const from = std::min(coverLeft, viewLayout.left), to = std::max(right, viewLayout.left + RecipeViewLayout::width);
+            shown.window = {from, viewLayout.top, to - from, viewLayout.height};
+        }
     }
     context.flushText(0, std::nullopt);
     // Painted after the screen, the bands and the windows cover the item held on the pointer: where it
@@ -1051,7 +1058,7 @@ bool wheel(int pages) {
     std::scoped_lock lock(shownLock);
     if (!fresh()) return false;
     if (wantedHeld.load()) { queued.wantedTurns += pages; return true; }
-    if (shown.viewOpen && shown.view.has(shown.pointerX, shown.pointerY)) queued.viewTurns += pages;
+    if (shown.viewOpen && (shown.view.has(shown.pointerX, shown.pointerY) || shown.window.has(shown.pointerX, shown.pointerY))) queued.viewTurns += pages;
     else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
     else if (shown.side.has(shown.pointerX, shown.pointerY)) queued.sideTurns += pages;
     else if (shown.favorites.has(shown.pointerX, shown.pointerY)) queued.favoriteTurns += pages;
