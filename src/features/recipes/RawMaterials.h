@@ -127,13 +127,13 @@ inline Result reduce(std::vector<std::pair<Item, Count>> const& wanted, Recipes 
         Item next = 0;
         bool found = false, loop = false;
         for (Item item : left) if (ready(item)) { next = item; found = true; break; }
-        // A group whose member waits on the group itself: covered with what its members have left so far.
-        if (!found) for (Item item : left) if (users[item] == 0) { next = item; found = true; break; }
         if (!found) {
             // Only loops remain. Keep one item on a loop raw: one the player did not ask for, if any.
             loop = true;
             for (Item item : left) if (!asked.contains(item) && onLoop(item)) { next = item; found = true; break; }
             if (!found) for (Item item : left) if (onLoop(item)) { next = item; found = true; break; }
+            // No loop of recipes: a group waits on a member that waits on it; covered with what its members have left.
+            if (!found) for (Item item : left) if (users[item] == 0) { next = item; found = true; loop = false; break; }
             if (!found) next = *left.begin();
         }
         left.erase(next);

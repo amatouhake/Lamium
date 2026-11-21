@@ -303,6 +303,20 @@ void recipeIndexTests() {
                   && two.size() == 2 && two[0].second == 1 && two[1].second == 1
                   && woods.recipes[static_cast<size_t>(two[1].first)].makes == at("spruce_planks"),
               "making the group's step makes the member whose input is most carried first, then the next");
+        // The stores hold oak logs, spruce logs are carried: the step is laid in from what is carried.
+        if (step != view.steps.end()) {
+            Request stored{{{at("chest"), 1}}, {{at("oak_log"), 5}, {at("spruce_log"), 2}}, {}, {}};
+            auto const planStored = rawView(woods, picked, stored);
+            auto const s2 = std::find_if(planStored.steps.begin(), planStored.steps.end(), [&](StepLine const& s) { return s.item == planksItem; });
+            check(s2 != planStored.steps.end() && woods.recipes[static_cast<size_t>(s2->recipe)].makes == at("oak_planks")
+                      && woods.recipes[static_cast<size_t>(layRecipe(woods, stored, *s2, {{at("spruce_log"), 2}}))].makes == at("spruce_planks"),
+                  "a group's step lays in what is carried, though the stores hold more of another member's input");
+            Request oakOnly = chest;
+            oakOnly.picks[trace.kind] = at("oak_log");
+            auto const onlyOak = stepRuns(woods, oakOnly, *step, {{at("oak_log"), 1}, {at("spruce_log"), 5}});
+            check(onlyOak.size() == 1 && woods.recipes[static_cast<size_t>(onlyOak[0].first)].makes == at("oak_planks"),
+                  "a member of the kind picked in How to make keeps the run to it");
+        }
         // Held bamboo planks still count as planks: nothing to trace.
         auto const bamboo = planned(woods, picked, {{{at("chest"), 1}}, {{at("bamboo_planks"), 8}}, {}, {}});
         check(bamboo.result.raw.empty() && bamboo.result.steps.size() == 1 && bamboo.result.steps[0].item == at("chest"), "a member that does not line up still counts toward its group when held");

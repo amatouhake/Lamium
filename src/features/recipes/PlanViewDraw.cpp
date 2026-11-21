@@ -75,7 +75,8 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     using namespace lamium::ui;
     auto const& index = plan.table->index;
     constexpr float size = 11;
-    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+    int const lay = layRecipe(index, plan.request, step, plan.held);
+    auto const& recipe = index.recipes[static_cast<size_t>(lay)];
     bool const can = placer && placer->preview(recipe, false).ready();
     float const makeX = x + size + 2;
     auto over = [&](float bx) { return px >= bx && px < bx + size && py >= y && py < y + size; };
@@ -95,7 +96,7 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     }
     int const rounds = static_cast<int>(std::min<Count>(step.crafts, 1 << 20));
     if (took(x, y, size, size) && can)
-        return ctrl ? placer->craft(step.recipe) : shift ? placer->runMost(step.recipe, std::min(rounds, 64)) : placer->run(step.recipe, false);
+        return ctrl ? placer->craft(lay) : shift ? placer->runMost(lay, std::min(rounds, 64)) : placer->run(lay, false);
     // A traced group's step (L-386) makes its members, the one whose input is most carried first.
     if (took(makeX, y, size, size) && can) placer->make(stepRuns(index, plan.request, step, plan.held));
     return false;
@@ -361,8 +362,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     };
     auto groupState = [&](float end, float y, int group, float room = 64) {
         auto picked = request.picks.find(group);
-        bool const chosen = picked != request.picks.end();
-        return stateTag(end, y, chosen ? nameOf(picked->second) : translated("recipes.howTo.any"), chosen, groupKey(index, group), room);
+        bool const chosen = picked != request.picks.end(), gathered = !chosen && request.stops.contains(index.groupItem(group));
+        return stateTag(end, y, chosen ? nameOf(picked->second) : translated(gathered ? "recipes.toGather" : "recipes.howTo.any"), chosen || gathered,
+                        groupKey(index, group), room);
     };
     // A step as the game's slots: inputs right-aligned to the arrow (room for four), the product in a fixed
     // column, the station. `x0` is where the inputs' room starts.
@@ -718,7 +720,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         // What the open screen can do with a step: one round laid in from what is carried.
         auto* placer = input.placer;
         auto canLay = [&](StepLine const& step) {
-            return placer && placer->preview(index.recipes[static_cast<size_t>(step.recipe)], false).ready();
+            return placer && placer->preview(index.recipes[static_cast<size_t>(layRecipe(index, request, step, plan->held))], false).ready();
         };
         // The columns of "to gather" (L-370): what can be made now and what is needed, in items, and a bar.
         columnHeads(top, "recipes.col.need", false, {}, "recipes.col.now");

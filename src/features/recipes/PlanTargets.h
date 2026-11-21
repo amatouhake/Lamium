@@ -110,9 +110,14 @@ inline std::vector<std::pair<int, int>> stepRuns(Index const& index, Request con
     size_t const group = static_cast<size_t>(step.item - static_cast<Item>(index.items.size()));
     if (!groupStep(index, step) || group >= index.traces.size() || index.traces[group].kind < 0) return {{step.recipe, all}};
     auto const& trace = index.traces[group];
+    // A member of the kind picked in How to make (oak logs) keeps the run to the recipes that take it.
+    Item const kind = partItem(index, request, Part{true, trace.kind, trace.uses});
+    bool const picked = kind < static_cast<Item>(index.items.size());
     std::vector<std::pair<Count, int>> byHeld; // what is carried of a recipe's input, the recipe
-    for (int number : trace.recipes)
-        byHeld.emplace_back(heldOf(index, carried, partItem(index, request, index.recipes[static_cast<size_t>(number)].uses[0])), number);
+    for (int number : trace.recipes) {
+        Item const input = partItem(index, request, index.recipes[static_cast<size_t>(number)].uses[0]);
+        if (!picked || input == kind) byHeld.emplace_back(heldOf(index, carried, input), number);
+    }
     std::stable_sort(byHeld.begin(), byHeld.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
     std::vector<std::pair<int, int>> out;
     int left = all;
@@ -124,6 +129,11 @@ inline std::vector<std::pair<int, int>> stepRuns(Index const& index, Request con
     }
     if (out.empty()) out.emplace_back(step.recipe, all);
     return out;
+}
+// The recipe "lay in" uses for a step, and that the screen is asked about: the first of stepRuns, so a traced
+// group's step lays in the member whose input is carried, not one only the stores hold (L-386).
+inline int layRecipe(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& carried) {
+    return stepRuns(index, request, step, carried).front().first;
 }
 // What held stock covers whole and has a recipe: steps not to make, shown as held at the end of "to make".
 inline std::vector<StepLine> heldSteps(Index const& index, Choice const& choice, RawView const& view) {

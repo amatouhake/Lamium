@@ -117,8 +117,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   added to the window's hint line while the pointer is on it.
 - A group "any" is traced past its kind where most of its members are,
   by their usual recipe, made from one input in one amount (L-386):
-  planks from "Oak Log etc." (every log, wood, stripped one, stem and
-  hyphae), four from one; wooden slabs from planks. Held members count
+  planks from logs (every log, wood, stripped one, stem and hyphae: the
+  game's "logs" tag), four from one; wooden slabs from planks. Held members count
   first; "to make" has the group's step, which takes the kind and makes
   the member whose input is most carried, then the next. Ore smelting
   and loops (cobblestone, nuggets) do not line a member up. A group can
