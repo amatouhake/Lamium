@@ -171,7 +171,7 @@ Waypoints also show in the world, with both maps off.
 | Fake Offhand | Use a hotbar block or item as if it were in the offhand | Right click | Off |
 | Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
-| Recipes *Exp.* | List and search every item beside item screens, show recipes and uses, keep favorites; arrange the bands in an editor | `R` recipes, `U` uses, `A` favorite, `Backspace` back | Off |
+| Recipes *Exp.* | List and search every item beside item screens, show recipes and uses, keep favorites; arrange the panels in an editor | `R` recipes, `U` uses, `A` favorite, `Backspace` back | Off |
 | Plan *Exp.* | A list of wanted items with what to gather and what to make for them | `W` wanted | Off |
 | Stores *Exp.* | Count marked containers and the ender chest as held, for the plan and the schematic | — | Off |
 | Mass Craft *Exp.* | While a key is held over an item on a crafting screen: craft its recipe again and again and throw the products out | unbound | Off |

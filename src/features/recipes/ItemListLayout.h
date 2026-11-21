@@ -30,14 +30,19 @@ struct ListBox {
     float x = 0, y = 0, w = 0, h = 0;
     bool has(float px, float py) const { return w > 0 && px >= x && px < x + w && py >= y && py < y + h; }
 };
-// The search field: at the bottom centre, as wide as the game's inventory window and low enough that
-// nothing above it ever has to move. High enough for Japanese and for letters that reach under the line.
+// The row at the bottom centre, as wide as the game's inventory window and low enough that nothing above it ever
+// has to move (L-382): "open the window, arrange the panels | search field, highlight". It stays between the
+// panels on every screen; the field is high enough for Japanese and letters that reach under the line.
 inline constexpr float searchTop = 18; // its top, from the screen's bottom
-inline ListBox searchFieldAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - searchTop, 176, 16}; }
-// The highlight switch (L-378): a square of the field's height right of it.
+inline ListBox bottomRowAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - searchTop, 176, 16}; }
+inline ListBox windowButtonAt(ListBox row) { return {row.x, row.y, row.h, row.h}; }
+inline ListBox layoutButtonAt(ListBox row) { return {row.x + row.h + 2, row.y, row.h, row.h}; }
+inline ListBox searchFieldAt(float screenWidth, float screenHeight) {
+    auto const row = bottomRowAt(screenWidth, screenHeight);
+    return {row.x + 2 * row.h + 6, row.y, row.w - 3 * row.h - 8, row.h};
+}
+// The highlight switch (L-378): a square of the field's height right of it, at the row's end.
 inline ListBox searchHighlightAt(ListBox field) { return {field.x + field.w + 2, field.y, field.h, field.h}; }
-// "How to make" right of the highlight switch, while the plan is off and nothing else leads there (L-369).
-inline ListBox howToButtonAt(ListBox field, float width) { auto const after = searchHighlightAt(field); return {after.x + after.w + 2, field.y, width, field.h}; }
 // Where a press takes the field: a few units around it too, the screen's edge being close (L-377).
 inline ListBox searchFieldHit(ListBox field) { return {field.x - 4, field.y - 4, field.w + 8, field.h + 6}; }
 

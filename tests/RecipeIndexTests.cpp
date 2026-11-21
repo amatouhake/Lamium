@@ -532,9 +532,12 @@ void recipeIndexTests() {
         }
         check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
-        check(field.x == 232 && field.y == 342 && field.w == 176 && field.h == 16 && field.has(300, 350) && !field.has(300, 340)
-                  && searchFieldHit(field).has(230, 340) && searchHighlightAt(field).x == 410 && searchHighlightAt(field).w == field.h,
-              "the search field sits at the bottom centre, taking presses a little around it, the highlight switch a square beside it");
+        auto const row = bottomRowAt(640, 360);
+        check(row.x == 232 && row.w == 176 && field.x == 270 && field.y == 342 && field.w == 120 && field.h == 16 && field.has(300, 350)
+                  && !field.has(300, 340) && searchFieldHit(field).has(268, 340) && searchHighlightAt(field).x == 392
+                  && searchHighlightAt(field).x + searchHighlightAt(field).w == row.x + row.w && windowButtonAt(row).x == row.x
+                  && layoutButtonAt(row).x + layoutButtonAt(row).w + 4 == field.x,
+              "the bottom row: the window's and the layout's buttons, then the field and its highlight switch, as wide as the inventory");
         check(steppedWanted(1, false, 1) == 0 && steppedWanted(1, false, 16) == 0 && steppedWanted(5, false, 1) == 4
               && steppedWanted(9, false, 16) == 1 && steppedWanted(0, true, 1) == 1 && steppedWanted(0, false, 1) == 0
               && steppedWanted(Wanted::most, true, 16) == Wanted::most,

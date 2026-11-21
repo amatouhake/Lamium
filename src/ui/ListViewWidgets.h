@@ -24,6 +24,10 @@ namespace lamium::ui {
 enum class ButtonKind { Plain, Primary };
 void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                 bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
+// A square button with a picture instead of words (L-382), named by its tip: the pictures are white and greys
+// on the plain face, the face green while the button is on.
+enum class Picture { Highlight, Window, Layout, Store };
+void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);
 // A small button inside a table row (L-369): flat, as high as a switch and edged as one, its text smaller than
 // the row's words so it sits inside with room around it. Off the game's window it is the plain button.
 inline constexpr float rowButtonHeight = switchHeight;

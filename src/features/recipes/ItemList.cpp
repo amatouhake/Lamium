@@ -505,20 +505,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto const shownBands = editing ? bandEditor::layout(prefs->inventory.bands) : prefs->inventory.bands;
     std::array<bool, band::pageCount> const pagesOn{recipesOn, favoritesOn, planOn};
     auto placed = band::place(shownBands, regions, pagesOn);
-    // The line lies in the left region's last panel, so opening a chest moves nothing above it: the plan
-    // keeps it in its rows' room, another page gives up those units.
-    band::Placed* lastLeft = nullptr;
-    for (auto& panel : placed) if (panel.shownIn == band::Left) lastLeft = &panel;
-    bool const footInPlan = openPlace && lastLeft && lastLeft->page == band::Page::Plan;
-    if (openPlace && lastLeft && !footInPlan) lastLeft->box.h = std::max(0.f, lastLeft->box.h - SideLayout::foot);
     auto const* itemsPanel = band::find(placed, band::Page::Items);
     auto const* planPanel = band::find(placed, band::Page::Plan);
     auto const layout = itemsPanel ? itemListIn(itemsPanel->box) : ItemListLayout{};
-    auto planSide = [&](band::Box box) {
-        auto out = sidePanelIn(box, false);
-        out.footOn = footInPlan;
-        return out;
-    };
+    auto planSide = [&](band::Box box) { return sidePanelIn(box, false); };
     // The plan's list, for the wheel over it (the listeners' side).
     auto const side = planPanel ? planSide(planPanel->box) : SideLayout{};
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
@@ -539,14 +529,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (focusAsked.exchange(false) && prefs->inventory.recipes && !bandEditor::active()) searchFocus = true, search.selectAll(), countEdit::commit();
     // The search field: what was typed since the last frame, then where this frame's press went.
     auto const field = searchFieldAt(screen.x, screen.y);
-    // "How to make" beside the field while the plan, whose window otherwise leads there, is off (L-369).
-    bool const howToButton = recipesOn && !planOn;
-    std::string howToText = translated("recipes.howTo");
-    ListBox const howToBox = howToButtonAt(field, howToButton ? textWidth(event.uiRenderContext(), howToText) + 10 : 0);
-    // What the listeners keep from the game for the field: around it, and its help beside it.
+    // The bottom row's buttons (L-382): the Recipes window, while a feature with a tab is on; arranging the
+    // panels, while one is shown.
+    auto const row = bottomRowAt(screen.x, screen.y);
+    bool const windowButton = recipesOn || planOn || storesOn, layoutButton = recipesOn || planOn;
+    ListBox const windowBox = windowButtonAt(row), layoutBox = layoutButtonAt(row);
+    // What the listeners keep from the game for the row: the field and a few units around it, and its buttons.
     ListBox const fieldArea = [&] {
-        auto const hit = searchFieldHit(field), button = howToButton ? howToBox : searchHighlightAt(field);
-        return ListBox{hit.x, hit.y, button.x + button.w + 2 - hit.x, hit.h};
+        auto const hit = searchFieldHit(field), end = searchHighlightAt(field);
+        float const from = windowButton ? row.x - 2 : hit.x;
+        return ListBox{from, hit.y, end.x + end.w + 2 - from, hit.h};
     }();
     if (countEdit::active()) {
         // A count being typed: digits, Enter keeps it, Esc leaves it as it was.
@@ -609,10 +601,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
         auto preferences = Runtime::instance().preferences();
         preferences.inventory.searchHighlight = !preferences.inventory.searchHighlight;
         Runtime::instance().save(preferences);
-    } else if (howToButton && took(howToBox)) {
-        view::close();
-        planView::open(planView::Tab::HowTo);
-        viewScreen = screenName;
+    } else if (windowButton && !editing && took(windowBox)) {
+        // Open on the last tab, or closed again; over the recipe view it comes to the front.
+        if (planView::isOpen() && !view::isOpen()) planView::close();
+        else view::close(), planView::openLast(), viewScreen = screenName;
+    } else if (layoutButton && !editing && took(layoutBox)) {
+        closeViews();
+        bandEditor::start(planOn ? band::Page::Plan : band::Page::Items);
+        editScreen = screenName;
     } else if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
     std::string hoverItem;
     auto& context = event.uiRenderContext();
@@ -756,13 +752,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
             cost.plan += cost.lap();
         }
     }
-    if (openPlace && regions.usable(band::Left)) {
-        // The line's units at the left region's end, under its panels.
-        band::Box const leftArea = regions.boxes[band::Left];
-        band::Box const line{leftArea.x, leftArea.y + leftArea.h - SideLayout::foot, leftArea.w, SideLayout::foot};
-        if (!footInPlan) bandPages::ground(frame, line, false);
-        bandPages::storeLine(frame, {line.x, 0, line.w, line.y + line.h}, *openPlace);
-        bandBoxes.push_back({line.x, line.y, line.w, line.h});
+    if (openPlace) {
+        // On the game window's title line, left of its close button (L-382).
+        ListBox const box{at.x + size.x - 30, at.y + 5, 11, 11};
+        bandPages::storeButton(frame, box, *openPlace);
+        bandBoxes.push_back(box);
     }
     // A press on a band that nothing took stays there: it must not reach the view under the pointer's line.
     if (pressed && std::any_of(bandBoxes.begin(), bandBoxes.end(), [&](ListBox const& box) { return box.has(px, py); })) pressed = false;
@@ -776,18 +770,30 @@ bool drawList(ll::event::UIRenderEvent& event) {
     else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"), 4, Align::Left, true);
     if (caretPress) placeCaret(context, search, px, py);
     if (recipesOn) {
-        // Its picture: three by three cells, only the middle one light (L-378, picture B); green while on.
         auto const box = searchHighlightAt(field);
         bool const on = Runtime::instance().preferences().inventory.searchHighlight, over = box.has(px, py);
-        drawButtonBox(context, box.x, box.y, box.w, box.h, over, on ? ButtonKind::Primary : ButtonKind::Plain);
-        float const cell = 2, gap = 1, left = box.x + std::floor((box.w - 3 * cell - 2 * gap) / 2), top = box.y + std::floor((box.h - 3 * cell - 2 * gap) / 2);
-        for (int i = 0; i < 9; ++i)
-            fill(context, left + static_cast<float>(i % 3) * (cell + gap), top + static_cast<float>(i / 3) * (cell + gap), cell, cell,
-                 i == 4 ? palette::white : palette::faint, i == 4 ? 1.f : .8f);
+        drawPictureButton(context, box.x, box.y, box.w, Picture::Highlight, over, on);
         if (over) late.tip = translated("recipes.highlight", translated(on ? "on" : "off"));
     }
-    if (howToButton) drawButton(context, howToBox.x, howToBox.y, howToBox.w, howToBox.h, std::move(howToText), howToBox.has(px, py),
-                                planView::isOpen() ? ButtonKind::Primary : ButtonKind::Plain);
+    if (windowButton) {
+        bool const over = windowBox.has(px, py);
+        drawPictureButton(context, windowBox.x, windowBox.y, windowBox.w, Picture::Window, over, planView::isOpen() && !view::isOpen());
+        if (over) {
+            // Its name, and the tabs it holds now.
+            late.tip = translated("recipes.notes");
+            std::string tabs;
+            auto add = [&](char const* key) { tabs += (tabs.empty() ? "" : translated("recipes.notes.joiner")) + translated(key); };
+            if (planOn) add("recipes.wanted"), add("recipes.gather"), add("recipes.make");
+            if (recipesOn) add("recipes.howTo");
+            if (storesOn) add("recipes.places");
+            late.tipLines = {tabs};
+        }
+    }
+    if (layoutButton) {
+        bool const over = layoutBox.has(px, py);
+        drawPictureButton(context, layoutBox.x, layoutBox.y, layoutBox.w, Picture::Layout, over, editing);
+        if (over) late.tip = translated("recipes.arrange");
+    }
     // The syntax as a table under the pointer over the field while it is not typed in (L-377): one there means
     // to search anyway.
     if (recipesOn && !searchFocus && searchFieldHit(field).has(px, py) && late.tip.empty()) {

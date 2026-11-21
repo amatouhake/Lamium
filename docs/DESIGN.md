@@ -173,8 +173,9 @@ dark look. No control plays a sound.
   a bar, joined buttons, green when on, pictures where the names do not
   fit (the world map's layers; "favorite" and "wanted" in the recipe
   view). A single switch that is not a row of a
-  list (the open container's in the band of Recipes) stands in a frame
-  of its own.
+  list stands in a frame of its own. A button on a game window or under
+  it carries a white-and-grey picture, named by its tip, green when on
+  (L-382).
 - **A list's scrollbar** (`listScrollbar`): a view without a layout of
   its own draws the shared bar, takes a press on it and follows the drag
   in one call; the rows leave it a gutter.

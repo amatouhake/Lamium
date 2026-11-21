@@ -79,22 +79,14 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     auto took = [&](ListBox const& box) { return frame.took(box); };
     auto& hoverItem = frame.hoverItem;
     bool& pressed = frame.pressed;
-    // The bar: which of the three lists shows, named as the window's tabs, and the window at the right
-    // end. Where the three do not fit, one button that goes round them.
+    // The bar: which of the three lists shows, named as the window's tabs. The window opens from the bottom
+    // row's button (L-382) or a press on a row.
     struct ListName { SideList list; char const* key; planView::Tab tab; };
     static constexpr ListName lists[]{{SideList::Wanted, "recipes.wanted", planView::Tab::Wanted},
                                       {SideList::Gather, "recipes.gather", planView::Tab::Gather},
                                       {SideList::Make, "recipes.make", planView::Tab::Make}};
     int const listNow = sideList == SideList::Wanted ? 0 : sideList == SideList::Gather ? 1 : 2;
     auto openList = [&] { openPlan(lists[listNow].tab); };
-    auto barButton2 = [&](ListBox const& box, std::string text, bool on) {
-        drawButton(context, box.x, box.y, box.w, box.h, std::move(text), box.has(px, py), on ? ButtonKind::Primary : ButtonKind::Plain);
-        return leftPress && took(box);
-    };
-    std::string openText = translated("recipes.open");
-    float const openWidth = textWidth(context, openText) + 8;
-    ListBox const openBox{panel.left + panel.width - 2 - openWidth, panel.barY() + (SideLayout::bar - 11) / 2, openWidth, 11};
-    if (barButton2(openBox, std::move(openText), false)) openList();
     std::string listTexts[3];
     float listWidths[3], listsWidth = 0;
     for (int i = 0; i < 3; ++i) {
@@ -102,10 +94,10 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         listWidths[i] = textWidth(context, listTexts[i]) + tabPad;
         listsWidth += listWidths[i];
     }
-    // The three lists are tabs. Where their names do not fit beside "Open" (the game's recipe book
-    // is out), each is an item's picture, named under the pointer.
+    // The three lists are tabs. Where their names do not fit (the game's recipe book is out), each is an
+    // item's picture, named under the pointer.
     float barX2 = panel.left + 2;
-    float const barRoom = openBox.x - 2 - barX2;
+    float const barRoom = panel.left + panel.width - 2 - barX2;
     // One width for the three, as the window's tabs (L-369).
     float const tabWidth = std::max({listWidths[0], listWidths[1], listWidths[2]});
     bool const named = 3 * tabWidth <= barRoom;
@@ -299,7 +291,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
               translated(sideList == SideList::Wanted || (plan && sideList == SideList::Make) ? "recipes.nothingWanted"
                          : plan ? "schematic.raw.nothing" : "schematic.raw.reading"), palette::faint);
 }
-void storeLine(Frame& frame, band::Box region, placesGame::Open const& open) {
+void storeButton(Frame& frame, ListBox box, placesGame::Open const& open) {
     using namespace lamium::ui;
     auto& context = frame.context;
     float const px = frame.px, py = frame.py;
@@ -307,19 +299,12 @@ void storeLine(Frame& frame, band::Box region, placesGame::Open const& open) {
     auto& late = frame.late;
     auto took = [&](ListBox const& box) { return frame.took(box); };
     state::seePlace(open.ender, open.spot, open.pair, open.block, open.items);
-    // A name and a switch, as Lamium's rows are: on makes the open container a store (off takes it
-    // out again); the ender chest, which is noted anyway, is switched in or out of the count.
+    // On makes the open container a store (off takes it out again); the ender chest, which is noted anyway, is
+    // switched in or out of the count. A picture button on the game window's title line (L-382), green when on.
     int const index = open.ender ? state::places().ender() : state::places().store(open.spot);
     bool const on = index >= 0 && (!open.ender || state::places().list[static_cast<size_t>(index)].counted);
-    // One switch about the open container, under a rule like the one between the favorites and the
-    // plan (no stronger a division than that), with room above and below it.
-    float const footY = region.y + region.h - 12;
-    ListBox const box{region.x + 2, footY, region.w - 4, 11};
-    fill(context, region.x + 3, box.y - 3, region.w - 6, 1, palette::white, .2f);
-    if (box.has(px, py)) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
-    if (region.w >= 75) label(context, box.x + 2, box.y + 1, box.w - switchWidth - 8, translated("recipes.place.count"), palette::dim);
-    else if (box.has(px, py)) late.tip = translated("recipes.place.count");
-    toggleSwitch(context, box.x + box.w - switchWidth - 2, box.y + 1, on);
+    drawPictureButton(context, box.x, box.y, box.w, Picture::Store, box.has(px, py), on);
+    if (box.has(px, py)) late.tip = translated("recipes.place.countState", translated(on ? "on" : "off"));
     if (leftPress && took(box)) {
         if (open.ender) { if (index >= 0) state::setPlaceCounted(index, !on); }
         else if (index < 0) state::markStore(open.spot, open.pair, open.block, open.items);

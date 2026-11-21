@@ -49,6 +49,31 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
     // Dark text on the game's grey has no shadow, as the window's own text.
     centered(context,x,y,w,h,std::move(text),color,!onWindow() || (enabled && kind == ButtonKind::Primary));
 }
+void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on) {
+    drawButtonBox(context, x, y, size, size, hovered, on ? ButtonKind::Primary : ButtonKind::Plain);
+    // Drawn on a 16-unit grid, centred and scaled to the button.
+    float const k = std::floor(size / 16 * 4) / 4, ox = x + std::floor((size - 16 * k) / 2), oy = y + std::floor((size - 16 * k) / 2);
+    auto p = [&](float px, float py, float w, float h, Rgb color, float alpha = 1) { fill(context, ox + px * k, oy + py * k, w * k, h * k, color, alpha); };
+    Rgb const lit = palette::white, dim = palette::faint;
+    switch (picture) {
+    case Picture::Highlight: // three by three cells, only the middle one light (L-378, picture B)
+        for (int i = 0; i < 9; ++i) p(4 + static_cast<float>(i % 3) * 3, 4 + static_cast<float>(i / 3) * 3, 2, 2, i == 4 ? lit : dim, i == 4 ? 1.f : .8f);
+        break;
+    case Picture::Window: // a window with two tabs on its top, as the Recipes window is
+        p(3, 3, 3, 2, lit); p(7, 3, 3, 2, dim);
+        p(3, 5, 10, 1, lit); p(3, 5, 1, 8, lit); p(12, 5, 1, 8, lit); p(3, 12, 10, 1, lit);
+        p(5, 7, 6, 1, dim); p(5, 9, 4, 1, dim);
+        break;
+    case Picture::Layout: // a square divided as the panels around the game's window are
+        p(2, 3, 12, 1, lit); p(2, 3, 1, 10, lit); p(13, 3, 1, 10, lit); p(2, 12, 12, 1, lit);
+        p(7, 3, 1, 10, lit); p(7, 7, 7, 1, lit);
+        break;
+    case Picture::Store: // a box with a check: this container counts
+        p(3, 5, 10, 1, lit); p(3, 5, 1, 8, lit); p(12, 5, 1, 8, lit); p(3, 12, 10, 1, lit); p(3, 7, 10, 1, dim);
+        p(5, 9, 1, 1, lit); p(6, 10, 1, 1, lit); p(7, 9, 1, 1, lit); p(8, 8, 1, 1, lit); p(9, 7, 1, 1, lit); p(10, 6, 1, 1, lit);
+        break;
+    }
+}
 namespace { constexpr float rowButtonText = .6875f; }
 float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text) { return std::ceil(textWidthScaled(context, text, rowButtonText)) + 8; }
 void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered) {

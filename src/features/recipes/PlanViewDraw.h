@@ -13,6 +13,8 @@ namespace lamium::recipes::planView {
 enum class Tab { Wanted, Gather, Make, HowTo, Places };
 bool isOpen();
 void open(Tab tab);
+// Opens on the tab shown last (the bottom row's button, L-382).
+void openLast();
 // Opens on "How to make" with the line of `key` (an item's key, or a group's: groupKey) open and lit (L-370).
 void openHowTo(std::string const& key);
 void close();

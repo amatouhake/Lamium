@@ -36,6 +36,7 @@ void open(Tab which) {
     opened = true;
     tab = which;
 }
+void openLast() { opened = true; }
 void openHowTo(std::string const& key) {
     opened = true;
     tab = Tab::HowTo;

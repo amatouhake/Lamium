@@ -27,17 +27,21 @@ plan's recipes are in [L-116](backlog/L-116.md).
   hand. Hand-added targets are saved per world, under the
   waypoints' key ([MAP.md](MAP.md)). A target a feature handed over cannot
   be edited; it looks like the others and says where it comes from.
-- The left band's short list shows the wanted items, what to gather or
-  what to make, named as the window's tabs; a press on a line or "Open"
-  opens the window there. The window sits where the recipe view does; the
+- The left panel's short list shows the wanted items, what to gather or
+  what to make, named as the window's tabs; a press on a line opens the
+  window there. The window sits where the recipe view does; the
   recipe view opens over it (a press on an item, while Recipes is on) and
   gives it back.
-- The window is one for the three features, its tabs by feature, each
+- The window ("Notes", L-382) is one for the three features, its tabs by feature, each
   shown while its feature is on (L-373): "wanted", "to gather" and "to
   make" (the Plan), "How to make" (Recipes), "stores" (the stores). It is
-  always as wide as the game's inventory with its book open (the bands
-  narrow while it is open). With the plan off a "How to make" button
-  right of the search field's highlight switch opens it. The settings
+  always as wide as the game's inventory with its book open (the panels
+  narrow while it is open). The bottom row reads "open the window,
+  arrange the panels | search field, highlight", as wide as the
+  inventory and between the panels: the first button (a tabbed window)
+  opens it on its last tab or closes it, green while open, its tip the
+  name and the tabs; the second (a divided square) arranges the panels.
+  Buttons with pictures are white and greys, green when on. The settings
   screen holds how the features behave, the window the player's data.
   Only column headings stay put; a tab's switch line and "All" scroll
   with the rows; every tab's scrollbar spans the same height, 3 units
@@ -61,12 +65,12 @@ plan's recipes are in [L-116](backlog/L-116.md).
   steps that can be made now, made in part, short (faint, short inputs on
   the game's red), and held (faint, a check); "can make now" and
   "needed" columns in items with a bar. A press opens the breakdown. The
-  band's lists keep the window's order, each row one number, what is
+  panel's lists keep the window's order, each row one number, what is
   left: "to gather" needed less held, "to make" what is still to make,
   "wanted" the count (the stepper under the pointer, done rows at the
   end); done rows checked; the tip gives held (or can make now) and
   needed, a make row's also each input held/needed. A "to gather" row's
-  tip is the same in the window and on the band: name (a group's
+  tip is the same in the window and on the panel: name (a group's
   members), held and needed, what is left in chests and stacks, a
   group's choice, the stores holding some.
 - Marks: a favorite carries none (it stands in the favorites' panel); a
@@ -121,8 +125,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   more. The steps to make belong to the plan.
 - Which recipe makes an item by default, groups, fuel, spare output and
   held items: the rules in [L-116](backlog/L-116.md).
-- Its key is W; its pages are the band's lower part on the left. With
-  Recipes off the band holds the plan alone, there is no item list or
+- Its key is W; its pages are the panel's lower part on the left. With
+  Recipes off the panel holds the plan alone, there is no item list or
   search field, and a press on an item opens no recipe view.
 - The wanted tab has "Include what the schematic still needs", the
   switch of the schematic's Materials tab, while Schematics is on; the
@@ -146,10 +150,10 @@ plan's recipes are in [L-116](backlog/L-116.md).
   is open and remembered by the id, so the plan, which only shows on
   item screens, has it as it is, and the HUD and the Materials tab have
   what the last item screen saw (nothing before the world's first).
-- While a container is open, the last line of the left band, under a
-  rule and clear of the screen's edge, is "Count as a store" with a
-  switch, whether or not the favorites or the plan are on: on makes it
-  a store, off takes it out; at the ender chest it switches the chest in
+- While a container is open, a button with a box and a check on its
+  window's title line, left of the close button, counts it as a store,
+  green while on, its tip "Count as a store: on/off": on makes it a
+  store, off takes it out; at the ender chest it switches the chest in
   or out of the count. The window has a "Stores" tab: what is carried, the ender chest and the
   stores, each a name and a switch in one column, a store also with
   "Remove". A store where another block stands,
@@ -167,7 +171,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
 - The plan: `RecipeIndex.h` `plan()`, `RawView.h`, `RawMaterials.h` (pure;
   `tests/RecipeIndexTests.cpp`, `tests/RawMaterialsTests.cpp`);
   `RecipeState.cpp` works it out; `PlanViewDraw.cpp` draws the window;
-  `ItemList.cpp` hosts the band ([RECIPES.md](RECIPES.md) "Code").
+  `ItemList.cpp` hosts the panel ([RECIPES.md](RECIPES.md) "Code").
 - The wanted items per world in `wanted.json` beside its waypoints, the
   counted places (`Places.h`, pure) in `places.json` there;
   `RecipePlaces.cpp` reads the open container behind the CountedPlaces

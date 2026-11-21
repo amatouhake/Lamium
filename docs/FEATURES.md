@@ -444,8 +444,8 @@ Lists every item beside the inventory and other item screens (not the
 anvil). Click an item for its recipes, right click for what it is used in;
 `R` and `U` do the same for the item under the pointer, also in the game's
 own slots. A search field at the bottom narrows the list, as does "Can be
-made". `A` keeps an item as a favorite, on the left. The bands' layout is
-arranged in an editor over the inventory ("Layout of the bands" in the
+made". `A` keeps an item as a favorite, on the left. The panels' layout is
+arranged in an editor over the inventory ("Panel layout" in the
 settings). Off by default;
 details and what is still to come in [RECIPES.md](RECIPES.md).
 

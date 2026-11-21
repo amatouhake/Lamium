@@ -41,8 +41,8 @@ void favorites(Frame& frame, SideLayout const& panel);
 // `openPlan`: the window on a tab, in front of the recipe view.
 void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vector<Handed> const& handed,
           std::function<void(planView::Tab)> const& openPlan);
-// The open container's switch: the last line of the left region (`region`, including the line's units).
-void storeLine(Frame& frame, band::Box region, placesGame::Open const& open);
+// The open container's store button, a square `box` on the game window's title line (L-382).
+void storeButton(Frame& frame, ListBox box, placesGame::Open const& open);
 // The plan's page turns to the wanted items (after the wanted key), so what went in or out is seen.
 void showWanted();
 }

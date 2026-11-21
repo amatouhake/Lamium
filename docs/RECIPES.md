@@ -35,7 +35,7 @@ after using the first build. What is still open is in the L-item.
   chest): what a furnace or hopper holds changes by itself.
 - On the left: favorites at the top, the plan in the lower part (its
   lines carry item icons; what else it shows is decided with the plan).
-- Both side lists lie on a dimmed band that runs to the screen's edge, with
+- Both side lists lie on a dimmed panel that runs to the screen's edge, with
   no frame and no margin: the game dims the world too little for bare icons.
 - The favorite key puts the hovered item in or takes it out, wherever it
   is pressed.
@@ -46,17 +46,17 @@ after using the first build. What is still open is in the L-item.
   slots that match, calculating).
 - The list can be narrowed, at least to what can be made now. The filters
   have their place from the start: the list's bar, "All" and "Can be made"
-  (one switch where the band is narrow).
+  (one switch where the panel is narrow).
 - In the item list a favorite's cell is framed in the accent color; in
   both lists a wanted item carries how many are wanted where a stack has
   its count.
-- An item held on the pointer is drawn over the bands and the windows, as
+- An item held on the pointer is drawn over the panels and the windows, as
   beside the anvil.
-- The game's tooltip for one of its slots is drawn over the bands: while
+- The game's tooltip for one of its slots is drawn over the panels: while
   the list shows, Inspection holds the game's tooltip call back and makes
-  it again after the bands are painted. A slot under an open Lamium
+  it again after the panels are painted. A slot under an open Lamium
   window has none, nor a container preview. The bundle's tooltip is a UI panel and still goes
-  under the bands.
+  under the panels.
 - The search (L-377): words must all be in the name as shown, the id or
   (with English search on) the English name; `-word` leaves out, `a|b`
   either (AND binding tighter), `"…"` a phrase, `#` a tag, `$` the
@@ -83,7 +83,7 @@ after using the first build. What is still open is in the L-item.
 - The agent's choices while building, to confirm: "can be made" is a crafting
   recipe that what lies in the inventory itself (not what shulker boxes
   and bundles hold) makes once, without making anything first, and that
-  fits the screen's grid (any size where there is none; L-367); the wanted mark being the count; the left band is
+  fits the screen's grid (any size where there is none; L-367); the wanted mark being the count; the left panel is
   halved between favorites and wanted; favorites are kept with the notes
   for all worlds; a chosen recipe is kept by station and id; deleting a
   world's or a server's saved data removes its wanted items; "any order"
@@ -294,27 +294,27 @@ A setting of its own, off by default, and it works with Recipes off
 ### The look, reviewed with the maintainer (2026-11-19)
 What bothered is in VALIDATION-LOG of that day; what was agreed is built:
 - "One of several" as DESIGN "Controls" has it: the recipe view's
-  stations, the plan's window, the band's lists (pictures where the band
+  stations, the plan's window, the panel's lists (pictures where the panel
   is narrow), the item list's "all / can be made".
 - The recipe view's slots as the game draws its own, a missing
   ingredient's face on the game's red. "Favorite" and "wanted" are two
   joined buttons, green when on (chosen over a name and a switch and over
   icon toggles), at the heading's right end.
-- A Lamium window's grey covers the whole span between the two bands, so
+- A Lamium window's grey covers the whole span between the two panels, so
   the game's window with its recipe book out does not show beside it.
-- The band's list and the plan window's lists scroll: the wheel, and the
+- The panel's list and the plan window's lists scroll: the wheel, and the
   shared bar (`listScrollbar`). The item list on the right keeps pages.
-- The open container's switch is the band's last line under a rule like
-  the one above the plan, no stronger a division than that.
+- The open container's store button is on the game window's title line,
+  left of its close button (L-382; [PLAN.md](PLAN.md)).
 - An item Lamium draws says under its name what the game says of it,
   with Lamium's item details, in the game's tooltip box: the stack's own
   hover text, which Lamium's hook has added to, each line in the color it
   starts in, without the name and lines of icon glyphs (`hoverLines`). A
   row of the plan's window also says its count in chests and stacks.
 - Settings (L-373): Recipes (experimental, off by default) with
-  "Favorites" (on): without favorites, no favorites in the band, no
+  "Favorites" (on): without favorites, no favorites in the panel, no
   marks, no button, and A does nothing. The Plan and the stores are
-  features of their own ([PLAN.md](PLAN.md)); the band shows while any of
+  features of their own ([PLAN.md](PLAN.md)); the panel shows while any of
   the three has something in it.
 - Lamium's parts stand still and fade with the game's window as it
   slides in and out, by how far it is from where it rests, as the anvil's
@@ -331,12 +331,12 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   the RecipeTable capability ([GAME-UPDATES.md](GAME-UPDATES.md)).
 - `ItemKey.h`: an item's key, the name plus the aux where the table tells
   variants apart; `settled()` in `RecipeIndex.h` decides where.
-- `BandLayout.h` (pure, L-374): the bands as regions beside, above and
+- `BandLayout.h` (pure, L-374): the panels as regions beside, above and
   below the game's window, panels split along a region, one page to a
   panel; the layout is kept in the settings (`inventory.bands`, today's
   look by default). `BandEditor.h` (pure, L-375): where a dragged panel
   goes and the layout after the drop; `BandEditorDraw.cpp` draws the
-  editor over the inventory, which the "Layout of the bands" link rows
+  editor over the inventory, which the "Panel layout" link rows
   (Recipes, Plan) open after closing the settings. A page whose feature is off is
   left out; each panel keeps one row; a region too low for one row lends
   its panels to a side on that screen. `BandPages.cpp` draws the
@@ -345,7 +345,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
 - `ItemListLayout.h`, `RecipeView.h`, `ListFilter.h` (pure): where the
   lists, the search field and the view sit, an item's recipes by kind, a
   recipe's slots, the search and "can be made". `ItemList.cpp` is the host:
-  it draws both bands and the field after a game screen and keeps input
+  it draws both panels and the field after a game screen and keeps input
   from the game (the listeners in `input/CustomInput.cpp` and the text hook
   in `ui/SettingsScreen.cpp` ask it; what they keep acts in the next
   frame). `RecipeViewDraw.cpp` and `PlanViewDraw.cpp` draw the two windows
