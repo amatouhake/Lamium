@@ -144,8 +144,7 @@ from the file); never restate them here.
    Agree open choices before building.
    L-359 material plan (with L-116 raw materials) runs beside this list,
    neither ahead of it nor behind it; its next steps are in L-371's order,
-   then L-382 the window's way in and the panels, and L-383 schematic
-   materials.
+   then L-383 schematic materials.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
    remaining L-117 schematic name tags.
@@ -200,9 +199,8 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The 2026-11-21 review's choices built and seen in game
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Open; the direction is agreed (maintainer 2026-11-20), the details are not
 - [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); split into L-373 to L-379 and existing items
-- [L-382](backlog/L-382.md) One way into the Recipes window, and the panels around the game's window (Ready): Row and buttons seen in game 2026-11-21; the store button redrawn, not checked
 - [L-383](backlog/L-383.md) Schematic Materials: drop the raw view, call it "材料" (Ready): Agreed (maintainer 2026-11-21), not started
-- [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): Fifth list built (marks, group tips, store faces), not checked in game
+- [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): Fifth list seen in game 2026-11-21 but the stores' faces in the world
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started

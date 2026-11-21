@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The store button settled, How to make's candidates (L-369, L-382, 2026-11-21)
+
+Builds `0030e9ad` to `f6e59139` (last DLL
+`32d33073e9a03fbc59170fc5fa49bae97de7c197e688cfb777fc219370eb9a38`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: on an item's uses
+a group's slot and its tip start from that item; the store button at
+15 units beside the close button, its hover face and chest centred;
+How to make's candidates a unit apart with the chosen one framed green
+outside its slot. Not seen: the stores' faces in the world.
+
 ## A group's chosen member in its tip, the store button (L-369, L-382, 2026-11-21)
 
 Builds `ffe6bf33` and `6f64fd47` (last DLL
