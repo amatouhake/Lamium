@@ -84,9 +84,8 @@ inline void apply(Index const& index, Notes const& notes, Request& request) {
     for (size_t group = 0; group < index.groups.size(); ++group) {
         auto picked = notes.picks.find(groupKey(index, static_cast<int>(group)));
         if (picked == notes.picks.end()) continue;
-        Item const member = index.findKey(picked->second);
-        auto const& members = index.groups[group].members;
-        if (member >= 0 && std::find(members.begin(), members.end(), member) != members.end()) request.picks[static_cast<int>(group)] = member;
+        if (Item const member = index.findKey(picked->second); index.isMember(static_cast<int>(group), member))
+            request.picks[static_cast<int>(group)] = member;
     }
     for (auto const& key : notes.stops) if (Item const item = index.findKey(key); item >= 0) request.stops.insert(item);
     for (size_t item = 0; item < index.items.size(); ++item)

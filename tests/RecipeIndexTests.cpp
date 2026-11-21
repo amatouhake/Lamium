@@ -185,6 +185,15 @@ void recipeIndexTests() {
               "the whole of what to gather: all needed, all left, and the share gathered");
         check(recipeOptions(index, id("stone_bricks")) == index.makers[static_cast<size_t>(id("stone_bricks"))] && recipeOptions(index, -1).empty(),
               "an item's recipe options are its makers in order");
+        {
+            auto const& makers = index.makers[static_cast<size_t>(id("chest"))];
+            Choice other = choice;
+            other.recipe[static_cast<size_t>(id("chest"))] = makers.back();
+            auto const order = recipesToTry(index, &other, id("chest"));
+            check(order.size() == makers.size() && order.front() == makers.back() && recipesToTry(index, nullptr, id("chest")) == makers
+                      && recipesToTry(index, &choice, -1).empty(),
+                  "an item's recipes are tried with the chosen one first, then the others in order");
+        }
         check(stepInputs(index, request, view.steps[1]) == std::vector<std::pair<Item, Count>>{{id("stone"), 44}}
                   && stepInputs(index, request, view.steps[2]) == std::vector<std::pair<Item, Count>>{{planks, 8}},
               "a step takes its recipe's parts times its crafts, a group as itself");
@@ -227,13 +236,13 @@ void recipeIndexTests() {
               "a wanted item holds its finished items, or what is held of it where the table does not know it");
     }
     {
-        // The item list right of a 176-wide window at x 232 on a 640x360 screen.
-        auto list = itemListRight(640, 360, 232, 176);
+        // The item list in a panel from x 412 to the edge of a 640x360 screen.
+        auto list = itemListIn({412, 0, 228, 360});
         check(list.left == 412 && list.width == 228 && list.columns == 12 && list.rows == 19, "the band runs from the window to the screen's edge in whole cells");
         check(list.perPage() == 228 && list.pages(229) == 2 && list.pages(0) == 1, "pages hold whole screens of cells, and there is always one");
         check(list.hit(list.cellX(13) + 1, list.cellY(13) + 1) == 13 && list.hit(416, 2) == -1 && list.hit(400, 100) == -1,
               "a point is in the cell drawn there, and in none on the bar or outside");
-        check(!itemListRight(640, 360, 157, 480).usable(), "no list where the window leaves no room");
+        check(!itemListIn({637, 0, 3, 360}).usable(), "no list where the panel leaves no room");
     }
     {
         // The recipe view: a shaped pickaxe, planks in any order, iron smelted two ways.
@@ -548,18 +557,14 @@ void recipeIndexTests() {
             check(narrow.width == planWindowWidth && narrow.left == 157 && open.left == 158 && open.width == 324 && seen.width == 324 && seen.left == 158,
                   "the Recipes window takes the game's book-open span exactly, and that width centred while the book is closed");
         }
-        auto side = itemListLeft(360, 210);
-        check(side.width == 206 && side.columns == 11 && side.split() == 180 && side.favoriteRows() == 9 && side.usable() && side.wide(),
-              "the left band runs from the screen's edge to the room the centre keeps, halved between favorites and wanted");
-        check(side.hitFavorite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavorite(100, 178) == -1 && side.rows() == 13
-              && side.hitRow(50, side.rowY(3) + 1) == 3 && side.hitRow(50, 359) == -1 && side.hitRow(50, 100) == -1,
-              "favorites are cells above the middle; the wanted rows reach the bottom");
-        {
-            auto withFoot = side;
-            withFoot.footOn = true;
-            check(withFoot.rows() == 12 && withFoot.rowY(12) <= withFoot.footY() - 3, "an open container's line takes the last units, under a rule");
-        }
-        check(!itemListLeft(360, 20).usable() && !itemListLeft(360, 60).wide(), "a narrow band shows icons only, a narrower one nothing");
+        auto side = sidePanelIn({0, 0, 206, 180}, true), plan = sidePanelIn({0, 180, 206, 180}, false);
+        check(side.columns == 11 && side.split() == 180 && side.favoriteRows() == 9 && side.usable() && side.wide() && plan.split() == 0,
+              "a panel as the favorites has them alone, one as the plan its rows alone");
+        check(side.hitFavorite(side.cellX(12) + 1, side.cellY(12) + 1) == 12 && side.hitFavorite(100, 178) == -1 && plan.rows() == 13
+              && plan.hitRow(50, plan.rowY(3) + 1) == 3 && plan.hitRow(50, 359) == -1 && plan.hitRow(50, 100) == -1,
+              "favorites are cells under their heading; the plan's rows reach the panel's end");
+        check(!sidePanelIn({0, 0, 16, 360}, true).usable() && !sidePanelIn({0, 0, 60, 360}, false).wide(),
+              "a narrow panel shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
         auto const row = bottomRowAt(640, 360);
         check(row.x == 232 && row.w == 176 && field.x == 270 && field.y == 342 && field.w == 120 && field.h == 16 && field.has(300, 350)

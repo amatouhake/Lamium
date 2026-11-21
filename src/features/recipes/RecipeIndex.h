@@ -151,7 +151,35 @@ struct Index {
     }
     // A group nobody picked a member for stands in calculations as an item past the real ones.
     Item groupItem(int group) const { return static_cast<Item>(items.size()) + group; }
+    bool isMember(int group, Item item) const {
+        if (group < 0 || static_cast<size_t>(group) >= groups.size() || item < 0) return false;
+        auto const& members = groups[static_cast<size_t>(group)].members;
+        return std::find(members.begin(), members.end(), item) != members.end();
+    }
 };
+// Whether `item` is what a recipe's part asks for: the item itself, or a member of its group.
+inline bool serves(Index const& index, Part const& part, Item item) {
+    if (part.id < 0 || item < 0) return false;
+    return part.group ? index.isMember(part.id, item) : part.id == item;
+}
+// Whether a recipe's shape fits a grid `side` cells wide (0: any grid), laid from its top left.
+inline bool fitsGrid(Recipe const& recipe, int side) {
+    if (side <= 0) return true;
+    int const count = static_cast<int>(recipe.cells.size()), across = recipe.width ? recipe.width : side;
+    return across <= side && (count + across - 1) / across <= side;
+}
+// The grid cell (row by row) of a recipe's `i`-th cell, `across` wide, in a grid `side` cells wide.
+inline int gridCell(int i, int across, int side) { return i / across * side + i % across; }
+// What `held` holds of an item, or of a group (an item past the real ones, Index::groupItem) its members together.
+inline Count heldOf(Index const& index, std::map<Item, Count> const& held, Item item) {
+    auto have = [&](Item id) { auto found = held.find(id); return found == held.end() ? Count{0} : found->second; };
+    Item const items = static_cast<Item>(index.items.size());
+    if (item < items) return have(item);
+    Count got = 0;
+    if (static_cast<size_t>(item - items) < index.groups.size())
+        for (Item member : index.groups[static_cast<size_t>(item - items)].members) got += have(member);
+    return got;
+}
 
 // The member a group is known by (L-370): its name ("Sand etc.") and its picture where nothing held says
 // otherwise. The plainest: one whose name the others' end with ("sand" in "red_sand"), the shortest of those;
@@ -349,9 +377,7 @@ inline Index build(Source const& given) {
             auto const& w = wide.cells[c];
             auto const& n = narrow.cells[c];
             if (w == n) continue;
-            if (!w.group || n.group || n.id < 0) return false;
-            auto const& members = index.groups[static_cast<size_t>(w.id)].members;
-            if (std::find(members.begin(), members.end(), n.id) == members.end()) return false;
+            if (!w.group || n.group || n.id < 0 || !index.isMember(w.id, n.id)) return false;
             wider = true;
         }
         return wider;
@@ -549,6 +575,15 @@ inline Choice choose(Index const& index) {
     return out;
 }
 
+// An item's recipes to try in order: the one `choice` names first, then its other makers in the table's order.
+inline std::vector<int> recipesToTry(Index const& index, Choice const* choice, Item item) {
+    std::vector<int> out;
+    if (item < 0 || static_cast<size_t>(item) >= index.makers.size()) return out;
+    int const chosen = choice && static_cast<size_t>(item) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(item)] : -1;
+    if (chosen >= 0) out.push_back(chosen);
+    for (int number : index.makers[static_cast<size_t>(item)]) if (number != chosen) out.push_back(number);
+    return out;
+}
 // What the player wants, holds and has chosen. A picked member stands for its
 // group everywhere; an item in `stops` is gathered, not made.
 struct Request {
@@ -557,6 +592,12 @@ struct Request {
     std::set<Item> stops;
 };
 using Result = rawMaterials::Result;
+// The item a recipe's part stands for in a plan: itself, the picked member of its group, or the group.
+inline Item partItem(Index const& index, Request const& request, Part const& part) {
+    if (!part.group) return part.id;
+    auto picked = request.picks.find(part.id);
+    return picked != request.picks.end() ? picked->second : index.groupItem(part.id);
+}
 // A held member that covers part of a group's need.
 struct Cover {
     int group = 0;
@@ -581,11 +622,7 @@ inline Planned planned(Index const& index, Choice const& choice, Request const& 
         auto const& recipe = index.recipes[chosen];
         raw::Recipe to{recipe.count, {}, recipe.batch};
         for (auto const& part : recipe.uses) {
-            Item id = part.id;
-            if (part.group) {
-                auto picked = request.picks.find(part.id);
-                id = picked != request.picks.end() ? picked->second : index.groupItem(part.id);
-            }
+            Item const id = partItem(index, request, part);
             auto same = std::find_if(to.uses.begin(), to.uses.end(), [&](auto const& use) { return use.first == id; });
             if (same != to.uses.end()) same->second += part.count; else to.uses.emplace_back(id, part.count);
         }

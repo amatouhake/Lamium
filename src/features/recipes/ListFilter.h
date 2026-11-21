@@ -15,12 +15,6 @@ inline std::string lowered(std::string_view text) {
     for (char& c : out) if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
     return out;
 }
-// Whether a recipe's shape fits a grid `side` cells wide (0: any grid), as placePlan lays it.
-inline bool fitsGrid(Recipe const& recipe, int side) {
-    if (side <= 0) return true;
-    int const count = static_cast<int>(recipe.cells.size()), across = recipe.width ? recipe.width : side;
-    return across <= side && (count + across - 1) / across <= side;
-}
 // The open screen as a place to lay a recipe in (L-380): the crafting grid (`side` 2 or 3), or a station whose
 // slots take a recipe's cells one each: the furnaces' and the stonecutter's input, the smithing table's template,
 // base and addition. `Other`: none.
@@ -53,20 +47,12 @@ inline Kind benchKind(Bench const& bench) { return bench.station == Station::Cra
 // satisfies takes them together.
 inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> const& held, Bench const& bench = {}) {
     std::vector<bool> out(index.items.size(), false);
-    auto have = [&](Item item) {
-        auto found = held.find(item);
-        return found == held.end() ? Count{0} : found->second;
-    };
     for (auto const& recipe : index.recipes) {
         if (recipe.own || out[static_cast<size_t>(recipe.makes)]) continue;
         if (benchAny(bench) ? !benchMakes(bench, recipe) : recipe.station != Station::Crafting) continue;
         bool enough = !recipe.uses.empty();
-        for (auto const& part : recipe.uses) {
-            Count got = 0;
-            if (part.group) for (Item member : index.groups[static_cast<size_t>(part.id)].members) got += have(member);
-            else got = have(part.id);
-            if (got < part.count) { enough = false; break; }
-        }
+        for (auto const& part : recipe.uses)
+            if (heldOf(index, held, part.group ? index.groupItem(part.id) : part.id) < part.count) { enough = false; break; }
         if (enough) out[static_cast<size_t>(recipe.makes)] = true;
     }
     return out;

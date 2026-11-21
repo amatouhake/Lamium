@@ -23,18 +23,14 @@ struct PlacePlan {
 // lay one of each then has nothing to do.
 inline bool alreadyLaid(Index const& index, Recipe const& recipe, int side, std::vector<Item> const& grid) {
     int const count = static_cast<int>(recipe.cells.size()), across = recipe.width ? recipe.width : side;
-    if (recipe.station != Station::Crafting || side < 2 || side > 3 || across < 1 || across > side || (count + across - 1) / across > side
-        || grid.size() != static_cast<size_t>(side * side))
+    if (recipe.station != Station::Crafting || side < 2 || side > 3 || !fitsGrid(recipe, side) || grid.size() != static_cast<size_t>(side * side))
         return false;
     std::vector<bool> used(grid.size(), false);
     for (int i = 0; i < count; ++i) {
         auto const& part = recipe.cells[static_cast<size_t>(i)];
         if (part.id < 0) continue;
-        size_t const cell = static_cast<size_t>(i / across * side + i % across);
-        Item const there = grid[cell];
-        bool const fits = part.group ? std::ranges::find(index.groups[static_cast<size_t>(part.id)].members, there) != index.groups[static_cast<size_t>(part.id)].members.end()
-                                     : there == part.id;
-        if (there < 0 || !fits) return false;
+        size_t const cell = static_cast<size_t>(gridCell(i, across, side));
+        if (!serves(index, part, grid[cell])) return false;
         used[cell] = true;
     }
     for (size_t cell = 0; cell < grid.size(); ++cell) if (!used[cell] && grid[cell] >= 0) return false;
@@ -71,9 +67,7 @@ inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, s
     // smithing table's template, base and addition).
     bool const station = recipe.station != Station::Crafting;
     int const across = station ? 3 : recipe.width ? recipe.width : side;
-    if (station ? side != 0 || count < 1 || count > 3
-                : side < 2 || side > 3 || across < 1 || across > side || (count + across - 1) / across > side)
-        return out;
+    if (station ? side != 0 || count < 1 || count > 3 : side < 2 || side > 3 || !fitsGrid(recipe, side)) return out;
     out.fits = true;
     std::map<Item, int> total, used; // carried of an item; cells it serves
     std::map<Item, int> stack;
@@ -95,8 +89,7 @@ inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, s
         if (!part.group) chosen = left(part.id) > 0 ? part.id : -1;
         else {
             auto const& members = index.groups[static_cast<size_t>(part.id)].members;
-            if (auto picked = picks.find(part.id); picked != picks.end() && left(picked->second) > 0
-                && std::find(members.begin(), members.end(), picked->second) != members.end())
+            if (auto picked = picks.find(part.id); picked != picks.end() && left(picked->second) > 0 && index.isMember(part.id, picked->second))
                 chosen = picked->second;
             else {
                 int best = 0;
@@ -109,7 +102,7 @@ inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, s
         }
         if (chosen < 0) { out.missing.push_back(i); continue; }
         ++used[chosen];
-        served.emplace_back(station ? i : i / across * side + i % across, chosen);
+        served.emplace_back(station ? i : gridCell(i, across, side), chosen);
     }
     if (!out.missing.empty()) return out;
     int each = 1;

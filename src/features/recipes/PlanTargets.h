@@ -66,13 +66,7 @@ inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& cho
 }
 // What `stock` holds of a part: the item it stands for, a group not picked by any of its members together.
 inline Count stockOf(Index const& index, Request const& request, Part const& part, std::map<Item, Count> const& stock) {
-    Item const items = static_cast<Item>(index.items.size());
-    auto have = [&](Item id) { auto found = stock.find(id); return found == stock.end() ? Count{0} : found->second; };
-    Item const item = partItem(index, request, part);
-    if (item < items) return have(item);
-    Count got = 0;
-    for (Item member : index.groups[static_cast<size_t>(item - items)].members) got += have(member);
-    return got;
+    return heldOf(index, stock, partItem(index, request, part));
 }
 // How many of a step's crafts `stock` makes now, at most all of them.
 inline Count stepNow(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {

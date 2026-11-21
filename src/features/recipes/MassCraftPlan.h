@@ -10,12 +10,6 @@
 // grid, what of the product is thrown out, and which stacks of an ingredient
 // are more than the recipe's share of the inventory. Pure.
 namespace lamium::recipes {
-inline bool serves(Index const& index, Part const& part, Item item) {
-    if (part.id < 0 || item < 0) return false;
-    if (!part.group) return part.id == item;
-    auto const& members = index.groups[static_cast<size_t>(part.id)].members;
-    return std::find(members.begin(), members.end(), item) != members.end();
-}
 // The crafting recipe the grid's items lay out, -1 for none. `grid`: side x
 // side items row by row, -1 an empty cell. A shape may sit anywhere in the
 // grid and mirrored, as the game takes it. Of several that fit, the one

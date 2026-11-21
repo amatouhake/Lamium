@@ -197,14 +197,8 @@ bool placeItem(ScreenView& screen, std::string const& key, bool many, LocalPlaye
     auto const* plan = state::plan(player);
     GridPlacer placer(screen, table, plan ? plan->request.picks : std::map<int, Item>{}, bench);
     auto const choice = state::choice(table);
-    int const chosen = choice && static_cast<size_t>(id) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(id)] : -1;
-    std::vector<int> order;
-    if (chosen >= 0) order.push_back(chosen);
-    for (int number : index.makers[static_cast<size_t>(id)]) if (number != chosen) order.push_back(number);
-    for (int number : order) {
-        auto const& recipe = index.recipes[static_cast<size_t>(number)];
-        if (placer.preview(recipe, false).ready()) return placer.run(number, many);
-    }
+    for (int number : recipesToTry(index, choice.get(), id))
+        if (placer.preview(index.recipes[static_cast<size_t>(number)], false).ready()) return placer.run(number, many);
     return false;
 }
 // Ctrl + a press on a listed item (L-379): one round of its crafting recipe onto the pointer, the recipe in use where
@@ -215,12 +209,8 @@ CraftAsk craftAsk(GridPlacer const& placer, Item id) {
     auto const& index = placer.table->index;
     if (!placer.crafting() || id < 0 || id >= static_cast<Item>(index.makers.size())) return {};
     auto const choice = state::choice(placer.table);
-    int const chosen = choice && static_cast<size_t>(id) < choice->recipe.size() ? choice->recipe[static_cast<size_t>(id)] : -1;
-    std::vector<int> order;
-    if (chosen >= 0) order.push_back(chosen);
-    for (int number : index.makers[static_cast<size_t>(id)]) if (number != chosen) order.push_back(number);
     CraftAsk out;
-    for (int number : order) {
+    for (int number : recipesToTry(index, choice.get(), id)) {
         auto const& recipe = index.recipes[static_cast<size_t>(number)];
         if (!benchMakes(placer.bench, recipe)) continue;
         if (out.recipe < 0) out.recipe = number;

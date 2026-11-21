@@ -572,12 +572,9 @@ bool makesProduct(ContainerManagerController& manager, Index const& index, Item 
 // The crafting recipe an item is made by that fits the grid: the one the player's choices name, else the first.
 int recipeFor(std::shared_ptr<service::Table const> const& shared, Item item, int side) {
     auto const& table = *shared;
-    auto fits = [&](int recipe) {
-        return recipe >= 0 && placePlan(table.index, table.index.recipes[static_cast<size_t>(recipe)], side, {}, {}, false).fits;
-    };
-    if (auto const choice = state::choice(shared); choice && static_cast<size_t>(item) < choice->recipe.size() && fits(choice->recipe[static_cast<size_t>(item)]))
-        return choice->recipe[static_cast<size_t>(item)];
-    for (int recipe : table.index.makers[static_cast<size_t>(item)]) if (fits(recipe)) return recipe;
+    auto const choice = state::choice(shared);
+    for (int recipe : recipesToTry(table.index, choice.get(), item))
+        if (placePlan(table.index, table.index.recipes[static_cast<size_t>(recipe)], side, {}, {}, false).fits) return recipe;
     return -1;
 }
 void begin(CraftingScreenController& controller) {
@@ -784,12 +781,14 @@ void advance(CraftingScreenController& controller) {
             auto const& stack = manager.getItemStack(pointer, 0);
             return index.find(stack.getTypeName(), stack.getAuxValue()) == recipe.makes;
         };
-        if (have && !product()) {
-            if (!clearPointer(controller, index, recipe.makes)) { finish("the pointer holds an item"); return; }
-            ++run.cleared;
-            again("the pointer holds an item", now);
-            return;
-        }
+        // Another item on the pointer is put away first, and the step tried again.
+        auto foreign = [&] {
+            if (!have || product()) return false;
+            if (!clearPointer(controller, index, recipe.makes)) finish("the pointer holds an item");
+            else ++run.cleared, again("the pointer holds an item", now);
+            return true;
+        };
+        if (foreign()) return;
         // A press on the output crafts once onto the pointer; again while the last one showed. Away from the
         // output slot the product is taken onto the pointer by the slot call instead (not seen to craft yet).
         if (more(have) && (!run.clicked || have > run.handSeen)) {
@@ -803,12 +802,7 @@ void advance(CraftingScreenController& controller) {
                 if (held(manager) <= run.handSeen) break;
             }
             have = held(manager);
-            if (have && !product()) {
-            if (!clearPointer(controller, index, recipe.makes)) { finish("the pointer holds an item"); return; }
-            ++run.cleared;
-            again("the pointer holds an item", now);
-            return;
-        }
+            if (foreign()) return;
         }
         if (!have) {
             if (now - run.since > patience) again("the product could not be taken", now);

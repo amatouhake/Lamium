@@ -306,10 +306,10 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                     auto const& members = index.groups[static_cast<size_t>(cell.id)].members;
                     // Asked what an item is used in, a slot it fits starts from it; else from the member "How to make"
                     // names, or the one it is known by; still unless the wheel looks through them (L-369).
-                    bool const asked = at.uses && std::find(members.begin(), members.end(), id) != members.end();
+                    bool const asked = at.uses && index.isMember(cell.id, id);
                     Item picked = -1;
                     if (auto found = picks.find(groupKey(index, cell.id)); found != picks.end()) picked = index.findKey(found->second);
-                    if (std::find(members.begin(), members.end(), picked) == members.end()) picked = -1;
+                    if (!index.isMember(cell.id, picked)) picked = -1;
                     std::map<int, Item> one;
                     if (picked >= 0) one[cell.id] = picked;
                     prefer = asked ? id : -1;

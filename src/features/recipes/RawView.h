@@ -66,12 +66,6 @@ inline RawView rawView(Index const& index, Choice const& choice, Planned plan) {
 inline RawView rawView(Index const& index, Choice const& choice, Request const& request) {
     return rawView(index, choice, planned(index, choice, request));
 }
-// The item a recipe's part stands for in a plan: itself, the picked member of its group, or the group.
-inline Item partItem(Index const& index, Request const& request, Part const& part) {
-    if (!part.group) return part.id;
-    auto picked = request.picks.find(part.id);
-    return picked != request.picks.end() ? picked->second : index.groupItem(part.id);
-}
 // How many of a recipe's `i`-th use `crafts` take: a brewing ingredient serves a batch of crafts (L-361).
 inline Count partNeed(Recipe const& recipe, size_t i, Count crafts) {
     Count const count = recipe.uses[i].count;

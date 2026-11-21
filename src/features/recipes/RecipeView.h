@@ -34,12 +34,7 @@ inline std::vector<Station> tabStations(Index const& index, ViewTab const& tab) 
     return out;
 }
 inline bool usesItem(Index const& index, Recipe const& recipe, Item item) {
-    for (auto const& part : recipe.uses) {
-        if (!part.group) { if (part.id == item) return true; continue; }
-        auto const& members = index.groups[static_cast<size_t>(part.id)].members;
-        if (std::find(members.begin(), members.end(), item) != members.end()) return true;
-    }
-    return false;
+    return std::any_of(recipe.uses.begin(), recipe.uses.end(), [&](Part const& part) { return serves(index, part, item); });
 }
 // The recipes that make an item or that use it, by kind of work, the tabs in the kinds' own order whatever is in
 // use (maintainer 2026-11-21: tabs that moved with the choice were hard to follow); in a tab the recipe in use comes
@@ -119,7 +114,7 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
         int const across = recipe.width ? recipe.width : 3;
         for (int i = 0; i < 9; ++i) out.slots.push_back({static_cast<float>(i % 3) * cell, static_cast<float>(i / 3) * cell, -1});
         for (int i = 0; i < count && i / across < 3; ++i)
-            if (recipe.cells[static_cast<size_t>(i)].id >= 0) out.slots[static_cast<size_t>(i / across * 3 + i % across)].cell = i;
+            if (recipe.cells[static_cast<size_t>(i)].id >= 0) out.slots[static_cast<size_t>(gridCell(i, across, 3))].cell = i;
         out.arrowX = 58, out.arrowY = 25, out.productX = 70, out.productY = 18;
         out.noteX = 56, out.noteY = out.chooseY;
     } else if (recipe.station == Station::Stonecutter) {
