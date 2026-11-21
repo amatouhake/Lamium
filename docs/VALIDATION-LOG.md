@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Brewing in the recipe view, place everywhere (L-361, 2026-11-21)
+
+Builds `c167eb41` to `77c7e845` (last DLL
+`ba4264297979e58078fbefca9ad75fb4f316fd9404cf172ea82c1d08252dd41b`),
+1.26.60.05 Dev instance, a local world, the maintainer. Works: a brewing
+tab with faces as mockup F; four Swiftness potions wanted ask four water
+bottles, two nether warts and two sugar canes (sugar traced back), no blaze powder; at the stand a press lays
+the ingredient and the left bottle, Shift all three, the fuel untouched;
+"can be made" there lists the potions; splash and lingering potions show
+(gunpowder, dragon's breath). The heading's item opened the blaze rod's
+uses with a right press. "Place" shows on every recipe; the red slots
+come only under its pointer, with "Does not fit this grid" for a 3x3 in
+the inventory and "Placed at the crafting table" at a furnace. Looks:
+the game's gauge, bubbles and arrow shrunk to the face had finer dots
+than the slots; drawn on whole units instead, with a plain arrow, they
+read well; the middle bottle got room from the check box. Not seen: a
+server.
+
 ## The potion mixes the client knows (L-361, 2026-11-21)
 
 Trace build `a41069e4` (`recipe_trace`, DLL

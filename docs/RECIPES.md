@@ -194,7 +194,7 @@ after using the first build. What is still open is in the L-item.
   slot (the manager's place-amount), so the pointer keeps what it holds
   (L-381); a move that shows nothing goes through the empty pointer. Any
   of several items: the member "How to make" names, else the most carried.
-- Brewing ([L-361](backlog/L-361.md)): the game's table holds no brewing,
+- Brewing ([L-361](backlog/done/L-361.md)): the game's table holds no brewing,
   so after the recipes the game is asked, a few dozen a tick, what each
   potion ingredient (and gunpowder and dragon's breath) makes of each
   potion, splash and lingering potion by aux; each answer is a recipe of
@@ -221,8 +221,7 @@ after using the first build. What is still open is in the L-item.
   "Choose a result" until the list is pressed, the input changes or the
   screen goes. Shown at a station, an item's recipes open on that
   station's tab where it has one (beef at the smoker on smoking). "Can be made" there lists what that station makes
-  from what is carried, and a press places it. Brewing waits on
-  [L-361](backlog/L-361.md).
+  from what is carried, and a press places it.
 - An ingredient any one of several items satisfies (any planks) shows the
   member "How to make" names, else its members in turn with a star on the
   icon's corner (on every Recipes screen); it is named by its tag
@@ -387,7 +386,7 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
   inventory slot under the pointer was not tried.
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
-  ([L-360](backlog/L-360.md)), brewing ([L-361](backlog/L-361.md)), what
+  ([L-360](backlog/L-360.md)), what
   a recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), and
   a listed item's own data ([L-363](backlog/L-363.md): no potion effect).
 - Items are told apart by name and aux. Items that differ only in their
