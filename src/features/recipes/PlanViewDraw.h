@@ -18,9 +18,15 @@ void open(Tab tab);
 void openLast();
 void close();
 // A line of "to gather" under the pointer, the same in the window and on the band (L-369): its name (a group's
-// members as icons), held and needed, what is left in chests and stacks, a group's choice, and where counted
-// stores hold some. `key`: a wanted item the recipe table does not know, else empty.
+// members as icons), held/needed and what is left, a group's choice, and where counted stores hold some. `key`: a wanted item the recipe table does not know, else empty.
 void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line, std::string const& key);
+// A step of "to make" under the pointer, the same in the window and on the panel (L-387): the product, what can be
+// made now against what is needed, each input as held/needed from what is carried, and with `stored` where the
+// stores hold what is short.
+void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step, Count now, bool stored);
+// A wanted row under the pointer, the same in the window and on the panel: held/needed, whose a handed row is,
+// and whether rows above took a share of what is held.
+void wantedTip(view::Late& late, WantedEntry const& entry, Count held, bool sharedAbove);
 // What the counted stores hold of `item`, with what is carried, as tip lines (L-359, L-385).
 void storedLines(view::Late& late, state::Plan const& plan, Item item);
 // A step's two buttons (L-385), 11 units each, 2 apart, from `x`: lay in (one round; Shift what is still needed, as

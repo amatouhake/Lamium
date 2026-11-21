@@ -26,6 +26,12 @@ std::string groupName(Index const& index, int group) {
     auto const& first = schematic::items::shown(index.items[static_cast<size_t>(groupLead(index, group))]).name;
     return entry.members.size() == 1 ? first : ui::translated("recipes.andOthers", first);
 }
+std::string countsLine(char const* lead, Count held, Count need) {
+    std::string line = ui::translated(lead) + "/" + ui::translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(held)) + "/"
+                     + wholeCountText(static_cast<std::uint64_t>(need));
+    if (held < need) line += "  " + ui::translated("recipes.stepShort", wholeCountText(static_cast<std::uint64_t>(need - held)));
+    return line;
+}
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step) {
     std::vector<std::string> out;
     Item const items = static_cast<Item>(index.items.size());

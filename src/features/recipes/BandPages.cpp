@@ -134,6 +134,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         GatherLine gatherLine;    // a row of what to gather: its line, for the tip the window shares
         bool loose = false;       // a row of what to gather the recipe table does not know
         bool stored = false;      // a step to make after taking out of the stores (L-385): their chest before its count
+        int entry = -1;           // a wanted row: its entry in the plan's shares
     };
     std::vector<SideRow> rows;
     auto const* plan = state::plan(player);
@@ -146,7 +147,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             for (auto const& wanted : wantedRows(shares->entries, held, shownDone, panel.has(px, py))) {
                 auto const& entry = shares->entries[wanted.entry];
                 SideRow row{entry.key, schematic::items::shown(entry.key).name, entry.count, false, entry.source};
-                row.held = wanted.held, row.need = entry.count, row.done = row.faint = wanted.done;
+                row.held = wanted.held, row.need = entry.count, row.done = row.faint = wanted.done, row.entry = static_cast<int>(wanted.entry);
                 rows.push_back(std::move(row));
             }
         } else {
@@ -290,34 +291,19 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         if (panel.wide()) label(context, panel.left + 16, y + 2, nameEnd - panel.left - 16, row.name, row.faint ? palette::faint : palette::dim);
         if (whole.has(px, py)) {
             if (hoverItem.empty()) hoverItem = row.key;
-            // A row of what to make says what its crafts take, each with what is held of it (L-370).
-            auto amounts = [&](char const* lead) {
-                return translated(lead) + ": " + wholeCountText(static_cast<std::uint64_t>(row.held)) + "  " + translated("recipes.col.need") + ": "
-                     + wholeCountText(static_cast<std::uint64_t>(row.need));
-            };
-            // A control or a cut count under the pointer has its own tip.
+            // The tips are the window's (L-387). A control or a cut count under the pointer has its own tip.
             if (!late.tip.empty()) {
             } else if (sideList == SideList::Make && plan && !row.done) {
-                // Each input as what is carried of it (as "can make now" counts, L-385); where the stores hold what is
-                // missing, they say so, each with its count.
-                std::map<Item, Count> carried;
-                for (auto const& [id, have] : plan->held) carried[id] += have;
-                late.tip = row.name, late.tipLines = {amounts("recipes.col.now")};
-                for (auto& line : stepInputLines(plan->table->index, plan->request, row.line, carried)) late.tipLines.push_back(std::move(line));
-                if (row.stored) {
-                    auto const& index = plan->table->index;
-                    auto const& recipe = index.recipes[static_cast<size_t>(row.line.recipe)];
-                    auto const short_ = stepShort(index, plan->request, row.line, carried);
-                    Item const items = static_cast<Item>(index.items.size());
-                    for (size_t k = 0; k < recipe.uses.size() && k < short_.size(); ++k)
-                        if (Item const item = partItem(index, plan->request, recipe.uses[k]); short_[k] && item < items) planView::storedLines(late, *plan, item);
-                }
+                planView::stepTip(late, *plan, row.line, row.held, row.stored);
             } else if (row.gather && plan) {
                 planView::gatherTip(late, *plan, row.gatherLine, row.loose ? row.key : std::string());
             } else if (sideList == SideList::Wanted) {
-                late.tip = row.name, late.tipLines = {amounts("recipes.col.held")};
-                // A row a feature handed over says whose it is.
-                if (!row.source.empty()) late.tipLines.push_back(translated("recipes.from." + row.source));
+                auto const* shares = plan && row.entry >= 0 ? state::shares(player) : nullptr;
+                if (shares && static_cast<size_t>(row.entry) < shares->entries.size()) {
+                    auto const e = static_cast<size_t>(row.entry);
+                    bool const above = e < shares->targets.size() && shares->targets[e].item >= 0 && shares->targets[e].sharedAbove();
+                    planView::wantedTip(late, shares->entries[e], row.held, above);
+                } else planView::wantedTip(late, {row.key, row.count, row.source}, row.held, false);
             } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
             else if (!panel.wide()) late.tip = row.name;
         }

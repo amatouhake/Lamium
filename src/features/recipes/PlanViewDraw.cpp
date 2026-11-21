@@ -89,6 +89,26 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     if (took(makeX, y, size, size) && can) placer->make({{step.recipe, rounds}});
     return false;
 }
+void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step, Count now, bool stored) {
+    auto const& index = plan.table->index;
+    auto const& key = index.items[static_cast<size_t>(step.item)];
+    late.tip = schematic::items::shown(key).name, late.hovered = key;
+    late.tipLines = {countsLine("recipes.col.now", now, step.made)};
+    for (auto& line : stepInputLines(index, plan.request, step, plan.held)) late.tipLines.push_back(std::move(line));
+    if (!stored) return;
+    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+    auto const short_ = stepShort(index, plan.request, step, plan.held);
+    Item const items = static_cast<Item>(index.items.size());
+    for (size_t k = 0; k < recipe.uses.size() && k < short_.size(); ++k)
+        if (Item const item = partItem(index, plan.request, recipe.uses[k]); short_[k] && item < items) storedLines(late, plan, item);
+}
+void wantedTip(view::Late& late, WantedEntry const& entry, Count held, bool sharedAbove) {
+    using namespace lamium::ui;
+    late.tip = schematic::items::shown(entry.key).name, late.hovered = entry.key;
+    late.tipLines = {countsLine("recipes.col.held", held, entry.count)};
+    if (!entry.source.empty()) late.tipLines.push_back(translated("recipes.from." + entry.source));
+    if (sharedAbove) late.tipLines.push_back(translated("recipes.sharedAbove"));
+}
 void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line, std::string const& key) {
     using namespace lamium::ui;
     auto const& index = plan.table->index;
@@ -105,11 +125,8 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
         if (picture.empty() && line.id >= 0) picture = index.items[static_cast<size_t>(line.id)];
         late.tip = schematic::items::shown(picture).name, late.hovered = picture;
     }
-    // Held and needed first, then what is left; a group's own lines follow.
-    std::vector<std::string> amounts{translated("recipes.col.held") + ": " + std::to_string(line.held) + "  " + translated("recipes.col.need") + ": "
-                                     + std::to_string(line.need)};
-    if (line.left > 0) amounts.push_back(translated("recipes.stepShort", amountText(line.left, schematic::items::shown(picture).stack)));
-    late.tipLines.insert(late.tipLines.begin(), amounts.begin(), amounts.end());
+    // Held/needed and what is left first (L-387); a group's own lines follow.
+    late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", line.held, line.need));
     // What the counted stores held when last seen, place by place, beside what is carried.
     if (key.empty() && line.id >= 0 && line.id < itemCount) storedLines(late, plan, line.id);
 }
@@ -340,10 +357,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // A step as the game's slots: inputs right-aligned to the arrow (room for four), the product in a fixed
     // column, the station. `x0` is where the inputs' room starts.
     constexpr float inputsW = 72;
-    // Whether the step's row shows what it makes in a column ("to make"): its product's tip then leaves it out.
-    bool madeInColumn = false;
-    // What "to make" counts as held: its steps' tips give each input as held/needed, as the panel's do.
+    // What "to make" counts as held: its steps' tips give the step and each input as held/needed, as the panel's do
+    // (stepTip); `tipNow` what can be made now, `tipStored` whether the stores make up what is short.
     std::map<Item, Count> const* tipStock = nullptr;
+    Count tipNow = 0;
+    bool tipStored = false;
     auto inputLines = [&](StepLine const& step) {
         return tipStock ? stepInputLines(index, request, step, *tipStock) : stepInputLines(index, request, step);
     };
@@ -375,8 +393,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     groupTip(part.id, sx, y + 1);
                     if (interactive) late.hints.push_back(translated("recipes.howTo.change"));
                 } else late.tip = nameOf(item), late.hovered = pictureOf(item);
-                // The slot shows a count of a thousand and more cut ("44k"): the tip has it whole.
-                if (n >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(n)));
+                // Held/needed where what is held is counted (L-387); else the slot's count whole where it shows cut ("44k").
+                if (tipStock) late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", stockOf(index, request, part, *tipStock), n));
+                else if (n >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(n)));
                 if (stored && item < itemCount) storedLines(late, *plan, item);
             }
             if (interactive && part.group && took(sx, y + 1, 18, 18)) jumpHowTo(groupKey(index, part.id));
@@ -388,8 +407,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         icon(key, productX + 1, y + 2);
         if (step.made > 1) late.counts.push_back({productX, y + 1, slotCountText(step.made)});
         if (interactive && over(productX, y + 1, 18, 18)) {
-            late.tip = schematic::items::shown(key).name, late.tipLines = inputLines(step), late.hovered = key;
-            if (step.made >= 1000 && !madeInColumn) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
+            if (tipStock) stepTip(late, *plan, step, tipNow, tipStored);
+            else {
+                late.tip = schematic::items::shown(key).name, late.tipLines = inputLines(step), late.hovered = key;
+                if (step.made >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
+            }
         }
         if (interactive && took(productX, y + 1, 18, 18)) showItem = key;
         // Where it is made, at full size and well apart from the step (L-370, 2026-11-22), so it does not read as a
@@ -515,6 +537,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 if (late.tip.empty() && over(iconX, y, barX + barW - iconX, rowHeight)) {
                     if (material.id >= itemCount) groupTip(material.id - itemCount, iconX - 1, y);
                     else late.tip = nameOf(material.id), late.hovered = pictureOf(material.id);
+                    // The columns' counts repeated, as every row's tip does (L-387).
+                    late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", material.held, material.need));
                 }
             } else if (line.kind == Line::Kind::Target) {
                 bool const manual = entry.source.empty();
@@ -561,8 +585,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     if (took(xX, y + 4, xW, 10)) state::removeWanted(entry.key);
                 } else labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);
                 if (late.tip.empty() && hot && !onControl) {
-                    late.tip = shown.name, late.hovered = entry.key;
-                    if (known && target->sharedAbove()) late.tipLines.push_back(translated("recipes.sharedAbove"));
+                    // As the panel's (L-387): the columns' counts repeated.
+                    wantedTip(late, entry, have, known && target->sharedAbove());
                 }
                 if (known && !onControl && took(left, y, controlsX - left, rowHeight)) openEntry = openEntry == id ? std::string() : id;
             }
@@ -719,10 +743,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     storedParts = stepShort(index, request, step, carried);
                     for (size_t k = 0; k < storedParts.size(); ++k) storedParts[k] = storedParts[k] && !shortParts[k];
                 }
-                madeInColumn = line.state != StepState::Held;
                 tipStock = line.state != StepState::Held ? &carried : nullptr;
+                tipNow = line.row->now, tipStored = line.state == StepState::Stored;
                 stepSlots(left, y, step, faint, true, inputsW, &shortParts, &storedParts);
-                madeInColumn = false, tipStock = nullptr;
+                tipStock = nullptr, tipNow = 0, tipStored = false;
                 if (line.state == StepState::Held) {
                     // Held: a check where the counts would be.
                     drawCheckMark(context, wantX + wantW - 8, y + 6, v::windowFaint);
