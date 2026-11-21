@@ -157,8 +157,8 @@ from the file); never restate them here.
    L-151 body in first person, L-152 held map preview, L-153 last pressed
    movement key and the previously parked work remain later.
 7. **Before the next release:** the release after 0.7.0 takes (maintainer
-   2026-11-21) the recipe screens' remainder (L-370: making a step from
-   the plan), L-340 settings grouping, L-372 hotkeys by context, and a
+   2026-11-21) the recipe screens' remainder (L-385: making a plan's
+   steps), L-340 settings grouping, L-372 hotkeys by context, and a
    review of the changes since 0.7.0 with its fixes; L-384 is not bound
    to it. Then changed-feature smoke and the relevant
    [pre-release checks](backlog/pre-release-checks.md). Latest release: 0.7.0, 2026-11-16 (`v0.7.0`). A full
@@ -195,6 +195,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Feature work and research
 
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
+- [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Design): Direction agreed (maintainer 2026-11-21); the controls wait on a mockup
 - [L-384](backlog/L-384.md) HUD: scale above 200 %, and a paper doll cut to its upper body (Design): Requested by a player (Discord, 2026-11-21); not started, no release target
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started

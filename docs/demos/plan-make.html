@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan Make</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --missing:#d94d4d;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{overflow-x:auto}
+#view{position:relative;font-family:var(--pix);margin:0 auto}
+#view *{position:absolute}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) #555,0 0 0 var(--u) #000}
+.txt{color:var(--win-ink);white-space:nowrap}
+.faint{color:var(--win-faint);white-space:nowrap}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.slot.missing{background:var(--missing)}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.dim{opacity:.45}
+.count{color:#fff;text-shadow:calc(.6*var(--u)) calc(.6*var(--u)) #3f3f3f;white-space:nowrap;text-align:right}
+.tab{display:grid;place-items:center;color:#fff;background:#626262;box-shadow:0 0 0 var(--u) #000;white-space:nowrap}
+.tab.on{background:var(--win);color:var(--win-ink)}
+.bar{background:#8b8b8b}
+.barfill{background:var(--accent-deep)}
+.rbtn{background:#b4b4b4;box-shadow:inset 0 0 0 var(--u) #363636;color:#111;display:grid;place-items:center;white-space:nowrap;cursor:pointer}
+.rbtn.go{background:var(--accent-deep);color:#fff}
+.rbtn.off{background:#8b8b8b;color:#5a5a5a}
+.pbtn{background:#6f6f6f;box-shadow:inset var(--u) var(--u) #a8a8a8,inset calc(-1*var(--u)) calc(-1*var(--u)) #3a3a3a,0 0 0 var(--u) #000;cursor:pointer}
+.pbtn.off{background:#5a5a5a;box-shadow:0 0 0 var(--u) #000;opacity:.6}
+.hint{color:var(--win-faint);white-space:nowrap;text-align:center}
+.tip{background:#1b0c1b;box-shadow:inset 0 0 0 var(--u) #1b0c1b,inset 0 0 0 calc(2*var(--u)) #2c0863,0 0 0 var(--u) #100410;z-index:3}
+.tiptxt{color:#fff;white-space:nowrap;z-index:4}
+.tipdim{color:#a8a8a8;white-space:nowrap;z-index:4}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>作る物から並べる・作る（L-385）</h1>
+    <p class="lede">「作る物」の行から手順を並べる・作る。行はその手順のまだ要る分、見出しは「今作れる」をすべて上から。開いている作業場所（ここでは作業台かかまど）の手順だけ押せる。「今作れる」は手持ちだけで数え、保管場所から取れば作れる手順は「取り出せば作れる」に。行のボタンや見出しのボタンを押すと、並べた・作った後の様子に切り替わる。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">並べる・作るの操作</span>
+      <button class="chip on" data-k="ui" data-v="two">A. 絵のボタン 2 つ</button>
+      <button class="chip" data-k="ui" data-v="mod">B. 「作る」1 つ、Shift で並べるだけ</button>
+      <button class="chip" data-k="ui" data-v="join">C. 文字のボタン「並べる｜作る」</button>
+      <button class="chip" data-k="ui" data-v="step">D. まず並べ、並べた行に「作る」</button>
+    </div>
+    <div class="grp"><span class="lbl">開いている作業場所</span>
+      <button class="chip on" data-k="station" data-v="table">作業台</button>
+      <button class="chip" data-k="station" data-v="furnace">かまど</button>
+    </div>
+    <div class="grp"><span class="lbl">ツールチップ</span>
+      <button class="chip on" data-k="tip" data-v="store">チェストの印のスロット</button>
+      <button class="chip" data-k="tip" data-v="station">ほかの場所の手順のボタン</button>
+      <button class="chip" data-k="tip" data-v="none">出さない</button>
+    </div>
+  </div>
+  <div class="stage"><div id="view"></div></div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>A：行の右に「並べる」（マスに矢印）と「作る」（矢印から出る物）の絵のボタン。見出しにも同じ 2 つ。</li>
+        <li>B：「作る」だけを出し、Shift を押しながら押すと並べるだけ。ヒント行がそれを言う。</li>
+        <li>C：小さな文字のボタンを 2 つつなげる。何が起きるか文字で分かる。</li>
+        <li>D：最初は「並べる」だけ。押すと作業台に並び、その行のボタンが緑の「作る 65」に変わる。並べて確かめてから作る、の 2 段。ほかの行を押したり作業台を変えたりすると戻る。</li>
+        <li>「取り出せば作れる」：手持ちでは足りないが保管場所にある材料のスロットは、赤でなく隅にチェストの印。ツールチップで場所と数。</li>
+        <li>かまどの手順は作業台では押せない（平らで暗い）。ツールチップで「かまどで作る」。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> 並べる・作るの操作：A／B／C／D。</li>
+        <li><span class="q">2.</span> 見出しの「すべて」の操作も同じ形でよいか。</li>
+        <li><span class="q">3.</span> 「取り出せば作れる」の見出しとチェストの印。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3;
+const opt = {ui:'two', station:'table', tip:'store', laid:null, made:false};
+const px = v => v * U + 'px';
+const view = document.getElementById('view');
+function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 360)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
+function text(cls, x, y, s, size = 7, w, align){ const t = el(cls, x, y, w, null, s); t.style.fontSize = px(size); if (align) t.style.textAlign = align; return t; }
+const I = {planks:['#8a3a3a','板'], log:['#6a4a2a','木'], stick:['#9a7040','棒'], chest:['#a87830','箱'], string:['#e8e8e8','糸'], wool:['#f0f0f0','羊'], sand:['#e0d090','砂'], glass:['#bfe6ef','ガ'],
+  iron:['#c8b0a0','鉄'], ingot:['#d0d0d0','塊'], dye:['#e8e8f0','染'], bone:['#f0f0e0','骨'], table:['#9a6b3a','作'], furnace:['#707070','炉'], helmet:['#5ad8d8','兜'], dia:['#5ad8d8','ダ'], book:['#8a4a2a','本'], leather:['#b06a3a','革'], paper:['#f4f4e8','紙']};
+function icon(x, y, key, dim, size = 16){ const [c, t] = I[key]; const d = el('ico' + (dim ? ' dim' : ''), x, y, size, size, t); d.style.background = c; d.style.fontSize = px(size * .38); d.style.color = ['wool','dye','string','bone','sand','glass','ingot','paper'].includes(key) ? '#555' : '#fff'; return d; }
+function chestMark(x, y){ const d = el('', x + 10, y + 1, 7, 6, ''); d.style.background = '#a87830'; d.style.boxShadow = `0 0 0 ${U*.5}px #3f2a10`; const l = el('', x + 10, y + 3, 7, .6, ''); l.style.background = '#3f2a10'; }
+function slot(x, y, key, n, opts = {}){
+  el('slot' + (opts.missing ? ' missing' : ''), x, y, 18, 18);
+  if (key) icon(x + 1, y + 1, key, opts.dim);
+  if (n > 1) { const c = el('count' + (opts.dim ? ' dim' : ''), x + 1, y + 9, 16, null, n); c.style.fontSize = px(7); }
+  if (opts.stored) chestMark(x, y);
+}
+function bar(x, y, w, frac){ el('bar', x, y, w, 2); if (frac > 0) el('barfill', x, y, w * Math.min(1, frac), 2); }
+function picBtn(x, y, kind, off, onClick){
+  const b = el('pbtn' + (off ? ' off' : ''), x, y, 11, 11, '');
+  const p = (cx, cy, w, h, c) => { const d = el('', x + cx, y + cy, w, h, ''); d.style.background = c; };
+  if (kind === 'place') { p(2,2,3,3,'#ececec'); p(6,2,3,3,'#a9a9a9'); p(2,6,3,3,'#a9a9a9'); p(6,6,3,3,'#ececec'); }
+  else { p(2,5,4,1,'#ececec'); p(5,3,1,5,'#ececec'); p(7,3,3,5,'#ececec'); }
+  if (onClick && !off) b.onclick = onClick;
+  return b;
+}
+function txtBtn(x, y, s, cls, w, onClick){ const b = el('rbtn ' + (cls || ''), x, y, w, 11, s); b.style.fontSize = px(6.5); if (onClick && cls !== 'off') b.onclick = onClick; return b; }
+const STEPS = [
+  {k:'planks', n:'マングローブの板材', in:[['log',33]], out:132, now:132, need:132, st:'ready', at:'table'},
+  {k:'stick', n:'棒', in:[['planks',2]], out:4, now:4, need:4, st:'ready', at:'table'},
+  {k:'glass', n:'ガラス', in:[['sand',9]], out:9, now:9, need:9, st:'ready', at:'furnace'},
+  {k:'chest', n:'チェスト', in:[['planks',520]], out:65, now:13, need:65, st:'partly', at:'table'},
+  {k:'book', n:'本', in:[['paper',9],['leather',3]], out:3, now:0, need:3, st:'stored', at:'table', stored:[1]},
+  {k:'wool', n:'白色の羊毛', in:[['string',16]], out:4, now:0, need:4, st:'stored', at:'table', stored:[0]},
+  {k:'ingot', n:'鉄インゴット', in:[['iron',3]], out:3, now:0, need:3, st:'missing', at:'furnace', short:[0]},
+  {k:'helmet', n:'ダイヤモンドのヘルメット', in:[['dia',5]], out:1, now:1, need:1, st:'held', at:'table'},
+];
+const HEAD = {ready:'今作れる', partly:'一部だけ作れる', stored:'取り出せば作れる', missing:'材料が足りない', held:'持っている'};
+function controls(x, y, s, isHead){
+  const here = s ? s.at === opt.station || (s.at === 'table' && opt.station === 'table') : true;
+  const can = s ? (here && (s.st === 'ready' || s.st === 'partly')) : true;
+  const id = s ? s.k : 'all';
+  const laid = opt.laid === id, made = opt.made && laid;
+  const place = () => { opt.laid = id; opt.made = false; render(); };
+  const make = () => { opt.laid = id; opt.made = true; render(); };
+  if (opt.ui === 'two') { picBtn(x - 24, y, 'place', !can, place); picBtn(x - 11, y, 'make', !can, make); return x - 26; }
+  if (opt.ui === 'mod') { picBtn(x - 11, y, 'make', !can, make); return x - 13; }
+  if (opt.ui === 'join') { txtBtn(x - 50, y, '並べる', can ? '' : 'off', 25, place); txtBtn(x - 25, y, '作る', can ? '' : 'off', 25, make); return x - 52; }
+  // D: lay in first; the laid row then offers making what is still needed.
+  if (laid && !made) { txtBtn(x - 34, y, '作る ' + (s ? s.need : 'すべて'), 'go', 34, make); return x - 36; }
+  txtBtn(x - 30, y, '並べる', can ? '' : 'off', 30, place); return x - 32;
+}
+function render(){
+  fit();
+  const W = 340, H = 240, L0 = 6;
+  view.style.width = px(L0 + W + 4); view.style.height = px(H + 30); view.innerHTML = '';
+  ['欲しい物','集める物','作る物','作り方'].forEach((t, i) => { const d = el('tab' + (i === 2 ? ' on' : ''), L0 + 6 + i * 52, 1, 51, 21, t); d.style.fontSize = px(7); });
+  el('win', L0, 22, W, H).style.zIndex = -1;
+  const L = L0 + 8, right = L0 + W - 12;
+  const cols = {now: right - 112, need: right - 80, bar: right - 72};
+  text('faint', cols.now - 30, 28, '今作れる', 5.5, 30, 'right'); text('faint', cols.need - 22, 28, '必要', 5.5, 22, 'right');
+  let y = 36, last = '';
+  const status = [];
+  STEPS.forEach(s => {
+    if (s.st !== last) {
+      text('faint', L, y + 1, HEAD[s.st], 5.5);
+      if (s.st === 'ready') controls(right, y - 2, null, true);
+      y += 10; last = s.st;
+    }
+    const dim = s.st === 'missing' || s.st === 'held';
+    const arrowX = L + 40, productX = arrowX + 12;
+    s.in.forEach(([k, n], i) => slot(arrowX - (s.in.length - i) * 18, y, k, n, {dim, missing: s.short && s.short.includes(i), stored: s.stored && s.stored.includes(i)}));
+    text('txt' + (dim ? ' dim' : ''), arrowX + 2, y + 3, '➜', 9);
+    const done = opt.made && (opt.laid === s.k || (opt.laid === 'all' && s.st === 'ready' && s.at === opt.station));
+    slot(productX, y, s.k, s.out, {dim});
+    icon(productX + 22, y + 4, s.at, dim, 10);
+    text(dim ? 'faint' : 'txt', productX + 36, y + 5, s.n, 7);
+    if (s.st === 'held' || done) text('faint', cols.need - 22, y + 5, '✓', 8, 22, 'right');
+    else {
+      text(dim ? 'faint' : 'txt', cols.now - 30, y + 5, s.now, 7, 30, 'right'); text(dim ? 'faint' : 'txt', cols.need - 22, y + 5, s.need, 7, 22, 'right');
+      bar(cols.bar, y + 8, 24, s.now / s.need);
+      controls(right, y + 4, s, false);
+    }
+    if ((opt.laid === s.k) && !opt.made) status.push(s.n + ' を並べた');
+    y += 20;
+  });
+  // The hint line: what the controls do.
+  const hintText = opt.ui === 'mod' ? 'クリック: 作る | Shift+クリック: 並べるだけ | A キー: お気に入り' :
+                   opt.ui === 'step' ? '並べる: 作業台に置く | 置いた行の「作る」: 要る分を作る' : 'A キー: お気に入り | W キー: 欲しい物';
+  text('hint', L0 + 4, 22 + H - 10, hintText, 6, W - 8, 'center');
+  if (opt.laid && !opt.made) text('txt', L0 + W + 8 - 120, 4, opt.laid === 'all' ? '今作れる物を作業台に並べた' : '作業台に並べた', 6, 116, 'right');
+  if (opt.made) text('txt', L0 + W + 8 - 120, 4, opt.laid === 'all' ? '今作れる物を作った' : '作った', 6, 116, 'right');
+  // A tip.
+  if (opt.tip === 'store') {
+    const tx = L + 30, ty = 36 + 10 * 3 + 20 * 4 + 22;
+    el('tip', tx, ty, 150, 36, '');
+    text('tiptxt', tx + 5, ty + 3, '革', 7);
+    text('tipdim', tx + 5, ty + 13, '手持ち 0　必要 3', 6.5);
+    text('tipdim', tx + 5, ty + 23, 'チェスト（17, 74, 151）に 5', 6.5);
+  } else if (opt.tip === 'station') {
+    const tx = right - 120, ty = 36 + 10 + 20 * 2 + 18;
+    const off = opt.station === 'table' ? 'かまどで作る（今の画面では作れない）' : '作業台で作る（今の画面では作れない）';
+    el('tip', tx, ty, 140, 16, ''); text('tiptxt', tx + 5, ty + 3, off, 6.5);
+  }
+}
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  opt[b.dataset.k] = b.dataset.v; opt.laid = null; opt.made = false;
+  document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
