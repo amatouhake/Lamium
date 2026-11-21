@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The bottom row and the Notes window's button (L-382, 2026-11-21)
+
+Build `3d58bd36` (DLL
+`a0f6da0f54638847ea408159ad9e4cc1013ef4387578181ad756b23eb5491ace`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the row stays clear
+of the panels on the inventory, with the recipe book and at a chest;
+the window's and the layout's buttons work; the store button on the
+title line switches. Not right: the window's button did nothing with
+Recipes off (the row's presses were not kept then); the row has room to
+grow; the store button looks unlike the game's close button beside it;
+a one-line tip sat low in its box.
+
 ## Hints off item tips, How to make's split tips (L-369, 2026-11-21)
 
 Build `22c81ea5` (DLL

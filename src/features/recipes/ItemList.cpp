@@ -528,10 +528,21 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The search key (L-377): the cursor in the field, what is there selected.
     if (focusAsked.exchange(false) && prefs->inventory.recipes && !bandEditor::active()) searchFocus = true, search.selectAll(), countEdit::commit();
     // The search field: what was typed since the last frame, then where this frame's press went.
-    auto const field = searchFieldAt(screen.x, screen.y);
+    // The row widens where the panels leave room beside it (L-382).
+    float const rowW = [&] {
+        float leftEnd = 0, rightStart = screen.x, top = screen.y - searchTop, bottom = top + 16, middle = screen.x / 2;
+        for (auto const& panel : placed) {
+            auto const& b = panel.box;
+            if (b.y + b.h <= top || b.y >= bottom) continue;
+            if (b.x + b.w <= middle) leftEnd = std::max(leftEnd, b.x + b.w);
+            else if (b.x >= middle) rightStart = std::min(rightStart, b.x);
+        }
+        return rowWidth(screen.x, leftEnd, rightStart);
+    }();
+    auto const field = searchFieldAt(screen.x, screen.y, rowW);
     // The bottom row's buttons (L-382): the Recipes window, while a feature with a tab is on; arranging the
     // panels, while one is shown.
-    auto const row = bottomRowAt(screen.x, screen.y);
+    auto const row = bottomRowAt(screen.x, screen.y, rowW);
     bool const windowButton = recipesOn || planOn || storesOn, layoutButton = recipesOn || planOn;
     ListBox const windowBox = windowButtonAt(row), layoutBox = layoutButtonAt(row);
     // What the listeners keep from the game for the row: the field and a few units around it, and its buttons.
@@ -905,7 +916,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     {
         std::scoped_lock lock(shownLock);
         tipItem = hoverItem; // kept for the tooltip: what is shown takes the string
-        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, recipesOn ? fieldArea : ListBox{}, side, searchFocus,
+        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, (recipesOn || windowButton || layoutButton) ? fieldArea : ListBox{}, side, searchFocus,
                  countEdit::active(), bandBoxes, favoritesBox};
     }
     context.flushText(0, std::nullopt);
@@ -985,7 +996,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         bool const game = item || covered;
         float const inset = game ? vf::tooltipTextLeft : 4, top = game ? vf::tooltipTextTop - 1 : 2;
         w = std::min(game ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
-        float const h = (game ? vf::tooltipHeight(lines) : 2 + 10 * static_cast<float>(lines) + (lines > 1 ? 2.f : 0.f)) + membersH;
+        float const h = (game ? vf::tooltipHeight(lines) : 4 + 10 * static_cast<float>(lines)) + membersH;
         // On whole units: the pointer lies between them, and the box and the text, rounded to pixels each their
         // own way, moved a pixel apart now and then as it went.
         w = std::ceil(w);

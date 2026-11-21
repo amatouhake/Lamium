@@ -34,11 +34,20 @@ struct ListBox {
 // has to move (L-382): "open the window, arrange the panels | search field, highlight". It stays between the
 // panels on every screen; the field is high enough for Japanese and letters that reach under the line.
 inline constexpr float searchTop = 18; // its top, from the screen's bottom
-inline ListBox bottomRowAt(float screenWidth, float screenHeight) { return {(screenWidth - 176) / 2, screenHeight - searchTop, 176, 16}; }
+// `width`: 176, or up to a button more each side where the panels leave the room (rowWidth).
+inline ListBox bottomRowAt(float screenWidth, float screenHeight, float width = 176) {
+    return {std::floor((screenWidth - width) / 2), screenHeight - searchTop, width, 16};
+}
+// The row's width: as wide as the free span between the panels beside it allows, from the inventory's 176 to a
+// button (18) more each side. `leftEnd`/`rightStart`: where the panels next to the row end and begin.
+inline float rowWidth(float screenWidth, float leftEnd, float rightStart) {
+    float const half = std::min(screenWidth / 2 - leftEnd, rightStart - screenWidth / 2) - 2;
+    return std::clamp(std::floor(half) * 2, 176.f, 212.f);
+}
 inline ListBox windowButtonAt(ListBox row) { return {row.x, row.y, row.h, row.h}; }
 inline ListBox layoutButtonAt(ListBox row) { return {row.x + row.h + 2, row.y, row.h, row.h}; }
-inline ListBox searchFieldAt(float screenWidth, float screenHeight) {
-    auto const row = bottomRowAt(screenWidth, screenHeight);
+inline ListBox searchFieldAt(float screenWidth, float screenHeight, float width = 176) {
+    auto const row = bottomRowAt(screenWidth, screenHeight, width);
     return {row.x + 2 * row.h + 6, row.y, row.w - 3 * row.h - 8, row.h};
 }
 // The highlight switch (L-378): a square of the field's height right of it, at the row's end.

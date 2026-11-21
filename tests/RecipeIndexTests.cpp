@@ -538,6 +538,9 @@ void recipeIndexTests() {
                   && searchHighlightAt(field).x + searchHighlightAt(field).w == row.x + row.w && windowButtonAt(row).x == row.x
                   && layoutButtonAt(row).x + layoutButtonAt(row).w + 4 == field.x,
               "the bottom row: the window's and the layout's buttons, then the field and its highlight switch, as wide as the inventory");
+        check(rowWidth(640, 200, 440) == 212 && rowWidth(640, 225, 415) == 186 && rowWidth(640, 240, 400) == 176
+                  && searchFieldAt(640, 360, 212).w == 156 && bottomRowAt(640, 360, 212).x == 214,
+              "the row widens by up to a button each side where the panels leave room, never below the inventory's width");
         check(steppedWanted(1, false, 1) == 0 && steppedWanted(1, false, 16) == 0 && steppedWanted(5, false, 1) == 4
               && steppedWanted(9, false, 16) == 1 && steppedWanted(0, true, 1) == 1 && steppedWanted(0, false, 1) == 0
               && steppedWanted(Wanted::most, true, 16) == Wanted::most,

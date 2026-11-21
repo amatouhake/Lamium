@@ -38,7 +38,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   always as wide as the game's inventory with its book open (the panels
   narrow while it is open). The bottom row reads "open the window,
   arrange the panels | search field, highlight", as wide as the
-  inventory and between the panels: the first button (a tabbed window)
+  inventory, or up to a button more each side where the panels leave the
+  room (the field takes it), never over them: the first button (a tabbed window)
   opens it on its last tab or closes it, green while open, its tip the
   name and the tabs; the second (a divided square) arranges the panels.
   Buttons with pictures are white and greys, green when on. The settings
