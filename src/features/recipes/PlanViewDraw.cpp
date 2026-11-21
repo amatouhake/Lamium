@@ -193,9 +193,16 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         }
         return id >= 0 ? index.items[static_cast<size_t>(id)] : std::string();
     };
+    // A group's picture in "How to make": the member most held (as the game's recipe book shows what suits the
+    // inventory), else the one it is known by (groupLead).
     auto groupFace = [&](int group) -> std::string {
         auto const& list = index.groups[static_cast<size_t>(group)].members;
-        return list.empty() ? std::string() : index.items[static_cast<size_t>(list.front())];
+        if (list.empty()) return {};
+        Item face = groupLead(index, group);
+        Count most = 0;
+        for (Item member : list)
+            if (auto held = plan->held.find(member); held != plan->held.end() && held->second > most) most = held->second, face = member;
+        return index.items[static_cast<size_t>(face)];
     };
     auto groupPicture = [&](int group) -> std::string {
         auto const& list = index.groups[static_cast<size_t>(group)].members;

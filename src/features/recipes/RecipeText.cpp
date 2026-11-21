@@ -22,7 +22,7 @@ std::string groupName(Index const& index, int group) {
         if (std::string text = ui::translated(key); text != key) return text;
     }
     if (entry.members.empty()) return entry.name;
-    auto const& first = schematic::items::shown(index.items[static_cast<size_t>(entry.members.front())]).name;
+    auto const& first = schematic::items::shown(index.items[static_cast<size_t>(groupLead(index, group))]).name;
     return entry.members.size() == 1 ? first : ui::translated("recipes.andOthers", first);
 }
 std::string groupNameAny(Index const& index, int group) { return ui::translated("recipes.anyOf", groupName(index, group)); }

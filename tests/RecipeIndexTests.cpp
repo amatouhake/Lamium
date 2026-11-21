@@ -420,6 +420,23 @@ void recipeIndexTests() {
               "made now: the members of a group count together, nothing is made first, and only crafting counts");
         check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
         {
+            // A group is known by its plainest member, not the first listed (L-370).
+            Source lead;
+            lead.tags["minecraft:sands"] = {"minecraft:red_sand", "minecraft:sand"};
+            lead.tags["minecraft:wooden_slabs"] = {"minecraft:cherry_slab", "minecraft:birch_slab", "minecraft:oak_slab"};
+            lead.tags["minecraft:stones"] = {"minecraft:cobbled_deepslate", "minecraft:blackstone", "minecraft:cobblestone"};
+            lead.recipes.push_back({"crafting_table", "a", 0, {{"a", 1}}, {{"minecraft:sands", true}}});
+            lead.recipes.push_back({"crafting_table", "b", 0, {{"b", 1}}, {{"minecraft:wooden_slabs", true}}});
+            lead.recipes.push_back({"crafting_table", "c", 0, {{"c", 1}}, {{"minecraft:stones", true}}});
+            Index const led = build(lead);
+            auto leadOf = [&](std::string_view product) {
+                auto const& part = led.recipes[static_cast<size_t>(led.makers[static_cast<size_t>(led.find(product))].front())].uses.front();
+                return led.items[static_cast<size_t>(groupLead(led, part.id))];
+            };
+            check(leadOf("a") == "minecraft:sand" && leadOf("b") == "minecraft:oak_slab" && leadOf("c") == "minecraft:blackstone",
+                  "a group's lead is the plainest member: sand, oak, else the shortest name (L-370)");
+        }
+        {
             // The automatic choice (L-370): within one station the fewer steps win, whatever the names say; the
             // station's order still comes first (crafting over the stonecutter).
             Source steps;

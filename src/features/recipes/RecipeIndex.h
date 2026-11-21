@@ -155,6 +155,37 @@ struct Index {
 
 // Which of two recipes for one item comes first: by station, then the lowest
 // priority, then the recipe named after its product, then the id.
+// The member a group is known by (L-370): its name ("Sand etc.") and its picture where nothing held says
+// otherwise. The plainest: one whose name the others' end with ("sand" in "red_sand"), the shortest of those;
+// else an oak one (the wood families); else the shortest name, then the first by name. Not the first listed,
+// which put red sand and cherry before sand and oak (maintainer 2026-11-21).
+inline Item groupLead(Index const& index, int group) {
+    auto const& members = index.groups[static_cast<size_t>(group)].members;
+    if (members.empty()) return -1;
+    auto plain = [&](Item item) {
+        std::string_view name = splitItemKey(index.items[static_cast<size_t>(item)]).name;
+        if (auto colon = name.find(':'); colon != std::string_view::npos) name = name.substr(colon + 1);
+        return name;
+    };
+    Item best = -1;
+    auto better = [&](Item a, Item b) {
+        auto const x = plain(a), y = plain(b);
+        return x.size() != y.size() ? x.size() < y.size() : x < y;
+    };
+    for (Item a : members)
+        for (Item b : members) {
+            auto const x = plain(a), y = plain(b);
+            if (a != b && y.size() > x.size() && y.ends_with(x) && y[y.size() - x.size() - 1] == '_') {
+                if (best < 0 || better(a, best)) best = a;
+                break;
+            }
+        }
+    if (best >= 0) return best;
+    for (Item a : members) if (plain(a).starts_with("oak_") && (best < 0 || better(a, best))) best = a;
+    if (best >= 0) return best;
+    for (Item a : members) if (best < 0 || better(a, best)) best = a;
+    return best;
+}
 inline bool before(Index const& index, Recipe const& a, Recipe const& b) {
     if (a.station != b.station) return a.station < b.station;
     if (a.priority != b.priority) return a.priority < b.priority;
