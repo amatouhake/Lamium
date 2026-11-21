@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Counts left, done items, gather presets (L-370, L-369, 2026-11-21)
+
+Build `f1b5823c` (DLL
+`210b1c51e36f5ea1e38d1dde0a97f0247c4ffe3d65cccd3b0767762a2b0cdb28`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the band's one
+number and its tip, the wanted stepper under the pointer with four and
+five digits whole; the window's even columns, the done rows, only the
+headings staying put; a lectern traced to leather, not rabbit hide, and
+white wool "Chosen: gather" in How to make; the stores tab, row buttons,
+scrollbar and band tabs about right. Not right: the green behind a
+chosen line is too strong; "gather" is buried below many recipes (white
+wool); the scrollbar starts at the top on some tabs and lower on others;
+the switch line at the top has too little room; the scrollbar's edges
+are drawn finer than the slots' unit; the carried line's tip is long
+and says the obvious; "All" has a style of its own; the breakdown's
+"n/m" and "Make" on "to gather" sit close to the scrollbar.
+
 ## The plan window's tabs as one, a review of the look (L-370, L-369, 2026-11-21)
 
 Build `f8129d37` (DLL
