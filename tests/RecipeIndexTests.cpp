@@ -175,20 +175,15 @@ void recipeIndexTests() {
                   && view.steps[2].item == id("chest"), "steps come in making order: what is used before what uses it");
         check(view.steps[1] == StepLine{id("stone_bricks"), choice.recipe[id("stone_bricks")], 11, 44, 0, 20},
               "a step says how many crafts, how many they make, the spare and what held stock adds");
-        check(view.covered == std::vector<Cover>{{planksGroup, id("oak_planks"), 3}, {planksGroup, id("birch_planks"), 4}},
+        check(planned(index, choice, request).covered == std::vector<Cover>{{planksGroup, id("oak_planks"), 3}, {planksGroup, id("birch_planks"), 4}},
               "the members that cover a group are named with their share");
-        check(view.heldKinds == 4, "kinds that held stock covers a part of are counted once each");
         check(view.done == std::vector<GatherLine>{{id("oak_planks"), 2, 2, 0}},
               "what held stock covers whole, neither gathered nor made, is done");
-        check(gatherTotal(view.gather).need == 48 && gatherTotal(view.gather).left == 41 && gatherTotal(view.gather).percent() == 14
-                  && gatherTotal({}).percent() == 100,
+        check(gatherTotal(view.gather).need == 48 && gatherTotal(view.gather).left == 41
+                  && gatherTotal(view.gather).fraction() > .14f && gatherTotal(view.gather).fraction() < .15f && gatherTotal({}).fraction() == 1.f,
               "the whole of what to gather: all needed, all left, and the share gathered");
         check(recipeOptions(index, id("stone_bricks")) == index.makers[static_cast<size_t>(id("stone_bricks"))] && recipeOptions(index, -1).empty(),
               "an item's recipe options are its makers in order");
-        check(usersOf(index, request, view, id("stone")) == std::vector<std::pair<Item, Count>>{{id("stone_bricks"), 44}}
-                  && usersOf(index, request, view, planks) == std::vector<std::pair<Item, Count>>{{id("chest"), 8}}
-                  && usersOf(index, request, view, id("oak_planks")).empty(),
-              "an item's users are the steps that take it; one only placed has none");
         check(stepInputs(index, request, view.steps[1]) == std::vector<std::pair<Item, Count>>{{id("stone"), 44}}
                   && stepInputs(index, request, view.steps[2]) == std::vector<std::pair<Item, Count>>{{planks, 8}},
               "a step takes its recipe's parts times its crafts, a group as itself");
@@ -198,12 +193,12 @@ void recipeIndexTests() {
         check(prioritized(wanted, {{"c", 3, "schematic"}}) == std::vector<WantedEntry>{{"a", 1, ""}, {"b", 2, ""}, {"c", 3, "schematic"}},
               "wanted items stand in the order added, the player's own before what features hand over");
         auto const two = targetPlans(index, choice, {{id("chest"), 1}, {id("chest"), 1}}, {{id("oak_planks"), 8}}, {}, {});
-        check(two.size() == 2 && two[0].left == 0 && two[0].fraction() == 1.f && two[1].left > 0 && two[1].need == two[0].need && two[1].need > 0
+        check(two.size() == 2 && two[0].left == 0 && two[0].finished == 0 && two[1].left > 0
                   && !two[0].sharedAbove() && two[1].sharedAbove() && two[1].leftAlone == 0,
               "held stock goes to the first wanted item; the one below gets what is left of it and knows it");
         std::map<Item, Count> plenty{{id("cobblestone"), 64}};
-        check(stepReady(index, request, view.steps[0], plenty) && !stepReady(index, request, view.steps[0], {}),
-              "a step is ready when everything its crafts take is held");
+        check(stepNow(index, request, view.steps[0], plenty) >= view.steps[0].crafts && stepNow(index, request, view.steps[0], {}) == 0,
+              "a step can be made in full when everything its crafts take is held, and not at all from nothing");
     }
     {
         // The item list right of a 176-wide window at x 232 on a 640x360 screen.
@@ -240,12 +235,12 @@ void recipeIndexTests() {
         check(pickaxe.width == 3 && pickaxe.cells.size() == 9 && pickaxe.cells[3].id < 0 && pickaxe.cells[4].id == index.find("stick"),
               "a shaped recipe keeps its grid, empty cells and all");
         auto block = viewBlock(pickaxe);
-        check(block.slots.size() == 9 && block.slots[4].cell == 4 && block.slots[3].cell == -1 && !anyOrder(pickaxe) && !fitsSmallGrid(pickaxe),
+        check(block.slots.size() == 9 && block.slots[4].cell == 4 && block.slots[3].cell == -1 && !anyOrder(pickaxe),
               "a 3x3 recipe fills the grid as it is shaped");
         auto const& stick = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("stick"))].front())];
         auto stickBlock = viewBlock(stick);
-        check(stickBlock.slots[0].cell == 0 && stickBlock.slots[3].cell == 1 && stickBlock.slots[1].cell == -1 && fitsSmallGrid(stick),
-              "a narrow shape sits at the grid's left and fits the 2x2 grid");
+        check(stickBlock.slots[0].cell == 0 && stickBlock.slots[3].cell == 1 && stickBlock.slots[1].cell == -1,
+              "a narrow shape sits at the grid's left");
         auto const& button = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("button"))].front())];
         auto const& odd = index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(index.find("odd"))].front())];
         check(anyOrder(button) && !odd.width && odd.cells.size() == 2 && !anyOrder(odd),
@@ -653,7 +648,7 @@ void recipeIndexTests() {
               "picks and stops reach the plan by name");
         {
             Notes preset;
-            check(preset.gathered("minecraft:leather") && preset.gathered("white_wool") && !preset.chosenGather("white_wool") && !preset.gathered("stick"),
+            check(preset.gathered("minecraft:leather") && preset.gathered("white_wool") && !preset.stops.contains("white_wool") && !preset.gathered("stick"),
                   "items usually gathered start as gathered without being saved as the player's choice");
             preset.setGathered("white_wool", false);
             preset.setGathered("stick", true);

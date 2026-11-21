@@ -153,8 +153,6 @@ struct Index {
     Item groupItem(int group) const { return static_cast<Item>(items.size()) + group; }
 };
 
-// Which of two recipes for one item comes first: by station, then the lowest
-// priority, then the recipe named after its product, then the id.
 // The member a group is known by (L-370): its name ("Sand etc.") and its picture where nothing held says
 // otherwise. The plainest: one whose name the others' end with ("sand" in "red_sand"), the shortest of those;
 // else a family's base, an oak one (the wood families) or cobblestone (its kinds); else the shortest name, then
@@ -188,6 +186,8 @@ inline Item groupLead(Index const& index, int group) {
     for (Item a : members) if (best < 0 || better(a, best)) best = a;
     return best;
 }
+// Which of two recipes for one item comes first: by station, then the lowest
+// priority, then the recipe named after its product, then the id.
 inline bool before(Index const& index, Recipe const& a, Recipe const& b) {
     if (a.station != b.station) return a.station < b.station;
     if (a.priority != b.priority) return a.priority < b.priority;

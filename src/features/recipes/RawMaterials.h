@@ -8,7 +8,7 @@
 
 // L-116 groundwork: what a list of wanted items costs in raw materials, given
 // one chosen recipe per craftable item. Which recipe is chosen, and how game
-// items map to the ids, is the caller's business. Not used by any screen yet.
+// items map to the ids, is the caller's business. The plan's core (planned()).
 // `wanted` is everything still to be supplied, held or not: what is held is
 // taken off here, once per item, so a caller must not subtract it first.
 namespace lamium::recipes::rawMaterials {

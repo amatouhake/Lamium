@@ -20,8 +20,6 @@ struct StepLine {
 struct RawView {
     std::vector<GatherLine> gather;
     std::vector<StepLine> steps;
-    std::vector<Cover> covered;
-    size_t heldKinds = 0; // items and groups that held stock covers a part of
     // What held stock covers whole: neither left to gather nor a step, so done (L-367: the plan window lists
     // it faint under what is still to gather). Kept apart, so `gather` stays what is left.
     std::vector<GatherLine> done;
@@ -29,7 +27,6 @@ struct RawView {
 // The whole of a list of what to gather: how many in all and how many are left (L-367).
 struct GatherTotal {
     Count need = 0, left = 0;
-    int percent() const { return need > 0 ? static_cast<int>((need - std::min(left, need)) * 100 / need) : 100; }
     float fraction() const { return need > 0 ? static_cast<float>(need - std::min(left, need)) / static_cast<float>(need) : 1.f; }
 };
 inline GatherTotal gatherTotal(std::vector<GatherLine> const& lines) {
@@ -47,8 +44,6 @@ inline std::vector<int> recipeOptions(Index const& index, Item item) {
 }
 inline RawView rawView(Index const& index, Choice const& choice, Planned plan) {
     RawView out;
-    out.covered = std::move(plan.covered);
-    out.heldKinds = plan.result.fromHeld.size();
     auto heldOf = [&](Item item) {
         for (auto [id, count] : plan.result.fromHeld) if (id == item) return count;
         return Count{0};
@@ -77,27 +72,16 @@ inline Item partItem(Index const& index, Request const& request, Part const& par
     auto picked = request.picks.find(part.id);
     return picked != request.picks.end() ? picked->second : index.groupItem(part.id);
 }
-// What a step takes in all its crafts, each part as the item it stands for in the plan.
 // How many of a recipe's `i`-th use `crafts` take: a brewing ingredient serves a batch of crafts (L-361).
 inline Count partNeed(Recipe const& recipe, size_t i, Count crafts) {
     Count const count = recipe.uses[i].count;
     return i == 0 && recipe.batch > 1 ? (crafts + recipe.batch - 1) / recipe.batch * count : crafts * count;
 }
+// What a step takes in all its crafts, each part as the item it stands for in the plan.
 inline std::vector<std::pair<Item, Count>> stepInputs(Index const& index, Request const& request, StepLine const& step) {
     std::vector<std::pair<Item, Count>> out;
     auto const& recipe = index.recipes[step.recipe];
     for (size_t i = 0; i < recipe.uses.size(); ++i) out.emplace_back(partItem(index, request, recipe.uses[i]), partNeed(recipe, i, step.crafts));
-    return out;
-}
-// The steps that use `id` and how many each takes, in the view's order.
-inline std::vector<std::pair<Item, Count>> usersOf(Index const& index, Request const& request, RawView const& view, Item id) {
-    std::vector<std::pair<Item, Count>> out;
-    for (auto const& step : view.steps) {
-        Count used = 0;
-        auto const& recipe = index.recipes[step.recipe];
-        for (size_t i = 0; i < recipe.uses.size(); ++i) if (partItem(index, request, recipe.uses[i]) == id) used += partNeed(recipe, i, step.crafts);
-        if (used) out.emplace_back(step.item, used);
-    }
     return out;
 }
 }

@@ -88,12 +88,6 @@ inline std::vector<ViewTab> viewTabs(Index const& index, Choice const& choice, I
     if (!uses) std::stable_sort(tabs.begin(), tabs.end(), [](ViewTab const& a, ViewTab const& b) { return a.kind < b.kind; });
     return tabs;
 }
-// A crafting recipe the inventory's own 2x2 grid can make.
-inline bool fitsSmallGrid(Recipe const& recipe) {
-    if (recipe.station != Station::Crafting) return false;
-    if (!recipe.width) return recipe.cells.size() <= 4;
-    return recipe.width <= 2 && recipe.cells.size() / static_cast<size_t>(recipe.width) <= 2;
-}
 inline bool anyOrder(Recipe const& recipe) { return recipe.station == Station::Crafting && recipe.anyOrder; }
 
 // A recipe's block: its slots and its buttons, as wide for every station, as high as the station's slots.

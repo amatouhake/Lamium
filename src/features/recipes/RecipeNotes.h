@@ -53,8 +53,6 @@ struct Notes {
     bool operator==(Notes const&) const = default;
     // Gathered, not made: the player's choice, or an item usually gathered the player left so.
     bool gathered(std::string const& key) const { return stops.contains(key) || (usuallyGathered(key) && !made.contains(key)); }
-    // Whether the gathering is the player's own choice rather than the preset.
-    bool chosenGather(std::string const& key) const { return stops.contains(key); }
     void setGathered(std::string const& key, bool gather) {
         if (gather) {
             made.erase(key);

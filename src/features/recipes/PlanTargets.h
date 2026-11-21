@@ -24,18 +24,15 @@ inline std::vector<WantedEntry> prioritized(Wanted const& wanted, std::vector<Ha
     for (auto const& given : handed) out.push_back({given.key, given.count, given.source});
     return out;
 }
-// One wanted item's share of the plan: the finished items held for it, and how much of what it takes is
-// gathered (`need` of all its raw materials as if nothing were held, `left` of them with the stock it got),
-// with its own steps and materials.
+// One wanted item's share of the plan: the finished items held for it, what is left to gather of its raw
+// materials with the stock it got, and its own steps and materials.
 struct TargetPlan {
     Item item = -1;
-    Count want = 0, finished = 0, need = 0, left = 0;
+    Count finished = 0, left = 0;
     // Left with all the held stock to itself: more is left than that when rows above took a share of it.
     Count leftAlone = 0;
     bool sharedAbove() const { return left > leftAlone; }
     RawView view;
-    float fraction() const { return need > 0 ? static_cast<float>(need - std::min(left, need)) / static_cast<float>(need) : 1.f; }
-    int percent() const { return static_cast<int>(fraction() * 100 + .0001f); }
 };
 // `wanted`: items in the order added (one entry each, a feature's and the player's apart). Held stock goes to
 // them from the top down: what one uses is gone for those below it.
@@ -47,7 +44,7 @@ inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& cho
     std::vector<TargetPlan> out;
     for (auto const& [item, want] : wanted) {
         TargetPlan target;
-        target.item = item, target.want = want;
+        target.item = item;
         if (item < 0 || want <= 0) { out.push_back(std::move(target)); continue; }
         target.finished = std::min(want, stock[item]);
         Request one{{{item, want}}, {}, picks, stops};
@@ -57,8 +54,6 @@ inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& cho
         for (auto const& cover : plan.covered) stock[cover.member] -= std::min(stock[cover.member], cover.count);
         target.view = rawView(index, choice, std::move(plan));
         for (auto const& line : target.view.gather) target.left += line.left;
-        Request bare{{{item, want}}, {}, picks, stops};
-        for (auto const& [id, count] : planned(index, choice, bare).result.raw) target.need += count;
         target.leftAlone = target.left;
         if (target.left > 0 && !out.empty()) {
             Request alone{{{item, want}}, held, picks, stops};
@@ -91,10 +86,6 @@ inline Count stepNow(Index const& index, Request const& request, StepLine const&
         now = std::min(now, i == 0 && recipe.batch > 1 ? got / each * recipe.batch : got / each);
     }
     return now;
-}
-// Whether a step can be made now, all its crafts, from `stock`.
-inline bool stepReady(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
-    return stepNow(index, request, step, stock) >= step.crafts;
 }
 // The plan's steps as "to make" shows them (L-370): all their crafts can be made now, some of them, none; and
 // what held stock covers whole, which is not made at all. Stored (L-385): what is carried makes none, the stores

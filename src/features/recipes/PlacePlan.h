@@ -18,11 +18,6 @@ struct PlacePlan {
     std::vector<PlaceMove> moves;
     bool ready() const { return fits && missing.empty() && crafts > 0; }
 };
-// `side`: the grid's, 2 or 3. `picks`: the member the player picked for a
-// group. One of each ingredient, or with `many` as many as divide evenly from
-// every stack carried, a cell's stack at most. An ingredient any of several
-// items satisfies takes the picked member while it lasts, else the one most
-// carried; `many` then takes the one with most left, so several kinds add up.
 // Whether the grid (`grid`: per cell row by row, -1 empty) already holds `recipe` as placePlan lays it:
 // each ingredient's cell has it, or any member of its group, and every other cell is empty. A press to
 // lay one of each then has nothing to do.
@@ -62,6 +57,11 @@ inline std::vector<PlaceMove> oneMore(Index const& index, Recipe const& recipe, 
     }
     return out;
 }
+// `side`: the grid's, 2 or 3. `picks`: the member the player picked for a
+// group. One of each ingredient, or with `many` as many as divide evenly from
+// every stack carried, a cell's stack at most. An ingredient any of several
+// items satisfies takes the picked member while it lasts, else the one most
+// carried; `many` then takes the one with most left, so several kinds add up.
 // `most`: with `many`, no more crafts than that (a plan's step lays what it still needs, L-385).
 inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, std::vector<PlaceSource> const& carried,
                            std::map<int, Item> const& picks, bool many, int most = 64) {
