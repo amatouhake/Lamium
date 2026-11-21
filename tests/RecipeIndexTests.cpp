@@ -29,6 +29,7 @@ void recipeIndexTests() {
         {"crafting_table", "chest", 0, {{"chest", 1}}, both(cells("planks", 4, true), both(cells("", 1), cells("planks", 4, true)))},
         {"crafting_table", "chest_from_birch", 0, {{"chest", 1}}, both(cells("birch_planks", 4), both(cells("", 1), cells("birch_planks", 4)))},
         {"crafting_table", "chest_from_cherry", 0, {{"chest", 1}}, both(cells("cherry_planks", 4), both(cells("", 1), cells("cherry_planks", 4)))},
+        {"crafting_table", "chest_from_cherry_again", 0, {{"chest", 1}}, both(cells("cherry_planks", 4), both(cells("", 1), cells("cherry_planks", 4)))},
         {"crafting_table", "torch", -1, {{"torch", 4}}, both(cells("coals", 1, true), cells("stick", 1))},
         {"crafting_table", "stonebrick", 0, {{"stone_bricks", 4}}, cells("stone", 4)},
         {"stonecutter", "stonecutter_stonebrick", 4, {{"stone_bricks", 1}}, cells("stone", 1)},
@@ -196,6 +197,13 @@ void recipeIndexTests() {
               "the whole of what to gather: all needed, all left, and the share gathered");
         check(recipeOptions(index, id("stone_bricks")) == index.makers[static_cast<size_t>(id("stone_bricks"))] && recipeOptions(index, -1).empty(),
               "an item's recipe options are its makers in order");
+        {
+            auto const& chests = index.makers[static_cast<size_t>(id("chest"))];
+            auto named = [&](char const* recipe) {
+                return std::count_if(chests.begin(), chests.end(), [&](int number) { return index.recipes[static_cast<size_t>(number)].id == recipe; });
+            };
+            check(named("chest_from_cherry") == 1 && named("chest_from_cherry_again") == 0, "a recipe the table repeats under another id is listed once");
+        }
         {
             auto const& makers = index.makers[static_cast<size_t>(id("chest"))];
             Choice other = choice;

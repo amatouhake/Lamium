@@ -399,6 +399,16 @@ inline Index build(Source const& given) {
     };
     std::map<Item, std::vector<size_t>> byProduct;
     for (size_t i = 0; i < all.size(); ++i) if (!dropped[i] && !all[i].own) byProduct[all[i].makes].push_back(i);
+    // The game's table repeats some recipes under two ids (a white bed, bed_color_15 and bed_color_19): the first
+    // of identical ones stays.
+    auto same = [](Recipe const& a, Recipe const& b) {
+        return a.stations == b.stations && a.makes == b.makes && a.count == b.count && a.width == b.width && a.cells == b.cells
+            && a.extra == b.extra && a.anyOrder == b.anyOrder;
+    };
+    for (auto const& [product, list] : byProduct)
+        for (size_t k = 1; k < list.size(); ++k)
+            for (size_t j = 0; j < k && !dropped[list[k]]; ++j)
+                if (!dropped[list[j]] && same(all[list[j]], all[list[k]])) dropped[list[k]] = true;
     for (auto const& [product, list] : byProduct)
         for (size_t narrow : list)
             for (size_t wide : list)
