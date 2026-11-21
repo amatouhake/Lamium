@@ -410,7 +410,8 @@ void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string 
     label(context, x, y + 8, 17, std::move(text), palette::text, Align::Right);
 }
 void anyMark(MinecraftUIRenderContext& context, float x, float y, float scale) {
-    labelScaled(context, x - 1, y - 1, 8, "*", scale < 1 ? .625f : .875f, palette::text, Align::Left, true);
+    // Inside the icon's corner, so it stays within a slot's edge (maintainer 2026-11-21); "*" reads as any.
+    labelScaled(context, x, y - .5f, 8, "*", scale < 1 ? .625f : .875f, palette::text, Align::Left, true);
 }
 void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on, float scale) {
     if (!(scale > 0)) scale = 1;
