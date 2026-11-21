@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes Table</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --missing:#d94d4d;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{overflow-x:auto}
+#view{position:relative;font-family:var(--pix);margin:0 auto}
+#view *{position:absolute}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) #555,0 0 0 var(--u) #000}
+.tab{display:grid;place-items:center;color:#fff;background:#626262;box-shadow:0 0 0 var(--u) #000;white-space:nowrap}
+.tab.on{background:var(--win);color:var(--win-ink)}
+.txt{color:var(--win-ink);white-space:nowrap}
+.faint{color:var(--win-faint);white-space:nowrap}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.slot.missing{background:var(--missing)}
+.ico{box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.dim{opacity:.45}
+.count{color:#fff;text-shadow:calc(.6*var(--u)) calc(.6*var(--u)) #3f3f3f;white-space:nowrap;text-align:right}
+.bar{background:#8b8b8b}
+.barfill{background:var(--accent-deep)}
+.guide{border-left:calc(.5*var(--u)) dashed rgba(200,40,40,.6)}
+.wbtn{background:#b4b4b4;box-shadow:inset 0 0 0 var(--u) #363636;color:#111;display:grid;place-items:center;white-space:nowrap}
+.pbtn{background:#6f6f6f;box-shadow:inset calc(.5*var(--u)) calc(.5*var(--u)) #a8a8a8,inset calc(-.5*var(--u)) calc(-.5*var(--u)) #3a3a3a,0 0 0 calc(.5*var(--u)) #000}
+.wstep{background:#b4b4b4;box-shadow:0 0 0 var(--u) #363636;color:#111;display:flex;justify-content:space-between;align-items:center;white-space:nowrap}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ノートの表を右半分に（L-370）</h1>
+    <p class="lede">今の並びのまま、表の前（アイコン・名前・作る物のスロット）は窓の左半分まで、表（数・棒・操作）は右半分に収め、カーソルに頼らず行と列がそろうようにする。操作は常に表示。右半分の並べ方を 3 案で比べる。赤い点線が窓の真ん中。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">タブ</span>
+      <button class="chip on" data-k="tab" data-v="wanted">欲しい物</button>
+      <button class="chip" data-k="tab" data-v="gather">集める物</button>
+      <button class="chip" data-k="tab" data-v="make">作る物</button>
+    </div>
+    <div class="grp"><span class="lbl">右半分の並べ方</span>
+      <button class="chip on" data-k="table" data-v="cols">A. 所持・必要・棒・操作の列</button>
+      <button class="chip" data-k="table" data-v="stack">B. 「所持 / 必要」の下に棒、右に操作</button>
+      <button class="chip" data-k="table" data-v="ctrlFirst">C. 操作を先に、数と棒を右端に</button>
+    </div>
+    <div class="grp"><span class="lbl">真ん中の線</span>
+      <button class="chip on" data-k="guide" data-v="1">出す</button>
+      <button class="chip" data-k="guide" data-v="0">出さない</button>
+    </div>
+  </div>
+  <div class="stage"><div id="view"></div></div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>左半分：欲しい物と集める物はアイコンと名前、作る物は材料のスロット・矢印・できる物・作業場所と名前。名前は左半分の残りで切れる（ツールチップで全部）。</li>
+        <li>欲しい物：手で入れた行は「必要」の列が常に増減（- 数 +）、右端に外す「x」。設計図から来た行は数だけで、右端に「設計図」。</li>
+        <li>集める物：集めるにした行は右端に「作る」。</li>
+        <li>作る物：右端に「並べる」「作る」の絵のボタン。見出しの「すべて作る」も同じ列の上。</li>
+        <li>A は今の列の考え方のまま右半分へ。B は数を 1 か所にまとめ、棒をその下に長く。C は操作を数の手前に置き、数と棒を窓の右端にそろえる。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> 右半分の並べ方：A／B／C。</li>
+        <li><span class="q">2.</span> 欲しい物の増減を常に「必要」の列に出してよいか。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3;
+const opt = {tab:'wanted', table:'cols', guide:'1'};
+const px = v => v * U + 'px';
+const view = document.getElementById('view');
+function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 340)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
+function text(cls, x, y, s, size = 7, w, align){ const t = el(cls, x, y, w, null, s); t.style.fontSize = px(size); if (align) t.style.textAlign = align; if (w != null) { t.style.overflow = 'hidden'; t.style.textOverflow = 'ellipsis'; } return t; }
+const C = {furnace:'#707070', chest:'#a87830', grass:'#5a9a3a', dirt:'#8a5a3a', note:'#6a3a2a', glass:'#e8f0f0', shelf:'#a07840', sign:'#c8a060', helmet:'#5ad8d8', plate:'#5ad8d8',
+  cobble:'#7a7a7a', planks:'#b8945f', dia:'#5ad8d8', slab:'#c8a070', wheat:'#c8a040', cane:'#7ac040', wool:'#f0f0f0', clay:'#a0a8b8',
+  stick:'#9a7040', ingot:'#d0d0d0', iron:'#c8b0a0', bone:'#f0f0e0', dye:'#e8e8f0', sand:'#e0d090', table:'#9a6b3a', furn:'#707070'};
+function ico(x, y, k, size = 16, dim){ const d = el('ico' + (dim ? ' dim' : ''), x, y, size, size, ''); d.style.background = C[k]; }
+function pbtn(x, y, kind){
+  el('pbtn', x, y, 11, 11, '');
+  const q = (a, b, w, h) => { const d = el('', x + a, y + b, w, h, ''); d.style.background = '#ececec'; };
+  if (kind === 'place') { q(5,2,1,4); q(3,5,5,1); q(4,6,3,1); q(5,7,1,1); q(2,8,7,1); } else { q(1,3,2,2); q(4,3,2,2); q(1,6,2,2); q(4,6,2,2); q(7,4,1,1); q(8,5,1,1); q(7,6,1,1); q(9,3,1,5); }
+}
+function stepper(x, y, w, v){
+  el('wstep', x, y, w, 10, '');
+  text('txt', x + 1, y + 1, '-', 6.5, 8, 'center'); text('txt', x + 9, y + 1, v, 6.5, w - 18, 'center'); text('txt', x + w - 9, y + 1, '+', 6.5, 8, 'center');
+}
+function bar(x, y, w, f){ el('bar', x, y, w, 2, ''); if (f > 0) el('barfill', x, y, w * Math.min(1, f), 2, ''); }
+const DATA = {
+  wanted: [
+    {k:'furnace', n:'かまど', held:0, need:10048, src:'hand', fold:1},
+    {k:'plate', n:'ダイヤモンドのチェストプレート', held:0, need:10, src:'hand', fold:1},
+    {k:'chest', n:'チェスト', held:65, need:192, src:'hand', fold:1},
+    {k:'grass', n:'草ブロック', held:0, need:158, src:'sch'},
+    {k:'dirt', n:'土', held:4, need:7, src:'sch', fold:1},
+    {k:'note', n:'音符ブロック', held:0, need:6, src:'sch', fold:1},
+    {k:'glass', n:'白色の色付きガラス', held:0, need:5, src:'sch', fold:1},
+    {k:'helmet', n:'ダイヤモンドのヘルメット', held:1, need:1, src:'hand', done:1},
+  ],
+  gather: [
+    {k:'cobble', n:'丸石の仲間', held:0, need:80392, any:1},
+    {k:'planks', n:'板材', held:349, need:1115, any:1},
+    {k:'dia', n:'ダイヤモンド', held:0, need:81},
+    {k:'slab', n:'木のハーフブロック', held:6, need:16, any:1},
+    {k:'wheat', n:'小麦', held:0, need:9},
+    {k:'cane', n:'サトウキビ', held:0, need:9},
+    {k:'wool', n:'白色の羊毛', held:0, need:4, stop:1},
+    {k:'clay', n:'粘土のボール', held:0, need:3},
+  ],
+  make: [
+    {head:'今作れる'},
+    {k:'stick', n:'棒', held:4, need:4, ins:[['planks',2]], out:4, at:'table'},
+    {k:'ingot', n:'鉄インゴット', held:3, need:3, ins:[['iron',3]], out:3, at:'furn'},
+    {head:'一部だけ作れる'},
+    {k:'shelf', n:'模様入りの本棚', held:2, need:4, ins:[['planks',24],['slab',12]], out:4, at:'table'},
+    {k:'chest', n:'チェスト', held:38, need:128, ins:[['planks',1024]], out:128, at:'table'},
+    {head:'材料が足りない'},
+    {k:'bone', n:'骨粉', held:0, need:3, ins:[['bone',1]], out:3, at:'table', short:1},
+    {k:'dye', n:'白色の染料', held:0, need:1, ins:[['bone',1]], out:1, at:'table', short:1},
+  ],
+};
+function render(){
+  fit();
+  const W = 320, H = 220, X0 = 6, T0 = 22;
+  view.style.width = px(X0 + W + 6); view.style.height = px(T0 + H + 6); view.innerHTML = '';
+  ['欲しい物','集める物','作る物','作り方','保管場所'].forEach((t, i) => { const d = el('tab' + (['wanted','gather','make'][i] === opt.tab ? ' on' : ''), X0 + 6 + i * 52, 1, 51, 21, t); d.style.fontSize = px(7); });
+  el('win', X0, T0, W, H).style.zIndex = -1;
+  const L = X0 + 8, R = X0 + W - 12, mid = X0 + W / 2;
+  if (opt.guide === '1') el('guide', mid, T0 + 4, 0, H - 8, '');
+  // The right half's columns, from `mid` to `R` (about 150 units).
+  const half = R - mid;
+  const tab = opt.tab;
+  const heads = tab === 'make' ? ['今作れる','必要'] : ['所持','必要'];
+  let col;
+  if (opt.table === 'cols') col = {held: mid + 4, heldW: 28, need: mid + 36, needW: 46, bar: mid + 88, barW: 26, ctrl: R - 26, ctrlW: 26};
+  else if (opt.table === 'stack') col = {nums: mid + 4, numsW: 70, bar: mid + 4, barW: 70, ctrl: R - 56, ctrlW: 56};
+  else col = {ctrl: mid + 4, ctrlW: 52, held: R - 92, heldW: 28, need: R - 60, needW: 30, bar: R - 26, barW: 26};
+  let y = T0 + 6;
+  // Headings.
+  if (tab === 'wanted') { text('txt', L, y + 1, '設計図の残りを含める', 6.5); el('', R - 18, y, 18, 9, '').style.background = '#3c8527'; y += 13; }
+  if (opt.table === 'stack') text('faint', col.nums, y, heads[0] + ' / ' + heads[1], 5.5, col.numsW, 'right');
+  else { text('faint', col.held, y, heads[0], 5.5, col.heldW, 'right'); text('faint', col.need, y, heads[1], 5.5, col.needW, 'right'); }
+  y += 9;
+  const rows = DATA[tab];
+  rows.forEach(r => {
+    if (r.head) {
+      text('faint', L, y + 2, r.head, 5.5);
+      if (r.head === '今作れる') { const b = el('wbtn', R - 34, y, 34, 10, 'すべて作る'); b.style.fontSize = px(5.5); }
+      y += 11; return;
+    }
+    const h = tab === 'make' ? 20 : 18, faint = !!r.done || !!r.short;
+    // Left half.
+    let nameX, nameEnd = mid - 4;
+    if (tab === 'make') {
+      const arrowX = L + 38, productX = arrowX + 12;
+      r.ins.forEach(([k, n], i) => { const sx = arrowX - (r.ins.length - i) * 18; el('slot' + (r.short ? ' missing' : ''), sx, y + 1, 18, 18, ''); ico(sx + 1, y + 2, k, 16, faint); const c = el('count', sx + 1, y + 10, 16, null, n >= 1000 ? Math.floor(n / 1000) + 'k' : n); c.style.fontSize = px(6.5); });
+      text('txt', arrowX + 2, y + 4, '➜', 8);
+      el('slot', productX, y + 1, 18, 18, ''); ico(productX + 1, y + 2, r.k, 16, faint);
+      ico(productX + 21, y + 5, r.at, 10, faint);
+      nameX = productX + 34;
+    } else {
+      if (r.fold) text('txt', L, y + 5, '▸', 6);
+      ico(L + 7, y + 1, r.k, 16, faint);
+      if (r.any) text('count', L + 6, y - 1, '*', 6, 6, 'left');
+      nameX = L + 26;
+    }
+    text(faint ? 'faint' : 'txt', nameX, y + (tab === 'make' ? 6 : 5), r.n, 7, nameEnd - nameX);
+    // Right half.
+    const ny = y + (tab === 'make' ? 6 : 5), f = r.need ? r.held / r.need : 0;
+    const manual = tab === 'wanted' && r.src === 'hand' && !r.done;
+    if (opt.table === 'stack') {
+      text(faint ? 'faint' : 'txt', col.nums, ny - 2, `${r.held} / ${r.need}`, 7, col.numsW, 'right');
+      bar(col.bar, ny + 7, col.barW, f);
+    } else {
+      text(faint ? 'faint' : 'txt', col.held, ny, r.held, 7, col.heldW, 'right');
+      if (manual) stepper(col.need, ny - 1, col.needW, r.need); else text(faint ? 'faint' : 'txt', col.need, ny, r.need, 7, col.needW, 'right');
+      bar(col.bar, ny + 3, col.barW, f);
+    }
+    // Controls, always shown.
+    const cx = col.ctrl + col.ctrlW;
+    if (tab === 'make') { pbtn(cx - 24, y + 4.5, 'place'); pbtn(cx - 12, y + 4.5, 'make'); }
+    if (tab === 'gather' && r.stop) { const b = el('wbtn', cx - 22, y + 4, 22, 10, '作る'); b.style.fontSize = px(6); }
+    if (tab === 'wanted') {
+      if (opt.table === 'stack' && manual) stepper(cx - 56, ny - 1, 40, r.need);
+      if (manual) { const b = el('wbtn', cx - 11, y + 4, 11, 10, 'x'); b.style.fontSize = px(6); }
+      if (r.src === 'sch') text('faint', cx - 26, ny + 1, '設計図', 5.5, 26, 'right');
+    }
+    y += h;
+  });
+}
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  opt[b.dataset.k] = b.dataset.v;
+  document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
