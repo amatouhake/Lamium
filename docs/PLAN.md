@@ -48,17 +48,20 @@ plan's recipes are in [L-116](backlog/L-116.md).
   what it needs gathered. A recipe's state and an any-of input's slot (framed green
   when chosen) go to "How to make"; "gather" on a step, "make" on a
   material set to gather.
-- "To gather" uses the same columns, "All" as the first row; done rows
-  faint below. "To make" is the work (L-370), under headings: steps that
-  can be made now, then those made in part ("now/needed" in items at the
-  right), then those short of something (faint, the short inputs on the
-  game's red), and at the end, faint, what held stock covers whole; a
-  press opens the breakdown. The band's "to make" keeps that order with
-  no headings: "now/needed" for a partly row, a check for a held one,
-  its tip giving each input held/needed.
+- "To gather" uses the same columns, "All" as the first row, then under
+  headings what is still to gather (most left first) and what is
+  gathered (faint). "To make" is the work (L-370): under headings the
+  steps that can be made now, made in part, short (faint, short inputs on
+  the game's red), and held (faint, a check); "can make now" and
+  "needed" columns in items with a bar. A press opens the breakdown. The
+  band's lists keep the window's order: "to gather" as "held/needed",
+  gathered rows checked, the tip giving what is left; "to make" with
+  "now/needed" for a partly row, its tip each input held/needed.
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
-  "automatic" first), by name; lines for the current plan, or with a
+  "automatic" first, as its recipe's slots), by name, each line's state
+  on one line ("Automatic: from planks", "Chosen: ..." on green) with one
+  arrow and aligned columns; lines for the current plan, or with a
   switch all chosen before. Placing follows it, else what is held.
 - A key (W by default, beside A for favorites; both rebindable) puts the
   hovered item into "wanted" or takes it out, on item screens and in the

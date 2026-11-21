@@ -384,6 +384,19 @@ void listScrollbar(MinecraftUIRenderContext& context, float x, float top, float 
     drawScrollbar(context, bar.x, bar.top, bar.track, bar.thumbTop(), bar.thumb, scroll_drag::holding(&first) || bar.hit(pointerX, pointerY));
 }
 void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, float thumbTop, float thumb, bool hot) {
+    if (onWindow()) {
+        // On the game's window (L-370): a track sunk as a slot, a thumb raised as a button, apart from the window's
+        // edge, where a thin dark line was lost in its shadow.
+        namespace v = palette::vanilla;
+        fill(context, x - 1.5f, top, 5, track, v::slot);
+        fill(context, x - 1.5f, top, 5, .5f, v::slotDark);
+        fill(context, x - 1.5f, top, .5f, track, v::slotDark);
+        fill(context, x - 1.5f, top + track - .5f, 5, .5f, v::slotLight);
+        fill(context, x + 3, top, .5f, track, v::slotLight);
+        raisedBox(context, x - 1, thumbTop + .5f, 4, std::max(4.f, thumb - 1), v::window, v::windowLight, v::buttonShadow);
+        if (hot) fill(context, x, thumbTop + 1.5f, 2, std::max(2.f, thumb - 3), palette::white, .3f);
+        return;
+    }
     fill(context,x,top,2,track,palette::white,.08f);
     fill(context,x,thumbTop,2,thumb,hot ? palette::dim : palette::keyEdge);
 }

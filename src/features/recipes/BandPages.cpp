@@ -133,6 +133,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         std::string countText; // in place of `count`: a step made in part, "now/needed"
         bool done = false;     // a step held stock covers whole: a check in place of the count
         StepLine line;         // a row of what to make: its step (a held one is not among the plan's)
+        bool gather = false;   // a row of what to gather: its tip says how many are left
     };
     std::vector<SideRow> rows;
     auto const* plan = state::plan(player);
@@ -144,21 +145,30 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         Item const items = static_cast<Item>(index.items.size());
         auto const turn = static_cast<size_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1500);
-        for (auto const& line : plan->view.gather) {
-            if (!line.left) continue;
+        // As the window's tab (L-370): what is left first, most left first, "held/needed"; then what is gathered,
+        // faint with a check; the tip says how many are left.
+        auto add = [&](GatherLine const& line, bool done) {
+            SideRow row;
             if (line.id < items) {
-                auto const& key = index.items[static_cast<size_t>(line.id)];
-                rows.push_back({key, schematic::items::shown(key).name, line.left});
+                row.key = index.items[static_cast<size_t>(line.id)];
+                row.name = schematic::items::shown(row.key).name;
             } else {
                 auto const& members = index.groups[static_cast<size_t>(line.id - items)].members;
-                SideRow row{members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])],
-                            groupName(index, line.id - items), line.left};
-                row.group = true;
+                row.key = members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])];
+                row.name = groupName(index, line.id - items), row.group = true;
+            }
+            row.count = line.left, row.countText = std::format("{}/{}", line.held, line.need), row.faint = done, row.done = done, row.gather = true;
+            rows.push_back(std::move(row));
+        };
+        for (auto const& line : plan->view.gather) if (line.left) add(line, false);
+        // What the recipe table does not know (a grass block) is gathered as it is.
+        for (auto const& line : plan->loose)
+            if (line.left > 0) {
+                SideRow row{line.key, schematic::items::shown(line.key).name, line.left};
+                row.countText = std::format("{}/{}", line.held, line.need), row.gather = true;
                 rows.push_back(std::move(row));
             }
-        }
-        // What the recipe table does not know (a grass block) is gathered as it is.
-        for (auto const& line : plan->loose) if (line.left > 0) rows.push_back({line.key, schematic::items::shown(line.key).name, line.left});
+        for (auto const& line : plan->view.done) add(line, true);
     } else if (plan) {
         // What to make, as the window's tab (L-370): made now, made in part ("now/needed"), short (faint), and at the
         // end what held stock covers whole (faint, a check for its count); no headings in rows this low.
@@ -241,6 +251,9 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 std::map<Item, Count> stock;
                 for (auto const& [id, have] : plan->request.held) stock[id] += have;
                 late.tip = row.name, late.tipLines = stepInputLines(plan->table->index, plan->request, row.line, stock);
+            } else if (row.gather) {
+                late.tip = row.name;
+                late.tipLines = {row.done ? translated("recipes.gathered") : translated("recipes.stepShort", row.count)};
             } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
             // A row a feature handed over says whose it is.
             else if (!row.source.empty()) late.tip = row.name, late.tipLines = {translated("recipes.from." + row.source)};
