@@ -19,6 +19,11 @@ Wanted list;
 unsigned listWorld = 0;
 std::optional<std::filesystem::path> listFile;
 bool listKeep = false;
+// A change of the wanted list is written once changes stop for a moment (a wheel turn steps a count many times, and
+// a write takes milliseconds on the client thread), and before the list is left for another world or Lamium stops.
+bool wantedDirty = false;
+std::chrono::steady_clock::time_point wantedChangedAt{};
+constexpr auto wantedSettle = std::chrono::milliseconds(800);
 unsigned revision = 1;
 Places placed;
 std::atomic<std::shared_ptr<std::vector<StoreBox> const>> marks;
@@ -73,14 +78,30 @@ void writeNotes() {
     try { writeFileReplacing(notesPath(), encodeNotes(held), "recipe notes"); }
     catch (std::exception const& error) { log(std::string("could not save recipes.json: ") + error.what()); }
 }
+void saveWanted() {
+    SaveCost const saveCost{"writeWanted"};
+    wantedDirty = false;
+    if (!listFile || listKeep) return;
+    try {
+        std::error_code ignored;
+        std::filesystem::create_directories(listFile->parent_path(), ignored);
+        writeFileReplacing(*listFile, encodeWanted(list), "wanted items");
+    } catch (std::exception const& error) { log(std::string("could not save the wanted items: ") + error.what()); }
+}
+// Writes the wanted list once its changes have settled; `now` writes it at once.
+void flushWanted(bool now) {
+    if (wantedDirty && (now || std::chrono::steady_clock::now() - wantedChangedAt >= wantedSettle)) saveWanted();
+}
 // The wanted list follows the joined world; asked a few times a second, not every frame.
 void followWorld() {
+    flushWanted(false);
     auto const now = std::chrono::steady_clock::now();
     bool const gone = left.exchange(false);
     if (!gone && now - placeAsked < std::chrono::milliseconds(400)) return;
     placeAsked = now;
     auto const place = map::waypoints::place();
     if (!gone && place.world == listWorld) return;
+    flushWanted(true); // into the world it belongs to, before the list is that of another
     listWorld = place.world;
     list = {};
     listFile = place.active ? place.wantedFile : std::nullopt;
@@ -125,15 +146,11 @@ void writePlaces() {
 std::int64_t nowSeconds() {
     return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
+// A change of the wanted list: every screen shows it the next frame; the file follows once changes settle.
 void writeWanted() {
-    SaveCost const saveCost{"writeWanted"};
     ++revision;
-    if (!listFile || listKeep) return;
-    try {
-        std::error_code ignored;
-        std::filesystem::create_directories(listFile->parent_path(), ignored);
-        writeFileReplacing(*listFile, encodeWanted(list), "wanted items");
-    } catch (std::exception const& error) { log(std::string("could not save the wanted items: ") + error.what()); }
+    wantedDirty = true;
+    wantedChangedAt = std::chrono::steady_clock::now();
 }
 }
 Notes const& notes() {
@@ -331,6 +348,7 @@ void start() {
 }
 void stop() {
     if (exitListener) { ll::event::EventBus::getInstance().removeListener(exitListener); exitListener.reset(); }
+    try { flushWanted(true); } catch (...) {}
     left = true;
 }
 }
