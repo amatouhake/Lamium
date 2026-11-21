@@ -29,6 +29,8 @@ struct Frame {
     bool shift = false;     // a stepper moves to the next stack
     bool held = false;      // the left button is down: a scrollbar is dragged
     int favoriteTurns = 0;  // wheel notches over the favorites
+    view::Placer* placer = nullptr; // the screen as a place to lay in or make a plan's steps (L-385)
+    bool ctrl = false;      // held: "lay in" makes one round onto the pointer
     bool took(ListBox const& box) {
         if (!pressed || !box.has(px, py)) return false;
         pressed = false;

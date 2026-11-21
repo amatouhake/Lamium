@@ -37,6 +37,7 @@ struct Waiting {
     std::map<int, Item> picks;
     std::string screen;
     bool many = false;
+    int most = 64; // with `many`, no more crafts than that (L-385)
     int tries = 0; // frames waited for the grid to read empty
 } going;
 constexpr int mostTries = 20;
@@ -112,10 +113,10 @@ bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& m
 }
 // The recipe laid into an empty grid.
 bool lay(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many,
-         int* spent = nullptr) {
+         int* spent = nullptr, int most = 64) {
     auto& manager = *controller.mContainerManagerController;
     if (!gridEmpty(manager)) return false;
-    auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, many);
+    auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), picks, many, most);
     if (!plan.ready()) return false;
     return apply(controller, plan.moves, spent);
 }
@@ -161,12 +162,12 @@ int slotCount(ContainerManagerController& manager, std::string const& slot) {
 // another item is emptied into the inventory first; one that holds the same item gets more, as far as its stack
 // has room. False where nothing was laid in or the game did not do as planned.
 bool layAtStation(ContainerScreenController& controller, Station at, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks,
-                  bool many) {
+                  bool many, int most = 64) {
     auto& manager = *controller.mContainerManagerController;
     auto const& slots = stationSlots(at);
     if (static_cast<int>(recipe.cells.size()) != static_cast<int>(slots.size())) return false;
     auto carried = carriedOf(manager, index);
-    auto plan = placePlan(index, recipe, 0, carried, picks, many);
+    auto plan = placePlan(index, recipe, 0, carried, picks, many, most);
     if (!plan.ready()) return false;
     auto itemAt = [&](std::vector<PlaceSource> const& from, int slot) {
         for (auto const& source : from) if (source.slot == slot) return source.item;
@@ -184,7 +185,7 @@ bool layAtStation(ContainerScreenController& controller, Station at, Index const
     // What went back may have joined a stack the plan draws from: planned again.
     if (emptied) {
         carried = carriedOf(manager, index);
-        plan = placePlan(index, recipe, 0, carried, picks, many);
+        plan = placePlan(index, recipe, 0, carried, picks, many, most);
         if (!plan.ready()) return false;
     }
     bool any = false;
@@ -279,7 +280,8 @@ std::vector<PlaceSource> carried(ScreenView& screen, Index const& index) {
     } catch (...) {}
     return {};
 }
-bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many) {
+bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many,
+         int most) {
     going = {};
     try {
         if (!table || recipe < 0 || recipe >= static_cast<int>(table->index.recipes.size())) return false;
@@ -289,7 +291,7 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             auto* other = station(screen, at);
             auto const& shape = table->index.recipes[static_cast<size_t>(recipe)];
             if (!other || !benchMakes({at, 0}, shape)) return false;
-            bool const laid = layAtStation(*other, at, table->index, shape, picks, many);
+            bool const laid = layAtStation(*other, at, table->index, shape, picks, many, most);
             if (laid && at == Station::Stonecutter)
                 notice = {other, keyOf(other->mContainerManagerController->getItemStack(stationSlots(at).front(), 0))};
             static bool told = false;
@@ -318,9 +320,9 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
                     if (!moves.empty()) apply(*controller, moves);
                     return true;
                 }
-                auto const most = placePlan(table->index, shape, side, carried(screen, table->index), picks, true);
-                if (most.ready() && std::ranges::all_of(std::views::iota(size_t{0}, cells.size()),
-                                                        [&](size_t i) { return cells[i] < 0 || counts[i] == most.crafts; }))
+                auto const full = placePlan(table->index, shape, side, carried(screen, table->index), picks, true, most);
+                if (full.ready() && std::ranges::all_of(std::views::iota(size_t{0}, cells.size()),
+                                                        [&](size_t i) { return cells[i] < 0 || counts[i] == full.crafts; }))
                     return true;
             }
         }
@@ -328,30 +330,131 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             controller->_evacuateCraftingGrid();
             // Not read as empty at once: the recipe is laid in when it is, a few frames on.
             if (!gridEmpty(manager)) {
-                going = {table, recipe, picks, screen.getScreenName(), many, 0};
+                going = {table, recipe, picks, screen.getScreenName(), many, most, 0};
                 return true;
             }
         }
-        return lay(*controller, table->index, table->index.recipes[static_cast<size_t>(recipe)], picks, many);
+        return lay(*controller, table->index, table->index.recipes[static_cast<size_t>(recipe)], picks, many, nullptr, most);
     } catch (...) {
         try { Runtime::instance().self().getLogger().warn("Recipes: placing a recipe failed"); } catch (...) {}
         return false;
     }
 }
 void tickOnto(ScreenView& screen);
+namespace { void tickMaking(ScreenView& screen); }
 void tick(ScreenView& screen) {
     tickOnto(screen);
+    tickMaking(screen);
     if (going.recipe < 0) return;
     try {
         auto* controller = crafting(screen);
         if (!controller || screen.getScreenName() != going.screen) { going = {}; return; }
         // Waiting for what lay in the grid to be back in the inventory (no room for it: given up).
         if (!gridEmpty(*controller->mContainerManagerController)) { if (++going.tries > mostTries) going = {}; return; }
-        lay(*controller, going.table->index, going.table->index.recipes[static_cast<size_t>(going.recipe)], going.picks, going.many);
+        lay(*controller, going.table->index, going.table->index.recipes[static_cast<size_t>(going.recipe)], going.picks, going.many, nullptr,
+            going.most);
     } catch (...) {}
     going = {};
 }
-void stop() { going = {}; }
+namespace {
+// L-385: steps of a plan being made. Lay: what the grid holds goes back, then a step's rounds are laid in; Take: the
+// output taken as a Shift click takes it, and once the grid reads empty the rounds are made.
+struct Making {
+    bool on = false;
+    std::shared_ptr<service::Table const> table;
+    std::map<int, Item> picks;
+    std::vector<MakeStep> steps; // what is left, in order
+    std::string screen;
+    enum class Phase { Lay, Take } phase = Phase::Lay;
+    int laid = 0;   // rounds laid in by the last Lay
+    bool took = false;
+    int tries = 0;  // steps waited for the grid to read empty, or for the take to show
+    int made = 0;   // rounds made, for the log
+    std::chrono::steady_clock::time_point next;
+} making;
+void finishMaking(char const* why) {
+    if (making.on) {
+        try { Runtime::instance().self().getLogger().info("Recipes: a plan's steps made, {} rounds ({})", making.made, why); } catch (...) {}
+    }
+    making = {};
+}
+void tickMaking(ScreenView& screen) {
+    if (!making.on) return;
+    auto const now = std::chrono::steady_clock::now();
+    if (now < making.next) return;
+    making.next = now + std::chrono::milliseconds(50);
+    try {
+        auto* controller = crafting(screen);
+        if (!controller || screen.getScreenName() != making.screen) { finishMaking("the screen went"); return; }
+        auto& manager = *controller->mContainerManagerController;
+        if (making.steps.empty()) { finishMaking("done"); return; }
+        auto& step = making.steps.front();
+        auto const& index = making.table->index;
+        auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+        if (making.phase == Making::Phase::Lay) {
+            if (!gridEmpty(manager)) {
+                if (!making.tries++) controller->_evacuateCraftingGrid();
+                if (making.tries > mostTries) finishMaking("the grid did not empty");
+                return;
+            }
+            making.tries = 0;
+            auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), making.picks, true, step.rounds);
+            if (!plan.ready() || step.rounds <= 0) {
+                // Nothing more of this step can be laid in: the next one.
+                making.steps.erase(making.steps.begin());
+                return;
+            }
+            if (!apply(*controller, plan.moves)) { finishMaking("laying a round in failed"); return; }
+            making.laid = plan.crafts;
+            making.took = false;
+            making.phase = Making::Phase::Take;
+            return;
+        }
+        if (gridEmpty(manager)) {
+            step.rounds -= making.laid;
+            making.made += making.laid;
+            if (step.rounds <= 0) making.steps.erase(making.steps.begin());
+            making.phase = Making::Phase::Lay;
+            making.tries = 0;
+            return;
+        }
+        if (!making.took) {
+            // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
+            controller->_handleAutoPlace(INT_MAX, output, 0);
+            making.took = true;
+            return;
+        }
+        if (++making.tries > mostTries) {
+            controller->_evacuateCraftingGrid();
+            finishMaking("the product found no room");
+        }
+    } catch (...) {
+        finishMaking("a step failed");
+    }
+}
+}
+bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table, std::vector<MakeStep> steps, std::map<int, Item> const& picks) {
+    finishMaking("started again");
+    going = {};
+    if (!table || steps.empty()) return false;
+    for (auto const& step : steps)
+        if (step.recipe < 0 || step.recipe >= static_cast<int>(table->index.recipes.size())) return false;
+    try {
+        if (!crafting(screen)) {
+            // At a station its slots take the first step's rounds, and the station makes them.
+            auto const& first = steps.front();
+            return run(screen, table, first.recipe, picks, true, first.rounds);
+        }
+    } catch (...) { return false; }
+    making = {};
+    making.on = true;
+    making.table = table;
+    making.picks = picks;
+    making.steps = std::move(steps);
+    making.screen = screen.getScreenName();
+    return true;
+}
+void stop() { going = {}; finishMaking("stopped"); }
 }
 namespace massCraft {
 namespace {

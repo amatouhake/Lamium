@@ -49,8 +49,19 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
     // Dark text on the game's grey has no shadow, as the window's own text.
     centered(context,x,y,w,h,std::move(text),color,!onWindow() || (enabled && kind == ButtonKind::Primary));
 }
-void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on) {
-    drawButtonBox(context, x, y, size, size, hovered, on ? ButtonKind::Primary : ButtonKind::Plain);
+void drawStoreMark(MinecraftUIRenderContext& context, float x, float y, Rgb ink) {
+    fill(context, x, y, 7, 1, ink); fill(context, x, y, 1, 6, ink); fill(context, x + 6, y, 1, 6, ink); fill(context, x, y + 5, 7, 1, ink);
+    fill(context, x, y + 2, 7, 1, ink); fill(context, x + 3, y + 1, 1, 2, ink);
+}
+void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on, bool enabled) {
+    Rgb const ink = drawButtonBox(context, x, y, size, size, hovered && enabled, on ? ButtonKind::Primary : ButtonKind::Plain, enabled);
+    if (picture == Picture::Place || picture == Picture::Make) {
+        float const o = std::floor((size - 11) / 2);
+        auto q = [&](float px, float py, float w, float h) { fill(context, x + o + px, y + o + py, w, h, ink); };
+        if (picture == Picture::Place) { q(5, 2, 1, 4); q(3, 5, 5, 1); q(4, 6, 3, 1); q(5, 7, 1, 1); q(2, 8, 7, 1); }
+        else { q(1, 3, 2, 2); q(4, 3, 2, 2); q(1, 6, 2, 2); q(4, 6, 2, 2); q(7, 4, 1, 1); q(8, 5, 1, 1); q(7, 6, 1, 1); q(9, 3, 1, 5); }
+        return;
+    }
     // Drawn on a 16-unit grid, centred and scaled to the button.
     float const k = std::floor(size / 16 * 4) / 4, ox = x + std::floor((size - 16 * k) / 2), oy = y + std::floor((size - 16 * k) / 2);
     auto p = [&](float px, float py, float w, float h, Rgb color, float alpha = 1) { fill(context, ox + px * k, oy + py * k, w * k, h * k, color, alpha); };

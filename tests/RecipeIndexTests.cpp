@@ -343,6 +343,9 @@ void recipeIndexTests() {
         auto split = placePlan(index, pickaxe, 3, {{0, iron, 3}, {1, sticks, 64}, {2, iron, 4}}, {}, true);
         check(split.crafts == 2 && split.moves == Moves{{0, 2, 0}, {0, 1, 1}, {2, 1, 1}, {2, 2, 2}, {1, 2, 4}, {1, 2, 7}},
               "as many as divide evenly, drawn from every stack of the item, a cell from two stacks where one runs out");
+        auto capped = placePlan(index, pickaxe, 3, {{0, iron, 30}, {1, sticks, 64}}, {}, true, 4);
+        check(capped.crafts == 4 && placePlan(index, pickaxe, 3, {{0, iron, 6}, {1, sticks, 64}}, {}, true, 4).crafts == 2,
+              "laying what a step still needs stops there, or at what divides evenly if that is less (L-385)");
         check(placePlan(index, pickaxe, 3, {{0, iron, 64}, {1, sticks, 64, 16}, {2, iron, 64}, {3, iron, 64}}, {}, true).crafts == 16,
               "a cell holds at most its item's stack");
         int const planksGroup = stick.cells[0].id;
@@ -480,6 +483,9 @@ void recipeIndexTests() {
                           && stepState(brewed, none, brew, enough) == StepState::Ready && stepState(brewed, none, brew, short_) == StepState::Missing
                           && stepShort(brewed, none, brew, some) == std::vector<bool>{true, false},
                       "a step is ready, partly made or missing from what is held, its short inputs told (L-370)");
+                check(stepState(brewed, none, brew, short_, enough) == StepState::Stored && stepState(brewed, none, brew, some, enough) == StepState::Partly
+                          && stepState(brewed, none, brew, short_, short_) == StepState::Missing,
+                      "what is carried decides what can be made now; the stores make a step one to take out for (L-385)");
                 RawView done;
                 done.done.push_back({awkward, 3, 3, 0});
                 auto const held = heldSteps(brewed, brewChoice, done);

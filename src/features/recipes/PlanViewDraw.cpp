@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/GroupLook.h"
+#include "features/recipes/ListFilter.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
 #include "features/recipes/RecipeView.h"
@@ -48,6 +49,23 @@ void close() {
     openEntry.clear();
     howOpen.clear();
 }
+void storedLines(view::Late& late, state::Plan const& plan, Item item) {
+    using namespace lamium::ui;
+    auto const& index = plan.table->index;
+    auto const stored = plan.stored.find(item);
+    if (item < 0 || stored == plan.stored.end() || !stored->second) return;
+    auto const carried = plan.held.find(item);
+    late.tipLines.push_back(translated("recipes.place.tipCarried", carried == plan.held.end() ? Count{0} : carried->second));
+    for (auto const& place : state::places().list) {
+        if (!place.counted) continue;
+        Count here = 0;
+        for (auto const& entry : place.items) if (index.find(entry.name, entry.aux) == item) here += entry.count;
+        if (!here) continue;
+        std::string name = schematic::items::shown(place.block).name;
+        if (!place.ender) name = translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);
+        late.tipLines.push_back(translated("recipes.place.tipPlace", name, here));
+    }
+}
 void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line, std::string const& key) {
     using namespace lamium::ui;
     auto const& index = plan.table->index;
@@ -71,20 +89,7 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
     if (line.left > 0) amounts.push_back(translated("recipes.stepShort", amountText(line.left, schematic::items::shown(picture).stack)));
     late.tipLines.insert(late.tipLines.begin(), amounts.begin(), amounts.end());
     // What the counted stores held when last seen, place by place, beside what is carried.
-    if (key.empty() && line.id >= 0 && line.id < itemCount)
-        if (auto const stored = plan.stored.find(line.id); stored != plan.stored.end() && stored->second) {
-            auto const carried = plan.held.find(line.id);
-            late.tipLines.push_back(translated("recipes.place.tipCarried", carried == plan.held.end() ? Count{0} : carried->second));
-            for (auto const& place : state::places().list) {
-                if (!place.counted) continue;
-                Count here = 0;
-                for (auto const& item : place.items) if (index.find(item.name, item.aux) == line.id) here += item.count;
-                if (!here) continue;
-                std::string name = schematic::items::shown(place.block).name;
-                if (!place.ender) name = translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);
-                late.tipLines.push_back(translated("recipes.place.tipPlace", name, here));
-            }
-        }
+    if (key.empty() && line.id >= 0 && line.id < itemCount) storedLines(late, plan, line.id);
 }
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift, std::string& showItem,
           bool& showChoice) {
@@ -306,7 +311,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         return static_cast<float>(std::min<size_t>(most, 4)) * 18;
     };
     auto stepSlots = [&](float x0, float y, StepLine const& step, bool faint, bool interactive = true, float room = inputsW,
-                         std::vector<bool> const* shortParts = nullptr) {
+                         std::vector<bool> const* shortParts = nullptr, std::vector<bool> const* storedParts = nullptr) {
         auto const& key = index.items[static_cast<size_t>(step.item)];
         auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
         size_t const iconsBefore = late.icons.size();
@@ -321,11 +326,17 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18), shortParts && u < shortParts->size() && (*shortParts)[u]);
             itemIcon(item, sx + 1, y + 2);
             if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
+            bool const stored = storedParts && u < storedParts->size() && (*storedParts)[u];
+            if (stored) {
+                fill(context, sx + 9, y + 2, 8, 7, v::window);
+                drawStoreMark(context, sx + 9.5f, y + 2.5f, v::windowInk);
+            }
             if (over(sx, y + 1, 18, 18)) {
                 if (part.group) {
                     groupTip(part.id, sx, y + 1);
                     if (interactive) late.hints.push_back(translated("recipes.howTo.change"));
                 } else late.tip = nameOf(item), late.hovered = pictureOf(item);
+                if (stored && item < itemCount) storedLines(late, *plan, item);
             }
             if (interactive && part.group && took(sx, y + 1, 18, 18)) jumpHowTo(groupKey(index, part.id));
         }
@@ -588,22 +599,24 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     }
 
     if (tab == Tab::Make) {
-        // The work (L-370): steps that can be made now, then those made in part, then those short of something,
-        // each under its heading; at the end, faint, what held stock covers whole. A press opens the breakdown of
-        // the wanted item that needs the step.
+        // The work (L-370): steps that can be made now from what is carried, then those made in part, then those the
+        // stores would cover (L-385), then those short of something, each under its heading; at the end, faint, what
+        // held stock covers whole. A press opens the breakdown of the wanted item that needs the step; under the
+        // pointer a row lays its step in or makes it, and the first heading makes them all.
         auto const& steps = plan->view.steps;
         auto const held = heldSteps(index, *plan->choice, plan->view);
         if (steps.empty() && held.empty()) { note(translated("recipes.nothingWanted")); return; }
-        std::map<Item, Count> stock;
-        for (auto const& [id, have] : request.held) stock[id] += have;
+        std::map<Item, Count> all, carried;
+        for (auto const& [id, have] : request.held) all[id] += have;
+        for (auto const& [id, have] : plan->held) carried[id] += have;
         struct Line { StepLine const* step = nullptr; StepState state = StepState::Ready; char const* label = nullptr; float height = 0; };
         std::vector<Line> lines;
         constexpr std::pair<StepState, char const*> heads[]{{StepState::Ready, "recipes.ready"}, {StepState::Partly, "recipes.partly"},
-                                                            {StepState::Missing, "recipes.notReady"}};
+                                                            {StepState::Stored, "recipes.stored"}, {StepState::Missing, "recipes.notReady"}};
         for (auto [state, head] : heads) {
             bool first = true;
             for (auto const& step : steps) {
-                if (stepState(index, request, step, stock) != state) continue;
+                if (stepState(index, request, step, carried, all) != state) continue;
                 if (first) lines.push_back({nullptr, state, head, labelHeight}), first = false;
                 lines.push_back({&step, state, nullptr, stepHeight});
             }
@@ -612,6 +625,42 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             lines.push_back({nullptr, StepState::Held, "recipes.heldSteps", labelHeight});
             for (auto const& step : held) lines.push_back({&step, StepState::Held, nullptr, stepHeight});
         }
+        // What the open screen can do with a step: one round laid in from what is carried.
+        auto* placer = input.placer;
+        auto canLay = [&](StepLine const& step) {
+            return placer && placer->preview(index.recipes[static_cast<size_t>(step.recipe)], false).ready();
+        };
+        // Why a step cannot be laid in here: the station it is made at, else what is short.
+        auto whyNot = [&](StepLine const& step) {
+            auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+            if (!placer || !placer->places(kindOf(recipe.station))) return translated("recipes.makeAt", stationName(recipe.station));
+            // A three-wide recipe at the inventory's 2x2: the crafting table makes it.
+            if (placer->gridSide() && !fitsGrid(recipe, placer->gridSide())) return translated("recipes.makeAt", stationName(Station::Crafting));
+            return translated("recipes.notReady");
+        };
+        // The two buttons of a step under the pointer (L-385): lay in (one round; Shift what is still needed; Ctrl one
+        // round onto the pointer), make what is still needed. `x` their right end.
+        auto stepButtons = [&](float x, float y, StepLine const& step) {
+            constexpr float size = 11;
+            bool const can = canLay(step);
+            float const placeX = x - 2 * size - 2, makeX = x - size;
+            bool const overPlace = over(placeX, y, size, size), overMake = over(makeX, y, size, size);
+            drawPictureButton(context, placeX, y, size, Picture::Place, overPlace, false, can);
+            drawPictureButton(context, makeX, y, size, Picture::Make, overMake, false, can);
+            if (overPlace || overMake) {
+                late.tip = translated(overPlace ? "recipes.place" : "recipes.makeSteps");
+                late.tipLines.clear();
+                if (!can) late.tipLines.push_back(whyNot(step));
+                if (overPlace && can) late.hints.push_back(translated("recipes.hint.placeStep"));
+            }
+            if (took(placeX, y, size, size) && can) {
+                if (input.ctrl) placer->craft(step.recipe);
+                else if (input.shift) placer->runMost(step.recipe, static_cast<int>(std::min<Count>(step.crafts, 64)));
+                else placer->run(step.recipe, false);
+            } else if (took(makeX, y, size, size) && can)
+                placer->make({{step.recipe, static_cast<int>(std::min<Count>(step.crafts, 1 << 20))}});
+            return placeX;
+        };
         // The columns of "to gather" (L-370): what can be made now and what is needed, in items, and a bar.
         columnHeads(top, "recipes.col.need", false, {}, "recipes.col.now");
         top += headHeight;
@@ -625,11 +674,34 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             auto const& line = lines[static_cast<size_t>(at)];
             if (line.label) {
                 labelScaled(context, left, y + 3, right - left, translated(line.label), .75f, v::windowFaint, Align::Left, false);
+                if (line.state == StepState::Ready) {
+                    // "Make all": what can be made now here, top down; a grid holds one recipe at a time, so it only makes.
+                    std::vector<std::pair<int, int>> ready;
+                    for (auto const& other : lines)
+                        if (other.step && other.state == StepState::Ready && canLay(*other.step))
+                            ready.emplace_back(other.step->recipe, static_cast<int>(std::min<Count>(other.step->crafts, 1 << 20)));
+                    bool const can = !ready.empty() && placer && placer->gridSide() > 0;
+                    std::string const text = translated("recipes.makeAll");
+                    float const w = rowButtonWidth(context, text), bx = right - w, by = y;
+                    bool const hot = over(bx, by, w, rowButtonHeight);
+                    if (can) drawRowButton(context, bx, by, w, text, hot);
+                    else labelScaled(context, bx, by + 2, w, text, .75f, v::windowFaint, Align::Center, false);
+                    if (hot) late.tip = translated("recipes.makeAll"), late.tipLines = {translated("recipes.makeAllTip")};
+                    if (can && took(bx, by, w, rowButtonHeight)) placer->make(ready);
+                }
             } else {
                 bool const faint = line.state == StepState::Missing || line.state == StepState::Held;
-                if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
-                auto const shortParts = line.state == StepState::Held ? std::vector<bool>{} : stepShort(index, request, *line.step, stock);
-                float const after = stepSlots(left, y, *line.step, faint, true, inputsW, &shortParts);
+                bool const hot = over(left, y, right - left, stepHeight);
+                if (hot) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
+                std::vector<bool> shortParts, storedParts;
+                if (line.state != StepState::Held) {
+                    // Red where nobody holds enough; the stores' chest where only they make it up.
+                    shortParts = stepShort(index, request, *line.step, all);
+                    storedParts = stepShort(index, request, *line.step, carried);
+                    for (size_t k = 0; k < storedParts.size(); ++k) storedParts[k] = storedParts[k] && !shortParts[k];
+                }
+                float const after = stepSlots(left, y, *line.step, faint, true, inputsW, &shortParts, &storedParts);
+                float nameEnd = heldX - 4;
                 if (line.state == StepState::Held) {
                     // Held: a check where the counts would be.
                     float const cx = wantX + wantW - 8, cy = y + 6;
@@ -637,12 +709,13 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     for (int k = 0; k < 4; ++k) fill(context, cx + 2 + static_cast<float>(k), cy + 4 - static_cast<float>(k), 1, 1, v::windowFaint);
                 } else {
                     Count const each = std::max<Count>(1, index.recipes[static_cast<size_t>(line.step->recipe)].count);
-                    Count const now = std::min(line.step->made, stepNow(index, request, *line.step, stock) * each);
+                    Count const now = std::min(line.step->made, stepNow(index, request, *line.step, carried) * each);
                     number(heldX, heldW, y + 6, now, faint);
                     number(wantX, wantW, y + 6, line.step->made, faint);
                     progressBar(context, barX, y + 10, barW, 3, line.step->made > 0 ? static_cast<float>(now) / static_cast<float>(line.step->made) : 1.f);
+                    if (hot) stepButtons(right, y + 4.5f, *line.step);
                 }
-                windowLabel(context, after + 2, y + 6, heldX - after - 4, schematic::items::shown(index.items[static_cast<size_t>(line.step->item)]).name, faint);
+                windowLabel(context, after + 2, y + 6, nameEnd - after - 2, schematic::items::shown(index.items[static_cast<size_t>(line.step->item)]).name, faint);
                 if (line.state != StepState::Held && took(left, y, right - left, stepHeight))
                     if (auto const* shares = state::shares(player))
                         for (size_t e = 0; e < shares->targets.size() && e < shares->entries.size(); ++e)

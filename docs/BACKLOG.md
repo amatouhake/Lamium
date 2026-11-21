@@ -195,7 +195,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Feature work and research
 
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
-- [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Ready): Agreed (maintainer 2026-11-22), not started
+- [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Ready): Built, not checked in game; Mass Craft's run not used (a run of its own keeps the product)
 - [L-384](backlog/L-384.md) HUD: scale above 200 %, and a paper doll cut to its upper body (Design): Requested by a player (Discord, 2026-11-21); not started, no release target
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started

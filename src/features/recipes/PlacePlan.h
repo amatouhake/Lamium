@@ -62,8 +62,9 @@ inline std::vector<PlaceMove> oneMore(Index const& index, Recipe const& recipe, 
     }
     return out;
 }
+// `most`: with `many`, no more crafts than that (a plan's step lays what it still needs, L-385).
 inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, std::vector<PlaceSource> const& carried,
-                           std::map<int, Item> const& picks, bool many) {
+                           std::map<int, Item> const& picks, bool many, int most = 64) {
     PlacePlan out;
     int const count = static_cast<int>(recipe.cells.size());
     // A station's recipe (`side` 0, L-380): each cell into a slot of its own, in order (the furnaces' input; the
@@ -113,7 +114,7 @@ inline PlacePlan placePlan(Index const& index, Recipe const& recipe, int side, s
     if (!out.missing.empty()) return out;
     int each = 1;
     if (many) {
-        each = 64;
+        each = std::clamp(most, 1, 64);
         for (auto const& [item, cells] : used) if (cells > 0) each = std::min({each, total[item] / cells, stack[item]});
     }
     out.crafts = each;

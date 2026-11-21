@@ -1,6 +1,7 @@
 #include "features/recipes/BandPages.h"
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/GroupLook.h"
+#include "features/recipes/ListFilter.h"
 #include "features/recipes/RecipeText.h"
 #include "features/schematic/SchematicItems.h"
 #include "ui/ListViewWidgets.h"
@@ -133,6 +134,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         Count held = 0, need = 0; // for the tip: what is held (or can be made now) and what is needed
         GatherLine gatherLine;    // a row of what to gather: its line, for the tip the window shares
         bool loose = false;       // a row of what to gather the recipe table does not know
+        bool stored = false;      // a step to make after taking out of the stores (L-385): their chest before its count
     };
     std::vector<SideRow> rows;
     auto const* plan = state::plan(player);
@@ -186,20 +188,23 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             }
         for (auto const& line : plan->view.done) add(line, true);
     } else if (plan) {
-        // What to make, as the window's tab (L-370): made now, made in part, short (faint), each as the one number
-        // still to make, and at the end what held stock covers whole (faint, a check); no headings in rows this low.
-        // What can be made now is in the tip.
+        // What to make, as the window's tab (L-370): made now, made in part, made after taking out of the stores (a
+        // chest before the count, L-385), short (faint), each as the one number still to make, and at the end what
+        // held stock covers whole (faint, a check); no headings in rows this low. What can be made now, from what is
+        // carried, is in the tip.
         auto const& index = plan->table->index;
-        std::map<Item, Count> stock;
-        for (auto const& [id, have] : plan->request.held) stock[id] += have;
-        for (StepState state : {StepState::Ready, StepState::Partly, StepState::Missing})
+        std::map<Item, Count> all, carried;
+        for (auto const& [id, have] : plan->request.held) all[id] += have;
+        for (auto const& [id, have] : plan->held) carried[id] += have;
+        for (StepState state : {StepState::Ready, StepState::Partly, StepState::Stored, StepState::Missing})
             for (size_t i = 0; i < plan->view.steps.size(); ++i) {
                 auto const& step = plan->view.steps[i];
-                if (stepState(index, plan->request, step, stock) != state) continue;
+                if (stepState(index, plan->request, step, carried, all) != state) continue;
                 auto const& key = index.items[static_cast<size_t>(step.item)];
                 SideRow row{key, schematic::items::shown(key).name, step.made, static_cast<int>(i), {}, state == StepState::Missing};
+                row.stored = state == StepState::Stored;
                 Count const each = std::max<Count>(1, index.recipes[static_cast<size_t>(step.recipe)].count);
-                row.held = std::min(step.made, stepNow(index, plan->request, step, stock) * each), row.need = step.made;
+                row.held = std::min(step.made, stepNow(index, plan->request, step, carried) * each), row.need = step.made;
                 row.line = step;
                 rows.push_back(std::move(row));
             }
@@ -262,6 +267,39 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             float const numberW = textWidth(context, number);
             label(context, end - numberW - 1, y + 2, numberW + 1, number, row.faint ? palette::faint : palette::text, Align::Right);
             nameEnd = end - numberW - 4;
+            // The stores' chest before the count: the numbers keep their column (L-385).
+            if (row.stored) drawStoreMark(context, nameEnd - 7, y + 3, palette::dim), nameEnd -= 10;
+            // Under the pointer a step to make offers laying it in and making it, between its name and its count.
+            if (sideList == SideList::Make && plan && hot && row.step >= 0) {
+                auto const& index = plan->table->index;
+                auto const& recipe = index.recipes[static_cast<size_t>(row.line.recipe)];
+                auto* placer = frame.placer;
+                bool const can = placer && placer->preview(recipe, false).ready();
+                constexpr float size = 11;
+                float const makeX = nameEnd - size, placeX = makeX - size - 2, by = y + .5f;
+                ListBox const placeBox{placeX, by, size, size}, makeBox{makeX, by, size, size};
+                bool const overPlace = placeBox.has(px, py), overMake = makeBox.has(px, py);
+                drawPictureButton(context, placeX, by, size, Picture::Place, overPlace, false, can);
+                drawPictureButton(context, makeX, by, size, Picture::Make, overMake, false, can);
+                nameEnd = placeX - 2;
+                if (overPlace || overMake) {
+                    late.tip = translated(overPlace ? "recipes.place" : "recipes.makeSteps");
+                    late.tipLines.clear();
+                    if (!can)
+                        late.tipLines.push_back(!placer || !placer->places(kindOf(recipe.station)) ? translated("recipes.makeAt", stationName(recipe.station))
+                                                : placer->gridSide() && !fitsGrid(recipe, placer->gridSide()) ? translated("recipes.makeAt", stationName(Station::Crafting))
+                                                                                                               : translated("recipes.notReady"));
+                    if (overPlace && can) late.hints.push_back(translated("recipes.hint.placeStep"));
+                }
+                int const rounds = static_cast<int>(std::min<Count>(row.line.crafts, 1 << 20));
+                if (leftPress && took(placeBox)) {
+                    if (can && frame.ctrl) placer->craft(row.line.recipe);
+                    else if (can && frame.shift) placer->runMost(row.line.recipe, std::min(rounds, 64));
+                    else if (can) placer->run(row.line.recipe, false);
+                } else if (leftPress && took(makeBox)) {
+                    if (can) placer->make({{row.line.recipe, rounds}});
+                }
+            }
         }
         if (panel.wide()) label(context, panel.left + 16, y + 2, nameEnd - panel.left - 16, row.name, row.faint ? palette::faint : palette::dim);
         if (whole.has(px, py)) {
@@ -270,7 +308,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             auto amounts = [&](char const* lead) {
                 return translated(lead) + ": " + std::to_string(row.held) + "  " + translated("recipes.col.need") + ": " + std::to_string(row.need);
             };
-            if (sideList == SideList::Make && plan && !row.done) {
+            if (sideList == SideList::Make && plan && !row.done && late.tip.empty()) {
                 std::map<Item, Count> stock;
                 for (auto const& [id, have] : plan->request.held) stock[id] += have;
                 late.tip = row.name, late.tipLines = {amounts("recipes.col.now")};

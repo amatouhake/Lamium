@@ -97,11 +97,20 @@ inline bool stepReady(Index const& index, Request const& request, StepLine const
     return stepNow(index, request, step, stock) >= step.crafts;
 }
 // The plan's steps as "to make" shows them (L-370): all their crafts can be made now, some of them, none; and
-// what held stock covers whole, which is not made at all.
-enum class StepState { Ready, Partly, Missing, Held };
+// what held stock covers whole, which is not made at all. Stored (L-385): what is carried makes none, the stores
+// would cover some.
+enum class StepState { Ready, Partly, Stored, Missing, Held };
 inline StepState stepState(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
     Count const now = stepNow(index, request, step, stock);
     return now >= step.crafts ? StepState::Ready : now > 0 ? StepState::Partly : StepState::Missing;
+}
+// "Can make now" counts what is carried (L-385): a step it makes in full or in part is that; one it makes none of
+// but the stores (in `all`, with what is carried) would is Stored; else Missing.
+inline StepState stepState(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& carried,
+                           std::map<Item, Count> const& all) {
+    StepState const now = stepState(index, request, step, carried);
+    if (now != StepState::Missing) return now;
+    return stepNow(index, request, step, all) > 0 ? StepState::Stored : StepState::Missing;
 }
 // Which of a step's uses `stock` holds too few of for all its crafts: the slots shown in the game's red.
 inline std::vector<bool> stepShort(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {

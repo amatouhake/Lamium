@@ -22,6 +22,8 @@ void close();
 // members as icons), held and needed, what is left in chests and stacks, a group's choice, and where counted
 // stores hold some. `key`: a wanted item the recipe table does not know, else empty.
 void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line, std::string const& key);
+// What the counted stores hold of `item`, with what is carried, as tip lines (L-359, L-385).
+void storedLines(view::Late& late, state::Plan const& plan, Item item);
 // `shift`: a stepper moves by 16. `showItem` is set to the item whose name was pressed, for the recipe
 // view; `showChoice` with it when that was in the list of what to make.
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift,

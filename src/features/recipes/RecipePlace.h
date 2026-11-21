@@ -26,7 +26,16 @@ std::vector<PlaceSource> carried(ScreenView& screen, Index const& index);
 // What lay in the grid goes back first; the recipe is then laid in once the grid reads empty. At a station
 // (bench) its slots take the cells, a stack at most; a slot holding another item is emptied first.
 // False when nothing was done (something on the pointer, an ingredient missing).
-bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many);
+// `most` (L-385): with `many`, no more crafts than that, what a plan's step still needs.
+bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table, int recipe, std::map<int, Item> const& picks, bool many,
+         int most = 64);
+// L-385: a plan's steps made from "to make": each `rounds` crafts of `recipe`, in order. At the crafting grid the
+// rounds are laid in (no more than still wanted, a stack a cell) and the output taken as a Shift click takes it,
+// again until they are made or nothing more can be laid in; the product stays in the inventory. At a station the
+// rounds are laid in and the station makes them. Over the next frames (tick), a step every 50 ms; any press of
+// the player's ends it (stop). False when it cannot start.
+struct MakeStep { int recipe = -1; int rounds = 0; };
+bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table, std::vector<MakeStep> steps, std::map<int, Item> const& picks);
 // Lays a waiting recipe in, if there is one; called every frame the item screen is drawn.
 void tick(ScreenView& screen);
 // Gives a waiting recipe up: the screen went, the player pressed something, the window lost the focus.

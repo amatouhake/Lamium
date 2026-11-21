@@ -29,6 +29,9 @@ struct Placer {
     // Crafting one round onto the pointer (L-379): what it meets now, and doing it.
     virtual CraftOnto craftCheck(Recipe const& recipe) const = 0;
     virtual bool craft(int recipe) = 0;
+    // L-385, a plan's steps: laying in no more than `most` crafts, and making steps (recipe, rounds) in order.
+    virtual bool runMost(int recipe, int most) = 0;
+    virtual bool make(std::vector<std::pair<int, int>> const& steps) = 0;
 };
 struct Input {
     float screenWidth = 0, screenHeight = 0, pointerX = -1, pointerY = -1;

@@ -64,9 +64,20 @@ plan's recipes are in [L-116](backlog/L-116.md).
 - "To gather" uses the same columns, "All" as the first row written
   as the headings, then under headings what is still to gather (most left first) and what is
   gathered (faint). "To make" is the work (L-370): under headings the
-  steps that can be made now, made in part, short (faint, short inputs on
-  the game's red), and held (faint, a check); "can make now" and
-  "needed" columns in items with a bar. A press opens the breakdown. The
+  steps that can be made now, made in part (both from what is carried),
+  made after taking out (the stores would cover them; an input only they
+  hold carries their chest, its tip the stores, L-385), short (faint,
+  inputs nobody holds on the game's red), and held (faint, a check); "can
+  make now" and "needed" columns in items with a bar. A press opens the
+  breakdown. Under the pointer a step offers "lay in" (the recipe view's
+  picture and presses: one round, Shift what is still needed, Ctrl one
+  round onto the pointer) and "make" (what is still needed: rounds laid in
+  and taken as a Shift click takes them, again, the product kept; at a
+  station only laid in), both only where the open screen takes it, else
+  greyed with where it is made; the first heading's "Make all" makes every
+  step there top down, at a crafting grid. The panel's make rows offer the
+  same two buttons between the name and the count; a stores' chest stands
+  before the count of a step to take out for. The
   panel's lists keep the window's order, each row one number, what is
   left: "to gather" needed less held, "to make" what is still to make,
   "wanted" the count (the stepper under the pointer, done rows at the

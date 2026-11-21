@@ -175,6 +175,12 @@ struct GridPlacer : view::Placer {
         return crafting() ? place::craftCheck(screen, table->index, recipe, preview(recipe, false).ready()) : CraftOnto::Missing;
     }
     bool craft(int recipe) override { return crafting() && place::craft(screen, table, recipe, picks); }
+    bool runMost(int recipe, int most) override { return place::run(screen, table, recipe, picks, true, most); }
+    bool make(std::vector<std::pair<int, int>> const& steps) override {
+        std::vector<place::MakeStep> out;
+        for (auto [recipe, rounds] : steps) out.push_back({recipe, rounds});
+        return place::make(screen, table, std::move(out), picks);
+    }
 };
 bool anyView() { return view::isOpen() || planView::isOpen(); }
 // "Can be made" (L-367): a press lays the item's recipe into the grid, or at a station into its slots (L-380), as
@@ -748,6 +754,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // line at the left region's end.
     bandPages::Frame frame{context, px, py, leftPress, pressed, late, hoverItem, mark, show, input.sideTurns, shiftHeld.load(), leftHeld.load(),
                            input.favoriteTurns};
+    auto bandPlacer = planOn ? gridPlacer(screenView, *player) : std::nullopt;
+    frame.placer = bandPlacer ? &*bandPlacer : nullptr;
+    frame.ctrl = ctrlHeld.load();
     ListBox favoritesBox;
     std::vector<ListBox> bandBoxes; // where a press stays from the game and the view
     for (auto const& panel : placed) {
@@ -853,8 +862,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
     else if (planView::isOpen()) {
         std::string showItem;
         bool showChoice = false;
-        planView::draw(context, {screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, false, leftHeld.load(), planOn, true, nullptr, coverLeft, right,
-                                 recipesOn, storesOn}, late, *player, shiftHeld.load(), showItem, showChoice);
+        // The screen as a place to lay in or make a plan's steps (L-385).
+        auto placer = gridPlacer(screenView, *player);
+        view::Input planInput{screen.x, screen.y, px, py, std::move(input.clicks), input.viewTurns, false, input.close, shiftHeld.load(), leftHeld.load(), planOn,
+                              true, placer ? &*placer : nullptr, coverLeft, right, recipesOn, storesOn};
+        planInput.ctrl = ctrlHeld.load();
+        planView::draw(context, planInput, late, *player, shiftHeld.load(), showItem, showChoice);
         if (!showItem.empty() && recipesOn) view::open(std::move(showItem), false, showChoice), viewScreen = screenName;
     }
     // A recipe laid into the grid: nothing of Lamium's stays over it.

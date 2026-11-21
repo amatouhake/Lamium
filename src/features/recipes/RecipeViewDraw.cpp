@@ -50,14 +50,6 @@ void close() {
 }
 namespace {
 // "Place": an arrow down onto a line, the grid it lays into.
-void placeMark(MinecraftUIRenderContext& context, float x, float y, ui::Rgb color) {
-    using namespace lamium::ui;
-    fill(context, x + 5, y + 2, 1, 4, color);
-    fill(context, x + 3, y + 5, 5, 1, color);
-    fill(context, x + 4, y + 6, 3, 1, color);
-    fill(context, x + 5, y + 7, 1, 1, color);
-    fill(context, x + 2, y + 8, 7, 1, color);
-}
 }
 namespace {
 // The brewing stand's parts on a brewing face (L-361, demos/brewing-view.html F), from the block's corner: the fuel's
@@ -337,8 +329,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         // and darker where it cannot be pressed, its tip saying why.
         {
             bool const ready = placeable && laid.ready();
-            Rgb const mark = drawButtonBox(context, placeRegion.x, placeRegion.y, viewButton, viewButton, ready && overPlace, ButtonKind::Plain, ready);
-            placeMark(context, placeRegion.x, placeRegion.y, mark);
+            drawPictureButton(context, placeRegion.x, placeRegion.y, viewButton, Picture::Place, overPlace, false, ready);
             if (overPlace) {
                 // A button of its own explains its presses (not an item's tip, maintainer 2026-11-21).
                 if (ready) {

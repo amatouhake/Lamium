@@ -26,8 +26,13 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
                 bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
 // A square button with a picture instead of words (L-382), named by its tip: the pictures are white and greys
 // on the plain face, the face green while the button is on.
-enum class Picture { Highlight, Window, Layout, Store };
-void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);
+// Place and Make (L-385) are drawn on 11 units: "place" the recipe view's own (an arrow down onto a line), "make" a
+// grid turning into one thing. A disabled button is flat and darker, its picture faint.
+enum class Picture { Highlight, Window, Layout, Store, Place, Make };
+void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on,
+                       bool enabled = true);
+// The stores' mark (L-385): a small chest, as a container's store button draws it, 7 by 6 units from (x, y).
+void drawStoreMark(MinecraftUIRenderContext& context, float x, float y, Rgb ink);
 // The same picture on the game's window beside its own close button, drawn as that is (L-382): no face, the
 // window's ink, lit under the pointer; on adds a green check.
 void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);
