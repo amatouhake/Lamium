@@ -87,11 +87,14 @@ plan's recipes are in [L-116](backlog/L-116.md).
   stepped as in the window and "x"; "to make" the two buttons, a stores'
   chest before the counts of a step to take out for (the panel has no
   headings). Done rows at the end, checked, kept in place while the
-  pointer is over the list; the tip gives held (or can make now) and
-  needed, a make row's also each input as "Stone: 146/44,844" (name, held/needed). A "to gather" row's
-  tip is the same in the window and on the panel: name (a group's
-  members), held and needed, what is left in chests and stacks, a
-  group's choice, the stores holding some.
+  pointer is over the list; the panel lists the same rows as the window
+  (gathered ones too, faint).
+- Tips write counts one way, in the window and on the panel alike, and
+  repeat what the columns show (L-387): a row's first line "Held/Need:
+  146/44,845  44,699 more" (a step's "Now/Need: ..."), the "more" in
+  items; an input as "Stone: 146/44,844  44,698 more" where what is held
+  is counted, "Stone: 44,844" where not. A "to gather" row's tip adds a
+  group's members and the stores holding some.
 - Marks: a favorite carries none (it stands in the favorites' panel); a
   wanted item its count; a chosen candidate in "How to make" a green
   frame in the unit outside its slot; a group's slot always its "*",
