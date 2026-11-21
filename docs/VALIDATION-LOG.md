@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The plan window's tabs as one, a review of the look (L-370, L-369, 2026-11-21)
+
+Build `f8129d37` (DLL
+`bc9cbf9ae3b69bf30191b5de0cc51a434ba5ce2771336705b5e36a4ae831b88e`),
+1.26.60.05 Dev instance, the maintainer, Japanese and English. Confirmed:
+"to gather" under its headings, "to make" with its columns, bar and step
+states, "How to make" on one line, the sunk scrollbar; the stores'
+switch edge; the window's tab names whole in both languages. Not right:
+the scrollbar covers the frame's shadow; done wanted items stay in
+order; "wanted" and "needed" headings differ; the stepper cuts "28…"
+(band and window) and English cuts "Sche…"; the band shows wanted rows
+otherwise than the window; the band's text tabs of unequal widths;
+row buttons' text too big; the stores tab sized unlike the others;
+leather traced to rabbit hide, wool to string. With the plan off, "How
+to make" may be unreachable even from a recipe's mark. Choices are in
+L-370, fixes in L-369.
+
 ## A group's plainest member (L-370, 2026-11-21)
 
 Build `54e20ee7` (DLL
