@@ -420,6 +420,23 @@ void recipeIndexTests() {
               "made now: the members of a group count together, nothing is made first, and only crafting counts");
         check(!canMakeNow(index, {{index.find("oak_planks"), 1}})[static_cast<size_t>(index.find("stick"))], "too few of an ingredient does not make it");
         {
+            // The automatic choice (L-370): within one station the fewer steps win, whatever the names say; the
+            // station's order still comes first (crafting over the stonecutter).
+            Source steps;
+            steps.recipes.push_back({"crafting_table", "a_long", 0, {{"thing", 1}}, {{"middle", false}}});
+            steps.recipes.push_back({"crafting_table", "z_short", 0, {{"thing", 1}}, {{"stone", false}}});
+            steps.recipes.push_back({"crafting_table", "middle", 0, {{"middle", 1}}, {{"part", false}}});
+            steps.recipes.push_back({"crafting_table", "part", 0, {{"part", 1}}, {{"stone", false}}});
+            steps.recipes.push_back({"crafting_table", "stairs_crafted", 0, {{"stairs", 4}}, {{"bricks", false}}});
+            steps.recipes.push_back({"crafting_table", "bricks", 0, {{"bricks", 4}}, {{"stone", false}}});
+            steps.recipes.push_back({"stonecutter", "stairs_cut", 0, {{"stairs", 1}}, {{"stone", false}}});
+            Index const stepped = build(steps);
+            Choice const picked = choose(stepped);
+            auto idOf = [&](std::string_view name) { return stepped.recipes[static_cast<size_t>(picked.recipe[static_cast<size_t>(stepped.find(name))])].id; };
+            check(idOf("thing") == "z_short" && idOf("stairs") == "stairs_crafted",
+                  "automatic takes the recipe with fewer steps within a station, crafting still before the stonecutter (L-370)");
+        }
+        {
             // Brewing (L-361): a mix read from the game is a recipe of the stand, its ingredient first, counted once a
             // batch of three bottles; the stand takes it with its ingredient and the bottle before.
             Source brews;

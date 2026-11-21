@@ -162,20 +162,6 @@ inline bool before(Index const& index, Recipe const& a, Recipe const& b) {
     if (aNamed != bNamed) return aNamed;
     return a.id < b.id;
 }
-// `a` skips a step `b` takes: b uses an item that is made from one a uses instead (glass and white dye, made
-// from bone meal, against glass and bone meal).
-inline bool skipsStep(Index const& index, Recipe const& a, Recipe const& b) {
-    auto uses = [](Recipe const& recipe, Item item) {
-        return std::ranges::any_of(recipe.uses, [&](auto const& part) { return !part.group && part.id == item; });
-    };
-    for (auto const& extra : b.uses) {
-        if (extra.group || uses(a, extra.id)) continue;
-        for (int maker : index.makers[static_cast<size_t>(extra.id)])
-            for (auto const& part : index.recipes[static_cast<size_t>(maker)].uses)
-                if (!part.group && uses(a, part.id) && !uses(b, part.id)) return true;
-    }
-    return false;
-}
 
 // The table with every name settled into its key. An aux value tells items
 // apart only where the table shows several for one name, as products or as
@@ -379,8 +365,9 @@ struct Choice {
 // Next comes the item most recipes outside the loop use, then one a recipe in
 // the loop uses several of, then by name. Among an item's recipes the station
 // and priority decide, then the one closest to the base (white wool and dye,
-// not another color and dye), then `before`. Outside a loop a recipe that
-// skips a step another takes (`skipsStep`) comes before `before`. Smelting an ore that drops the
+// not another color and dye), then `before`. Outside a loop, among recipes of one station and priority, the one
+// with fewer steps to make from what is gathered comes before `before` (maintainer 2026-11-21: the station's order
+// stays, so crafting keeps coming first). Smelting an ore that drops the
 // item is never the default (`smeltsOreOnly`).
 inline Choice choose(Index const& index) {
     Item const count = static_cast<Item>(index.items.size());
@@ -435,18 +422,44 @@ inline Choice choose(Index const& index) {
             else if (part.count > 1) several[part.id] = true;
         }
     std::vector<int> depth(count, -1); // settled when >= 0
+    // The steps an item takes to make with the recipes chosen so far: none when it is gathered, else one and
+    // those of each item its recipe uses (a group as its member with fewest). Ingredients come before the items
+    // made from them here, so theirs are settled; a member not yet settled, or a loop gone round, counts none.
+    std::vector<int> steps(count, -1);
+    std::vector<bool> counting(count, false);
+    auto recipeSteps = [&](auto const& self, Recipe const& recipe) -> int {
+        auto stepsOf = [&](Item item) -> int {
+            if (steps[item] >= 0) return steps[item];
+            if (counting[item] || out.recipe[item] < 0) return 0;
+            counting[item] = true;
+            int const value = self(self, index.recipes[out.recipe[item]]);
+            counting[item] = false;
+            return steps[item] = value;
+        };
+        int total = 1;
+        for (auto const& part : recipe.uses) {
+            if (!part.group) { total += stepsOf(part.id); continue; }
+            int fewest = -1;
+            for (Item member : index.groups[part.id].members) {
+                int const n = stepsOf(member);
+                if (fewest < 0 || n < fewest) fewest = n;
+            }
+            total += std::max(0, fewest);
+        }
+        return total;
+    };
     for (auto const& group : members) {
         if (group.size() == 1) {
             Item const item = group.front();
             for (int candidate : index.makers[item]) {
                 if (smeltsOreOnly(index, index.recipes[candidate])) continue;
                 if (out.recipe[item] < 0) { out.recipe[item] = candidate; continue; }
-                // Station and priority first; then a recipe that skips a step the other takes; then `before`.
+                // Station and priority first; then fewer steps; then `before`.
                 auto const& recipe = index.recipes[candidate];
                 auto const& held = index.recipes[out.recipe[item]];
                 bool better;
                 if (recipe.station != held.station || recipe.priority != held.priority) better = before(index, recipe, held);
-                else if (bool const skips = skipsStep(index, recipe, held); skips != skipsStep(index, held, recipe)) better = skips;
+                else if (int const mine = recipeSteps(recipeSteps, recipe), theirs = recipeSteps(recipeSteps, held); mine != theirs) better = mine < theirs;
                 else better = before(index, recipe, held);
                 if (better) out.recipe[item] = candidate;
             }
