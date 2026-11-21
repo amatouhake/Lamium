@@ -236,7 +236,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-30](backlog/L-30.md) Ender Dragon multipart hitboxes on Bedrock (Research): Probed: parts are readable on the client; waiting for a real End dragon check, a server check and the color choice
 - [L-114](backlog/L-114.md) 3D previews in the schematic screen (Research): Partly done: Files and Check tab previews shipped (0.1.8); the Check tab's mistake look, see-through emphasis and moving the zoomed view are open
 - [L-115](backlog/L-115.md) Entity ghosts drawn as models (Research): A compromise version shipped in 0.1.8; the limits below are open
-- [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); pure calculation and recipe index built and tested (L-359); not wired to any screen
+- [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); the calculation feeds the plan (L-359); the schematic's raw list is gone (L-383)
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
 
