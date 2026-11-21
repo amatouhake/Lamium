@@ -233,6 +233,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 - [L-378](backlog/done/L-378.md) Light up the game's slots that match the search
 - [L-379](backlog/done/L-379.md) A recipe's own controls and crafting onto the pointer
+- [L-383](backlog/done/L-383.md) Schematic Materials: drop the raw view, call it "材料"
 - [L-382](backlog/done/L-382.md) One way into the Recipes window, and the panels around the game's window
 - [L-380](backlog/done/L-380.md) Place a recipe at every station
 - [L-381](backlog/done/L-381.md) Place a recipe while the pointer holds something

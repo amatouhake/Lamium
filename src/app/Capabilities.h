@@ -78,7 +78,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::WorkPenalty, "Work penalty line (an item's anvil uses)", "itemDetails", "capability.WorkPenalty", Impact::Partly, true, true},
     // The world map's recording reads the same colors as the minimap (MapMaterialInstances is the gate).
     {Id::WorldMapMaterialInstances, "World map colors of add-on blocks (block material instances)", "worldMap", "capability.MapMaterialInstances", Impact::Partly, true, true},
-    {Id::RecipeTable, "Schematic raw materials (the client's recipe table)", "schematic", "capability.RecipeTable", Impact::Partly, true, true},
+    {Id::RecipeTable, "Recipes and the plan (the client's recipe table)", "recipes", "capability.RecipeTable", Impact::Partly, true, true},
     {Id::CountedPlaces, "Counted places (an open container's position and its paired chest)", "recipes", "capability.CountedPlaces", Impact::Partly, true, true},
     // Read for the name of a Realm's saved data; without it a Realm's data goes by its level id, as before L-358.
     {Id::RealmIdentity, "Realm identity (reconnect cookie)", "", "", Impact::None, true, true},

@@ -363,8 +363,6 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   container behind the CountedPlaces capability. `RecipeState.cpp` loads and saves
   them and works the plan out. A file that cannot be read is left as it is
   and the changes are kept for the session only.
-- `src/ui/SchematicsView.cpp` (`refreshRaw`): the Materials tab's raw view,
-  what to gather only.
 - Features hand targets over through `state::provide` (a function the
   plan asks twice a second); `schematic/PlanHandOver.cpp` is the
   schematic's, from the last check's material lines

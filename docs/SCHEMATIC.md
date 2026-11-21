@@ -182,9 +182,9 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   stack sizes respected) on hover and in the right pane. The right pane shows
   the missing materials as slots, "Show on the schematic HUD", and "Open in
   ResourceCalculator" with what is missing in the URL fragment.
-- "Show raw materials" (not saved) lists what to gather through the game's
-  recipes; "Put what is left into the plan" (saved, off) hands it to Recipes
-  ([RECIPES.md](RECIPES.md)). ResourceCalculator is only linked to (GPL-3.0).
+- Blocks still to place only (L-383); "Put what is left into the plan"
+  (saved, off) hands them to the plan ([PLAN.md](PLAN.md)), which traces
+  them. Japanese: "材料". ResourceCalculator is only linked to (GPL-3.0).
 - One material identity for the list, the check and later placing assistance.
 
 ### Target card and ghost pick
