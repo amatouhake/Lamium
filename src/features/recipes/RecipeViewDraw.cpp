@@ -86,9 +86,8 @@ void brewingParts(MinecraftUIRenderContext& context, float x, float y) {
     frame(context, x + 37, y + 5, 3, 3, v::windowInk);
     fill(context, x + 35, y + 2, 2, 2, v::windowInk);
     fill(context, x + 38, y + 0, 1, 1, v::windowInk);
-    // The arrow down at the ingredient's right: an outlined shaft and its head, empty as the stand's before it brews.
-    fill(context, x + 67, y + 1, 3, 12, v::windowInk);
-    fill(context, x + 68, y + 2, 1, 10, v::windowLight);
+    // The arrow down at the ingredient's right: a plain shaft and head (an outlined, lit one read poorly so small).
+    fill(context, x + 68, y + 1, 1, 11, v::windowInk);
     fill(context, x + 66, y + 12, 5, 1, v::windowInk);
     fill(context, x + 67, y + 13, 3, 1, v::windowInk);
     fill(context, x + 68, y + 14, 1, 1, v::windowInk);
