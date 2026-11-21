@@ -121,7 +121,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         }
         tabRule(context, panel.left + 2, panel.barY() + SideLayout::bar, panel.width - 4);
     }
-    // The short list: an icon, the name where there is room, and how many; a wanted item's count has the stepper.
+    // The short list: an icon, the name where there is room, held and needed in columns (L-370).
     struct SideRow {
         std::string key, name;
         Count count = 0;
@@ -224,77 +224,101 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             rows.push_back(std::move(row));
         }
     }
-    // The list scrolls: the wheel over it (a stepper under the pointer takes the wheel for itself)
-    // and the shared bar at its right, which the rows make room for.
-    int const fits = panel.rows(), total = static_cast<int>(rows.size());
-    float const stepperWidth = textWidth(context, "88888") + 26; // five digits
+    // The list scrolls: the wheel over it (a count's box under the pointer takes the wheel for itself) and the
+    // shared bar at its right, which the rows make room for. As the Notes window's tables (L-370, 2026-11-22,
+    // demos/panel-table.html A): under a line of column headings, held (or can make now) and needed in columns of
+    // six digits, then the controls, every one always shown; no bar.
+    bool const headed = !rows.empty();
+    int const fits = std::max(0, panel.rows() - (headed ? 1 : 0)), total = static_cast<int>(rows.size());
+    auto rowAt = [&](int i) { return panel.rowY(i + (headed ? 1 : 0)); };
     static int sideFirst[3]{};
     int& first = sideFirst[listNow];
     float const rowsEnd = panel.left + panel.width - 3 - (total > fits ? rowBarGutter : 0.f);
+    float const numW = std::ceil(textWidth(context, "888888")) + 2;
+    float const controlsW = sideList == SideList::Wanted ? 11.f : sideList == SideList::Make ? 24.f : 0.f;
+    float const controlsX = rowsEnd - controlsW;
+    float const needX = controlsX - (controlsW > 0 ? 3 : 0) - numW, heldX = needX - 4 - numW;
+    // A band too narrow for both columns keeps the needed one; held is in the tip.
+    bool const heldShown = heldX >= panel.left + 14;
+    auto countBox = [&](float y) { return ListBox{needX - 2, y + 1, numW + 3, 10}; };
     {
-        int const under = panel.hitRow(px, py) < 0 ? -1 : first + panel.hitRow(px, py);
-        bool const onStepper = sideList == SideList::Wanted && under >= 0 && under < total && rows[static_cast<size_t>(under)].source.empty()
-            && px >= rowsEnd - stepperWidth;
-        if (frame.sideTurns && panel.has(px, py) && !onStepper) first += frame.sideTurns;
+        int const hit = panel.hitRow(px, py) - (headed ? 1 : 0);
+        int const under = hit < 0 ? -1 : first + hit;
+        bool const onBox = sideList == SideList::Wanted && under >= 0 && under < total && rows[static_cast<size_t>(under)].source.empty()
+            && !rows[static_cast<size_t>(under)].done && countBox(rowAt(hit)).has(px, py);
+        if (frame.sideTurns && panel.has(px, py) && !onBox) first += frame.sideTurns;
     }
     {
+        first = std::clamp(first, 0, std::max(0, total - fits));
         bool onBar = pressed && leftPress;
-        listScrollbar(context, panel.left + panel.width - 3, panel.rowY(0), static_cast<float>(fits) * SideLayout::row, total, fits, first, px, py, onBar,
+        listScrollbar(context, panel.left + panel.width - 3, rowAt(0), static_cast<float>(fits) * SideLayout::row, total, fits, first, px, py, onBar,
                       frame.held);
         if (pressed && leftPress && !onBar) pressed = false;
     }
+    if (headed) {
+        float const y = panel.rowY(0);
+        if (heldShown) labelScaled(context, heldX - 12, y + 3, numW + 12, translated(sideList == SideList::Make ? "recipes.col.now" : "recipes.col.held"), .75f,
+                    palette::faint, Align::Right, false);
+        labelScaled(context, needX - 6, y + 3, numW + 6, translated("recipes.col.need"), .75f, palette::faint, Align::Right, false);
+    }
+    // A count cut to fit its column shows whole under the pointer.
+    auto number = [&](float x, float y, Count count, Rgb color) {
+        std::string text = std::to_string(count);
+        if (textWidth(context, text) > numW && ListBox{x, y, numW, 12}.has(px, py)) late.tip = wholeCountText(static_cast<std::uint64_t>(count)), late.tipLines.clear();
+        label(context, x, y + 2, numW, std::move(text), color, Align::Right);
+    };
     int const drawn = std::min(fits, total - first);
     for (int i = 0; i < drawn; ++i) {
         auto const& row = rows[static_cast<size_t>(first + i)];
-        float const y = panel.rowY(i), end = rowsEnd;
+        float const y = rowAt(i), end = rowsEnd;
+        (void)end;
         ListBox const whole{panel.left, y, panel.width, SideLayout::row};
         if (!row.key.empty())
             if (auto const* stack = schematic::items::iconStack(schematic::items::shown(row.key).icon))
                 late.icons.push_back({stack, panel.left + 3, y + 1, smallIcon, 0, row.faint ? .45f : 1.f});
         if (row.group) late.marks.push_back({panel.left + 3, y + 1, smallIcon});
-        float nameEnd = end - 30;
+        float nameEnd = heldShown ? heldX - 3 : needX - 3;
         bool const hot = whole.has(px, py);
-        if (sideList == SideList::Wanted && row.source.empty() && (hot || countEdit::editing(row.key))) {
-            // The stepper: its ends step (minus at one takes the item out), its number is typed after a press.
-            float const sx = end - stepperWidth;
-            ListBox const box{sx, y + 1, stepperWidth, 10};
-            drawStepper(context, sx, y + 1, stepperWidth, 10, true, std::to_string(row.count),
-                        {.editing = countEdit::editing(row.key), .pointerX = px, .pointerY = py, .dimValue = row.count == 0});
-            if (leftPress && took({sx, y + 1, 11, 10})) state::stepWanted(row.key, false, frame.shift, true);
-            else if (leftPress && took({sx + stepperWidth - 11, y + 1, 11, 10})) state::stepWanted(row.key, true, frame.shift, true);
-            else if (leftPress && took(box)) countEdit::begin(row.key, row.count);
-            else if (took(box)) {}
-            else if (frame.sideTurns && box.has(px, py)) state::stepWanted(row.key, frame.sideTurns < 0, frame.shift, false);
-            nameEnd = sx - 3;
-        } else if (row.done) {
-            // Held: a small check where the count would be.
-            float const cx = end - 9, cy = y + 3;
+        if (hot) fill(context, panel.left + 1, y, rowsEnd - panel.left - 1, SideLayout::row, palette::white, .08f);
+        Rgb const ink = row.faint ? palette::faint : palette::text;
+        if (row.done) {
+            // Held: a small check where the needed count would be.
+            float const cx = needX + numW - 7, cy = y + 3;
             for (int k = 0; k < 2; ++k) fill(context, cx + static_cast<float>(k), cy + 3 + static_cast<float>(k), 1, 1, palette::faint);
             for (int k = 0; k < 4; ++k) fill(context, cx + 2 + static_cast<float>(k), cy + 4 - static_cast<float>(k), 1, 1, palette::faint);
         } else {
-            std::string const number = std::to_string(row.count);
-            float const numberW = textWidth(context, number);
-            label(context, end - numberW - 1, y + 2, numberW + 1, number, row.faint ? palette::faint : palette::text, Align::Right);
-            nameEnd = end - numberW - 4;
-            // On "to make" the stores' chest and the buttons stand in columns of their own, measured from the widest
-            // count (five digits), so they stay put whatever a row's count is (L-385).
-            if (sideList == SideList::Make) nameEnd = end - textWidth(context, "88888") - 4;
-            if (row.stored) drawStoreMark(context, nameEnd - 7, y + 3, palette::dim);
-            if (sideList == SideList::Make) nameEnd -= 10;
-            else if (row.stored) nameEnd -= 10;
-            // Under the pointer a step to make offers laying it in and making it, between its name and its count.
-            if (sideList == SideList::Make && plan && hot && row.step >= 0) {
+            if (heldShown) number(heldX, y, row.held, ink);
+            if (sideList == SideList::Wanted && row.source.empty()) {
+                // The player's own count, edited where it stands as in the window: a press types it, the wheel steps it.
+                ListBox const box = countBox(y);
+                auto const* editing = countEdit::editing(row.key);
+                drawFieldBox(context, box.x, box.y, box.w, box.h, editing != nullptr);
+                if (editing) {
+                    drawEditField(context, needX, y, 12, numW + 1, *editing, Align::Right);
+                    if (leftPress && took(box)) placeCaret(context, countEdit::typed, px, py);
+                } else {
+                    label(context, needX, y + 1 + boxTextInset(), numW, std::to_string(row.count), row.count == 0 ? palette::faint : palette::text, Align::Right);
+                    if (leftPress && took(box)) countEdit::begin(row.key, row.count);
+                    else if (frame.sideTurns && box.has(px, py)) state::stepWanted(row.key, frame.sideTurns < 0, frame.shift, false);
+                }
+                ListBox const x{controlsX, y + 1, 11, 10};
+                drawButton(context, x.x, x.y, x.w, x.h, "x", x.has(px, py));
+                if (leftPress && took(x)) state::removeWanted(row.key);
+            } else number(needX, y, sideList == SideList::Wanted ? row.count : row.need, ink);
+            // Taken out of the stores first (L-385): their chest before the counts; the panel has no headings to say so.
+            if (row.stored) drawStoreMark(context, heldX - 9, y + 3, palette::dim), nameEnd = heldX - 12;
+            // A step to make: laying it in and making it, always in their column.
+            if (sideList == SideList::Make && plan && row.step >= 0) {
                 auto const& index = plan->table->index;
                 auto const& recipe = index.recipes[static_cast<size_t>(row.line.recipe)];
                 auto* placer = frame.placer;
                 bool const can = placer && placer->preview(recipe, false).ready();
                 constexpr float size = 11;
-                float const makeX = nameEnd - size, placeX = makeX - size - 2, by = y + .5f;
+                float const placeX = controlsX, makeX = controlsX + size + 2, by = y + .5f;
                 ListBox const placeBox{placeX, by, size, size}, makeBox{makeX, by, size, size};
                 bool const overPlace = placeBox.has(px, py), overMake = makeBox.has(px, py);
                 drawPictureButton(context, placeX, by, size, Picture::Place, overPlace, false, can);
                 drawPictureButton(context, makeX, by, size, Picture::Make, overMake, false, can);
-                nameEnd = placeX - 2;
                 if (overPlace || overMake) {
                     late.tip = translated(overPlace ? "recipes.place" : "recipes.makeSteps");
                     late.tipLines.clear();
@@ -324,7 +348,9 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 return translated(lead) + ": " + wholeCountText(static_cast<std::uint64_t>(row.held)) + "  " + translated("recipes.col.need") + ": "
                      + wholeCountText(static_cast<std::uint64_t>(row.need));
             };
-            if (sideList == SideList::Make && plan && !row.done && late.tip.empty()) {
+            // A control or a cut count under the pointer has its own tip.
+            if (!late.tip.empty()) {
+            } else if (sideList == SideList::Make && plan && !row.done) {
                 // Each input as what is carried of it (as "can make now" counts, L-385); where the stores hold what is
                 // missing, they say so, each with its count.
                 std::map<Item, Count> carried;

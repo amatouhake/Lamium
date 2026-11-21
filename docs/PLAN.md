@@ -80,14 +80,14 @@ plan's recipes are in [L-116](backlog/L-116.md).
   and taken as a Shift click takes them, again, the product kept; at a
   station only laid in), both only where the open screen takes it, else
   greyed with where it is made; the first heading's "Make all" makes every
-  step there top down, at a crafting grid. The panel's make rows offer the
-  same two buttons between the name and the count; a stores' chest stands
-  before the count of a step to take out for. The
-  panel's lists keep the window's order, each row one number, what is
-  left: "to gather" needed less held, "to make" what is still to make,
-  "wanted" the count (the stepper under the pointer, done rows at the
-  end, kept in place while the pointer is over the list); done rows
-  checked; the tip gives held (or can make now) and
+  step there top down, at a crafting grid. The panel's lists keep the
+  window's order and its columns (demos/panel-table.html A): under a line
+  of headings, held (or can make now) and needed in six-digit columns, no
+  bar, controls always shown: "wanted" the count in a box typed or
+  stepped as in the window and "x"; "to make" the two buttons, a stores'
+  chest before the counts of a step to take out for (the panel has no
+  headings). Done rows at the end, checked, kept in place while the
+  pointer is over the list; the tip gives held (or can make now) and
   needed, a make row's also each input as "Stone: 146/44,844" (name, held/needed). A "to gather" row's
   tip is the same in the window and on the panel: name (a group's
   members), held and needed, what is left in chests and stacks, a
