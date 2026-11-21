@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Any-of Mark</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.cand{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:10px}
+.cand h3{margin:0;font:700 15px/1.4 "Noto Sans JP",sans-serif}
+.cand small{color:var(--ink-2)}
+.row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.where{display:grid;gap:4px;justify-items:center;color:var(--ink-2);font-size:12px}
+.stage{position:relative}
+.stage *{position:absolute}
+.win{background:var(--win)}
+.dark{background:rgba(16,17,19,.9)}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;font-family:var(--pix);box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.star{color:#fff;text-shadow:calc(.6*var(--u)) calc(.6*var(--u)) #3f3f3f;font-family:var(--pix);line-height:1}
+.notes{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.notes ul{margin:6px 0 0;padding-left:20px}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>「どれでもよい」材料の印</h1>
+    <p class="lede">メンバーをまだ選んでいない「どれでもよい」材料（例：好きな板材、石炭か木炭）に付ける印の案。アイコンは今と同じく 1.5 秒ごとにメンバーへ切り替わる。印はゲームのウィンドウのスロット、右のリストのセル（暗い帯）、帯の小さなアイコンに付く。重ねると説明にグループの名前とメンバーが出るのは今と同じ。</p>
+  </header>
+  <div class="grid" id="grid"></div>
+  <div class="notes">
+    <h2>決めたいこと</h2>
+    <ul>
+      <li><span class="q">1.</span> 印：今の「*」・内側の「*」・重なり（白）・重なり（縁取り）・重なり（右上）のどれか。</li>
+      <li><span class="q">2.</span> 位置：左上（今と同じ。右下は数が出る）か、右上か。</li>
+    </ul>
+  </div>
+</div>
+<script>
+const U = 3;
+document.documentElement.style.setProperty('--u', U + 'px');
+const px = v => v * U + 'px';
+const MEMBERS = [['#b8925a', '樫'], ['#d8c08a', '樺'], ['#7a5a3a', '松'], ['#a05a40', 'ア']];
+let turn = 0;
+function el(parent, cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; parent.appendChild(d); return d; }
+// The marks, at an icon's top-left corner (x, y), `s` the icon's scale (1 for 16 units).
+const MARKS = {
+  star: {name:'今の「*」', note:'アイコンの左上から 1 外に出る（今の描き方）。スロットの縁からはみ出す。', draw:(p, x, y, s) => { const t = el(p, 'star', x - 1, y - 1.5, 6, 7, '*'); t.style.fontSize = px(7 * s); }},
+  starIn: {name:'内側の「*」', note:'今の「*」をアイコンの内側に収めただけ。', draw:(p, x, y, s) => { const t = el(p, 'star', x + .5, y, 6, 7, '*'); t.style.fontSize = px(7 * s); }},
+  stack: {name:'重なり（白）', note:'小さな四角 2 つをずらして重ねる。白い四角に濃い影。「いくつかある」の形。', draw:(p, x, y, s) => {
+    const k = s; const sq = (dx, dy, c) => { const d = el(p, '', x + dx * k, y + dy * k, 3 * k, 3 * k, ''); d.style.background = c; };
+    sq(1.6, 1.6, '#3f3f3f'); sq(.6, .6, '#ffffff'); sq(2.6, 2.6, '#3f3f3f'); sq(1.6, 1.6, '#ffffff'); }},
+  outline: {name:'重なり（縁取り）', note:'2 つの四角を枠だけで描き、後ろの四角を少し暗く。アイコンの色に埋もれにくい。', draw:(p, x, y, s) => {
+    const k = s; const box = (dx, dy, fill) => { const d = el(p, '', x + dx * k, y + dy * k, 4 * k, 4 * k, ''); d.style.background = fill; d.style.boxShadow = `inset 0 0 0 ${U * k}px #1e1e1e`; };
+    box(1.5, 1.5, '#cfcfcf'); box(.5, .5, '#ffffff'); }},
+  stackRight: {name:'重なり（右上）', note:'重なり（白）を右上に。左上はアイコンの絵が濃いことが多いので、右上の方が見える場合。', draw:(p, x, y, s) => {
+    const k = s; const sq = (dx, dy, c) => { const d = el(p, '', x + (16 - 5.6) * k + dx * k, y + dy * k, 3 * k, 3 * k, ''); d.style.background = c; };
+    sq(1.6, 1.6, '#3f3f3f'); sq(.6, .6, '#ffffff'); sq(2.6, 2.6, '#3f3f3f'); sq(1.6, 1.6, '#ffffff'); }},
+};
+function render(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const member = MEMBERS[turn % MEMBERS.length];
+  for (const [key, mark] of Object.entries(MARKS)) {
+    const c = document.createElement('div'); c.className = 'cand';
+    c.innerHTML = `<h3>${mark.name}</h3><small>${mark.note}</small>`;
+    const row = document.createElement('div'); row.className = 'row'; c.appendChild(row);
+    const place = (label, w, h, build) => {
+      const box = document.createElement('div'); box.className = 'where';
+      const stage = document.createElement('div'); stage.className = 'stage'; stage.style.width = px(w); stage.style.height = px(h);
+      build(stage); box.appendChild(stage); const t = document.createElement('div'); t.textContent = label; box.appendChild(t); row.appendChild(box);
+    };
+    // the game's window: a slot with the item, and one beside it with a plain item to compare
+    place('ゲームのウィンドウ', 46, 24, s => {
+      el(s, 'win', 0, 0, 46, 24);
+      el(s, 'slot', 3, 3, 18, 18); const i = el(s, 'ico', 4, 4, 16, 16, member[1]); i.style.background = member[0]; i.style.fontSize = px(6); mark.draw(s, 4, 4, 1);
+      el(s, 'slot', 25, 3, 18, 18); const j = el(s, 'ico', 26, 4, 16, 16, '棒'); j.style.background = '#9a7040'; j.style.fontSize = px(6);
+    });
+    // the item list's cell, on the dark band
+    place('右のリスト', 24, 24, s => {
+      el(s, 'dark', 0, 0, 24, 24);
+      const i = el(s, 'ico', 4, 4, 16, 16, member[1]); i.style.background = member[0]; i.style.fontSize = px(6); mark.draw(s, 4, 4, 1);
+    });
+    // the band's small icon (10 units)
+    place('帯の行', 60, 14, s => {
+      el(s, 'dark', 0, 0, 60, 14);
+      const i = el(s, 'ico', 2, 2, 10, 10, ''); i.style.background = member[0]; mark.draw(s, 2, 2, .625);
+      const t = el(s, '', 15, 2, 40, 10, '板材'); t.style.color = '#b4b8b6'; t.style.fontSize = px(6.5); t.style.fontFamily = 'var(--pix)';
+    });
+    grid.appendChild(c);
+  }
+}
+render();
+setInterval(() => { turn++; render(); }, 1500);
+</script>
+</body>
+</html>
