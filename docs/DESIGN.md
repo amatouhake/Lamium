@@ -181,7 +181,11 @@ dark look. No control plays a sound.
   in one call; the rows leave it a gutter.
 - **Slots on a window of the game's grey** (`windowSlot`): as the game
   draws its own, dark upper-left and light lower-right edges on its slot
-  grey; what the player lacks stands on the game's red.
+  grey; what the player lacks stands on the game's red. A slot holds what
+  goes into a recipe's cells: an input, a product, what fills a cell (How
+  to make's right side) and a candidate for it. An item that is a list
+  row's subject (a wanted item, one to gather, How to make's left side)
+  is a bare icon, as the game's lists draw theirs (maintainer 2026-11-21).
 - **Key caps** for bindings. The key column never shows Hold/Toggle/Press.
   A binding that relates to another draws warning-colored caps: filled for the
   exact same chord, outlined for an overlap; hovering (or selecting with the
