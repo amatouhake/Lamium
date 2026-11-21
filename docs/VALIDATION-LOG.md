@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A step's tip without the row's count (L-370, 2026-11-22)
+
+Build `c74ec6a1` (DLL
+`298fe7e254eeace4e1ed3151597711683c2574bced128b5a822e277de16997b3`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: on "to make" a
+product's tip has only its inputs. Not right: the inputs' "44844 石"
+reads poorly; Lamium's tips drew redstone's category in a darker red
+than the game's (measured: the game #EE222C, Lamium #971607).
+
 ## Cut counts whole in tips, switches after words (L-370, 2026-11-22)
 
 Build `cadc17b0` (DLL
