@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A group's plainest member (L-370, 2026-11-21)
+
+Build `54e20ee7` (DLL
+`3117b4df9c41907f5dc1332e7579225b3a2b2555bfd139a5c1f59f5907643a64`),
+1.26.60.05 Dev instance, the maintainer. "How to make" read "Sand etc."
+where it read "Red sand etc.", and the wooden slabs showed a held one, or
+oak with none held. Found: the cobblestone kinds showed blackstone with
+nothing held; cobblestone leads them after.
+
 ## The any-of star inside the icon, counts never cut (L-370, 2026-11-21)
 
 Builds `eebd5262` to `216027d2` (last DLL

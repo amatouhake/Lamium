@@ -157,8 +157,9 @@ struct Index {
 // priority, then the recipe named after its product, then the id.
 // The member a group is known by (L-370): its name ("Sand etc.") and its picture where nothing held says
 // otherwise. The plainest: one whose name the others' end with ("sand" in "red_sand"), the shortest of those;
-// else an oak one (the wood families); else the shortest name, then the first by name. Not the first listed,
-// which put red sand and cherry before sand and oak (maintainer 2026-11-21).
+// else a family's base, an oak one (the wood families) or cobblestone (its kinds); else the shortest name, then
+// the first by name. Not the first listed, which put red sand and cherry before sand and oak, nor blackstone
+// before cobblestone (maintainer 2026-11-21).
 inline Item groupLead(Index const& index, int group) {
     auto const& members = index.groups[static_cast<size_t>(group)].members;
     if (members.empty()) return -1;
@@ -181,7 +182,8 @@ inline Item groupLead(Index const& index, int group) {
             }
         }
     if (best >= 0) return best;
-    for (Item a : members) if (plain(a).starts_with("oak_") && (best < 0 || better(a, best))) best = a;
+    for (Item a : members)
+        if ((plain(a).starts_with("oak_") || plain(a) == "cobblestone") && (best < 0 || better(a, best))) best = a;
     if (best >= 0) return best;
     for (Item a : members) if (best < 0 || better(a, best)) best = a;
     return best;

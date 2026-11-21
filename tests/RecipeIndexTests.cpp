@@ -433,8 +433,8 @@ void recipeIndexTests() {
                 auto const& part = led.recipes[static_cast<size_t>(led.makers[static_cast<size_t>(led.find(product))].front())].uses.front();
                 return led.items[static_cast<size_t>(groupLead(led, part.id))];
             };
-            check(leadOf("a") == "minecraft:sand" && leadOf("b") == "minecraft:oak_slab" && leadOf("c") == "minecraft:blackstone",
-                  "a group's lead is the plainest member: sand, oak, else the shortest name (L-370)");
+            check(leadOf("a") == "minecraft:sand" && leadOf("b") == "minecraft:oak_slab" && leadOf("c") == "minecraft:cobblestone",
+                  "a group's lead is the plainest member: sand, oak, cobblestone (L-370)");
         }
         {
             // The automatic choice (L-370): within one station the fewer steps win, whatever the names say; the
