@@ -136,8 +136,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   as gathered, shown as chosen, and only a change from that is saved
   ("made" in the notes): leather and white wool, and anything smelted
   from an ore that drops it (diamond, coal, redstone); one rule,
-  `usuallyGathered`. "Automatic" with no recipe reads "Automatic:
-  gather".
+  `usuallyGathered`. Such an item keeps its line in "How to make"
+  whatever is chosen; "automatic" on one with no recipe of its own
+  (diamond) is the preset gather again.
 - A key (W by default, beside A for favorites; both rebindable) puts the
   hovered item into "wanted" or takes it out, on item screens and in the
   recipe view, with Recipes on or off. While it is held the wheel changes how many are wanted, so the

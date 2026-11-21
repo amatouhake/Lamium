@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ore-smelted items usually gathered (L-370, 2026-11-22)
+
+Build `3e8e1a69` (DLL
+`8f95c9dab57b4d1485035cec3d933e92b2f2313885b1d81219be11f2e5c71ed0`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: How to make's
+diamond line starts as chosen "gather"; choosing its ore recipe turns
+the plan to smelting diamond ore. Fault: choosing "automatic" took the
+line out of How to make (diamond and leather alike), and it came back
+only after "use this recipe" in the recipe view; whether "Automatic:
+gather" showed was not seen (fixed after this build: the line stays,
+and "automatic" on an item with no recipe of its own goes back to the
+preset gather).
+
 ## Tracing "any" past its kind, one tip form, shared rows (L-386, L-387, 2026-11-22)
 
 Build `37301b53` (DLL
