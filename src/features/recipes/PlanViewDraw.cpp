@@ -318,6 +318,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // A step as the game's slots: inputs right-aligned to the arrow (room for four), the product in a fixed
     // column, the station. `x0` is where the inputs' room starts.
     constexpr float inputsW = 72;
+    // Whether the step's row shows what it makes in a column ("to make"): its product's tip then leaves it out.
+    bool madeInColumn = false;
     auto inputsRoom = [&](std::vector<StepLine> const& steps) {
         size_t most = 1;
         for (auto const& step : steps) most = std::max(most, index.recipes[static_cast<size_t>(step.recipe)].uses.size());
@@ -360,7 +362,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (step.made > 1) late.counts.push_back({productX, y + 1, slotCountText(step.made)});
         if (interactive && over(productX, y + 1, 18, 18)) {
             late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
-            if (step.made >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
+            if (step.made >= 1000 && !madeInColumn) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
         }
         if (interactive && took(productX, y + 1, 18, 18)) showItem = key;
         // Where it is made, at full size and well apart from the step (L-370, 2026-11-22), so it does not read as a
@@ -749,7 +751,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     storedParts = stepShort(index, request, *line.step, carried);
                     for (size_t k = 0; k < storedParts.size(); ++k) storedParts[k] = storedParts[k] && !shortParts[k];
                 }
+                madeInColumn = line.state != StepState::Held;
                 float const after = stepSlots(left, y, *line.step, faint, true, inputsW, &shortParts, &storedParts);
+                madeInColumn = false;
                 float nameEnd = mid - 4;
                 if (line.state == StepState::Held) {
                     // Held: a check where the counts would be.

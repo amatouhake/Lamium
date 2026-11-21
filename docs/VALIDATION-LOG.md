@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Cut counts whole in tips, switches after words (L-370, 2026-11-22)
+
+Build `cadc17b0` (DLL
+`cc13c152a2b948bbaddd5ad2967f2a3b655e973b0936e85d7ec54cc221aaf787`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: a seven-digit count
+shows whole under the pointer; a slot's "11k" and "44k" show whole in
+the tip; the switches stand right after their words; in Japanese the
+typed count's selection and digits line up; "今作れる" shows whole. Not
+right: on "to make" a product's tip repeated the count its row shows.
+
 ## The Notes tables at 45/55 (L-370, 2026-11-22)
 
 Build `fd067753` (DLL
