@@ -87,6 +87,8 @@ std::chrono::steady_clock::time_point bundlesAt{}, storesAt{};
 void dropMissingStores(LocalPlayer& player) {
     auto const settings = Runtime::instance().snapshot();
     if (!Runtime::instance().enabled() || !settings->inventory.stores) return;
+    // It unmarks saved stores from a chunk's load state: not on a game version that is not confirmed.
+    if (!versionSensitiveAllowed(capabilities::Id::CountedPlaces)) return;
     auto const& list = state::places().list;
     if (list.empty()) return;
     int const dimension = static_cast<int>(player.getDimensionId());
