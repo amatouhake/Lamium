@@ -221,13 +221,19 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // The table's columns, the same on every list: fold, icon, name, held, needed, a bar of held against that,
     // controls. Held, needed and the bar stand evenly apart (L-370, demos/plan-numbers.html A); the controls'
     // column holds a handed row's source whole.
-    constexpr float barW = 24, numW = 30, gap = 10;
+    // What comes before the table (icon, name, a step's slots) takes the window's left half at most; the table its
+    // right half (L-370, 2026-11-22, demos/notes-table.html A): held, needed and the bar spread evenly before the
+    // controls' column, every control always shown.
+    constexpr float barW = 30, numW = 30;
+    float const mid = std::floor((left + right) / 2);
     float const controlsW = std::max(26.f, textWidthScaled(context, translated("recipes.from.schematic"), .75f) + 2);
-    float const controlsX = right - controlsW, barX = controlsX - 4 - barW, wantX = barX - gap - numW, heldX = wantX - gap - numW;
+    float const controlsX = right - controlsW;
+    float const spread = std::max(6.f, std::floor((controlsX - 4 - (mid + 4) - 2 * numW - barW) / 2));
+    float const heldX = mid + 4, wantX = heldX + numW + spread, barX = wantX + numW + spread;
     float const wantW = numW, heldW = numW;
-    // A wanted row's stepper, under the pointer only: five digits, from the held column's end over the bar.
-    float const stepW = textWidth(context, "88888") + 26, stepX = heldX + heldW + 3;
-    float const nameX = left + 26, nameEnd = heldX - 3;
+    // A hand-added count being typed: the stepper, its value cell over the needed column.
+    float const stepW = textWidth(context, "88888") + 26, stepX = wantX + wantW + 11 - stepW;
+    float const nameX = left + 26, nameEnd = mid - 4;
     auto columnHeads = [&](float y, char const* wantKey, bool withName = false, std::string name = {}, char const* heldKey = "recipes.col.held") {
         if (withName) windowLabel(context, nameX, y + 1, nameEnd - nameX, std::move(name), true);
         labelScaled(context, heldX, y + 2, heldW, translated(heldKey), .75f, v::windowFaint, Align::Right, false);
@@ -493,28 +499,34 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 icon(entry.key, left + 8, y + 1, 1.f, done ? .45f : 1.f);
                 windowLabel(context, nameX, y + 5, nameEnd - nameX, shown.name, done);
                 number(heldX, heldW, y + 5, have, done);
-                // The player's own: the count turns into the stepper and remove shows under the pointer, over the
-                // bar; nothing else moves.
+                // The player's own count is edited where it stands (L-370, 2026-11-22): a faint sunk box behind it, a
+                // press types it, the wheel steps it, "- +" only while it is typed; "x" always in the controls' column.
+                // Every row's count keeps the needed column.
                 bool onControl = false;
                 auto const* editing = countEdit::editing(entry.key);
-                if (manual && (hot || editing)) {
-                    drawStepper(context, stepX, y + 4, stepW, 10, true, std::to_string(entry.count),
-                                {.editing = editing, .pointerX = hot ? px : -1, .pointerY = hot ? py : -1, .backed = true, .dimValue = entry.count == 0});
-                    if (hot) {
-                        float const xW = 11, xX = controlsX + controlsW - xW;
-                        drawButton(context, xX, y + 4, xW, 10, "x", over(xX, y + 4, xW, 10));
-                        onControl = over(stepX, y + 4, stepW, 10) || over(xX, y + 4, xW, 10);
-                        if (took(xX, y + 4, xW, 10)) state::removeWanted(entry.key);
-                        else if (took(stepX, y + 4, 11, 10)) state::stepWanted(entry.key, false, shift, true);
-                        else if (took(stepX + stepW - 11, y + 4, 11, 10)) state::stepWanted(entry.key, true, shift, true);
-                        else if (took(stepX, y + 4, stepW, 10)) countEdit::begin(entry.key, entry.count);
-                        else if (wheel && over(stepX, y + 4, stepW, 10)) state::stepWanted(entry.key, wheel < 0, shift, false), wheel = 0;
-                    }
+                float const boxX = wantX - 2, boxW = wantW + 4;
+                if (manual && editing) {
+                    drawStepper(context, stepX, y + 4, stepW, 10, true, std::to_string(entry.count), {.editing = editing, .pointerX = px, .pointerY = py, .backed = true});
+                    onControl = over(stepX, y + 4, stepW, 10);
+                    if (took(stepX, y + 4, 11, 10)) state::stepWanted(entry.key, false, shift, true);
+                    else if (took(stepX + stepW - 11, y + 4, 11, 10)) state::stepWanted(entry.key, true, shift, true);
+                    else if (took(stepX, y + 4, stepW, 10)) {}
                 } else {
-                    number(wantX, wantW, y + 5, entry.count, done || !manual);
-                    progressBar(context, barX, y + 9, barW, 3, fraction);
-                    if (!manual) labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);
+                    if (manual) {
+                        sunkFace(context, boxX, y + 3, boxW, 12, true, true);
+                        if (over(boxX, y + 3, boxW, 12)) fill(context, boxX + 1, y + 4, boxW - 2, 10, palette::white, .25f), onControl = true;
+                        if (took(boxX, y + 3, boxW, 12)) countEdit::begin(entry.key, entry.count);
+                        else if (wheel && over(boxX, y + 3, boxW, 12)) state::stepWanted(entry.key, wheel < 0, shift, false), wheel = 0;
+                    }
+                    number(wantX, wantW, y + 5, entry.count, done || !manual || entry.count == 0);
                 }
+                progressBar(context, barX, y + 9, barW, 3, fraction);
+                if (manual) {
+                    float const xW = 11, xX = controlsX + controlsW - xW;
+                    drawButton(context, xX, y + 4, xW, 10, "x", over(xX, y + 4, xW, 10));
+                    if (over(xX, y + 4, xW, 10)) onControl = true;
+                    if (took(xX, y + 4, xW, 10)) state::removeWanted(entry.key);
+                } else labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);
                 if (late.tip.empty() && hot && !onControl) {
                     late.tip = shown.name, late.hovered = entry.key;
                     if (known && target->sharedAbove()) late.tipLines.push_back(translated("recipes.sharedAbove"));
@@ -717,7 +729,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     for (size_t k = 0; k < storedParts.size(); ++k) storedParts[k] = storedParts[k] && !shortParts[k];
                 }
                 float const after = stepSlots(left, y, *line.step, faint, true, inputsW, &shortParts, &storedParts);
-                float nameEnd = heldX - 4;
+                float nameEnd = mid - 4;
                 if (line.state == StepState::Held) {
                     // Held: a check where the counts would be.
                     float const cx = wantX + wantW - 8, cy = y + 6;
@@ -729,7 +741,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     number(heldX, heldW, y + 6, now, faint);
                     number(wantX, wantW, y + 6, line.step->made, faint);
                     progressBar(context, barX, y + 10, barW, 3, line.step->made > 0 ? static_cast<float>(now) / static_cast<float>(line.step->made) : 1.f);
-                    if (hot) stepButtons(right, y + 4.5f, *line.step);
+                    stepButtons(right, y + 4.5f, *line.step);
                 }
                 windowLabel(context, after + 2, y + 6, nameEnd - after - 2, schematic::items::shown(index.items[static_cast<size_t>(line.step->item)]).name, faint);
                 if (line.state != StepState::Held && took(left, y, right - left, stepHeight))

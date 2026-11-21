@@ -49,11 +49,13 @@ plan's recipes are in [L-116](backlog/L-116.md).
   with the rows; every tab's scrollbar spans the same height, 3 units
   from the rows and from the window's shadow, drawn in whole units.
 - "Wanted" is a table: fold, icon, name, held, needed, a bar of held
-  against needed (what is gathered shows in "to gather"); held, needed
-  and the bar stand evenly apart, on every tab. Items all held follow
-  under "done", faint. The player's own rows turn the count and bar
-  into "- N +" (five digits) and show "x" only under the pointer;
-  handed rows show their source; a hand-added and a handed row of one
+  against needed (what is gathered shows in "to gather"). On every tab
+  what comes before the table takes the left half at most and held,
+  needed, the bar and the controls the right half, evenly apart, every
+  control always shown. Items all held follow under "done", faint. The
+  player's own count sits on a faint sunk box: a press types it, the
+  wheel steps it, "- N +" shows while it is typed; "x" stands in the
+  controls' column; handed rows show their source there; a hand-added and a handed row of one
   item stay two rows. Held stock goes to the rows in
   the order added; a row that lost stock to one above says so under the
   pointer. A press opens its read-only breakdown: steps as slots, then
