@@ -41,7 +41,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   inventory, or up to a button more each side where the panels leave the
   room (the field takes it), never over them: the first button (a tabbed window)
   opens it on its last tab or closes it, green while open, its tip the
-  name and the tabs; the second (a divided square) arranges the panels.
+  name and the tabs; the second (a divided square) arranges the panels, green while it
+  does, and a press on it again ends that as Done does.
   Buttons with pictures are white and greys, green when on. The settings
   screen holds how the features behave, the window the player's data.
   Only column headings stay put; a tab's switch line and "All" scroll

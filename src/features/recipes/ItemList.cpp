@@ -600,8 +600,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (pressed || input.outside || input.close || stopRun.exchange(false)) place::stop();
     place::tick(screenView);
     bool const leftPress = pressed && input.clicks.front();
-    // While the bands are arranged every press is the editor's, and nothing under it acts.
-    bool const editPress = editing && leftPress;
+    // While the panels are arranged every press is the editor's, and nothing under it acts; but the layout's own
+    // button ends arranging again, as Done does (L-382).
+    bool const layoutAgain = editing && leftPress && layoutButton && layoutBox.has(px, py);
+    if (layoutAgain) bandEditor::stop();
+    bool const editPress = editing && leftPress && !layoutAgain;
     if (editing) pressed = false;
     auto took = [&](ListBox const& box) {
         if (!pressed || !box.has(px, py)) return false;
