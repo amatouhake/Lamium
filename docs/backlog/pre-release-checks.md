@@ -21,7 +21,8 @@ Do not infer game success from a build or unit-test result.
   x/y  あと z" in both views (L-387); tracing "any" past its kind and a
   group's "gather" (L-386), and held members covering a group within
   the plan's one pass (a changed core: compare a plan with planks held
-  against what it showed before).
+  against what it showed before); the Recipes window's draw split into
+  one function per tab (`37301b53`, moves only: every tab once).
 
 ## Left from 0.7.0
 
