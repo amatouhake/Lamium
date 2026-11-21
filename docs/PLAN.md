@@ -154,8 +154,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   item screens, has it as it is, and the HUD and the Materials tab have
   what the last item screen saw (nothing before the world's first).
 - While a container is open, a button on its window's title line, left
-  of the close button and drawn as that is (its size, a chest in the
-  window's ink, a green check while on, darker under the pointer; its tip
+  of the close button and drawn as that is (15 units, a chest in the
+  close button's mark color, a green check while on, the close button's
+  face under the pointer; its tip
   in the game's box, "Count as a store: on/off"), counts it as a store: on makes it a
   store, off takes it out; at the ender chest it switches the chest in
   or out of the count. The window has a "Stores" tab: what is carried, the ender chest and the

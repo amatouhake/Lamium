@@ -63,6 +63,8 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     brewingFuel{.94f,.6f,.1f}, brewingFuelLight{1.f,.85f,.3f},
     // A face sunk into the game's window (a breakdown, a list of candidates), under a dark upper-left edge (L-370).
     windowSunk{.706f,.706f,.706f},
+    // A container window's close button under the pointer: its face and its mark (sampled 2026-11-21, L-382).
+    closeHover{.682f,.682f,.682f}, closeMark{.275f,.271f,.275f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
     // red the recipe book gives what cannot be made.
     slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.851f,.302f,.302f};
