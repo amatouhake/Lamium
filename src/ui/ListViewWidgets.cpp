@@ -78,15 +78,16 @@ void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y
     namespace v = palette::vanilla;
     // Under the pointer the close button's face, as the game's close button beside it turns.
     if (hovered) fill(context, x, y, size, size, v::closeHover);
-    // A 16-unit picture in whole units, centred.
-    float const k = std::max(1.f, std::floor(size / 16)), o = std::floor((size - 16 * k) / 2);
-    auto p = [&](float px, float py, float w, float h, Rgb color) { fill(context, x + o + px * k, y + o + py * k, w * k, h * k, color); };
     if (picture == Picture::Store) {
-        // A chest seen from the front: its outline, the lid's line and the latch; counted, a green check inside it.
+        // A chest seen from the front, 11 by 9 units centred in whole units (odd sizes, so it sits in the middle of
+        // an odd button): its outline, the lid's line and the latch; counted, a green check inside it.
+        constexpr float w = 11, h = 9;
+        float const ox = x + std::floor((size - w) / 2), oy = y + std::floor((size - h) / 2);
+        auto p = [&](float px, float py, float pw, float ph, Rgb color) { fill(context, ox + px, oy + py, pw, ph, color); };
         Rgb const ink = v::closeMark;
-        p(2, 3, 12, 1, ink); p(2, 3, 1, 10, ink); p(13, 3, 1, 10, ink); p(2, 12, 12, 1, ink);
-        p(2, 6, 12, 1, ink); p(7, 5, 2, 3, ink);
-        if (on) for (auto [cx, cy] : {std::pair{5, 9}, {6, 10}, {7, 9}, {8, 8}, {9, 7}, {10, 6}, {11, 5}}) p(static_cast<float>(cx), static_cast<float>(cy), 1, 1, palette::accentDeep);
+        p(0, 0, w, 1, ink); p(0, 0, 1, h, ink); p(w - 1, 0, 1, h, ink); p(0, h - 1, w, 1, ink);
+        p(0, 3, w, 1, ink); p(4, 2, 3, 3, ink);
+        if (on) for (auto [cx, cy] : {std::pair{2, 5}, {3, 6}, {4, 5}, {5, 4}, {6, 3}, {7, 2}, {8, 1}}) p(static_cast<float>(cx), static_cast<float>(cy), 1, 1, palette::accentDeep);
     }
 }
 namespace { constexpr float rowButtonText = .6875f; }
