@@ -69,18 +69,59 @@ inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& cho
     }
     return out;
 }
-// Whether a step can be made now, all its crafts, from `stock`: each part as the item it stands for, a group
-// not picked by any of its members together.
-inline bool stepReady(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
+// What `stock` holds of a part: the item it stands for, a group not picked by any of its members together.
+inline Count stockOf(Index const& index, Request const& request, Part const& part, std::map<Item, Count> const& stock) {
     Item const items = static_cast<Item>(index.items.size());
     auto have = [&](Item id) { auto found = stock.find(id); return found == stock.end() ? Count{0} : found->second; };
-    for (auto const& part : index.recipes[static_cast<size_t>(step.recipe)].uses) {
-        Item const item = partItem(index, request, part);
-        Count got = 0;
-        if (item >= items) for (Item member : index.groups[static_cast<size_t>(item - items)].members) got += have(member);
-        else got = have(item);
-        if (got < step.crafts * part.count) return false;
+    Item const item = partItem(index, request, part);
+    if (item < items) return have(item);
+    Count got = 0;
+    for (Item member : index.groups[static_cast<size_t>(item - items)].members) got += have(member);
+    return got;
+}
+// How many of a step's crafts `stock` makes now, at most all of them.
+inline Count stepNow(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
+    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+    Count now = step.crafts;
+    for (size_t i = 0; i < recipe.uses.size(); ++i) {
+        Count const each = recipe.uses[i].count;
+        if (!each) continue;
+        Count const got = stockOf(index, request, recipe.uses[i], stock);
+        // A brewing ingredient serves a batch of crafts (L-361).
+        now = std::min(now, i == 0 && recipe.batch > 1 ? got / each * recipe.batch : got / each);
     }
-    return true;
+    return now;
+}
+// Whether a step can be made now, all its crafts, from `stock`.
+inline bool stepReady(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
+    return stepNow(index, request, step, stock) >= step.crafts;
+}
+// The plan's steps as "to make" shows them (L-370): all their crafts can be made now, some of them, none; and
+// what held stock covers whole, which is not made at all.
+enum class StepState { Ready, Partly, Missing, Held };
+inline StepState stepState(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
+    Count const now = stepNow(index, request, step, stock);
+    return now >= step.crafts ? StepState::Ready : now > 0 ? StepState::Partly : StepState::Missing;
+}
+// Which of a step's uses `stock` holds too few of for all its crafts: the slots shown in the game's red.
+inline std::vector<bool> stepShort(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
+    auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
+    std::vector<bool> out(recipe.uses.size(), false);
+    for (size_t i = 0; i < recipe.uses.size(); ++i) out[i] = stockOf(index, request, recipe.uses[i], stock) < partNeed(recipe, i, step.crafts);
+    return out;
+}
+// What held stock covers whole and has a recipe: steps not to make, shown as held at the end of "to make".
+inline std::vector<StepLine> heldSteps(Index const& index, Choice const& choice, RawView const& view) {
+    std::vector<StepLine> out;
+    Item const items = static_cast<Item>(index.items.size());
+    for (auto const& line : view.done) {
+        if (line.id < 0 || line.id >= items || static_cast<size_t>(line.id) >= choice.recipe.size()) continue;
+        int const recipe = choice.recipe[static_cast<size_t>(line.id)];
+        if (recipe < 0) continue;
+        Count const makes = std::max<Count>(1, index.recipes[static_cast<size_t>(recipe)].count);
+        Count const crafts = (line.held + makes - 1) / makes;
+        out.push_back({line.id, recipe, crafts, line.held, 0, line.held});
+    }
+    return out;
 }
 }

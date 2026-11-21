@@ -264,7 +264,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         for (auto const& step : steps) most = std::max(most, index.recipes[static_cast<size_t>(step.recipe)].uses.size());
         return static_cast<float>(std::min<size_t>(most, 4)) * 18;
     };
-    auto stepSlots = [&](float x0, float y, StepLine const& step, bool faint, bool interactive = true, float room = inputsW) {
+    auto stepSlots = [&](float x0, float y, StepLine const& step, bool faint, bool interactive = true, float room = inputsW,
+                         std::vector<bool> const* shortParts = nullptr) {
         auto const& key = index.items[static_cast<size_t>(step.item)];
         auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
         size_t const iconsBefore = late.icons.size();
@@ -275,9 +276,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             auto const& part = uses[u];
             float const sx = arrowX - static_cast<float>(shown - u) * 18;
             Item const item = partItem(index, request, part);
-            windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18));
+            // A use held too few of for all the crafts, on the game's red (L-370).
+            windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18), shortParts && u < shortParts->size() && (*shortParts)[u]);
             itemIcon(item, sx + 1, y + 2);
-            if (Count const n = step.crafts * part.count; n > 1) late.counts.push_back({sx, y + 1, std::to_string(n)});
+            if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, std::to_string(n)});
             auto const picked = part.group ? request.picks.find(part.id) : request.picks.end();
             if (picked != request.picks.end()) frame(context, sx, y + 1, 18, 18, palette::accentDeep);
             if (over(sx, y + 1, 18, 18)) {
@@ -515,21 +517,29 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     }
 
     if (tab == Tab::Make) {
-        // The work: steps that can be made now from what is held first, the others under them faint; a press opens
-        // the breakdown of the wanted item that needs the step.
+        // The work (L-370): steps that can be made now, then those made in part, then those short of something,
+        // each under its heading; at the end, faint, what held stock covers whole. A press opens the breakdown of
+        // the wanted item that needs the step.
         auto const& steps = plan->view.steps;
-        if (steps.empty()) { note(translated("recipes.nothingWanted")); return; }
+        auto const held = heldSteps(index, *plan->choice, plan->view);
+        if (steps.empty() && held.empty()) { note(translated("recipes.nothingWanted")); return; }
         std::map<Item, Count> stock;
         for (auto const& [id, have] : request.held) stock[id] += have;
-        struct Line { StepLine const* step = nullptr; bool ready = false; char const* label = nullptr; float height = 0; };
+        struct Line { StepLine const* step = nullptr; StepState state = StepState::Ready; char const* label = nullptr; float height = 0; };
         std::vector<Line> lines;
-        for (bool ready : {true, false}) {
+        constexpr std::pair<StepState, char const*> heads[]{{StepState::Ready, "recipes.ready"}, {StepState::Partly, "recipes.partly"},
+                                                            {StepState::Missing, "recipes.notReady"}};
+        for (auto [state, head] : heads) {
             bool first = true;
             for (auto const& step : steps) {
-                if (stepReady(index, request, step, stock) != ready) continue;
-                if (first) lines.push_back({nullptr, ready, ready ? "recipes.ready" : "recipes.notReady", labelHeight}), first = false;
-                lines.push_back({&step, ready, nullptr, stepHeight});
+                if (stepState(index, request, step, stock) != state) continue;
+                if (first) lines.push_back({nullptr, state, head, labelHeight}), first = false;
+                lines.push_back({&step, state, nullptr, stepHeight});
             }
+        }
+        if (!held.empty()) {
+            lines.push_back({nullptr, StepState::Held, "recipes.heldSteps", labelHeight});
+            for (auto const& step : held) lines.push_back({&step, StepState::Held, nullptr, stepHeight});
         }
         int const count = static_cast<int>(lines.size());
         std::vector<float> heights;
@@ -542,10 +552,20 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (line.label) {
                 labelScaled(context, left, y + 3, right - left, translated(line.label), .75f, v::windowFaint, Align::Left, false);
             } else {
+                bool const faint = line.state == StepState::Missing || line.state == StepState::Held;
                 if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
-                float const after = stepSlots(left, y, *line.step, !line.ready);
-                windowLabel(context, after + 2, y + 6, right - after - 2, schematic::items::shown(index.items[static_cast<size_t>(line.step->item)]).name, !line.ready);
-                if (took(left, y, right - left, stepHeight))
+                auto const shortParts = line.state == StepState::Held ? std::vector<bool>{} : stepShort(index, request, *line.step, stock);
+                float const after = stepSlots(left, y, *line.step, faint, true, inputsW, &shortParts);
+                // Made in part: what can be made now of what is needed, in items (the band counts so too).
+                float nameEnd = right;
+                if (line.state == StepState::Partly) {
+                    Count const each = std::max<Count>(1, index.recipes[static_cast<size_t>(line.step->recipe)].count);
+                    std::string const part = std::format("{}/{}", stepNow(index, request, *line.step, stock) * each, line.step->made);
+                    windowLabel(context, right - 40, y + 6, 40, part, false, Align::Right);
+                    nameEnd = right - 42;
+                }
+                windowLabel(context, after + 2, y + 6, nameEnd - after - 2, schematic::items::shown(index.items[static_cast<size_t>(line.step->item)]).name, faint);
+                if (line.state != StepState::Held && took(left, y, right - left, stepHeight))
                     if (auto const* shares = state::shares(player))
                         for (size_t e = 0; e < shares->targets.size() && e < shares->entries.size(); ++e)
                             if (std::ranges::any_of(shares->targets[e].view.steps, [&](StepLine const& mine) { return mine.item == line.step->item; })) {

@@ -436,6 +436,20 @@ void recipeIndexTests() {
                 return std::find(four.raw.begin(), four.raw.end(), std::pair<Item, Count>{item, count}) != four.raw.end();
             };
             check(has(water, 4) && has(wart, 2), "four bottles brewed take four bottles before and two ingredients (L-361)");
+            {
+                // The plan's step states (L-370): all crafts now, some, none; a brewing ingredient serves three.
+                StepLine const brew{awkward, 0, 4, 4, 0, 0};
+                Request const none{};
+                std::map<Item, Count> some{{wart, 1}, {water, 4}}, enough{{wart, 2}, {water, 4}}, short_{{water, 4}};
+                check(stepNow(brewed, none, brew, some) == 3 && stepState(brewed, none, brew, some) == StepState::Partly
+                          && stepState(brewed, none, brew, enough) == StepState::Ready && stepState(brewed, none, brew, short_) == StepState::Missing
+                          && stepShort(brewed, none, brew, some) == std::vector<bool>{true, false},
+                      "a step is ready, partly made or missing from what is held, its short inputs told (L-370)");
+                RawView done;
+                done.done.push_back({awkward, 3, 3, 0});
+                auto const held = heldSteps(brewed, brewChoice, done);
+                check(held.size() == 1 && held[0].item == awkward && held[0].made == 3, "what held stock covers whole is a held step");
+            }
             auto const face = viewBlock(mix);
             check(face.brewing && face.slots.size() == 3 && face.slots[0].cell == 0 && face.slots[1].cell == 1 && face.slots[2].cell == -1
                       && face.productX == 68 && face.slots[0].x == 46 && face.placeY + viewButton == 54

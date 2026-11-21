@@ -128,8 +128,11 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         Count count = 0;
         int step = -1; // a row of what to make: its place among the plan's steps
         std::string source; // a wanted item a feature handed over: whose it is; not edited here
-        bool faint = false; // a step that cannot be made from what is held yet
+        bool faint = false; // a step short of something, or held
         bool group = false; // stands for any of a group
+        std::string countText; // in place of `count`: a step made in part, "now/needed"
+        bool done = false;     // a step held stock covers whole: a check in place of the count
+        StepLine line;         // a row of what to make: its step (a held one is not among the plan's)
     };
     std::vector<SideRow> rows;
     auto const* plan = state::plan(player);
@@ -157,17 +160,30 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         // What the recipe table does not know (a grass block) is gathered as it is.
         for (auto const& line : plan->loose) if (line.left > 0) rows.push_back({line.key, schematic::items::shown(line.key).name, line.left});
     } else if (plan) {
-        // What to make, as the window's tab: what can be made now from what is held first, the rest faint.
+        // What to make, as the window's tab (L-370): made now, made in part ("now/needed"), short (faint), and at the
+        // end what held stock covers whole (faint, a check for its count); no headings in rows this low.
         auto const& index = plan->table->index;
         std::map<Item, Count> stock;
         for (auto const& [id, have] : plan->request.held) stock[id] += have;
-        for (bool ready : {true, false})
+        for (StepState state : {StepState::Ready, StepState::Partly, StepState::Missing})
             for (size_t i = 0; i < plan->view.steps.size(); ++i) {
                 auto const& step = plan->view.steps[i];
-                if (stepReady(index, plan->request, step, stock) != ready) continue;
+                if (stepState(index, plan->request, step, stock) != state) continue;
                 auto const& key = index.items[static_cast<size_t>(step.item)];
-                rows.push_back({key, schematic::items::shown(key).name, step.made, static_cast<int>(i), {}, !ready});
+                SideRow row{key, schematic::items::shown(key).name, step.made, static_cast<int>(i), {}, state == StepState::Missing};
+                if (state == StepState::Partly) {
+                    Count const each = std::max<Count>(1, index.recipes[static_cast<size_t>(step.recipe)].count);
+                    row.countText = std::format("{}/{}", stepNow(index, plan->request, step, stock) * each, step.made);
+                }
+                row.line = step;
+                rows.push_back(std::move(row));
             }
+        for (auto const& step : heldSteps(index, *plan->choice, plan->view)) {
+            auto const& key = index.items[static_cast<size_t>(step.item)];
+            SideRow row{key, schematic::items::shown(key).name, step.made, -1, {}, true};
+            row.done = true, row.line = step;
+            rows.push_back(std::move(row));
+        }
     }
     // The list scrolls: the wheel over it (a stepper under the pointer takes the wheel for itself)
     // and the shared bar at its right, which the rows make room for.
@@ -210,12 +226,22 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             else if (took(box)) {}
             else if (frame.sideTurns && box.has(px, py)) state::stepWanted(row.key, frame.sideTurns < 0, frame.shift, false);
             nameEnd = sx - 3;
-        } else label(context, end - 40, y + 2, 40, std::to_string(row.count), row.faint ? palette::faint : palette::text, Align::Right);
+        } else if (row.done) {
+            // Held: a small check where the count would be.
+            float const cx = end - 9, cy = y + 3;
+            for (int k = 0; k < 2; ++k) fill(context, cx + static_cast<float>(k), cy + 3 + static_cast<float>(k), 1, 1, palette::faint);
+            for (int k = 0; k < 4; ++k) fill(context, cx + 2 + static_cast<float>(k), cy + 4 - static_cast<float>(k), 1, 1, palette::faint);
+        } else label(context, end - 40, y + 2, 40, row.countText.empty() ? std::to_string(row.count) : row.countText,
+                     row.faint ? palette::faint : palette::text, Align::Right);
         if (panel.wide()) label(context, panel.left + 16, y + 2, nameEnd - panel.left - 16, row.name, row.faint ? palette::faint : palette::dim);
         if (whole.has(px, py)) {
             if (hoverItem.empty()) hoverItem = row.key;
-            // A row of what to make says what its crafts take.
-            if (row.step >= 0 && plan) late.tip = row.name, late.tipLines = stepInputLines(plan->table->index, plan->request, plan->view.steps[static_cast<size_t>(row.step)]);
+            // A row of what to make says what its crafts take, each with what is held of it (L-370).
+            if (sideList == SideList::Make && plan && !row.done) {
+                std::map<Item, Count> stock;
+                for (auto const& [id, have] : plan->request.held) stock[id] += have;
+                late.tip = row.name, late.tipLines = stepInputLines(plan->table->index, plan->request, row.line, stock);
+            } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
             // A row a feature handed over says whose it is.
             else if (!row.source.empty()) late.tip = row.name, late.tipLines = {translated("recipes.from." + row.source)};
             else if (!panel.wide()) late.tip = row.name;

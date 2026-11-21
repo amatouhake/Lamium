@@ -19,4 +19,6 @@ std::string groupName(Index const& index, int group);
 std::string groupNameAny(Index const& index, int group);
 // What a step of a plan takes in all its crafts, a line each: the count, then the name.
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step);
+// The same with what `stock` holds of each, "held/needed", and how many more where it is short (L-370).
+std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock);
 }

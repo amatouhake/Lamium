@@ -49,8 +49,13 @@ plan's recipes are in [L-116](backlog/L-116.md).
   when chosen) go to "How to make"; "gather" on a step, "make" on a
   material set to gather.
 - "To gather" uses the same columns, "All" as the first row; done rows
-  faint below. "To make" is the work: steps that can be made now from
-  what is held first, the others faint; a press opens the breakdown.
+  faint below. "To make" is the work (L-370), under headings: steps that
+  can be made now, then those made in part ("now/needed" in items at the
+  right), then those short of something (faint, the short inputs on the
+  game's red), and at the end, faint, what held stock covers whole; a
+  press opens the breakdown. The band's "to make" keeps that order with
+  no headings: "now/needed" for a partly row, a check for a held one,
+  its tip giving each input held/needed.
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first), by name; lines for the current plan, or with a

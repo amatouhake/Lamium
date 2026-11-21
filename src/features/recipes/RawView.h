@@ -78,9 +78,15 @@ inline Item partItem(Index const& index, Request const& request, Part const& par
     return picked != request.picks.end() ? picked->second : index.groupItem(part.id);
 }
 // What a step takes in all its crafts, each part as the item it stands for in the plan.
+// How many of a recipe's `i`-th use `crafts` take: a brewing ingredient serves a batch of crafts (L-361).
+inline Count partNeed(Recipe const& recipe, size_t i, Count crafts) {
+    Count const count = recipe.uses[i].count;
+    return i == 0 && recipe.batch > 1 ? (crafts + recipe.batch - 1) / recipe.batch * count : crafts * count;
+}
 inline std::vector<std::pair<Item, Count>> stepInputs(Index const& index, Request const& request, StepLine const& step) {
     std::vector<std::pair<Item, Count>> out;
-    for (auto const& part : index.recipes[step.recipe].uses) out.emplace_back(partItem(index, request, part), step.crafts * part.count);
+    auto const& recipe = index.recipes[step.recipe];
+    for (size_t i = 0; i < recipe.uses.size(); ++i) out.emplace_back(partItem(index, request, recipe.uses[i]), partNeed(recipe, i, step.crafts));
     return out;
 }
 // The steps that use `id` and how many each takes, in the view's order.
@@ -88,7 +94,8 @@ inline std::vector<std::pair<Item, Count>> usersOf(Index const& index, Request c
     std::vector<std::pair<Item, Count>> out;
     for (auto const& step : view.steps) {
         Count used = 0;
-        for (auto const& part : index.recipes[step.recipe].uses) if (partItem(index, request, part) == id) used += step.crafts * part.count;
+        auto const& recipe = index.recipes[step.recipe];
+        for (size_t i = 0; i < recipe.uses.size(); ++i) if (partItem(index, request, recipe.uses[i]) == id) used += partNeed(recipe, i, step.crafts);
         if (used) out.emplace_back(step.item, used);
     }
     return out;
