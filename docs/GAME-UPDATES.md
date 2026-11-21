@@ -206,7 +206,8 @@ the recipe table's capability; placing at the brewing stand moves into
 `brewing_input_item` and `brewing_result_items` (`ContainerType::BrewingStand`). Its result is in
 VALIDATION-LOG (2026-11-17). The same build fills the
 recipe index (`features/recipes/RecipeSnapshot.cpp`, L-359) from that table
-and logs sample plans; the shipped build does not call it yet.
+and logs sample plans; the shipped build fills the index the same way
+without the samples.
 `item_screen_probe` (L-359, 2026-11-18) has no hook: on a container screen
 it reads the screen's name, `root_panel`'s box and the controls from the
 top of the visual tree (`UIControl::mChildren`, `mName`, `mCachedPosition`,
