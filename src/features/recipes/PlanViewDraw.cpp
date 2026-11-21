@@ -964,9 +964,10 @@ struct Lists : Window {
                 if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
                 icon(key, left + 8, y + 2);
                 windowLabel(context, nameX, y + 6, arrowX - nameX - 4, nameOf(line.item));
-                // Made from: the recipe in use shown by its first input; gathered, the item itself.
+                // Made from: the recipe in use shown by its first input; gathered (by the player or with no recipe in use),
+                // the item itself.
                 windowSlot(context, slotX, y + 1);
-                if (gathered) icon(key, slotX + 1, y + 2);
+                if (gathered || now < 0) icon(key, slotX + 1, y + 2);
                 else if (now >= 0)
                     if (auto const& recipe = index.recipes[static_cast<size_t>(now)]; !recipe.uses.empty()) icon(pictureOf(partItem(index, request, recipe.uses.front())), slotX + 1, y + 2);
                 changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
@@ -977,7 +978,7 @@ struct Lists : Window {
                 // Left the item; right what it is made from now (gathered: the item itself).
                 if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
                 else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
-                    Item from = gathered ? line.item : -1;
+                    Item from = gathered || now < 0 ? line.item : -1;
                     if (!gathered && now >= 0)
                         if (auto const& recipe = index.recipes[static_cast<size_t>(now)]; !recipe.uses.empty()) from = partItem(index, request, recipe.uses.front());
                     if (from >= itemCount) groupTip(from - itemCount, slotX, y + 1);
@@ -1016,6 +1017,10 @@ struct Lists : Window {
                     if (rule >= 0) {
                         StepLine const ruled{line.item, rule, 1, index.recipes[static_cast<size_t>(rule)].count, 0, 0};
                         after = stepSlots(optionX, sy, ruled, true, false);
+                    } else {
+                        // No recipe by the rule: it gathers, shown as "gather" is, the item itself in the product's slot.
+                        windowSlot(context, slotX, sy + 1, false);
+                        icon(key, slotX + 1, sy + 2, 1.f, .45f);
                     }
                     if (!chosen && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
                     windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : translated("recipes.toGather")));
