@@ -1,3 +1,4 @@
+#include "features/recipes/CountText.h"
 #include "features/recipes/PlanViewDraw.h"
 #include "app/Runtime.h"
 #include "features/recipes/CountEdit.h"
@@ -279,7 +280,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             // A use held too few of for all the crafts, on the game's red (L-370).
             windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18), shortParts && u < shortParts->size() && (*shortParts)[u]);
             itemIcon(item, sx + 1, y + 2);
-            if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, std::to_string(n)});
+            if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
             auto const picked = part.group ? request.picks.find(part.id) : request.picks.end();
             if (picked != request.picks.end()) frame(context, sx, y + 1, 18, 18, palette::accentDeep);
             if (over(sx, y + 1, 18, 18)) {
@@ -296,7 +297,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
         windowSlot(context, productX, y + 1, over(productX, y + 1, 18, 18));
         icon(key, productX + 1, y + 2);
-        if (step.made > 1) late.counts.push_back({productX, y + 1, std::to_string(step.made)});
+        if (step.made > 1) late.counts.push_back({productX, y + 1, slotCountText(step.made)});
         if (interactive && over(productX, y + 1, 18, 18))
             late.tip = schematic::items::shown(key).name, late.tipLines = stepInputLines(index, request, step), late.hovered = key;
         if (interactive && took(productX, y + 1, 18, 18)) showItem = key;
@@ -702,7 +703,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     icon(memberKey, cx + 1, cy + 1);
                     if (picked != request.picks.end() && picked->second == member) frame(context, cx, cy, 18, 18, palette::accentDeep);
                     auto held = plan->held.find(member);
-                    if (held != plan->held.end() && held->second) late.counts.push_back({cx, cy, std::to_string(held->second)});
+                    if (held != plan->held.end() && held->second) late.counts.push_back({cx, cy, slotCountText(held->second)});
                     if (hot) late.tip = nameOf(member), late.hovered = memberKey;
                     if (took(cx, cy, 18, 18)) state::setPick(key, memberKey), howOpen.clear();
                 }

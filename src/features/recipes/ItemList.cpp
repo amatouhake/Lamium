@@ -1,3 +1,4 @@
+#include "features/recipes/CountText.h"
 #include "features/recipes/ItemList.h"
 #include <cmath>
 #include "app/Runtime.h"
@@ -639,7 +640,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (wanted == wantedCounts.end()) return;
         // Three characters fit a cell: thousands above that, and "++" past them.
         Count const n = wanted->second;
-        late.counts.push_back({x, y, n < 1000 ? std::to_string(n) : n < 100000 ? std::format("{}k", n / 1000) : std::string("++")});
+        late.counts.push_back({x, y, slotCountText(n)});
     };
     // A press on an item shows its recipes, a right press what it is used in, also beside an open view. With Shift
     // a press lays in as many as divide evenly, with Ctrl it crafts one round onto the pointer (L-379); where the

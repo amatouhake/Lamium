@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The plan's step states (L-370, 2026-11-21)
+
+Build `2093c291` (DLL
+`58ce88d0f4cc90f0d121e492a272e65310fcf32c229650cc48be132b5db035f1`),
+1.26.60.05 Dev instance, the maintainer. Works: "to make" under the four
+headings, a partly step's "15/1024" at the right, the short input on the
+game's red, a held diamond helmet faint at the end; the band in the same
+order with "15/1024" and a check. Found: a wanted raw item (iron ore)
+never shows in "to make", so only made items look done there (kept: raw
+items are "to gather"'s, done rows faint there); large counts spilled out
+of slots or were cut ("8192", "23..."), fixed after by the list's short
+form ("2k", "23k", "++").
+
 ## Brewing in the recipe view, place everywhere (L-361, 2026-11-21)
 
 Builds `c167eb41` to `77c7e845` (last DLL

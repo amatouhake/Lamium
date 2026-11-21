@@ -1,4 +1,5 @@
 #include <cmath>
+#include "features/recipes/CountText.h"
 #include "features/recipes/BandEditor.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ItemSearch.h"
@@ -449,6 +450,8 @@ void recipeIndexTests() {
                 done.done.push_back({awkward, 3, 3, 0});
                 auto const held = heldSteps(brewed, brewChoice, done);
                 check(held.size() == 1 && held[0].item == awkward && held[0].made == 3, "what held stock covers whole is a held step");
+                check(slotCountText(999) == "999" && slotCountText(2880) == "2k" && slotCountText(23040) == "23k" && slotCountText(100000) == "++",
+                      "a slot's count fits three characters (L-370)");
             }
             auto const face = viewBlock(mix);
             check(face.brewing && face.slots.size() == 3 && face.slots[0].cell == 0 && face.slots[1].cell == 1 && face.slots[2].cell == -1

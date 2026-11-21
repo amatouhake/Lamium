@@ -1,3 +1,4 @@
+#include "features/recipes/CountText.h"
 #include "features/recipes/RecipeViewDraw.h"
 #include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeState.h"
@@ -280,7 +281,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             region.item = index.items[static_cast<size_t>(item)];
             auto const& shown = schematic::items::shown(region.item);
             if (auto const* stack = schematic::items::iconStack(shown.icon)) late.icons.push_back({stack, sx + 1, sy + 1});
-            if (amount > 1) late.counts.push_back({sx, sy, std::to_string(amount)});
+            if (amount > 1) late.counts.push_back({sx, sy, slotCountText(amount)});
             if (group >= 0 && !state::notes().picks.contains(groupKey(index, group))) late.marks.push_back({sx + 1, sy + 1});
             if (hovered && group >= 0) {
                 late.tip = groupName(index, group);
