@@ -53,6 +53,10 @@ void drawStoreMark(MinecraftUIRenderContext& context, float x, float y, Rgb ink)
     fill(context, x, y, 7, 1, ink); fill(context, x, y, 1, 6, ink); fill(context, x + 6, y, 1, 6, ink); fill(context, x, y + 5, 7, 1, ink);
     fill(context, x, y + 2, 7, 1, ink); fill(context, x + 3, y + 1, 1, 2, ink);
 }
+void drawCheckMark(MinecraftUIRenderContext& context, float x, float y, Rgb ink) {
+    for (int k = 0; k < 2; ++k) fill(context, x + static_cast<float>(k), y + 3 + static_cast<float>(k), 1, 1, ink);
+    for (int k = 0; k < 4; ++k) fill(context, x + 2 + static_cast<float>(k), y + 4 - static_cast<float>(k), 1, 1, ink);
+}
 void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on, bool enabled) {
     Rgb const ink = drawButtonBox(context, x, y, size, size, hovered && enabled, on ? ButtonKind::Primary : ButtonKind::Plain, enabled);
     if (picture == Picture::Place || picture == Picture::Make) {

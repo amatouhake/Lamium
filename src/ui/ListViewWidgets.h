@@ -33,6 +33,8 @@ void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, floa
                        bool enabled = true);
 // The stores' mark (L-385): a small chest, as a container's store button draws it, 7 by 6 units from (x, y).
 void drawStoreMark(MinecraftUIRenderContext& context, float x, float y, Rgb ink);
+// A small check (L-370: a row all held, in place of its count), 6 by 5 units from (x, y + 1).
+void drawCheckMark(MinecraftUIRenderContext& context, float x, float y, Rgb ink);
 // The same picture on the game's window beside its own close button, drawn as that is (L-382): no face, the
 // window's ink, lit under the pointer; on adds a green check.
 void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);

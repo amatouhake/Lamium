@@ -9,6 +9,7 @@
 #include "features/recipes/Places.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/PlanTargets.h"
+#include "features/recipes/PlanRows.h"
 #include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeView.h"
 void check(bool, char const*);
@@ -199,6 +200,31 @@ void recipeIndexTests() {
         std::map<Item, Count> plenty{{id("cobblestone"), 64}};
         check(stepNow(index, request, view.steps[0], plenty) >= view.steps[0].crafts && stepNow(index, request, view.steps[0], {}) == 0,
               "a step can be made in full when everything its crafts take is held, and not at all from nothing");
+        // The lists' rows (PlanRows.h), the same for the window and the panel.
+        std::vector<LooseLine> const loose{{"grass", 3, 3, 0}, {"dirt", 5, 1, 4}};
+        auto const gathered = gatherRows(index, view, loose, {id("cobblestone")});
+        check(gathered.left.size() == 3 && gathered.left[0].line.id == id("cobblestone") && gathered.left[0].stopped && gathered.left[1].line.id == planks
+                  && gathered.left[2].key == "dirt" && gathered.left[2].line.left == 4,
+              "what is left to gather: the recipes' lines first, then what the table does not know");
+        check(gathered.finished.size() == 2 && gathered.finished[0].key == "grass" && gathered.finished[0].done
+                  && gathered.finished[1].line.id == id("oak_planks") && gathered.finished[1].done,
+              "what is gathered follows, faint: what the table does not know, then what held stock covers whole");
+        std::map<Item, Count> const carried{{id("cobblestone"), 64}}, all{{id("cobblestone"), 64}};
+        auto const made = makeRows(index, request, view, heldSteps(index, choice, view), carried, all);
+        check(made.size() == 4 && made[0].step.item == id("stone") && made[0].state == StepState::Ready && made[0].now == view.steps[0].made
+                  && made[1].state == StepState::Missing && made[1].now == 0 && made[3].state == StepState::Held && made[3].step.item == id("oak_planks"),
+              "steps stand by what can be made now, the plan's order within, then what is held; each says how many can be made now");
+        std::vector<WantedEntry> const entries{{"a", 2, ""}, {"b", 1, ""}, {"c", 3, "schematic"}};
+        std::map<std::string, bool> kept;
+        auto rows = wantedRows(entries, {0, 1, 3}, kept, false);
+        check(rows.size() == 3 && rows[0].entry == 0 && !rows[0].done && rows[1].entry == 1 && rows[1].done && rows[2].entry == 2 && rows[2].done,
+              "wanted rows not all held come first, then the done ones, each in the order added");
+        rows = wantedRows(entries, {2, 1, 3}, kept, true);
+        check(!rows[0].done && rows[0].entry == 0 && rows[0].held == 2, "while the pointer is over the list a row keeps its place");
+        rows = wantedRows(entries, {2, 1, 3}, kept, false);
+        check(rows.size() == 3 && rows[0].entry == 0 && rows[0].done && rows[2].entry == 2, "once the pointer leaves, the rows take their places");
+        check(wantedHeld({{"chest", 1, ""}, {"grass", 2, ""}}, {two[0], TargetPlan{}}, loose) == std::vector<Count>{0, 3},
+              "a wanted item holds its finished items, or what is held of it where the table does not know it");
     }
     {
         // The item list right of a 176-wide window at x 232 on a 640x360 screen.
