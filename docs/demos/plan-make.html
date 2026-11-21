@@ -21,12 +21,19 @@ p{margin:0;max-width:95ch}
 .lede{color:var(--ink-2);margin-top:8px}
 .controls{display:grid;gap:8px}
 .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
-.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:10em}
 .chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
 .chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
 .stage{overflow-x:auto}
-#view{position:relative;font-family:var(--pix);margin:0 auto}
+#view{position:relative;font-family:var(--pix);margin:0 auto;background:linear-gradient(#3a5a2a,#2a3a1e)}
 #view *{position:absolute}
+.band{background:rgba(16,17,19,.82)}
+.btxt{color:#fff;white-space:nowrap}
+.bdim{color:#b4b8b6;white-space:nowrap}
+.bfaint{color:#7f8583;white-space:nowrap}
+.btab{color:#b4b8b6;white-space:nowrap;text-align:center}
+.btab.on{color:#fff;background:rgba(108,195,73,.18);box-shadow:inset 0 calc(-1*var(--u)) 0 #6cc349}
+.hot{background:rgba(255,255,255,.1)}
 .win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) #555,0 0 0 var(--u) #000}
 .txt{color:var(--win-ink);white-space:nowrap}
 .faint{color:var(--win-faint);white-space:nowrap}
@@ -35,19 +42,19 @@ p{margin:0;max-width:95ch}
 .ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
 .dim{opacity:.45}
 .count{color:#fff;text-shadow:calc(.6*var(--u)) calc(.6*var(--u)) #3f3f3f;white-space:nowrap;text-align:right}
-.tab{display:grid;place-items:center;color:#fff;background:#626262;box-shadow:0 0 0 var(--u) #000;white-space:nowrap}
-.tab.on{background:var(--win);color:var(--win-ink)}
 .bar{background:#8b8b8b}
 .barfill{background:var(--accent-deep)}
-.rbtn{background:#b4b4b4;box-shadow:inset 0 0 0 var(--u) #363636;color:#111;display:grid;place-items:center;white-space:nowrap;cursor:pointer}
-.rbtn.go{background:var(--accent-deep);color:#fff}
-.rbtn.off{background:#8b8b8b;color:#5a5a5a}
-.pbtn{background:#6f6f6f;box-shadow:inset var(--u) var(--u) #a8a8a8,inset calc(-1*var(--u)) calc(-1*var(--u)) #3a3a3a,0 0 0 var(--u) #000;cursor:pointer}
-.pbtn.off{background:#5a5a5a;box-shadow:0 0 0 var(--u) #000;opacity:.6}
-.hint{color:var(--win-faint);white-space:nowrap;text-align:center}
+.pbtn{background:#5f5f5f;box-shadow:inset calc(.5*var(--u)) calc(.5*var(--u)) #9a9a9a,inset calc(-.5*var(--u)) calc(-.5*var(--u)) #333,0 0 0 calc(.5*var(--u)) #000;cursor:pointer}
+.pbtn.off{background:#3a3a3a;box-shadow:0 0 0 calc(.5*var(--u)) #000;opacity:.6;cursor:default}
+.wbtn{background:#b4b4b4;box-shadow:inset 0 0 0 var(--u) #363636;color:#111;display:grid;place-items:center;white-space:nowrap;cursor:pointer}
+.wbtn.off{background:#8b8b8b;color:#5a5a5a;cursor:default}
+.bbtn{background:#5f5f5f;box-shadow:0 0 0 calc(.5*var(--u)) #000;color:#fff;display:grid;place-items:center;white-space:nowrap;cursor:pointer}
+.bbtn.off{background:#3a3a3a;color:#777;cursor:default}
+.hint{color:#cfd3d1;white-space:nowrap;text-align:center}
 .tip{background:#1b0c1b;box-shadow:inset 0 0 0 var(--u) #1b0c1b,inset 0 0 0 calc(2*var(--u)) #2c0863,0 0 0 var(--u) #100410;z-index:3}
 .tiptxt{color:#fff;white-space:nowrap;z-index:4}
 .tipdim{color:#a8a8a8;white-space:nowrap;z-index:4}
+.status{color:#9fe07a;white-space:nowrap}
 .notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
 .card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .card ul{margin:6px 0 0;padding-left:20px}
@@ -59,23 +66,32 @@ p{margin:0;max-width:95ch}
 <div class="wrap">
   <header>
     <h1>作る物から並べる・作る（L-385）</h1>
-    <p class="lede">「作る物」の行から手順を並べる・作る。行はその手順のまだ要る分、見出しは「今作れる」をすべて上から。開いている作業場所（ここでは作業台かかまど）の手順だけ押せる。「今作れる」は手持ちだけで数え、保管場所から取れば作れる手順は「取り出せば作れる」に。行のボタンや見出しのボタンを押すと、並べた・作った後の様子に切り替わる。</p>
+    <p class="lede">並べる・作るは、どちらも 1 回の操作でできる（決定済み）。まずパネルの「作る物」を決める。行にカーソルを置くと（ここではチェストの行の上）、案ごとの出方になる。ボタンを押すと、何が起きたかを上に出す。窓の作る物は下に並べ、同じ考え方で比べる。</p>
   </header>
   <div class="controls">
-    <div class="grp"><span class="lbl">並べる・作るの操作</span>
-      <button class="chip on" data-k="ui" data-v="two">A. 絵のボタン 2 つ</button>
-      <button class="chip" data-k="ui" data-v="mod">B. 「作る」1 つ、Shift で並べるだけ</button>
-      <button class="chip" data-k="ui" data-v="join">C. 文字のボタン「並べる｜作る」</button>
-      <button class="chip" data-k="ui" data-v="step">D. まず並べ、並べた行に「作る」</button>
+    <div class="grp"><span class="lbl">パネルの行</span>
+      <button class="chip on" data-k="panel" data-v="pics">A. ホバーで絵のボタン 2 つ</button>
+      <button class="chip" data-k="panel" data-v="ctrl">B. ホバーで「並べる」、Ctrl で「作る」</button>
+      <button class="chip" data-k="panel" data-v="row">C. 行を押すと並べる、Ctrl+押すで作る</button>
+      <button class="chip" data-k="panel" data-v="words">D. ホバーで文字のボタン「並べる｜作る」</button>
+    </div>
+    <div class="grp"><span class="lbl">Ctrl</span>
+      <button class="chip on" data-k="ctrlHeld" data-v="0">押していない</button>
+      <button class="chip" data-k="ctrlHeld" data-v="1">押している</button>
+    </div>
+    <div class="grp"><span class="lbl">カーソルを置く行</span>
+      <button class="chip on" data-k="hover" data-v="chest">チェスト（一部だけ作れる）</button>
+      <button class="chip" data-k="hover" data-v="glass">ガラス（かまどの手順）</button>
+      <button class="chip" data-k="hover" data-v="book">本（取り出せば作れる）</button>
+    </div>
+    <div class="grp"><span class="lbl">窓の行</span>
+      <button class="chip on" data-k="win" data-v="pics">絵のボタン 2 つ</button>
+      <button class="chip" data-k="win" data-v="words">文字のボタン「並べる｜作る」</button>
+      <button class="chip" data-k="win" data-v="ctrl">「並べる」1 つ、Ctrl で「作る」</button>
     </div>
     <div class="grp"><span class="lbl">開いている作業場所</span>
       <button class="chip on" data-k="station" data-v="table">作業台</button>
       <button class="chip" data-k="station" data-v="furnace">かまど</button>
-    </div>
-    <div class="grp"><span class="lbl">ツールチップ</span>
-      <button class="chip on" data-k="tip" data-v="store">チェストの印のスロット</button>
-      <button class="chip" data-k="tip" data-v="station">ほかの場所の手順のボタン</button>
-      <button class="chip" data-k="tip" data-v="none">出さない</button>
     </div>
   </div>
   <div class="stage"><div id="view"></div></div>
@@ -83,52 +99,36 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>見るところ</h2>
       <ul>
-        <li>A：行の右に「並べる」（マスに矢印）と「作る」（矢印から出る物）の絵のボタン。見出しにも同じ 2 つ。</li>
-        <li>B：「作る」だけを出し、Shift を押しながら押すと並べるだけ。ヒント行がそれを言う。</li>
-        <li>C：小さな文字のボタンを 2 つつなげる。何が起きるか文字で分かる。</li>
-        <li>D：最初は「並べる」だけ。押すと作業台に並び、その行のボタンが緑の「作る 65」に変わる。並べて確かめてから作る、の 2 段。ほかの行を押したり作業台を変えたりすると戻る。</li>
-        <li>「取り出せば作れる」：手持ちでは足りないが保管場所にある材料のスロットは、赤でなく隅にチェストの印。ツールチップで場所と数。</li>
-        <li>かまどの手順は作業台では押せない（平らで暗い）。ツールチップで「かまどで作る」。</li>
+        <li>A：ホバーした行だけ、数の代わりに「並べる」「作る」の絵のボタン（欲しい物の行の増減と同じ出方）。ボタン以外を押すと窓が開く（今まで通り）。</li>
+        <li>B：ホバーで「並べる」1 つ。Ctrl を押している間は「作る」の絵に変わる。ゲームの下のヒント行が「Ctrl+クリック: 作る」を言う。</li>
+        <li>C：ボタンを出さず、行のどこを押しても並べる、Ctrl なら作る。窓は下の行のノートのボタンからだけ開く。</li>
+        <li>D：ホバーで小さな文字のボタン 2 つ。名前の幅が狭くなる。</li>
+        <li>作れない行（かまどの手順、材料が足りない）はボタンを押せない見た目、ツールチップで理由。</li>
+        <li>「取り出せば作れる」行は、数の右に小さなチェスト。ツールチップに保管場所。</li>
       </ul>
     </div>
     <div class="card">
       <h2>決めたいこと</h2>
       <ul>
-        <li><span class="q">1.</span> 並べる・作るの操作：A／B／C／D。</li>
-        <li><span class="q">2.</span> 見出しの「すべて」の操作も同じ形でよいか。</li>
-        <li><span class="q">3.</span> 「取り出せば作れる」の見出しとチェストの印。</li>
+        <li><span class="q">1.</span> パネルの行：A／B／C／D。</li>
+        <li><span class="q">2.</span> 窓の行をパネルと同じ形にするか。</li>
+        <li><span class="q">3.</span> 作れない行と、取り出せば作れる行の見せ方。</li>
       </ul>
     </div>
   </div>
 </div>
 <script>
 let U = 3;
-const opt = {ui:'two', station:'table', tip:'store', laid:null, made:false};
+const opt = {panel:'pics', ctrlHeld:'0', hover:'chest', win:'pics', station:'table', said:''};
 const px = v => v * U + 'px';
 const view = document.getElementById('view');
-function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 360)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 480)); document.documentElement.style.setProperty('--u', U + 'px'); }
 function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
 function text(cls, x, y, s, size = 7, w, align){ const t = el(cls, x, y, w, null, s); t.style.fontSize = px(size); if (align) t.style.textAlign = align; return t; }
 const I = {planks:['#8a3a3a','板'], log:['#6a4a2a','木'], stick:['#9a7040','棒'], chest:['#a87830','箱'], string:['#e8e8e8','糸'], wool:['#f0f0f0','羊'], sand:['#e0d090','砂'], glass:['#bfe6ef','ガ'],
-  iron:['#c8b0a0','鉄'], ingot:['#d0d0d0','塊'], dye:['#e8e8f0','染'], bone:['#f0f0e0','骨'], table:['#9a6b3a','作'], furnace:['#707070','炉'], helmet:['#5ad8d8','兜'], dia:['#5ad8d8','ダ'], book:['#8a4a2a','本'], leather:['#b06a3a','革'], paper:['#f4f4e8','紙']};
-function icon(x, y, key, dim, size = 16){ const [c, t] = I[key]; const d = el('ico' + (dim ? ' dim' : ''), x, y, size, size, t); d.style.background = c; d.style.fontSize = px(size * .38); d.style.color = ['wool','dye','string','bone','sand','glass','ingot','paper'].includes(key) ? '#555' : '#fff'; return d; }
-function chestMark(x, y){ const d = el('', x + 10, y + 1, 7, 6, ''); d.style.background = '#a87830'; d.style.boxShadow = `0 0 0 ${U*.5}px #3f2a10`; const l = el('', x + 10, y + 3, 7, .6, ''); l.style.background = '#3f2a10'; }
-function slot(x, y, key, n, opts = {}){
-  el('slot' + (opts.missing ? ' missing' : ''), x, y, 18, 18);
-  if (key) icon(x + 1, y + 1, key, opts.dim);
-  if (n > 1) { const c = el('count' + (opts.dim ? ' dim' : ''), x + 1, y + 9, 16, null, n); c.style.fontSize = px(7); }
-  if (opts.stored) chestMark(x, y);
-}
-function bar(x, y, w, frac){ el('bar', x, y, w, 2); if (frac > 0) el('barfill', x, y, w * Math.min(1, frac), 2); }
-function picBtn(x, y, kind, off, onClick){
-  const b = el('pbtn' + (off ? ' off' : ''), x, y, 11, 11, '');
-  const p = (cx, cy, w, h, c) => { const d = el('', x + cx, y + cy, w, h, ''); d.style.background = c; };
-  if (kind === 'place') { p(2,2,3,3,'#ececec'); p(6,2,3,3,'#a9a9a9'); p(2,6,3,3,'#a9a9a9'); p(6,6,3,3,'#ececec'); }
-  else { p(2,5,4,1,'#ececec'); p(5,3,1,5,'#ececec'); p(7,3,3,5,'#ececec'); }
-  if (onClick && !off) b.onclick = onClick;
-  return b;
-}
-function txtBtn(x, y, s, cls, w, onClick){ const b = el('rbtn ' + (cls || ''), x, y, w, 11, s); b.style.fontSize = px(6.5); if (onClick && cls !== 'off') b.onclick = onClick; return b; }
+  iron:['#c8b0a0','鉄'], ingot:['#d0d0d0','塊'], table:['#9a6b3a','作'], furnace:['#707070','炉'], helmet:['#5ad8d8','兜'], dia:['#5ad8d8','ダ'], book:['#8a4a2a','本'], leather:['#b06a3a','革'], paper:['#f4f4e8','紙']};
+function icon(x, y, key, dim, size = 16){ const [c, t] = I[key]; const d = el('ico' + (dim ? ' dim' : ''), x, y, size, size, t); d.style.background = c; d.style.fontSize = px(size * .38); d.style.color = ['wool','string','sand','glass','ingot','paper'].includes(key) ? '#555' : '#fff'; return d; }
+function chestMark(x, y, s = 1){ const d = el('', x, y, 7 * s, 6 * s, ''); d.style.background = '#a87830'; d.style.boxShadow = `0 0 0 ${U*.5}px #3f2a10`; el('', x, y + 2 * s, 7 * s, .6, '').style.background = '#3f2a10'; }
 const STEPS = [
   {k:'planks', n:'マングローブの板材', in:[['log',33]], out:132, now:132, need:132, st:'ready', at:'table'},
   {k:'stick', n:'棒', in:[['planks',2]], out:4, now:4, need:4, st:'ready', at:'table'},
@@ -139,76 +139,113 @@ const STEPS = [
   {k:'ingot', n:'鉄インゴット', in:[['iron',3]], out:3, now:0, need:3, st:'missing', at:'furnace', short:[0]},
   {k:'helmet', n:'ダイヤモンドのヘルメット', in:[['dia',5]], out:1, now:1, need:1, st:'held', at:'table'},
 ];
-const HEAD = {ready:'今作れる', partly:'一部だけ作れる', stored:'取り出せば作れる', missing:'材料が足りない', held:'持っている'};
-function controls(x, y, s, isHead){
-  const here = s ? s.at === opt.station || (s.at === 'table' && opt.station === 'table') : true;
-  const can = s ? (here && (s.st === 'ready' || s.st === 'partly')) : true;
-  const id = s ? s.k : 'all';
-  const laid = opt.laid === id, made = opt.made && laid;
-  const place = () => { opt.laid = id; opt.made = false; render(); };
-  const make = () => { opt.laid = id; opt.made = true; render(); };
-  if (opt.ui === 'two') { picBtn(x - 24, y, 'place', !can, place); picBtn(x - 11, y, 'make', !can, make); return x - 26; }
-  if (opt.ui === 'mod') { picBtn(x - 11, y, 'make', !can, make); return x - 13; }
-  if (opt.ui === 'join') { txtBtn(x - 50, y, '並べる', can ? '' : 'off', 25, place); txtBtn(x - 25, y, '作る', can ? '' : 'off', 25, make); return x - 52; }
-  // D: lay in first; the laid row then offers making what is still needed.
-  if (laid && !made) { txtBtn(x - 34, y, '作る ' + (s ? s.need : 'すべて'), 'go', 34, make); return x - 36; }
-  txtBtn(x - 30, y, '並べる', can ? '' : 'off', 30, place); return x - 32;
+const usable = s => s.at === opt.station && (s.st === 'ready' || s.st === 'partly');
+const why = s => s.at !== opt.station ? (s.at === 'furnace' ? 'かまどで作る' : '作業台で作る') : s.st === 'stored' ? '保管場所から取り出すと作れる' : s.st === 'missing' ? '材料が足りない' : '';
+function say(s, what){ opt.said = s.n + (what === 'place' ? ' を作業台に並べた' : ` を ${s.need - s.now > 0 ? s.now : s.need} 個作った`); render(); }
+function picture(x, y, kind, size){
+  const k = size / 10, p = (cx, cy, w, h, c) => { const d = el('', x + cx * k, y + cy * k, w * k, h * k, ''); d.style.background = c; };
+  if (kind === 'place') { p(2,2,2.5,2.5,'#ececec'); p(5.5,2,2.5,2.5,'#a9a9a9'); p(2,5.5,2.5,2.5,'#a9a9a9'); p(5.5,5.5,2.5,2.5,'#ececec'); }
+  else { p(1.5,4.5,3,1,'#ececec'); p(4,3,1,4,'#ececec'); p(6,2.5,3,5,'#ececec'); }
+}
+function pbtn(x, y, kind, on, act, size = 10){ const b = el('pbtn' + (on ? '' : ' off'), x, y, size, size, ''); picture(x, y, kind, size); if (on) b.onclick = act; return b; }
+// The panel: the plan's short list on "to make".
+function panel(x0, y0){
+  const W = 150, row = 12;
+  el('band', x0, y0, W, 150);
+  ['欲しい物', '集める物', '作る物'].forEach((t, i) => { const d = el('btab' + (i === 2 ? ' on' : ''), x0 + 2 + i * 40, y0 + 2, 39, 11, t); d.style.fontSize = px(6.5); });
+  let y = y0 + 16;
+  const end = x0 + W - 4;
+  STEPS.forEach(s => {
+    const hot = opt.hover === s.k, faint = s.st === 'missing' || s.st === 'held' || s.st === 'stored';
+    if (hot) el('hot', x0, y, W, row, '');
+    icon(x0 + 3, y + 1, s.k, faint, 10);
+    let nameEnd = end - 22;
+    const left = s.need - (s.st === 'held' ? s.need : 0);
+    const can = usable(s);
+    const showButtons = hot && s.st !== 'held' && opt.panel !== 'row';
+    if (showButtons && opt.panel === 'pics') {
+      pbtn(end - 21, y + 1, 'place', can, () => say(s, 'place')); pbtn(end - 10, y + 1, 'make', can, () => say(s, 'make'));
+      nameEnd = end - 24;
+    } else if (showButtons && opt.panel === 'ctrl') {
+      pbtn(end - 10, y + 1, opt.ctrlHeld === '1' ? 'make' : 'place', can, () => say(s, opt.ctrlHeld === '1' ? 'make' : 'place'));
+      nameEnd = end - 13;
+    } else if (showButtons && opt.panel === 'words') {
+      const a = el('bbtn' + (can ? '' : ' off'), end - 50, y + 1, 25, 10, '並べる'); a.style.fontSize = px(5.5); if (can) a.onclick = () => say(s, 'place');
+      const b = el('bbtn' + (can ? '' : ' off'), end - 25, y + 1, 25, 10, '作る'); b.style.fontSize = px(5.5); if (can) b.onclick = () => say(s, 'make');
+      nameEnd = end - 53;
+    } else if (s.st === 'held') text('bfaint', end - 10, y + 1.5, '✓', 7, 10, 'right');
+    else {
+      text(faint ? 'bfaint' : 'btxt', end - 24, y + 1.5, left, 6.5, s.st === 'stored' ? 14 : 24, 'right');
+      if (s.st === 'stored') chestMark(end - 8, y + 3);
+    }
+    const nm = text(faint ? 'bfaint' : 'bdim', x0 + 16, y + 1.5, s.n, 6.5, nameEnd - x0 - 16); nm.style.overflow = 'hidden'; nm.style.textOverflow = 'ellipsis';
+    if (hot && opt.panel === 'row') { const d = el('', x0, y, W, row, ''); d.style.cursor = can ? 'pointer' : 'default'; d.onclick = () => can && say(s, opt.ctrlHeld === '1' ? 'make' : 'place'); }
+    // The tip under the pointer.
+    if (hot) {
+      const lines = [s.n, `今作れる ${s.now}　必要 ${s.need}`];
+      if (!can && why(s)) lines.push(why(s));
+      if (s.st === 'stored') lines.push('チェスト（17, 74, 151）に 革 5');
+      const tw = Math.max(...lines.map(l => l.length)) * 7 + 12;
+      el('tip', x0 + W + 4, y + 8, tw, 6 + lines.length * 10, '');
+      lines.forEach((l, i) => text(i ? 'tipdim' : 'tiptxt', x0 + W + 9, y + 11 + i * 10, l, 6.5));
+    }
+    y += row;
+  });
+}
+// The window's "to make", the same steps.
+function windowMake(x0, y0){
+  const W = 300, H = 214;
+  el('win', x0, y0, W, H);
+  const L = x0 + 8, right = x0 + W - 10;
+  const cols = {now: right - 100, need: right - 72, bar: right - 64};
+  text('faint', cols.now - 30, y0 + 5, '今作れる', 5.5, 30, 'right'); text('faint', cols.need - 22, y0 + 5, '必要', 5.5, 22, 'right');
+  const HEAD = {ready:'今作れる', partly:'一部だけ作れる', stored:'取り出せば作れる', missing:'材料が足りない', held:'持っている'};
+  let y = y0 + 12, last = '';
+  const ctl = (x, yy, s) => {
+    const can = s ? usable(s) : true;
+    const act = what => () => s ? say(s, what) : (opt.said = 'ここで今作れる物を作った', render());
+    if (!s) { const b = el('wbtn', x - 36, yy, 36, 10, 'すべて作る'); b.style.fontSize = px(6); b.onclick = act('make'); return; }
+    if (opt.win === 'pics') { pbtn(x - 23, yy, 'place', can, act('place'), 11); pbtn(x - 11, yy, 'make', can, act('make'), 11); }
+    else if (opt.win === 'words') { ['並べる','作る'].forEach((t, i) => { const b = el('wbtn' + (can ? '' : ' off'), x - 52 + i * 26, yy, 26, 10, t); b.style.fontSize = px(6); if (can) b.onclick = act(i ? 'make' : 'place'); }); }
+    else pbtn(x - 11, yy, opt.ctrlHeld === '1' ? 'make' : 'place', can, act(opt.ctrlHeld === '1' ? 'make' : 'place'), 11);
+  };
+  STEPS.forEach(s => {
+    if (s.st !== last) { text('faint', L, y + 1, HEAD[s.st], 5.5); if (s.st === 'ready') ctl(right, y - 1, null); y += 9; last = s.st; }
+    const dim = s.st === 'missing' || s.st === 'held';
+    const arrowX = L + 40, productX = arrowX + 12;
+    s.in.forEach(([k, n], i) => {
+      const sx = arrowX - (s.in.length - i) * 18;
+      el('slot' + (s.short && s.short.includes(i) ? ' missing' : ''), sx, y, 18, 18); icon(sx + 1, y + 1, k, dim);
+      if (n > 1) { const c = el('count' + (dim ? ' dim' : ''), sx + 1, y + 9, 16, null, n); c.style.fontSize = px(7); }
+      if (s.stored && s.stored.includes(i)) chestMark(sx + 10, y + 1);
+    });
+    text('txt' + (dim ? ' dim' : ''), arrowX + 2, y + 3, '➜', 9);
+    el('slot', productX, y, 18, 18); icon(productX + 1, y + 1, s.k, dim);
+    icon(productX + 22, y + 4, s.at, dim, 10);
+    text(dim ? 'faint' : 'txt', productX + 36, y + 5, s.n, 7);
+    if (s.st === 'held') text('faint', cols.need - 22, y + 5, '✓', 8, 22, 'right');
+    else {
+      text(dim ? 'faint' : 'txt', cols.now - 30, y + 5, s.now, 7, 30, 'right'); text(dim ? 'faint' : 'txt', cols.need - 22, y + 5, s.need, 7, 22, 'right');
+      const b = el('bar', cols.bar, y + 8, 24, 2); if (s.now) el('barfill', cols.bar, y + 8, 24 * s.now / s.need, 2);
+      ctl(right, y + 4, s);
+    }
+    y += 19;
+  });
 }
 function render(){
   fit();
-  const W = 340, H = 240, L0 = 6;
-  view.style.width = px(L0 + W + 4); view.style.height = px(H + 30); view.innerHTML = '';
-  ['欲しい物','集める物','作る物','作り方'].forEach((t, i) => { const d = el('tab' + (i === 2 ? ' on' : ''), L0 + 6 + i * 52, 1, 51, 21, t); d.style.fontSize = px(7); });
-  el('win', L0, 22, W, H).style.zIndex = -1;
-  const L = L0 + 8, right = L0 + W - 12;
-  const cols = {now: right - 112, need: right - 80, bar: right - 72};
-  text('faint', cols.now - 30, 28, '今作れる', 5.5, 30, 'right'); text('faint', cols.need - 22, 28, '必要', 5.5, 22, 'right');
-  let y = 36, last = '';
-  const status = [];
-  STEPS.forEach(s => {
-    if (s.st !== last) {
-      text('faint', L, y + 1, HEAD[s.st], 5.5);
-      if (s.st === 'ready') controls(right, y - 2, null, true);
-      y += 10; last = s.st;
-    }
-    const dim = s.st === 'missing' || s.st === 'held';
-    const arrowX = L + 40, productX = arrowX + 12;
-    s.in.forEach(([k, n], i) => slot(arrowX - (s.in.length - i) * 18, y, k, n, {dim, missing: s.short && s.short.includes(i), stored: s.stored && s.stored.includes(i)}));
-    text('txt' + (dim ? ' dim' : ''), arrowX + 2, y + 3, '➜', 9);
-    const done = opt.made && (opt.laid === s.k || (opt.laid === 'all' && s.st === 'ready' && s.at === opt.station));
-    slot(productX, y, s.k, s.out, {dim});
-    icon(productX + 22, y + 4, s.at, dim, 10);
-    text(dim ? 'faint' : 'txt', productX + 36, y + 5, s.n, 7);
-    if (s.st === 'held' || done) text('faint', cols.need - 22, y + 5, '✓', 8, 22, 'right');
-    else {
-      text(dim ? 'faint' : 'txt', cols.now - 30, y + 5, s.now, 7, 30, 'right'); text(dim ? 'faint' : 'txt', cols.need - 22, y + 5, s.need, 7, 22, 'right');
-      bar(cols.bar, y + 8, 24, s.now / s.need);
-      controls(right, y + 4, s, false);
-    }
-    if ((opt.laid === s.k) && !opt.made) status.push(s.n + ' を並べた');
-    y += 20;
-  });
-  // The hint line: what the controls do.
-  const hintText = opt.ui === 'mod' ? 'クリック: 作る | Shift+クリック: 並べるだけ | A キー: お気に入り' :
-                   opt.ui === 'step' ? '並べる: 作業台に置く | 置いた行の「作る」: 要る分を作る' : 'A キー: お気に入り | W キー: 欲しい物';
-  text('hint', L0 + 4, 22 + H - 10, hintText, 6, W - 8, 'center');
-  if (opt.laid && !opt.made) text('txt', L0 + W + 8 - 120, 4, opt.laid === 'all' ? '今作れる物を作業台に並べた' : '作業台に並べた', 6, 116, 'right');
-  if (opt.made) text('txt', L0 + W + 8 - 120, 4, opt.laid === 'all' ? '今作れる物を作った' : '作った', 6, 116, 'right');
-  // A tip.
-  if (opt.tip === 'store') {
-    const tx = L + 30, ty = 36 + 10 * 3 + 20 * 4 + 22;
-    el('tip', tx, ty, 150, 36, '');
-    text('tiptxt', tx + 5, ty + 3, '革', 7);
-    text('tipdim', tx + 5, ty + 13, '手持ち 0　必要 3', 6.5);
-    text('tipdim', tx + 5, ty + 23, 'チェスト（17, 74, 151）に 5', 6.5);
-  } else if (opt.tip === 'station') {
-    const tx = right - 120, ty = 36 + 10 + 20 * 2 + 18;
-    const off = opt.station === 'table' ? 'かまどで作る（今の画面では作れない）' : '作業台で作る（今の画面では作れない）';
-    el('tip', tx, ty, 140, 16, ''); text('tiptxt', tx + 5, ty + 3, off, 6.5);
-  }
+  const SW = 470, SH = 272;
+  view.style.width = px(SW); view.style.height = px(SH); view.innerHTML = '';
+  panel(0, 6);
+  windowMake(164, 40);
+  if (opt.said) text('status', 164, 6, opt.said, 7);
+  // The hint line under the game's window.
+  const hint = opt.panel === 'pics' || opt.panel === 'words' ? 'A キー: お気に入り | W キー: 欲しい物'
+             : 'クリック: 並べる | Ctrl+クリック: 作る | A キー: お気に入り';
+  text('hint', 164, SH - 10, hint, 6, 300, 'center');
 }
 document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
-  opt[b.dataset.k] = b.dataset.v; opt.laid = null; opt.made = false;
+  opt[b.dataset.k] = b.dataset.v; opt.said = '';
   document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
   render();
 });
