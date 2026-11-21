@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The Notes tables at 45/55 (L-370, 2026-11-22)
+
+Build `fd067753` (DLL
+`305a2ad9333800e0802af8d7d352f2a15d58df58f6366221bf54c7b54ba3a2fe`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: a count typed as the
+search field is; breakdown steps of four inputs keep the indent and
+"gather" stays on the face; the margin and "All" read fine; "How to
+make" lines up with the other tabs. Not right: in Japanese the typed
+count's selection and its digits sat at different heights; "今作…"
+still cut; numbers of six digits and more cut with no tip in many
+places; the switch lines' words and switch far apart at the edges.
+
 ## The Notes tables, numbers close and counts in place (L-370, 2026-11-22)
 
 Build `4892c19a` (DLL

@@ -239,8 +239,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     float const nameX = left + 26, nameEnd = mid - 4;
     auto columnHeads = [&](float y, char const* wantKey, bool withName = false, std::string name = {}, char const* heldKey = "recipes.col.held") {
         if (withName) windowLabel(context, nameX, y + 1, nameEnd - nameX, std::move(name), true);
-        labelScaled(context, heldX, y + 2, heldW, translated(heldKey), .75f, v::windowFaint, Align::Right, false);
-        labelScaled(context, wantX, y + 2, wantW, translated(wantKey), .75f, v::windowFaint, Align::Right, false);
+        // A heading may reach left into the gap before its column ("今作れる" whole).
+        labelScaled(context, heldX - 12, y + 2, heldW + 12, translated(heldKey), .75f, v::windowFaint, Align::Right, false);
+        labelScaled(context, wantX - 6, y + 2, wantW + 6, translated(wantKey), .75f, v::windowFaint, Align::Right, false);
     };
     auto number = [&](float x, float w, float y, Count count, bool faint) {
         windowLabel(context, x, y, w, std::to_string(count), faint, Align::Right);
@@ -515,7 +516,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     // press puts it; Enter keeps it, Esc does not.
                     sunkFace(context, boxX, y + 3, boxW, 12, true, true);
                     frame(context, boxX, y + 3, boxW, 12, palette::accentDeep);
-                    drawEditField(context, wantX, y + 4 - boxTextInset(), 12, wantW + 3, *editing, Align::Right, v::windowInk, false);
+                    drawEditField(context, wantX, y + 3, 12, wantW + 3, *editing, Align::Right, v::windowInk, false);
                     onControl = over(boxX, y + 3, boxW, 12);
                     if (took(boxX, y + 3, boxW, 12)) placeCaret(context, countEdit::typed, px, py);
                 } else {
@@ -525,7 +526,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                         if (took(boxX, y + 3, boxW, 12)) countEdit::begin(entry.key, entry.count);
                         else if (wheel && over(boxX, y + 3, boxW, 12)) state::stepWanted(entry.key, wheel < 0, shift, false), wheel = 0;
                     }
-                    number(wantX, wantW, y + 5, entry.count, done || !manual || entry.count == 0);
+                    // In its box the count sits as a field's text does, so typing does not move it.
+                    number(wantX, wantW, manual ? y + 4 + boxTextInset() : y + 5, entry.count, done || !manual || entry.count == 0);
                 }
                 progressBar(context, barX, y + 9, barW, 3, fraction);
                 if (manual) {
