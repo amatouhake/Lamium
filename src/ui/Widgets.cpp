@@ -405,8 +405,8 @@ void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
     if (hovered) fill(context, x + 1, y + 1, 16, 16, palette::white, .14f);
 }
 void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string text) {
-    // Inside the slot's edge as the game draws a stack's count: right-aligned a unit in, a unit higher than the
-    // slot's bottom edge (maintainer 2026-11-21: at the edge it read lower and further right than the game's).
+    // Inside the slot's edge, right-aligned a unit in and a unit up: not where the game puts a stack's count (it
+    // sits further right and lower), kept for being easier to read (maintainer 2026-11-21).
     label(context, x, y + 8, 17, std::move(text), palette::text, Align::Right);
 }
 void anyMark(MinecraftUIRenderContext& context, float x, float y, float scale) {

@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Slot counts in the short form, inside the slot (L-370, 2026-11-21)
+
+Builds `6377bfd2` and `77b4b9d7` (last DLL
+`4c74b75e78cb9da84be209ee71674f5eaa5f3fcf49a63019f86062c7f43eecd3`),
+1.26.60.05 Dev instance, the maintainer. Large counts read "23k", "2k"
+and fit their slots. Counts moved a unit in and up, inside the slot's
+edge: still not where the game puts them (further right and lower), but
+kept as easier to read.
+
 ## The plan's step states (L-370, 2026-11-21)
 
 Build `2093c291` (DLL
