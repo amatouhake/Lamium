@@ -19,7 +19,7 @@ Build `54e20ee7` (DLL
 1.26.60.05 Dev instance, the maintainer. "How to make" read "Sand etc."
 where it read "Red sand etc.", and the wooden slabs showed a held one, or
 oak with none held. Found: the cobblestone kinds showed blackstone with
-nothing held; cobblestone leads them after.
+nothing held; on `3c8d2661` (DLL `83b429f6...e623`) they show cobblestone.
 
 ## The any-of star inside the icon, counts never cut (L-370, 2026-11-21)
 
