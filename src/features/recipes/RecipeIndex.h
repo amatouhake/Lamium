@@ -426,6 +426,19 @@ inline bool smeltsOreOnly(Index const& index, Recipe const& recipe) {
     }
     return true;
 }
+// Items players gather rather than make although a recipe makes them (L-370): one smelted from an ore that drops it
+// when mined (diamond, coal, redstone: smeltsOreOnly), or one whose recipe turns something rarer into it (rabbit hide
+// into leather, string into wool), named here. The one rule for "usually gathered": such an item starts as gathered
+// in "How to make", and only the player's change is saved (`made` in the notes), so an item added here later
+// reaches everyone and a choice to make one stays.
+inline bool usuallyGathered(Index const& index, Item item) {
+    if (item < 0 || static_cast<size_t>(item) >= index.items.size()) return false;
+    std::string_view key = index.items[static_cast<size_t>(item)];
+    if (key.starts_with("minecraft:")) key.remove_prefix(10);
+    if (key == "leather" || key == "white_wool") return true;
+    auto const& makers = index.makers[static_cast<size_t>(item)];
+    return std::any_of(makers.begin(), makers.end(), [&](int number) { return smeltsOreOnly(index, index.recipes[static_cast<size_t>(number)]); });
+}
 
 // The recipe each item is made by, unless the player says otherwise.
 struct Choice {

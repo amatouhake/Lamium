@@ -37,13 +37,6 @@ inline std::string choiceKey(Recipe const& recipe) {
                                           "brewing_stand", "other"};
     return std::string(stations[static_cast<size_t>(recipe.station)]) + "|" + recipe.id;
 }
-// Items usually gathered, not made (L-370): their recipe turns something rarer into them (rabbit hide into
-// leather, string into wool). They start as gathered in "How to make"; only the player's change is saved
-// (`made`), so an item added here later reaches everyone and a choice to make one stays.
-inline bool usuallyGathered(std::string_view key) {
-    if (key.starts_with("minecraft:")) key.remove_prefix(10);
-    return key == "leather" || key == "white_wool";
-}
 struct Notes {
     std::vector<std::string> favorites;          // item keys, oldest first
     std::map<std::string, std::string> choices;   // item key -> the recipe's choiceKey
@@ -51,15 +44,16 @@ struct Notes {
     std::set<std::string> stops;                  // item keys, and group keys (groupKey) gathered as they are (L-386)
     std::set<std::string> made;                   // usually gathered items the player set to be made
     bool operator==(Notes const&) const = default;
-    // Gathered, not made: the player's choice, or an item usually gathered the player left so.
-    bool gathered(std::string const& key) const { return stops.contains(key) || (usuallyGathered(key) && !made.contains(key)); }
-    void setGathered(std::string const& key, bool gather) {
+    // Gathered, not made: the player's choice, or an item usually gathered (`usual`, usuallyGathered) the player
+    // left so.
+    bool gathered(std::string const& key, bool usual) const { return stops.contains(key) || (usual && !made.contains(key)); }
+    void setGathered(std::string const& key, bool gather, bool usual) {
         if (gather) {
             made.erase(key);
-            if (!usuallyGathered(key)) stops.insert(key); else stops.erase(key);
+            if (!usual) stops.insert(key); else stops.erase(key);
         } else {
             stops.erase(key);
-            if (usuallyGathered(key)) made.insert(key);
+            if (usual) made.insert(key);
         }
     }
     bool favorite(std::string_view key) const { return std::find(favorites.begin(), favorites.end(), key) != favorites.end(); }
@@ -93,7 +87,7 @@ inline void apply(Index const& index, Notes const& notes, Request& request) {
         for (size_t group = 0; group < index.groups.size(); ++group)
             if (notes.stops.contains(groupKey(index, static_cast<int>(group)))) request.stops.insert(index.groupItem(static_cast<int>(group)));
     for (size_t item = 0; item < index.items.size(); ++item)
-        if (usuallyGathered(index.items[item]) && !notes.made.contains(index.items[item])) request.stops.insert(static_cast<Item>(item));
+        if (usuallyGathered(index, static_cast<Item>(item)) && !notes.made.contains(index.items[item])) request.stops.insert(static_cast<Item>(item));
 }
 
 struct Wanted {

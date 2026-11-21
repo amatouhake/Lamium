@@ -246,7 +246,10 @@ void setPick(std::string const& group, std::string const& member) {
 }
 void setStop(std::string const& item, bool gathered) {
     readNotes();
-    held.setGathered(item, gathered);
+    // Whether the item starts as gathered decides where the choice is kept (Notes::setGathered); a group's key is none.
+    auto const table = service::table();
+    bool const usual = table && usuallyGathered(table->index, table->index.findKey(item));
+    held.setGathered(item, gathered, usual);
     writeNotes();
 }
 std::shared_ptr<Choice const> choice(std::shared_ptr<service::Table const> const& table) {

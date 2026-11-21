@@ -965,7 +965,7 @@ struct Lists : Window {
                 // Gathered reads as chosen: the player's, or the preset of an item usually gathered.
                 if (gathered) words(y, translated("recipes.howTo.chosenIs", translated("recipes.toGather")), true);
                 else if (chosen) words(y, translated("recipes.howTo.chosenIs", recipeName(now)), true);
-                else words(y, translated("recipes.howTo.autoIs", rule >= 0 ? recipeName(rule) : std::string()), false);
+                else words(y, translated("recipes.howTo.autoIs", rule >= 0 ? recipeName(rule) : translated("recipes.toGather")), false);
                 // Left the item; right what it is made from now (gathered: the item itself).
                 if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
                 else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
@@ -1010,7 +1010,7 @@ struct Lists : Window {
                         after = stepSlots(optionX, sy, ruled, true, false);
                     }
                     if (!chosen && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
-                    windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : std::string()));
+                    windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : translated("recipes.toGather")));
                     if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, {}), make(), howOpen.clear();
                 } else {
                     int const number = options[static_cast<size_t>(line.option)];
