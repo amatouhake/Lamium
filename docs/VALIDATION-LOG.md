@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The any-of star inside the icon, counts never cut (L-370, 2026-11-21)
+
+Builds `eebd5262` to `216027d2` (last DLL
+`e84791b87bf3e3fc23c88678d80b02379a8f54d031ee80ef5d133c1556a36495`),
+1.26.60.05 Dev instance, the maintainer. The "*" on an any-of ingredient
+sits inside its slot, raised a unit after it first read low. A slot's
+count no longer reads "5..." in English (`77b4b9d7` narrowed its box to
+17, and three digits are 18 wide there): it is drawn at its measured
+width; seen whole in English, Japanese, Simplified and Traditional
+Chinese.
+
 ## Slot counts in the short form, inside the slot (L-370, 2026-11-21)
 
 Builds `6377bfd2` and `77b4b9d7` (last DLL
