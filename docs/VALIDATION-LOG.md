@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Stores in the world, the layout button again (L-369, L-382, 2026-11-21)
+
+Builds `5d8553a3` and `72a0f79a` (last DLL
+`8533b6058c5bf03191cbca7f6f362d2a2da5ff0a1158bfa4671ecb880cf6044b`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the stores drawn in
+the world as faint faces with their outline, following the store
+button; the row buttons centred on "to gather"; a second press on the
+layout button ends the arranging.
+
 ## Row buttons at full size, schematic "材料" (L-369, L-383, 2026-11-21)
 
 Builds `7893dcf7` to `ecac0c2a` (last DLL
