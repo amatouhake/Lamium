@@ -81,7 +81,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
 - A group (an ingredient any of its members serves) holds still on
   every recipe screen: the item whose uses are shown, else the member
   chosen, else the one most held, else the one it is known by; its tip
-  frames the same member the slot shows. Resting the pointer on its slot a moment, the
+  frames the same member the slot shows. Resting the pointer on its picture (slot or icon, not the rest of
+  its row) a moment, the
   wheel looks through the members (it chooses nothing); its tip names
   the one shown, says whether one is chosen ("Any" explains the kinds
   held count together) and shows the members full size, the shown one

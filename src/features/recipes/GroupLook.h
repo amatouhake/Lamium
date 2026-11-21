@@ -11,7 +11,8 @@ namespace lamium::recipes::view { struct Late; }
 namespace lamium::recipes::groupLook {
 // Once a frame, before anything is drawn.
 void beginFrame();
-// The pointer is over a slot of `group` at (x, y) this frame.
+// The pointer is over a picture of `group` at (x, y) this frame: only there the wheel looks through the members
+// (L-369), so a tip asked for from elsewhere on a row calls tip() alone. Call it before tip().
 void hover(int group, float x, float y);
 // The group whose slot the pointer rested on last frame long enough for the wheel, or -1.
 int rested();

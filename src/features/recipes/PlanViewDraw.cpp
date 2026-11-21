@@ -252,10 +252,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         icon(pictureOf(id), x, y, 1.f, alpha);
         if (id >= itemCount) late.marks.push_back({x, y});
     };
-    // Under the pointer a group names itself, says what it shows and shows its members; resting there, the wheel
-    // looks through them. (x, y): the slot or line it is over.
+    // Under the pointer a group names itself, says what it shows and shows its members. The wheel looks through
+    // them only while the pointer rests on the group's picture, (x, y) its top left (L-369): over the rest of a row
+    // the wheel scrolls.
     auto groupTip = [&](int group, float x, float y) {
-        groupLook::hover(group, x, y);
+        if (over(x, y, 18, 18)) groupLook::hover(group, x, y);
         groupLook::tip(late, index, group, request.picks, &plan->held);
     };
     // A recipe by what it is made from: its first input.
@@ -449,7 +450,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 if (material.id >= itemCount) end = groupState(end, y + 4, material.id - itemCount);
                 windowLabel(context, labelX, y + 5, end - labelX, nameOf(material.id));
                 if (late.tip.empty() && over(iconX, y, barX + barW - iconX, rowHeight)) {
-                    if (material.id >= itemCount) groupTip(material.id - itemCount, iconX, y + 1);
+                    if (material.id >= itemCount) groupTip(material.id - itemCount, iconX - 1, y);
                     else late.tip = nameOf(material.id), late.hovered = pictureOf(material.id);
                 }
             } else if (line.kind == Line::Kind::Target) {
@@ -576,7 +577,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 }
             windowLabel(context, nameX, y + 5, end - nameX, name, row.done);
             if (late.tip.empty() && over(left, y, barX + barW - left, rowHeight)) {
-                if (group) groupLook::hover(line.id - itemCount, left, y);
+                if (group && over(left + 7, y, 18, 18)) groupLook::hover(line.id - itemCount, left + 7, y);
                 gatherTip(late, *plan, line, row.key);
                 if (group) late.hints.push_back(translated("recipes.howTo.change"));
             }
@@ -768,7 +769,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (chosen) words(y, translated("recipes.howTo.chosenIs", nameOf(picked->second)), true);
             else words(y, translated("recipes.howTo.anyLine"), false);
             // Left the group; right what is in use: the member chosen as an item, or "any" as the group.
-            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group, left, y);
+            if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group, left, y + 1);
             else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
                 if (chosen) late.tip = nameOf(picked->second), late.hovered = index.items[static_cast<size_t>(picked->second)];
                 else groupTip(line.group, slotX, y + 1);

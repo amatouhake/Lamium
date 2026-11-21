@@ -73,6 +73,7 @@ void tip(view::Late& late, Index const& index, int group, std::map<int, Item> co
         if (members[i] == shown) late.tipCurrent = static_cast<int>(i);
         if (picked != picks.end() && members[i] == picked->second) late.tipChosen = static_cast<int>(i);
     }
-    if (members.size() > 1) late.hints.push_back(translated("recipes.group.wheel"));
+    // The wheel's hint only where the wheel looks through them: the pointer on the group's picture (hover).
+    if (members.size() > 1 && hovered.group == group && hovered.frame == frame) late.hints.push_back(translated("recipes.group.wheel"));
 }
 }
