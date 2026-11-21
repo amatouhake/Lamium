@@ -133,12 +133,13 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
         out.arrowX = 22, out.arrowY = 10, out.productX = 34, out.productY = 3;
     } else if (recipe.station == Station::BrewingStand) {
         // As the stand (demos/brewing-view.html, F): the fuel at the top left, the ingredient at the top, the bottle
-        // before at the left, the middle bottle empty, the bottle after at the right.
+        // before at the left, the middle bottle empty, the bottle after at the right; all but the fuel 4 left of
+        // the mockup, so the middle bottle keeps room from the check box (maintainer 2026-11-21).
         out.brewing = true, out.fuelX = 0, out.fuelY = 2;
-        out.slots.push_back({50, 0, count > 0 ? 0 : -1});
-        out.slots.push_back({28, 22, count > 1 ? 1 : -1});
-        out.slots.push_back({50, 30, -1});
-        out.productX = 72, out.productY = 22;
+        out.slots.push_back({46, 0, count > 0 ? 0 : -1});
+        out.slots.push_back({24, 22, count > 1 ? 1 : -1});
+        out.slots.push_back({46, 30, -1});
+        out.productX = 68, out.productY = 22;
     } else if (smelts(recipe.station)) {
         // The input over the fuel's slot, which stays empty: fuel is not part of a recipe.
         out.slots.push_back({0, 0, count ? 0 : -1});

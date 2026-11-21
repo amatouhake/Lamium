@@ -76,13 +76,15 @@ void brewingParts(MinecraftUIRenderContext& context, float x, float y) {
         fill(context, x + 21, y + 11.8f + 2.2f * static_cast<float>(i), 7, .6f, v::windowLight);
     }
     tube(28, 15, 3, 1);
-    tube(54, 18, 1, 8), tube(46, 26, 8, 1);
-    tube(59, 18, 1, 12);
-    tube(64, 18, 1, 8), tube(65, 26, 7, 1);
-    images(context, "textures/ui/brewing_fuel_bar_full", {{x + 31, y + 14, 15, 3}});
-    images(context, "textures/ui/bubbles_empty", {{x + 34, y + 1, 7, 12}});
-    images(context, "textures/ui/brewing_arrow_empty", {{x + 70, y + 1, 6, 17}});
-    images(context, "textures/ui/bottle_empty", {{x + 51, y + 31, 16, 16}});
+    tube(50, 18, 1, 8), tube(42, 26, 8, 1);
+    tube(55, 18, 1, 12);
+    tube(60, 18, 1, 8), tube(61, 26, 7, 1);
+    // Each image keeps the game's own proportions (as the stand shows them: the gauge 4 to 1, the bubbles about 1 to
+    // 3, the arrow about 1 to 4.5); only its size is the face's.
+    images(context, "textures/ui/brewing_fuel_bar_full", {{x + 31, y + 14, 12, 3}});
+    images(context, "textures/ui/bubbles_empty", {{x + 35, y + 0, 4, 13}});
+    images(context, "textures/ui/brewing_arrow_empty", {{x + 66, y + 1, 4, 17}});
+    images(context, "textures/ui/bottle_empty", {{x + 47, y + 31, 16, 16}});
 }
 // The place button's line for Ctrl (L-379): what it does, or why it would not now.
 std::string craftLine(CraftOnto check) {

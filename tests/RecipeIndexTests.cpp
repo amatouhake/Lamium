@@ -438,7 +438,8 @@ void recipeIndexTests() {
             check(has(water, 4) && has(wart, 2), "four bottles brewed take four bottles before and two ingredients (L-361)");
             auto const face = viewBlock(mix);
             check(face.brewing && face.slots.size() == 3 && face.slots[0].cell == 0 && face.slots[1].cell == 1 && face.slots[2].cell == -1
-                      && face.productX == 72 && face.slots[0].x == 50 && face.placeY + viewButton == 54,
+                      && face.productX == 68 && face.slots[0].x == 46 && face.placeY + viewButton == 54
+                      && face.slots[2].x + 18 + 4 <= face.chooseX,
                   "a brewing face is laid out as the stand: ingredient on top, the bottle before at the left, the one after at the right");
             Bench const stand{Station::BrewingStand, 0};
             check(benchMakes(stand, mix) && benchKind(stand) == Kind::Brewing
