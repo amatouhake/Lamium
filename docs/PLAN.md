@@ -79,8 +79,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   frame in the unit outside its slot; a group's slot always its "*",
   chosen or not; the member a group's tip shows a white frame.
 - A group (an ingredient any of its members serves) holds still on
-  every recipe screen: the member chosen, else the one most held, else
-  the one it is known by. Resting the pointer on its slot a moment, the
+  every recipe screen: the item whose uses are shown, else the member
+  chosen, else the one most held, else the one it is known by; its tip
+  frames the same member the slot shows. Resting the pointer on its slot a moment, the
   wheel looks through the members (it chooses nothing); its tip names
   the one shown, says whether one is chosen ("Any" explains the kinds
   held count together) and shows the members full size, the shown one
@@ -153,9 +154,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   item screens, has it as it is, and the HUD and the Materials tab have
   what the last item screen saw (nothing before the world's first).
 - While a container is open, a button on its window's title line, left
-  of the close button and drawn as that is (a chest in the window's ink,
-  a green check while on, lit under the pointer; its tip in the game's
-  box, "Count as a store: on/off"), counts it as a store: on makes it a
+  of the close button and drawn as that is (its size, a chest in the
+  window's ink, a green check while on, darker under the pointer; its tip
+  in the game's box, "Count as a store: on/off"), counts it as a store: on makes it a
   store, off takes it out; at the ender chest it switches the chest in
   or out of the count. The window has a "Stores" tab: what is carried, the ender chest and the
   stores, each a name and a switch in one column, a store also with

@@ -765,7 +765,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     if (openPlace) {
         // On the game window's title line, left of its close button and drawn as it is (L-382).
-        ListBox const box{at.x + size.x - 29, at.y + 5, 10, 10};
+        ListBox const box{at.x + size.x - 38, at.y + 2, 16, 16}; // the close button's size, two units left of it
         bandPages::storeButton(frame, box, *openPlace);
         bandBoxes.push_back(box);
     }

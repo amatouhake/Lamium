@@ -76,14 +76,16 @@ void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, floa
 }
 void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on) {
     namespace v = palette::vanilla;
-    if (hovered) fill(context, x, y, size, size, palette::white, .35f);
-    float const k = size / 10;
-    auto p = [&](float px, float py, float w, float h, Rgb color) { fill(context, x + px * k, y + py * k, w * k, h * k, color); };
+    // Darker under the pointer, as the game's close button turns.
+    if (hovered) fill(context, x, y, size, size, palette::shade, .25f);
+    // A 16-unit picture in whole units, centred.
+    float const k = std::max(1.f, std::floor(size / 16)), o = std::floor((size - 16 * k) / 2);
+    auto p = [&](float px, float py, float w, float h, Rgb color) { fill(context, x + o + px * k, y + o + py * k, w * k, h * k, color); };
     if (picture == Picture::Store) {
-        // A chest seen from the front: its outline, the lid's line and the latch.
-        p(1, 2, 8, 1, v::windowInk); p(1, 2, 1, 7, v::windowInk); p(8, 2, 1, 7, v::windowInk); p(1, 8, 8, 1, v::windowInk);
-        p(1, 4, 8, 1, v::windowInk); p(4, 4, 2, 2, v::windowInk);
-        if (on) { p(5, 6, 1, 1, palette::accentDeep); p(6, 7, 1, 1, palette::accentDeep); p(7, 6, 1, 1, palette::accentDeep); p(8, 5, 1, 1, palette::accentDeep); p(9, 4, 1, 1, palette::accentDeep); }
+        // A chest seen from the front: its outline, the lid's line and the latch; counted, a green check inside it.
+        p(2, 3, 12, 1, v::windowInk); p(2, 3, 1, 10, v::windowInk); p(13, 3, 1, 10, v::windowInk); p(2, 12, 12, 1, v::windowInk);
+        p(2, 6, 12, 1, v::windowInk); p(7, 5, 2, 3, v::windowInk);
+        if (on) for (auto [cx, cy] : {std::pair{5, 9}, {6, 10}, {7, 9}, {8, 8}, {9, 7}, {10, 6}, {11, 5}}) p(static_cast<float>(cx), static_cast<float>(cy), 1, 1, palette::accentDeep);
     }
 }
 namespace { constexpr float rowButtonText = .6875f; }

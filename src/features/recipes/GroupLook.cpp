@@ -33,12 +33,13 @@ int rested() {
 void turn(int group, int steps) {
     if (group >= 0) looked[group] += steps;
 }
-Item face(Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held) {
+Item face(Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held, Item prefer) {
     if (group < 0 || group >= static_cast<int>(index.groups.size())) return -1;
     auto const& members = index.groups[static_cast<size_t>(group)].members;
     if (members.empty()) return -1;
     Item base = groupLead(index, group);
-    if (auto picked = picks.find(group); picked != picks.end() && std::ranges::find(members, picked->second) != members.end()) base = picked->second;
+    if (prefer >= 0 && std::ranges::find(members, prefer) != members.end()) base = prefer;
+    else if (auto picked = picks.find(group); picked != picks.end() && std::ranges::find(members, picked->second) != members.end()) base = picked->second;
     else if (held) {
         Count most = 0;
         for (Item member : members)
@@ -50,10 +51,10 @@ Item face(Index const& index, int group, std::map<int, Item> const& picks, std::
     int const start = static_cast<int>(std::ranges::find(members, base) - members.begin());
     return members[static_cast<size_t>(((start + at->second) % n + n) % n)];
 }
-void tip(view::Late& late, Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held) {
+void tip(view::Late& late, Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held, Item prefer) {
     using ui::translated;
     auto const& members = index.groups[static_cast<size_t>(group)].members;
-    Item const shown = face(index, group, picks, held);
+    Item const shown = face(index, group, picks, held, prefer);
     late.tip = groupName(index, group);
     late.tipLines.clear();
     late.tipItems.clear();

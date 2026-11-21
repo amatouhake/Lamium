@@ -270,7 +270,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
                   palette::vanilla::window, palette::vanilla::windowLight, palette::vanilla::buttonShadow);
         // A slot as the game draws its own; `lacks`: on the game's red, an ingredient nothing carried serves. `group`:
         // the slot takes any of a group's members, and names the group and shows them under the pointer.
-        auto place = [&](float sx, float sy, Item item, Count amount, bool lacks = false, int group = -1) {
+        auto place = [&](float sx, float sy, Item item, Count amount, bool lacks = false, int group = -1, Item prefer = -1) {
             Region region{sx, sy, 18, 18, Act::Item, {}, -1};
             bool const named = item >= 0 && item < static_cast<Item>(index.items.size());
             bool const hovered = named && region.has(input.pointerX, input.pointerY);
@@ -282,11 +282,12 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
             if (amount > 1) late.counts.push_back({sx, sy, slotCountText(amount)});
             if (group >= 0) late.marks.push_back({sx + 1, sy + 1});
             if (hovered && group >= 0) {
+                // The tip frames what the slot shows: it starts from the same member (`prefer`).
                 groupLook::hover(group, sx, sy);
                 std::map<int, Item> picked;
                 if (auto found = state::notes().picks.find(groupKey(index, group)); found != state::notes().picks.end())
                     if (Item const member = index.findKey(found->second); member >= 0) picked[group] = member;
-                groupLook::tip(late, index, group, picked, nullptr);
+                groupLook::tip(late, index, group, picked, nullptr, prefer);
             } else if (hovered) late.tip = shown.name, late.hovered = region.item;
             regions.push_back(std::move(region));
         };
@@ -304,25 +305,27 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         for (auto const& part : block.slots) {
             Item item = -1;
             int group = -1;
+            Item prefer = -1;
             if (part.cell >= 0) {
                 auto const& cell = recipe.cells[static_cast<size_t>(part.cell)];
                 item = cell.id;
                 if (cell.group) {
                     group = cell.id;
                     auto const& members = index.groups[static_cast<size_t>(cell.id)].members;
-                    // Asked what an item is used in, a slot it fits shows it; else the member "How to make" names, or
-                    // the one it is known by, still unless the wheel looks through them (L-369).
+                    // Asked what an item is used in, a slot it fits starts from it; else from the member "How to make"
+                    // names, or the one it is known by; still unless the wheel looks through them (L-369).
                     bool const asked = at.uses && std::find(members.begin(), members.end(), id) != members.end();
                     Item picked = -1;
                     if (auto found = picks.find(groupKey(index, cell.id)); found != picks.end()) picked = index.findKey(found->second);
                     if (std::find(members.begin(), members.end(), picked) == members.end()) picked = -1;
                     std::map<int, Item> one;
                     if (picked >= 0) one[cell.id] = picked;
-                    item = members.empty() ? -1 : asked ? id : groupLook::face(index, cell.id, one, nullptr);
+                    prefer = asked ? id : -1;
+                    item = members.empty() ? -1 : groupLook::face(index, cell.id, one, nullptr, prefer);
                 }
             }
             place(bx + part.x, by + part.y, item, 1,
-                  part.cell >= 0 && std::find(asked.missing.begin(), asked.missing.end(), part.cell) != asked.missing.end(), group);
+                  part.cell >= 0 && std::find(asked.missing.begin(), asked.missing.end(), part.cell) != asked.missing.end(), group, prefer);
         }
         if (block.brewing) {
             brewingParts(context, bx, by);

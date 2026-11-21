@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A group's chosen member in its tip, the store button (L-369, L-382, 2026-11-21)
+
+Builds `ffe6bf33` and `6f64fd47` (last DLL
+`1940aa288ebfc422c004e27261ff20afb6bfb204434441085b0dd3241f1ccc83`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the widened row, the
+window's button with Recipes off, a one-line tip's room; a group's tip
+with the chosen member green over the shown one's white, no "*" in its
+name; the store button closer to the game's. Not right: on an item's
+uses the slot keeps that item while the tip's white frame follows the
+wheel; the store button lights where the close button darkens, is about
+3/5 of its size and overlaps it by a unit.
+
 ## The bottom row and the Notes window's button (L-382, 2026-11-21)
 
 Build `3d58bd36` (DLL
