@@ -37,6 +37,12 @@ p{margin:0;max-width:95ch}
 .tag{white-space:nowrap;display:grid;place-items:center;color:#fff;box-shadow:0 0 0 var(--u) var(--edge)}
 .tab{display:grid;place-items:center;color:#fff;background:#626262;box-shadow:0 0 0 var(--u) #000;white-space:nowrap}
 .tab.on{background:var(--win);color:var(--win-ink)}
+.band{background:rgba(16,17,19,.82)}
+.btxt{color:#fff;white-space:nowrap}
+.bdim{color:#b4b8b6;white-space:nowrap}
+.bfaint{color:#7f8583;white-space:nowrap}
+.btab{color:#b4b8b6;white-space:nowrap;text-align:center}
+.btab.on{color:#fff;background:rgba(108,195,73,.18);box-shadow:inset 0 calc(-1*var(--u)) 0 #6cc349}
 .notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
 .card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .card ul{margin:6px 0 0;padding-left:20px}
@@ -47,14 +53,14 @@ p{margin:0;max-width:95ch}
 <body>
 <div class="wrap">
   <header>
-    <h1>計画のステップの状態（L-370）</h1>
+    <h1>計画のステップの状態 2（L-370）</h1>
     <p class="lede">「作る物」の各ステップに 4 つの状態を出す案。今は「今作れる物が先、ほかは薄く」の 2 段階だけ。例の計画：チェスト 2 個とかまど 1 個とたいまつ 4 本が欲しい。手持ちは原木 2、板材 10、丸石 3、石炭 1、棒 4、たいまつ 4。</p>
   </header>
   <div class="controls">
     <div class="grp"><span class="lbl">見せ方</span>
-      <button class="chip on" data-k="look" data-v="sections">A. 状態ごとの見出しで分ける</button>
+      <button class="chip on" data-k="look" data-v="both">C. 見出しで分け、行の右端に数（決まり）</button>
+      <button class="chip" data-k="look" data-v="sections">A. 状態ごとの見出しで分ける</button>
       <button class="chip" data-k="look" data-v="tags">B. 1 つの並びで、行の右端に状態の札</button>
-      <button class="chip" data-k="look" data-v="both">C. 見出しで分け、行の右端に数</button>
     </div>
     <div class="grp"><span class="lbl">足りない材料</span>
       <button class="chip on" data-k="red" data-v="1">赤い枠で示す</button>
@@ -76,19 +82,19 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>決めたいこと</h2>
       <ul>
-        <li><span class="q">1.</span> 見せ方：A・B・C。</li>
-        <li><span class="q">2.</span> 足りない材料を赤い枠で示すか（レシピ画面では「並べる」に重ねたときだけ赤くしている）。</li>
-        <li><span class="q">3.</span> 「持っている」を出すか（今は手持ちで足りた物はステップから消える）。</li>
+        <li>決まったこと（2026-11-21）：見せ方は C、足りない材料は赤い枠で示す、「持っている」は一番下に薄く出す。</li>
+        <li>窓の右端と帯の数は、どちらも「個数」でそろえた（窓は一部だけの行にだけ「作れる数/要る数」。作れる行は完成品の欄に数があるので出さない）。</li>
+        <li><span class="q">1.</span> 左の帯の「作る物」（左側）：同じ 4 つの状態と並び順で、帯の短い行の形にする案。見出しは出さず、一部だけの行は数を「作れる数/要る数」、足りない行と持っている行は薄く、持っている行は数の代わりにチェック。説明に、各材料の「持っている数/要る数」を出し、足りない材料はそれと分かる色に。</li>
       </ul>
     </div>
   </div>
 </div>
 <script>
 let U = 3;
-const opt = {look:'sections', red:true};
+const opt = {look:'both', red:true, held:true};
 const px = v => v * U + 'px';
 const view = document.getElementById('view');
-function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 340)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 470)); document.documentElement.style.setProperty('--u', U + 'px'); }
 function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
 const I = {log:['#6a4a2a','原'], planks:['#b8925a','板'], chest:['#a87830','箱'], cobble:['#8a8a8a','丸'], furnace:['#707070','炉'], coal:['#222','炭'], stick:['#9a7040','棒'], torch:['#e8b040','ト'], table:['#9a6b3a','作']};
 function icon(x, y, key, dim, size = 16){ const [c, t] = I[key]; const d = el('ico' + (dim ? ' dim' : ''), x, y, size, size, t); d.style.background = c; d.style.fontSize = px(size * .38); return d; }
@@ -98,6 +104,7 @@ function slot(x, y, key, n, dim, missing){
   if (n > 1) { const c = el('count' + (dim ? ' dim' : ''), x + 1, y + 9, 16, null, n); c.style.fontSize = px(7); }
 }
 // The plan's steps: inputs, product, how many crafts, how many can be made now, which inputs are short.
+// The band shows the same steps, in the same order, as short rows (icon, name, count).
 const STEPS = [
   {name:'板材', inputs:[['log', 1]], out:['planks', 4], crafts:2, now:2, short:[]},
   {name:'チェスト', inputs:[['planks', 8]], out:['chest', 1], crafts:2, now:1, short:[0]},
@@ -123,18 +130,48 @@ function row(x, y, w, s){
     const right = x + w;
     let text = '', bg = '';
     if (opt.look === 'tags') { text = st === 'partly' ? `${s.now}/${s.crafts} 回` : LABEL[st]; bg = {ready:'#3c8527', partly:'#a07818', missing:'#8b3a3a', held:'#7a7a7a'}[st]; }
-    else if (st === 'partly') { text = `${s.now}/${s.crafts} 回`; }
-    else if (st === 'ready') { text = `${s.crafts} 回`; }
+    // In items, as the band counts: only a partly row, what can be made now of what is needed (the product's
+    // slot already shows how many are made).
+    else if (st === 'partly') { text = `${s.out[1] * s.now}/${s.out[1] * s.crafts}`; }
     if (text) {
       if (bg) { const t = el('tag', right - 46, y + 4, 44, 11, text); t.style.background = bg; t.style.fontSize = px(6); }
       else { const t = el(dim ? 'faint' : 'txt', right - 46, y + 6, 44, null, text); t.style.fontSize = px(7); t.style.textAlign = 'right'; }
     }
   }
 }
+// The left band's "to make" list, as Lamium's dark band draws it: the same states and order as the window, in its own
+// short form: no headings (rows are 12 high); a partly row's count is what can be made now of what is needed; a
+// missing row faint; a held row faint at the end with a check for its count. Its tip lists what the step takes,
+// each with what is held of what is needed.
+function band(x0, y0){
+  const BW = 112, rowH = 12;
+  el('band', x0, y0, BW, 112);
+  ['欲しい物', '集める物', '作る物'].forEach((t, i) => { const d = el('btab' + (i === 2 ? ' on' : ''), x0 + 2 + i * 36, y0 + 2, 35, 11, t); d.style.fontSize = px(6); });
+  let y = y0 + 16;
+  const steps = [...STEPS].sort((a, b) => ORDER.indexOf(state(a)) - ORDER.indexOf(state(b)));
+  steps.forEach(s => {
+    const st = state(s), dim = st === 'missing' || st === 'held';
+    icon(x0 + 3, y + 1, s.out[0], dim, 10);
+    const name = el(dim ? 'bfaint' : 'bdim', x0 + 16, y + 1.5, null, null, s.name); name.style.fontSize = px(6.5);
+    const made = s.out[1] * s.crafts, now = s.out[1] * s.now;
+    const count = st === 'held' ? '✓' : st === 'partly' ? `${now}/${made}` : `${made}`;
+    const c = el(dim ? 'bfaint' : 'btxt', x0 + BW - 40, y + 1.5, 36, null, count); c.style.fontSize = px(6.5); c.style.textAlign = 'right';
+    y += rowH;
+  });
+  // the tip of the missing row, as an example
+  const tipY = y + 6;
+  const t = el('', x0 + 6, tipY, 100, 30, ''); t.style.background = '#100010'; t.style.boxShadow = `inset 0 0 0 ${U}px #2c0863`;
+  const l1 = el('btxt', x0 + 10, tipY + 3, null, null, 'かまど'); l1.style.fontSize = px(6.5);
+  const l2 = el('bdim', x0 + 10, tipY + 12, null, null, '丸石 3/8（あと 5）'); l2.style.fontSize = px(6); l2.style.color = '#ff9a9a';
+  const l3 = el('bfaint', x0 + 10, tipY + 20, null, null, '例：「足りない」行の説明'); l3.style.fontSize = px(5.5);
+}
 function render(){
   fit();
   const W = 326, H = 182;
+  const BX = -122;
   view.style.width = px(W); view.style.height = px(H + 22); view.innerHTML = '';
+  view.style.marginLeft = 'auto'; view.style.transform = `translateX(${px(61)})`;
+  band(BX, 21);
   // tabs
   ['欲しい物', '集める物', '作る物', '作り方'].forEach((t, i) => { const d = el('tab' + (i === 2 ? ' on' : ''), 6 + i * 52, 0, 51, 21, t); d.style.fontSize = px(7); });
   el('win', 0, 21, W, H).style.zIndex = -1;
