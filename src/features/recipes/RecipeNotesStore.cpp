@@ -30,10 +30,7 @@ Notes decodeNotes(std::string_view document) {
     Notes out;
     Json const root = parsed(document);
     if (!root.is_object()) return out;
-    // Development builds wrote "favourites" before the English became American (2026-11-20); never released,
-    // read until the release (backlog/pre-release-checks.md).
     auto list = root.find("favorites");
-    if (list == root.end()) list = root.find("favourites");
     if (list != root.end() && list->is_array())
         for (auto const& entry : *list)
             if (auto key = text(entry); !key.empty() && !out.favorite(key) && out.favorites.size() < 512) out.favorites.push_back(std::move(key));
