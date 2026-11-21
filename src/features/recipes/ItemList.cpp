@@ -764,8 +764,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
     }
     if (openPlace) {
-        // On the game window's title line, left of its close button (L-382).
-        ListBox const box{at.x + size.x - 30, at.y + 5, 11, 11};
+        // On the game window's title line, left of its close button and drawn as it is (L-382).
+        ListBox const box{at.x + size.x - 29, at.y + 5, 10, 10};
         bandPages::storeButton(frame, box, *openPlace);
         bandBoxes.push_back(box);
     }
@@ -973,7 +973,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
         std::vector<HoverLine> const none;
         auto const& more = item ? details : none;
-        float w = textWidth(context, late.tip) + (late.tipGroup ? 8.f : 0.f);
+        float w = textWidth(context, late.tip);
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
         for (auto const& line : more) w = std::max(w, textWidth(context, line.text));
         // A table's first column as wide as its widest entry, the second after a gap.
@@ -993,7 +993,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         // L-367); other tips are Lamium's, two units under the last line so letters that reach below it
         // (p, y) stay inside the frame.
         namespace vf = vanilla_frame;
-        bool const game = item || covered;
+        bool const game = item || covered || late.tipGame;
         float const inset = game ? vf::tooltipTextLeft : 4, top = game ? vf::tooltipTextTop - 1 : 2;
         w = std::min(game ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
         float const h = (game ? vf::tooltipHeight(lines) : 4 + 10 * static_cast<float>(lines)) + membersH;
@@ -1005,10 +1005,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             context.flushText(0, std::nullopt);
             gameTooltipBox(context, x, y, w, h);
         } else drawTipBox(context, x, y, w, h);
-        // A group's name carries the "*" its slots do, so it reads as a kind, not an item (L-369).
-        float const titleShift = late.tipGroup ? 8.f : 0.f;
-        if (late.tipGroup) anyMark(context, x + inset, y + top + 1);
-        label(context, x + inset + titleShift, y + top, w - 2 * inset - titleShift, late.tip);
+        label(context, x + inset, y + top, w - 2 * inset, late.tip);
         float line = y + top + 10;
         for (auto const& text : late.tipLines) label(context, x + inset, line, w - 2 * inset, text, palette::dim), line += 10;
         for (auto const& [left, right] : late.tipTable) {
@@ -1022,9 +1019,14 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (members) {
             std::vector<inspection::render::IconAt> icons;
             auto cellAt = [&](size_t i) { return std::pair{x + inset + static_cast<float>(i % perRow) * cellSize, line + 1 + static_cast<float>(i / perRow) * cellSize}; };
+            // The one shown framed white; the one chosen green, over the white where they are the same (L-369).
             if (late.tipCurrent >= 0 && static_cast<size_t>(late.tipCurrent) < members) {
                 auto const [cx, cy] = cellAt(static_cast<size_t>(late.tipCurrent));
                 lamium::ui::frame(context, cx, cy, cellSize, cellSize, palette::white, .6f);
+            }
+            if (late.tipChosen >= 0 && static_cast<size_t>(late.tipChosen) < members) {
+                auto const [cx, cy] = cellAt(static_cast<size_t>(late.tipChosen));
+                lamium::ui::frame(context, cx, cy, cellSize, cellSize, palette::accent);
             }
             for (size_t i = 0; i < members; ++i)
                 if (auto const* stack = schematic::items::iconStack(schematic::items::shown(late.tipItems[i]).icon)) {

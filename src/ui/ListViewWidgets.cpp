@@ -74,6 +74,18 @@ void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, floa
         break;
     }
 }
+void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on) {
+    namespace v = palette::vanilla;
+    if (hovered) fill(context, x, y, size, size, palette::white, .35f);
+    float const k = size / 10;
+    auto p = [&](float px, float py, float w, float h, Rgb color) { fill(context, x + px * k, y + py * k, w * k, h * k, color); };
+    if (picture == Picture::Store) {
+        // A chest seen from the front: its outline, the lid's line and the latch.
+        p(1, 2, 8, 1, v::windowInk); p(1, 2, 1, 7, v::windowInk); p(8, 2, 1, 7, v::windowInk); p(1, 8, 8, 1, v::windowInk);
+        p(1, 4, 8, 1, v::windowInk); p(4, 4, 2, 2, v::windowInk);
+        if (on) { p(5, 6, 1, 1, palette::accentDeep); p(6, 7, 1, 1, palette::accentDeep); p(7, 6, 1, 1, palette::accentDeep); p(8, 5, 1, 1, palette::accentDeep); p(9, 4, 1, 1, palette::accentDeep); }
+    }
+}
 namespace { constexpr float rowButtonText = .6875f; }
 float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text) { return std::ceil(textWidthScaled(context, text, rowButtonText)) + 8; }
 void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered) {

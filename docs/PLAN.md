@@ -84,8 +84,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   wheel looks through the members (it chooses nothing); its tip names
   the one shown, says whether one is chosen ("Any" explains the kinds
   held count together) and shows the members full size, the shown one
-  framed, with no counts held; its name carries the "*" and no item's
-  own lines (fuel, id) follow. In "How to make" a line's left shows the
+  framed white and the one chosen green over it, with no counts held;
+  no item's own lines (fuel, id) follow. The name needs no "*": the
+  lines say it is a kind. In "How to make" a line's left shows the
   group's or item's tip, its right that of what is in use; its words
   read "Any" alone.
 - Tips describe the item alone; what a press or the wheel does there
@@ -151,9 +152,10 @@ plan's recipes are in [L-116](backlog/L-116.md).
   is open and remembered by the id, so the plan, which only shows on
   item screens, has it as it is, and the HUD and the Materials tab have
   what the last item screen saw (nothing before the world's first).
-- While a container is open, a button with a box and a check on its
-  window's title line, left of the close button, counts it as a store,
-  green while on, its tip "Count as a store: on/off": on makes it a
+- While a container is open, a button on its window's title line, left
+  of the close button and drawn as that is (a chest in the window's ink,
+  a green check while on, lit under the pointer; its tip in the game's
+  box, "Count as a store: on/off"), counts it as a store: on makes it a
   store, off takes it out; at the ender chest it switches the chest in
   or out of the count. The window has a "Stores" tab: what is carried, the ender chest and the
   stores, each a name and a switch in one column, a store also with

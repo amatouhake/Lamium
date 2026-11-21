@@ -303,8 +303,8 @@ void storeButton(Frame& frame, ListBox box, placesGame::Open const& open) {
     // switched in or out of the count. A picture button on the game window's title line (L-382), green when on.
     int const index = open.ender ? state::places().ender() : state::places().store(open.spot);
     bool const on = index >= 0 && (!open.ender || state::places().list[static_cast<size_t>(index)].counted);
-    drawPictureButton(context, box.x, box.y, box.w, Picture::Store, box.has(px, py), on);
-    if (box.has(px, py)) late.tip = translated("recipes.place.countState", translated(on ? "on" : "off"));
+    drawWindowPictureButton(context, box.x, box.y, box.w, Picture::Store, box.has(px, py), on);
+    if (box.has(px, py)) late.tip = translated("recipes.place.countState", translated(on ? "on" : "off")), late.tipGame = true;
     if (leftPress && took(box)) {
         if (open.ender) { if (index >= 0) state::setPlaceCounted(index, !on); }
         else if (index < 0) state::markStore(open.spot, open.pair, open.block, open.items);

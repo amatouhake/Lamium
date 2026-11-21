@@ -200,7 +200,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The 2026-11-21 review's choices built and seen in game
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Open; the direction is agreed (maintainer 2026-11-20), the details are not
 - [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); split into L-373 to L-379 and existing items
-- [L-382](backlog/L-382.md) One way into the Recipes window, and the panels around the game's window (Design): Row and buttons seen in game 2026-11-21; the store button's look reopened
+- [L-382](backlog/L-382.md) One way into the Recipes window, and the panels around the game's window (Ready): Row and buttons seen in game 2026-11-21; the store button redrawn, not checked
 - [L-383](backlog/L-383.md) Schematic Materials: drop the raw view, call it "材料" (Ready): Agreed (maintainer 2026-11-21), not started
 - [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): Fifth list built (marks, group tips, store faces), not checked in game
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes

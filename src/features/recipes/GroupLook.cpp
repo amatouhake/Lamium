@@ -58,7 +58,7 @@ void tip(view::Late& late, Index const& index, int group, std::map<int, Item> co
     late.tipLines.clear();
     late.tipItems.clear();
     late.tipCounts.clear();
-    late.tipCurrent = -1;
+    late.tipCurrent = late.tipChosen = -1;
     late.tipGroup = true;
     late.hovered = shown >= 0 ? index.items[static_cast<size_t>(shown)] : std::string();
     // No counts held (maintainer 2026-11-21): the tip says what the group is, the plan's tables what is held.
@@ -70,6 +70,7 @@ void tip(view::Late& late, Index const& index, int group, std::map<int, Item> co
     for (size_t i = 0; i < members.size(); ++i) {
         late.tipItems.push_back(index.items[static_cast<size_t>(members[i])]);
         if (members[i] == shown) late.tipCurrent = static_cast<int>(i);
+        if (picked != picks.end() && members[i] == picked->second) late.tipChosen = static_cast<int>(i);
     }
     if (members.size() > 1) late.hints.push_back(translated("recipes.group.wheel"));
 }

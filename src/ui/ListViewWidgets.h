@@ -28,6 +28,9 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
 // on the plain face, the face green while the button is on.
 enum class Picture { Highlight, Window, Layout, Store };
 void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);
+// The same picture on the game's window beside its own close button, drawn as that is (L-382): no face, the
+// window's ink, lit under the pointer; on adds a green check.
+void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);
 // A small button inside a table row (L-369): flat, as high as a switch and edged as one, its text smaller than
 // the row's words so it sits inside with room around it. Off the game's window it is the plain button.
 inline constexpr float rowButtonHeight = switchHeight;
