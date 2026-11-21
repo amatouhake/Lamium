@@ -63,7 +63,6 @@ struct Late {
     std::string hovered; // the item under the pointer, by its id
     std::string wantedRow; // the wanted item whose row is under the pointer, controls and all
     std::vector<std::string> tipItems; // items shown as icons under the tip's lines (a group's members)
-    std::vector<std::string> tipCounts; // beside tipItems: what is held of each, as a slot's count, or empty
     int tipCurrent = -1; // the one of tipItems a group's slot shows, framed white
     int tipChosen = -1;  // the one of tipItems "How to make" chose, framed green over the white
     bool tipGroup = false; // the tip is a group's: no item's own lines under it

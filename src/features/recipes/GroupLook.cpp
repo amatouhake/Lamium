@@ -58,7 +58,6 @@ void tip(view::Late& late, Index const& index, int group, std::map<int, Item> co
     late.tip = groupName(index, group);
     late.tipLines.clear();
     late.tipItems.clear();
-    late.tipCounts.clear();
     late.tipCurrent = late.tipChosen = -1;
     late.tipGroup = true;
     late.hovered = shown >= 0 ? index.items[static_cast<size_t>(shown)] : std::string();

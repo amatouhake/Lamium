@@ -90,11 +90,10 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     int const listNow = sideList == SideList::Wanted ? 0 : sideList == SideList::Gather ? 1 : 2;
     auto openList = [&] { openPlan(lists[listNow].tab); };
     std::string listTexts[3];
-    float listWidths[3], listsWidth = 0;
+    float listWidths[3];
     for (int i = 0; i < 3; ++i) {
         listTexts[i] = translated(lists[i].key);
         listWidths[i] = textWidth(context, listTexts[i]) + tabPad;
-        listsWidth += listWidths[i];
     }
     // The three lists are tabs. Where their names do not fit (the game's recipe book is out), each is an
     // item's picture, named under the pointer.
@@ -103,7 +102,6 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     // One width for the three, as the window's tabs (L-369).
     float const tabWidth = std::max({listWidths[0], listWidths[1], listWidths[2]});
     bool const named = 3 * tabWidth <= barRoom;
-    (void)listsWidth;
     static constexpr char const* pictures[]{"minecraft:writable_book", "minecraft:iron_pickaxe", "minecraft:crafting_table"};
     constexpr float pictureWidth = 20;
     if (named || 3 * pictureWidth <= barRoom) {

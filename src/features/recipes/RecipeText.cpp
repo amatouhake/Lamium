@@ -26,7 +26,6 @@ std::string groupName(Index const& index, int group) {
     auto const& first = schematic::items::shown(index.items[static_cast<size_t>(groupLead(index, group))]).name;
     return entry.members.size() == 1 ? first : ui::translated("recipes.andOthers", first);
 }
-std::string groupNameAny(Index const& index, int group) { return ui::translated("recipes.anyOf", groupName(index, group)); }
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step) {
     std::vector<std::string> out;
     Item const items = static_cast<Item>(index.items.size());

@@ -10,13 +10,9 @@ namespace lamium::recipes {
 std::string stationName(Station station);
 // A process's name: "Smelting" (L-376); its stations are shown as their blocks, not named here.
 std::string kindName(Kind kind);
-// An ingredient any of several items satisfies: a tag by its translated name with "(any)", any other
-// group by its first member "and N others".
 // A group by its name alone: a known tag's ("Planks"), else its first member's and "etc."; the Recipes screens
 // mark its icon (anyMark) to say any member will do.
 std::string groupName(Index const& index, int group);
-// The same with "(any)" after it, where no icon carries the mark (Schematics' text).
-std::string groupNameAny(Index const& index, int group);
 // What a step of a plan takes in all its crafts, a line each: the count, then the name.
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step);
 // The same with what `stock` holds of each, "held/needed", and how many more where it is short (L-370).

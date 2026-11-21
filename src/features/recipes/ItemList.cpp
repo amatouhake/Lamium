@@ -662,10 +662,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         cost.highlight = cost.lap();
     }
     view::Late late;
-    // A favorite's cell is framed; a wanted item carries how many are wanted, where a stack has its count.
-    std::set<std::string_view> favoriteKeys;
+    // A wanted item carries how many are wanted, where a stack has its count.
     std::map<std::string_view, Count> wantedCounts;
-    if (favoritesOn) for (auto const& key : state::notes().favorites) favoriteKeys.insert(key);
     if (planOn) for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
     // What a feature handed over is wanted too.
     auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
@@ -880,7 +878,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // A recipe laid into the grid: nothing of Lamium's stays over it.
     if (late.placed) view::close(), planView::close(), countEdit::cancel();
-    // The recipe view asked for an item's line in "How to make" (L-370): the window opens there over the view.
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView() || bandEditor::active();
     static std::vector<int> inventoryKeys;
@@ -1065,12 +1062,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
                     icons.push_back({stack, cx + 1, cy + 1});
                 }
             if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
-            // What is held of each, over its icon as a slot's count.
-            for (size_t i = 0; i < members && i < late.tipCounts.size(); ++i)
-                if (!late.tipCounts[i].empty()) {
-                    auto const [cx, cy] = cellAt(i);
-                    label(context, cx, cy + 9, cellSize - 1, late.tipCounts[i], palette::text, Align::Right);
-                }
             context.flushText(0, std::nullopt);
         }
     }

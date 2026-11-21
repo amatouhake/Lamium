@@ -38,12 +38,6 @@ void open(Tab which) {
     tab = which;
 }
 void openLast() { opened = true; }
-void openHowTo(std::string const& key) {
-    opened = true;
-    tab = Tab::HowTo;
-    howOpen = howScroll = howFlash = key;
-    howFlashAt = std::chrono::steady_clock::now();
-}
 void close() {
     opened = false;
     openEntry.clear();
@@ -73,7 +67,6 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
     bool const group = key.empty() && line.id >= itemCount;
     late.tipLines.clear();
     late.tipItems.clear();
-    late.tipCounts.clear();
     late.tipCurrent = -1;
     std::string picture = key;
     if (group) {

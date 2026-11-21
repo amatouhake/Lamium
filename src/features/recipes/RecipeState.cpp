@@ -230,10 +230,6 @@ void stepWanted(std::string const& key, bool up, bool shift, bool button) {
     else list.zero(key);
     writeWanted();
 }
-std::vector<WantedEntry> wantedEntries() {
-    followWorld();
-    return prioritized(list, handed());
-}
 void settleWanted(std::string_view keep) {
     followWorld();
     if (list.settle(keep)) writeWanted();

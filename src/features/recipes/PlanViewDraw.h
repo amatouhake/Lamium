@@ -15,8 +15,6 @@ bool isOpen();
 void open(Tab tab);
 // Opens on the tab shown last (the bottom row's button, L-382).
 void openLast();
-// Opens on "How to make" with the line of `key` (an item's key, or a group's: groupKey) open and lit (L-370).
-void openHowTo(std::string const& key);
 void close();
 // A line of "to gather" under the pointer, the same in the window and on the band (L-369): its name (a group's
 // members as icons), held and needed, what is left in chests and stacks, a group's choice, and where counted
