@@ -1088,7 +1088,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.places", "Stores", "保管場所"},
     {"recipes.place.carried", "Carried", "手持ち"},
     {"recipes.col.counted", "Counted", "数える"},
-    {"recipes.place.carriedTip", "What you carry counts as held, with what the shulker boxes and bundles you carry hold. Off: only the stores below count, for a plan served from a chest.", "持っている物を手持ちに数えます。持っているシュルカーボックスとバンドルの中身も含みます。オフにすると下の保管場所だけを数えます（チェストに計画用の物をまとめる場合など）。"},
     {"recipes.place.how", "The ender chest is counted once it was opened. Open a chest, barrel or shulker box and switch \"Count as a store\" on at the left to count what it holds, as it was when last open.", "エンダーチェストは一度開くと数に入ります。チェスト・樽・シュルカーボックスを開いて左の「保管場所として数える」をオンにすると、最後に開いたときの中身が数に入ります。"},
     {"recipes.place.count", "Count as a store", "保管場所として数える"},
     {"recipes.place.at", "{} at {}, {}, {}", "{}（{}, {}, {}）"},

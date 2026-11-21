@@ -28,7 +28,7 @@ std::string howScroll;  // a line of "How to make" to bring into view
 std::string howFlash;   // a line just asked for, lit for a moment
 std::chrono::steady_clock::time_point howFlashAt{};
 bool howAll = false;    // "How to make" also lists what was chosen before, beyond the current plan
-constexpr float optionHeight = 24, rowHeight = 18, stepHeight = 20, labelHeight = 11, headHeight = 11, headTop = 4, small = .625f;
+constexpr float switchLine = 16, optionHeight = 24, rowHeight = 18, stepHeight = 20, labelHeight = 11, headHeight = 11, headTop = 4, small = .625f;
 }
 bool isOpen() { return opened; }
 void open(Tab which) {
@@ -45,6 +45,51 @@ void close() {
     opened = false;
     openEntry.clear();
     howOpen.clear();
+}
+void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line, std::string const& key) {
+    using namespace lamium::ui;
+    auto const& index = plan.table->index;
+    Item const itemCount = static_cast<Item>(index.items.size());
+    bool const group = key.empty() && line.id >= itemCount;
+    late.tipLines.clear();
+    late.tipItems.clear();
+    std::string picture = key;
+    if (group) {
+        int const g = line.id - itemCount;
+        auto const& members = index.groups[static_cast<size_t>(g)].members;
+        late.tip = groupName(index, g);
+        for (Item member : members) late.tipItems.push_back(index.items[static_cast<size_t>(member)]);
+        auto const picked = plan.request.picks.find(g);
+        if (picked != plan.request.picks.end()) picture = index.items[static_cast<size_t>(picked->second)];
+        else if (!members.empty()) picture = index.items[static_cast<size_t>(groupLead(index, g))];
+    } else {
+        if (picture.empty() && line.id >= 0) picture = index.items[static_cast<size_t>(line.id)];
+        late.tip = schematic::items::shown(picture).name, late.hovered = picture;
+    }
+    late.tipLines.push_back(translated("recipes.col.held") + ": " + std::to_string(line.held) + "  " + translated("recipes.col.need") + ": "
+                            + std::to_string(line.need));
+    if (line.left > 0) late.tipLines.push_back(translated("recipes.stepShort", amountText(line.left, schematic::items::shown(picture).stack)));
+    if (group) {
+        auto const picked = plan.request.picks.find(line.id - itemCount);
+        late.tipLines.push_back(picked != plan.request.picks.end()
+                                    ? translated("recipes.howTo.chosen") + ": " + schematic::items::shown(index.items[static_cast<size_t>(picked->second)]).name
+                                    : translated("recipes.howTo.any"));
+    }
+    // What the counted stores held when last seen, place by place, beside what is carried.
+    if (key.empty() && line.id >= 0 && line.id < itemCount)
+        if (auto const stored = plan.stored.find(line.id); stored != plan.stored.end() && stored->second) {
+            auto const carried = plan.held.find(line.id);
+            late.tipLines.push_back(translated("recipes.place.tipCarried", carried == plan.held.end() ? Count{0} : carried->second));
+            for (auto const& place : state::places().list) {
+                if (!place.counted) continue;
+                Count here = 0;
+                for (auto const& item : place.items) if (index.find(item.name, item.aux) == line.id) here += item.count;
+                if (!here) continue;
+                std::string name = schematic::items::shown(place.block).name;
+                if (!place.ender) name = translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);
+                late.tipLines.push_back(translated("recipes.place.tipPlace", name, here));
+            }
+        }
 }
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift, std::string& showItem,
           bool& showChoice) {
@@ -94,16 +139,17 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         }
     }
     auto const* plan = state::plan(player);
-    // The rows end short enough for the scrollbar right of them to stay clear of the window's shadow (L-369).
-    float const left = span.left + 6, right = span.left + span.width - 9;
+    // The rows end short of the scrollbar and the scrollbar short of the window's shadow, 3 units each (L-369).
+    float const left = span.left + 6, right = span.left + span.width - 12;
     float top = l.top + headTop;
+    float const listTop = top; // every tab's scrollbar spans the same height, from here to the bottom
     float const bottom = l.top + l.height - RecipeViewLayout::foot;
     int& offset = scroll[static_cast<int>(tab)];
     int wheel = input.wheel;
     // Every list scrolls with the shared bar in the margin right of the rows; `visible` is how many rows of their
     // real heights fit at the list's end.
     auto bar = [&](int count, int& first, int visible) {
-        listScrollbar(context, right + 2, top, bottom - top, count, std::max(1, visible), first, px, py, pressed, input.held);
+        listScrollbar(context, right + 5, listTop, bottom - listTop, count, std::max(1, visible), first, px, py, pressed, input.held);
     };
     auto fitFromEnd = [&](std::vector<float> const& heights) {
         float room = bottom - top;
@@ -142,7 +188,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             int const at = offset + row - 1;
             std::string name, icon, tip;
             bool on = false;
-            if (at < 0) name = translated("recipes.place.carried"), tip = translated("recipes.place.carriedTip"), icon = "minecraft:player_head", on = all.carried;
+            if (at < 0) name = translated("recipes.place.carried"), icon = "minecraft:player_head", on = all.carried;
             else {
                 auto const& place = places[static_cast<size_t>(at)];
                 name = placeName(place), icon = place.block, on = place.counted;
@@ -253,10 +299,10 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     auto stateTag = [&](float end, float y, std::string text, bool chosen, std::string const& key, float room = 64) {
         if (room < 14) return end;
         float const w = std::min({64.f, room, textWidth(context, text) * .75f + 6}), x = end - w;
-        if (chosen) fill(context, x, y, w, 10, palette::accentDeep);
+
         bool const hot = over(x, y, w, 10);
         if (hot) fill(context, x, y, w, 10, palette::white, .2f), late.tip = translated("recipes.howTo.change");
-        labelScaled(context, x + 3, y + 2.5f, w - 6, std::move(text), .75f, chosen ? palette::text : v::windowFaint, Align::Left, chosen);
+        labelScaled(context, x + 3, y + 2.5f, w - 6, std::move(text), .75f, chosen ? palette::accentDeep : v::windowFaint, Align::Left, false);
         if (took(x, y, w, 10)) jumpHowTo(key);
         return x - 3;
     };
@@ -333,17 +379,17 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         // The schematic's switch, while Schematics is on: the list's first line, scrolling away with it (L-370).
         auto drawSwitch = [&](float y) {
             bool const on = Runtime::instance().preferences().schematic.planMaterials;
-            if (over(left, y, right - left, 12)) fill(context, left - 2, y, right - left + 4, 12, palette::shade, .08f);
-            windowLabel(context, left, y + 2, right - left - switchWidth - 4, translated("recipes.plan.schematic"));
-            toggleSwitch(context, right - switchWidth, y + 1.5f, on);
-            if (took(left, y, right - left, 12)) {
+            if (over(left, y, right - left, switchLine)) fill(context, left - 2, y, right - left + 4, switchLine, palette::shade, .08f);
+            windowLabel(context, left, y + 4, right - left - switchWidth - 4, translated("recipes.plan.schematic"));
+            toggleSwitch(context, right - switchWidth, y + 3.5f, on);
+            if (took(left, y, right - left, switchLine)) {
                 auto value = Runtime::instance().preferences();
                 value.schematic.planMaterials = !on;
                 Runtime::instance().save(value);
             }
         };
         if (entries.empty()) {
-            if (schematicSwitch) drawSwitch(top), top += 13;
+            if (schematicSwitch) drawSwitch(top), top += switchLine;
             paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, v::windowInk);
             return;
         }
@@ -359,7 +405,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         // wanted that are all held follow under their heading, faint (L-370).
         struct Line { enum class Kind { Switch, DoneHead, Target, Label, Step, Material, End } kind; size_t entry = 0; size_t at = 0; float height = 0; };
         std::vector<Line> lines;
-        if (schematicSwitch) lines.push_back({Line::Kind::Switch, 0, 0, 13});
+        if (schematicSwitch) lines.push_back({Line::Kind::Switch, 0, 0, switchLine});
         auto addEntry = [&](size_t e) {
             if (scrollTo == wantedEntryId(entries[e])) offset = static_cast<int>(lines.size()), scrollTo.clear();
             lines.push_back({Line::Kind::Target, e, 0, rowHeight});
@@ -382,7 +428,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         offset = std::clamp(offset, 0, std::max(0, count - 1));
         // Only the column headings stay put: under the switch while it shows, at the top once it scrolled away.
         int from = offset;
-        if (offset == 0 && schematicSwitch) drawSwitch(top), top += 13, from = 1;
+        if (offset == 0 && schematicSwitch) drawSwitch(top), top += switchLine, from = 1;
         columnHeads(top, "recipes.col.need");
         top += headHeight;
         std::vector<float> heights;
@@ -507,7 +553,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         // so what is done shows too.
         struct Entry { Row const* row = nullptr; char const* label = nullptr; float height = 0; };
         std::vector<Entry> entries;
-        entries.push_back({nullptr, nullptr, rowHeight});
+        entries.push_back({nullptr, nullptr, labelHeight + 2});
         if (!rows.empty()) entries.push_back({nullptr, "recipes.gatherLeft", labelHeight});
         for (auto const& row : rows) entries.push_back({&row, nullptr, rowHeight});
         if (!finished.empty()) entries.push_back({nullptr, "recipes.gathered", labelHeight});
@@ -527,11 +573,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 continue;
             }
             if (!entry.row) {
-                windowLabel(context, nameX, y + 5, nameEnd - nameX, translated("recipes.all"));
-                number(heldX, heldW, y + 5, total.need - total.left, false);
-                number(wantX, wantW, y + 5, total.need, false);
-                progressBar(context, barX, y + 9, barW, 3, total.fraction());
-                fill(context, left, y + rowHeight - 1, right - left, 1, v::windowFaint);
+                // The whole, as the headings under it are written (L-369).
+                labelScaled(context, left, y + 3, nameEnd - left, translated("recipes.all"), .75f, v::windowFaint, Align::Left, false);
+                labelScaled(context, heldX, y + 3, heldW, std::to_string(total.need - total.left), .75f, v::windowFaint, Align::Right, false);
+                labelScaled(context, wantX, y + 3, wantW, std::to_string(total.need), .75f, v::windowFaint, Align::Right, false);
+                progressBar(context, barX, y + 5, barW, 3, total.fraction());
                 continue;
             }
             auto const& row = *entry.row;
@@ -549,33 +595,16 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             // A group's choice: no tag (the row has no room for one); the row itself goes to "How to make".
             bool const group = row.key.empty() && line.id >= itemCount;
             if (group && !row.stopped && took(left, y, right - left, rowHeight)) jumpHowTo(groupKey(index, line.id - itemCount));
-            // A count that includes what a place held when last seen is starred and says where the items are.
-            if (line.id >= 0 && line.id < itemCount) {
-                auto const stored = plan->stored.find(line.id);
-                if (stored != plan->stored.end() && stored->second) {
+            // A count that includes what a place held when last seen is starred; the tip says where the items are.
+            if (line.id >= 0 && line.id < itemCount)
+                if (auto const stored = plan->stored.find(line.id); stored != plan->stored.end() && stored->second) {
                     windowLabel(context, heldX - 5, y + 5, 5, "*", true);
-                    if (over(heldX - 5, y, heldW + 5, rowHeight)) {
-                        auto const carried = plan->held.find(line.id);
-                        late.tip = translated("recipes.place.tipCarried", carried == plan->held.end() ? Count{0} : carried->second);
-                        for (auto const& place : state::places().list) {
-                            if (!place.counted) continue;
-                            Count here = 0;
-                            for (auto const& item : place.items) if (index.find(item.name, item.aux) == line.id) here += item.count;
-                            if (here) late.tipLines.push_back(translated("recipes.place.tipPlace", placeName(place), here));
-                        }
-                    }
                     end -= 6;
                 }
-            }
             windowLabel(context, nameX, y + 5, end - nameX, name, row.done);
-            if (late.tip.empty() && over(left, y, end - left, rowHeight)) {
-                if (group) {
-                    groupTip(line.id - itemCount);
-                    auto picked = request.picks.find(line.id - itemCount);
-                    late.tipLines = {picked != request.picks.end() ? translated("recipes.howTo.chosen") + ": " + nameOf(picked->second) : translated("recipes.howTo.any"),
-                                     translated("recipes.howTo.change")};
-                } else late.tip = name, late.hovered = picture;
-                if (line.left > 0) late.tipLines.push_back(amountText(line.left, schematic::items::shown(picture).stack));
+            if (late.tip.empty() && over(left, y, barX + barW - left, rowHeight)) {
+                gatherTip(late, *plan, line, row.key);
+                if (group) late.tipLines.push_back(translated("recipes.howTo.change"));
             }
         }
         return;
@@ -699,7 +728,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     struct Line { enum class Kind { Switch, Label, Group, Members, Recipe, Option } kind; int group = -1; Item item = -1; int option = -1; float height = 0; };
     std::vector<Line> lines;
     // Which lines show: the first line, scrolling with them (only column headings stay put, L-370).
-    if (input.plan) lines.push_back({Line::Kind::Switch, -1, -1, -1, 14});
+    if (input.plan) lines.push_back({Line::Kind::Switch, -1, -1, -1, switchLine});
     size_t const across = static_cast<size_t>(std::max(1.f, (right - left - 24) / 18));
     if (!groups.empty()) lines.push_back({Line::Kind::Label, -1, -1, 0, labelHeight});
     for (int group : groups) {
@@ -719,8 +748,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         if (howOpen == key) {
             auto const options = recipeOptions(index, item);
             lines.push_back({Line::Kind::Option, -1, item, -1, optionHeight});
-            // The recipes, then "gather" (its option number is one past them).
-            for (size_t o = 0; o <= options.size(); ++o) lines.push_back({Line::Kind::Option, -1, item, static_cast<int>(o), optionHeight});
+            // "Gather" second, after "automatic" (its option number is one past the recipes'), then the recipes.
+            lines.push_back({Line::Kind::Option, -1, item, static_cast<int>(options.size()), optionHeight});
+            for (size_t o = 0; o < options.size(); ++o) lines.push_back({Line::Kind::Option, -1, item, static_cast<int>(o), optionHeight});
         }
     }
     howScroll.clear(); // found above or not there: either way it is done
@@ -732,20 +762,20 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     bool const flashing = std::chrono::steady_clock::now() - howFlashAt < std::chrono::milliseconds(900);
     // The line's parts: item icon and name, an arrow, a slot, the words beside it (a second, small line under them).
     float const arrowX = left + 92, slotX = arrowX + 12, wordsX = slotX + 22;
-    // A line's state on one line (L-370): "Automatic: from planks", or the player's "Chosen: ..." on green.
+    // A line's state on one line (L-370): "Automatic: from planks", or the player's "Chosen: ..." in green, no
+    // face behind it (L-369).
     auto words = [&](float y, std::string text, bool chosen) {
         if (!chosen) { windowLabel(context, wordsX, y + 6, right - wordsX, std::move(text)); return; }
-        float const w = std::min(right - wordsX, labelWidth(context, text, 1) + 6);
-        fill(context, wordsX - 2, y + 4, w, 11, palette::accentDeep);
-        label(context, wordsX + 1, y + 5 + boxTextInset(), w - 4, std::move(text), palette::text);
+        labelScaled(context, wordsX, y + 6, right - wordsX, std::move(text), 1.f, palette::accentDeep, Align::Left, false);
     };
     float y = top;
     for (int at = offset; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
         auto const& line = lines[static_cast<size_t>(at)];
         if (line.kind == Line::Kind::Switch) {
-            windowLabel(context, left, y + 2, right - left - switchWidth - 4, translated("recipes.howTo.showAll"));
-            toggleSwitch(context, right - switchWidth, y + 1.5f, howAll);
-            if (took(left, y, right - left, 12)) howAll = !howAll;
+            if (over(left, y, right - left, switchLine)) fill(context, left - 2, y, right - left + 4, switchLine, palette::shade, .08f);
+            windowLabel(context, left, y + 4, right - left - switchWidth - 4, translated("recipes.howTo.showAll"));
+            toggleSwitch(context, right - switchWidth, y + 3.5f, howAll);
+            if (took(left, y, right - left, switchLine)) howAll = !howAll;
         } else if (line.kind == Line::Kind::Label) {
             labelScaled(context, left, y + 3, right - left, translated(line.option == 0 ? "recipes.howTo.groups" : "recipes.howTo.recipes"), .75f, v::windowFaint,
                         Align::Left, false);

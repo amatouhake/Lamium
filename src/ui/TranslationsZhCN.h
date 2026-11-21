@@ -1079,7 +1079,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.places", "储存处"},
     {"recipes.place.carried", "携带的物品"},
     {"recipes.col.counted", "计入"},
-    {"recipes.place.carriedTip", "将你携带的物品计入持有数量，包括携带的潜影盒和收纳袋内的物品。关闭后只计入下方的储存处（例如把计划用的物品集中放在箱子里时）。"},
     {"recipes.place.how", "末影箱打开过一次后即计入。打开箱子、木桶或潜影盒并在左侧开启“计为储存处”，即可按上次打开时的内容计入。"},
     {"recipes.place.count", "计为储存处"},
     {"recipes.place.at", "{}（{}, {}, {}）"},

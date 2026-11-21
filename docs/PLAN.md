@@ -36,11 +36,12 @@ plan's recipes are in [L-116](backlog/L-116.md).
   shown while its feature is on (L-373): "wanted", "to gather" and "to
   make" (the Plan), "How to make" (Recipes), "stores" (the stores). It is
   always as wide as the game's inventory with its book open (the bands
-  narrow while it is open). With the plan off nothing leads to it since
-  the recipe view's in-use mark became a check box (L-369, open). The
-  settings screen holds how the features behave, the window the player's
-  data. Only column headings stay put; a tab's switch line and "All"
-  scroll with the rows.
+  narrow while it is open). With the plan off a "How to make" button
+  right of the search field's highlight switch opens it. The settings
+  screen holds how the features behave, the window the player's data.
+  Only column headings stay put; a tab's switch line and "All" scroll
+  with the rows; every tab's scrollbar spans the same height, 3 units
+  from the rows and from the window's shadow, drawn in whole units.
 - "Wanted" is a table: fold, icon, name, held, needed, a bar of held
   against needed (what is gathered shows in "to gather"); held, needed
   and the bar stand evenly apart, on every tab. Items all held follow
@@ -53,8 +54,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   what it needs gathered. A recipe's state and an any-of input's slot (framed green
   when chosen) go to "How to make"; "gather" on a step, "make" on a
   material set to gather.
-- "To gather" uses the same columns, "All" as the first row, then under
-  headings what is still to gather (most left first) and what is
+- "To gather" uses the same columns, "All" as the first row written
+  as the headings, then under headings what is still to gather (most left first) and what is
   gathered (faint). "To make" is the work (L-370): under headings the
   steps that can be made now, made in part, short (faint, short inputs on
   the game's red), and held (faint, a check); "can make now" and
@@ -63,15 +64,18 @@ plan's recipes are in [L-116](backlog/L-116.md).
   left: "to gather" needed less held, "to make" what is still to make,
   "wanted" the count (the stepper under the pointer, done rows at the
   end); done rows checked; the tip gives held (or can make now) and
-  needed, a make row's also each input held/needed.
+  needed, a make row's also each input held/needed. A "to gather" row's
+  tip is the same in the window and on the band: name (a group's
+  members), held and needed, what is left in chests and stacks, a
+  group's choice, the stores holding some.
 - "How to make" holds the choices for all plans and worlds: a group's
   member (a grid of slots, "any" first) and an item's recipe (rows,
   "automatic" first, as its recipe's slots), by name, each line's state
-  on one line ("Automatic: from planks", "Chosen: ..." on green) with one
+  on one line ("Automatic: from planks", "Chosen: ..." in green) with one
   arrow and aligned columns; lines for the current plan, or with a
   switch all chosen before. Placing follows it, else what is held. An
-  item's options end with "gather" (the breakdown's "gather" and "make"
-  set the same); leather and white wool start as gathered, shown as
+  item's options are "automatic", "gather" (the breakdown's "gather" and
+  "make" set the same), then its recipes; leather and white wool start as gathered, shown as
   chosen, and only a change from that is saved ("made" in the notes).
 - A key (W by default, beside A for favorites; both rebindable) puts the
   hovered item into "wanted" or takes it out, on item screens and in the

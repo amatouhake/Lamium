@@ -392,14 +392,22 @@ void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float 
     if (onWindow()) {
         // On the game's window (L-370): a track sunk as a slot, a thumb raised as a button, apart from the window's
         // edge, where a thin dark line was lost in its shadow.
+        // Whole units, as the slots' edges are (L-369): a track six wide, a thumb four wide inside it.
         namespace v = palette::vanilla;
-        fill(context, x - 1.5f, top, 5, track, v::slot);
-        fill(context, x - 1.5f, top, 5, .5f, v::slotDark);
-        fill(context, x - 1.5f, top, .5f, track, v::slotDark);
-        fill(context, x - 1.5f, top + track - .5f, 5, .5f, v::slotLight);
-        fill(context, x + 3, top, .5f, track, v::slotLight);
-        raisedBox(context, x - 1, thumbTop + .5f, 4, std::max(4.f, thumb - 1), v::window, v::windowLight, v::buttonShadow);
-        if (hot) fill(context, x, thumbTop + 1.5f, 2, std::max(2.f, thumb - 3), palette::white, .3f);
+        float const tx = std::floor(x) - 2, ty = std::floor(top), th = std::floor(track);
+        fill(context, tx, ty, 6, th, v::slot);
+        fill(context, tx, ty, 6, 1, v::slotDark);
+        fill(context, tx, ty, 1, th, v::slotDark);
+        fill(context, tx, ty + th - 1, 6, 1, v::slotLight);
+        fill(context, tx + 5, ty, 1, th, v::slotLight);
+        if (th < 8) return;
+        float const mh = std::clamp(std::floor(thumb) - 2, 4.f, th - 2), my = std::clamp(std::floor(thumbTop) + 1, ty + 1, ty + th - 1 - mh);
+        fill(context, tx + 1, my, 4, mh, v::window);
+        fill(context, tx + 1, my, 3, 1, v::windowLight);
+        fill(context, tx + 1, my, 1, mh - 1, v::windowLight);
+        fill(context, tx + 1, my + mh - 1, 4, 1, v::buttonShadow);
+        fill(context, tx + 4, my, 1, mh, v::buttonShadow);
+        if (hot) fill(context, tx + 2, my + 1, 2, mh - 2, palette::white, .35f);
         return;
     }
     fill(context,x,top,2,track,palette::white,.08f);

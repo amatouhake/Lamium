@@ -138,6 +138,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         StepLine line;         // a row of what to make: its step (a held one is not among the plan's)
         bool gather = false;   // a row of what to gather
         Count held = 0, need = 0; // for the tip: what is held (or can be made now) and what is needed
+        GatherLine gatherLine;    // a row of what to gather: its line, for the tip the window shares
+        bool loose = false;       // a row of what to gather the recipe table does not know
     };
     std::vector<SideRow> rows;
     auto const* plan = state::plan(player);
@@ -178,7 +180,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 row.key = members.empty() ? std::string() : index.items[static_cast<size_t>(members[turn % members.size()])];
                 row.name = groupName(index, line.id - items), row.group = true;
             }
-            row.count = line.left, row.held = line.held, row.need = line.need, row.faint = done, row.done = done, row.gather = true;
+            row.count = line.left, row.held = line.held, row.need = line.need, row.faint = done, row.done = done, row.gather = true, row.gatherLine = line;
             rows.push_back(std::move(row));
         };
         for (auto const& line : plan->view.gather) if (line.left) add(line, false);
@@ -186,7 +188,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         for (auto const& line : plan->loose)
             if (line.left > 0) {
                 SideRow row{line.key, schematic::items::shown(line.key).name, line.left};
-                row.held = line.held, row.need = line.need, row.gather = true;
+                row.held = line.held, row.need = line.need, row.gather = true, row.loose = true;
+                row.gatherLine = {-1, line.need, line.held, line.left};
                 rows.push_back(std::move(row));
             }
         for (auto const& line : plan->view.done) add(line, true);
@@ -280,9 +283,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 for (auto const& [id, have] : plan->request.held) stock[id] += have;
                 late.tip = row.name, late.tipLines = {amounts("recipes.col.now")};
                 for (auto& line : stepInputLines(plan->table->index, plan->request, row.line, stock)) late.tipLines.push_back(std::move(line));
-            } else if (row.gather) {
-                late.tip = row.name;
-                late.tipLines = {row.done ? translated("recipes.gathered") : amounts("recipes.col.held")};
+            } else if (row.gather && plan) {
+                planView::gatherTip(late, *plan, row.gatherLine, row.loose ? row.key : std::string());
             } else if (sideList == SideList::Wanted) {
                 late.tip = row.name, late.tipLines = {amounts("recipes.col.held")};
                 // A row a feature handed over says whose it is.

@@ -538,9 +538,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (focusAsked.exchange(false) && prefs->inventory.recipes && !bandEditor::active()) searchFocus = true, search.selectAll(), countEdit::commit();
     // The search field: what was typed since the last frame, then where this frame's press went.
     auto const field = searchFieldAt(screen.x, screen.y);
+    // "How to make" beside the field while the plan, whose window otherwise leads there, is off (L-369).
+    bool const howToButton = recipesOn && !planOn;
+    std::string howToText = translated("recipes.howTo");
+    ListBox const howToBox = howToButtonAt(field, howToButton ? textWidth(event.uiRenderContext(), howToText) + 10 : 0);
     // What the listeners keep from the game for the field: around it, and its help beside it.
     ListBox const fieldArea = [&] {
-        auto const hit = searchFieldHit(field), button = searchHighlightAt(field);
+        auto const hit = searchFieldHit(field), button = howToButton ? howToBox : searchHighlightAt(field);
         return ListBox{hit.x, hit.y, button.x + button.w + 2 - hit.x, hit.h};
     }();
     if (countEdit::active()) {
@@ -604,6 +608,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         auto preferences = Runtime::instance().preferences();
         preferences.inventory.searchHighlight = !preferences.inventory.searchHighlight;
         Runtime::instance().save(preferences);
+    } else if (howToButton && took(howToBox)) {
+        view::close();
+        planView::open(planView::Tab::HowTo);
+        viewScreen = screenName;
     } else if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
     std::string hoverItem;
     auto& context = event.uiRenderContext();
@@ -776,6 +784,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
                  i == 4 ? palette::white : palette::faint, i == 4 ? 1.f : .8f);
         if (over) late.tip = translated("recipes.highlight", translated(on ? "on" : "off"));
     }
+    if (howToButton) drawButton(context, howToBox.x, howToBox.y, howToBox.w, howToBox.h, std::move(howToText), howToBox.has(px, py),
+                                planView::isOpen() ? ButtonKind::Primary : ButtonKind::Plain);
     // The syntax as a table under the pointer over the field while it is not typed in (L-377): one there means
     // to search anyway.
     if (recipesOn && !searchFocus && searchFieldHit(field).has(px, py) && late.tip.empty()) {
