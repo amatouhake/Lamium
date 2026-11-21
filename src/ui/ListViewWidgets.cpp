@@ -90,12 +90,11 @@ void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y
         if (on) for (auto [cx, cy] : {std::pair{2, 5}, {3, 6}, {4, 5}, {5, 4}, {6, 3}, {7, 2}, {8, 1}}) p(static_cast<float>(cx), static_cast<float>(cy), 1, 1, palette::accentDeep);
     }
 }
-namespace { constexpr float rowButtonText = .6875f; }
-float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text) { return std::ceil(textWidthScaled(context, text, rowButtonText)) + 8; }
+float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text) { return std::ceil(textWidth(context, text)) + 8; }
 void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered) {
     if (!onWindow()) {
         Rgb const color = drawButtonBox(context, x, y, w, rowButtonHeight, hovered, ButtonKind::Plain, true);
-        labelScaled(context, x, y + 1 + boxTextInset() * rowButtonText, w, std::move(text), rowButtonText, color, Align::Center, true);
+        centered(context, x, y, w, rowButtonHeight, std::move(text), color, true);
         return;
     }
     namespace v = palette::vanilla;
@@ -103,7 +102,7 @@ void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w,
     if (hovered) fill(context, x, y, w, rowButtonHeight, palette::white, .3f);
     frame(context, x, y, w, rowButtonHeight, v::controlEdge);
     // Black, as the edge: in the window's grey the small letters read as a disabled button (L-369).
-    labelScaled(context, x, y + 1 + boxTextInset() * rowButtonText, w, std::move(text), rowButtonText, v::controlEdge, Align::Center, false);
+    centered(context, x, y, w, rowButtonHeight, std::move(text), v::controlEdge, false);
 }
 Pager drawPager(MinecraftUIRenderContext& context, float right, float y, int page, int pages, float pointerX, float pointerY) {
     Pager out;

@@ -31,9 +31,10 @@ void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, floa
 // The same picture on the game's window beside its own close button, drawn as that is (L-382): no face, the
 // window's ink, lit under the pointer; on adds a green check.
 void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);
-// A small button inside a table row (L-369): flat, as high as a switch and edged as one, its text smaller than
-// the row's words so it sits inside with room around it. Off the game's window it is the plain button.
-inline constexpr float rowButtonHeight = switchHeight;
+// A small button inside a table row (L-369): flat and edged as a switch, its words at full size (a smaller scale
+// blurred them grey, as if disabled), so two units higher than a switch, centred on the same line. Off the
+// game's window it is the plain button.
+inline constexpr float rowButtonHeight = 11;
 float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text);
 void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered);
 // A pager (L-367): a previous button, "page / pages" and a next button, ending at `right`, `y` the

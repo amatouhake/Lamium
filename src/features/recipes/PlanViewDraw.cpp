@@ -160,7 +160,9 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     };
     // A small button; returns its left edge less a gap.
     auto rowButton = [&](float end, float y, std::string text, auto&& act) {
+        // `y`: where a switch's top would be; the taller button keeps the same middle.
         float const w = rowButtonWidth(context, text);
+        y -= (rowButtonHeight - switchHeight) / 2;
         drawRowButton(context, end - w, y, w, std::move(text), over(end - w, y, w, rowButtonHeight));
         if (took(end - w, y, w, rowButtonHeight)) act();
         return end - w - 3;
