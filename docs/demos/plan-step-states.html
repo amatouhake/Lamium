@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan Step States</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --missing:#d94d4d; --edge:#363636;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:7em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+#view{position:relative;margin:0 auto;font-family:var(--pix)}
+#view *{position:absolute}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) #555,0 0 0 var(--u) #000}
+.txt{color:var(--win-ink);white-space:nowrap}
+.faint{color:var(--win-faint);white-space:nowrap}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.slot.missing{background:var(--missing)}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.dim{opacity:.45}
+.count{color:#fff;text-shadow:calc(.6*var(--u)) calc(.6*var(--u)) #3f3f3f;white-space:nowrap;text-align:right}
+.tag{white-space:nowrap;display:grid;place-items:center;color:#fff;box-shadow:0 0 0 var(--u) var(--edge)}
+.tab{display:grid;place-items:center;color:#fff;background:#626262;box-shadow:0 0 0 var(--u) #000;white-space:nowrap}
+.tab.on{background:var(--win);color:var(--win-ink)}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>計画のステップの状態（L-370）</h1>
+    <p class="lede">「作る物」の各ステップに 4 つの状態を出す案。今は「今作れる物が先、ほかは薄く」の 2 段階だけ。例の計画：チェスト 2 個とかまど 1 個とたいまつ 4 本が欲しい。手持ちは原木 2、板材 10、丸石 3、石炭 1、棒 4、たいまつ 4。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">見せ方</span>
+      <button class="chip on" data-k="look" data-v="sections">A. 状態ごとの見出しで分ける</button>
+      <button class="chip" data-k="look" data-v="tags">B. 1 つの並びで、行の右端に状態の札</button>
+      <button class="chip" data-k="look" data-v="both">C. 見出しで分け、行の右端に数</button>
+    </div>
+    <div class="grp"><span class="lbl">足りない材料</span>
+      <button class="chip on" data-k="red" data-v="1">赤い枠で示す</button>
+      <button class="chip" data-k="red" data-v="">示さない</button>
+    </div>
+  </div>
+  <div id="view"></div>
+  <div class="notes">
+    <div class="card">
+      <h2>4 つの状態</h2>
+      <ul>
+        <li><b>作れる</b>：今の手持ちで、要る回数すべて作れる。</li>
+        <li><b>一部だけ作れる</b>：1 回以上は作れるが、要る回数には足りない（例：チェスト 2 個のうち 1 個分）。何回分作れるかを出す。</li>
+        <li><b>足りない</b>：1 回も作れない。足りない材料の欄を、レシピ画面と同じゲームの赤で示す（案）。</li>
+        <li><b>持っている</b>：作る物が、もう手持ちで足りている（例：たいまつ 4 本を持っている）。終わった物として一番下に薄く。「集める物」の終わった行と同じ扱い。</li>
+        <li>並び順：作れる → 一部だけ → 足りない → 持っている。押すと、今と同じくその物が要る欲しい物の内訳を開く。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> 見せ方：A・B・C。</li>
+        <li><span class="q">2.</span> 足りない材料を赤い枠で示すか（レシピ画面では「並べる」に重ねたときだけ赤くしている）。</li>
+        <li><span class="q">3.</span> 「持っている」を出すか（今は手持ちで足りた物はステップから消える）。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3;
+const opt = {look:'sections', red:true};
+const px = v => v * U + 'px';
+const view = document.getElementById('view');
+function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 340)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
+const I = {log:['#6a4a2a','原'], planks:['#b8925a','板'], chest:['#a87830','箱'], cobble:['#8a8a8a','丸'], furnace:['#707070','炉'], coal:['#222','炭'], stick:['#9a7040','棒'], torch:['#e8b040','ト'], table:['#9a6b3a','作']};
+function icon(x, y, key, dim, size = 16){ const [c, t] = I[key]; const d = el('ico' + (dim ? ' dim' : ''), x, y, size, size, t); d.style.background = c; d.style.fontSize = px(size * .38); return d; }
+function slot(x, y, key, n, dim, missing){
+  el('slot' + (missing ? ' missing' : ''), x, y, 18, 18);
+  if (key) icon(x + 1, y + 1, key, dim);
+  if (n > 1) { const c = el('count' + (dim ? ' dim' : ''), x + 1, y + 9, 16, null, n); c.style.fontSize = px(7); }
+}
+// The plan's steps: inputs, product, how many crafts, how many can be made now, which inputs are short.
+const STEPS = [
+  {name:'板材', inputs:[['log', 1]], out:['planks', 4], crafts:2, now:2, short:[]},
+  {name:'チェスト', inputs:[['planks', 8]], out:['chest', 1], crafts:2, now:1, short:[0]},
+  {name:'かまど', inputs:[['cobble', 8]], out:['furnace', 1], crafts:1, now:0, short:[0]},
+  {name:'たいまつ', inputs:[['coal', 1], ['stick', 1]], out:['torch', 4], crafts:1, now:1, held:true, short:[]},
+];
+const state = s => s.held ? 'held' : s.now >= s.crafts ? 'ready' : s.now > 0 ? 'partly' : 'missing';
+const LABEL = {ready:'作れる', partly:'一部だけ作れる', missing:'足りない', held:'持っている'};
+const ORDER = ['ready', 'partly', 'missing', 'held'];
+function row(x, y, w, s){
+  const st = state(s), dim = st === 'missing' || st === 'held';
+  const arrowX = x + 40, productX = arrowX + 12;
+  s.inputs.forEach(([k, n], i) => {
+    const sx = arrowX - (s.inputs.length - i) * 18;
+    slot(sx, y + 1, k, n * s.crafts, dim, opt.red && st !== 'held' && s.short.includes(i));
+  });
+  el('txt' + (dim ? ' dim' : ''), arrowX + 2, y + 4, null, null, '➜').style.fontSize = px(9);
+  slot(productX, y + 1, s.out[0], s.out[1] * s.crafts, dim);
+  icon(productX + 22, y + 5, 'table', dim, 10);
+  const name = el(dim ? 'faint' : 'txt', productX + 36, y + 6, null, null, s.name); name.style.fontSize = px(7);
+  // the state at the right end
+  if (opt.look !== 'sections') {
+    const right = x + w;
+    let text = '', bg = '';
+    if (opt.look === 'tags') { text = st === 'partly' ? `${s.now}/${s.crafts} 回` : LABEL[st]; bg = {ready:'#3c8527', partly:'#a07818', missing:'#8b3a3a', held:'#7a7a7a'}[st]; }
+    else if (st === 'partly') { text = `${s.now}/${s.crafts} 回`; }
+    else if (st === 'ready') { text = `${s.crafts} 回`; }
+    if (text) {
+      if (bg) { const t = el('tag', right - 46, y + 4, 44, 11, text); t.style.background = bg; t.style.fontSize = px(6); }
+      else { const t = el(dim ? 'faint' : 'txt', right - 46, y + 6, 44, null, text); t.style.fontSize = px(7); t.style.textAlign = 'right'; }
+    }
+  }
+}
+function render(){
+  fit();
+  const W = 326, H = 182;
+  view.style.width = px(W); view.style.height = px(H + 22); view.innerHTML = '';
+  // tabs
+  ['欲しい物', '集める物', '作る物', '作り方'].forEach((t, i) => { const d = el('tab' + (i === 2 ? ' on' : ''), 6 + i * 52, 0, 51, 21, t); d.style.fontSize = px(7); });
+  el('win', 0, 21, W, H).style.zIndex = -1;
+  let y = 30;
+  const x = 10, w = W - 20;
+  const steps = [...STEPS].sort((a, b) => ORDER.indexOf(state(a)) - ORDER.indexOf(state(b)));
+  if (opt.look === 'tags') {
+    steps.forEach(s => { row(x, y, w, s); y += 22; });
+  } else {
+    let last = '';
+    steps.forEach(s => {
+      const st = state(s);
+      if (st !== last) { const h = el('faint', x, y + 2, null, null, LABEL[st]); h.style.fontSize = px(6); y += 11; last = st; }
+      row(x, y, w, s); y += 22;
+    });
+  }
+}
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  opt[b.dataset.k] = b.dataset.k === 'red' ? !!b.dataset.v : b.dataset.v;
+  document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
