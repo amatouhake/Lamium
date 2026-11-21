@@ -9,11 +9,15 @@
 // only start it and show it. Client thread only.
 namespace lamium::recipes::countEdit {
 inline std::string item; // empty: nothing is being typed
+// Where the press started it: the panel's box and the window's of one item are two, and only that one types.
+enum class Where { Panel, Window };
+inline Where where = Where::Panel;
 inline ui::NumberInput typed;
 inline bool active() { return !item.empty(); }
-inline ui::TextEdit const* editing(std::string const& key) { return active() && key == item ? &typed : nullptr; }
-inline void begin(std::string key, Count now) {
+inline ui::TextEdit const* editing(std::string const& key, Where at) { return active() && key == item && at == where ? &typed : nullptr; }
+inline void begin(std::string key, Count now, Where at) {
     item = std::move(key);
+    where = at;
     typed.beginPrecise(static_cast<double>(now));
 }
 inline void cancel() { item.clear(); }

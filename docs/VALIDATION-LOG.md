@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The panel in the Notes window's columns (L-370, 2026-11-22)
+
+Build `2eb5e456` (DLL
+`5ee73235af8c208801c89329717159699caab97366e503eed0955c78c655659c`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: held and needed in
+columns under headings on all three lists, the wanted box typed and
+stepped, "x" and the make buttons always shown and working; rows stay
+12 high with small icons (kept, maintainer). Not right: the typed digits
+sat two units left of the count; typing in one box showed the same
+item's box in the window (or the panel) as typed too.
+
 ## Inputs name first in tips; redstone's red (L-370, 2026-11-22)
 
 Build `50cee5e8` (DLL

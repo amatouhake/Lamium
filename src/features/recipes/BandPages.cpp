@@ -291,14 +291,14 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             if (sideList == SideList::Wanted && row.source.empty()) {
                 // The player's own count, edited where it stands as in the window: a press types it, the wheel steps it.
                 ListBox const box = countBox(y);
-                auto const* editing = countEdit::editing(row.key);
+                auto const* editing = countEdit::editing(row.key, countEdit::Where::Panel);
                 drawFieldBox(context, box.x, box.y, box.w, box.h, editing != nullptr);
                 if (editing) {
-                    drawEditField(context, needX, y, 12, numW + 1, *editing, Align::Right);
+                    drawEditField(context, needX, y, 12, numW + 3, *editing, Align::Right); // room = width - 3: the count's right edge
                     if (leftPress && took(box)) placeCaret(context, countEdit::typed, px, py);
                 } else {
                     label(context, needX, y + 1 + boxTextInset(), numW, std::to_string(row.count), row.count == 0 ? palette::faint : palette::text, Align::Right);
-                    if (leftPress && took(box)) countEdit::begin(row.key, row.count);
+                    if (leftPress && took(box)) countEdit::begin(row.key, row.count, countEdit::Where::Panel);
                     else if (frame.sideTurns && box.has(px, py)) state::stepWanted(row.key, frame.sideTurns < 0, frame.shift, false);
                 }
                 ListBox const x{controlsX, y + 1, 11, 10};

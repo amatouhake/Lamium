@@ -527,7 +527,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 // press types it, the wheel steps it, "- +" only while it is typed; "x" always in the controls' column.
                 // Every row's count keeps the needed column.
                 bool onControl = false;
-                auto const* editing = countEdit::editing(entry.key);
+                auto const* editing = countEdit::editing(entry.key, countEdit::Where::Window);
                 float const boxX = wantX - 2, boxW = wantW + 5;
                 if (manual && editing) {
                     // Typed as the search field is (L-370, 2026-11-22): all selected at first, the caret where a
@@ -541,7 +541,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                     if (manual) {
                         sunkFace(context, boxX, y + 3, boxW, 12, true, true);
                         if (over(boxX, y + 3, boxW, 12)) fill(context, boxX + 1, y + 4, boxW - 2, 10, palette::white, .25f), onControl = true;
-                        if (took(boxX, y + 3, boxW, 12)) countEdit::begin(entry.key, entry.count);
+                        if (took(boxX, y + 3, boxW, 12)) countEdit::begin(entry.key, entry.count, countEdit::Where::Window);
                         else if (wheel && over(boxX, y + 3, boxW, 12)) state::stepWanted(entry.key, wheel < 0, shift, false), wheel = 0;
                     }
                     // In its box the count sits as a field's text does, so typing does not move it.
