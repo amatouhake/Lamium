@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Tracing "any" past its kind, one tip form, shared rows (L-386, L-387, 2026-11-22)
+
+Build `37301b53` (DLL
+`ac0fb54029f4df4435896cbda19f3758679ca7b99ab1d5caedb2e7b4185c9ad5`),
+1.26.60.05 Dev instance, local world, the maintainer. Confirmed: a
+chest wanted with some planks and logs held shows "planks (any)" under
+"to make" and logs under "to gather", less by the planks held; "make"
+on that step with two kinds of log carried makes them in turn; How to
+make's planks line offers "gather"; the window's and the panel's tips
+read "所持/必要: x/y  あと z"; the panel lists gathered rows faint.
+The log named the groups traced: planks from logs (48 recipes) and
+wooden slabs from planks (13). Also in the log: the plan's shares of 29
+wanted items took 8.2 ms once, and each wheel step of a wanted count
+wrote wanted.json in 8 to 11 ms, a slow frame each (14 ms). Not looked
+at: the window's other tabs after the split by tab beyond the above, a
+picked log kind, a group set to gather from the breakdown, a server.
+
 ## The panel's typing and group tips (L-370, 2026-11-22)
 
 Builds `f32c41e0` (DLL

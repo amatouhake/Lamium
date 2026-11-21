@@ -15,14 +15,11 @@ Do not infer game success from a build or unit-test result.
   (L-385) sends Mass Craft's requests and needs a server check before
   the release that carries it. Sort no longer has a default key, which
   the release notes must say.
-- Built after the 2026-11-22 in-game checks, not seen (each its own
-  commit, so a fault can be found by build): the panel listing gathered
-  rows as the window (`da60f484`); every tip's counts as "所持/必要:
-  x/y  あと z" in both views (L-387); tracing "any" past its kind and a
-  group's "gather" (L-386), and held members covering a group within
-  the plan's one pass (a changed core: compare a plan with planks held
-  against what it showed before); the Recipes window's draw split into
-  one function per tab (`37301b53`, moves only: every tab once).
+- Seen on `37301b53` (VALIDATION-LOG 2026-11-22): planks (any) from
+  logs, make over two kinds, How to make's group gather, one tip form in
+  both views, gathered rows on the panel. Not seen: a picked log kind, a
+  group gathered from its breakdown step, the window's tabs beyond those
+  (split by tab in `37301b53`, moves only), servers.
 
 ## Left from 0.7.0
 
