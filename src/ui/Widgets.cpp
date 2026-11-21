@@ -407,7 +407,9 @@ void slot(MinecraftUIRenderContext& context, float x, float y, bool hovered) {
 void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string text) {
     // Inside the slot's edge, right-aligned a unit in and a unit up: not where the game puts a stack's count (it
     // sits further right and lower), kept for being easier to read (maintainer 2026-11-21).
-    label(context, x, y + 8, 17, std::move(text), palette::text, Align::Right);
+    // Measured, never cut: three digits are 18 wide in the English font, more than the slot's inside (2026-11-21).
+    float const w = labelWidth(context, text, 1);
+    label(context, x + 17 - w, y + 8, w + 1, std::move(text), palette::text, Align::Left);
 }
 void anyMark(MinecraftUIRenderContext& context, float x, float y, float scale) {
     // Inside the icon's corner, so it stays within a slot's edge (maintainer 2026-11-21); "*" reads as any.
