@@ -21,7 +21,7 @@ p{margin:0;max-width:95ch}
 .lede{color:var(--ink-2);margin-top:8px}
 .controls{display:grid;gap:8px}
 .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
-.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:10em}
 .chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
 .chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
 .stage{overflow-x:auto}
@@ -34,12 +34,14 @@ p{margin:0;max-width:95ch}
 .slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
 .field{background:#101010;box-shadow:0 0 0 var(--u) #a0a0a0}
 .ftxt{color:#8a8a8a;white-space:nowrap}
-.btn{background:#6f6f6f;box-shadow:inset var(--u) var(--u) #a8a8a8,inset calc(-1*var(--u)) calc(-1*var(--u)) #3a3a3a,0 0 0 var(--u) #000;display:grid;place-items:center;color:#fff}
-.btn.on{background:var(--accent-deep)}
+.btn{background:#6f6f6f;box-shadow:inset var(--u) var(--u) #a8a8a8,inset calc(-1*var(--u)) calc(-1*var(--u)) #3a3a3a,0 0 0 var(--u) #000}
+.btn.on{background:var(--accent-deep);box-shadow:inset var(--u) var(--u) #6cc349,inset calc(-1*var(--u)) calc(-1*var(--u)) #24501a,0 0 0 var(--u) #000}
 .over{background:rgba(255,80,80,.45);outline:calc(var(--u)) dashed #ff6060}
 .wtitle{color:var(--win-ink);white-space:nowrap}
-.sw{background:#7f7f7f;box-shadow:0 0 0 var(--u) #000}
-.knob{background:#e0e0e0}
+.close{color:var(--win-ink);display:grid;place-items:center}
+.tip{background:#1b0c1b;box-shadow:inset 0 0 0 var(--u) #1b0c1b,inset 0 0 0 calc(2*var(--u)) #2c0863,0 0 0 var(--u) #100410;z-index:2}
+.tiptxt{color:#fff;white-space:nowrap;z-index:3}
+.tipdim{color:#a8a8a8;white-space:nowrap;z-index:3}
 .notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
 .card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .card ul{margin:6px 0 0;padding-left:20px}
@@ -50,25 +52,32 @@ p{margin:0;max-width:95ch}
 <body>
 <div class="wrap">
   <header>
-    <h1>インベントリの下のボタン（L-369）</h1>
-    <p class="lede">窓を開くボタン、パネルの配置ボタン、検索ハイライトを検索欄と一緒に、左右のパネル（旧称「帯」）の間に収める。パネルに重なる所は赤く示す。チェストの画面では「保管場所として数える」を題名の行に置く（案A）。</p>
+    <h1>インベントリの下のボタン（L-382）</h1>
+    <p class="lede">並べ方は「窓を開く・配置 ｜ 検索欄・ハイライト」（左2・右1）。絵はどれも無彩色（白と灰色）、オンのボタンだけ緑の面。窓を開くボタンの絵と名前、チェストの × の横の「保管場所として数える」ボタンの絵を比べる。左右のパネルに重なる所は赤く示す。</p>
   </header>
   <div class="controls">
-    <div class="grp"><span class="lbl">並べ方</span>
-      <button class="chip" data-k="row" data-v="now">今の欄の幅のまま 左2・右1</button>
-      <button class="chip on" data-k="row" data-v="right">欄を縮めて 右に3つ</button>
-      <button class="chip" data-k="row" data-v="split">欄を縮めて 左2・右1</button>
-      <button class="chip" data-k="row" data-v="inside">欄の中の右端に3つ</button>
-      <button class="chip" data-k="row" data-v="above">窓の右下の外に縦に3つ</button>
-    </div>
     <div class="grp"><span class="lbl">窓を開くボタンの絵</span>
-      <button class="chip on" data-k="icon" data-v="note">紙とペン</button>
-      <button class="chip" data-k="icon" data-v="clip">クリップボード</button>
-      <button class="chip" data-k="icon" data-v="book">本</button>
+      <button class="chip on" data-k="icon" data-v="tabs">タブの付いた窓</button>
+      <button class="chip" data-k="icon" data-v="list">リスト</button>
+      <button class="chip" data-k="icon" data-v="doc">書類</button>
+      <button class="chip" data-k="icon" data-v="stack">重なった紙</button>
     </div>
-    <div class="grp"><span class="lbl">配置ボタンの絵</span>
-      <button class="chip on" data-k="layout" data-v="grid">区切られた四角</button>
-      <button class="chip" data-k="layout" data-v="gear">歯車</button>
+    <div class="grp"><span class="lbl">窓の名前（ツールチップ）</span>
+      <button class="chip on" data-k="name" data-v="note">ノート</button>
+      <button class="chip" data-k="name" data-v="menu">メニュー</button>
+    </div>
+    <div class="grp"><span class="lbl">窓</span>
+      <button class="chip on" data-k="open" data-v="0">閉じている</button>
+      <button class="chip" data-k="open" data-v="1">開いている（ボタンは緑）</button>
+    </div>
+    <div class="grp"><span class="lbl">保管場所ボタンの絵</span>
+      <button class="chip on" data-k="store" data-v="check">箱にチェック</button>
+      <button class="chip" data-k="store" data-v="tally">箱に数の印</button>
+      <button class="chip" data-k="store" data-v="outline">箱の輪郭</button>
+    </div>
+    <div class="grp"><span class="lbl">保管場所</span>
+      <button class="chip on" data-k="counted" data-v="1">数える（緑）</button>
+      <button class="chip" data-k="counted" data-v="0">数えない</button>
     </div>
     <div class="grp"><span class="lbl">画面</span>
       <button class="chip on" data-k="screen" data-v="inv">インベントリ</button>
@@ -81,47 +90,55 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>見るところ</h2>
       <ul>
-        <li>下の行で使える幅は、左右のパネルの間だけ（本を閉じた窓なら 176 単位）。今の欄（176）のまま左右にボタンを足すと、左端がパネルにかかる。</li>
-        <li>「右に3つ」：欄は 176 − 3×18 = 122 単位に縮む。日本語の「検索（名前・ID）」は入る。</li>
-        <li>「欄の中」：欄の幅はそのまま、文字の入る所が縮む。ボタンが欄の一部に見えるか。</li>
-        <li>「窓の右下の外」：欄はそのまま。窓とパネルの間のすき間が狭い画面では入らない。</li>
-        <li>ボタンの順は左から 窓を開く・配置・検索ハイライト。窓が開いている間、窓を開くボタンは緑（押すと閉じる）。</li>
-        <li>チェストでは題名の行の右（× の左）に小さなスイッチ。左下の行はなくなる。</li>
+        <li>下の行：左に「窓を開く」「配置」、すき間をあけて検索欄（122 単位）と「ハイライト」。どの画面でもパネルの間に収まるか。</li>
+        <li>窓を開くボタン：ハイライト・配置の絵と並べて、無彩色の仲間に見えるか。何が開くか分かるか。ツールチップは名前と、今出るタブの名前。</li>
+        <li>チェスト：× の左に同じ大きさの四角いボタン。オンで緑の面。ツールチップは「保管場所として数える: オン」。左下の行はなくなる。</li>
       </ul>
     </div>
     <div class="card">
       <h2>決めたいこと</h2>
       <ul>
-        <li><span class="q">1.</span> 並べ方。</li>
-        <li><span class="q">2.</span> 窓を開くボタンの絵と、配置ボタンの絵。</li>
-        <li><span class="q">3.</span> 窓の名前（ボタンのツールチップ）：「計画と作り方」「ノート」など。</li>
-        <li><span class="q">4.</span> チェストの題名の行のスイッチ。</li>
+        <li><span class="q">1.</span> 窓を開くボタンの絵。</li>
+        <li><span class="q">2.</span> 窓の名前：ノート／メニュー。</li>
+        <li><span class="q">3.</span> 保管場所ボタンの絵。</li>
       </ul>
     </div>
   </div>
 </div>
 <script>
 let U = 3;
-const opt = {row:'right', icon:'note', layout:'grid', screen:'inv'};
+const opt = {icon:'tabs', name:'note', open:'0', store:'check', counted:'1', screen:'inv'};
 const px = v => v * U + 'px';
 const view = document.getElementById('view');
 function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
 function text(cls, x, y, s, size, w, align){ const d = el(cls, x, y, w, null, s); d.style.fontSize = px(size); if (align) d.style.textAlign = align; return d; }
 function fit(){ U = Math.max(1.6, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 430)); document.documentElement.style.setProperty('--u', U + 'px'); }
-// Small pixel pictures, in units of the 16-unit button's inside.
-function picture(x, y, kind){
-  const p = (cx, cy, w, h, c) => { const d = el('', x + cx, y + cy, w, h, ''); d.style.background = c; };
-  if (kind === 'note') { p(3,2,8,11,'#f2f2e8'); for (let i = 0; i < 4; ++i) p(4,4+i*2,6,1,'#8a8a8a'); p(9,6,1,7,'#e0b040'); p(10,7,1,6,'#e0b040'); p(9,13,2,1,'#3a3a3a'); }
-  if (kind === 'clip') { p(3,3,9,10,'#b88a4a'); p(4,5,7,7,'#f2f2e8'); p(6,2,3,2,'#cfcfcf'); for (let i = 0; i < 3; ++i) p(5,6+i*2,5,1,'#8a8a8a'); }
-  if (kind === 'book') { p(3,3,9,10,'#8a3a2a'); p(4,4,7,8,'#a84a3a'); p(11,4,1,9,'#f2f2e8'); p(6,6,3,1,'#e0b040'); }
-  if (kind === 'grid') { p(2,3,11,9,'#e8e8e8'); p(3,4,4,7,'#6f6f6f'); p(8,4,4,3,'#6f6f6f'); p(8,8,4,3,'#6f6f6f'); }
-  if (kind === 'gear') { p(5,2,4,11,'#e8e8e8'); p(2,5,11,4,'#e8e8e8'); p(3,3,9,9,'#e8e8e8'); p(6,6,3,3,'#6f6f6f'); }
-  if (kind === 'hl') { for (let i = 0; i < 9; ++i) p(4 + (i%3)*3, 4 + Math.floor(i/3)*3, 2, 2, i === 4 ? '#fff' : '#9a9a9a'); }
+const W = '#ececec', G = '#a9a9a9', D = '#555';
+// Pixel pictures on a 16-unit button, in white and greys only.
+function picture(x, y, kind, size = 16){
+  const k = size / 16;
+  const p = (cx, cy, w, h, c) => { const d = el('', x + cx * k, y + cy * k, w * k, h * k, ''); d.style.background = c; };
+  switch (kind) {
+  case 'tabs': p(3,5,10,8,W); p(4,6,8,6,D); p(3,3,3,2,W); p(7,3,3,2,G); p(5,8,6,1,G); p(5,10,4,1,G); break;
+  case 'list': for (let i = 0; i < 3; ++i) { p(3,4+i*3,2,2,W); p(6,4+i*3,7,2,G); } break;
+  case 'doc': p(4,2,6,12,W); p(10,5,2,9,W); p(10,2,1,1,W); p(10,3,1,2,G); p(11,4,1,1,G); for (let i = 0; i < 4; ++i) p(5,6+i*2,6,1,D); break;
+  case 'stack': p(6,3,7,9,G); p(3,5,7,9,W); p(4,6,5,7,D); break;
+  case 'grid': p(2,3,12,10,W); p(3,4,5,8,D); p(9,4,4,3,D); p(9,8,4,4,D); break;
+  case 'hl': for (let i = 0; i < 9; ++i) p(4 + (i%3)*3, 4 + Math.floor(i/3)*3, 2, 2, i === 4 ? W : G); break;
+  case 'check': p(3,6,10,7,G); p(3,5,10,2,W); p(7,7,2,2,D); p(5,9,1,1,W); p(6,10,1,1,W); p(7,11,1,1,W); p(8,10,1,1,W); p(9,9,1,1,W); p(10,8,1,1,W); break;
+  case 'tally': p(3,6,10,7,G); p(3,5,10,2,W); for (let i = 0; i < 3; ++i) p(5+i*2,8,1,4,D); p(4,10,7,1,D); break;
+  case 'outline': p(3,5,10,1,W); p(3,5,1,8,W); p(12,5,1,8,W); p(3,12,10,1,W); p(3,7,10,1,G); p(7,7,2,2,W); break;
+  }
 }
-function button(x, y, kind, on, overlap){
-  el('btn' + (on ? ' on' : ''), x, y, 16, 16, '');
-  picture(x, y, kind);
-  if (overlap) el('over', x, y, 16, 16, '');
+function button(x, y, kind, on, lo, hi, size = 16){
+  el('btn' + (on ? ' on' : ''), x, y, size, size, '');
+  picture(x, y, kind, size);
+  if (lo != null && (x < lo || x + size > hi)) el('over', x, y, size, size, '');
+}
+function tip(x, y, lines){
+  const w = Math.max(...lines.map(l => l.length)) * 7.2 + 12, h = 6 + lines.length * 10;
+  el('tip', x, y, w, h, '');
+  lines.forEach((l, i) => text(i ? 'tipdim' : 'tiptxt', x + 6, y + 3 + i * 10, l, 7));
 }
 function render(){
   fit();
@@ -129,22 +146,20 @@ function render(){
   view.style.width = px(SW); view.style.height = px(SH); view.innerHTML = '';
   const book = opt.screen === 'book', chest = opt.screen === 'chest';
   const winW = 176, bookW = book ? 147 : 0, spanW = winW + bookW;
-  const spanL = (SW - spanW) / 2, winL = spanL + bookW, winT = chest ? 22 : 40, winH = chest ? 190 : 166;
-  // The panels left and right of the game's window, to the screen's bottom.
-  el('band', 0, 0, spanL, SH); el('band', spanL + spanW, 0, SW - spanL - spanW, SH);
+  const spanL = (SW - spanW) / 2, spanR = spanL + spanW, winL = spanL + bookW, winT = chest ? 22 : 40, winH = chest ? 190 : 166;
+  el('band', 0, 0, spanL, SH); el('band', spanR, 0, SW - spanR, SH);
   text('btxt', 3, 3, 'お気に入り', 6.5); text('btxt', 3, 70, '欲しい物 集める物 作る物', 6.5);
   for (let i = 0; i < 12; ++i) text('bdim', 3, 84 + i * 11, ['丸石の仲間','板材','ダイヤモンド','小麦','サトウキビ','砂など','金鉱石など','土','レッドストーン','樹皮を剥いだ原木','白色の羊毛','粘土のボール'][i], 6);
-  for (let r = 0; r < 18; ++r) for (let c = 0; c < 6; ++c) { const d = el('', spanL + spanW + 4 + c * 12, 4 + r * 12, 10, 10, ''); d.style.background = `hsl(${(r*37+c*53)%360} 30% 45%)`; }
-  // The game's window (and its recipe book).
+  for (let r = 0; r < 18; ++r) for (let c = 0; c < 6; ++c) { const d = el('', spanR + 4 + c * 12, 4 + r * 12, 10, 10, ''); d.style.background = `hsl(${(r*37+c*53)%360} 30% 45%)`; }
   if (book) { el('win', spanL, winT, bookW, winH); text('wtitle', spanL + 8, winT + 6, 'レシピ本', 7); }
   el('win', winL, winT, winW, winH);
   if (chest) {
     text('wtitle', winL + 8, winT + 6, 'ラージチェスト', 7);
-    // Counted as a store: a small switch on the title line, left of the game's close button.
-    const sx = winL + winW - 8 - 9 - 4 - 18;
-    text('wtitle', sx - 52, winT + 7, '保管場所', 6, 50, 'right');
-    el('sw', sx, winT + 7, 18, 9, ''); el('knob', sx + 1, winT + 8, 7, 7, '');
-    text('wtitle', winL + winW - 14, winT + 4, '×', 9);
+    // The game's close button, and Lamium's store button of its size left of it.
+    const cx = winL + winW - 6 - 9;
+    text('close', cx, winT + 4, '×', 9, 9, 'center');
+    button(cx - 13, winT + 4, opt.store, opt.counted === '1', null, null, 11);
+    tip(cx - 13 - 150, winT - 18, ['保管場所として数える: ' + (opt.counted === '1' ? 'オン' : 'オフ')]);
     for (let r = 0; r < 6; ++r) for (let c = 0; c < 9; ++c) el('slot', winL + 7 + c * 18, winT + 18 + r * 18, 18, 18, '');
     text('wtitle', winL + 8, winT + 128, 'インベントリ', 7);
     for (let r = 0; r < 3; ++r) for (let c = 0; c < 9; ++c) el('slot', winL + 7 + c * 18, winT + 138 + r * 14, 18, 14, '');
@@ -154,16 +169,16 @@ function render(){
     for (let r = 0; r < 2; ++r) for (let c = 0; c < 2; ++c) el('slot', winL + 98 + c * 18, winT + 18 + r * 18, 18, 18, '');
     for (let r = 0; r < 4; ++r) for (let c = 0; c < 9; ++c) el('slot', winL + 7 + c * 18, winT + 84 + r * 18 + (r === 3 ? 4 : 0), 18, 18, '');
   }
-  // The bottom row.
-  const rowY = SH - 18, field = (x, w, inner) => { el('field', x, rowY, w, 16, ''); text('ftxt', x + 4, rowY + 3, '検索（名前・ID）', 7, (inner || w) - 6); };
-  const kinds = [opt.icon, opt.layout, 'hl'];
-  const place = (xs) => xs.forEach((x, i) => button(x, rowY, kinds[i], i === 0 && false, x < spanL || x + 16 > spanL + spanW));
-  const fl = winL; // the field keeps under the game's window, as now
-  if (opt.row === 'now') { field(fl, 176); place([fl - 36, fl - 18, fl + 178]); }
-  else if (opt.row === 'right') { const w = 176 - 3 * 18; field(fl, w); place([fl + w + 2, fl + w + 20, fl + w + 38].map(x => x)); }
-  else if (opt.row === 'split') { const w = 176 - 3 * 18; field(fl + 36, w); place([fl, fl + 18, fl + 36 + w + 2]); }
-  else if (opt.row === 'inside') { field(fl, 176, 176 - 3 * 17); place([fl + 176 - 3 * 17, fl + 176 - 2 * 17, fl + 176 - 17]); }
-  else { field(fl, 176); const x = winL + winW + 2; [0,1,2].forEach(i => button(x, winT + winH - 3 * 17 + i * 17, kinds[i], false, x + 16 > spanL + spanW)); }
+  // The row: [window][layout]  [field][highlight], under the game's window.
+  const rowY = SH - 18, fieldW = 176 - 3 * 18 - 2, fl = winL + 36 + 2;
+  button(winL, rowY, opt.icon, opt.open === '1', spanL, spanR);
+  button(winL + 18, rowY, 'grid', false, spanL, spanR);
+  el('field', fl, rowY, fieldW, 16, ''); text('ftxt', fl + 4, rowY + 3, '検索（名前・ID）', 7, fieldW - 6);
+  button(fl + fieldW + 2, rowY, 'hl', false, spanL, spanR);
+  if (!chest) {
+    const name = opt.name === 'note' ? 'ノート' : 'メニュー';
+    tip(winL - 4, rowY - 26, [name, '欲しい物・集める物・作る物・作り方・保管場所']);
+  }
 }
 document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
   opt[b.dataset.k] = b.dataset.v;
