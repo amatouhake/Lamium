@@ -370,7 +370,7 @@ struct Making {
     bool took = false;
     int tries = 0;  // steps waited for the grid to read empty, or for the take to show
     int made = 0;   // rounds made, for the log
-    std::chrono::steady_clock::time_point next;
+    std::chrono::steady_clock::time_point next, seen; // seen: the last frame its screen was drawn
 } making;
 void finishMaking(char const* why) {
     if (making.on) {
@@ -381,6 +381,9 @@ void finishMaking(char const* why) {
 void tickMaking(ScreenView& screen) {
     if (!making.on) return;
     auto const now = std::chrono::steady_clock::now();
+    // Its screen closed meanwhile (and maybe opened again, or another world joined): the run is over.
+    if (now - making.seen > std::chrono::milliseconds(300)) { finishMaking("the screen went"); return; }
+    making.seen = now;
     if (now < making.next) return;
     making.next = now + std::chrono::milliseconds(50);
     try {
@@ -419,14 +422,21 @@ void tickMaking(ScreenView& screen) {
             return;
         }
         if (!making.took) {
-            // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
+            // Once the output shows the product, what a Shift click on it does: all the grid makes, as far as the
+            // inventory has room.
+            if (manager.getItemStack(output, 0).isNull()) {
+                if (++making.tries > mostTries) controller->_evacuateCraftingGrid(), finishMaking("the output showed nothing");
+                return;
+            }
             controller->_handleAutoPlace(INT_MAX, output, 0);
             making.took = true;
+            making.tries = 0;
             return;
         }
         if (++making.tries > mostTries) {
+            // No room for the product, or the recipe leaves something in the grid (a bucket, L-362).
             controller->_evacuateCraftingGrid();
-            finishMaking("the product found no room");
+            finishMaking("the grid did not empty after the take");
         }
     } catch (...) {
         finishMaking("a step failed");
@@ -452,6 +462,7 @@ bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table
     making.picks = picks;
     making.steps = std::move(steps);
     making.screen = screen.getScreenName();
+    making.seen = std::chrono::steady_clock::now();
     return true;
 }
 void stop() { going = {}; finishMaking("stopped"); }
@@ -1006,7 +1017,7 @@ void advanceOnto(CraftingScreenController& controller) {
     }
 }
 }
-void abandonCraft() { onto = {}; }
+void abandonCraft() { onto = {}; finishMaking("the screen went"); }
 void tickOnto(ScreenView& screen) {
     if (onto.recipe < 0) return;
     if (auto const now = Clock::now(); now - onto.ticked > ontoStale) {

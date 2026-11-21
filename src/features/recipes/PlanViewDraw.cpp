@@ -328,8 +328,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
             bool const stored = storedParts && u < storedParts->size() && (*storedParts)[u];
             if (stored) {
-                fill(context, sx + 9, y + 2, 8, 7, v::window);
-                drawStoreMark(context, sx + 9.5f, y + 2.5f, v::windowInk);
+                fill(context, sx + 9, y + 1, 9, 8, v::window);
+                drawStoreMark(context, sx + 10, y + 2, v::windowInk);
             }
             if (over(sx, y + 1, 18, 18)) {
                 if (part.group) {
@@ -654,9 +654,11 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
                 if (overPlace && can) late.hints.push_back(translated("recipes.hint.placeStep"));
             }
             if (took(placeX, y, size, size) && can) {
-                if (input.ctrl) placer->craft(step.recipe);
-                else if (input.shift) placer->runMost(step.recipe, static_cast<int>(std::min<Count>(step.crafts, 64)));
-                else placer->run(step.recipe, false);
+                // Laid in, the window steps aside as the recipe view does: the grid it covers shows the result.
+                bool const done = input.ctrl ? placer->craft(step.recipe)
+                                : input.shift ? placer->runMost(step.recipe, static_cast<int>(std::min<Count>(step.crafts, 64)))
+                                              : placer->run(step.recipe, false);
+                if (done) late.placed = true;
             } else if (took(makeX, y, size, size) && can)
                 placer->make({{step.recipe, static_cast<int>(std::min<Count>(step.crafts, 1 << 20))}});
             return placeX;

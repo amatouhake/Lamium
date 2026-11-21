@@ -292,10 +292,12 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                     if (overPlace && can) late.hints.push_back(translated("recipes.hint.placeStep"));
                 }
                 int const rounds = static_cast<int>(std::min<Count>(row.line.crafts, 1 << 20));
-                if (leftPress && took(placeBox)) {
-                    if (can && frame.ctrl) placer->craft(row.line.recipe);
-                    else if (can && frame.shift) placer->runMost(row.line.recipe, std::min(rounds, 64));
-                    else if (can) placer->run(row.line.recipe, false);
+                if (leftPress && took(placeBox) && can) {
+                    bool const done = frame.ctrl ? placer->craft(row.line.recipe)
+                                    : frame.shift ? placer->runMost(row.line.recipe, std::min(rounds, 64))
+                                                  : placer->run(row.line.recipe, false);
+                    // An open window would cover the grid: it steps aside, as the recipe view does.
+                    if (done) late.placed = true;
                 } else if (leftPress && took(makeBox)) {
                     if (can) placer->make({{row.line.recipe, rounds}});
                 }
@@ -309,10 +311,20 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 return translated(lead) + ": " + std::to_string(row.held) + "  " + translated("recipes.col.need") + ": " + std::to_string(row.need);
             };
             if (sideList == SideList::Make && plan && !row.done && late.tip.empty()) {
-                std::map<Item, Count> stock;
-                for (auto const& [id, have] : plan->request.held) stock[id] += have;
+                // Each input as what is carried of it (as "can make now" counts, L-385); where the stores hold what is
+                // missing, they say so, each with its count.
+                std::map<Item, Count> carried;
+                for (auto const& [id, have] : plan->held) carried[id] += have;
                 late.tip = row.name, late.tipLines = {amounts("recipes.col.now")};
-                for (auto& line : stepInputLines(plan->table->index, plan->request, row.line, stock)) late.tipLines.push_back(std::move(line));
+                for (auto& line : stepInputLines(plan->table->index, plan->request, row.line, carried)) late.tipLines.push_back(std::move(line));
+                if (row.stored) {
+                    auto const& index = plan->table->index;
+                    auto const& recipe = index.recipes[static_cast<size_t>(row.line.recipe)];
+                    auto const short_ = stepShort(index, plan->request, row.line, carried);
+                    Item const items = static_cast<Item>(index.items.size());
+                    for (size_t k = 0; k < recipe.uses.size() && k < short_.size(); ++k)
+                        if (Item const item = partItem(index, plan->request, recipe.uses[k]); short_[k] && item < items) planView::storedLines(late, *plan, item);
+                }
             } else if (row.gather && plan) {
                 planView::gatherTip(late, *plan, row.gatherLine, row.loose ? row.key : std::string());
             } else if (sideList == SideList::Wanted) {
