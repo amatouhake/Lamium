@@ -267,8 +267,12 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             float const numberW = textWidth(context, number);
             label(context, end - numberW - 1, y + 2, numberW + 1, number, row.faint ? palette::faint : palette::text, Align::Right);
             nameEnd = end - numberW - 4;
-            // The stores' chest before the count: the numbers keep their column (L-385).
-            if (row.stored) drawStoreMark(context, nameEnd - 7, y + 3, palette::dim), nameEnd -= 10;
+            // On "to make" the stores' chest and the buttons stand in columns of their own, measured from the widest
+            // count (five digits), so they stay put whatever a row's count is (L-385).
+            if (sideList == SideList::Make) nameEnd = end - textWidth(context, "88888") - 4;
+            if (row.stored) drawStoreMark(context, nameEnd - 7, y + 3, palette::dim);
+            if (sideList == SideList::Make) nameEnd -= 10;
+            else if (row.stored) nameEnd -= 10;
             // Under the pointer a step to make offers laying it in and making it, between its name and its count.
             if (sideList == SideList::Make && plan && hot && row.step >= 0) {
                 auto const& index = plan->table->index;
