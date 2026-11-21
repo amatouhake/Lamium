@@ -59,6 +59,7 @@ void tip(view::Late& late, Index const& index, int group, std::map<int, Item> co
     late.tipItems.clear();
     late.tipCounts.clear();
     late.tipCurrent = -1;
+    late.tipGroup = true;
     late.hovered = shown >= 0 ? index.items[static_cast<size_t>(shown)] : std::string();
     // No counts held (maintainer 2026-11-21): the tip says what the group is, the plan's tables what is held.
     if (shown >= 0) late.tipLines.push_back(translated("recipes.group.showing", schematic::items::shown(index.items[static_cast<size_t>(shown)]).name));

@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Hints off item tips, How to make's split tips (L-369, 2026-11-21)
+
+Build `22c81ea5` (DLL
+`7f5d0c415b99fb73658b8eb8d6687cffd09903ff0fd9a55256f33d394e062474`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the wheel's hint on
+the hint line, black row button letters, How to make's tips by side.
+Not right: How to make's green frame drawn over a candidate's slot; a
+group's "*" gone once a member is chosen; the plan-off "How to make"
+button over the item list; the stores' line alone under the left panel;
+stores in the world hard to see with their thin outline.
+
 ## Groups held still, the wheel looking through them (L-369, 2026-11-21)
 
 Build `b9c121d3` (DLL

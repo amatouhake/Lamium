@@ -249,7 +249,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     // An item or a group as its picture; a group any member of which will do carries the mark.
     auto itemIcon = [&](Item id, float x, float y, float alpha = 1.f) {
         icon(pictureOf(id), x, y, 1.f, alpha);
-        if (id >= itemCount && !request.picks.contains(id - itemCount)) late.marks.push_back({x, y});
+        if (id >= itemCount) late.marks.push_back({x, y});
     };
     // Under the pointer a group names itself, says what it shows and shows its members; resting there, the wheel
     // looks through them. (x, y): the slot or line it is over.
@@ -317,8 +317,6 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             windowSlot(context, sx, y + 1, over(sx, y + 1, 18, 18), shortParts && u < shortParts->size() && (*shortParts)[u]);
             itemIcon(item, sx + 1, y + 2);
             if (Count const n = partNeed(recipe, u, step.crafts); n > 1) late.counts.push_back({sx, y + 1, slotCountText(n)});
-            auto const picked = part.group ? request.picks.find(part.id) : request.picks.end();
-            if (picked != request.picks.end()) frame(context, sx, y + 1, 18, 18, palette::accentDeep);
             if (over(sx, y + 1, 18, 18)) {
                 if (part.group) {
                     groupTip(part.id, sx, y + 1);
@@ -560,7 +558,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             std::string const picture = row.key.empty() ? pictureOf(line.id) : row.key;
             std::string const name = row.key.empty() ? nameOf(line.id) : schematic::items::shown(row.key).name;
             icon(picture, left + 8, y + 1, 1.f, alpha);
-            if (row.key.empty() && line.id >= itemCount && !request.picks.contains(line.id - itemCount)) late.marks.push_back({left + 8, y + 1});
+            if (row.key.empty() && line.id >= itemCount) late.marks.push_back({left + 8, y + 1});
             number(heldX, heldW, y + 5, line.held, row.done);
             number(wantX, wantW, y + 5, line.need, row.done);
             progressBar(context, barX, y + 9, barW, 3, line.need > 0 ? static_cast<float>(line.held) / static_cast<float>(line.need) : 1.f);
@@ -704,7 +702,8 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     std::vector<Line> lines;
     // Which lines show: the first line, scrolling with them (only column headings stay put, L-370).
     if (input.plan) lines.push_back({Line::Kind::Switch, -1, -1, -1, switchLine});
-    size_t const across = static_cast<size_t>(std::max(1.f, (right - left - 24) / 18));
+    constexpr float pitch = 20; // a candidate's slot and the unit around it the chosen one's frame takes
+    size_t const across = static_cast<size_t>(std::max(1.f, (right - left - 24) / pitch));
     if (!groups.empty()) lines.push_back({Line::Kind::Label, -1, -1, 0, labelHeight});
     for (int group : groups) {
         std::string const key = groupKey(index, group);
@@ -712,7 +711,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
         lines.push_back({Line::Kind::Group, group, -1, -1, stepHeight});
         if (howOpen == key) {
             size_t const cells = index.groups[static_cast<size_t>(group)].members.size() + 1;
-            lines.push_back({Line::Kind::Members, group, -1, -1, static_cast<float>((cells + across - 1) / across) * 18 + 6});
+            lines.push_back({Line::Kind::Members, group, -1, -1, static_cast<float>((cells + across - 1) / across) * pitch + 6});
         }
     }
     if (!items.empty()) lines.push_back({Line::Kind::Label, -1, -1, 1, labelHeight});
@@ -764,7 +763,7 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
             windowSlot(context, slotX, y + 1);
             icon(chosen ? index.items[static_cast<size_t>(picked->second)] : groupFace(line.group), slotX + 1, y + 2);
-            if (!chosen) late.marks.push_back({slotX + 1, y + 2});
+            late.marks.push_back({slotX + 1, y + 2});
             if (chosen) words(y, translated("recipes.howTo.chosenIs", nameOf(picked->second)), true);
             else words(y, translated("recipes.howTo.anyLine"), false);
             // Left the group; right what is in use: the member chosen as an item, or "any" as the group.
@@ -781,22 +780,21 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             sunkFace(context, left + 18, y, right - left - 18, line.height);
             auto const& members = index.groups[static_cast<size_t>(line.group)].members;
             for (size_t c = 0; c <= members.size(); ++c) {
-                float const cx = left + 21 + static_cast<float>(c % across) * 18, cy = y + 3 + static_cast<float>(c / across) * 18;
+                float const cx = left + 22 + static_cast<float>(c % across) * pitch, cy = y + 4 + static_cast<float>(c / across) * pitch;
                 bool const hot = over(cx, cy, 18, 18);
                 windowSlot(context, cx, cy, hot);
                 if (c == 0) {
                     icon(groupFace(line.group), cx + 1, cy + 1);
                     late.marks.push_back({cx + 1, cy + 1});
-                    if (picked == request.picks.end()) frame(context, cx, cy, 18, 18, palette::accentDeep);
+                    if (picked == request.picks.end()) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
                     if (hot) late.tip = translated("recipes.howTo.any"), late.tipLines = {translated("recipes.howTo.anyTip")};
                     if (took(cx, cy, 18, 18)) state::setPick(key, {}), howOpen.clear();
                 } else {
                     Item const member = members[c - 1];
                     auto const& memberKey = index.items[static_cast<size_t>(member)];
                     icon(memberKey, cx + 1, cy + 1);
-                    if (picked != request.picks.end() && picked->second == member) frame(context, cx, cy, 18, 18, palette::accentDeep);
-                    auto held = plan->held.find(member);
-                    if (held != plan->held.end() && held->second) late.counts.push_back({cx, cy, slotCountText(held->second)});
+                    if (picked != request.picks.end() && picked->second == member) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
+                    // No counts held in "How to make" (maintainer 2026-11-21).
                     if (hot) late.tip = nameOf(member), late.hovered = memberKey;
                     if (took(cx, cy, 18, 18)) state::setPick(key, memberKey), howOpen.clear();
                 }

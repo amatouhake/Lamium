@@ -69,13 +69,18 @@ plan's recipes are in [L-116](backlog/L-116.md).
   tip is the same in the window and on the band: name (a group's
   members), held and needed, what is left in chests and stacks, a
   group's choice, the stores holding some.
+- Marks: a favorite carries none (it stands in the favorites' panel); a
+  wanted item its count; a chosen candidate in "How to make" a green
+  frame in the unit outside its slot; a group's slot always its "*",
+  chosen or not; the member a group's tip shows a white frame.
 - A group (an ingredient any of its members serves) holds still on
   every recipe screen: the member chosen, else the one most held, else
   the one it is known by. Resting the pointer on its slot a moment, the
   wheel looks through the members (it chooses nothing); its tip names
   the one shown, says whether one is chosen ("Any" explains the kinds
   held count together) and shows the members full size, the shown one
-  framed, with no counts held. In "How to make" a line's left shows the
+  framed, with no counts held; its name carries the "*" and no item's
+  own lines (fuel, id) follow. In "How to make" a line's left shows the
   group's or item's tip, its right that of what is in use; its words
   read "Any" alone.
 - Tips describe the item alone; what a press or the wheel does there
@@ -152,8 +157,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   loaded chunks, and when the container is opened. The word is "store" throughout.
 - In "to gather", a "have" number that includes a place's last-seen count
   is starred and says under the pointer where the items are.
-- The stores are outlined in the world within 48 blocks, in the accent
-  color, by the world overlay (`WorldOverlay.cpp`, from `storeMarks`), while
+- The stores are shown in the world within 48 blocks as faint faces in
+  the accent color with their outline, as a shape is (L-369), by the world
+  overlay (`WorldOverlay.cpp`, from `storeMarks`), while
   "Outline stores in the world" (on) is on. They show once the world's
   places were read, which the first item screen does.
 

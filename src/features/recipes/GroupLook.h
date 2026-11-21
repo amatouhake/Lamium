@@ -20,6 +20,7 @@ void turn(int group, int steps);
 // What `group` shows. `held`: what is held by item, or null where it is not known.
 Item face(Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held);
 // The tip over a group's slot: its name, the member shown, whether one is chosen and the members as icons, the
-// shown one framed; the wheel's use goes to the hint line. `held` only decides the member shown.
+// shown one framed; the wheel's use goes to the hint line. `held` only decides the member shown. The "*" marks
+// a group's slot always, chosen or not (L-369): it says the slot is a kind; the picture says which.
 void tip(view::Late& late, Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held);
 }

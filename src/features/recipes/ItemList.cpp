@@ -644,7 +644,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
     if (planOn) for (auto const& target : handed) wantedCounts[target.key] += target.count;
     auto mark = [&](std::string const& key, float x, float y, bool framed) {
-        if (framed && favoriteKeys.contains(key)) frame(context, x, y, ItemListLayout::cell, ItemListLayout::cell, palette::accent, .9f);
+        // A favorite carries no mark (L-369): it stands in the favorites' panel; green means chosen.
+        (void)framed;
         auto wanted = wantedCounts.find(key);
         if (wanted == wantedCounts.end()) return;
         // Three characters fit a cell: thousands above that, and "++" past them.
@@ -942,7 +943,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!late.tip.empty()) {
         // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
         // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.
-        bool const item = !tipItem.empty();
+        bool const item = !tipItem.empty() && !late.tipGroup; // a group's tip is about the group, not the member shown
         static std::string detailsOf;
         static std::vector<HoverLine> details;
         if (item && tipItem != detailsOf) {
@@ -955,7 +956,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
         std::vector<HoverLine> const none;
         auto const& more = item ? details : none;
-        float w = textWidth(context, late.tip);
+        float w = textWidth(context, late.tip) + (late.tipGroup ? 8.f : 0.f);
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
         for (auto const& line : more) w = std::max(w, textWidth(context, line.text));
         // A table's first column as wide as its widest entry, the second after a gap.
@@ -987,7 +988,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
             context.flushText(0, std::nullopt);
             gameTooltipBox(context, x, y, w, h);
         } else drawTipBox(context, x, y, w, h);
-        label(context, x + inset, y + top, w - 2 * inset, late.tip);
+        // A group's name carries the "*" its slots do, so it reads as a kind, not an item (L-369).
+        float const titleShift = late.tipGroup ? 8.f : 0.f;
+        if (late.tipGroup) anyMark(context, x + inset, y + top + 1);
+        label(context, x + inset + titleShift, y + top, w - 2 * inset - titleShift, late.tip);
         float line = y + top + 10;
         for (auto const& text : late.tipLines) label(context, x + inset, line, w - 2 * inset, text, palette::dim), line += 10;
         for (auto const& [left, right] : late.tipTable) {

@@ -155,6 +155,7 @@ std::map<ShapeId, CellMesh> shapeMeshes;
 // The breaking region of the press in progress (L-15): white faces with a
 // faint grid, like a face-style shape.
 CellMesh restrictionMesh;
+CellMesh storeMesh; // the stores of Recipes' plan, outlined (L-369)
 struct EyeTrack { EyeOffsetInterpolator offset; uint64_t seenFrame = 0; };
 thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
 thread_local uint64_t eyeFrame = 0;
@@ -630,7 +631,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     auto const settings = runtime.snapshot();
     auto const& preferences = settings->overlays;
     bool breaking = settings->interaction.breaking;
-    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); restrictionMesh.release(); releaseLight(); releaseGlow(); eyeTracks.clear(); }
+    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); restrictionMesh.release(); storeMesh.release(); releaseLight(); releaseGlow(); eyeTracks.clear(); }
     if (!preferences.hitboxes) eyeTracks.clear();
     if (!preferences.light && !lightChunks.empty()) releaseLight();
     bool shapesShown = preferences.shapes && hasShapes();
@@ -696,23 +697,34 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
                 if (context.mImpl) drawCellMesh(context.mScreenContext, context.mImpl->mCameraPosition, restrictionMesh, material);
             }
         }
-        if (storesShown) {
-            constexpr double reach = 48, out = .01;
+        if (storesShown && context.mImpl) {
+            // As faint faces in the accent with their outline, the way a shape is drawn (L-369): a thin line alone
+            // was lost against wood and other chests. Rebuilt only when the stores in reach change.
+            constexpr double reach = 48;
             Vec3 const eye = player->getPosition();
             int const dimensionId = static_cast<int>(player->getDimensionId());
-            thread_local std::vector<Line> outlines;
-            outlines.clear();
+            std::set<Cell> cells;
+            int boxes = 0;
             for (auto const& box : *stores) {
-                if (box.dimension != dimensionId || outlines.size() >= 12 * 64) continue;
+                if (box.dimension != dimensionId || boxes >= 64) continue;
                 double const dx = (box.lowX + box.highX + 1) * .5 - eye.x, dy = (box.lowY + box.highY + 1) * .5 - eye.y,
                              dz = (box.lowZ + box.highZ + 1) * .5 - eye.z;
                 if (dx * dx + dy * dy + dz * dz > reach * reach) continue;
-                auto const edges = wireBox({box.lowX - out, box.lowY - out, box.lowZ - out}, {box.highX + 1 + out, box.highY + 1 + out, box.highZ + 1 + out});
-                outlines.insert(outlines.end(), edges.begin(), edges.end());
+                ++boxes;
+                for (int x = box.lowX; x <= box.highX; ++x)
+                    for (int y = box.lowY; y <= box.highY; ++y)
+                        for (int z = box.lowZ; z <= box.highZ; ++z) cells.insert({x, y, z});
             }
-            if (!outlines.empty()) {
-                std::array<LineBatch, 1> const batch{{{outlines, ui::palette::accent.r, ui::palette::accent.g, ui::palette::accent.b}}};
-                drawLines(context, batch);
+            thread_local std::set<Cell> storeCells;
+            thread_local CellSurface storeSurface;
+            thread_local std::uint64_t storeRevision = 0;
+            if (cells != storeCells || !storeRevision) storeCells = std::move(cells), storeSurface = cellSurface(storeCells), ++storeRevision;
+            if (!storeCells.empty()) {
+                auto const material = faceMaterial(client);
+                CellStyle const style{ui::palette::accent.r, ui::palette::accent.g, ui::palette::accent.b, true};
+                if (storeMesh.stale(storeRevision, style, material))
+                    buildCellMesh(context.mScreenContext, storeMesh, storeSurface.faces, storeSurface.lines, style, material, storeRevision);
+                drawCellMesh(context.mScreenContext, context.mImpl->mCameraPosition, storeMesh, material);
             }
         }
         auto& dimension = player->getDimension();
