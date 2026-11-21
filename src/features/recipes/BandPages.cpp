@@ -142,6 +142,10 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         // As the window's tab (L-370): the count only, the stepper under the pointer; what is all held follows at
         // the end, faint with a check. A feature's row and the player's of the same item stay two rows.
         std::vector<SideRow> done;
+        // As the window's (L-370): while the pointer is over the list the rows keep their places.
+        static std::map<std::string, bool> shownDone;
+        bool const holding = panel.has(px, py);
+        if (!holding) shownDone.clear();
         if (auto const* shares = plan ? state::shares(player) : nullptr) {
             for (size_t e = 0; e < shares->entries.size(); ++e) {
                 auto const& entry = shares->entries[e];
@@ -150,7 +154,11 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 else for (auto const& loose : plan->loose) if (loose.key == entry.key) have = loose.held;
                 SideRow row{entry.key, schematic::items::shown(entry.key).name, entry.count, -1, entry.source};
                 row.held = have, row.need = entry.count;
-                row.done = row.faint = entry.count > 0 && have >= entry.count;
+                bool const now = entry.count > 0 && have >= entry.count;
+                std::string const id = wantedEntryId(entry);
+                auto const kept = shownDone.find(id);
+                row.done = row.faint = holding && kept != shownDone.end() ? kept->second : now;
+                if (!holding) shownDone[id] = now;
                 (row.done ? done : rows).push_back(std::move(row));
             }
         } else {

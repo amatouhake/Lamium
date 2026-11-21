@@ -387,7 +387,21 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
             for (auto const& loose : plan->loose) if (loose.key == entries[e].key) return loose.held;
             return 0;
         };
-        auto doneAt = [&](size_t e) { return entries[e].count > 0 && haveOf(e) >= entries[e].count; };
+        // Whether an item is all held decides its place (under "done"). While the pointer is over the list the rows
+        // keep the places they had, so stepping a count past what is held does not move the row from under it; they
+        // move once the pointer leaves.
+        static std::map<std::string, bool> shownDone;
+        bool const holding = over(left, listTop, right - left, bottom - listTop);
+        auto doneNow = [&](size_t e) { return entries[e].count > 0 && haveOf(e) >= entries[e].count; };
+        auto doneAt = [&](size_t e) {
+            if (holding)
+                if (auto kept = shownDone.find(wantedEntryId(entries[e])); kept != shownDone.end()) return kept->second;
+            return doneNow(e);
+        };
+        if (!holding) {
+            shownDone.clear();
+            for (size_t e = 0; e < entries.size(); ++e) shownDone[wantedEntryId(entries[e])] = doneNow(e);
+        }
         // Lines of their own heights: the switch, a wanted row and under an open one its breakdown; the items
         // wanted that are all held follow under their heading, faint (L-370).
         struct Line { enum class Kind { Switch, DoneHead, Target, Label, Step, Material, End } kind; size_t entry = 0; size_t at = 0; float height = 0; };

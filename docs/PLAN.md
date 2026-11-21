@@ -81,7 +81,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   panel's lists keep the window's order, each row one number, what is
   left: "to gather" needed less held, "to make" what is still to make,
   "wanted" the count (the stepper under the pointer, done rows at the
-  end); done rows checked; the tip gives held (or can make now) and
+  end, kept in place while the pointer is over the list); done rows
+  checked; the tip gives held (or can make now) and
   needed, a make row's also each input held/needed. A "to gather" row's
   tip is the same in the window and on the panel: name (a group's
   members), held and needed, what is left in chests and stacks, a

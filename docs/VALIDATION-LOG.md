@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Making a plan's steps, the panel's buttons in one column (L-385, 2026-11-22)
+
+Build `593a3e05` (DLL
+`23a9dc14157876f955d066d4b80e097d9f85b1dd6ac7af29495bdc012e0efb76`),
+1.26.60.05 Dev instance, the maintainer, local world. Confirmed: "make"
+makes what was laid in, into the inventory, past a stack's rounds; the
+panel's make buttons keep one column whatever the count. Found: a chest
+plans planks, not logs (an "any" ingredient is not traced: L-386).
+
 ## Laying in and making a plan's steps (L-385, 2026-11-22)
 
 Build `b5b67f52` (DLL

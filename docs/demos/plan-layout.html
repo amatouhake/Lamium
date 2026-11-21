@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan Layout</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --slot-light:#fff; --missing:#d94d4d;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{overflow-x:auto}
+#view{position:relative;font-family:var(--pix);margin:0 auto;background:linear-gradient(#3a5a2a,#2a3a1e)}
+#view *{position:absolute}
+.band{background:rgba(16,17,19,.82)}
+.btxt{color:#fff;white-space:nowrap}
+.bdim{color:#b4b8b6;white-space:nowrap}
+.bfaint{color:#7f8583;white-space:nowrap}
+.btab{color:#b4b8b6;white-space:nowrap;text-align:center}
+.btab.on{color:#fff;background:rgba(108,195,73,.18);box-shadow:inset 0 calc(-1*var(--u)) 0 #6cc349}
+.win{background:var(--win);box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) #555,0 0 0 var(--u) #000}
+.tab{display:grid;place-items:center;color:#fff;background:#626262;box-shadow:0 0 0 var(--u) #000;white-space:nowrap}
+.tab.on{background:var(--win);color:var(--win-ink)}
+.txt{color:var(--win-ink);white-space:nowrap}
+.faint{color:var(--win-faint);white-space:nowrap}
+.slot{background:var(--slot);box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) var(--slot-light)}
+.dslot{background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 calc(.5*var(--u)) rgba(255,255,255,.12)}
+.ico{display:grid;place-items:center;color:#fff;text-shadow:0 0 2px #000;box-shadow:inset -2px -2px rgba(0,0,0,.25),inset 2px 2px rgba(255,255,255,.25)}
+.dim{opacity:.45}
+.count{color:#fff;text-shadow:calc(.6*var(--u)) calc(.6*var(--u)) #3f3f3f;white-space:nowrap;text-align:right}
+.bar{background:#8b8b8b}
+.barfill{background:var(--accent-deep)}
+.bbar{background:#4a4f4d}
+.bbarfill{background:#6cc349}
+.pbtn{background:#5f5f5f;box-shadow:inset calc(.5*var(--u)) calc(.5*var(--u)) #9a9a9a,inset calc(-.5*var(--u)) calc(-.5*var(--u)) #333,0 0 0 calc(.5*var(--u)) #000}
+.wpbtn{background:#b4b4b4;box-shadow:inset 0 0 0 var(--u) #363636}
+.step{background:#2a2a2a;box-shadow:0 0 0 calc(.5*var(--u)) #000;color:#fff;display:flex;justify-content:space-between;align-items:center;white-space:nowrap}
+.wstep{background:#b4b4b4;box-shadow:0 0 0 var(--u) #363636;color:#111;display:flex;justify-content:space-between;align-items:center;white-space:nowrap}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.q{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>パネルとノートの見せ方の見直し（L-370 / L-385）</h1>
+    <p class="lede">パネルの行を大きく（スロットと同じ 16 のアイコン）して名前をツールチップに回す案と、ノートの表で所持・必要・棒を左に寄せ、操作を常に表示する案を、今の形と並べる。上のタブで欲しい物・集める物・作る物を切り替える（パネルと窓は連動）。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">タブ</span>
+      <button class="chip" data-k="tab" data-v="wanted">欲しい物</button>
+      <button class="chip" data-k="tab" data-v="gather">集める物</button>
+      <button class="chip on" data-k="tab" data-v="make">作る物</button>
+    </div>
+    <div class="grp"><span class="lbl">パネル</span>
+      <button class="chip" data-k="panel" data-v="now">今（小さい行、名前あり）</button>
+      <button class="chip on" data-k="panel" data-v="big">大きい行、名前なし</button>
+      <button class="chip" data-k="panel" data-v="grid">マス目（数は右下）</button>
+    </div>
+    <div class="grp"><span class="lbl">ノートの表</span>
+      <button class="chip" data-k="win" data-v="now">今（名前の後ろ、右に数）</button>
+      <button class="chip on" data-k="win" data-v="left">数を左に、名前なし</button>
+      <button class="chip" data-k="win" data-v="leftname">数を左に、名前は右に小さく</button>
+    </div>
+    <div class="grp"><span class="lbl">操作</span>
+      <button class="chip on" data-k="always" data-v="1">常に表示</button>
+      <button class="chip" data-k="always" data-v="0">カーソルの行だけ（今）</button>
+    </div>
+  </div>
+  <div class="stage"><div id="view"></div></div>
+  <div class="notes">
+    <div class="card">
+      <h2>見るところ</h2>
+      <ul>
+        <li>パネル「大きい行」：行の高さ 18、アイコン 16。名前はツールチップ。欲しい物の増減、作る物の並べる・作るが常に同じ列にある。</li>
+        <li>パネル「マス目」：お気に入りと同じマス目に、残りの数を右下に。操作はカーソルを置いたマスの上に出る（常に表示はできない）。</li>
+        <li>ノート「数を左に」：アイコンのすぐ右に所持・必要・棒。右側は操作の列だけ。名前はツールチップ。</li>
+        <li>ノート「名前は右に小さく」：数を左に寄せたうえで、余った右に名前を薄く出す。</li>
+        <li>作る物の材料のスロットは、行の右（操作の手前）に寄せる。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>決めたいこと</h2>
+      <ul>
+        <li><span class="q">1.</span> パネル：今／大きい行／マス目。</li>
+        <li><span class="q">2.</span> ノートの表：今／数を左に（名前なし）／数を左に（名前は右）。</li>
+        <li><span class="q">3.</span> 操作：常に表示か、カーソルの行だけか。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+let U = 3;
+const opt = {tab:'make', panel:'big', win:'left', always:'1'};
+const px = v => v * U + 'px';
+const view = document.getElementById('view');
+function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 490)); document.documentElement.style.setProperty('--u', U + 'px'); }
+function el(cls, x, y, w, h, html){ const d = document.createElement('div'); if (cls) d.className = cls; d.style.left = px(x); d.style.top = px(y); if (w != null) d.style.width = px(w); if (h != null) d.style.height = px(h); if (html != null) d.innerHTML = html; view.appendChild(d); return d; }
+function text(cls, x, y, s, size = 7, w, align){ const t = el(cls, x, y, w, null, s); t.style.fontSize = px(size); if (align) t.style.textAlign = align; return t; }
+const C = {furnace:'#707070', chest:'#a87830', grass:'#5a9a3a', dirt:'#8a5a3a', note:'#6a3a2a', glass:'#e8f0f0', shelf:'#a07840', sign:'#c8a060', cobble:'#7a7a7a', planks:'#b8945f', dia:'#5ad8d8', slab:'#c8a070', wheat:'#c8a040', cane:'#7ac040', stick:'#9a7040', ingot:'#d0d0d0', bone:'#f0f0e0', dye:'#e8e8f0', wool:'#f0f0f0', log:'#6a4a2a', sand:'#e0d090', iron:'#c8b0a0', paper:'#f4f4e8', leather:'#b06a3a'};
+const N = {furnace:'かまど', chest:'チェスト', grass:'草ブロック', dirt:'土', note:'音符ブロック', glass:'白色の色付きガラス', shelf:'模様入りの本棚', sign:'オークの看板', cobble:'丸石の仲間', planks:'板材', dia:'ダイヤモンド', slab:'木のハーフブロック', wheat:'小麦', cane:'サトウキビ', stick:'棒', ingot:'鉄インゴット', bone:'骨粉', dye:'白色の染料', wool:'白色の羊毛'};
+function ico(x, y, k, size, dim){ const d = el('ico' + (dim ? ' dim' : ''), x, y, size, size, ''); d.style.background = C[k]; return d; }
+const DATA = {
+  wanted: [['furnace',0,10048,'hand'],['chest',65,192,'hand'],['grass',0,158,'sch'],['dirt',4,7,'sch'],['note',0,6,'sch'],['glass',0,5,'sch'],['shelf',0,4,'sch'],['sign',0,2,'sch']],
+  gather: [['cobble',0,80384],['planks',349,1115],['dia',0,81],['slab',6,16],['wheat',0,9],['cane',0,9],['wool',0,4],['dirt',4,7]],
+  make:   [['stick',4,4,[['planks',2]]],['ingot',3,3,[['iron',3]]],['shelf',2,4,[['planks',24],['slab',12]]],['chest',38,128,[['planks',1024]]],['bone',0,3,[['bone',1]]],['dye',0,1,[['bone',1]]]],
+};
+function left(r){ return opt.tab === 'make' ? r[2] - 0 : Math.max(0, r[2] - r[1]); }
+function pbtnIcon(x, y, kind, size){
+  el('pbtn', x, y, size, size, '');
+  const k = size / 11, q = (a, b, w, h) => { const d = el('', x + a * k, y + b * k, w * k, h * k, ''); d.style.background = '#ececec'; };
+  if (kind === 'place') { q(5,2,1,4); q(3,5,5,1); q(4,6,3,1); q(5,7,1,1); q(2,8,7,1); } else { q(1,3,2,2); q(4,3,2,2); q(1,6,2,2); q(4,6,2,2); q(7,4,1,1); q(8,5,1,1); q(7,6,1,1); q(9,3,1,5); }
+}
+function stepper(cls, x, y, w, h, v, size){ const d = el(cls, x, y, w, h, `<span style="padding:0 ${U*2}px">-</span><span>${v}</span><span style="padding:0 ${U*2}px">+</span>`); d.style.fontSize = px(size); }
+// ---- Panel ----
+function panel(x0, y0){
+  const W = 150;
+  el('band', x0, y0, W, 210);
+  ['欲しい物','集める物','作る物'].forEach((t, i) => { const d = el('btab' + (['wanted','gather','make'][i] === opt.tab ? ' on' : ''), x0 + 2 + i * 40, y0 + 2, 39, 11, t); d.style.fontSize = px(6.5); });
+  const rows = DATA[opt.tab];
+  const hotRow = 1;
+  if (opt.panel === 'grid') {
+    rows.forEach((r, i) => {
+      const cx = x0 + 3 + (i % 8) * 18, cy = y0 + 17 + Math.floor(i / 8) * 18;
+      el('dslot', cx, cy, 18, 18, ''); ico(cx + 1, cy + 1, r[0], 16);
+      const c = el('count', cx + 1, cy + 9, 16, null, left(r) >= 10000 ? Math.floor(left(r) / 1000) + 'k' : left(r)); c.style.fontSize = px(6.5);
+    });
+    const hx = x0 + 3 + 18, hy = y0 + 17;
+    if (opt.tab === 'make') { pbtnIcon(hx - 1, hy - 12, 'place', 10); pbtnIcon(hx + 10, hy - 12, 'make', 10); }
+    return;
+  }
+  const big = opt.panel === 'big', rowH = big ? 18 : 12, iconS = big ? 16 : 10;
+  rows.forEach((r, i) => {
+    const y = y0 + 16 + i * rowH, end = x0 + W - 4, hot = i === hotRow;
+    if (hot) { const h = el('', x0, y, W, rowH, ''); h.style.background = 'rgba(255,255,255,.08)'; }
+    ico(x0 + 3, y + 1, r[0], iconS);
+    const show = opt.always === '1' || hot;
+    const n = left(r);
+    // Columns from the right: the count (five digits), then the controls.
+    const countW = 26;
+    text('btxt', end - countW, y + (big ? 5 : 1.5), n, 6.5, countW, 'right');
+    let nameEnd = end - countW - 3;
+    if (show && opt.tab === 'make') { pbtnIcon(nameEnd - 23, y + (big ? 3.5 : .5), 'place', 11); pbtnIcon(nameEnd - 11, y + (big ? 3.5 : .5), 'make', 11); nameEnd -= 26; }
+    if (show && opt.tab === 'wanted' && r[3] === 'hand') { stepper('step', nameEnd - 34, y + (big ? 4 : 1), 34, 10, '', 6); nameEnd -= 37; }
+    if (!big) text('bdim', x0 + 16, y + 1.5, N[r[0]], 6.5, nameEnd - x0 - 16).style.overflow = 'hidden';
+    else if (opt.tab !== 'make') {
+      // Big rows: a small bar of held against needed in the room the name had.
+      const bx = x0 + 23, bw = Math.max(10, nameEnd - bx - 4);
+      el('bbar', bx, y + 8, bw, 2, ''); if (r[1]) el('bbarfill', bx, y + 8, bw * Math.min(1, r[1] / r[2]), 2, '');
+    }
+  });
+}
+// ---- Notes ----
+function notes(x0, y0){
+  const W = 300, H = 210;
+  ['欲しい物','集める物','作る物','作り方'].forEach((t, i) => { const d = el('tab' + (['wanted','gather','make'][i] === opt.tab ? ' on' : ''), x0 + 6 + i * 52, y0, 51, 20, t); d.style.fontSize = px(7); });
+  el('win', x0, y0 + 20, W, H);
+  const L = x0 + 8, R = x0 + W - 10, T = y0 + 26;
+  const rows = DATA[opt.tab];
+  const leftMode = opt.win !== 'now';
+  // Columns.
+  const heldX = leftMode ? L + 22 : R - 108, needX = leftMode ? L + 52 : R - 76, barX = leftMode ? L + 86 : R - 66, barW = 24;
+  const heads = opt.tab === 'make' ? ['今作れる','必要'] : ['所持','必要'];
+  const slotsX = opt.tab === 'make' ? (leftMode ? R - 76 : L + 20) : 0;
+  text('faint', heldX, T, heads[0], 5.5, 26, 'right'); text('faint', needX, T, heads[1], 5.5, 30, 'right');
+  rows.forEach((r, i) => {
+    const y = T + 9 + i * 20, hot = i === 1, show = opt.always === '1' || hot;
+    if (hot) { const h = el('', L - 2, y, W - 16, 20, ''); h.style.background = 'rgba(0,0,0,.06)'; }
+    el('slot', L, y + 1, 18, 18, ''); ico(L + 1, y + 2, r[0], 16);
+    text('txt', heldX, y + 6, r[1], 7, 26, 'right'); text('txt', needX, y + 6, r[2], 7, 30, 'right');
+    el('bar', barX, y + 9, barW, 2, ''); if (r[1]) el('barfill', barX, y + 9, barW * Math.min(1, r[1] / r[2]), 2, '');
+    if (opt.tab === 'make') {
+      // The inputs as slots, then the controls.
+      const ins = r[3];
+      const sx0 = leftMode ? slotsX : L + 20;
+      if (!leftMode) { /* today: inputs left of the product */ }
+      ins.forEach(([k, n], j) => { const sx = leftMode ? sx0 + j * 18 : L + 24 + j * 18; el('slot', sx, y + 1, 18, 18, ''); ico(sx + 1, y + 2, k, 16); const c = el('count', sx + 1, y + 10, 16, null, n >= 1000 ? Math.floor(n / 1000) + 'k' : n); c.style.fontSize = px(6.5); });
+      if (show) { pbtnIcon(R - 23, y + 4.5, 'place', 11); pbtnIcon(R - 11, y + 4.5, 'make', 11); }
+    } else if (opt.tab === 'wanted') {
+      if (r[3] === 'hand' && show) stepper('wstep', R - 50, y + 5, 40, 10, '', 6);
+      if (r[3] === 'sch') text('faint', R - 30, y + 6, '設計図', 5.5, 30, 'right');
+    }
+    if (opt.win === 'now') text('txt', L + (opt.tab === 'make' ? 82 : 24), y + 6, N[r[0]], 7, heldX - L - 30);
+    if (opt.win === 'leftname') text('faint', barX + barW + 6, y + 6, N[r[0]], 6, (opt.tab === 'make' ? slotsX : R - 54) - barX - barW - 10);
+  });
+}
+function render(){
+  fit();
+  view.style.width = px(480); view.style.height = px(240); view.innerHTML = '';
+  panel(0, 8);
+  notes(166, 6);
+}
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  opt[b.dataset.k] = b.dataset.v;
+  document.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
