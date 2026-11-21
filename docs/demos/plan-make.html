@@ -75,6 +75,11 @@ p{margin:0;max-width:95ch}
       <button class="chip" data-k="panel" data-v="row">C. 行を押すと並べる、Ctrl+押すで作る</button>
       <button class="chip" data-k="panel" data-v="words">D. ホバーで文字のボタン「並べる｜作る」</button>
     </div>
+    <div class="grp"><span class="lbl">「作る」の絵</span>
+      <button class="chip on" data-k="craft" data-v="grid">マスから 1 つへ</button>
+      <button class="chip" data-k="craft" data-v="up">上向きの矢印（取り出す）</button>
+      <button class="chip" data-k="craft" data-v="hammer">金づち</button>
+    </div>
     <div class="grp"><span class="lbl">Ctrl</span>
       <button class="chip on" data-k="ctrlHeld" data-v="0">押していない</button>
       <button class="chip" data-k="ctrlHeld" data-v="1">押している</button>
@@ -99,6 +104,7 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>見るところ</h2>
       <ul>
+        <li>「並べる」の絵はレシピ画面の並べるボタンと同じ（下向きの矢印）。「作る」は意味が違うので別の絵を比べる。</li>
         <li>A：ホバーした行だけ、数の代わりに「並べる」「作る」の絵のボタン（欲しい物の行の増減と同じ出方）。ボタン以外を押すと窓が開く（今まで通り）。</li>
         <li>B：ホバーで「並べる」1 つ。Ctrl を押している間は「作る」の絵に変わる。ゲームの下のヒント行が「Ctrl+クリック: 作る」を言う。</li>
         <li>C：ボタンを出さず、行のどこを押しても並べる、Ctrl なら作る。窓は下の行のノートのボタンからだけ開く。</li>
@@ -119,7 +125,7 @@ p{margin:0;max-width:95ch}
 </div>
 <script>
 let U = 3;
-const opt = {panel:'pics', ctrlHeld:'0', hover:'chest', win:'pics', station:'table', said:''};
+const opt = {panel:'pics', ctrlHeld:'0', hover:'chest', win:'pics', station:'table', said:'', craft:'grid'};
 const px = v => v * U + 'px';
 const view = document.getElementById('view');
 function fit(){ U = Math.max(1.4, Math.min(3, (document.querySelector('.wrap').clientWidth - 20) / 480)); document.documentElement.style.setProperty('--u', U + 'px'); }
@@ -143,9 +149,18 @@ const usable = s => s.at === opt.station && (s.st === 'ready' || s.st === 'partl
 const why = s => s.at !== opt.station ? (s.at === 'furnace' ? 'かまどで作る' : '作業台で作る') : s.st === 'stored' ? '保管場所から取り出すと作れる' : s.st === 'missing' ? '材料が足りない' : '';
 function say(s, what){ opt.said = s.n + (what === 'place' ? ' を作業台に並べた' : ` を ${s.need - s.now > 0 ? s.now : s.need} 個作った`); render(); }
 function picture(x, y, kind, size){
-  const k = size / 10, p = (cx, cy, w, h, c) => { const d = el('', x + cx * k, y + cy * k, w * k, h * k, ''); d.style.background = c; };
-  if (kind === 'place') { p(2,2,2.5,2.5,'#ececec'); p(5.5,2,2.5,2.5,'#a9a9a9'); p(2,5.5,2.5,2.5,'#a9a9a9'); p(5.5,5.5,2.5,2.5,'#ececec'); }
-  else { p(1.5,4.5,3,1,'#ececec'); p(4,3,1,4,'#ececec'); p(6,2.5,3,5,'#ececec'); }
+  // On an 11-unit grid, as the recipe view's place button is drawn.
+  const k = size / 11, p = (cx, cy, w, h, c) => { const d = el('', x + cx * k, y + cy * k, w * k, h * k, ''); d.style.background = c; };
+  const W = '#ececec', G = '#a9a9a9';
+  if (kind === 'place') { // the recipe view's own "place": an arrow down onto a line
+    p(5,2,1,4,W); p(3,5,5,1,W); p(4,6,3,1,W); p(5,7,1,1,W); p(2,8,7,1,W);
+  } else if (opt.craft === 'up') { // the item taken up out of the grid: an arrow up from a line
+    p(2,8,7,1,G); p(5,3,1,4,W); p(3,4,5,1,W); p(4,3,3,1,W); p(5,2,1,1,W);
+  } else if (opt.craft === 'grid') { // a grid turned into one thing: four cells, an arrow, a box
+    p(1,3,2,2,W); p(1,6,2,2,W); p(4,3,2,2,W); p(4,6,2,2,W); p(6.5,5,1,1,G); p(7,4,1,3,G); p(8,3.5,2.5,4,W);
+  } else { // a hammer: making, not placing
+    p(2,2,6,2,W); p(4,4,2,6,G);
+  }
 }
 function pbtn(x, y, kind, on, act, size = 10){ const b = el('pbtn' + (on ? '' : ' off'), x, y, size, size, ''); picture(x, y, kind, size); if (on) b.onclick = act; return b; }
 // The panel: the plan's short list on "to make".
