@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Lay in's presses, the 2x2 greying, steps after taking out (L-385, 2026-11-22)
+
+Build `9d0a6695` (DLL
+`4a21ff4c6fb27190d355719d937285390b38173e8f6b17b8961ba364c7220b06`),
+1.26.60.05 Dev instance, the maintainer. Confirmed as expected: "lay
+in" with Shift (what is still needed) and Ctrl (one round onto the
+pointer); a 3x3 recipe greyed and not pressable at the inventory's 2x2;
+"make after taking out" with the chest on its slots. Not seen: a
+server.
+
 ## Making counts the slots its inputs empty (L-385, 2026-11-22)
 
 Build `9d0a6695` (DLL

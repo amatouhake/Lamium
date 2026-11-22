@@ -199,7 +199,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-388](backlog/L-388.md) One craft run for making a plan's steps and Mass Craft (Refactor): Open; waits for L-385's server check
 - [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)
 - [L-386](backlog/L-386.md) Trace an "any" ingredient past its kind (planks to logs) (Ready): Built; planks from logs, make over two kinds and the group's gather seen in game (local); a picked log kind and a server not
-- [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Ready): Make and Make all in both views seen in game (local, full inventory too); stores and a server unchecked
+- [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Ready): Seen in game on a local world (2026-11-22); a server unchecked
 - [L-384](backlog/L-384.md) HUD: scale above 200 %, and a paper doll cut to its upper body (Design): Requested by a player (Discord, 2026-11-21); not started, no release target
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
