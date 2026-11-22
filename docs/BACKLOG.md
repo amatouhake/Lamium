@@ -210,7 +210,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); split into L-373 to L-379 and existing items
 - [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): All seen in game 2026-11-21; to close with the next release notes
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes
-- [L-340](backlog/L-340.md) Settings grouping (Design): Open; an agent's draft below (2026-11-17) waits for the maintainer.
+- [L-340](backlog/L-340.md) Settings grouping (Design): Two levels agreed (maintainer 2026-11-22); one question left, not built
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature): Built 2026-11-13 after 0.6.0 (not released) and checked in game; unchecked cases remain
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
