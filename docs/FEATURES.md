@@ -38,7 +38,7 @@ settings. Bindings are edited under each feature or in the Hotkeys view.
 - `C` replaces Minecraft's "copy coordinates" while Lamium is installed
   unless you rebind it.
 
-## Camera & view
+## View
 
 ### Zoom
 
@@ -96,23 +96,23 @@ border where glass block walls turn a corner, on the inside of the turn;
 "Edges at glass pane corners" adds an edge on the outside of an L-shaped
 pane. The flat-notch corner texel is kept whenever Connected Textures is on.
 
-### Block highlight
+## HUD
 
-The block types you pick glow in rainbow colors flowing across the world, so
-they stand out far away and in the dark, up to the render distance. Aim at a
-block and press the key to add its type, or remove it if it is listed. Only
-faces open to the air (or water and other see-through blocks) glow, so a block
-buried on every side never shows. Through walls (off by default) also shows
-those faces behind terrain, fainter. Color picks the rainbow (default) or one
-still color (cyan, yellow, pink, white), which is also lighter to draw;
-Strength (default 50 %) sets how strongly the faces are colored, and at 0 %
-only the edges show. Blocks of any shape glow as their whole cell, chests
-and shulker boxes included. A list, opened from the
-settings row, shows the listed types with a count of those nearby, removes
-them, and adds any block type by searching its name or ID. Matching uses the
-block name only, so deepslate ores are their own types. With many blocks in view, only the nearest glow.
+### HUD layout and toggle toasts
 
-## HUD & overlays
+A live HUD layout editor places and scales Lamium's HUD elements (50-200 %),
+switches them on or off from a check on their name tag (a switched-off element
+is drawn faint and hatched) and shows where the game's hotbar is. Toggle toasts give a short notice when a key turns a
+feature on or off.
+
+### Game HUD placement
+
+Off by default. Lets the HUD layout editor move and resize four parts of
+the game's own HUD, each with its own switch: the chat (at the bottom left
+by default, as on Java Edition), the paper doll, the scoreboard and the boss bars. Each
+can also be hidden while placed. Their text, backgrounds and fading stay vanilla.
+Two more switches hide the game's position and days played lines, even where
+a server's world shows them.
 
 ### Info HUD
 
@@ -131,6 +131,11 @@ details and the position while held. The card looks for a target up to its Range
 or as far as the game draws with "Up to the render distance", which costs more
 while you look across open ground.
 
+### Player list
+
+While `Tab` is held: the players with their faces, platform, dimension,
+distance and permission marks.
+
 ### Debug View
 
 A panel like Java Edition's F3 screen: game, world, look-at and PC details,
@@ -146,6 +151,11 @@ optionally the offhand and armor. Arrows
 and fireworks are counted beside bow, crossbow and elytra durability. Items look as
 they do in a slot: a loaded crossbow shows its arrow or firework.
 
+### Inventory HUD and Used slots HUD
+
+Your inventory as a 9x3 grid during play, and a counter of used slots such
+as 13/36. Each works without the other.
+
 ### Offhand slot
 
 The offhand item in a slot beside the hotbar, with its count and durability
@@ -156,36 +166,12 @@ bar.
 Gold outlines on the hunger bar as far as your saturation reaches. Holding
 food previews what eating it would add.
 
-### Player list
-
-While `Tab` is held: the players with their faces, platform, dimension,
-distance and permission marks.
-
-### Inventory HUD and Used slots HUD
-
-Your inventory as a 9x3 grid during play, and a counter of used slots such
-as 13/36. Each works without the other.
-
 ### Status effects HUD
 
 Active effects with icons, numeric levels and remaining time. The game's own
 effect icons are hidden while it shows.
 
-### Game HUD placement
-
-Off by default. Lets the HUD layout editor move and resize four parts of
-the game's own HUD, each with its own switch: the chat (at the bottom left
-by default, as on Java Edition), the paper doll, the scoreboard and the boss bars. Each
-can also be hidden while placed. Their text, backgrounds and fading stay vanilla.
-Two more switches hide the game's position and days played lines, even where
-a server's world shows them.
-
-### HUD layout and toggle toasts
-
-A live HUD layout editor places and scales Lamium's HUD elements (50-200 %),
-switches them on or off from a check on their name tag (a switched-off element
-is drawn faint and hatched) and shows where the game's hotbar is. Toggle toasts give a short notice when a key turns a
-feature on or off.
+## World
 
 ### Chunk Borders, Hitboxes and Light Level Overlay
 
@@ -201,12 +187,28 @@ per world and per server (under the same saved data as its waypoints).
 Create and edit them from Shapes in the sidebar.
 A shape can follow the player, to judge its size while moving.
 
-## Map (experimental)
+### Block highlight
+
+The block types you pick glow in rainbow colors flowing across the world, so
+they stand out far away and in the dark, up to the render distance. Aim at a
+block and press the key to add its type, or remove it if it is listed. Only
+faces open to the air (or water and other see-through blocks) glow, so a block
+buried on every side never shows. Through walls (off by default) also shows
+those faces behind terrain, fainter. Color picks the rainbow (default) or one
+still color (cyan, yellow, pink, white), which is also lighter to draw;
+Strength (default 50 %) sets how strongly the faces are colored, and at 0 %
+only the edges show. Blocks of any shape glow as their whole cell, chests
+and shulker boxes included. A list, opened from the
+settings row, shows the listed types with a count of those nearby, removes
+them, and adds any block type by searching its name or ID. Matching uses the
+block name only, so deepslate ores are their own types. With many blocks in view, only the nearest glow.
+
+### Map (experimental)
 
 The minimap and the world map are off by default. Waypoints and the death
 point also show in the world while both maps are off.
 
-### Minimap
+#### Minimap
 
 A HUD element colored from your block textures.
 
@@ -220,26 +222,26 @@ A HUD element colored from your block textures.
   returns to switching on its own. A Nether view row, with a key of its
   own, can choose another view for the Nether alone.
 
-### Map marks
+#### Map marks
 
 Waypoints, schematic placements and shapes on the maps.
 Each has its own switch (the same as in the world map's top bar), and "Shown
 on" picks the minimap, the world map or both. Turning Map marks off hides
 them from both maps; the world drawing is unchanged.
 
-### Radar
+#### Radar
 
 Nearby players, mobs and dropped items as dots on the minimap, or optionally
 as mob faces and player skin heads. "Shown on" also puts them on the world
 map, where mobs and items appear once zoomed in far enough.
 
-### Slime chunks
+#### Slime chunks
 
 Slime chunks shaded green on the maps, in the Overworld (on the world map at
 first). On Bedrock they depend only on the chunk, so this works in every
 world and on servers. Slimes spawn there below Y 40 at any light level.
 
-### Waypoints
+#### Waypoints
 
 Waypoints, with one added where you die, shown on the maps and in the world,
 edited in a Waypoints screen. With Waypoints off nothing is shown, no death point
@@ -255,7 +257,7 @@ only the markers, use "Show in the world" and the Map marks layer.
   last choice) are drawn hollow, disappear when you get within a set
   distance (6 blocks by default) and are deleted with one click.
 
-### World map
+#### World map
 
 A full-screen map (`M`) of the areas you have visited, recorded per world.
 It opens whether or not Record is on; off only stops recording.
@@ -323,7 +325,7 @@ build them.
   (Ctrl + click on map marks too) to show, hide, delete or ignore them
   together.
 
-## Inventory
+## Items
 
 ### Container previews and Item details
 
@@ -356,13 +358,6 @@ other switches keep their values. Every row has a toggle key (unbound).
   counted. Armor values and attack damage are the game's own lines and are not
   repeated. Enchantability is the number an enchanting table works from: the higher,
   the better the enchantments it offers.
-
-### Trades
-
-- All trader levels: the trade screen lists every level. Locked trades are
-  shown dimmed, with their items' names on hover.
-- Repeated trades: Shift + right click on a trade row repeats it until it
-  sells out, the inputs run out or the output no longer fits.
 
 ### Search English names too
 
@@ -407,83 +402,12 @@ With an empty cursor and the drop key held, drags drop instead of moving:
 | Shift + right drag | All but one |
 | Shift + left drag | The whole stack |
 
-### Tool Switch and Weapon Switch
+### Trades
 
-Picks the hotbar tool when mining, or the weapon that deals the most damage
-to what you hit. Optionally fetches one from the inventory, into the
-selected slot or a fixed one.
-
-A drop priority, cycled with a key, decides between tools where the
-enchantment changes what a block drops (read from the block's own drops):
-Speed (default), Fortune (the highest-level Fortune tool that harvests the
-block) or Silk Touch (a Silk Touch tool, even when slower). A block that
-drops nothing without Silk Touch, such as glass or ice, always takes a Silk
-Touch tool. Between equally good tools, the one used last wins. A tool is
-fetched from the inventory only when the hotbar has none that fits; under
-Fortune, also when the inventory holds a higher Fortune level.
-
-### Offhand swap
-
-Swaps the held item with the offhand (`F`, as in Java Edition).
-
-### Fake Offhand
-
-Uses a hotbar block or item as if it were in the offhand, also when the item
-in your hand has nothing to do where you aim. Under Sneak placement its key
-places on chests and other interactive blocks too.
-
-### Hand Restock
-
-Tops up consumed items in the same hand slot from the inventory or hotbar,
-with a threshold and a source order. Swaps container remainders (bowls,
-bottles, empty buckets) and refills an offhand totem after it saves you.
-
-### Recipes (experimental)
-
-Lists every item beside the inventory and other item screens (not the
-anvil). Click an item for its recipes, right click for what it is used in;
-`R` and `U` do the same for the item under the pointer, also in the game's
-own slots. A search field at the bottom narrows the list, as does "Can be
-made". `A` keeps an item as a favorite, on the left. The panels' layout is
-arranged in an editor over the inventory ("Panel layout" in the
-settings). Off by default;
-details and what is still to come in [RECIPES.md](RECIPES.md).
-
-### Plan (experimental)
-
-`W` puts the item under the pointer on the list of wanted items, on the
-left of item screens; the plan's window shows what to gather and what to
-make for them. Works with Recipes off. Off by default; details in
-[PLAN.md](PLAN.md).
-
-### Stores (experimental)
-
-Containers you mark as stores, and your ender chest, count as held with
-what they held when last opened: for the plan and for the schematic's
-materials and HUD. While a container is open its switch is on the left;
-optional outlines show the stores in the world. Off by default; details in
-[PLAN.md](PLAN.md).
-
-### Mass Craft (experimental)
-
-On the inventory and the crafting table, hold its key (unbound by default)
-with the pointer over an item, in Lamium's lists or a slot of the game:
-that item's recipe is laid in as many times as divide evenly, crafted and
-the products thrown out, again and again for as long as the key is held.
-Over the output slot it is the recipe lying in the grid. The key acts
-after it was held for 0.3 s (0 to 1 s). When the
-inventory is full and an ingredient is missing, stacks of the other
-ingredients beyond the recipe's share are thrown out too. Off by default;
-a server may limit how fast requests come. Details in
-[RECIPES.md](RECIPES.md).
-
-### Death layout restore (experimental)
-
-Picking up your dropped items puts the hotbar, armor and offhand, optionally
-the whole inventory, back the way they were when you died. It works within 32
-blocks of where you died and ends at the next death, when you walk away after
-picking items up, or once you have spent 5 minutes in total within 48 blocks of
-the place (dropped items are gone by then; time away does not count).
+- All trader levels: the trade screen lists every level. Locked trades are
+  shown dimmed, with their items' names on hover.
+- Repeated trades: Shift + right click on a trade row repeats it until it
+  sells out, the inputs run out or the output no longer fits.
 
 ### Enchantment order (experimental)
 
@@ -531,7 +455,61 @@ when the anvil closes (its enchantments stay under "Last choice"). An unfinished
 opens as it was left, whatever is in the main hand or the slot. The plan lasts for the
 session.
 
-## Actions
+### Paste across book pages
+
+On by default. A paste into a book that does not fit the page starts at the caret
+and continues on new pages inserted after it, instead of being cut off; later pages
+move back, and the text that followed the caret ends the last new page. The book
+stays on the pasted page, with the caret at the end of the part that landed there,
+so a second paste goes in before the rest of the first. If 50 pages would not be
+enough, nothing is pasted and the pages needed are shown when the book closes.
+
+### Recipes (experimental)
+
+Lists every item beside the inventory and other item screens (not the
+anvil). Click an item for its recipes, right click for what it is used in;
+`R` and `U` do the same for the item under the pointer, also in the game's
+own slots. A search field at the bottom narrows the list, as does "Can be
+made". `A` keeps an item as a favorite, on the left. The panels' layout is
+arranged in an editor over the inventory ("Panel layout" in the
+settings). Off by default;
+details and what is still to come in [RECIPES.md](RECIPES.md).
+
+### Plan (experimental)
+
+`W` puts the item under the pointer on the list of wanted items, on the
+left of item screens; the plan's window shows what to gather and what to
+make for them. Works with Recipes off. Off by default; details in
+[PLAN.md](PLAN.md).
+
+### Stores (experimental)
+
+Containers you mark as stores, and your ender chest, count as held with
+what they held when last opened: for the plan and for the schematic's
+materials and HUD. While a container is open its switch is on the left;
+optional outlines show the stores in the world. Off by default; details in
+[PLAN.md](PLAN.md).
+
+### Mass Craft (experimental)
+
+On the inventory and the crafting table, hold its key (unbound by default)
+with the pointer over an item, in Lamium's lists or a slot of the game:
+that item's recipe is laid in as many times as divide evenly, crafted and
+the products thrown out, again and again for as long as the key is held.
+Over the output slot it is the recipe lying in the grid. The key acts
+after it was held for 0.3 s (0 to 1 s). When the
+inventory is full and an ingredient is missing, stacks of the other
+ingredients beyond the recipe's share are thrown out too. Off by default;
+a server may limit how fast requests come. Details in
+[RECIPES.md](RECIPES.md).
+
+## Player
+
+Two groups: action helpers (the first five below) and hands and equipment.
+
+### Block Restrictions
+
+Breaking modes anchored where you start breaking, including a height band.
 
 ### Permanent Sneak and Permanent Sprint
 
@@ -552,6 +530,50 @@ option turns it around so that sneaking opens. The default method only tells
 the server you sneak just before the use; "Crouch briefly" is for servers
 that object.
 
+### Auto Attack and Auto Use
+
+Clicks for you in Periodic, Hold or Fast click mode. Your own clicks take
+priority.
+
+### Tool Switch and Weapon Switch
+
+Picks the hotbar tool when mining, or the weapon that deals the most damage
+to what you hit. Optionally fetches one from the inventory, into the
+selected slot or a fixed one.
+
+A drop priority, cycled with a key, decides between tools where the
+enchantment changes what a block drops (read from the block's own drops):
+Speed (default), Fortune (the highest-level Fortune tool that harvests the
+block) or Silk Touch (a Silk Touch tool, even when slower). A block that
+drops nothing without Silk Touch, such as glass or ice, always takes a Silk
+Touch tool. Between equally good tools, the one used last wins. A tool is
+fetched from the inventory only when the hotbar has none that fits; under
+Fortune, also when the inventory holds a higher Fortune level.
+
+### Hand Restock
+
+Tops up consumed items in the same hand slot from the inventory or hotbar,
+with a threshold and a source order. Swaps container remainders (bowls,
+bottles, empty buckets) and refills an offhand totem after it saves you.
+
+### Fake Offhand
+
+Uses a hotbar block or item as if it were in the offhand, also when the item
+in your hand has nothing to do where you aim. Under Sneak placement its key
+places on chests and other interactive blocks too.
+
+### Offhand swap
+
+Swaps the held item with the offhand (`F`, as in Java Edition).
+
+### Death layout restore (experimental)
+
+Picking up your dropped items puts the hotbar, armor and offhand, optionally
+the whole inventory, back the way they were when you died. It works within 32
+blocks of where you died and ends at the next death, when you walk away after
+picking items up, or once you have spent 5 minutes in total within 48 blocks of
+the place (dropped items are gone by then; time away does not count).
+
 ### Tool Protection
 
 On by default. At 1 durability a tool or worn elytra is swapped for a spare,
@@ -565,32 +587,7 @@ returns a few seconds after landing, and landing in water counts. The jump
 counts firework rockets in Fake Offhand's target slot too, while that feature
 is on.
 
-### Block Restrictions
-
-Breaking modes anchored where you start breaking, including a height band.
-
-### Auto Attack and Auto Use
-
-Clicks for you in Periodic, Hold or Fast click mode. Your own clicks take
-priority.
-
 ## General
-
-### Calculator
-
-A calculator over the game, with units for stacks, chests and shulker boxes,
-history and copy buttons. Nothing is sent to chat.
-
-Text fields in Lamium have a caret, paste and click placement.
-
-### Paste across book pages
-
-On by default. A paste into a book that does not fit the page starts at the caret
-and continues on new pages inserted after it, instead of being cut off; later pages
-move back, and the text that followed the caret ends the last new page. The book
-stays on the pasted page, with the caret at the end of the part that landed there,
-so a second paste goes in before the rest of the first. If 50 pages would not be
-enough, nothing is pasted and the pages needed are shown when the book closes.
 
 ### Game language
 
@@ -611,6 +608,13 @@ too short for that notice and its editor leaves the notice out.
 
 A server's packs are accepted as it asks but not shown: the world looks
 vanilla. Local worlds keep their packs.
+
+### Calculator
+
+A calculator over the game, with units for stacks, chests and shulker boxes,
+history and copy buttons. Nothing is sent to chat.
+
+Text fields in Lamium have a caret, paste and click placement.
 
 ### Game version check
 

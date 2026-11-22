@@ -92,7 +92,7 @@ the default key ("—": unbound until you bind one). **Default** is the state
 after a fresh install ("—": a key or screen without a switch). What each
 feature does in detail: [Features](docs/FEATURES.md).
 
-### Camera & view
+### View
 
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
@@ -103,41 +103,41 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
 | Hide effects | Hide rain, particles, nausea, fogs, the portal screen | — | Off |
 | Connected Textures | Glass, panes, bookshelves and sandstone without seams | — | Off |
-| Block highlight | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
 
-### HUD & overlays
+### HUD
 
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
+| Toggle toasts | A notice when a key turns a feature on or off | — | On |
+| Game HUD placement | Move and resize the game's own chat, paper doll, scoreboard and boss bars in HUD layout, or hide each of them, and hide its position and days played lines; the chat goes to the bottom left by default, as on Java Edition | — | Off |
 | Info HUD | Coordinates, biome, speed, time and other lines | — | Off |
 | Target Info | A card for the block or mob you aim at | — | Off |
+| Player list | Players with faces, platform, dimension and distance | `Tab` (hold) | — |
 | Debug View | A Java F3-style panel | `F3` | Off |
 | Durability HUD | Held item, offhand and armor durability; arrows and fireworks | — | Off |
-| Offhand slot | The offhand item beside the hotbar | — | Off |
-| Saturation | Saturation as gold outlines on the hunger bar | — | On |
-| Player list | Players with faces, platform, dimension and distance | `Tab` (hold) | — |
 | Inventory HUD | Your inventory as a 9x3 grid during play | — | Off |
 | Used slots HUD | Used inventory slots, such as 13/36 | — | Off |
+| Offhand slot | The offhand item beside the hotbar | — | Off |
+| Saturation | Saturation as gold outlines on the hunger bar | — | On |
 | Status effects HUD | Effects with levels and remaining time | — | Off |
-| Game HUD placement | Move and resize the game's own chat, paper doll, scoreboard and boss bars in HUD layout, or hide each of them, and hide its position and days played lines; the chat goes to the bottom left by default, as on Java Edition | — | Off |
-| Toggle toasts | A notice when a key turns a feature on or off | — | On |
+
+The HUD layout view moves and styles Lamium's HUD elements.
+
+### World
+
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
 | Chunk Borders | Java-style chunk edges | `F3+G` | Off |
 | Hitboxes | Entity bounds with eye and look markers | `F3+B` | Off |
 | Light Level Overlay | Where monsters can spawn | — | Off |
 | Shapes | Boxes, cones, domes and more in the world, saved per world and server | — | On |
-
-The HUD layout view moves and styles Lamium's HUD elements.
-
-### Map *Exp.*
-
-| Feature | What it does | Key | Default |
-| --- | --- | --- | --- |
-| Minimap | A minimap colored from your block textures, with a cave view | — | Off |
-| Map marks | Waypoints, schematic placements and shapes on the maps | — | On |
-| Radar | Players, mobs and items on the minimap or the world map | — | On |
+| Block highlight | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
+| Minimap *Exp.* | A minimap colored from your block textures, with a cave view | — | Off |
+| Map marks *Exp.* | Waypoints, schematic placements and shapes on the maps | — | On |
+| Radar *Exp.* | Players, mobs and items on the minimap or the world map | — | On |
 | Slime chunks | Slime chunks shaded green on the maps | — | Off |
-| Waypoints | Waypoints, with one added where you die, on the maps and in the world | — | On |
-| World map | A full-screen map of the areas you have visited | `M` | Recording off |
+| Waypoints *Exp.* | Waypoints, with one added where you die, on the maps and in the world | — | On |
+| World map *Exp.* | A full-screen map of the areas you have visited | `M` | Recording off |
 
 Map marks, Radar and Slime chunks each choose the maps they show on.
 Lists of shapes, waypoints and placements select several rows with Ctrl + click
@@ -154,51 +154,51 @@ Waypoints also show in the world, with both maps off.
 | Move schematic target | Move the placement, corner or area away/closer | Alt+Wheel | — |
 | Schematic HUD | Check counts and materials left for the selected placement | — | Off |
 
-### Inventory
+### Items
 
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
 | Container previews | Shulker Box and Bundle contents in the tooltip | — | On |
 | Item details | Lines added to an item's tooltip, a switch for each: durability, the anvil work penalty and its anvil uses, a suspicious stew's effect, what a food restores, values the game does not print (enchantability, small stacks, cooldown, use time, fuel) and the ID; tags and NBT are off until asked for | — | On |
-| All trader levels | Every trade level in the trade screen | — | On |
-| Repeated trades | Shift + right click repeats a trade | — | On |
 | Search English names too | Recipe and creative search by English name or ID | — | On |
 | Inventory sorting | Sort the inventory or an open container | — | On |
 | Inventory transfer *Exp.* | Move items with the wheel, modified clicks and drags | — | Off |
-| Tool Switch | Pick the right tool when mining; optionally prefer Fortune or Silk Touch | — | Off |
-| Weapon Switch | Pick the strongest weapon when attacking | — | Off |
-| Offhand swap | Swap the held item with the offhand | `F` | On |
-| Fake Offhand | Use a hotbar block or item as if it were in the offhand | Right click | Off |
-| Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
-| Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
+| All trader levels | Every trade level in the trade screen | — | On |
+| Repeated trades | Shift + right click repeats a trade | — | On |
+| Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
+| Paste across book pages | A long paste into a book continues on new pages | — | On |
 | Recipes *Exp.* | List and search every item beside item screens, show recipes and uses, keep favorites; arrange the panels in an editor | `R` recipes, `U` uses, `A` favorite, `Backspace` back | Off |
 | Plan *Exp.* | A list of wanted items with what to gather and what to make for them | `W` wanted | Off |
 | Stores *Exp.* | Count marked containers and the ender chest as held, for the plan and the schematic | — | Off |
 | Mass Craft *Exp.* | While a key is held over an item on a crafting screen: craft its recipe again and again and throw the products out | unbound | Off |
-| Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
-| Paste across book pages | A long paste into a book continues on new pages | — | On |
 
-### Actions
+### Player
 
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
+| Block Restrictions | Limit breaking to a region you start in | — | Off |
 | Permanent Sneak | Toggle sneaking with a key | — | Off |
 | Permanent Sprint | Toggle sprinting with a key | — | Off |
 | Edge Guard | Stop at block edges without sneaking | — | Off |
 | Sneak placement | Place or use a held item on chests, doors and levers as if sneaking | — | Off |
+| Auto Attack / Auto Use | Click for you: periodic, while held, or fast | — | Off |
+| Tool Switch | Pick the right tool when mining; optionally prefer Fortune or Silk Touch | — | Off |
+| Weapon Switch | Pick the strongest weapon when attacking | — | Off |
+| Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
+| Fake Offhand | Use a hotbar block or item as if it were in the offhand | Right click | Off |
+| Offhand swap | Swap the held item with the offhand | `F` | On |
+| Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
 | Tool Protection | Swap or stop before a tool or elytra breaks | — | On |
 | Auto Elytra | Put an elytra on for a flight, the chestplate back after | — | Off |
-| Block Restrictions | Limit breaking to a region you start in | — | Off |
-| Auto Attack / Auto Use | Click for you: periodic, while held, or fast | — | Off |
 
 ### General
 
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
-| Calculator | A calculator with stack, chest and shulker box units | — | — |
 | Game language | Change Minecraft's language without leaving the world | — | — |
-| Skip server resource packs | Show a server's world without its resource packs | — | Off |
 | Saved data | See what is kept for each world and server, and give a server whose address changed its earlier data | — | — |
+| Skip server resource packs | Show a server's world without its resource packs | — | Off |
+| Calculator | A calculator with stack, chest and shulker box units | — | — |
 
 Lamium's keys are its own and do not appear in Minecraft's keyboard
 settings. Change them under each feature or in the Hotkeys view; new

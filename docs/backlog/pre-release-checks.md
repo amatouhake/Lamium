@@ -22,7 +22,7 @@ Before tagging:
   all" and Mass Craft ran to the end; on two local servers the stores did
   not mix, each with its own file under `config/places/` (L-390 1-1).
 - README and FEATURES.md follow the seven settings categories (L-340,
-  L-392).
+  L-392): done 2026-11-23.
 - The release notes say: Sort has no default key (L-359); the settings
   categories changed (Schematics its own, Hands and equipment under
   Player, no counts); stores are kept per server and the old shared
