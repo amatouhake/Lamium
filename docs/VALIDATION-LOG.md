@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A group step made in a run, the game's bold on slot counts (L-385, 2026-11-22)
+
+Build `b81684d8` (DLL
+`37eb5f37548c1f38ad6977d651a8a343046adb37994f8c1126b1ebfb2a9fd13e`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: Make all makes
+wooden slabs from the planks an earlier step made; a group step's
+product shows the group's tip with its members. Faults: the bold code
+did not take (in Japanese the count all but vanished, in English it
+stayed thin); a full inventory ended the whole run ("the grid did not
+empty after the take", 0 and 64 rounds in the log).
+
 ## Tips in the game's box, Make all as far as carried (L-385, L-387, 2026-11-22)
 
 Build `d82dc86b` (DLL
