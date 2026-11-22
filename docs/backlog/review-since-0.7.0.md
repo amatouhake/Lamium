@@ -31,16 +31,6 @@ take are still sent; `clearPointer` is uncounted; a cell laid by the
 pointer is charged three, not two; "make" has no budget at all.
 Read; Server (L-165 "Next" asks the same).
 
-### 1-10 Low: a wanted change can wait for the next item screen to be saved
-`src/features/recipes/RecipeState.cpp:86`, `:150`. Changed within 0.8 s of
-closing the screen, the list is written only when an item screen is drawn
-again or Lamium stops; a crash before that loses the change. Read.
-
-### 1-11 Low: `places.json` is rewritten on every change of an open store
-`src/features/recipes/BandPages.cpp:334`, `RecipeState.cpp:171`. Up to four
-writes a second on the client thread; the wanted list waits 0.8 s for this
-reason. Read (frequency); Game: the hitch.
-
 ### 1-12 Low: the plan's shares are worked out without a bound
 `src/features/recipes/RecipeState.cpp:319`. VALIDATION-LOG has 8.2 ms for
 29 entries; a schematic may hand over 2048. Read (path); the larger costs

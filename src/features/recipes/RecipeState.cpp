@@ -30,6 +30,10 @@ std::atomic<std::shared_ptr<std::vector<StoreBox> const>> marks;
 void publishMarks() { marks.store(std::make_shared<std::vector<StoreBox> const>(storeBoxes(placed))); }
 std::optional<std::filesystem::path> placedFile;
 bool placedKeep = false;
+// The counted places change up to four times a second while a store is open: written once that settles, as the
+// wanted list is.
+bool placesDirty = false;
+std::chrono::steady_clock::time_point placesChangedAt{};
 std::map<std::string, Provider> providers;
 std::vector<Handed> handedNow;
 std::chrono::steady_clock::time_point handedAt{};
@@ -88,9 +92,12 @@ void saveWanted() {
         writeFileReplacing(*listFile, encodeWanted(list), "wanted items");
     } catch (std::exception const& error) { log(std::string("could not save the wanted items: ") + error.what()); }
 }
-// Writes the wanted list once its changes have settled; `now` writes it at once.
+void savePlaces();
+// Writes the wanted list and the counted places once their changes have settled; `now` writes them at once.
 void flushWanted(bool now) {
-    if (wantedDirty && (now || std::chrono::steady_clock::now() - wantedChangedAt >= wantedSettle)) saveWanted();
+    auto const at = std::chrono::steady_clock::now();
+    if (wantedDirty && (now || at - wantedChangedAt >= wantedSettle)) saveWanted();
+    if (placesDirty && (now || at - placesChangedAt >= wantedSettle)) savePlaces();
 }
 // The wanted list follows the joined world; asked a few times a second, not every frame.
 void followWorld() {
@@ -131,16 +138,22 @@ void followWorld() {
     } catch (...) { placedKeep = true; }
     publishMarks();
 }
-void writePlaces() {
+void savePlaces() {
     SaveCost const saveCost{"writePlaces"};
-    ++revision;
-    publishMarks();
+    placesDirty = false;
     if (!placedFile || placedKeep) return;
     try {
         std::error_code ignored;
         std::filesystem::create_directories(placedFile->parent_path(), ignored);
         writeFileReplacing(*placedFile, encodePlaces(placed), "counted places");
     } catch (std::exception const& error) { log(std::string("could not save the counted places: ") + error.what()); }
+}
+// A change of the counted places: shown at once, written once changes settle.
+void writePlaces() {
+    ++revision;
+    publishMarks();
+    placesDirty = true;
+    placesChangedAt = std::chrono::steady_clock::now();
 }
 std::int64_t nowSeconds() {
     return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -338,9 +351,13 @@ Shares const* shares(LocalPlayer& player) {
 void start() {
     // The stores' outlines are the world's: none in the next one until its places are read.
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
+        try { flushWanted(true); } catch (...) {} // still the files of the world left
         left = true;
         marks.store(nullptr);
     });
+}
+void settle() {
+    try { flushWanted(false); } catch (...) {}
 }
 void stop() {
     if (exitListener) { ll::event::EventBus::getInstance().removeListener(exitListener); exitListener.reset(); }

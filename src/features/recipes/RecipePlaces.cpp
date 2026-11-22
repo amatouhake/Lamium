@@ -113,6 +113,7 @@ void start() {
     renderListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
         try {
             auto& screen = event.screenView();
+            state::settle();
             auto const now = std::chrono::steady_clock::now();
             auto client = ll::service::getClientInstance();
             auto* player = client ? client->getLocalPlayer() : nullptr;

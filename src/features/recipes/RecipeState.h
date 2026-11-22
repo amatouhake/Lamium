@@ -12,11 +12,14 @@ class LocalPlayer;
 // L-359: what the player entered (RecipeNotes.h) as the screens share it,
 // loaded and saved here: the notes in Lamium's config folder for all worlds,
 // the wanted list beside the world's waypoints (map/WaypointSession.h). A
-// change is written at once and shows in every screen the next frame.
+// change shows in every screen the next frame; the notes are written at
+// once, the wanted list and the counted places once their changes settle.
 // Client thread only.
 namespace lamium::recipes::state {
 void start();
 void stop();
+// Writes the wanted list and the counted places once their changes settled, whatever screen is open; every frame.
+void settle();
 Notes const& notes();
 Wanted const& wanted();
 // What features hand over to the plan. A feature gives a function that says what it needs now (item
