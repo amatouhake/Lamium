@@ -86,7 +86,8 @@ bool safeKey(std::string const& key) {
     return !key.empty() && key.size() <= 140 && key.find_first_of("/\\:") == std::string::npos && key != ".." && key != ".";
 }
 }
-std::string encodeServers(servers::List const& all) {
+namespace {
+std::string encodeServerList(servers::List const& all) {
     Json list = Json::array(), worlds = Json::array();
     for (auto const& e : all.servers)
         list.push_back({{"key", e.key}, {"hosts", e.hosts}, {"ip", e.ip}, {"port", e.port}, {"levelId", e.levelId},
@@ -105,6 +106,20 @@ std::string encodeServers(servers::List const& all) {
     }
     return Json{{"version", 1}, {"servers", std::move(list)}, {"worlds", std::move(worlds)}, {"prints", std::move(prints)},
                 {"unsplit", all.unsplit}}.dump(2);
+}
+}
+// Never larger than the reader takes: past it, the prints used longest ago go first (they are kept most recently
+// used last), so the list stays readable.
+std::string encodeServers(servers::List const& all) {
+    auto text = encodeServerList(all);
+    if (text.size() <= maxDocument) return text;
+    auto kept = all;
+    while (text.size() > maxDocument && !kept.prints.empty()) {
+        auto const drop = std::max<size_t>(1, kept.prints.size() / 8);
+        kept.prints.erase(kept.prints.begin(), kept.prints.begin() + static_cast<std::ptrdiff_t>(std::min(drop, kept.prints.size())));
+        text = encodeServerList(kept);
+    }
+    return text;
 }
 servers::List decodeServers(std::string_view text) {
     if (text.size() > maxDocument) throw std::length_error("Server list document exceeds size limit");

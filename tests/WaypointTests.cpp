@@ -484,6 +484,20 @@ void worldPrints() {
     list.unsplit = unsplit;
     list.worlds.push_back({"realm_5", "Base", true});
     check(decodeServers(encodeServers(list)) == list, "prints, unsplit bases and a Realm's kind are saved");
+    {
+        // World names long enough to pass the reader's 1 MB (L-390 3-2): the oldest prints go, the list stays readable.
+        servers::List big;
+        for (int i = 0; i < 2000; ++i)
+            big.prints.push_back({"srv" + std::to_string(i), "srv" + std::to_string(i), {static_cast<std::uint64_t>(i + 1), std::string(700, 'n'), 0, false},
+                                  true, false, {}, 0});
+        auto const text = encodeServers(big);
+        bool readable = true;
+        servers::List back;
+        try { back = decodeServers(text); } catch (...) { readable = false; }
+        check(text.size() <= 1024 * 1024 && readable && !back.prints.empty() && back.prints.size() < big.prints.size()
+                  && back.prints.back() == big.prints.back(),
+              "a server list too large to read again is written without its oldest prints");
+    }
 }
 void waypointTests() {
     worldPrints();

@@ -38,16 +38,6 @@ rule 7). The editor's refusal chip and lit tray are `warning` now.
 
 ## Range 3: everything else
 
-### 3-2 Low: an unreadable `servers.json` still names a data set
-`WaypointSession.cpp` `withList`. The join goes on with an empty list, so
-a world on `<base>-w2`, or a server given other data, records into the
-base, with a log line only; the list is never rewritten while
-unreadable, so this lasts until the file is fixed by hand. The encoder
-has no size cap while the reader refuses past 1 MB. Read (logic);
-trigger not measured. Deferred: what a join does with an unreadable list
-is a maintainer choice; capping the encoder (dropping the oldest prints)
-is the cheap half.
-
 ## Questions for the maintainer (decided designs, not findings)
 
 1. "make" takes the output unchecked because the output slot cannot be

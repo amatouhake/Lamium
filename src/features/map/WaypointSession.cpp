@@ -128,6 +128,8 @@ struct MapMerge {
 };
 std::optional<MapMerge> mapMerge;
 std::optional<MergeProgress> mergeFinished;
+// Whether the last withList found the server list unreadable.
+bool listUnreadable = false;
 // Reads the server list, lets `edit` change it and saves it when it did. A list that cannot be read is never
 // overwritten: `edit` then works on an empty one and nothing is saved. The caller holds the lock.
 template<class Edit>
@@ -135,11 +137,13 @@ bool withList(Edit edit) {
     auto file = configFolder() / "servers.json";
     servers::List list;
     bool writable = true;
+    listUnreadable = false;
     std::error_code ignored;
     if (std::filesystem::exists(file, ignored)) {
         try { list = readServers(file); }
         catch (std::exception const& error) {
             writable = false;
+            listUnreadable = true;
             log(std::string("could not read the server list: ") + error.what());
         }
     }
@@ -201,6 +205,13 @@ std::optional<std::string> dataKey(Identity& who) {
         if (!who.byAddress() && pick.key != *base && prints::ownSet(*base, pick.key)) recordWorld(list, pick.key, who);
         if (pick.asked) questionName = shownKey(list, pick.other);
     });
+    if (listUnreadable) {
+        // Which data set this world uses is in the list: without it, nothing is written into data that may be
+        // another world's. Kept for this session only, as any file that cannot be read.
+        question.reset();
+        log("the server list could not be read; this world's data is kept for this session only");
+        return std::nullopt;
+    }
     question = pick.asked ? std::optional(pick) : std::nullopt;
     if (pick.asked)
         log("this world differs from its saved data (" + std::to_string(pick.diff) + "); "
