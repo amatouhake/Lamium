@@ -11,6 +11,13 @@ here was seen in game. Line numbers are that commit's.
 
 ## Range 1: recipes, plan, stores, Mass Craft
 
+### 1-4 Low (rest): Mass Craft beside a round crafted onto the pointer
+`src/features/recipes/RecipePlace.cpp` `massCraft::begin`. It now ends
+"make" and a waiting place (`place::stop`), which leaves a round being
+crafted onto the pointer going on (`tickOnto`, up to 1.5 s); Mass Craft
+starts only with an empty pointer. Likely; which of the round's steps
+leave the pointer empty was not read.
+
 ### 1-7 Low: "make" counts rounds as made once the grid reads empty
 `src/features/recipes/RecipePlace.cpp:449`. A server that refuses and puts
 the inputs back empties the grid too: the step is dropped as done and the
@@ -139,7 +146,8 @@ checked.
 ### 3-3 Low: a new world can be given a `-w<n>` key that still holds data
 `src/features/map/WaypointSession.cpp:64`. `held()` counts waypoints,
 placements, the death layout and the map, not shapes or wanted items, so
-such a key reads as unused. Data holding only wanted items is not listed
+such a key reads as unused (a counted places file in
+`config/places/` too). Data holding only wanted items is not listed
 on the Saved data page. Read.
 
 ### 3-4 Low: a merge that fails part way leaves the placements stale

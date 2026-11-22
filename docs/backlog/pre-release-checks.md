@@ -25,6 +25,13 @@ Do not infer game success from a build or unit-test result.
   both views, gathered rows on the panel. Not seen: a picked log kind, a
   group gathered from its breakdown step, the window's tabs beyond those
   (split by tab in `37301b53`, moves only), servers.
+- Fixes from the review since 0.7.0 (L-390), none seen in game: a
+  server's stores in `config/places/<key>.json` (two servers needed),
+  deleting saved data removing it; "make" ended by a click on the game's
+  window and by a Lamium key, and by Mass Craft starting; a quick tap of
+  the wanted key leaving no hold (the wheel pages again); Mass Craft
+  keeping a carried enchanted tool; the item list's search after a
+  language change and English search switched in a world.
 - How to make's shape (L-389) seen on `a11be728`: a group's ways and
   members in the item list's order, recipes with the rule's first and
   re-dyeing folded. Not seen: the wheel turning in that order.
