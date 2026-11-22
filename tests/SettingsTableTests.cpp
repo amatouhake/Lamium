@@ -35,8 +35,10 @@ void settingsTableTests() {
         check(t.footerButtonX(2) + SettingsTable::footerButtonWidth <= t.left + t.width, "footer buttons fit");
     }
     auto wide = SettingsTable::fit(640, 360, 60, 0);
-    check(wide.keyWidth == 88 && SettingsTable::fit(500, 360, 60, 0).keyWidth == 70,
+    check(wide.keyWidth >= 88 && SettingsTable::fit(500, 360, 60, 0).keyWidth == 70,
         "a narrower table narrows the key column first");
+    check(SettingsTable::fit(960, 540, 60, 0).keyWidth > wide.keyWidth && SettingsTable::fit(4000, 1000, 60, 0).keyWidth >= 140 && SettingsTable::fit(4000, 1000, 60, 0).keyWidth <= 150,
+        "a wider table widens the key column, up to 150 (L-372)");
     auto narrow = SettingsTable::fit(SettingsTable::minWidth + SettingsTable::margin, 360, 60, 0);
     check(narrow.usable() && narrow.width == SettingsTable::minWidth, "the narrowest layout still has every column");
     check(!SettingsTable::fit(400, 360, 60, 0).usable() && !SettingsTable::fit(640, 220, 60, 0).usable()

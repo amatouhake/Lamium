@@ -69,7 +69,8 @@ struct SettingsTable {
         t.tableWidth = t.width - sidebarWidth;
         t.theadTop = body;
         t.rowsTop = body + theadHeight;
-        t.keyWidth = t.tableWidth < 380 ? 70 : 88;
+        // The key column grows with a wide table (L-372), so long chords fit where there is room.
+        t.keyWidth = t.tableWidth < 380 ? 70 : std::clamp(t.tableWidth * .28f, 88.f, 150.f);
         t.nameX = t.tableLeft + pad;
         t.visible = std::max(0, static_cast<int>((t.footerTop - t.rowsTop - 2) / rowHeight));
         t.keyX = t.tableLeft + t.contentWidth() - pad - t.keyWidth;
