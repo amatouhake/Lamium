@@ -1100,7 +1100,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.howTo.any", "任意"},
     {"recipes.howTo.anyTip", "合计持有的各个种类"},
     {"recipes.howTo.auto", "自动"},
-    {"recipes.howTo.autoIs", "自动: {}"},
     {"recipes.howTo.chosenIs", "已选择: {}"},
     {"recipes.group.showing", "显示中: {}"},
     {"recipes.group.wheel", "滚轮: 查看各个种类"},

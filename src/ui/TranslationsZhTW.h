@@ -1100,7 +1100,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"recipes.howTo.any", "任意"},
     {"recipes.howTo.anyTip", "合計持有的各個種類"},
     {"recipes.howTo.auto", "自動"},
-    {"recipes.howTo.autoIs", "自動: {}"},
     {"recipes.howTo.chosenIs", "已選擇: {}"},
     {"recipes.group.showing", "顯示中: {}"},
     {"recipes.group.wheel", "滾輪: 查看各個種類"},

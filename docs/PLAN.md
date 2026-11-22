@@ -126,7 +126,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   make", or on its breakdown step).
 - "How to make" holds the choices for all plans and worlds, by name,
   each line's state on one line with one arrow where the other tabs'
-  table starts; lines for the current plan, or with a switch all chosen
+  table starts (an item's: the way in use as its row below shows it,
+  faint with "automatic" while the rule decides); lines for the current plan, or with a switch all chosen
   before. Placing follows it, else what is held (L-389,
   demos/howto-choices-3.html): words one line, right after each row's
   pictures. A group opens "<kind>から作る" where traced, "<group>を集める",

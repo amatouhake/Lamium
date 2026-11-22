@@ -990,28 +990,25 @@ struct Lists : Window {
                 bool const chosen = notes.choices.contains(key) && now >= 0;
                 if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
                 if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
-                icon(key, left + 8, y + 2);
-                windowLabel(context, nameX, y + 6, arrowX - nameX - 4, nameOf(line.item));
-                // Made from: the recipe in use shown by its first input; gathered (by the player or with no recipe in use),
-                // the item itself.
-                windowSlot(context, slotX, y + 1);
-                if (gathered || now < 0) icon(key, slotX + 1, y + 2);
-                else if (now >= 0)
-                    if (auto const& recipe = index.recipes[static_cast<size_t>(now)]; !recipe.uses.empty()) icon(pictureOf(partItem(index, request, recipe.uses.front())), slotX + 1, y + 2);
-                changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
-                // The player's "gather" reads as chosen; the rule's (leather, diamond) as "Automatic: gather".
-                if (gathered) words(y, translated("recipes.howTo.chosenIs", translated("recipes.toGather")), true);
-                else if (chosen) words(y, translated("recipes.howTo.chosenIs", recipeName(now)), true);
-                else words(y, translated("recipes.howTo.autoIs", rule >= 0 ? recipeName(rule) : translated("recipes.toGather")), false);
-                // Left the item; right what it is made from now (gathered: the item itself).
-                if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
-                else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
-                    Item from = gathered || now < 0 ? line.item : -1;
-                    if (!gathered && now >= 0)
-                        if (auto const& recipe = index.recipes[static_cast<size_t>(now)]; !recipe.uses.empty()) from = partItem(index, request, recipe.uses.front());
-                    if (from >= itemCount) groupTip(from - itemCount, slotX, y + 1);
-                    else if (from >= 0) late.tip = nameOf(from), late.hovered = index.items[static_cast<size_t>(from)];
+                // The way in use as its row below shows it (L-389): a recipe's slots and station, "gather" by the item, and
+                // the rule's way faint with the word "automatic"; the name gives way to the slots.
+                bool const automatic = !gathered && !chosen;
+                int const shownRecipe = gathered ? -1 : automatic ? rule : now;
+                float nameEnd = arrowX - 4, after = slotX + 22;
+                if (shownRecipe >= 0) {
+                    StepLine const way{line.item, shownRecipe, 1, index.recipes[static_cast<size_t>(shownRecipe)].count, 0, 0};
+                    size_t const parts = std::min<size_t>(stepParts(index, request, way).size(), 4);
+                    nameEnd = std::max(optionX, arrowX - static_cast<float>(parts) * 18) - 4;
+                    after = stepSlots(optionX, y, way, automatic, false) + 2;
+                } else {
+                    windowSlot(context, slotX, y + 1, false);
+                    icon(key, slotX + 1, y + 2, 1.f, automatic ? .45f : 1.f);
+                    if (over(slotX, y + 1, 18, 18)) late.tip = nameOf(line.item), late.hovered = key;
                 }
+                icon(key, left + 8, y + 2);
+                windowLabel(context, nameX, y + 6, nameEnd - nameX, nameOf(line.item));
+                if (automatic || gathered) windowLabel(context, after, y + 6, right - after, translated(automatic ? "recipes.howTo.auto" : "recipes.toGather"));
+                if (late.tip.empty() && over(left, y, nameEnd - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
                 if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
             } else if (line.kind == Line::Kind::Option) {
                 // An item's ways as rows of slots on a sunk face (L-389): "automatic" (the rule's way, faint, its word
