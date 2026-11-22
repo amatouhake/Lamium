@@ -8,11 +8,14 @@
 // (Item transfer). Hotkeys lists them as read-only rows under their feature
 // so a key's every use can be found; their keys cannot be changed.
 namespace lamium::input {
-// One cap: a token Find by key matches, and the translation key drawn for it
-// when the token's own name would not say it (a drag, the drop key).
+// One cap: a token Find by key matches, named as a binding names it. `text`
+// (a translation key) replaces that name where no binding has the input (the
+// wheel in either direction, the game's drop key) or, with `suffix`, follows
+// it (a drag: the button, then "drag").
 struct FixedCap {
     Token token{Device::Key, 0};
     std::string_view text;
+    bool suffix = false;
     bool matches() const { return token.code != 0; }
 };
 enum class FixedTarget { None, LamiumList, GameSlot };
@@ -26,9 +29,9 @@ struct FixedPress {
 namespace fixed_caps {
 inline constexpr FixedCap shift{{Device::Key, 0x10}}, ctrl{{Device::Key, 0x11}}, alt{{Device::Key, 0x12}}, esc{{Device::Key, 0x1B}};
 inline constexpr FixedCap wheel{{Device::Wheel, 1}, "fixed.cap.wheel"};
-inline constexpr FixedCap leftClick{{Device::Mouse, 1}, "fixed.cap.leftClick"}, rightClick{{Device::Mouse, 2}, "fixed.cap.rightClick"};
-inline constexpr FixedCap click{{Device::Mouse, 1}, "fixed.cap.click"};
-inline constexpr FixedCap leftDrag{{Device::Mouse, 1}, "fixed.cap.leftDrag"}, rightDrag{{Device::Mouse, 2}, "fixed.cap.rightDrag"};
+inline constexpr FixedCap leftClick{{Device::Mouse, 1}}, rightClick{{Device::Mouse, 2}};
+inline constexpr FixedCap click = leftClick;
+inline constexpr FixedCap leftDrag{{Device::Mouse, 1}, "fixed.cap.drag", true}, rightDrag{{Device::Mouse, 2}, "fixed.cap.drag", true};
 inline constexpr FixedCap dropKey{{Device::Key, 0}, "fixed.cap.dropKey"}; // the game's own binding, not known here
 }
 inline constexpr auto fixedPresses = [] {

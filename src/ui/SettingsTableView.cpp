@@ -723,8 +723,10 @@ std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress c
     std::vector<std::string> keys;
     for (int i = 0; i < input::fixedCapCount(press); ++i) {
         auto const& cap = press.caps[i];
-        if (!cap.text.empty()) keys.push_back(translated(cap.text));
-        else if (auto names = chordKeys(current, input::Chord{cap.token}); !names.empty()) keys.push_back(names.front());
+        if (!cap.text.empty() && !cap.suffix) { keys.push_back(translated(cap.text)); continue; }
+        auto names = chordKeys(current, input::Chord{cap.token});
+        if (names.empty()) continue;
+        keys.push_back(cap.suffix ? names.front() + " " + translated(cap.text) : names.front());
     }
     return keys;
 }

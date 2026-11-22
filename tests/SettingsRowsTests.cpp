@@ -1,6 +1,7 @@
 #include "app/PausedFeatures.h"
 #include "features/map/MapCave.h"
 #include "ui/SettingsRows.h"
+#include "ui/KeyLabel.h"
 #include "ui/HudEditorLayout.h"
 #include "ui/SettingsNavigation.h"
 #include "ui/Translations.h"
@@ -22,6 +23,9 @@ void settingsRowsTests() {
         check(navigation.current == 4, "manual navigation from a dedicated screen becomes the normal destination");
     }
     auto translate = [](std::string_view key) { return std::string(ui::translations::find(key, "en_US")); };
+    check(ui::mouseGlyph(1) == "" && ui::mouseGlyph(2) == "" && ui::mouseGlyph(3) == ""
+          && ui::mouseGlyph(4).empty() && ui::mouseGlyph(5).empty(),
+          "mouse buttons 1-3 are the game font's light mouse glyphs; the side buttons keep their number (L-372)");
     check(ui::actionTitle(input::Action::Zoom, translate) == "Zoom"
           && ui::actionTitle(input::Action::HideWeather, translate) == "Hide effects > Rain and snow"
           && ui::actionTitle(input::Action::FreeCameraSpeedUp, translate) == "FreeCamera > Increase speed"
