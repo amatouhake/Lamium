@@ -1022,6 +1022,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         iconsWorld = worldGeneration.load();
         for (auto [stack, name] : {std::pair{&overworldIcon, "minecraft:grass_block"}, std::pair{&netherIcon, "minecraft:netherrack"}})
             if (newWorld || stack->isNull()) {
+                if (newWorld) *stack = ItemStack(); // not reinit over the last world's block
                 try { stack->reinit(name, 1, 0); } catch (...) { *stack = ItemStack(); }
                 stack->mShowPickUp = false; // A new stack would play the pickup pop.
                 stack->mWasPickedUp = false;

@@ -350,13 +350,20 @@ Shares const* shares(LocalPlayer& player) {
         if (workingFrom && workingFrom->table == from.table && !from.same(*workingFrom)) newer = true;
         else if (from.same(keptFrom)) working.reset(), workingFrom.reset();
         else if (!workingFrom || !from.same(*workingFrom)) {
+            // Shares of another table name its items by other ids: none are shown until the new ones are.
+            if (from.table != keptFrom.table) kept = {}, keptFrom = {};
             working.emplace(order, now->request.held, now->request.picks, now->request.stops);
             workingFrom = std::move(from);
             workingSince = std::chrono::steady_clock::now();
         }
     }
     if (!working) return &kept;
+    // One slice a frame: the panel and the window both ask, and rows built from the first answer must not meet
+    // shares replaced by the second.
+    static std::chrono::steady_clock::time_point sliced{};
     auto const started = std::chrono::steady_clock::now();
+    if (started - sliced < std::chrono::milliseconds(8)) return &kept;
+    sliced = started;
     do working->step(workingFrom->table->index, *workingFrom->choice);
     while (!working->done() && std::chrono::steady_clock::now() - started < std::chrono::milliseconds(3));
     if (!working->done()) return &kept;

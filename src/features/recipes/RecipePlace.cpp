@@ -390,7 +390,7 @@ struct Making {
     bool took = false;
     int tries = 0;  // steps waited for the grid to read empty, or for the take to show
     int made = 0;   // rounds made, for the log
-    int refused = 0; // lays in a row the grid gave back before any take
+    int refused = 0; // lays in a row the grid gave back before any take, three at most
     std::chrono::steady_clock::time_point next, seen; // seen: the last frame its screen was drawn
 } making;
 void finishMaking(char const* why) {
@@ -459,7 +459,7 @@ void tickMaking(ScreenView& screen) {
             if (!making.took) {
                 // Empty before any take was sent: the lay was refused and the inputs went back (L-390 1-7). Nothing
                 // was made; it is laid in again, and the run ends when that keeps happening.
-                if (++making.refused > mostTries) { finishMaking("the rounds laid in were given back"); return; }
+                if (++making.refused > 3) { finishMaking("the rounds laid in were given back"); return; }
                 making.phase = Making::Phase::Lay;
                 making.tries = 0;
                 return;
