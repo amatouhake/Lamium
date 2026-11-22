@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Thin slot counts, making within the inventory's room (L-385, 2026-11-22)
+
+Build `b391ecfb` (DLL
+`83e4360c5547c811efe23c36e7b977c212b203ef179468becd2c7b6149897ae7`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: "749k" and "1.0M"
+thin and inside the slot in Japanese and English; with the inventory
+nearly full, Make all made the planks that fit and stopped cleanly.
+Fault: sixty-four planks into sixty-four buttons were not made, by
+Make all or by the row's make, the room counting none of the slots the
+inputs empty.
+
 ## A group step made in a run, the game's bold on slot counts (L-385, 2026-11-22)
 
 Build `b81684d8` (DLL
