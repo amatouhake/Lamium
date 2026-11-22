@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Cobblestone gathered, the Wanted tab still on the wheel (L-370, 2026-11-22)
+
+Build `95cf0251` (DLL
+`b970aa929d3a05422ad940916d57cf1b9eff20c3b8bde5ac2d07f4f8f42431ec`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: a piston's plan
+gathers cobblestone, with no stonecutter step; the Wanted tab no longer
+moves on the wheel while its rows fit. The log's loops' bases name
+cobblestone and cobbled deepslate; the other loops (metals, gems, wool
+colors and the like) keep bases a furnace has no part in. Two read
+oddly and are not checked: chiseled sandstone and the purpur pillar are
+the bases of their loops, not sandstone and the purpur block.
+
 ## How to make's line showing the way in use (L-389, 2026-11-22)
 
 Build `0dd490d5` (DLL
