@@ -111,8 +111,7 @@ void followWorld() {
     placedFile.reset();
     placedKeep = false;
     ++revision;
-    if (!listFile) return;
-    try {
+    if (listFile) try {
         auto document = readDocument(*listFile, listKeep);
         if (document) {
             listKeep = !documentReadable(*document);
@@ -120,8 +119,8 @@ void followWorld() {
         }
         if (listKeep) log("the wanted items' file could not be read; changes are kept for this session only");
     } catch (...) { listKeep = true; }
-    // The counted places are the world's too, in a file beside it.
-    placedFile = listFile->parent_path() / "places.json";
+    placedFile = place.active ? place.placesFile : std::nullopt;
+    if (!placedFile) { publishMarks(); return; }
     try {
         auto document = readDocument(*placedFile, placedKeep);
         if (document) {

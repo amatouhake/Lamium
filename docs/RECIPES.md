@@ -359,7 +359,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   chosen recipes, picked members and items marked as gathered, for all
   worlds in the config folder's `recipes.json`; the wanted items per world
   in `wanted.json` beside its waypoints, the counted places (`Places.h`,
-  pure) in `places.json` there; `RecipePlaces.cpp` reads the open
+  pure) in `places.json` (for a server `config/places/<key>.json`); `RecipePlaces.cpp` reads the open
   container behind the CountedPlaces capability. `RecipeState.cpp` loads and saves
   them and works the plan out. A file that cannot be read is left as it is
   and the changes are kept for the session only.

@@ -58,7 +58,8 @@ void log(std::string const& text) {
 }
 // The data kinds kept per server, each in its own folder of the config folder.
 constexpr std::string_view mapFolder = "map", waypointFolder = "waypoints", schematicFolder = "schematics",
-    deathFolder = "death-layouts", shapeFolder = "shapes", wantedFolder = "wanted";
+    deathFolder = "death-layouts", shapeFolder = "shapes", wantedFolder = "wanted",
+    placesFolder = "places";
 // How much a key holds (servers::choose): its documents first, then the size of its map, counted up to a limit
 // so that a large map costs a bounded walk at join. Below zero: nothing is there.
 long long held(std::filesystem::path const& config, std::string const& key) {
@@ -228,6 +229,8 @@ void attach() {
     catch (std::exception const& error) { log(std::string("no file for shapes: ") + error.what()); }
     try { joined.wantedFile = resolve(identity, "wanted.json", wantedFolder, true); }
     catch (std::exception const& error) { log(std::string("no file for wanted items: ") + error.what()); }
+    try { joined.placesFile = resolve(identity, "places.json", placesFolder, true); }
+    catch (std::exception const& error) { log(std::string("no file for counted places: ") + error.what()); }
     try {
         destination = resolve(identity, "waypoints.json", waypointFolder, true);
         if (destination && std::filesystem::exists(*destination)) set = readWaypoints(*destination);
@@ -736,7 +739,8 @@ bool removeData(SavedData const& item) {
         try {
             // localWorldFile checks that the folder is a world of the game's own worlds folder.
             std::vector<std::filesystem::path> files;
-            for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json", "shapes.json", "wanted.json"})
+            for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json", "shapes.json", "wanted.json",
+                                           "places.json"})
                 if (auto file = overlay::localWorldFile(identity.worlds, item.key, name)) files.push_back(*file);
             if (!remove(files, overlay::localWorldFile(identity.worlds, item.key, "map"))) return false;
         } catch (std::exception const& error) { log(std::string("could not delete a world's data: ") + error.what()); return false; }
@@ -749,7 +753,7 @@ bool removeData(SavedData const& item) {
     try {
         auto config = configFolder();
         std::vector<std::filesystem::path> files;
-        for (auto folder : {waypointFolder, schematicFolder, deathFolder, shapeFolder, wantedFolder})
+        for (auto folder : {waypointFolder, schematicFolder, deathFolder, shapeFolder, wantedFolder, placesFolder})
             files.push_back(config / folder / (item.key + ".json"));
         // The same path as resolve() gives the store.
         removed = remove(files, config / std::filesystem::u8path(mapFolder) / std::filesystem::path(item.key));

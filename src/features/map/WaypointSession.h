@@ -46,6 +46,9 @@ struct Place {
     std::optional<std::filesystem::path> shapeFile;
     // The hand-filled wanted items of the recipes (L-359), same rules.
     std::optional<std::filesystem::path> wantedFile;
+    // The stores and ender chest counted for the plan, same rules; for a server its own file, never
+    // one shared by every server.
+    std::optional<std::filesystem::path> placesFile;
 };
 Place place();
 }

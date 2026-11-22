@@ -11,21 +11,6 @@ here was seen in game. Line numbers are that commit's.
 
 ## Range 1: recipes, plan, stores, Mass Craft
 
-### 1-1 High: one `places.json` for every server, Realm and friend's world
-`src/features/recipes/RecipeState.cpp:124`, `src/features/map/WaypointSession.cpp:202`, `:739`, `:752`.
-A server's `wanted.json` is `config/wanted/<key>.json`, and the places file
-is put beside it by its parent folder: `config/wanted/places.json` for every
-key. A local world's is per world.
-- Server A's stores and ender chest count as held on server B, and B's
-  world shows A's outlines.
-- On B, within 48 blocks of one of A's store positions
-  (`RecipePlaces.cpp:105`), or on opening a container there
-  (`Places.h:70`), A's store is dropped and the file saved.
-- Deleting saved data never deletes `places.json` (neither list names it);
-  PLAN.md "Limits" says it goes.
-Read. Game: needs a second server. Stores is experimental and off by default.
-Open choice: what becomes of an existing `config/wanted/places.json`.
-
 ### 1-2 Medium: Mass Craft can throw the player's own stack of the product
 `src/features/recipes/MassCraftPlan.h:75` (`excess`), `RecipePlace.cpp:666` (`keep`), `RecipeIndex.h:151`.
 `keep` is a count, not the stacks. Items are told apart by name (aux only

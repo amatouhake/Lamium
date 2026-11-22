@@ -244,7 +244,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   `RecipeState.cpp` works it out; `PlanViewDraw.cpp` draws the window;
   `ItemList.cpp` hosts the panel ([RECIPES.md](RECIPES.md) "Code").
 - The wanted items per world in `wanted.json` beside its waypoints, the
-  counted places (`Places.h`, pure) in `places.json` there;
+  counted places (`Places.h`, pure) in `places.json` (a local world's
+  Lamium folder; for a server `config/places/<key>.json`);
   `RecipePlaces.cpp` reads the open container behind the CountedPlaces
   capability.
 - Features hand targets over through `state::provide` (a function the
@@ -260,6 +261,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   server's saved data is deleted, but the Saved data screen does not count
   or show it, and moving a server's data to another key leaves it
   ([L-358](backlog/L-358.md)).
+- Builds before the per-server places file kept every server's counted
+  places in one `config/wanted/places.json`. It is not read and not
+  deleted, since nothing tells whose it was.
 - The split (L-373) is not checked in game.
 - Mockups: [demos/recipe-plan.html](demos/recipe-plan.html) to
   `recipe-plan-4.html`, [demos/plan-window.html](demos/plan-window.html).
