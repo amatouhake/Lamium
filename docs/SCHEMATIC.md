@@ -179,9 +179,9 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   when short. Blocks first, then entities ("-" carried unless an item places
   them, such as an armor stand).
 - Amounts convert to "1 chest + 4 stacks + 5" (a chest is 27 stacks; smaller
-  stack sizes respected) on hover and in the right pane. The right pane shows
-  the missing materials as slots, "Show on the schematic HUD", and "Open in
-  ResourceCalculator" with what is missing in the URL fragment.
+  stack sizes respected) on hover and in the right pane. The right pane has
+  the switches (a cut name whole, their help in the footer, under the
+  pointer) and "Open in ResourceCalculator", what is missing in the URL.
 - Blocks still to place only (L-383); "Put what is left into the plan"
   (saved, off) hands them to the plan ([PLAN.md](PLAN.md)), which traces
   them. Japanese: "材料". ResourceCalculator is only linked to (GPL-3.0).

@@ -749,6 +749,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.schematic.hudVerify", "显示正确、未放置、错误或多余、状态错误的数量，以及到最近错误的距离。"},
     {"help.schematic.hudMaterials", "列出剩余最多的材料（最多五种），携带不足时为黄色。"},
     {"help.schematic.planMaterials", "将当前核对的放置中尚未放置的材料加入配方的“想要的物品”，在那里分为需要收集和需要制作的物品。它们会标明来自蓝图并随蓝图变化，无法在那里编辑。"},
+    {"help.schematic.shownLayersOnly", "只计算当前显示的层的材料；关闭时计算整个放置。"},
     {"help.key.openschematics", "以上次使用的标签打开蓝图界面。"},
     {"help.key.nearestmistake", "用方框和光柱标出最近的错误、多余或状态错误的方块。"},
     {"help.key.ignorelookedblock", "在核对中忽略所选放置中准星对准的位置，再按一次则不再忽略。忽略的位置不计入统计。在所有同种方块上忽略差异请在核对标签页中进行。"},

@@ -1333,6 +1333,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     // Check row's name that was cut.
     struct Tip { std::string text; float x = 0, y = 0; };
     std::optional<Tip> listTip;
+    std::string fieldHelp; // what the field row under the pointer does, for the footer (2026-11-22)
     // The ignore view's row (L-183): a heading, "None", a place (the row's
     // kind square, hollow; its block; a tag; the distance) or a block type
     // (its icon and name, tagged with the items ruled on it).
@@ -1549,11 +1550,18 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         label(context,dx,y+22,dw,translated("schematic.entities", structure->entities.size()),palette::dim);
         label(context,dx,y+33,dw,relative,palette::faint);
     };
-    auto stepperRow = [&](int i, std::string_view key, std::string value, bool isSwitch, bool on) {
+    // A row of the details: its name (whole in a tip where cut) and its stepper or switch; under the pointer its
+    // `help` goes to the footer.
+    auto stepperRow = [&](int i, std::string_view key, std::string value, bool isSwitch, bool on, char const* help = nullptr) {
         if (i < l.fieldFirst || i >= l.fieldFirst + l.fieldVisible) return;
         float y = l.fieldY(i);
-        rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,schematicFieldSelected == i,over(ShapeZone::Field,i));
-        label(context,dx,y+3,l.stepperX()-dx-4,translated(key),palette::dim);
+        bool const hovered = over(ShapeZone::Field,i);
+        rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,schematicFieldSelected == i,hovered);
+        std::string name = translated(key);
+        float const nameW = l.stepperX()-dx-4;
+        if (hovered && pointer.x < dx + nameW && textWidth(context, name) > nameW) listTip = {name, pointer.x, pointer.y};
+        if (hovered && help) fieldHelp = translated(help);
+        label(context,dx,y+3,nameW,std::move(name),palette::dim);
         if (isSwitch) toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,on);
         else drawShapeStepper(context,l,y,false,std::move(value),nullptr,pointer.x,pointer.y);
     };
@@ -2152,11 +2160,11 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             label(context,dx,l.previewY+22,dw,translated("schematic.materials.short", shortKinds),shortKinds ? palette::warning : palette::accent);
         }
         label(context,dx,l.previewY+35,dw,layersText(*checked),palette::faint);
-        stepperRow(0, "schematic.shownLayersOnly", {}, true, materialsShownOnly);
-        stepperRow(1, "schematic.materials.hud", {}, true, Runtime::instance().preferences().schematic.hud);
+        stepperRow(0, "schematic.shownLayersOnly", {}, true, materialsShownOnly, "help.schematic.shownLayersOnly");
+        stepperRow(1, "schematic.materials.hud", {}, true, Runtime::instance().preferences().schematic.hud, "help.schematic.hudMaterials");
         // What is left goes to the plan of Recipes, which traces it to what to gather (L-359, L-383): this tab keeps
         // the blocks to place.
-        stepperRow(2, "schematic.materials.plan", {}, true, Runtime::instance().preferences().schematic.planMaterials);
+        stepperRow(2, "schematic.materials.plan", {}, true, Runtime::instance().preferences().schematic.planMaterials, "help.schematic.planMaterials");
         float y = l.fieldY(2) + ShapesLayout::rowHeight + 6;
         if (materialSelected >= 0 && materialSelected < static_cast<int>(materialRows.size())) {
             auto const& line = *materialRows[static_cast<size_t>(materialSelected)];
@@ -2188,7 +2196,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
     bool shortFooter = l.docked;
-    std::string text = !screen::message().empty() ? screen::message() : schematicDescription();
+    std::string text = !screen::message().empty() ? screen::message() : !fieldHelp.empty() ? fieldHelp : schematicDescription();
     if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : screen::messageColor());
     else {
         paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());

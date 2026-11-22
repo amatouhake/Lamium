@@ -758,6 +758,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.schematic.hudVerify", "Show correct, not placed, wrong or extra and wrong-state counts, and the distance to the nearest mistake.", "正しい数・未設置・違う/余計・状態違いの数と、最も近い間違いまでの距離を出します。"},
     {"help.schematic.hudMaterials", "List the materials with the most left to place (up to five), yellow when you carry too few.", "残りが多い材料を最大 5 つ出します。手持ちが足りないものは黄色です。"},
     {"help.schematic.planMaterials", "Puts the materials still to place for the checked placement among the wanted items of Recipes, where they are traced to what to gather and what to make. They are marked as the schematic's and change with it; they cannot be edited there.", "照合中の配置でまだ置いていない材料を、レシピの「欲しい物」に入れます。そこで集めるものと作るものに分けて表示されます。設計図からの物として表示され、設計図に合わせて変わります。そこでは編集できません。"},
+    {"help.schematic.shownLayersOnly", "Counts the materials of the shown layers only; off counts the whole placement.", "表示中の層の材料だけを数えます。オフでは配置全体を数えます。"},
     {"help.key.openschematics", "Opens the Schematics screen on the tab used last.", "設計図の画面を、最後に使ったタブで開きます。"},
     {"help.key.nearestmistake", "Marks the nearest wrong, extra or wrong-state block with a box and a beam.", "最も近い、違う・余計・状態違いのブロックに、箱と光の柱で印を出します。"},
     {"help.key.ignorelookedblock", "Ignores the looked-at place of the selected placement in the check, or stops ignoring it: an ignored place is not counted. Differences on every such block are ignored in the Check tab.", "選択中の配置の、見ている場所を照合で無視します。もう一度押すと無視をやめます。無視した場所は数えません。同じブロック全部での違いの無視は照合タブで行います。"},
