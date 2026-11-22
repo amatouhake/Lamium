@@ -11,23 +11,6 @@ here was seen in game. Line numbers are that commit's.
 
 ## Range 1: recipes, plan, stores, Mass Craft
 
-### 1-2 Medium: Mass Craft can throw the player's own stack of the product
-`src/features/recipes/MassCraftPlan.h:75` (`excess`), `RecipePlace.cpp:666` (`keep`), `RecipeIndex.h:151`.
-`keep` is a count, not the stacks. Items are told apart by name (aux only
-where the table has variants), so wear, enchantments and names do not
-count. Throws go from slot 35 back: carrying an enchanted iron pickaxe and
-mass crafting iron pickaxes keeps only the lowest slot's, which may be a
-new one. Same for firework rockets and named stacks.
-Read (logic); Game: which slot a Shift take fills. RECIPES.md says what was
-carried stays; its "Limits" says items differ by name and aux only.
-`tests/RecipeIndexTests.cpp:557` checks counts only.
-
-### 1-4 Low (rest): Mass Craft beside a round crafted onto the pointer
-`src/features/recipes/RecipePlace.cpp` `massCraft::begin`. It now ends
-"make" and a waiting place (`place::stop`), which leaves a round being
-crafted onto the pointer going on; Mass Craft starts only with an empty
-pointer, so the overlap is that round's Fetch step. Read.
-
 ### 1-6 Medium: the item list's search keeps the old names
 `src/features/recipes/ItemList.cpp:251`, `:308`, `src/ui/GameLanguage.cpp:60`.
 The folded names, English names and tooltip texts are rebuilt only after

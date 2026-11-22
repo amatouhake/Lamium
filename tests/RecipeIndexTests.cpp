@@ -554,9 +554,12 @@ void recipeIndexTests() {
               "the grid's items name the shaped recipe they lay out, and nothing else does");
         check(recipeInGrid(index, 3, {-1, -1, oak, -1, -1, birch, -1, -1, -1}) == at(stick) && recipeInGrid(index, 2, {-1, -1, -1, birch}) == at(button),
               "a shape is found anywhere in the grid with any member of its group, an any-order recipe by its items");
-        check(excess({{oak, 64}, {oak, 9}, {iron, 3}, {-1, 0}}, oak, 5) == std::vector<Throw>{{1, 9, true}, {0, 59, false}}
-              && excess({{oak, 5}, {iron, 3}}, oak, 5).empty() && excess({{oak, 5}}, oak, 0) == std::vector<Throw>{{0, 5, true}},
+        check(excess({{oak, 64}, {oak, 9}, {iron, 3}, {-1, 0}}, oak, {5, 0, 0, 0}) == std::vector<Throw>{{1, 9, true}, {0, 59, false}}
+              && excess({{oak, 5}, {iron, 3}}, oak, {5, 0}).empty() && excess({{oak, 5}}, oak, {0}) == std::vector<Throw>{{0, 5, true}},
               "the product beyond what was carried at the start is thrown out, whole stacks from the last slot back");
+        check(excess({{pickaxe.makes, 1}, {pickaxe.makes, 1}, {-1, 0}}, pickaxe.makes, {0, 1, 0}) == std::vector<Throw>{{0, 1, true}}
+              && excess({{oak, 4}, {oak, 1}}, oak, {5, 0}).empty() && excess({{oak, 3}, {oak, 64}}, oak, {}) == std::vector<Throw>{{1, 64, true}, {0, 3, true}},
+              "a stack carried at the start stays in its slot though a later one is the same item, and no more than the whole is over");
         check(roomSlot(index, pickaxe, {{0, iron, 64}, {1, sticks, 5}, {2, iron, 9}, {3, oak, 2}, {4, oak, 3}}) == 2
               && roomSlot(index, pickaxe, {{0, iron, 64}, {1, sticks, 5}}) < 0 && roomSlot(index, pickaxe, {{0, iron, 1, 1}, {1, iron, 1, 1}}) < 0,
               "room is made by the smallest stack of an ingredient carried twice, never its only stack nor what does not stack");

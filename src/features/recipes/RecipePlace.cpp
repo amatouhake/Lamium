@@ -26,6 +26,7 @@
 #include <chrono>
 #include <climits>
 #include <format>
+#include <numeric>
 #include <string>
 
 namespace lamium::recipes {
@@ -522,7 +523,7 @@ struct Run {
     int recipe = -1;
     std::map<int, Item> picks;
     Phase phase = Phase::Take;
-    int keep = 0;      // of the product, what the player carried when the run began: it stays
+    std::vector<int> kept; // of the product, per slot, what the player carried when the run began: it stays
     char const* wait = ""; // why the last step did nothing, for the log
     char const* told = nullptr;
     int done = 0;          // rounds, takes and throws when something last happened
@@ -666,7 +667,7 @@ void begin(CraftingScreenController& controller) {
     run.next = run.began = run.since = run.doneAt = Clock::now();
     bool anyFree = false;
     for (auto const& [item, count] : slotsOf(manager, run.table->index, anyFree))
-        if (item == run.table->index.recipes[static_cast<size_t>(recipe)].makes) run.keep += count;
+        run.kept.push_back(item == run.table->index.recipes[static_cast<size_t>(recipe)].makes ? count : 0);
     try {
         Runtime::instance().self().getLogger().info("Mass Craft: started with {} (the game names {})", run.table->index.recipes[static_cast<size_t>(recipe)].id, named);
     } catch (...) {}
@@ -707,7 +708,7 @@ bool clearPointer(CraftingScreenController& controller, Index const& index, Item
 int throwExcess(CraftingScreenController& controller, Index const& index, Item product, int& budget) {
     bool anyFree = false;
     int thrown = 0;
-    for (auto const& out : excess(slotsOf(*controller.mContainerManagerController, index, anyFree), product, run.keep)) {
+    for (auto const& out : excess(slotsOf(*controller.mContainerManagerController, index, anyFree), product, run.kept)) {
         if (budget <= 0) break;
         budget -= out.whole ? 1 : 2;
         bool const sent = out.whole ? inventory::game::transferRoutes::drop(controller, collectionOf(out.slot), indexOf(out.slot), false)
@@ -744,7 +745,7 @@ void advance(CraftingScreenController& controller) {
             Runtime::instance().self().getLogger().info(
                 "Mass Craft: waiting ({}): phase {}, grid {} makes {} ours {}, pointer {}, slots filled {} free {}, plan fits {} missing {} crafts {} moves {}, keep {}",
                 run.wait, static_cast<int>(run.phase), gridEmpty(manager) ? "empty" : "filled", makes(manager), makesProduct(manager, index, recipe.makes),
-                held(manager), carried, free, plan.fits, plan.missing.size(), plan.crafts, plan.moves.size(), run.keep);
+                held(manager), carried, free, plan.fits, plan.missing.size(), plan.crafts, plan.moves.size(), std::accumulate(run.kept.begin(), run.kept.end(), 0));
         } catch (...) {}
     }
     run.wait = "nothing to do";

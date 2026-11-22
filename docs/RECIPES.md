@@ -251,8 +251,9 @@ A setting of its own, off by default, and it works with Recipes off
 - A round: all the grid makes is taken into the inventory, the product
   is thrown out and the recipe is laid in again as many times as divide
   evenly. What the inventory held of the product when the run began
-  stays; everything beyond it goes, also what was thrown out and picked
-  up again. A round goes out in one frame where the game shows each
+  stays, kept by its slot (an enchanted tool or a named stack is not
+  told apart by name, so it is never swapped for a new one); everything
+  beyond it goes, also what was thrown out and picked up again. A round goes out in one frame where the game shows each
   part at once, the next 50 ms later; a take that found room for a part
   only is followed by the next in the same frame.
 - A step makes at most 16 slot calls (a move into a cell is one, straight

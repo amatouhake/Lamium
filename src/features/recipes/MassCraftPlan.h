@@ -68,17 +68,23 @@ inline int recipeInGrid(Index const& index, int side, std::vector<Item> const& g
 }
 // What is thrown out of a slot: all of it, or `amount` of a stack that stays.
 struct Throw { int slot = 0, amount = 0; bool whole = false; bool operator==(Throw const&) const = default; };
-// The product beyond the `keep` the player carried when the run began, from
-// the last slot back: what a take added, and what was thrown out and came
-// back (picked up again, or a throw the server refused). `now`: per slot,
-// its item and count.
-inline std::vector<Throw> excess(std::vector<std::pair<Item, int>> const& now, Item product, int keep) {
-    int over = -keep;
+// The product beyond what the player carried when the run began, from the
+// last slot back: what a take added, and what was thrown out and came back
+// (picked up again, or a throw the server refused). `now`: per slot, its
+// item and count; `kept`: per slot, how many of the product it held at the
+// start. Items are told apart by name, so a carried stack is kept by its
+// slot: an enchanted or named one is never thrown for a new one. No more
+// than the whole is over, so a product that is also an ingredient is safe.
+inline std::vector<Throw> excess(std::vector<std::pair<Item, int>> const& now, Item product, std::vector<int> const& kept) {
+    int over = 0;
     for (auto const& [item, count] : now) if (item == product) over += count;
+    for (int count : kept) over -= count;
     std::vector<Throw> out;
     for (size_t slot = now.size(); slot-- > 0 && over > 0;) {
         if (now[slot].first != product || now[slot].second <= 0) continue;
-        int const amount = std::min(over, now[slot].second);
+        int const added = now[slot].second - (slot < kept.size() ? kept[slot] : 0);
+        if (added <= 0) continue;
+        int const amount = std::min(over, added);
         out.push_back({static_cast<int>(slot), amount, amount == now[slot].second});
         over -= amount;
     }
