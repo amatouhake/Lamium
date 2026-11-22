@@ -1,76 +1,92 @@
 # Review of the changes since 0.7.0: the findings in full
 
 The detail behind [L-390](L-390.md). Reviewed on 2026-11-23 at `69271bd2`:
-`git diff v0.7.0..HEAD -- src tests`, in three ranges. Nothing here is
-triaged or agreed work. A finding leaves this file when it is fixed; what
-stays is what is open.
+`git diff v0.7.0..HEAD -- src tests`, in three ranges, and every finding
+read again at `72776881` (2026-11-23). A finding leaves this file when it
+is fixed; what stays is deferred, each with why it waits.
 
-"Read": confirmed by reading the code at that commit. "Likely": the code
-allows it, not shown. "Game" / "Server": only a run can confirm it. Nothing
-here was seen in game. Line numbers are that commit's.
+"Read": confirmed by reading the code. "Likely": the code allows it, not
+shown. "Game" / "Server": only a run can confirm it. Nothing here was
+seen in game. Line numbers are `69271bd2`'s unless a function is named.
 
 ## Range 1: recipes, plan, stores, Mass Craft
 
 ### 1-7 Low: "make" counts rounds as made once the grid reads empty
-`src/features/recipes/RecipePlace.cpp:449`. A server that refuses and puts
-the inputs back empties the grid too: the step is dropped as done and the
-log's rounds are wrong. Nothing is lost. Likely; Server.
+`RecipePlace.cpp` `tickMaking`, the Take phase. It tests `gridEmpty`
+before any take is sent, so a lay the server refuses and rolls back counts
+as made with no take at all: `step.rounds` drops, the step may go, later
+steps lack their inputs and the run ends "done". Nothing is lost.
+Likely; Server. Deferred: to the server check (L-165 "Next"); a fix counts
+only after a take and confirms by the product in the inventory.
 
 ### 1-8 Low: the 16 slot calls a step are not kept on every path
-`src/features/recipes/RecipePlace.cpp:889`, `:777`, `:786`, `:443`.
-The surplus drops are neither charged nor counted in the log (some thirty
-in a frame); after the budget is spent in a take, the room drop and the
-take are still sent; `clearPointer` is uncounted; a cell laid by the
-pointer is charged three, not two; "make" has no budget at all.
-Read; Server (L-165 "Next" asks the same).
+`RecipePlace.cpp` `massCraft::advance`. The surplus drops (about thirty in
+a frame with no slot free, at most once a second) are not charged; after
+the budget is spent in a take, the room drop and the take still go (about
+two over); `clearPointer`'s few calls are uncounted. "make" has no budget
+but one apply a tick, the same envelope. (A cell laid by the pointer is
+charged three: safe, only the comment is off.) Read; Server. Deferred:
+with L-165, before Mass Craft is offered for servers.
 
 ### 1-12 Low: the plan's shares are worked out without a bound
-`src/features/recipes/RecipeState.cpp:319`. VALIDATION-LOG has 8.2 ms for
-29 entries; a schematic may hand over 2048. Read (path); the larger costs
-are extrapolated.
+`RecipeState.cpp` `shares()`. VALIDATION-LOG has 8.2 ms for 29 entries; a
+schematic hands over its distinct materials (capped at 2048, in practice
+tens to a few hundred), at most twice a second while held counts change.
+Read (path); costs extrapolated. Deferred: measure first (the "shares of
+N took" log line with a large schematic); a fix is a resumable pure
+`targetPlans` and a choice of what the rows show meanwhile.
 
 ### 1-17 Low: a group's wheel position is kept across recipe tables
-`src/features/recipes/GroupLook.cpp:24`. Kept by group index and never
-cleared: in a world whose table numbers groups otherwise, another group
-shows a turned member. Read.
+`GroupLook.cpp` `looked`. Kept by group index and never cleared: in a
+world whose table numbers groups otherwise, another group's icon shows a
+turned member. Cosmetic. Read. Deferred: fold in when GroupLook is next
+touched (a reset on the world-exit `forget`).
 
 ### 1-19 Low: UI rules (Design)
-`src/features/recipes/PlanViewDraw.cpp` `stateTag`, the window's count
-field. A pressable state tag and the window's count field are put
-together in the screen's file; `drawFieldBox` has no window look, so the
-field needs a window variant in `ListViewWidgets`, and moving the tag to
-the framed `drawTag` changes its look: a Design question (AGENTS rule 7).
-The editor's refusal chip and lit tray are `warning` now. Read.
+`PlanViewDraw.cpp` `stateTag` and the window's count field are built in
+the screen's file. `drawFieldBox` has no window look, so the field needs
+a window variant in `ListViewWidgets`, and moving the tag to the framed
+`drawTag` changes its look. Read. Deferred: a Design question (AGENTS
+rule 7). The editor's refusal chip and lit tray are `warning` now.
 
 ## Range 2: settings screen, hotkeys, input
 
 ### 2-2 Low: the "fires and conflicts agree" test cannot fail
-`tests/BindingTests.cpp:83`. Both sides come from `whereActs`. Not
-covered: two layers at once, and the second gate in
-`src/input/Actions.cpp:219`. No wrong behavior today. Read.
+`tests/BindingTests.cpp`. Both sides reduce to `whereActs(a).layers &
+s.layers`; the gate in `Actions.cpp` (gameplay screen or transfer) is not
+modelled. No wrong behavior. Read. Deferred: test quality only; a fix is
+a hand-written table of action pairs.
 
 ### 2-3 Low: Windows' key name is asked without the extended-key bit
-`src/app/Desktop.cpp:61`. An extended key the game only calls "ButtonNNN"
-would get its non-extended twin's name or none. Likely; Game.
+`src/app/Desktop.cpp`. `MAPVK_VK_TO_VSC` without bit 24: an extended key
+the game only calls "ButtonNNN" would read as its keypad twin. Likely;
+Game. Deferred: until such a key is seen (`MAPVK_VK_TO_VSC_EX` then).
 
 ## Range 3: everything else
 
 ### 3-2 Low: an unreadable `servers.json` still names a data set
-`src/features/map/WaypointSession.cpp:124`, `:190`. The join goes on with
-an empty list, so a world that uses `<base>-w2` records into the base,
-with a log line only. Read (logic). How the file becomes unreadable (a
-world name long enough to pass the 1 MB read limit) was reported, not
-checked.
+`WaypointSession.cpp` `withList`. The join goes on with an empty list, so
+a world on `<base>-w2`, or a server given other data, records into the
+base, with a log line only; the list is never rewritten while
+unreadable, so this lasts until the file is fixed by hand. The encoder
+has no size cap while the reader refuses past 1 MB. Read (logic);
+trigger not measured. Deferred: what a join does with an unreadable list
+is a maintainer choice; capping the encoder (dropping the oldest prints)
+is the cheap half.
 
 ### 3-4 Low: a merge that fails part way leaves the placements stale
-`src/features/map/WaypointSession.cpp:844`. A failed shapes write returns
-after the merged placements were written and before the world generation
-moves; the next placement commit overwrites them. Merging again restores
-them. Read; needs a write failure.
+`WaypointSession.cpp` `mergeData`. A failed shapes write returns after
+the merged placements were written and before the world generation
+moves; the next placement commit overwrites them, and the screen reports
+a failure though waypoints and placements merged. Merging again restores
+them. Read; needs a write failure. Deferred: fold in when `mergeData` is
+next touched.
 
 ### 3-5 Low: the minimap keeps two `static ItemStack`s
-`src/features/map/Minimap.cpp:1018`. The only ones in `src`; other icons
-are copies for the frame (rule 2). Likely; Game: across a rejoin.
+`src/features/map/Minimap.cpp`. Rebuilt only when null; a stack's block
+pointer is raw, so whether a rejoin leaves it dangling is the game's.
+Likely; Game. Deferred: a rejoin with the minimap's icons goes into the
+next game check.
 
 ## Questions for the maintainer (decided designs, not findings)
 

@@ -34,6 +34,13 @@ Do not infer game success from a build or unit-test result.
   language change and English search switched in a world; a friend's
   world or Realm kept together keeping the data chosen on the Saved data
   page across a rejoin, and "Do not split here" going back to its own.
+  The lower findings' fixes: "make" and a placing still running after the
+  press that starts them (`158e0fe2`); the panel editor ended by a death;
+  the editor's refusal chip and tray in the warning color, the chip's dark
+  text readable; the plan showing no schematic materials while another
+  placement's pass runs; a gesture row's key caps not switching it; data
+  with only wanted items on the Saved data page; Mass Craft waiting for a
+  round crafted onto the pointer.
 - How to make's shape (L-389) seen on `a11be728`: a group's ways and
   members in the item list's order, recipes with the rule's first and
   re-dyeing folded. Not seen: the wheel turning in that order.
