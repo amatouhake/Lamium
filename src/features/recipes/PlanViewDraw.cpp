@@ -131,7 +131,8 @@ std::string checkedPlacement() {
     auto const checked = schematic::ghosts::verification();
     if (!checked || checked->placement < 0) return {};
     auto const set = schematic::session::current();
-    if (checked->placement >= static_cast<int>(set.placements.size())) return {};
+    // The pass of another placement, or one counted before an earlier placement went: not the selected one's.
+    if (checked->placement != set.selected || checked->placement >= static_cast<int>(set.placements.size())) return {};
     auto const& placed = set.placements[static_cast<size_t>(checked->placement)];
     auto const& at = placed.placement.origin;
     return std::format("{} ({}, {}, {})", placed.name, at.x, at.y, at.z);

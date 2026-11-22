@@ -11,13 +11,6 @@ here was seen in game. Line numbers are that commit's.
 
 ## Range 1: recipes, plan, stores, Mass Craft
 
-### 1-4 Low (rest): Mass Craft beside a round crafted onto the pointer
-`src/features/recipes/RecipePlace.cpp` `massCraft::begin`. It now ends
-"make" and a waiting place (`place::stop`), which leaves a round being
-crafted onto the pointer going on (`tickOnto`, up to 1.5 s); Mass Craft
-starts only with an empty pointer. Likely; which of the round's steps
-leave the pointer empty was not read.
-
 ### 1-7 Low: "make" counts rounds as made once the grid reads empty
 `src/features/recipes/RecipePlace.cpp:449`. A server that refuses and puts
 the inputs back empties the grid too: the step is dropped as done and the
@@ -41,18 +34,13 @@ are extrapolated.
 cleared: in a world whose table numbers groups otherwise, another group
 shows a turned member. Read.
 
-### 1-18 Low: the schematic's hand-over lacks the "ready" test
-`src/features/schematic/PlanHandOver.cpp:16` (the HUD has it,
-`InfoHud.cpp:360`). After another placement is selected, or an earlier one
-removed, the plan shows the previous remainder or a wrong name until the
-next pass ends. Read.
-
-### 1-19 Low: UI rules
-`src/features/recipes/PlanViewDraw.cpp:358`, `:609`, `BandEditorDraw.cpp:191`.
-A pressable state tag and the window's count field are put together in the
-screen's file (the panel's field is the shared `drawFieldBox`). The
-"cannot go here" chip is `palette::danger`, which DESIGN keeps for
-destructive actions; a refusal is `warning`. Read.
+### 1-19 Low: UI rules (Design)
+`src/features/recipes/PlanViewDraw.cpp` `stateTag`, the window's count
+field. A pressable state tag and the window's count field are put
+together in the screen's file; `drawFieldBox` has no window look, so the
+field needs a window variant in `ListViewWidgets`, and moving the tag to
+the framed `drawTag` changes its look: a Design question (AGENTS rule 7).
+The editor's refusal chip and lit tray are `warning` now. Read.
 
 ### 1-20 Low: tests
 `tests/RecipeIndexTests.cpp:571`: "the recipe the game names is taken"

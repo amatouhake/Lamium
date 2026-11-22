@@ -355,6 +355,8 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
     }
 }
 void tickOnto(ScreenView& screen);
+// A round being crafted onto the pointer (below): Mass Craft waits for it, since both move the same stacks.
+bool ontoBusy();
 namespace { void tickMaking(ScreenView& screen); }
 void tick(ScreenView& screen) {
     tickOnto(screen);
@@ -626,7 +628,7 @@ void begin(CraftingScreenController& controller) {
         }
         return;
     }
-    if (service::want() != service::State::Ready) return;
+    if (service::want() != service::State::Ready || place::ontoBusy()) return;
     auto table = service::table();
     if (!table) return;
     int const side = sideOf(manager);
@@ -1048,6 +1050,7 @@ void advanceOnto(CraftingScreenController& controller) {
 }
 }
 void abandonCraft() { onto = {}; finishMaking("the screen went"); }
+bool ontoBusy() { return onto.recipe >= 0 && Clock::now() - onto.ticked <= ontoStale; }
 void tickOnto(ScreenView& screen) {
     if (onto.recipe < 0) return;
     if (auto const now = Clock::now(); now - onto.ticked > ontoStale) {

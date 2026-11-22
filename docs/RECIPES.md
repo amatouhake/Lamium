@@ -366,7 +366,8 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   and the changes are kept for the session only.
 - Features hand targets over through `state::provide` (a function the
   plan asks twice a second); `schematic/PlanHandOver.cpp` is the
-  schematic's, from the last check's material lines
+  schematic's, from the last check's material lines of the selected
+  placement (none while another placement's pass is the last)
   (`Verification.h` `planTargets`).
 - `recipe_trace` (`src/features/research/RecipeTrace.cpp`) writes the table
   to a file and logs sample plans.

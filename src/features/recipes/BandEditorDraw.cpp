@@ -160,7 +160,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, band::Layout co
     label(context, x, y + 14, w, translated("band.hint"), palette::faint, Align::Center);
     trayBox = {x + 5, y + 25, w - 10, 26};
     bool const trayLit = dragging && dragging->target.kind == band::editor::Kind::Tray && dragging->preview;
-    frame(context, trayBox.x, trayBox.y, trayBox.w, trayBox.h, trayLit ? palette::dangerEdge : palette::white, trayLit ? 1.f : .2f);
+    frame(context, trayBox.x, trayBox.y, trayBox.w, trayBox.h, trayLit ? palette::warning : palette::white, trayLit ? 1.f : .2f);
     label(context, trayBox.x + 3, trayBox.y + 2, trayBox.w - 6, translated("band.tray"), palette::faint);
     chips.clear();
     float chipX = trayBox.x + 3;
@@ -188,8 +188,9 @@ void draw(MinecraftUIRenderContext& context, Input const& input, band::Layout co
         std::string text = pageName(dragging->drag.page);
         if (warn) text = translated("band.cannot", text);
         float const tw = textWidth(context, text) + 8;
-        fill(context, px + 6, py + 6, tw, 11, warn ? palette::danger : palette::accentDeep, .95f);
-        label(context, px + 10, py + 7, tw - 8, std::move(text), palette::text);
+        // A refusal, not a destructive action: the warning color, its text dark and without the shadow.
+        fill(context, px + 6, py + 6, tw, 11, warn ? palette::warning : palette::accentDeep, .95f);
+        labelScaled(context, px + 10, py + 7, tw - 8, std::move(text), 1.f, warn ? palette::panel : palette::text, Align::Left, !warn);
     }
     late.tip.clear(), late.tipLines.clear();
     (void)pageOn;
