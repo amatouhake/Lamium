@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Making counts the slots its inputs empty (L-385, 2026-11-22)
+
+Build `9d0a6695` (DLL
+`4a21ff4c6fb27190d355719d937285390b38173e8f6b17b8961ba364c7220b06`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: with the inventory
+full and one stack of planks, a row's make turns sixty-four planks
+into sixty-four buttons; nearly full, Make all goes on past the planks
+to the steps that fit (buttons). Not seen: stores, a server.
+
 ## Thin slot counts, making within the inventory's room (L-385, 2026-11-22)
 
 Build `b391ecfb` (DLL
