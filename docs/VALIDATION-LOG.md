@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Tips in the game's box, Make all as far as carried (L-385, L-387, 2026-11-22)
+
+Build `d82dc86b` (DLL
+`929741a57424cf1ee9df5f0ddefe993c8a32f92eb9f92b1e6304bb16812019b7`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: every tip in the
+panel and the window in the game's box, item details only under an
+item's name; Make all made planks in part and sticks from them; four
+characters fit the slot in English. Faults: wooden slabs (any) were
+not made though planks were carried; a group step's product tip
+("Wooden slabs") lacked the group's lines and members; the slot
+counts drawn twice look odd.
+
 ## Slot counts in thousands and millions, the panel's Make all (L-370, L-385, 2026-11-22)
 
 Build `ddd8d885` (DLL
