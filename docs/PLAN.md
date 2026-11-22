@@ -84,7 +84,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   every step of the open crafting grid in the plan's order, each as far
   as what is carried allows, in part too, so one step's product feeds
   the next, and as far as the inventory has room (a step with none is
-  passed, nothing thrown); on the panel it is the make picture over the rows' make
+  passed, nothing thrown). Any key or button the player presses ends
+  "make" and "Make all", whatever takes it (a Lamium action, the game's
+  window), and so does Mass Craft starting; on the panel it is the make picture over the rows' make
   buttons, on the column headings' line. The panel's lists keep the
   window's order and its columns (demos/panel-table.html A): under a line
   of headings, held (or can make now) and needed in six-digit columns, no

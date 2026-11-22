@@ -22,22 +22,11 @@ Read (logic); Game: which slot a Shift take fills. RECIPES.md says what was
 carried stays; its "Limits" says items differ by name and aux only.
 `tests/RecipeIndexTests.cpp:557` checks counts only.
 
-### 1-3 Medium: "make" and "Make all" are not ended by every press
-`src/features/recipes/ItemList.cpp:606`, `:1072`, `src/input/CustomInput.cpp:179`.
-`RecipePlace.h:35` says any press of the player's ends the run. It goes on
-after a click on the game's window (only clicks on Lamium's panels are
-queued) and after a key a Lamium action consumed (Sort, Transfer, Mass
-Craft, R/U/A never reach `itemList::key`).
-Read.
-
-### 1-4 Medium: Mass Craft runs beside "make", a waiting place and craft onto the pointer
-`src/features/recipes/RecipePlace.cpp:614` (`begin` stops no other run), `:474`.
-With "Make all" running, the Mass Craft key (not a stop, 1-3) starts a
-second state machine on the same grid. If its product is one of the plan's
-steps, what "make" made is thrown out, against L-385's "nothing made is
-thrown away".
-Read (no exclusion); Game: the outcome. L-388 parks unifying the runs, not
-their overlap.
+### 1-4 Low (rest): Mass Craft beside a round crafted onto the pointer
+`src/features/recipes/RecipePlace.cpp` `massCraft::begin`. It now ends
+"make" and a waiting place (`place::stop`), which leaves a round being
+crafted onto the pointer going on; Mass Craft starts only with an empty
+pointer, so the overlap is that round's Fetch step. Read.
 
 ### 1-5 Medium: a quick tap of the wanted key leaves it held
 `src/features/recipes/ItemList.cpp:1091`, `:1166`, `:1064`.

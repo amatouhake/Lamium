@@ -1081,6 +1081,7 @@ bool press(int button, bool left, bool right, bool down) {
     if (first && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
 }
+void playerPressed() { stopRun = true; }
 bool key(int code, bool down) {
     // The modifier keys stay the game's: one held while the view opens must still be released.
     if (code == 0x11 || code == 0xA2 || code == 0xA3) ctrlHeld = down;

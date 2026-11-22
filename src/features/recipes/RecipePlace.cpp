@@ -652,6 +652,8 @@ void begin(CraftingScreenController& controller) {
         if (!evacuated) controller._evacuateCraftingGrid(), evacuated = true;
         if (!gridEmpty(manager)) return;
     }
+    // A plan's steps being made, or a recipe waiting to be laid in, use the same grid: the player's run wins.
+    place::stop();
     Request request;
     apply(table->index, state::notes(), request);
     run = {};
