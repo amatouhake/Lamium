@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan Counts</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* One GUI unit is 3 pixels (1920x1080, UI 75%). The plan's counts in tips, and How to make's line once chosen. */
+:root{
+  color-scheme: dark;
+  --u:3px;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --shadow:#555; --inset:#b4b4b4;
+  --tip:#100010; --tip-edge:#2b0f5c; --tip-ink:#fff; --tip-faint:#a8a8a8;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.tips{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;margin-top:12px}
+.case{display:grid;gap:6px}
+.case .cap{color:var(--ink-2);font-size:13px}
+.tip{background:var(--tip);color:var(--tip-ink);font:calc(8*var(--u))/1.35 var(--pix);padding:calc(3*var(--u)) calc(4*var(--u));
+  box-shadow:inset 0 0 0 var(--u) var(--tip-edge),0 0 0 var(--u) var(--tip);border-radius:calc(1*var(--u));min-width:calc(90*var(--u));max-width:calc(190*var(--u))}
+.tip .f{color:var(--tip-faint)}
+.tip .ok{color:#7fd65a}
+.win{background:var(--win);color:var(--win-ink);font:calc(8*var(--u))/1 var(--pix);width:calc(250*var(--u));max-width:100%;
+  box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) #000;padding:calc(5*var(--u)) calc(6*var(--u))}
+.hl{display:flex;align-items:center;gap:calc(2*var(--u));height:calc(20*var(--u))}
+.hl .name{width:calc(70*var(--u));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl .w{font-size:calc(7*var(--u));padding-left:calc(2*var(--u));white-space:nowrap}
+.hl .arrow{width:calc(10*var(--u));text-align:center}
+.hl .sp{flex:1}
+.slot{width:calc(18*var(--u));height:calc(18*var(--u));background:var(--slot);position:relative;display:grid;place-items:center;flex:none;
+  box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.ico{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:0 0 2px #000}
+.slot b{position:absolute;right:var(--u);bottom:0;font:calc(7*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.faint{opacity:.45}
+.station{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(5.5*var(--u))/1 var(--pix);color:#fff;background:#6b4f2a;margin-left:calc(8*var(--u))}
+.panel{margin:0 0 calc(2*var(--u)) calc(14*var(--u));padding:calc(2*var(--u)) calc(3*var(--u));background:var(--inset);box-shadow:inset var(--u) var(--u) var(--shadow),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff;font-size:calc(7*var(--u));color:var(--win-faint)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:18px;margin-top:10px}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.qq{color:var(--warn);font-weight:700}
+.note{color:var(--ink-2);font-size:13px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>計画の個数の書き方と、選んだ後の行（モック）</h1>
+    <p class="lede">ツールチップの個数を、集める物・作る物・材料で同じ考え方に揃える案と、「作り方」の行が選んだ作り方をどう見せるか。パネルとノートの列（所持・今作れる・必要）は数字のまま変えない前提です。</p>
+  </header>
+
+  <section>
+    <h2>1. ツールチップの個数</h2>
+    <div class="grp"><span class="lbl">書き方</span>
+      <button class="chip on" data-k="style" data-v="now">現状</button>
+      <button class="chip" data-k="style" data-v="A">A: 1行に1つ</button>
+      <button class="chip" data-k="style" data-v="B">B: することを先に</button>
+      <button class="chip" data-k="style" data-v="C">C: 列にある数は書かない</button>
+    </div>
+    <div class="grp"><span class="lbl">チェスト・スタック</span>
+      <button class="chip on" data-k="amount" data-v="off">使わない</button>
+      <button class="chip" data-k="amount" data-v="add">残りを1行添える（64 個以上）</button>
+      <button class="chip" data-k="amount" data-v="only">64 個以上は置き換える</button>
+    </div>
+    <div class="tips" id="tips"></div>
+    <p class="note">チェスト・スタックは設計図の材料と同じ数え方です（1 チェスト = 27 スタック、16 個で 1 スタックの物はその数で）。設計図では列にマウスを置いたときと右の欄で使っています。</p>
+  </section>
+
+  <section>
+    <h2>2. 選んだ後の「作り方」の行</h2>
+    <p>今は選んだレシピの最初の材料だけを絵と言葉で出しているので、革・ガラス・羊毛がいる白のハーネスが「革から」になり、他の材料と数が消えます。</p>
+    <div class="grp"><span class="lbl">行の見せ方</span>
+      <button class="chip on" data-k="line" data-v="now">現状</button>
+      <button class="chip" data-k="line" data-v="X">X: 選んだ行と同じ絵</button>
+      <button class="chip" data-k="line" data-v="Y">Y: 言葉で全部</button>
+    </div>
+    <div class="tips"><div class="win" id="lines"></div></div>
+  </section>
+
+  <div class="cols">
+    <div class="card">
+      <h2>案の中身</h2>
+      <ul>
+        <li><b>A</b>: 列と同じ言葉（必要・所持・今作れる）を1行に1つ。「あと」は足りない物だけに付く。</li>
+        <li><b>B</b>: 1行目にすること（集める・作る）と残りを書き、括弧に必要と所持。作る物の「今作れる」は、手持ちの材料で今作れる数。そろった物は「そろっている」。</li>
+        <li><b>C</b>: 行の列に出ている数は書かず、行に見えない物（材料の不足、保管場所）だけ書く。パネルで数が切れるときは今どおり数をツールチップに出す。</li>
+        <li><b>X</b>: 選んだ行（自動なら薄く）をそのまま右に置く。言葉は「自動」のときだけ（選んだレシピは絵だけ、集めるなら「集める」）。名前の場所が狭くなる。</li>
+        <li><b>Y</b>: 絵は出来上がりに戻し、言葉で材料を全部書く。長いと切れる。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>確認したいこと</h2>
+      <ul>
+        <li><span class="qq">個数</span>: A・B・C のどれか。</li>
+        <li><span class="qq">チェスト・スタック</span>: ツールチップで使うか。使うなら1行添えるか、数を置き換えるか。列（数字）は変えない前提でよいか。</li>
+        <li><span class="qq">選んだ後の行</span>: X か Y か。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+const state = {style:"now", amount:"off", line:"now"};
+const fmt = n => n.toLocaleString("en-US");
+function amountOf(n, stack){ const chest = stack*27; const c = Math.floor(n/chest), s = Math.floor((n%chest)/stack), i = n%stack;
+  const parts = []; if (c) parts.push(c+" チェスト"); if (s) parts.push(s+" スタック"); if (i || !parts.length) parts.push(String(i)); return parts.join(" + "); }
+function num(n, stack){ return n < stack || state.amount !== "only" ? fmt(n) : amountOf(n, stack); }
+// "add": what is left (or to make), once, on a faint line of its own.
+function addLine(out, lead, n, stack){ if (state.amount === "add" && n >= stack) out.push('<span class="f">'+lead+amountOf(n, stack)+'</span>'); }
+const cases = [
+  {cap:"集める物：ダイヤモンド", name:"ダイヤモンド", id:"minecraft:diamond", kind:"gather", held:0, need:15, stack:64},
+  {cap:"集める物：石（多い）", name:"石", id:"minecraft:stone", kind:"gather", held:146, need:44844, stack:64},
+  {cap:"集める物：そろっている", name:"鉄インゴット", id:"minecraft:iron_ingot", kind:"gather", held:20, need:15, stack:64},
+  {cap:"作る物：板材（材料なし）", name:"板材", id:"minecraft:crimson_planks", kind:"make", now:0, make:8, stack:64, inputs:[{name:"原木", held:0, need:2}]},
+  {cap:"作る物：棒（一部作れる）", name:"棒", id:"minecraft:stick", kind:"make", now:12, make:32, stack:64, inputs:[{name:"板材", held:6, need:16}]},
+];
+function lines(c){
+  const out = [], st = c.stack, s = state.style;
+  const left = (h, n) => n - Math.min(h, n);
+  if (c.kind === "gather"){
+    const l = left(c.held, c.need);
+    if (s === "now") out.push("所持/必要: "+fmt(c.held)+"/"+fmt(c.need)+(l ? "  あと "+fmt(l) : ""));
+    if (s === "A"){ out.push("必要: "+num(c.need, st)); out.push("所持: "+num(c.held, st)); if (l) out.push("あと: "+num(l, st)); }
+    if (s === "B") out.push(l ? "集める: あと "+num(l, st)+"（必要 "+num(c.need, st)+"・所持 "+num(c.held, st)+"）" : "<span class=ok>そろっている</span>（必要 "+num(c.need, st)+"・所持 "+num(c.held, st)+"）");
+    if (s !== "C") addLine(out, l ? "あと " : "必要 ", l || c.need, st);
+  } else {
+    const l = left(c.now, c.make);
+    if (s === "now") out.push("今作れる/必要: "+fmt(c.now)+"/"+fmt(c.make)+(l ? "  あと "+fmt(l) : ""));
+    if (s === "A"){ out.push("必要: "+num(c.make, st)); out.push("今作れる: "+num(c.now, st)); }
+    if (s === "B") out.push("作る: "+num(c.make, st)+"（"+(c.now >= c.make ? "全部今作れる" : "今作れる "+num(c.now, st))+"）");
+    if (s === "A" || s === "B") addLine(out, "作る ", c.make, st);
+    for (const p of c.inputs){
+      const pl = left(p.held, p.need);
+      if (s === "now") out.push(p.name+": "+fmt(Math.min(p.held, p.need))+"/"+fmt(p.need)+(pl ? "  あと "+fmt(pl) : ""));
+      if (s === "A") out.push(p.name+": 必要 "+num(p.need, st)+"・所持 "+num(p.held, st)+(pl ? "・あと "+num(pl, st) : ""));
+      if (s === "B") out.push(p.name+": "+(pl ? "あと "+num(pl, st) : "<span class=ok>そろっている</span>")+"（必要 "+num(p.need, st)+"・所持 "+num(p.held, st)+"）");
+      if (s === "C" && pl) out.push(p.name+": あと "+num(pl, st));
+    }
+  }
+  return out;
+}
+function drawTips(){
+  document.getElementById("tips").innerHTML = cases.map(c =>
+    '<div class="case"><div class="cap">'+c.cap+'</div><div class="tip"><div>'+c.name+'</div>'+lines(c).map(t => '<div>'+t+'</div>').join("")+'<div class="f">'+c.id+'</div></div></div>').join("");
+}
+const ico = (t, bg, n, faint) => '<div class="slot'+(faint ? ' faint' : '')+'"><div class="ico" style="background:'+bg+'">'+t+'</div>'+(n ? '<b>'+n+'</b>' : '')+'</div>';
+const leather = f => ico("革","#a0522d",3,f), glass = f => ico("ガ","#9fc7d4",2,f), wool = f => ico("羊","#e8e8e8",0,f), harness = f => ico("ハ","#7a4a22",0,f), diamond = f => ico("ダ","#4fd2d2",0,f);
+const table = f => '<div class="station'+(f ? ' faint' : '')+'">台</div>';
+function drawLines(){
+  const rows = [];
+  const head = (name, icon, right) => '<div class="hl">'+icon+'<div class="name">'+name+'</div><div class="sp"></div>'+right+'</div>';
+  const L = state.line;
+  // White harness on automatic (the recipe from leather), diamond on automatic (gathered), a chosen re-dyeing recipe.
+  if (L === "now"){
+    rows.push(head("白のハーネス", harness(), '<div class="arrow">→</div>'+leather()+'<div class="w">自動: 革から</div>'));
+    rows.push(head("ダイヤモンド", diamond(), '<div class="arrow">→</div>'+diamond()+'<div class="w">自動: 集める</div>'));
+    rows.push(head("白のハーネス（染め直しを選択）", harness(), '<div class="arrow">→</div>'+ico("黒","#2a2a2a")+'<div class="w">選択: 黒のハーネスから</div>'));
+  }
+  if (L === "X"){
+    rows.push(head("白のハーネス", harness(), leather(1)+glass(1)+wool(1)+'<div class="arrow faint">→</div>'+harness(1)+table(1)+'<div class="w">自動</div>'));
+    rows.push(head("ダイヤモンド", diamond(), diamond(1)+'<div class="w">自動</div>'));
+    rows.push(head("白のハーネス", harness(), ico("黒","#2a2a2a")+ico("白","#f4f4f4")+'<div class="arrow">→</div>'+harness()+table()));
+  }
+  if (L === "Y"){
+    rows.push(head("白のハーネス", harness(), '<div class="w">自動: 革 3・ガラス 2・羊毛 1 から（作業台）</div>'));
+    rows.push(head("ダイヤモンド", diamond(), '<div class="w">自動: 集める</div>'));
+    rows.push(head("白のハーネス", harness(), '<div class="w">選択: 黒のハーネス・白の染料から（作業台）</div>'));
+  }
+  document.getElementById("lines").innerHTML = rows.join("") + '<div class="panel">（開くと今の選択肢の行。ここは変えない）</div>';
+}
+document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+  state[b.dataset.k] = b.dataset.v;
+  document.querySelectorAll('.chip[data-k="'+b.dataset.k+'"]').forEach(o => o.classList.toggle("on", o === b));
+  drawTips(); drawLines();
+}));
+drawTips(); drawLines();
+</script>
+</body>
+</html>
