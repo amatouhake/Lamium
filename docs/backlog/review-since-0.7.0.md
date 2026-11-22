@@ -36,12 +36,6 @@ Read (path); costs extrapolated. Deferred: measure first (the "shares of
 N took" log line with a large schematic); a fix is a resumable pure
 `targetPlans` and a choice of what the rows show meanwhile.
 
-### 1-17 Low: a group's wheel position is kept across recipe tables
-`GroupLook.cpp` `looked`. Kept by group index and never cleared: in a
-world whose table numbers groups otherwise, another group's icon shows a
-turned member. Cosmetic. Read. Deferred: fold in when GroupLook is next
-touched (a reset on the world-exit `forget`).
-
 ### 1-19 Low: UI rules (Design)
 `PlanViewDraw.cpp` `stateTag` and the window's count field are built in
 the screen's file. `drawFieldBox` has no window look, so the field needs
@@ -50,17 +44,6 @@ a window variant in `ListViewWidgets`, and moving the tag to the framed
 rule 7). The editor's refusal chip and lit tray are `warning` now.
 
 ## Range 2: settings screen, hotkeys, input
-
-### 2-2 Low: the "fires and conflicts agree" test cannot fail
-`tests/BindingTests.cpp`. Both sides reduce to `whereActs(a).layers &
-s.layers`; the gate in `Actions.cpp` (gameplay screen or transfer) is not
-modelled. No wrong behavior. Read. Deferred: test quality only; a fix is
-a hand-written table of action pairs.
-
-### 2-3 Low: Windows' key name is asked without the extended-key bit
-`src/app/Desktop.cpp`. `MAPVK_VK_TO_VSC` without bit 24: an extended key
-the game only calls "ButtonNNN" would read as its keypad twin. Likely;
-Game. Deferred: until such a key is seen (`MAPVK_VK_TO_VSC_EX` then).
 
 ## Range 3: everything else
 
@@ -73,20 +56,6 @@ has no size cap while the reader refuses past 1 MB. Read (logic);
 trigger not measured. Deferred: what a join does with an unreadable list
 is a maintainer choice; capping the encoder (dropping the oldest prints)
 is the cheap half.
-
-### 3-4 Low: a merge that fails part way leaves the placements stale
-`WaypointSession.cpp` `mergeData`. A failed shapes write returns after
-the merged placements were written and before the world generation
-moves; the next placement commit overwrites them, and the screen reports
-a failure though waypoints and placements merged. Merging again restores
-them. Read; needs a write failure. Deferred: fold in when `mergeData` is
-next touched.
-
-### 3-5 Low: the minimap keeps two `static ItemStack`s
-`src/features/map/Minimap.cpp`. Rebuilt only when null; a stack's block
-pointer is raw, so whether a rejoin leaves it dangling is the game's.
-Likely; Game. Deferred: a rejoin with the minimap's icons goes into the
-next game check.
 
 ## Questions for the maintainer (decided designs, not findings)
 

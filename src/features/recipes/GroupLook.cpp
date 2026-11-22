@@ -24,6 +24,7 @@ struct Hover {
 std::map<int, int> looked; // group -> members turned past what it would show
 }
 void beginFrame() { ++frame; }
+void forget() { looked.clear(), hovered = {}; }
 void hover(int group, float x, float y) {
     if (hovered.group != group || hovered.x != x || hovered.y != y || hovered.frame + 1 < frame) hovered = {group, x, y, frame, Clock::now()};
     hovered.frame = frame;

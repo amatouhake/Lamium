@@ -1015,9 +1015,13 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         // In the Info HUD's order (coordinates, scaled, chunk, then biome), short forms (GitHub #80): the scaled
         // coordinates behind the destination dimension's block, as the player list marks dimensions.
         struct Line { std::string text; ItemStack const* icon = nullptr; };
+        // Built anew in each world: a stack keeps the block it was built with, which the next world's registry replaces.
         static ItemStack overworldIcon, netherIcon;
+        static unsigned iconsWorld = ~0u;
+        bool const newWorld = iconsWorld != worldGeneration.load();
+        iconsWorld = worldGeneration.load();
         for (auto [stack, name] : {std::pair{&overworldIcon, "minecraft:grass_block"}, std::pair{&netherIcon, "minecraft:netherrack"}})
-            if (stack->isNull()) {
+            if (newWorld || stack->isNull()) {
                 try { stack->reinit(name, 1, 0); } catch (...) { *stack = ItemStack(); }
                 stack->mShowPickUp = false; // A new stack would play the pickup pop.
                 stack->mWasPickedUp = false;

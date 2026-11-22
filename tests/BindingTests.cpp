@@ -78,11 +78,15 @@ void bindingTests() {
             "A and W over an item, on item screens and in the open view: A while Recipes is on, W while the Plan is (L-373)");
     }
     {
-        // A conflict is shown exactly where both bindings could fire: in some state both are allowed.
+        // A conflict is shown exactly where both bindings could fire: in some state the input can be in, built as
+        // the listener builds it (one screen on top, a window open or not, each condition either way), both are allowed.
         bool agree = true;
         std::vector<InputState> states;
-        for (unsigned layers : {layer::gameplay, layer::itemScreen, layer::window, layer::outsideWorld})
-            states.push_back({layers, true, true, true});
+        for (int screen = 0; screen < 4; ++screen)
+            for (bool window : {false, true})
+                for (int conditions = 0; conditions < 8; ++conditions)
+                    states.push_back({currentLayers(screen == 1, screen == 2, window, screen == 3),
+                                      (conditions & 1) != 0, (conditions & 2) != 0, (conditions & 4) != 0});
         for (size_t i = 0; i < actions.size(); ++i)
             for (size_t j = 0; j < actions.size(); ++j) {
                 auto a = static_cast<Action>(i), b = static_cast<Action>(j);
@@ -91,6 +95,11 @@ void bindingTests() {
                 agree = agree && both == (sharedLayers(a, b) != 0);
             }
         check(agree, "bindings conflict exactly where both actions can fire");
+        check(sharedLayers(Action::Sort, Action::MassCraft) && sharedLayers(Action::ShowRecipes, Action::RecipeBack)
+              && sharedLayers(Action::Transfer, Action::Sort) && sharedLayers(Action::Settings, Action::FreeCameraSpeedUp)
+              && !sharedLayers(Action::Sort, Action::RecipeBack) && !sharedLayers(Action::Sort, Action::Settings)
+              && !sharedLayers(Action::RecipeBack, Action::Transfer),
+              "named pairs: two item screen keys and two window keys conflict; back and Sort, Sort and Settings do not (L-372)");
         Bindings bindings{};
         bindings[static_cast<size_t>(Action::Sort)] = Chord{Token{Device::Key, 0x08}};
         auto backConflicts = bindingConflicts(bindings, Action::RecipeBack);

@@ -857,10 +857,13 @@ MergeStart mergeData(std::string const& key) {
         }
     }
     if (shapeCounts.taken) {
-        if (!joined.shapeFile) return start;
+        // Placements already written: the schematic reloads them, or its next save would put the old ones back.
+        bool const placed = placementCounts.taken > 0;
+        if (!joined.shapeFile) { if (placed) ++joined.world; return start; }
         try { overlay::writeShapes(*joined.shapeFile, shapesInUse); }
         catch (std::exception const& error) {
             log(std::string("could not save merged shapes: ") + error.what());
+            if (placed) ++joined.world;
             return start;
         }
     }

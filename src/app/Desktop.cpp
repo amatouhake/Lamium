@@ -58,10 +58,13 @@ std::string clipboardText() {
 bool keyDown(int key) { return key > 0 && key < 256 && (GetAsyncKeyState(key) & 0x8000) != 0; }
 std::string keyName(int key) {
     if (key <= 0 || key >= 256) return {};
-    UINT const scan = MapVirtualKeyW(static_cast<UINT>(key), MAPVK_VK_TO_VSC);
-    if (scan == 0) return {};
+    // The extended form (0xE0 in the high byte) tells the arrows, Insert, Delete and the like from their keypad
+    // twins; GetKeyNameText takes that as bit 24.
+    UINT const scan = MapVirtualKeyW(static_cast<UINT>(key), MAPVK_VK_TO_VSC_EX);
+    if ((scan & 0xFF) == 0) return {};
+    LONG const lparam = static_cast<LONG>(((scan & 0xFF) << 16) | ((scan & 0xFF00) == 0xE000 ? 1u << 24 : 0u));
     wchar_t name[64]{};
-    int const length = GetKeyNameTextW(static_cast<LONG>(scan << 16), name, 64);
+    int const length = GetKeyNameTextW(lparam, name, 64);
     if (length <= 0) return {};
     std::string out(static_cast<size_t>(WideCharToMultiByte(CP_UTF8, 0, name, length, nullptr, 0, nullptr, nullptr)), '\0');
     WideCharToMultiByte(CP_UTF8, 0, name, length, out.data(), static_cast<int>(out.size()), nullptr, nullptr);

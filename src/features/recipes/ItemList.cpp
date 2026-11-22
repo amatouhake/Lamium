@@ -456,7 +456,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return false;
-    if (forget.exchange(false)) names.clear(), closeViews(), search.clear(), searchFocus = false;
+    if (forget.exchange(false)) names.clear(), closeViews(), search.clear(), searchFocus = false, groupLook::forget();
     cost.at("start");
     if (!names.empty()) {
         // A language chosen in the game's own settings does not pass Lamium's switch, which forgets the shown names.
