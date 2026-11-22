@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Review fixes since 0.7.0, local part 1 (L-390, 2026-11-23)
+
+Build `14e2c83c` (DLL
+`2b2c51cee64416d02e67c18741d33094eb5c3259285f11a7a50fd450b88860ee`),
+1.26.60.05 Dev instance, a local world, the maintainer. Confirmed:
+- "Make all" and one row's "Make" run to the end (the `02addb8a`
+  regression is gone); "Make all" stops on a left or right click on the
+  game's slots and on a Lamium key (Sort), not on Shift, Ctrl or Alt
+  alone; held, the Mass Craft key stops it, then Mass Craft starts and
+  nothing made is thrown out.
+- The recipe view's "Place": laid in, a filled grid emptied first, Shift
+  as many as fit, Ctrl one round onto the pointer.
+- The wanted key: a quick tap puts the item in and a second takes it out,
+  after a tap the wheel pages the list; held, the wheel steps the count.
+- Mass Craft keeps a carried enchanted or named pickaxe and a named stack
+  of planks; with the inventory full of logs it throws the surplus and
+  goes on, the world not closed.
+- The item list's search follows a language chosen in the world, from
+  Lamium's language setting and from the game's own settings; English
+  search switched on in the world finds English names, off it does not
+  (IDs still match, so many English words are still found).
+Not clearly seen: Mass Craft waiting for a round crafted onto the pointer,
+since its start delay makes "right after" hard to hit. Not tested yet:
+sections 6 to 13 of the local list (stores and saved wanted counts, the
+panel editor, the plan window, the schematic's hand-over, the settings,
+saved data, the minimap, a group's wheel across worlds).
+
 ## Saved data link wording and Windows' key names (L-372, 2026-11-23)
 
 Build `82b8aeee` (DLL
