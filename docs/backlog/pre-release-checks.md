@@ -2,41 +2,47 @@
 
 The [Release policy](../BACKLOG.md#release-policy-decided-2026-09-28) requires a smoke
 check of the actual release build: load, settings and changed features.
-Choose relevant checks from these known gaps; a full regression and every
-server case are not release gates. [VALIDATION.md](../VALIDATION.md) owns
+The next release's gates are the first section; the rest are known gaps,
+and a full regression and every server case are not release gates. [VALIDATION.md](../VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-## Since 0.7.0
+## For the next release (decided 2026-11-23)
 
-- Settings grouping (L-340, L-392, seen in game): seven categories with
-  group headings; the README and FEATURES.md sections to follow before
-  tagging. Hotkeys
-  by layer (L-372): the conflict tip names where; back and Sort on one
-  key are no longer a conflict.
+Only these hold the release (maintainer 2026-11-23, following the
+Release policy). A local world already runs the game's own server inside
+the game, so item requests were seen accepted there; a local Bedrock
+Dedicated Server adds a join by address, which is what keys a server's
+data.
 
-- Recipes, the Plan and the stores (L-359, experimental, off by default):
-  seen in game step by step on a local world (VALIDATION.md row); a
-  server is the open case (RECIPES.md "Limits"). Making a plan's steps
-  (L-385) sends Mass Craft's requests and needs a server check before
-  the release that carries it. Sort no longer has a default key, which
-  the release notes must say.
-- Seen on `37301b53` (VALIDATION-LOG 2026-11-22): planks (any) from
-  logs, make over two kinds, How to make's group gather, one tip form in
-  both views, gathered rows on the panel. Not seen: a picked log kind, a
-  group gathered from its breakdown step, the window's tabs beyond those
-  (split by tab in `37301b53`, moves only), servers.
-- Fixes from the review since 0.7.0 (L-390): the local checks seen on
-  `14e2c83c` and `ad38e53f` (VALIDATION-LOG 2026-11-23); every local
-  one is done. Needing a server or another player: a
-  server's own stores file (two servers), a friend's world or Realm kept
-  together keeping chosen data, an unreadable servers.json, a key the
-  game calls "ButtonNNN" (extended), "make" on a server.
-- How to make's shape (L-389) seen on `a11be728`: a group's ways and
-  members in the item list's order, recipes with the rule's first and
-  re-dyeing folded. Not seen: the wheel turning in that order.
+Before tagging:
+- The release build (the commit's CI package) loads, the settings open,
+  the log shows no error.
+- On a local BDS: "Make all" and Mass Craft each run to the end once.
+- On a local BDS joined on two ports: the stores do not mix, each server
+  gets its own file under `config/places/` (L-390 1-1).
+- README and FEATURES.md follow the seven settings categories (L-340,
+  L-392).
+- The release notes say: Sort has no default key (L-359); the settings
+  categories changed (Schematics its own, Hands and equipment under
+  Player, no counts); stores are kept per server and the old shared
+  `config/wanted/places.json` is no longer read.
 
-## Left from 0.7.0
+After publishing: the LIP registry, Bedrinth and LeviLauncher offer the
+version (DISTRIBUTION.md).
+
+Accepted as not checkable here: a Realm and a friend's world (a second
+account), a key the game calls "ButtonNNN", add-on items, an unverified
+game build, a real server's latency or refusals (a refused take in
+"make", L-390 1-7). An unreadable `servers.json` can be brought about by
+breaking the file, but is rare and not required.
+
+## Follow-up coverage (not release gates)
+
+What follows lists cases not seen in earlier work; it does not hold a
+release. Look at an entry when its feature misbehaves or is changed.
+
+### Left from 0.7.0
 
 The tag (VALIDATION-LOG 2026-11-16; release published the same day): the
 published ZIP in game and the listings (LIP registry, Bedrinth,
@@ -166,7 +172,7 @@ not seen was still not seen in 0.7.0.
     not find enchanted books by enchantment name; Saved data's Delete is
     grey and says why.
 
-## Left from 0.6.0
+### Left from 0.6.0
 
 The tag (VALIDATION-LOG 2026-11-12; release published the same day): the published ZIP, copied by hand,
 loads and passed a short smoke; Bedrinth and LeviLauncher list 0.6.0
@@ -179,7 +185,7 @@ Chat position on, which the release notes describe from the code; a label
 with a zero-wide character aligned right or centered. Other open gaps are in
 VALIDATION.md and the table below.
 
-## Left from 0.5.1
+### Left from 0.5.1
 
 The tag (VALIDATION-LOG 2026-11-07): the published ZIP loads through LeviLauncher, and
 the LIP registry, Bedrinth and LeviLauncher offer it. The smoke used the commit's CI
@@ -215,7 +221,7 @@ Left from the 0.4.0 tag (VALIDATION-LOG 2026-11-01):
 - Listings (L-196): the Bedrinth and LeviLauncher pages show `tooth.json`'s
   description with both the LeviMC and the Minecraft notices.
 
-## Gaps carried from released builds
+### Gaps carried from released builds
 
 These are follow-up coverage, not unfinished implementations or release
 gates for versions already published. Full old release/smoke/regression
