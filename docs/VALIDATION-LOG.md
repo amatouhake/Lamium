@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mouse names, short key names, the game's drop key (L-372, 2026-11-23)
+
+Build `00fbefe1` (DLL
+`b3dcf4ff0c6305a601ee257cafb66e42549fdc6fcab376f0d328c7a116f82a92`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: Left click and
+Middle click as words; SHIFT and keys without "キー" in Japanese; the
+game's drop key (Q) on the drop gestures and found by key; the gesture
+keys fit the key column in Japanese. Noted: the link rows' values ("Edit
+in HUD layout >") sat at the row's far right, away from the state and
+key columns (moved to the key column after this build).
+
 ## Mouse glyph trial and the wider key column (L-372, 2026-11-23)
 
 Build `6c574129` (DLL
