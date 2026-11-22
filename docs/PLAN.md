@@ -151,6 +151,11 @@ plan's recipes are in [L-116](backlog/L-116.md).
   cobblestone is gathered and stone smelted from it. An item has a line
   where the plan makes it ("gather" is always a choice), where it is
   gathered with a recipe that could make it, or where the player chose.
+  No search (maintainer 2026-11-22): a line is found from a breakdown's
+  state tag. Once one is needed, the window gets a field of its own with
+  the item list's search language, not the item list's bar, so the
+  window does not hang on the inventory and one field does not narrow
+  both.
 - A key (W by default, beside A for favorites; both rebindable) puts the
   hovered item into "wanted" or takes it out, on item screens and in the
   recipe view, with Recipes on or off. While it is held the wheel changes how many are wanted, so the
