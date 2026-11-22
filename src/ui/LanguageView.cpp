@@ -3,6 +3,7 @@
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/ScreenParts.h"
+#include "ui/SettingsRows.h"
 #include "ui/SettingsTableView.h"
 #include "ui/Widgets.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
@@ -103,7 +104,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     auto current = game_language::currentCode();
 
     // Heading row: where this list belongs, and the way back to it.
-    drawPageHeading(context, t, "section.interface", "feature.gameLanguage", last.closeX, overBack(pointer.x, pointer.y));
+    drawPageHeading(context, t, featureSection("gameLanguage"), "feature.gameLanguage", last.closeX, overBack(pointer.x, pointer.y));
 
     // The code column ends short of the list's own bar, not the table's.
     float codeWidth = t.keyWidth, codeX = last.listLeft + last.contentWidth() - SettingsTable::pad - codeWidth;

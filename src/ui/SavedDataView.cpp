@@ -8,6 +8,7 @@
 #include "ui/SavedDataLayout.h"
 #include "ui/SavedDataThumb.h"
 #include "ui/ScreenParts.h"
+#include "ui/SettingsRows.h"
 #include "ui/SettingsTableView.h"
 #include "ui/Widgets.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
@@ -236,7 +237,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     long long total = 0;
     for (auto const& item : items) total += item.mapBytes;
     std::string const totalText = translated("savedData.total", sizeText(total));
-    drawPageHeading(context, t, "section.interface", "feature.savedData", last.backX, hover.zone == Zone::Back, totalText);
+    drawPageHeading(context, t, featureSection("savedData"), "feature.savedData", last.backX, hover.zone == Zone::Back, totalText);
 
     // The list: kind, name, and what it is to the joined server.
     auto const& list = last.list;

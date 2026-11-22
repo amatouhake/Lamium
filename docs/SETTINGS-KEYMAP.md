@@ -14,6 +14,19 @@ append-only action ids and default keys in `src/input/Binding.h`.
 
 ## Behavior
 
+### Categories and groups (L-340, decided 2026-11-22)
+
+- Two levels. The sidebar lists the categories (View, HUD, World, Items,
+  Actions, General); each holds groups named by green headings. The table
+  `groups` in `SettingsRows.h` places every feature in one group, in
+  display order; a test fails for a feature no group lists.
+- All, search results and Hotkeys head their rows by group, in category
+  order. A category's own view heads its groups when it has more than
+  one; a category of one group (Actions, General) shows no heading there
+  and its name in All. Group names are searched.
+- The sidebar's on/total count and Tab work per category; screens that
+  open only on request (no switch) are not counted.
+
 ### Rows (L-83, decided 2026-10-01)
 
 | Row | Examples | Key on the parent row | Keys on child rows |
@@ -44,9 +57,11 @@ append-only action ids and default keys in `src/input/Binding.h`.
 
 - No per-setting or per-feature reset (vanilla has none either). "All" has
   "Reset all" (every setting, key bindings and HUD layout; not Shapes), each
-  category (Camera & view, Inventory, ...) has "Reset category" (its features'
-  settings and HUD placement; not key bindings), and Hotkeys has "Reset all
-  keys". They sit on the column-heading line and need a second press.
+  category (View, HUD, ...) has "Reset category" (its features' settings
+  and HUD placement; not key bindings), and Hotkeys has "Reset all keys".
+  They sit on the column-heading line and need a second press. While a
+  category's reset waits for it, the footer names the groups it resets
+  (L-340); there is no reset per group.
   The HUD layout editor keeps its per-element and all-element resets.
 - (Decided 2026-10-12, L-159) Hotkeys has "Find by key" on the same line,
   right next to the key column, with "Reset all keys" to its left (the

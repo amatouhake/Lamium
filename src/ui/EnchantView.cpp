@@ -5,6 +5,7 @@
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/ScreenParts.h"
+#include "ui/SettingsRows.h"
 #include "ui/SettingsTableView.h"
 #include "ui/Widgets.h"
 #include "features/inspection/render/ItemIcon.h"
@@ -133,7 +134,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     float const pad = SettingsTable::pad;
 
     // Heading row: where this screen belongs, and the way back to it.
-    drawPageHeading(context, t, "section.inventory", "feature.enchantOrder", last.backX, hover.zone == Zone::Back);
+    drawPageHeading(context, t, featureSection("enchantOrder"), "feature.enchantOrder", last.backX, hover.zone == Zone::Back);
     fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
 
     // Left: the item, the kinds and the main hand's cell, the sets, the rows.

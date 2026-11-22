@@ -7,7 +7,7 @@ the fewest levels (or least prior work) and guides the player through it
 beside the anvil screen (L-170, Experimental). Player's description:
 [FEATURES.md](FEATURES.md); game members: [GAME-UPDATES.md](GAME-UPDATES.md).
 
-Settings, under Inventory > "Enchantment order" (Experimental; the row has
+Settings, under Items > Item screens > "Enchantment order" (Experimental; the row has
 an Open button and no switch of its own, the planner only opens on request):
 
 | Row | Key | Default |
@@ -157,8 +157,8 @@ One piece of code draws it in the planner view and right of the anvil.
 
 ### The planner view
 
-- A page of the settings screen: heading "Inventory > Enchantment order"
-  with a way back to Inventory, choosing column left, steps' side right,
+- A page of the settings screen: heading "Items > Enchantment order"
+  with a way back to Items, choosing column left, steps' side right,
   three-line footer (status or hover help; how to use the rows; the 40-level
   limit or the Creative note, ending "Esc: back").
 - Opening: an unfinished plan opens as it was left, whatever is in the main

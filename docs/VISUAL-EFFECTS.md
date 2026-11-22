@@ -2,7 +2,7 @@
 
 Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs/VISUAL-EFFECTS.md`.
 
-**Hide effects** (Camera & view) stops drawing selected visual effects. It
+**Hide effects** (View > Look) stops drawing selected visual effects. It
 has a saved master switch, default off, with an unbound toggle key ("Toggle
 hiding effects"), and one saved child switch per effect, each default on and
 each with its own unbound toggle key:

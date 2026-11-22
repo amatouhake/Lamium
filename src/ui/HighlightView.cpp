@@ -4,6 +4,7 @@
 #include "ui/Localization.h"
 #include "ui/ScreenParts.h"
 #include "ui/SearchQuery.h"
+#include "ui/SettingsRows.h"
 #include "ui/SettingsTableView.h"
 #include "ui/Widgets.h"
 #include "app/Capabilities.h"
@@ -269,7 +270,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     bool on = highlightOn();
 
     // Heading row: where this list belongs, and the way back to it.
-    drawPageHeading(context, t, "section.camera", "feature.blockHighlight", last.backX, hover.zone == Zone::Back);
+    drawPageHeading(context, t, featureSection("blockHighlight"), "feature.blockHighlight", last.backX, hover.zone == Zone::Back);
     fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
 
     // Left: the listed types, in the order added.

@@ -23,7 +23,36 @@ void settingsRowsTests() {
     }
     auto translate = [](std::string_view key) { return std::string(ui::translations::find(key, "en_US")); };
     {
-        auto rows = ui::buildSettingsRows(false, "section.information", {}, {"targetInfo"}, translate);
+        // The two levels (L-340): every feature in exactly one group, every group in a category, and a group
+        // named apart from its category unless it is the category's only one.
+        bool placed = true;
+        for (auto const& feature : ui::features) {
+            int found = 0;
+            for (auto const& group : ui::groups) found += static_cast<int>(std::ranges::count(group.features, feature.id));
+            placed = placed && found == 1;
+        }
+        check(placed, "every feature is listed in exactly one group");
+        check(std::ranges::all_of(settings::options, [](settings::Option const& option) { return ui::featureGroup(option.feature); }),
+              "every option's feature has a group, so a category reset reaches it");
+        bool known = true, named = true;
+        for (auto const& group : ui::groups) {
+            known = known && std::ranges::find(ui::sections, group.section) != ui::sections.end()
+                && std::ranges::all_of(group.features, [](std::string_view id) { return !ui::featureNameKey(id).empty(); });
+            named = named && ((group.key == group.section) == (ui::groupCount(group.section) == 1));
+        }
+        check(known, "every group lies in a category and lists known features");
+        check(named, "a group takes its category's name only when it is the category's only group");
+        bool contiguous = true;
+        for (size_t i = 1; i < ui::groups.size(); ++i)
+            if (ui::groups[i].section != ui::groups[i-1].section)
+                for (size_t j = 0; j < i; ++j) contiguous = contiguous && ui::groups[j].section != ui::groups[i].section;
+        check(contiguous, "a category's groups stand together, so All lists them in sidebar order");
+        check(ui::featureSection("blockHighlight") == "section.world" && ui::featureSection("massCraft") == "section.items"
+            && ui::featureSection("toasts") == "section.hud" && ui::featureGroup("toolGuard")->key == "group.handsEquipment",
+            "the agreed moves");
+    }
+    {
+        auto rows = ui::buildSettingsRows(false, "section.hud", {}, {"targetInfo"}, translate);
         auto found = std::ranges::find_if(rows, [](auto const& row) {
             return row.option && row.option->id == "information.targetSchematic";
         });
@@ -31,7 +60,7 @@ void settingsRowsTests() {
               "schematic display is a child option of Target Info in the settings row catalog");
     }
     {
-        auto rows = ui::buildSettingsRows(false, "section.information", {}, {"infoHud"}, translate);
+        auto rows = ui::buildSettingsRows(false, "section.hud", {}, {"infoHud"}, translate);
         std::vector<std::string_view> ids;
         for (auto const& row : rows)
             if (row.option && row.feature->id == "infoHud") ids.push_back(row.option->id);
@@ -87,6 +116,7 @@ void settingsRowsTests() {
                   std::format("{} has a {} label ({})", what, locale, key).c_str());
         };
         for (auto section : ui::sections) has(section, section);
+        for (auto const& group : ui::groups) has(group.key, group.key);
         for (auto const& feature : ui::features) {
             has(feature.name, feature.id);
             has(feature.description, feature.id);
@@ -188,7 +218,7 @@ void settingsRowsTests() {
         check(child != rows.end() && child->child() && child->feature->id == "handRestock" && !child->action,
               "hotbar sourcing, shulker boxes and buckets are Hand Restock children without extra keys");
     }
-    std::set<std::string_view> options, features, sectionsSeen;
+    std::set<std::string_view> options, features, sectionsSeen, groupsSeen;
     std::set<input::Action> actions;
     std::set<ui::HudElementId> layouts;
     ui::FeatureInfo const* parent = nullptr;
@@ -196,8 +226,9 @@ void settingsRowsTests() {
     for (size_t i = 0; i < rows.size(); ++i) {
         auto const& row = rows[i];
         if (row.kind == RowKind::Section) {
-            check(sectionsSeen.insert(row.section).second, "each section heading appears once");
-            check(translate(row.section) != row.section, "section name is localized");
+            check(groupsSeen.insert(row.group).second, "each group heading appears once");
+            check(translate(row.group) != row.group, "group name is localized");
+            sectionsSeen.insert(row.section);
             section = row.section;
             check(i + 1 < rows.size() && rows[i+1].heading(), "a section heading is followed by a feature");
             continue;
@@ -224,7 +255,7 @@ void settingsRowsTests() {
                 check(actions.insert(*linked).second && row.feature->id == input::actions[static_cast<size_t>(*linked)].feature,
                       "a keyed option carries its own feature's binding exactly once");
     }
-    check(sectionsSeen.size() == ui::sections.size(), "all broad sections are represented");
+    check(sectionsSeen.size() == ui::sections.size() && groupsSeen.size() == ui::groups.size(), "every category and group is represented");
     check(features.size() == ui::features.size(), "every feature is listed");
     // HUD look options are edited in the layout editor, reached through the links.
     size_t listed = 0;
@@ -304,7 +335,7 @@ void settingsRowsTests() {
         changed.hud.magnification.dy = 90;
         changed.inventory.sorting = !Settings{}.inventory.sorting;
         changed.bindings[static_cast<size_t>(input::Action::Zoom)] = input::Chord{};
-        ui::resetSection(changed, "section.camera");
+        ui::resetSection(changed, "section.view");
         Settings defaults;
         check(changed.camera.zoomToggle == defaults.camera.zoomToggle && changed.camera.magnification == defaults.camera.magnification
             && changed.camera.freelookToggle == defaults.camera.freelookToggle
@@ -329,17 +360,21 @@ void settingsRowsTests() {
     // Collapsed: only headings and features; child counts remain visible.
     expanded.clear();
     rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
-    check(rows.size() == ui::features.size() + ui::sections.size(), "collapsed view exposes only sections and features");
+    check(rows.size() == ui::features.size() + ui::groups.size(), "collapsed view exposes only group headings and features");
     for (auto const& row : rows) check(!row.child() && !row.expanded, "collapsed features have no visible children");
 
-    // A category shows only its features, without section headings.
-    rows = ui::buildSettingsRows(false, "section.camera", query, expanded, translate);
+    // A category shows only its features, headed by its groups when it has several.
+    rows = ui::buildSettingsRows(false, "section.view", query, expanded, translate);
+    check(rows.size() == 9 && rows[0].kind == RowKind::Section && rows[0].group == "group.camera"
+        && rows[4].kind == RowKind::Section && rows[4].group == "group.look", "a category of several groups heads each");
+    for (auto const& row : rows) check(row.section == "section.view", "category filters features");
+    rows = ui::buildSettingsRows(false, "section.interface", query, expanded, translate);
     check(!rows.empty(), "category has features");
-    for (auto const& row : rows) check(row.heading() && row.section == "section.camera", "category filters features");
+    for (auto const& row : rows) check(row.heading(), "a category of one group shows no heading of its own");
 
     // Search spans all categories and opens features whose settings match.
     query.append("magnification");
-    rows = ui::buildSettingsRows(false, "section.inventory", query, expanded, translate);
+    rows = ui::buildSettingsRows(false, "section.items", query, expanded, translate);
     check(rows.size() == 5 && rows[0].kind == RowKind::Section && rows[1].feature->id == "zoom" && rows[1].expanded
         && rows[2].option->id == "camera.magnification" && rows[3].option->id == "camera.showMagnification"
         && rows[4].layout == ui::HudElementId::Magnification && rows[4].lastChild,
@@ -369,9 +404,12 @@ void settingsRowsTests() {
               }), "clicking a feature name match reveals its settings");
         expanded.erase("zoom");
     }
-    query.clear(); query.append("Camera & view");
+    query.clear(); query.append("Hands and equipment");
     rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
-    for (auto const& row : rows) check(row.section == "section.camera", "section search stays in matching group");
+    check(!rows.empty(), "a group's name is searched");
+    for (auto const& row : rows)
+        check(row.kind == RowKind::Section ? row.group == "group.handsEquipment" : ui::featureGroup(row.feature->id)->key == "group.handsEquipment",
+              "group search stays in matching group");
     query.clear(); query.append("ズーム");
     rows = ui::buildSettingsRows(false, {}, query, expanded, [](std::string_view key) { return std::string(ui::translations::find(key, "ja_JP")); });
     check(rows.size() >= 2 && rows[1].feature->id == "zoom" && !rows[1].expanded, "Japanese feature search keeps a matched feature collapsed");
@@ -404,20 +442,22 @@ void settingsRowsTests() {
     {
         std::set<std::string_view> open = {"settings", "automationStatus", "toasts", "hudText"};
         auto view = ui::buildSettingsRows(false, "section.interface", query, open, translate);
-        size_t heading = view.size(), toasts = view.size(), text = view.size();
-        for (size_t i = 0; i < view.size(); ++i) {
-            if (!view[i].heading()) continue;
-            if (view[i].feature->id == "settings") heading = i;
-            if (view[i].feature->id == "toasts") toasts = i;
-            if (view[i].feature->id == "hudText") text = i;
+        auto hud = ui::buildSettingsRows(false, "section.hud", query, open, translate);
+        size_t heading = view.size(), toasts = hud.size(), text = hud.size();
+        for (size_t i = 0; i < view.size(); ++i)
+            if (view[i].heading() && view[i].feature->id == "settings") heading = i;
+        for (size_t i = 0; i < hud.size(); ++i) {
+            if (!hud[i].heading()) continue;
+            if (hud[i].feature->id == "toasts") toasts = i;
+            if (hud[i].feature->id == "hudText") text = i;
         }
         check(heading + 3 < view.size(), "settings feature lists its rows");
         check(view[heading+1].option && view[heading+1].option->id == "interface.animations",
             "the settings screen heading starts with its animations");
-        check(toasts < view.size() && view[toasts+1].option && view[toasts+1].option->id == "interface.toggleToasts"
-            && std::any_of(view.begin() + toasts + 1, view.end(), [](auto const& row) { return row.kind == RowKind::Layout; }),
+        check(toasts < hud.size() && hud[toasts+1].option && hud[toasts+1].option->id == "interface.toggleToasts"
+            && std::any_of(hud.begin() + toasts + 1, hud.end(), [](auto const& row) { return row.kind == RowKind::Layout; }),
             "toggle toasts is its own heading with the switch first and the toast's layout link (L-98)");
-        check(text < view.size() && view[text+1].option && view[text+1].option->id == "interface.hudRowHeight",
+        check(text < hud.size() && hud[text+1].option && hud[text+1].option->id == "interface.hudRowHeight",
             "HUD text heading holds the line height");
         std::vector<input::Action> openerKeys;
         for (size_t i = heading + 1; i < view.size() && view[i].child(); ++i)
@@ -430,7 +470,7 @@ void settingsRowsTests() {
         auto hotkeys = ui::buildSettingsRows(true, {}, query, expanded, translate);
         size_t section = hotkeys.size();
         for (size_t i = 0; i < hotkeys.size(); ++i)
-            if (hotkeys[i].kind == RowKind::Section && hotkeys[i].section == "section.interface") section = i;
+            if (hotkeys[i].kind == RowKind::Section && hotkeys[i].group == "section.interface") section = i;
         check(section + 3 < hotkeys.size() && hotkeys[section+1].action == input::Action::Settings
             && hotkeys[section+2].action == input::Action::OpenHotkeys
             && hotkeys[section+3].action == input::Action::OpenHudLayout,
@@ -446,7 +486,7 @@ void settingsRowsTests() {
             if (id == "realTime") order.emplace_back("realTimeDisplay");
         }
         std::set<std::string_view> open = {"infoHud"};
-        auto view = ui::buildSettingsRows(false, "section.information", query, open, translate);
+        auto view = ui::buildSettingsRows(false, "section.hud", query, open, translate);
         std::vector<std::string> seen;
         bool underInfo = false;
         for (auto const& row : view) {

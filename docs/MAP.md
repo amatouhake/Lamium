@@ -12,7 +12,7 @@ Experimental, default off. Agreed mockups: [minimap](demos/minimap.html),
 independently; other map mods are reference-only ([PROVENANCE.md](PROVENANCE.md)
 group 3).
 
-Settings (category "Map", `Settings::Map`): "Minimap" (switch, key; range,
+Settings (World > Map, `Settings::Map`): "Minimap" (switch, key; range,
 heading up, round, Cave view, Nether view, Debug View hiding, zoom/enlarge keys,
 layout link); "Map text" (compass; below the map coordinates, scaled ones behind the destination's
 block, "Chunk x, z (x, z)", biome; the two from #80 off); "Radar" (switch, kinds, invisible, faces); "Waypoints"

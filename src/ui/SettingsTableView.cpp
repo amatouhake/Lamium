@@ -660,6 +660,13 @@ std::string sectionCount(std::string_view section, Settings const& preferences) 
 }
 std::string baseDescription() {
     if (capturing_) return actionLabel(*capturing_) + " - " + behaviorText(*capturing_);
+    // A category's reset waits for its second press: say what it resets (L-340).
+    if (resetArmed && resetScope() == ResetScope::Section) {
+        std::string names;
+        for (auto const& group : groups)
+            if (group.section == categoryKey()) names += (names.empty() ? "" : ", ") + translated(group.key);
+        return translated("reset.sectionWhat", names);
+    }
     if (findingKey) return translated("keyFind.prompt");
     if (!valid(selected) && keyQuery && hotkeysView())
         return translated("keyFind.none", keyQueryName);
@@ -1007,7 +1014,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         float y = t.rowY(i), rowLeft = t.tableLeft + 1, rowWidth = t.rowWidth();
         auto const& entry = rows[i];
         if (entry.kind == RowKind::Section) {
-            label(context,t.nameX,y+4,t.tableWidth-2*SettingsTable::pad,translated(entry.section),palette::accent);
+            label(context,t.nameX,y+4,t.tableWidth-2*SettingsTable::pad,translated(entry.group),palette::accent);
             fill(context,rowLeft,y+SettingsTable::rowHeight-1,rowWidth,1,palette::accent,.3f);
             continue;
         }

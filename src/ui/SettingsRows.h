@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <optional>
 #include <set>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -14,20 +15,65 @@ struct FeatureInfo {
     bool experimental = false;
     std::optional<input::Action> primary = std::nullopt;
 };
-// Seeing first (camera, HUD and overlays, map), then doing (inventory,
-// actions), then General (L-83, decided 2026-10-01).
+// Two levels (L-340): the sidebar's categories, seeing first, then doing,
+// then General (L-83); inside each, groups headed in green. All, search and
+// Hotkeys head their rows by group. A category of one group names that group
+// with its own key.
 inline constexpr auto sections = std::to_array<std::string_view>({
-    "section.camera", "section.information", "section.map", "section.schematic", "section.inventory",
-    "section.interaction", "section.interface"});
+    "section.view", "section.hud", "section.world", "section.items", "section.interaction", "section.interface"});
+struct GroupInfo {
+    std::string_view key, section;
+    std::span<std::string_view const> features; // in display order
+};
+namespace group_members {
+inline constexpr std::string_view camera[] = {"zoom", "freelook", "freecamera"};
+inline constexpr std::string_view look[] = {"nightVision", "hideOffhand", "hideEffects", "connectedTextures"};
+inline constexpr std::string_view wholeHud[] = {"hudText", "toasts", "gameHud", "automationStatus"};
+inline constexpr std::string_view information[] = {"infoHud", "targetInfo", "playerList", "debugView"};
+inline constexpr std::string_view handStatus[] = {"durabilityHud", "inventoryHud", "usedSlots", "offhandSlot", "saturation", "statusEffects"};
+inline constexpr std::string_view inWorld[] = {"chunkBorders", "hitboxes", "lightOverlay", "shapes", "blockHighlight"};
+inline constexpr std::string_view map[] = {"minimap", "mapText", "mapMarks", "radar", "slimeChunks", "waypoints", "worldMap"};
+inline constexpr std::string_view schematics[] = {"schematic", "schematicMenu", "schematicRepeat", "schematicCheck", "schematicHud",
+    "schematicMove", "schematicPlacement", "schematicLayers", "schematicShow", "schematicSave", "schematicScreen"};
+inline constexpr std::string_view itemScreens[] = {"previews", "itemDetails", "englishSearch", "sorting", "transfer", "lockedTrades",
+    "repeatTrades", "enchantOrder", "bookPaste"};
+inline constexpr std::string_view recipesPlan[] = {"recipes", "plan", "stores", "massCraft"};
+inline constexpr std::string_view handsEquipment[] = {"toolSwitch", "weaponSwitch", "handRestock", "fakeOffhand", "offhandSwap",
+    "deathRestore", "toolGuard", "elytraSwap"};
+inline constexpr std::string_view actions[] = {"restrictions", "permanentSneak", "permanentSprint", "edgeGuard", "sneakPlacement",
+    "periodicAttack", "periodicUse"};
+inline constexpr std::string_view general[] = {"settings", "gameLanguage", "savedData", "skipServerPacks", "calculator"};
+}
+inline constexpr auto groups = std::to_array<GroupInfo>({
+    {"group.camera", "section.view", group_members::camera},
+    {"group.look", "section.view", group_members::look},
+    {"group.wholeHud", "section.hud", group_members::wholeHud},
+    {"group.information", "section.hud", group_members::information},
+    {"group.handStatus", "section.hud", group_members::handStatus},
+    {"group.inWorld", "section.world", group_members::inWorld},
+    {"group.map", "section.world", group_members::map},
+    {"group.schematics", "section.world", group_members::schematics},
+    {"group.itemScreens", "section.items", group_members::itemScreens},
+    {"group.recipesPlan", "section.items", group_members::recipesPlan},
+    {"group.handsEquipment", "section.items", group_members::handsEquipment},
+    {"section.interaction", "section.interaction", group_members::actions},
+    {"section.interface", "section.interface", group_members::general},
+});
+// The group a feature is listed in; null for an id no group lists (a test keeps that from happening).
+inline constexpr GroupInfo const* featureGroup(std::string_view id) {
+    for (auto const& group : groups)
+        for (auto member : group.features)
+            if (member == id) return &group;
+    return nullptr;
+}
 inline constexpr std::string_view featureSection(std::string_view id) {
-    if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures" || id == "blockHighlight") return "section.camera";
-    if (id == "previews" || id == "itemDetails" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore" || id == "enchantOrder" || id == "recipes" || id == "plan" || id == "stores" || id == "massCraft") return "section.inventory";
-    if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "sneakPlacement" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
-    if (id == "settings" || id == "gameLanguage" || id == "savedData" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
-    if (id.starts_with("schematic")) return "section.schematic";
-    if (id == "minimap" || id == "mapText" || id == "mapMarks" || id == "radar" || id == "slimeChunks" || id == "waypoints" || id == "worldMap")
-        return "section.map";
-    return "section.information";
+    auto group = featureGroup(id);
+    return group ? group->section : std::string_view{};
+}
+inline constexpr int groupCount(std::string_view section) {
+    int count = 0;
+    for (auto const& group : groups) count += group.section == section;
+    return count;
 }
 inline constexpr auto features = std::to_array<FeatureInfo>({
     // Session features: no saved switch; the state column shows and flips
@@ -325,6 +371,7 @@ struct SettingsRow {
     int children = 0;       // Feature rows: expandable content
     bool expanded = false;  // Feature rows
     bool lastChild = false; // Child rows: end of the tree guide
+    std::string_view group; // Section rows: the group they head
     bool heading() const { return kind == RowKind::Feature; }
     bool selectable() const { return kind != RowKind::Section; }
     bool child() const {
@@ -333,11 +380,14 @@ struct SettingsRow {
     }
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
-            && action == other.action && section == other.section && layout == other.layout && bandPage == other.bandPage;
+            && action == other.action && section == other.section && layout == other.layout && bandPage == other.bandPage
+            && group == other.group;
     }
 };
 // Category is a section key, or empty for all sections. A query searches every
 // section and initially expands features whose settings, but not name, match it.
+// Rows are headed by group: always when all sections show, inside one category
+// only when it has more than one group (L-340).
 // Presentation independent of Minecraft objects, so it is testable without rendering.
 template<class Translate>
 std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view category, SearchQuery const& query,
@@ -346,17 +396,25 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
     std::vector<SettingsRow> rows;
     bool const searching = query.value().find_first_not_of(' ') != std::string::npos;
     if (searching) category = {};
-    std::string_view lastSection;
-    auto sectionRow = [&](std::string_view section) {
-        if (category.empty() && section != lastSection) rows.push_back({RowKind::Section, nullptr, nullptr, {}, section});
-        lastSection = section;
-    };
-    for (auto const& section : sections) {
+    std::string_view lastGroup;
+    for (auto const& group : groups) {
+        auto const section = group.section;
         if (!category.empty() && category != section) continue;
-        for (auto const& feature : features) {
-            if (featureSection(feature.id) != section) continue;
+        bool const headed = category.empty() || groupCount(section) > 1;
+        auto sectionRow = [&] {
+            if (headed && group.key != lastGroup) {
+                SettingsRow row{RowKind::Section, nullptr, nullptr, {}, section, std::nullopt, std::nullopt};
+                row.group = group.key;
+                rows.push_back(row);
+            }
+            lastGroup = group.key;
+        };
+        for (auto member : group.features) {
+            auto found = std::find_if(features.begin(), features.end(), [&](FeatureInfo const& f) { return f.id == member; });
+            if (found == features.end()) continue;
+            auto const& feature = *found;
             std::string scope = std::string(feature.id) + " " + translate(feature.name) + " "
-                + translate(feature.description) + " " + translate(section);
+                + translate(feature.description) + " " + translate(section) + " " + translate(group.key);
             auto primary = primaryAction(feature);
             std::vector<size_t> actionOrder;
             for (size_t i = 0; i < input::actions.size(); ++i)
@@ -371,7 +429,7 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                     if (keys ? !input::chordUses(input::effectiveChord(keys->bindings, static_cast<input::Action>(i)), keys->pressed)
                              : !query.matches(scope + " " + std::string(action.id) + " "
                                    + translate(actionTranslationKey(static_cast<input::Action>(i))))) continue;
-                    sectionRow(section);
+                    sectionRow();
                     rows.push_back({RowKind::Action, &feature, nullptr, static_cast<input::Action>(i), section});
                 }
                 continue;
@@ -422,7 +480,7 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             bool open = !children.empty() && (expanded.contains(feature.id)
                 || (!self && !searchCollapsed.contains(feature.id)));
             auto const& shown = self ? children : matching;
-            sectionRow(section);
+            sectionRow();
             SettingsRow heading{RowKind::Feature, &feature, nullptr, {}, section};
             heading.children = static_cast<int>(children.size());
             heading.expanded = open;

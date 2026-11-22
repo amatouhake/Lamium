@@ -9,6 +9,9 @@ Do not infer game success from a build or unit-test result.
 
 ## Since 0.7.0
 
+- Settings grouping (L-340): six categories with group headings, and the
+  README and FEATURES.md sections to follow them before tagging.
+
 - Recipes, the Plan and the stores (L-359, experimental, off by default):
   seen in game step by step on a local world (VALIDATION.md row); a
   server is the open case (RECIPES.md "Limits"). Making a plan's steps
