@@ -102,7 +102,8 @@ p{margin:0;max-width:95ch}
       <ul>
         <li>選択肢を 1 列に、結果を言葉で。左のスロットは「集める物」に出る物（＊はどれでも）。</li>
         <li>板材：「原木を集めて作る（どの木でも）」「板材を集める（どの板材でも）」「種類を決める」。砂：「砂などを集める（どれでも）」「種類を決める」。</li>
-        <li>「どれでも」はマスにしない。種類のマスは「種類を決める」を押したときだけ、アイテム一覧の順で。種類を決めると、その種類の選び方（集める／レシピ）が下に出る。</li>
+        <li>「どれでも」はマスにしない。種類のマスは「種類を決める」を押したときだけ、アイテム一覧の順で。</li>
+        <li>種類を決めると、その種類の入手方法は「レシピ」にその種類の行として出る（ほかのアイテムと同じ）。グループの欄はどの種類かだけを受け持つ。</li>
       </ul>
     </div>
     <div class="card">
@@ -195,11 +196,7 @@ function groupPanel(k){
   if (ch === 'pick') {
     h += `<div class="inner"><div class="grid">${g.members.map(m=>`<span class="cell${member===m?' on':''}" data-pick="${k}|m|${m}">${slot(m,1)}</span>`).join('')}</div>`;
     h += `<div class="cellname">${member ? I[member][0] : '種類を押すと決まる'}</div>`;
-    if (member) {
-      const it = items[member];
-      h += it ? itemPanel(member, it, member)
-              : `<div class="q"><span>手に入れ方</span></div><div class="row on"><span class="slots">${slot(member,1)}</span><span class="w">集める<small>作るレシピが無い</small></span></div>`;
-    }
+    // The member's own ways are its line under "レシピ", as for any item: the group says only which member.
     h += `</div>`;
   }
   return h;
@@ -221,7 +218,15 @@ function draw(){
   const [face, words] = headWords(k);
   let h = tabs + `<div class="body"><div class="sec">${isGroup?'どれでもよい材料':'レシピ'}</div>`;
   h += `<div class="line">${ico(key)}<span class="name">${I[key][0]}</span><span class="arrow">${isGroup?'→':'←'}</span>${face}<span class="w">${words}</span></div>`;
-  h += `<div class="panel">${isGroup ? groupPanel(k) : itemPanel(k, items[k], k)}</div></div>`;
+  h += `<div class="panel">${isGroup ? groupPanel(k) : itemPanel(k, items[k], k)}</div>`;
+  // A member picked: the plan now makes or gathers that item, so it has a line of its own under "レシピ" (closed here).
+  const m = isGroup && state.choice[k] === 'pick' ? state.member[k] : null;
+  if (m) {
+    const from = m === 'oak_planks' ? 'oak_log' : 'logs';
+    const words = groups[k].traced ? `自動: ${m === 'oak_planks' ? 'オークの原木' : I[m][0].replace('の板材', 'の原木')}から` : '自動: 集める';
+    h += `<div class="sec">レシピ</div><div class="line">${ico(m)}<span class="name">${I[m][0]}</span><span class="arrow">←</span>${groups[k].traced ? slot(from,1) : slot(m,1)}<span class="w">${words}</span></div>`;
+  }
+  h += `</div>`;
   document.getElementById('view').innerHTML = h;
   document.querySelectorAll('.chip').forEach(b => b.classList.toggle('on', state[b.dataset.k] === b.dataset.v));
 }
