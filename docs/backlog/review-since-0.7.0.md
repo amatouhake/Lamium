@@ -127,15 +127,6 @@ closing and reopening the settings (`src/ui/SettingsTableView.cpp:387`).
 
 ## Range 3: everything else
 
-### 3-1 Medium: "Use this data" does not last where the identity is not split
-`src/features/map/WorldPrints.h:75`, `WaypointSession.cpp:660`. `pick`
-returns the base for an unsplit identity before it looks at the rows
-`use` records. On a Realm or friend's world answered "Do not split here",
-choosing the old `world_<hex>` data works until the next join, then goes
-back to `realm_<id>` without a word. Nothing is deleted. This is the
-migration L-358 describes. Read (pure; a unit test reproduces it). A server
-by address is not affected.
-
 ### 3-2 Low: an unreadable `servers.json` still names a data set
 `src/features/map/WaypointSession.cpp:124`, `:190`. The join goes on with
 an empty list, so a world that uses `<base>-w2` records into the base,
@@ -203,7 +194,7 @@ file was changed never to do this. Read; needs a very large add-on set.
 8. A schematic's remainder leaves the plan while the player is in another
    dimension.
 9. "Do not split here" moves a Realm from lent `world_` data to the empty
-   `realm_<id>`, as L-365 decided; with 3-1 no way back is left.
+   `realm_<id>`, as L-365 decided; "Use this data" now leads back.
 10. The tray's frame is `dangerEdge` while a panel is dropped on it
     (`BandEditorDraw.cpp:163`): destructive, or a refusal's color?
 11. `recipes.json`, `wanted.json` and `places.json` write `"version": 1`

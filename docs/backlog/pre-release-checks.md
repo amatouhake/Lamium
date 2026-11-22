@@ -31,7 +31,9 @@ Do not infer game success from a build or unit-test result.
   window and by a Lamium key, and by Mass Craft starting; a quick tap of
   the wanted key leaving no hold (the wheel pages again); Mass Craft
   keeping a carried enchanted tool; the item list's search after a
-  language change and English search switched in a world.
+  language change and English search switched in a world; a friend's
+  world or Realm kept together keeping the data chosen on the Saved data
+  page across a rejoin, and "Do not split here" going back to its own.
 - How to make's shape (L-389) seen on `a11be728`: a group's ways and
   members in the item list's order, recipes with the rule's first and
   re-dyeing folded. Not seen: the wheel turning in that order.

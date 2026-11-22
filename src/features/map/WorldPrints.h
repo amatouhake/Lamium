@@ -34,6 +34,9 @@ struct Row {
     bool operator==(Row const&) const = default;
 };
 inline constexpr size_t maxRows = 2000, maxPerBase = 24;
+// The print of an identity's row while it is kept together ("Do not split here"): no world joined has it (a
+// world's game mode is known). That row names the data set every world of the identity uses.
+inline Print const together{};
 // The n-th data set of a base after the base itself.
 inline std::string variantKey(std::string const& base, int n) { return base + "-w" + std::to_string(n); }
 // The answer to wait for, when a join's print is decided for now.
@@ -72,7 +75,16 @@ inline void add(std::vector<Row>& rows, Row row) {
 template<class Exists>
 Pick pick(std::vector<Row>& rows, std::vector<std::string> const& unsplit, std::string const& base, Print const& print,
           Exists exists) {
-    if (base.empty() || std::find(unsplit.begin(), unsplit.end(), base) != unsplit.end()) return {base, false, false, {}, 0};
+    if (base.empty()) return {base, false, false, {}, 0};
+    if (std::find(unsplit.begin(), unsplit.end(), base) != unsplit.end()) {
+        // Kept together: the data set its row names, the base until the player chose other data.
+        auto row = detail::find(rows, base, together);
+        if (row == rows.rend()) return {base, false, false, {}, 0};
+        Row const kept = *row;
+        rows.erase(std::next(row).base());
+        rows.push_back(kept);
+        return {kept.key, false, false, {}, 0};
+    }
     if (auto seen = detail::find(rows, base, print); seen != rows.rend()) {
         Row row = *seen;
         rows.erase(std::next(seen).base());
@@ -131,6 +143,14 @@ inline std::string use(std::vector<Row>& rows, std::string const& base, Print co
     *row = {base, key, print, true, false, {}, 0};
     return key;
 }
+// "Use this data" on the Saved data page: this world's row, and where the identity is kept together its
+// row too, so the next join keeps the choice.
+inline std::string choose(std::vector<Row>& rows, std::vector<std::string> const& unsplit, std::string const& base, Print const& print,
+                          std::string const& key) {
+    if (use(rows, base, print, key).empty()) return {};
+    if (std::find(unsplit.begin(), unsplit.end(), base) != unsplit.end()) use(rows, base, together, key);
+    return key;
+}
 // New data for this world, unless it already has its own.
 template<class Exists>
 std::string startNew(std::vector<Row>& rows, std::string const& base, Print const& print, Exists exists) {
@@ -143,11 +163,11 @@ std::string startNew(std::vector<Row>& rows, std::string const& base, Print cons
     *row = {row->base, row->key, row->print, true, false, {}, 0};
     return row->key;
 }
-// "Do not split here": the base is used for every world of it from now on.
-inline std::string noSplit(std::vector<std::string>& unsplit, std::string const& base) {
+// "Do not split here": the base is used for every world of it from now on, whatever data was chosen before.
+inline std::string noSplit(std::vector<std::string>& unsplit, std::vector<Row>& rows, std::string const& base) {
     if (base.empty()) return {};
     if (std::find(unsplit.begin(), unsplit.end(), base) == unsplit.end()) unsplit.push_back(base);
-    return base;
+    return use(rows, base, together, base);
 }
 // The Saved data page's switch on: `base` tells its worlds apart again. False when it was not kept together.
 inline bool split(std::vector<std::string>& unsplit, std::string const& base) {

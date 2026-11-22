@@ -421,8 +421,28 @@ void worldPrints() {
     check(wp::pick(rows, unsplit, "srv", {0, "Lobby", 0, false}, exists).key == "srv"
           && wp::pick(rows, unsplit, "srv", {0, "Hub", 2, false}, exists).key == "srv", "without a seed nothing is split");
     check(wp::pick(rows, unsplit, "srv", {5, "Lobby", 0, false}, exists).key == "srv", "a seed appearing where none was keeps the data");
-    check(wp::noSplit(unsplit, "srv") == "srv" && wp::pick(rows, unsplit, "srv", {6, "X", 1, true}, exists).key == "srv"
+    check(wp::noSplit(unsplit, rows, "srv") == "srv" && wp::pick(rows, unsplit, "srv", {6, "X", 1, true}, exists).key == "srv"
           && !wp::pick(rows, unsplit, "srv", {7, "Y", 1, true}, exists).asked, "a base not split uses one data, unasked");
+    {
+        // A Realm kept together given its old world_ data (L-358, L-390 3-1): the choice lasts past the next join,
+        // and "Do not split here" again goes back to the base.
+        auto kept = rows;
+        std::vector<std::string> together{"realm_9"};
+        wp::Print world{11, "R", 0, false};
+        check(wp::choose(kept, together, "realm_9", world, "world_ab") == "world_ab"
+              && wp::pick(kept, together, "realm_9", world, exists).key == "world_ab"
+              && wp::pick(kept, together, "realm_9", {12, "S", 0, false}, exists).key == "world_ab",
+              "data chosen while kept together is every world's at the next join");
+        check(wp::noSplit(together, kept, "realm_9") == "realm_9" && wp::pick(kept, together, "realm_9", world, exists).key == "realm_9",
+              "\"Do not split here\" uses the base again");
+        wp::choose(kept, together, "realm_9", world, "world_ab");
+        auto apart = together;
+        wp::split(apart, "realm_9");
+        check(wp::pick(kept, apart, "realm_9", world, exists).key == "world_ab" && !wp::pick(kept, apart, "realm_9", world, exists).asked,
+              "split again, the world keeps the data chosen for it");
+        wp::forget(kept, "world_ab");
+        check(wp::pick(kept, together, "realm_9", world, exists).key == "realm_9", "the chosen data deleted, the base is used");
+    }
     {
         auto again = unsplit;
         check(wp::split(again, "srv") && !wp::split(again, "srv") && wp::pick(rows, again, "srv", {8, "Z", 1, true}, exists).asked,

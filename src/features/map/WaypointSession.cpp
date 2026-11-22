@@ -660,7 +660,7 @@ bool useData(std::string const& key) {
             if (!servers::assign(list.servers, identity.address, identity.ip, identity.port, identity.levelId, key)) return;
             identity.base = key;
         }
-        done = !prints::use(list.prints, identity.base, identity.print, key).empty();
+        done = !prints::choose(list.prints, list.unsplit, identity.base, identity.print, key).empty();
     });
     if (!done || !saved) return false;
     return switchTo(key);
@@ -681,7 +681,7 @@ bool setDataSplit(std::string const& key, bool on) {
     bool const saved = withList([&](servers::List& list) {
         base = prints::baseOf(list.prints, key);
         if (on) prints::split(list.unsplit, base);
-        else prints::noSplit(list.unsplit, base);
+        else prints::noSplit(list.unsplit, list.prints, base);
     });
     if (!saved) return false;
     log("worlds behind '" + base + "' " + (on ? "are told apart" : "use one data set"));
@@ -709,7 +709,7 @@ bool answerWorld(WorldAnswer answer) {
         case WorldAnswer::Keep: key = prints::keep(list.prints, identity.base, identity.print); break;
         case WorldAnswer::New: key = prints::startNew(list.prints, identity.base, identity.print, exists); break;
         case WorldAnswer::UseOther: key = prints::use(list.prints, identity.base, identity.print, question->other); break;
-        case WorldAnswer::NoSplit: key = prints::noSplit(list.unsplit, identity.base); break;
+        case WorldAnswer::NoSplit: key = prints::noSplit(list.unsplit, list.prints, identity.base); break;
         }
         if (!key.empty() && !identity.byAddress() && key != identity.base && prints::ownSet(identity.base, key)) recordWorld(list, key, identity);
     });
