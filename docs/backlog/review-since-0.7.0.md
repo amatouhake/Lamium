@@ -42,17 +42,6 @@ field needs a window variant in `ListViewWidgets`, and moving the tag to
 the framed `drawTag` changes its look: a Design question (AGENTS rule 7).
 The editor's refusal chip and lit tray are `warning` now. Read.
 
-### 1-20 Low: tests
-`tests/RecipeIndexTests.cpp:571`: "the recipe the game names is taken"
-passes with the name ignored, since one recipe fits the fixture.
-`PlanViewDraw.cpp:109` (`makeAllRuns`) is logic in a .cpp without a test.
-Read.
-
-### 1-21 Low: documents
-`docs/PLAN.md:174` describes the shared stepper for a wanted count; the
-code has the count box and "x" (as the same document says earlier).
-`docs/RECIPES.md:382` says stations have no "place" (L-380 built it). Read.
-
 ## Range 2: settings screen, hotkeys, input
 
 ### 2-2 Low: the "fires and conflicts agree" test cannot fail

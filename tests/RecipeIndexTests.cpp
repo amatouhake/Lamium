@@ -573,6 +573,21 @@ void recipeIndexTests() {
         check(surplusSlots(index, pickaxe, {{0, iron, 1, 1}, {1, iron, 1, 1}, {2, iron, 1, 1}, {3, iron, 1, 1}}).empty()
               && recipeInGrid(index, 2, {-1, -1, -1, birch}, "none") == at(button) && recipeInGrid(index, 2, {-1, -1, -1, birch}, button.id) == at(button),
               "what does not stack is never thrown, and the recipe the game names is taken where it fits");
+        {
+            // Two recipes from one input: only the game's name tells them apart.
+            Source two;
+            two.recipes.push_back({"crafting_table", "first", 0, {{"a", 1}}, {{"x", false}}, 0, 0, true});
+            two.recipes.push_back({"crafting_table", "second", 0, {{"b", 1}}, {{"x", false}}, 0, 0, true});
+            Index const pair = build(two);
+            auto named = [&](std::string const& id) {
+                for (size_t i = 0; i < pair.recipes.size(); ++i) if (pair.recipes[i].id == id) return static_cast<int>(i);
+                return -2;
+            };
+            Item const x = pair.find("x");
+            check(named("first") != named("second") && recipeInGrid(pair, 2, {-1, -1, -1, x}, "second") == named("second")
+                  && recipeInGrid(pair, 2, {-1, -1, -1, x}, "first") == named("first") && recipeInGrid(pair, 2, {-1, -1, -1, x}, "none") == named("first"),
+                  "of two recipes that fit, the one the game names is taken, else the first");
+        }
         check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 328
               && std::abs(view.blockY(Station::Crafting, 8, 3) - (51 + 35 + 70 + (70.f - 54) / 2)) < .01f,
               "one column sits in the middle; two fill left to right, then down");

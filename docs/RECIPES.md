@@ -381,9 +381,8 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Mass Craft: seen in a local world (VALIDATION-LOG 2026-11-18); the
   throw from the pointer and the surplus are not, nor a server.
 - Crafting onto the pointer: a server is unchecked.
-- "Place": a server is unchecked, and stations other than the two
-  crafting grids have none. Shift + place with Item transfer on and an
-  inventory slot under the pointer was not tried.
+- "Place": a server is unchecked. Shift + place with Item transfer on and
+  an inventory slot under the pointer was not tried.
 - Not built: held members first in a group's turn. Their own
   items: taking an item out of the list in creative
   ([L-360](backlog/L-360.md)), what

@@ -173,11 +173,10 @@ plan's recipes are in [L-116](backlog/L-116.md).
   out when the key is released without the wheel having turned (a key
   of several inputs or a mouse button takes it out at once, and has no
   wheel); an item taken out keeps its count until the world is left.
-- A wanted item's count is changed with the shared stepper (- N +), on the
-  short list and in the window alike: minus at one takes the item out at
-  once; the wheel (also with the wanted key held over the list) takes it
-  to 0, shown faint, and it goes out once the pointer leaves its row or
-  the key is up, so a turn too far can be turned back (maintainer
+- A wanted item's count is changed in its count box, on the short list
+  and in the window alike, and "x" takes the item out at once; the wheel
+  (also with the wanted key held over the list) takes it to 0, shown
+  faint, and it goes out once the pointer leaves its row or the key is up, so a turn too far can be turned back (maintainer
   2026-11-19, L-367). A Shift step stops at one; Shift steps to the next
   multiple of the item's stack, 1 to 64 to 128. A press on the number types it
   (Enter or a press elsewhere keeps it, Esc does not; 0 takes the item
