@@ -257,11 +257,10 @@ A setting of its own, off by default, and it works with Recipes off
   beyond it goes, also what was thrown out and picked up again. A round goes out in one frame where the game shows each
   part at once, the next 50 ms later; a take that found room for a part
   only is followed by the next in the same frame.
-- A step makes at most 16 slot calls, every call counted: a move into a
-  cell is one straight from its slot, three where it goes by the pointer
-  (L-381); a round with more cells is laid in by a step of its own; a
-  surplus or a stack put away past the limit waits for the next step. A
-  plan's "make" lays one round and takes once a tick, the same bound, so a run
+- A step makes at most 16 slot calls, all counted (a cell is one straight
+  from its slot, three by the pointer, L-381; a round with more cells is a
+  step of its own; what is past the limit waits; "make" lays and takes
+  once a tick, the same bound), so a run
   stays under some 320 requests a second: a local world closed with a
   network error during a run without that limit.
 - With no room in the inventory for the product, the smallest stack of
