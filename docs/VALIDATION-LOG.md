@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Plan tips cut to what rows lack, How to make in item-list order (L-387, L-389, 2026-11-22)
+
+Build `38017d71` (DLL
+`3d77aa0b9cb875ceb6ab477c5fa061270a34354d7e07e52199558098096e31cb`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: How to make's recipe
+lines in the item list's order (the furnace no longer first for its
+kana); a piston step in a wanted breakdown has a tag that jumps to its
+line; gather rows' tips carry no counts, in the window and on the panel;
+the make column reads "作る数"; a product's tip lists only the inputs
+short ("原木: あと 749,966"). Not seen: an input slot's "所持: N（あと
+M）". Faults found: tags' words sit low and "どれでも" is cut with room
+to its left; the switches stand a unit above their words; a cut count's
+tip on the panel shows the item's details and id. Raised: "今作れる /
+作る数" are not a pair; "++" on a slot gives no size; the panel lacks
+"Make all".
+
 ## How to make laid out for whole recipes (L-389, 2026-11-22)
 
 Build `e3cddb10` (DLL
