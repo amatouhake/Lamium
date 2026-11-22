@@ -110,7 +110,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
   framed white and the one chosen green over it, with no counts held;
   no item's own lines (fuel, id) follow. The name needs no "*": the
   lines say it is a kind. In "How to make" a line's left shows the
-  group's or item's tip, its right that of what is in use. A group's
+  group's or item's tip; on its right each picture names itself. A group's
   members stand in the item list's creative order on every screen.
 - Tips describe the item alone; what a press or the wheel does there
   ("Wheel: look through the kinds", "Change it in How to make") is
@@ -141,7 +141,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   (leather, white wool, anything smelted from an ore that drops it:
   `usuallyGathered`) have no automatic recipe, as a loop's base: they
   read "Automatic: gather" and are made by choosing a recipe; the notes
-  keep only the player's choices. An item has a line where there is a
+  keep only the player's choices. In a loop of items made from each
+  other the one a furnace turns into another of it is the base, as mined:
+  cobblestone is gathered and stone smelted from it. An item has a line where there is a
   choice: several recipes, or gathered (by the player or the rule) with
   a recipe that could make it, or a recipe the player chose.
 - A key (W by default, beside A for favorites; both rebindable) puts the

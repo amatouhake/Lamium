@@ -460,7 +460,8 @@ struct Choice {
 // loop round. Inside one, items are settled one at a time, an item only by a
 // recipe whose parts from the loop are settled already. The first, the base,
 // therefore has a recipe from outside the loop (smelting ore) or is gathered.
-// Next comes the item most recipes outside the loop use, then one a recipe in
+// Next comes an item a furnace turns into another of the loop (cobblestone into stone), then the item most
+// recipes outside the loop use, then one a recipe in
 // the loop uses several of, then by name. Among an item's recipes the station
 // and priority decide, then the one closest to the base (white wool and dye,
 // not another color and dye), then `before`. Outside a loop, among recipes of one station and priority, the one
@@ -512,10 +513,11 @@ inline Choice choose(Index const& index) {
     std::vector<std::vector<Item>> members(loops);
     for (Item item = 0; item < count; ++item) members[loop[item]].push_back(item);
     std::vector<int> used(count, 0);
-    std::vector<bool> several(count, false);
+    std::vector<bool> several(count, false), smelted(count, false);
     for (auto const& recipe : index.recipes)
         for (auto const& part : recipe.uses) {
             if (part.group || recipe.own) continue;
+            if (loop[part.id] == loop[recipe.makes] && smelts(recipe.station)) smelted[part.id] = true;
             if (loop[part.id] != loop[recipe.makes]) ++used[part.id];
             else if (part.count > 1) several[part.id] = true;
         }
@@ -564,6 +566,9 @@ inline Choice choose(Index const& index) {
             continue;
         }
         auto earlier = [&](Item a, Item b) {
+            // What a furnace turns into another of the loop is the raw one, as mined (maintainer 2026-11-22):
+            // cobblestone, not stone, whose many uses through tags are not counted.
+            if (smelted[a] != smelted[b]) return static_cast<bool>(smelted[a]);
             if (used[a] != used[b]) return used[a] > used[b];
             if (several[a] != several[b]) return several[a] > several[b];
             return index.items[a] < index.items[b];

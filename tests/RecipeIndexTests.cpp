@@ -278,6 +278,9 @@ void recipeIndexTests() {
             {"stonecutter", "cobbled_deepslate_from_deepslate", 0, {{"cobbled_deepslate", 1}}, cells("deepslate", 1)},
             {"furnace", "deepslate", 0, {{"deepslate", 1}}, cells("cobbled_deepslate", 1)},
             {"crafting_table", "furnace", 0, {{"furnace", 1}}, cells("stone_crafting_materials", 8, true)},
+            {"crafting_table", "stone_slab", 0, {{"stone_slab", 6}}, cells("stone", 3)},
+            {"stonecutter", "stone_stairs", 0, {{"stone_stairs", 1}}, cells("stone", 1)},
+            {"crafting_table", "deepslate_tiles", 0, {{"deepslate_tiles", 4}}, cells("deepslate", 4)},
         };
         Index const woods = build(wood);
         Choice const picked = choose(woods);
@@ -298,6 +301,9 @@ void recipeIndexTests() {
         int const stones = groupNamed("stone_crafting_materials");
         check(stones >= 0 && woods.traces[static_cast<size_t>(stones)].kind < 0,
               "a member made from what is made from it (cobblestone from stone) is a loop's base, not traced");
+        auto madeBy = [&](std::string const& name) { int const r = picked.recipe[static_cast<size_t>(at(name))]; return r < 0 ? std::string() : woods.recipes[static_cast<size_t>(r)].id; };
+        check(madeBy("cobblestone").empty() && madeBy("stone") == "stone" && madeBy("cobbled_deepslate").empty() && madeBy("deepslate") == "deepslate",
+              "in a loop the item smelted into another of it is the base, however many recipes use the other (cobblestone, not stone)");
         auto const& slabTrace = woods.traces[static_cast<size_t>(slabs)];
         check(slabTrace.kind >= 0 && slabTrace.uses == 3 && slabTrace.makes == 6 && woods.traces[static_cast<size_t>(slabTrace.kind)].kind == trace.kind,
               "a kind is traced in turn: slabs to their planks, those planks to the logs");

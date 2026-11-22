@@ -11,6 +11,7 @@
 #include "mc/client/player/LocalPlayer.h"
 #include <atomic>
 #include <format>
+#include <map>
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -80,6 +81,13 @@ void advance() noexcept {
                                               trace.uses, trace.recipes.size());
                     }
                     Runtime::instance().self().getLogger().info("Recipe groups traced past their kind: {}", traced.empty() ? "none" : traced);
+                    // Each loop's base (gathered, or made from outside the loop), so a change of the rule shows in the log.
+                    std::map<Item, int> loops;
+                    for (Item item = 0; item < static_cast<Item>(index.items.size()); ++item)
+                        if (Item const base = table->choice.base[static_cast<size_t>(item)]; base >= 0 && base != item) ++loops[base];
+                    std::string bases;
+                    for (auto const& [base, others] : loops) bases += std::format("{}{} (+{})", bases.empty() ? "" : ", ", index.items[static_cast<size_t>(base)], others);
+                    Runtime::instance().self().getLogger().info("Recipe loops' bases: {}", bases.empty() ? "none" : bases);
                     std::lock_guard lock(mutex);
                     if (forWorld == generation.load()) built = std::move(table), state = State::Ready;
                 } catch (...) {
