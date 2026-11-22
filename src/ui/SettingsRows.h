@@ -1,4 +1,5 @@
 #pragma once
+#include "input/FixedPresses.h"
 #include "settings/Options.h"
 #include "ui/SearchQuery.h"
 #include "ui/HudElement.h"
@@ -287,7 +288,8 @@ inline bool effectsPaused(std::string_view id, Settings const& value) {
 
 // MapCache: the world map's saved data for this world, with a delete button.
 // SavedData: which saved data the joined server uses, linking to General > Saved data (L-343).
-enum class RowKind { Section, Feature, Option, Action, Layout, MapCache, SavedData, BandLayout };
+// Fixed: a press that is not a binding (input::fixedPresses), read-only in Hotkeys (L-372).
+enum class RowKind { Section, Feature, Option, Action, Layout, MapCache, SavedData, BandLayout, Fixed };
 // While its feature's switch is off, a setting row is drawn dimmed whole;
 // command rows (actions, the HUD layout link, the saved data and map data
 // rows) stay at full strength (DESIGN "Screens", L-335).
@@ -371,6 +373,7 @@ struct SettingsRow {
     bool expanded = false;  // Feature rows
     bool lastChild = false; // Child rows: end of the tree guide
     std::string_view group; // Section rows: the group they head
+    int press = -1; // Fixed rows: the index in input::fixedPresses
     bool heading() const { return kind == RowKind::Feature; }
     bool selectable() const { return kind != RowKind::Section; }
     bool child() const {
@@ -380,7 +383,7 @@ struct SettingsRow {
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
             && action == other.action && section == other.section && layout == other.layout && bandPage == other.bandPage
-            && group == other.group;
+            && group == other.group && press == other.press;
     }
 };
 // Category is a section key, or empty for all sections. A query searches every
@@ -428,6 +431,16 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                                    + translate(actionTranslationKey(static_cast<input::Action>(i))))) continue;
                     sectionRow();
                     rows.push_back({RowKind::Action, &feature, nullptr, static_cast<input::Action>(i), section});
+                }
+                // The feature's fixed presses follow its bindings, read-only.
+                for (size_t i = 0; i < input::fixedPresses.size(); ++i) {
+                    auto const& press = input::fixedPresses[i];
+                    if (press.feature != feature.id) continue;
+                    if (keys ? !input::fixedUses(press, keys->pressed) : !query.matches(scope + " " + translate(press.name))) continue;
+                    sectionRow();
+                    SettingsRow row{RowKind::Fixed, &feature, nullptr, {}, section, std::nullopt, std::nullopt};
+                    row.press = static_cast<int>(i);
+                    rows.push_back(row);
                 }
                 continue;
             }

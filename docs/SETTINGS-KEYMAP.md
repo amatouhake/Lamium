@@ -155,6 +155,14 @@ append-only action ids and default keys in `src/input/Binding.h`.
 - Two bindings conflict only where their layers meet; the same test
   derives what fires and what is warned about. Back (window only) and
   Sort (item screen only) on one key are no conflict.
+- (Decided 2026-11-23) Hotkeys has a place column before the key column:
+  short names (Play, Screen, Window, Outside) for every action. The
+  footer names the places in full, with on what and the condition.
+- Fixed presses (`input::fixedPresses`: Item transfer's gestures, the
+  recipe lists' clicks, wheel and Esc) are read-only rows in Hotkeys after
+  their feature's bindings: faint unfilled caps, no switch, a press does
+  nothing; Find by key finds them. The settings screen keeps the gesture
+  switches and lists no fixed rows.
 - The mark and note that a lone mouse button is also the game's attack,
   use or pick block show only for actions that work in play; on an item
   screen that button is a slot's.

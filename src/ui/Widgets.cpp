@@ -500,9 +500,9 @@ float keycapsWrap(MinecraftUIRenderContext& context, float x, float y, float wid
 }
 float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, std::vector<std::string> const& keys,
               KeyTone tone) {
-    bool filled = tone == KeyTone::Filled;
-    Rgb edge = tone == KeyTone::Plain ? palette::keyEdge : palette::warning;
-    Rgb ink = tone == KeyTone::Outline ? palette::warning : filled ? palette::panel : palette::text;
+    bool filled = tone == KeyTone::Filled, fixed = tone == KeyTone::Fixed;
+    Rgb edge = fixed ? palette::faint : tone == KeyTone::Plain ? palette::keyEdge : palette::warning;
+    Rgb ink = fixed ? palette::faint : tone == KeyTone::Outline ? palette::warning : filled ? palette::panel : palette::text;
     float used = 0;
     for (size_t i = 0; i < keys.size(); ++i) {
         if (i) {
@@ -512,9 +512,9 @@ float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, 
         }
         float capWidth = std::min(textWidth(context, keys[i]) + 6, width - used);
         if (capWidth < 8) break;
-        fill(context,x+used,y,capWidth,capHeight,filled ? palette::warning : palette::keyFill);
+        if (!fixed) fill(context,x+used,y,capWidth,capHeight,filled ? palette::warning : palette::keyFill);
         frame(context,x+used,y,capWidth,capHeight,edge);
-        fill(context,x+used+1,y+capHeight-2,capWidth-2,1,palette::shade,filled ? .25f : .5f);
+        if (!fixed) fill(context,x+used+1,y+capHeight-2,capWidth-2,1,palette::shade,filled ? .25f : .5f);
         // Dark text on the filled cap would smear with the font's shadow.
         labelScaled(context,x+used+3,y+boxTextInset(),capWidth-5,keys[i],1.f,ink,Align::Left,!filled);
         used += capWidth;

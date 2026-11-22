@@ -1,4 +1,5 @@
 #include "ui/SettingsTableView.h"
+#include "ll/api/service/TargetedBedrock.h"
 #include "features/recipes/ItemList.h"
 #include "ui/CapabilityStatus.h"
 #include "ui/HighlightView.h"
@@ -325,6 +326,7 @@ void activateRow(int row, bool space) {
     case RowKind::BandLayout: openBandLayout(*entry.bandPage); return;
     case RowKind::MapCache: pressMapCache(); return;
     case RowKind::SavedData: row_pages::begin(row_pages::savedData()); return;
+    case RowKind::Fixed: return; // read-only: its key cannot be changed
     }
 }
 void moveSelection(int step) {
@@ -658,6 +660,57 @@ std::string sectionCount(std::string_view section, Settings const& preferences) 
     }
     return total ? std::to_string(on) + "/" + std::to_string(total) : std::string{};
 }
+// Where an action works (L-372): the tip and the footer use the full names, Hotkeys' place column the short ones.
+std::string placeNames(unsigned layers, bool brief) {
+    std::string text;
+    auto add = [&](unsigned bit, char const* full, char const* shortKey) {
+        if (layers & bit) text += (text.empty() ? std::string{} : translated("where.join")) + translated(brief ? shortKey : full);
+    };
+    add(input::layer::gameplay, "where.gameplay", "where.short.gameplay");
+    add(input::layer::itemScreen, "where.itemScreen", "where.short.itemScreen");
+    add(input::layer::window, "where.window", "where.short.window");
+    add(input::layer::outsideWorld, "where.outsideWorld", "where.short.outsideWorld");
+    return text;
+}
+std::string whereText(unsigned layers) { return placeNames(layers, false); }
+// The footer's line: the places in full, then on what and the condition.
+std::string placeLine(unsigned layers, input::Condition condition, input::FixedTarget target) {
+    auto text = whereText(layers);
+    auto note = [&](char const* key) { text = translated("where.withNote", text, translated(key)); };
+    if (target == input::FixedTarget::LamiumList) note("where.target.lamiumList");
+    if (target == input::FixedTarget::GameSlot) note("where.target.gameSlot");
+    if (condition == input::Condition::FreeCamera) note("where.cond.freeCamera");
+    if (condition == input::Condition::Recipes) note("where.cond.recipes");
+    if (condition == input::Condition::Plan) note("where.cond.plan");
+    return translated("where.line", text);
+}
+// A fixed press's caps: the token's own name, or the text for what a token cannot say (a drag, the drop key).
+std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress const& press) {
+    std::vector<std::string> keys;
+    for (int i = 0; i < input::fixedCapCount(press); ++i) {
+        auto const& cap = press.caps[i];
+        if (!cap.text.empty()) keys.push_back(translated(cap.text));
+        else if (auto names = chordKeys(current, input::Chord{cap.token}); !names.empty()) keys.push_back(names.front());
+    }
+    return keys;
+}
+// A fixed press whose feature or own switch is off: its row is drawn dimmed.
+bool fixedOff(input::FixedPress const& press, Settings const& value) {
+    if (effectsPaused(press.feature, value)) return true;
+    auto option = settings::find(press.option);
+    return option && !std::get<bool>(option->read(value));
+}
+// Hotkeys' place column: as wide as its longest short name, never more than a third of the names' room.
+float placeWidth = 0;
+float placeColumnWidth(MinecraftUIRenderContext& context, SettingsTable const& t) {
+    float width = 0;
+    std::set<unsigned> seen;
+    for (size_t i = 0; i < input::actions.size(); ++i) seen.insert(input::whereActs(static_cast<input::Action>(i)).layers);
+    for (auto const& press : input::fixedPresses) seen.insert(press.where);
+    for (unsigned layers : seen) width = std::max(width, textWidth(context, placeNames(layers, true)));
+    return std::min(width + 2, (t.keyX - t.nameX) / 3);
+}
+float placeX(SettingsTable const& t) { return t.keyX - SettingsTable::gap - placeWidth; }
 std::string baseDescription() {
     if (capturing_) return actionLabel(*capturing_) + " - " + behaviorText(*capturing_);
     // A category's reset waits for its second press: say what it resets (L-340).
@@ -696,8 +749,23 @@ std::string baseDescription() {
         // An action may explain itself ("help.key.<id>"); the press/hold/toggle note follows.
         auto helpKey = "help.key." + std::string(input::actions[static_cast<size_t>(*entry.action)].id);
         auto help = translated(helpKey);
-        return (hotkeysView() ? featureName(*entry.feature) + ": " : std::string{})
+        auto text = (hotkeysView() ? featureName(*entry.feature) + ": " : std::string{})
             + (help != helpKey ? help + " " : std::string{}) + behaviorText(*entry.action);
+        // Hotkeys names where it works in full, with what must also hold (L-372).
+        if (hotkeysView()) {
+            auto const where = input::whereActs(*entry.action);
+            text += "\n" + placeLine(where.layers, where.condition, input::FixedTarget::None);
+        }
+        return text;
+    }
+    case RowKind::Fixed: {
+        auto const& press = input::fixedPresses[static_cast<size_t>(entry.press)];
+        std::string keys;
+        if (auto client = ll::service::getClientInstance())
+            for (auto const& key : fixedKeys(*client, press)) keys += (keys.empty() ? "" : " + ") + key;
+        auto text = featureName(*entry.feature) + ": " + translated(press.name) + " (" + keys + "). " + translated("fixed.help");
+        if (!press.option.empty()) text += " " + translated("fixed.helpSwitch");
+        return text + "\n" + placeLine(press.where, input::Condition::None, press.target);
     }
     case RowKind::Layout: return translated("help.layoutLink");
     case RowKind::BandLayout: return translated(game_language::inWorld() ? "help.band.layoutLink" : "help.band.layoutLinkOutside");
@@ -744,18 +812,6 @@ std::string linkTitle(input::Link link) {
     case input::Link::InsideThis: return "tip.inside";
     default: return "tip.reordered";
     }
-}
-// Where two bindings meet (L-372), as the tip names it after the other action.
-std::string whereText(unsigned layers) {
-    std::string text;
-    auto add = [&](unsigned bit, char const* key) {
-        if (layers & bit) text += (text.empty() ? "" : ", ") + translated(key);
-    };
-    add(input::layer::gameplay, "where.gameplay");
-    add(input::layer::itemScreen, "where.itemScreen");
-    add(input::layer::window, "where.window");
-    add(input::layer::outsideWorld, "where.outsideWorld");
-    return text;
 }
 // Lists every binding related to the action's chord, grouped by how it
 // relates, below the key cell (above it when there is more room there).
@@ -908,6 +964,7 @@ void copyVersion_() {
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
+    placeWidth = hotkeysView() ? placeColumnWidth(context, t) : 0;
     auto row = valid(selected) ? std::optional{rows[selected]} : std::nullopt;
     if (row != descriptionRow) {
         descriptionRow = row;
@@ -1048,8 +1105,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         bool editingRow = capturing_ && i == captureRow;
         // Dims everything the row draws after its background, text included (text is
         // drawn at the end, so a band laid over it would not cover it).
-        DrawOpacity dim{dimsWhenPaused(entry.kind) && entry.feature && effectsPaused(entry.feature->id,preferences)
-            ? pausedRowOpacity : 1.f};
+        bool const paused = entry.kind == RowKind::Fixed
+            ? fixedOff(input::fixedPresses[static_cast<size_t>(entry.press)], preferences)
+            : dimsWhenPaused(entry.kind) && entry.feature && effectsPaused(entry.feature->id,preferences);
+        DrawOpacity dim{paused ? pausedRowOpacity : 1.f};
         auto buttons = captureButtons();
         float buttonsX = t.captureButtonX(0, static_cast<int>(buttons.size()));
         float nameRight = editingRow ? buttonsX - SettingsTable::gap : t.stateX - SettingsTable::gap;
@@ -1109,14 +1168,26 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         case RowKind::Action: {
             bool open = !hotkeysView() && opensTool(*entry.action) && !editingRow;
             if (hotkeysView()) {
-                drawName(context,t.nameX,y,editingRow ? nameRight : t.keyX-SettingsTable::gap,actionLabel(*entry.action),
-                    palette::text,0,entry.feature->experimental);
+                // The place column (L-372) gives way to the edited row's buttons.
+                float const place = placeX(t);
+                drawName(context,t.nameX,y,editingRow ? std::min(nameRight, place - SettingsTable::gap) : place - SettingsTable::gap,
+                    actionLabel(*entry.action),palette::text,0,entry.feature->experimental);
+                if (!editingRow || buttonsX > place + placeWidth)
+                    label(context,place,y+3,placeWidth,placeNames(input::whereActs(*entry.action).layers, true),palette::dim);
             } else {
                 drawGuide(context,y,entry.lastChild);
                 label(context,t.nameX+12,y+3,(open ? nameRight - 14 : nameRight)-t.nameX-12,actionLabel(*entry.action,true),palette::dim);
             }
             drawKeyCell(context,current,y,*entry.action);
             if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
+            break;
+        }
+        case RowKind::Fixed: {
+            auto const& press = input::fixedPresses[static_cast<size_t>(entry.press)];
+            float const place = placeX(t);
+            label(context,t.nameX,y+3,place-SettingsTable::gap-t.nameX,translated(press.name),palette::dim);
+            label(context,place,y+3,placeWidth,placeNames(press.where, true),palette::dim);
+            keycaps(context,t.keyX,y+2,t.keyWidth,fixedKeys(current, press),KeyTone::Fixed);
             break;
         }
         case RowKind::Layout: {

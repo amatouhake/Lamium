@@ -266,8 +266,9 @@ constexpr float anyOrderMarkSize = 9;
 void anyOrderMark(MinecraftUIRenderContext&, float x, float y, Rgb color);
 void changeArrow(MinecraftUIRenderContext&, float x, float y, float scale, Rgb color);
 // Warning caps mark a binding that relates to another: Outline overlaps,
-// Filled is the exact same chord (all its actions fire together).
-enum class KeyTone { Plain, Outline, Filled };
+// Filled is the exact same chord (all its actions fire together). Fixed is a
+// press that cannot be rebound: an unfilled faint frame and faint text (L-372).
+enum class KeyTone { Plain, Outline, Filled, Fixed };
 // Draws key caps left to right within width and returns the width used.
 float keycaps(MinecraftUIRenderContext&, float x, float y, float width, std::vector<std::string> const& keys,
               KeyTone tone = KeyTone::Plain);

@@ -94,6 +94,39 @@ void settingsRowsTests() {
         found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, &keys);
         check(std::ranges::any_of(found, [](auto const& row) { return row.action == input::Action::ChunkBorders; }),
               "find by key sees default bindings");
+        // Fixed presses (L-372): listed read-only under their feature, found by their inputs.
+        keys.pressed = {{Device::Key, 0x10}, {Device::Wheel, -1}}; // Shift and the wheel down
+        found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, &keys);
+        std::set<std::string_view> fixedFound;
+        for (auto const& row : found)
+            if (row.kind == RowKind::Fixed) fixedFound.insert(input::fixedPresses[static_cast<size_t>(row.press)].name);
+        check(fixedFound == std::set<std::string_view>{"fixed.transferWheelStack", "fixed.transferWheelAll"},
+              "find by key finds the fixed presses that use every input pressed, a wheel in either direction");
+    }
+    {
+        auto all = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate);
+        size_t fixedRows = 0;
+        bool afterActions = true;
+        for (size_t i = 0; i < all.size(); ++i) {
+            if (all[i].kind != RowKind::Fixed) continue;
+            ++fixedRows;
+            auto const& press = input::fixedPresses[static_cast<size_t>(all[i].press)];
+            afterActions = afterActions && all[i].feature->id == press.feature
+                && (i + 1 == all.size() || all[i+1].kind != RowKind::Action || all[i+1].feature != all[i].feature);
+        }
+        check(fixedRows == input::fixedPresses.size() && afterActions, "every fixed press is a Hotkeys row after its feature's bindings");
+        auto settingsRows = ui::buildSettingsRows(false, {}, ui::SearchQuery{}, {"transfer", "recipes"}, translate);
+        check(std::ranges::none_of(settingsRows, [](auto const& row) { return row.kind == RowKind::Fixed; }),
+              "the settings screen keeps its gesture switches and lists no fixed rows");
+        bool known = true;
+        for (auto const& press : input::fixedPresses) {
+            known = known && !ui::featureNameKey(press.feature).empty() && input::fixedCapCount(press) > 0 && press.where != 0;
+            if (!press.option.empty()) {
+                auto option = settings::find(press.option);
+                known = known && option && option->feature == press.feature;
+            }
+        }
+        check(known, "every fixed press names a known feature, its own switch and at least one cap");
     }
     // Every choice an option offers survives normalization: the Durability
     // HUD offered "Per line" while normalize still reset it to the default.
@@ -116,6 +149,15 @@ void settingsRowsTests() {
                   std::format("{} has a {} label ({})", what, locale, key).c_str());
         };
         for (auto section : ui::sections) has(section, section);
+        for (auto const& press : input::fixedPresses) {
+            has(press.name, press.name);
+            for (int i = 0; i < input::fixedCapCount(press); ++i)
+                if (!press.caps[i].text.empty()) has(press.caps[i].text, press.name);
+        }
+        for (auto key : {"where.short.gameplay", "where.short.itemScreen", "where.short.window", "where.short.outsideWorld",
+                 "where.line", "where.withNote", "where.join", "where.target.lamiumList", "where.target.gameSlot",
+                 "where.cond.freeCamera", "where.cond.recipes", "where.cond.plan", "fixed.help", "fixed.helpSwitch"})
+            has(key, key);
         for (auto const& group : ui::groups) has(group.key, group.key);
         for (auto const& feature : ui::features) {
             has(feature.name, feature.id);
@@ -435,7 +477,8 @@ void settingsRowsTests() {
     rows = ui::buildSettingsRows(true, {}, query, expanded, translate);
     size_t actionRows = 0;
     for (auto const& row : rows) {
-        check(row.kind == RowKind::Section || (row.kind == RowKind::Action && row.action), "Hotkeys contains only bindings");
+        check(row.kind == RowKind::Section || (row.kind == RowKind::Action && row.action) || (row.kind == RowKind::Fixed && row.press >= 0),
+              "Hotkeys contains only bindings and fixed presses");
         if (row.action) ++actionRows;
     }
     check(actionRows == live, "Hotkeys includes every action that is not retired");
