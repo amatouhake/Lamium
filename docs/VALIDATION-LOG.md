@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Schematic Materials switches' names and help (2026-11-22)
+
+Build `c741d68f` (DLL
+`d2f5c56995ffa32613bb70d03b5db85fd2354c097471a34a11886e0fc17d2fcd`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: on the Materials
+tab a cut switch name shows whole under the pointer, and the footer
+gives the switch's help while the pointer is on it.
+
 ## Notes' hints as window text, the checked placement named (L-370, 2026-11-22)
 
 Build `a54b335e` (DLL
