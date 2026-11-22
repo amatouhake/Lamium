@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Settings groups and hotkey layers (L-340, L-372, 2026-11-23)
+
+Build `c06c30c8` (DLL
+`ca0b5da3abd10722d264101e2927603466be48603beb2aa23d4d6c05763d4f2b`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: six categories in
+the sidebar and group headings in All, a category, search and Hotkeys;
+the armed category reset names its groups in the footer; with the recipe
+view open Sort does not act while R, U and back do. Seen wrong: the
+conflict tip cut the place after a long action name ("On..."), and Sort
+on the middle button was told it shares the game's pick block, cut in
+two lines. Both changed after this build.
+
 ## Schematic Materials switches' names and help (2026-11-22)
 
 Build `c741d68f` (DLL
