@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How To Choices 3</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* One GUI unit is 3 pixels (1920x1080, UI 75%). How to make's open line, the direction agreed for L-389. */
+:root{
+  color-scheme: dark;
+  --u:3px;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent:#6cc349; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --edge:#000; --shadow:#555; --inset:#b4b4b4;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:9em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.win{position:relative;width:calc(240*var(--u));margin-top:calc(21*var(--u));background:var(--win);color:var(--win-ink);font:calc(8*var(--u))/1 var(--pix);
+  box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) var(--edge);padding:calc(6*var(--u)) calc(7*var(--u)) calc(7*var(--u))}
+.tabs{position:absolute;left:calc(5*var(--u));top:calc(-21*var(--u));display:flex}
+.tab{height:calc(21*var(--u));padding:0 calc(6*var(--u));display:flex;align-items:center;background:#626262;color:#fff;font:calc(8*var(--u))/1 var(--pix);
+  border:var(--u) solid var(--edge);border-bottom:0;box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #c4c4c4;margin-right:calc(-1*var(--u));border-radius:calc(2*var(--u)) calc(2*var(--u)) 0 0}
+.tab.on{background:var(--win);color:var(--win-ink);height:calc(24*var(--u));margin-bottom:calc(-3*var(--u));box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) 0 var(--shadow);z-index:1}
+.body{min-height:calc(160*var(--u))}
+.ico{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:0 0 2px #000;
+  box-shadow:inset calc(-2*var(--u)) calc(-2*var(--u)) rgba(0,0,0,.25),inset calc(2*var(--u)) calc(2*var(--u)) rgba(255,255,255,.25)}
+.slot{width:calc(18*var(--u));height:calc(18*var(--u));background:var(--slot);position:relative;display:grid;place-items:center;flex:none;
+  box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.slot .ico{box-shadow:none}
+.slot b{position:absolute;right:var(--u);bottom:0;font:calc(7*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.slot .any{position:absolute;left:var(--u);top:0;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.sec{height:calc(12*var(--u));font-size:calc(7*var(--u));color:var(--win-faint);display:flex;align-items:flex-end;padding-bottom:var(--u)}
+.line{display:grid;grid-template-columns:calc(18*var(--u)) calc(64*var(--u)) calc(12*var(--u)) calc(18*var(--u)) 1fr;align-items:center;column-gap:calc(2*var(--u));height:calc(20*var(--u))}
+.line .w{font-size:calc(7*var(--u));padding-left:calc(2*var(--u))}
+.arrow{text-align:center;font-size:calc(9*var(--u))}
+.name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel{margin:0 0 calc(3*var(--u)) calc(20*var(--u));padding:calc(2*var(--u)) calc(3*var(--u)) calc(3*var(--u));background:var(--inset);box-shadow:inset var(--u) var(--u) var(--shadow),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.q{display:flex;align-items:center;justify-content:space-between;font-size:calc(6.5*var(--u));color:var(--win-faint);height:calc(11*var(--u));margin-top:calc(2*var(--u))}
+.q:first-child{margin-top:0}
+.btn{font:calc(6.5*var(--u))/1 var(--pix);color:#111;background:#d0d0d0;box-shadow:inset 0 0 0 var(--u) #363636;padding:calc(1.5*var(--u)) calc(3*var(--u));cursor:pointer}
+.btn.off{color:#888;background:#bdbdbd;box-shadow:inset 0 0 0 var(--u) #8a8a8a;cursor:default}
+.tiles{display:flex;gap:calc(2*var(--u))}
+.tile{flex:1;display:flex;align-items:center;gap:calc(2*var(--u));padding:calc(1*var(--u)) calc(2*var(--u));cursor:pointer;background:rgba(255,255,255,.18);min-width:0}
+.tile:hover{background:rgba(255,255,255,.35)}
+.tile.on{outline:var(--u) solid var(--accent-deep);outline-offset:calc(-1*var(--u));background:rgba(255,255,255,.35)}
+.tile.fixed{cursor:default}
+.tile .w{font-size:calc(7*var(--u));min-width:0}
+.tile .w small{display:block;font-size:calc(6*var(--u));color:var(--win-faint);margin-top:var(--u);line-height:1.2}
+.grid{display:flex;flex-wrap:wrap;gap:calc(2*var(--u));padding:calc(2*var(--u)) 0}
+.cell{cursor:pointer;padding:var(--u)}
+.cell.on{outline:var(--u) solid var(--accent-deep)}
+.cellname{font-size:calc(6.5*var(--u));color:var(--win-ink);height:calc(9*var(--u))}
+.row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:calc(2*var(--u));cursor:pointer;min-height:calc(20*var(--u));padding:0 calc(2*var(--u))}
+.row:hover{background:rgba(255,255,255,.3)}
+.row.on{outline:var(--u) solid var(--accent-deep);outline-offset:calc(-1*var(--u))}
+.row .slots{display:flex;align-items:center;gap:calc(1*var(--u))}
+.row .w{font-size:calc(7*var(--u));line-height:1.25}
+.row .w small{display:block;font-size:calc(6*var(--u));color:var(--win-faint)}
+.tag{font:calc(6*var(--u))/1 var(--pix);color:#fff;background:#6b6b6b;padding:calc(1*var(--u)) calc(2*var(--u))}
+.fold{display:flex;align-items:center;gap:calc(2*var(--u));cursor:pointer;height:calc(16*var(--u));padding:0 calc(2*var(--u));font-size:calc(7*var(--u))}
+.fold:hover{background:rgba(255,255,255,.3)}
+.fold .tri{width:calc(8*var(--u));text-align:center}
+.inner{margin-left:calc(8*var(--u))}
+.station{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(5.5*var(--u))/1 var(--pix);color:#fff;background:#6b4f2a}
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.qq{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>作り方の選び方、直した案（L-389）</h1>
+    <p class="lede">一つ前の案への意見から直した形。どれでもよい材料は問いを分けず、結果を言葉で書いた選択肢を 1 列に。レシピは「自動」を選べる行として先頭に戻し、言葉だけで「いまは〜」と書く。自動が今使っているレシピの行には札だけを付け、選んだ物にはいつも緑の枠。染め直しはたたむ。押すと選べる。</p>
+  </header>
+  <div class="controls">
+    <div class="grp"><span class="lbl">開いている行</span>
+      <button class="chip on" data-k="ex" data-v="planks">板材（たどる）</button>
+      <button class="chip" data-k="ex" data-v="sand">砂など（たどらない）</button>
+      <button class="chip" data-k="ex" data-v="harness">白のハーネス（レシピ多数）</button>
+      <button class="chip" data-k="ex" data-v="diamond">ダイヤモンド（自動で集める）</button>
+      <button class="chip" data-k="ex" data-v="bricks">石レンガ（レシピ 2 つ）</button>
+    </div>
+  </div>
+  <div><div class="win" id="view"></div></div>
+  <div class="notes">
+    <div class="card">
+      <h2>どれでもよい材料</h2>
+      <ul>
+        <li>選択肢を 1 列に、結果を言葉で。左のスロットは「集める物」に出る物（＊はどれでも）。</li>
+        <li>板材：「原木を集めて作る（どの木でも）」「板材を集める（どの板材でも）」「種類を決める」。砂：「砂などを集める（どれでも）」「種類を決める」。</li>
+        <li>「どれでも」はマスにしない。種類のマスは「種類を決める」を押したときだけ、アイテム一覧の順で。種類を決めると、その種類の選び方（集める／レシピ）が下に出る。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>レシピ</h2>
+      <ul>
+        <li>「自動」は先頭の選べる行。言葉だけで「いまは〜」。ルールが変われば中身が変わる、固定の選択とは別の物。</li>
+        <li>自動が今使っている行には「自動が使用中」の札だけ。押すと固定でそれを選んだことになり、そこに緑の枠。</li>
+        <li>選んでいる物（自動か、固定の 1 つ）にいつも緑の枠。「自動に戻す」ボタンは無くし、自動の行を押して戻す。</li>
+        <li>自動の選ぶ物が先頭、染め直しはたたむ。最初の材料が同じレシピは 2 つ目の材料も名前に。</li>
+        <li class="qq">決めたいこと：この形でよいか。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+const I = {
+  planks:['板材','#b08850','板'], logs:['原木','#6b4f2a','原'], sand:['砂など','#dccf9f','砂'],
+  oak_planks:['オークの板材','#b8945f','オ'], spruce_planks:['トウヒの板材','#7a5a34','ト'], birch_planks:['シラカバの板材','#d7c98c','シ'],
+  jungle_planks:['ジャングルの板材','#b07a50','ジ'], acacia_planks:['アカシアの板材','#b05a2f','ア'], dark_oak_planks:['ダークオークの板材','#4a3218','ダ'],
+  mangrove_planks:['マングローブの板材','#7a3030','マ'], cherry_planks:['サクラの板材','#e8b4b0','サ'], pale_oak_planks:['ペールオークの板材','#e4dcd4','ペ'],
+  poplar_planks:['ポプラの板材','#c8b48a','ポ'], bamboo_planks:['竹の板材','#d6c35a','竹'], crimson_planks:['真紅の板材','#7a3550','真'], warped_planks:['歪んだ板材','#2f7f78','歪'],
+  oak_log:['オークの原木','#6b4f2a','原'],
+  sand_1:['砂','#dccf9f','砂'], red_sand:['赤い砂','#c56a2a','赤'], suspicious_sand:['怪しげな砂','#d8c690','怪'],
+  white_harness:['白のハーネス','#e8e8e8','白'], leather:['革','#a0592b','革'], glass:['ガラス','#cfe8ef','ガ'], white_wool:['白の羊毛','#f2f2f2','毛'],
+  white_dye:['白の染料','#f4f4f4','染'], bone_meal:['骨粉','#ece6d6','骨'],
+  diamond:['ダイヤモンド','#4fd6cf','ダ'], diamond_ore:['ダイヤモンド鉱石','#7a8b8b','鉱'], diamond_block:['ダイヤモンドブロック','#5ee6df','塊'],
+  stone_bricks:['石レンガ','#8a8a8a','レ'], stone:['石','#7d7d7d','石'],
+};
+const colors = [['black','黒','#222'],['red','赤','#a33'],['green','緑','#4a6'],['brown','茶','#6b4a2a'],['blue','青','#335'],['purple','紫','#739'],['cyan','水色','#3a9a9a'],
+  ['light_gray','薄灰色','#aaa'],['gray','灰色','#666'],['pink','桃色','#e9a'],['lime','黄緑色','#8c4'],['yellow','黄色','#dc4'],['light_blue','空色','#6ae'],['magenta','赤紫色','#c4c'],['orange','橙色','#e83']];
+colors.forEach(([k,n,c]) => I[k+'_harness'] = [n+'のハーネス', c, n[0]]);
+const ico = k => `<span class="ico" style="background:${I[k][1]}">${I[k][2]}</span>`;
+const slot = (k, n, any) => `<span class="slot">${k?ico(k):''}${n>1?`<b>${n}</b>`:''}${any?'<span class="any">＊</span>':''}</span>`;
+const station = s => `<span class="station" style="background:${s==='石切'?'#777':s==='かまど'?'#555':'#6b4f2a'}">${s}</span>`;
+const tabs = `<div class="tabs">${['欲しい物','集める物','作る物','作り方','保管場所'].map(t=>`<span class="tab${t==='作り方'?' on':''}">${t}</span>`).join('')}</div>`;
+// Items: rule -1 gathers; recipes {uses, makes, at, dye:true for re-dyeing}.
+const items = {
+  harness:{key:'white_harness', rule:0, recipes:[{uses:[['leather',3],['glass',2],['white_wool',1]], makes:1, at:'作業台'}]
+    .concat(colors.flatMap(([k]) => [{uses:[[k+'_harness',1],['white_dye',1]], makes:1, at:'作業台', dye:true}, {uses:[[k+'_harness',1],['bone_meal',1]], makes:1, at:'作業台', dye:true}]))},
+  diamond:{key:'diamond', rule:-1, recipes:[{uses:[['diamond_ore',1]], makes:1, at:'かまど'}, {uses:[['diamond_block',1]], makes:9, at:'作業台'}]},
+  bricks:{key:'stone_bricks', rule:0, recipes:[{uses:[['stone',4]], makes:4, at:'作業台'}, {uses:[['stone',1]], makes:1, at:'石切'}]},
+  oak_planks:{key:'oak_planks', rule:0, recipes:[{uses:[['oak_log',1]], makes:4, at:'作業台'}]},
+};
+const groups = {
+  planks:{traced:{from:'logs', uses:1, makes:4}, members:['oak_planks','spruce_planks','birch_planks','jungle_planks','acacia_planks','dark_oak_planks','mangrove_planks','cherry_planks','pale_oak_planks','poplar_planks','bamboo_planks','crimson_planks','warped_planks']},
+  sand:{traced:null, members:['sand_1','red_sand','suspicious_sand']},
+};
+const state = {ex:'planks', choice:{}, member:{}, open:{}};
+// A recipe's name: its first input; where another recipe of the item shares it, the second too.
+function recipeName(rs, r){
+  const first = I[r.uses[0][0]][0];
+  const shared = rs.filter(o => o.uses[0][0] === r.uses[0][0]).length > 1;
+  return shared && r.uses[1] ? `${first}＋${I[r.uses[1][0]][0]}` : `${first}から`;
+}
+function recipeRow(k, rs, r, i, on, auto, data){
+  return `<div class="row${on?' on':''}" data-pick="${data}"><span class="slots">${r.uses.map(([kk,c])=>slot(kk,c)).join('')}<span class="arrow" style="width:calc(9*var(--u))">→</span>${slot(k,r.makes)}</span>`
+    + `<span class="w">${recipeName(rs, r)}<small>${r.at}</small></span>${auto?'<span class="tag">自動</span>':''}</div>`;
+}
+// An item's ways: gather, then the recipes, the rule's first, re-dyeing folded.
+function itemPanel(id, it, scope){
+  const ch = state.choice[scope];
+  const chosen = ch === undefined ? null : ch;           // null: automatic
+  const used = chosen !== null ? chosen : (it.rule < 0 ? 'gather' : it.rule); // what the plan does now
+  const autoNow = it.rule < 0 ? '集める' : recipeName(it.recipes, it.recipes[it.rule]);
+  const tag = on => on && chosen === null ? '<span class="tag">自動が使用中</span>' : '';
+  let h = `<div class="q"><span>手に入れ方</span></div>`;
+  h += `<div class="row${chosen===null?' on':''}" data-pick="${scope}|auto"><span class="slots"><span class="slot" style="font:calc(6*var(--u))/1 var(--pix)">自動</span></span><span class="w">自動<small>いまは「${autoNow}」・ルールが変われば変わる</small></span></div>`;
+  h += `<div class="row${chosen==='gather'?' on':''}" data-pick="${scope}|gather"><span class="slots">${slot(it.key,1)}</span><span class="w">集める</span>${tag(it.rule<0)}</div>`;
+  const order = it.recipes.map((r,i)=>i).filter(i=>!it.recipes[i].dye);
+  if (it.rule >= 0) order.sort((a,b) => (a===it.rule?-1:0) - (b===it.rule?-1:0));
+  order.forEach(i => h += recipeRow(it.key, it.recipes, it.recipes[i], i, chosen===i, false, `${scope}|${i}`).replace('</div>', tag(it.rule===i) + '</div>'));
+  const dyes = it.recipes.map((r,i)=>i).filter(i=>it.recipes[i].dye);
+  if (dyes.length) {
+    const open = state.open[scope] || (typeof chosen === 'number' && it.recipes[chosen].dye);
+    h += `<div class="fold" data-fold="${scope}"><span class="tri">${open?'▼':'▶'}</span>染め直し（${dyes.length}）<span style="color:var(--win-faint);font-size:calc(6*var(--u))">別の色の${I[it.key][0].replace(/^.+の/,'')}から</span></div>`;
+    if (open) { h += `<div class="inner">`; dyes.forEach(i => h += recipeRow(it.key, it.recipes, it.recipes[i], i, chosen===i, false, `${scope}|${i}`)); h += `</div>`; }
+  }
+  return h;
+}
+function groupPanel(k){
+  const g = groups[k];
+  const ch = state.choice[k] || (g.traced ? 'make' : 'gather');   // 'make' | 'gather' | 'pick' (a member)
+  const member = state.member[k];
+  const row = (on, slots, w, sub, data) => `<div class="row${on?' on':''}" data-pick="${data}"><span class="slots">${slots}</span><span class="w">${w}${sub?`<small>${sub}</small>`:''}</span></div>`;
+  const kindWord = I[k][0].replace(/など$/, '');
+  let h = `<div class="q"><span>どうする</span></div>`;
+  if (g.traced) h += row(ch==='make', `${slot(g.traced.from,g.traced.uses,true)}<span class="arrow" style="width:calc(8*var(--u))">→</span>${slot(k,g.traced.makes,true)}`, `${I[g.traced.from][0]}を集めて作る`, 'どの木でも・持っている板材は先に使う', `${k}|make`);
+  h += row(ch==='gather', slot(k,1,true), `${I[k][0]}を集める`, `どの${kindWord}でも・持っている種類を合わせて数える`, `${k}|gather`);
+  h += row(ch==='pick', member ? slot(member,1) : `<span class="slot" style="font:calc(6*var(--u))/1 var(--pix)">選ぶ</span>`, '種類を決める', member ? I[member][0] : '下のマスから', `${k}|pick`);
+  if (ch === 'pick') {
+    h += `<div class="inner"><div class="grid">${g.members.map(m=>`<span class="cell${member===m?' on':''}" data-pick="${k}|m|${m}">${slot(m,1)}</span>`).join('')}</div>`;
+    h += `<div class="cellname">${member ? I[member][0] : '種類を押すと決まる'}</div>`;
+    if (member) {
+      const it = items[member];
+      h += it ? itemPanel(member, it, member)
+              : `<div class="q"><span>手に入れ方</span></div><div class="row on"><span class="slots">${slot(member,1)}</span><span class="w">集める<small>作るレシピが無い</small></span></div>`;
+    }
+    h += `</div>`;
+  }
+  return h;
+}
+function headWords(k){
+  if (groups[k]) {
+    const g = groups[k], ch = state.choice[k] || (g.traced ? 'make' : 'gather'), m = state.member[k];
+    if (ch === 'pick' && m) return [slot(m,1), `種類: ${I[m][0]}`];
+    if (ch === 'make') return [slot(g.traced.from,1,true), `${I[g.traced.from][0]}を集めて作る`];
+    return [slot(k,1,true), `${I[k][0]}を集める`];
+  }
+  const it = items[k], ch = state.choice[k];
+  if (ch === undefined || ch === null) return it.rule < 0 ? [slot(it.key,1), '自動: 集める'] : [slot(it.recipes[it.rule].uses[0][0],1), `自動: ${recipeName(it.recipes, it.recipes[it.rule])}`];
+  if (ch === 'gather') return [slot(it.key,1), '選択: 集める'];
+  return [slot(it.recipes[ch].uses[0][0],1), `選択: ${recipeName(it.recipes, it.recipes[ch])}`];
+}
+function draw(){
+  const k = state.ex, isGroup = !!groups[k], key = isGroup ? k : items[k].key;
+  const [face, words] = headWords(k);
+  let h = tabs + `<div class="body"><div class="sec">${isGroup?'どれでもよい材料':'レシピ'}</div>`;
+  h += `<div class="line">${ico(key)}<span class="name">${I[key][0]}</span><span class="arrow">${isGroup?'→':'←'}</span>${face}<span class="w">${words}</span></div>`;
+  h += `<div class="panel">${isGroup ? groupPanel(k) : itemPanel(k, items[k], k)}</div></div>`;
+  document.getElementById('view').innerHTML = h;
+  document.querySelectorAll('.chip').forEach(b => b.classList.toggle('on', state[b.dataset.k] === b.dataset.v));
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('.chip');
+  if (c) { state[c.dataset.k] = c.dataset.v; draw(); return; }
+  const f = e.target.closest('[data-fold]');
+  if (f) { state.open[f.dataset.fold] = !state.open[f.dataset.fold]; draw(); return; }
+  const p = e.target.closest('[data-pick]');
+  if (!p) return;
+  const parts = p.dataset.pick.split('|');
+  if (groups[parts[0]]) {
+    const k = parts[0];
+    if (parts[1] === 'm') { state.member[k] = parts[2]; state.choice[k] = 'pick'; }
+    else state.choice[k] = parts[1];
+  } else if (parts[1] === 'auto') delete state.choice[parts[0]];
+  else state.choice[parts[0]] = parts[1] === 'gather' ? 'gather' : Number(parts[1]);
+  draw();
+});
+draw();
+</script>
+</body>
+</html>
