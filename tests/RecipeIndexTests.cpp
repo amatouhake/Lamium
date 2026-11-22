@@ -508,9 +508,12 @@ void recipeIndexTests() {
         check(one.ready() && one.crafts == 1 && one.moves == Moves{{0, 1, 0}, {0, 1, 1}, {0, 1, 2}, {1, 1, 4}, {1, 1, 7}},
               "a shaped recipe is laid cell by cell where its shape puts it, one of each");
         check(!placePlan(index, pickaxe, 2, {{0, iron, 5}, {1, sticks, 2}}, {}, false).fits, "a recipe wider than the grid does not fit");
-        check(roundsWithRoom({{0, sticks, 60, 64}}, 1, sticks, 4, 64) == 17 && roundsWithRoom({{0, sticks, 64, 64}}, 0, sticks, 4, 64) == 0
-                  && roundsWithRoom({}, 2, sticks, 4, 16) == 8,
+        check(roomAfter({{0, sticks, 60, 64}}, {}, 1, sticks, 64) == 68 && roomAfter({{0, sticks, 64, 64}, {1, iron, 5, 64}}, {}, 0, sticks, 64) == 0
+                  && roomAfter({}, {}, 2, sticks, 16) == 32,
               "making stops at the room the inventory has for the product: empty slots and what its stacks can still take");
+        check(roomAfter({{0, iron, 64, 64}, {1, sticks, 64, 64}}, {{0, 64, 0}}, 0, sticks, 64) == 64
+                  && roomAfter({{0, iron, 64, 64}, {1, sticks, 64, 64}}, {{0, 63, 0}}, 0, sticks, 64) == 0,
+              "a slot the inputs laid in empty is room for the product, one left in it is not");
         check(alreadyLaid(index, pickaxe, 3, {iron, iron, iron, -1, sticks, -1, -1, sticks, -1})
               && !alreadyLaid(index, pickaxe, 3, {iron, iron, iron, -1, sticks, -1, -1, sticks, iron})
               && !alreadyLaid(index, pickaxe, 3, {iron, iron, -1, -1, sticks, -1, -1, sticks, -1}) && !alreadyLaid(index, pickaxe, 2, {iron, iron, iron, -1}),

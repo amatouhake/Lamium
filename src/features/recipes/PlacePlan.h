@@ -61,15 +61,21 @@ inline std::vector<PlaceMove> oneMore(Index const& index, Recipe const& recipe, 
     }
     return out;
 }
-// How many rounds of a recipe making `makes` of `product` the inventory can take (L-385, 2026-11-22): its `empty`
-// slots and the room left on stacks of the product, `stack` a stack where none is carried. What the rounds take out
-// of the inventory is not counted, so it errs low and nothing is left in the grid.
-inline int roundsWithRoom(std::vector<PlaceSource> const& carried, int empty, Item product, int makes, int stack) {
-    if (makes <= 0) return 0;
+// How many of `product` the inventory can take once `moves` took their items into the grid (L-385, 2026-11-22): its
+// `empty` slots, the slots the moves empty (sixty-four planks laid in leave room for sixty-four buttons), and what
+// stacks of the product can still take; `stack` a stack where none is carried.
+inline long long roomAfter(std::vector<PlaceSource> const& carried, std::vector<PlaceMove> const& moves, int empty, Item product, int stack) {
+    std::map<int, int> taken;
+    for (auto const& move : moves) taken[move.slot] += move.amount;
     for (auto const& source : carried) if (source.item == product) stack = source.stack;
-    long long room = static_cast<long long>(std::max(0, empty)) * std::max(1, stack);
-    for (auto const& source : carried) if (source.item == product) room += std::max(0, source.stack - source.count);
-    return static_cast<int>(std::min<long long>(room / makes, 1 << 20));
+    long long room = 0, slots = std::max(0, empty);
+    for (auto const& source : carried) {
+        auto const found = taken.find(source.slot);
+        int const left = source.count - (found == taken.end() ? 0 : found->second);
+        if (left <= 0) ++slots;
+        else if (source.item == product) room += std::max(0, source.stack - left);
+    }
+    return room + slots * std::max(1, stack);
 }
 // `side`: the grid's, 2 or 3. `picks`: the member the player picked for a
 // group. One of each ingredient, or with `many` as many as divide evenly from

@@ -413,18 +413,27 @@ void tickMaking(ScreenView& screen) {
             }
             making.tries = 0;
             // Of the step's recipes the one laid most of now: a group's member whose input an earlier step made counts.
-            // No more rounds than the inventory has room for (2026-11-22): a take the inventory cannot hold stuck the
-            // grid, and the run ended there.
+            // No more rounds than the inventory has room for once they are laid in (2026-11-22): a take the inventory
+            // cannot hold stuck the grid, and the run ended there.
             auto const carried = carriedOf(manager, index);
             int const empty = emptySlots(manager);
             PlacePlan plan;
             for (int number : step.recipes) {
                 auto const& recipe = index.recipes[static_cast<size_t>(number)];
                 int const stack = recipe.makes >= 0 ? std::max(1, schematic::items::shown(index.items[static_cast<size_t>(recipe.makes)]).stack) : 64;
-                int const most = std::min(step.rounds, roundsWithRoom(carried, empty, recipe.makes, static_cast<int>(recipe.count), stack));
-                if (most <= 0) continue;
-                if (auto next = placePlan(index, recipe, sideOf(manager), carried, making.picks, true, most); next.ready() && (!plan.ready() || next.crafts > plan.crafts))
-                    plan = std::move(next);
+                int const makes = std::max(1, static_cast<int>(recipe.count));
+                // Fewer rounds take fewer inputs and may free fewer slots, so the room is looked at again a few times.
+                int most = step.rounds;
+                for (int tries = 0; tries < 4 && most > 0; ++tries) {
+                    auto next = placePlan(index, recipe, sideOf(manager), carried, making.picks, true, most);
+                    if (!next.ready()) break;
+                    int const fits = static_cast<int>(std::min<long long>(roomAfter(carried, next.moves, empty, recipe.makes, stack) / makes, 1 << 20));
+                    if (next.crafts <= fits) {
+                        if (!plan.ready() || next.crafts > plan.crafts) plan = std::move(next);
+                        break;
+                    }
+                    most = std::min(fits, next.crafts - 1);
+                }
             }
             if (!plan.ready() || step.rounds <= 0) {
                 // Nothing more of this step can be laid in, from what is carried or for the room left: the next one.
