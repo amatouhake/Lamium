@@ -242,7 +242,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
 ## Code
 - The plan: `RecipeIndex.h` `plan()`, `RawView.h`, `RawMaterials.h` (pure;
   `tests/RecipeIndexTests.cpp`, `tests/RawMaterialsTests.cpp`);
-  `RecipeState.cpp` works it out; `PlanViewDraw.cpp` draws the window;
+  `RecipeState.cpp` works it out, the shares by wanted item a few ms a
+  frame (`TargetPlanning`) while the last are shown; `PlanViewDraw.cpp` draws the window;
   `ItemList.cpp` hosts the panel ([RECIPES.md](RECIPES.md) "Code").
 - The wanted items per world in `wanted.json` beside its waypoints, the
   counted places (`Places.h`, pure) in `places.json` (a local world's

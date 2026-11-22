@@ -19,14 +19,6 @@ steps lack their inputs and the run ends "done". Nothing is lost.
 Likely; Server. Deferred: to the server check (L-165 "Next"); a fix counts
 only after a take and confirms by the product in the inventory.
 
-### 1-12 Low: the plan's shares are worked out without a bound
-`RecipeState.cpp` `shares()`. VALIDATION-LOG has 8.2 ms for 29 entries; a
-schematic hands over its distinct materials (capped at 2048, in practice
-tens to a few hundred), at most twice a second while held counts change.
-Read (path); costs extrapolated. Deferred: measure first (the "shares of
-N took" log line with a large schematic); a fix is a resumable pure
-`targetPlans` and a choice of what the rows show meanwhile.
-
 ### 1-19 Low: UI rules (Design)
 `PlanViewDraw.cpp` `stateTag` and the window's count field are built in
 the screen's file. `drawFieldBox` has no window look, so the field needs

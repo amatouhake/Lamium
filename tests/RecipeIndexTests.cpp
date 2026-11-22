@@ -226,6 +226,17 @@ void recipeIndexTests() {
         check(two.size() == 2 && two[0].left == 0 && two[0].finished == 0 && two[1].left > 0
                   && !two[0].sharedAbove() && two[1].sharedAbove() && two[1].leftAlone == 0,
               "held stock goes to the first wanted item; the one below gets what is left of it and knows it");
+        {
+            // Worked out an entry a step (L-390 1-12): the same shares as at once.
+            TargetPlanning planning{{{id("chest"), 1}, {id("chest"), 1}}, {{id("oak_planks"), 8}}, {}, {}};
+            planning.step(index, choice);
+            bool const half = !planning.done() && planning.out.size() == 1;
+            planning.step(index, choice);
+            planning.step(index, choice);
+            check(half && planning.done() && planning.out.size() == 2 && planning.out[0].left == two[0].left
+                      && planning.out[1].left == two[1].left && planning.out[1].leftAlone == two[1].leftAlone,
+                  "shares worked out a step at a time resume with the stock the entries above left");
+        }
         std::map<Item, Count> plenty{{id("cobblestone"), 64}};
         check(stepNow(index, request, view.steps[0], plenty) >= view.steps[0].crafts && stepNow(index, request, view.steps[0], {}) == 0,
               "a step can be made in full when everything its crafts take is held, and not at all from nothing");

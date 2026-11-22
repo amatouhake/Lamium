@@ -321,30 +321,56 @@ Shares const* shares(LocalPlayer& player) {
     auto const* now = plan(player);
     if (!now) return nullptr;
     // The plan is worked out again twice a second, but its shares only change with what they are made from:
-    // a long list costs milliseconds, so they stand until the entries, the stock or a choice changes.
+    // they stand until the entries, the stock or a choice changes. A long list costs tens of milliseconds, so
+    // new shares are worked out a few milliseconds a frame while the last ones are still shown (L-390 1-12).
+    struct From {
+        std::shared_ptr<service::Table const> table;
+        std::shared_ptr<Choice const> choice;
+        std::vector<WantedEntry> entries;
+        Request request;
+        bool same(From const& o) const {
+            return table == o.table && choice == o.choice && entries == o.entries && request.wanted == o.request.wanted
+                && request.held == o.request.held && request.picks == o.request.picks && request.stops == o.request.stops;
+        }
+    };
     static Shares kept;
-    static std::chrono::steady_clock::time_point keptFor{};
-    static std::shared_ptr<Choice const> keptChoice;
-    static Request keptFrom;
-    if (keptFor == plannedNow.at) return &kept;
-    keptFor = plannedNow.at;
-    auto entries = prioritized(list, handed());
-    std::vector<std::pair<Item, Count>> order;
-    for (auto const& entry : entries) order.emplace_back(now->table->index.findKey(entry.key), entry.count);
-    Request from{order, now->request.held, now->request.picks, now->request.stops};
-    if (keptChoice == now->choice && entries == kept.entries && from.wanted == keptFrom.wanted && from.held == keptFrom.held
-        && from.picks == keptFrom.picks && from.stops == keptFrom.stops)
-        return &kept;
+    static From keptFrom;
+    static std::optional<From> workingFrom;
+    static std::optional<TargetPlanning> working;
+    static std::chrono::steady_clock::time_point keptFor{}, workingSince{};
+    static bool newer = false;
+    if (keptFor != plannedNow.at) {
+        keptFor = plannedNow.at;
+        From from{now->table, now->choice, prioritized(list, handed()), {}};
+        std::vector<std::pair<Item, Count>> order;
+        for (auto const& entry : from.entries) order.emplace_back(now->table->index.findKey(entry.key), entry.count);
+        from.request = {order, now->request.held, now->request.picks, now->request.stops};
+        // Shares being worked out finish first, unless the world's table went: inputs that change faster than a
+        // long list is worked out would otherwise never show; the newer ones are taken up once these are shown.
+        if (workingFrom && workingFrom->table == from.table && !from.same(*workingFrom)) newer = true;
+        else if (from.same(keptFrom)) working.reset(), workingFrom.reset();
+        else if (!workingFrom || !from.same(*workingFrom)) {
+            working.emplace(order, now->request.held, now->request.picks, now->request.stops);
+            workingFrom = std::move(from);
+            workingSince = std::chrono::steady_clock::now();
+        }
+    }
+    if (!working) return &kept;
     auto const started = std::chrono::steady_clock::now();
-    kept.entries = std::move(entries);
-    kept.targets = targetPlans(now->table->index, *now->choice, order, now->request.held, now->request.picks, now->request.stops);
-    keptChoice = now->choice, keptFrom = std::move(from);
-    // Each entry is planned twice; say once how long it took, so a long list's cost is known.
+    do working->step(workingFrom->table->index, *workingFrom->choice);
+    while (!working->done() && std::chrono::steady_clock::now() - started < std::chrono::milliseconds(3));
+    if (!working->done()) return &kept;
+    kept.entries = workingFrom->entries;
+    kept.targets = std::move(working->out);
+    keptFrom = std::move(*workingFrom);
+    working.reset(), workingFrom.reset();
+    if (std::exchange(newer, false)) keptFor = {}; // looked at again on the next call
+    // Each entry is planned twice; say once how long a long list took from start to shown.
     static bool told = false;
-    auto const took = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - started).count();
     if (!told && kept.entries.size() >= 10) {
         told = true;
-        log(std::format("the plan's shares of {} wanted items took {} us", kept.entries.size(), took));
+        auto const took = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - workingSince).count();
+        log(std::format("the plan's shares of {} wanted items were shown after {} ms", kept.entries.size(), took));
     }
     return &kept;
 }

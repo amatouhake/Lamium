@@ -35,18 +35,29 @@ struct TargetPlan {
     bool sharedAbove() const { return left > leftAlone; }
     RawView view;
 };
-// `wanted`: items in the order added (one entry each, a feature's and the player's apart). Held stock goes to
-// them from the top down: what one uses is gone for those below it.
-inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& choice, std::vector<std::pair<Item, Count>> const& wanted,
-                                           std::vector<std::pair<Item, Count>> const& held, std::map<int, Item> const& picks, std::set<Item> const& stops) {
-    Item const items = static_cast<Item>(index.items.size());
+// The shares worked out an entry at a time (L-390 1-12): a long list is spread over frames, each step resuming
+// with the stock the entries above left. `wanted`: items in the order added (one entry each, a feature's and the
+// player's apart). Held stock goes to them from the top down: what one uses is gone for those below it.
+struct TargetPlanning {
+    std::vector<std::pair<Item, Count>> wanted, held;
+    std::map<int, Item> picks;
+    std::set<Item> stops;
     std::map<Item, Count> stock;
-    for (auto const& [id, count] : held) stock[id] += count;
     std::vector<TargetPlan> out;
-    for (auto const& [item, want] : wanted) {
+    TargetPlanning(std::vector<std::pair<Item, Count>> wanted_, std::vector<std::pair<Item, Count>> held_, std::map<int, Item> picks_,
+                   std::set<Item> stops_)
+        : wanted(std::move(wanted_)), held(std::move(held_)), picks(std::move(picks_)), stops(std::move(stops_)) {
+        for (auto const& [id, count] : held) stock[id] += count;
+    }
+    bool done() const { return out.size() >= wanted.size(); }
+    // Plans the next entry; nothing once done.
+    void step(Index const& index, Choice const& choice) {
+        if (done()) return;
+        Item const items = static_cast<Item>(index.items.size());
+        auto const [item, want] = wanted[out.size()];
         TargetPlan target;
         target.item = item;
-        if (item < 0 || want <= 0) { out.push_back(std::move(target)); continue; }
+        if (item < 0 || want <= 0) { out.push_back(std::move(target)); return; }
         target.finished = std::min(want, stock[item]);
         Request one{{{item, want}}, {}, picks, stops};
         for (auto const& [id, count] : stock) if (count > 0) one.held.emplace_back(id, count);
@@ -63,7 +74,12 @@ inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& cho
         }
         out.push_back(std::move(target));
     }
-    return out;
+};
+inline std::vector<TargetPlan> targetPlans(Index const& index, Choice const& choice, std::vector<std::pair<Item, Count>> const& wanted,
+                                           std::vector<std::pair<Item, Count>> const& held, std::map<int, Item> const& picks, std::set<Item> const& stops) {
+    TargetPlanning planning{wanted, held, picks, stops};
+    while (!planning.done()) planning.step(index, choice);
+    return std::move(planning.out);
 }
 // What `stock` holds of a part: the item it stands for, a group not picked by any of its members together.
 inline Count stockOf(Index const& index, Request const& request, Part const& part, std::map<Item, Count> const& stock) {
