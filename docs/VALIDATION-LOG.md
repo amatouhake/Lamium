@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mouse glyph trial and the wider key column (L-372, 2026-11-23)
+
+Build `6c574129` (DLL
+`20d4ba54cb0d9ca3a6d080a9ad580c92f0c2966561d9418ec06cca4a11ab15eb`),
+1.26.60.05 Dev instance, the maintainer. Seen: the game font's mouse
+glyphs draw in caps, the footer and the search field in English and
+Japanese and read on faint fixed caps, but stand taller than the caps
+and lines and fit in poorly (dropped). The long gesture keys fit the
+wider key column in English, not in Japanese, where the game names
+Shift "SHIFT キー" and the drop key shows as words.
+
 ## One settings tree for Hotkeys, read-only keys, composed names (L-372, 2026-11-23)
 
 Build `4605f852` (DLL

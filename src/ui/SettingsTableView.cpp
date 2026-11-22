@@ -1,5 +1,8 @@
 #include "ui/SettingsTableView.h"
 #include "ll/api/service/TargetedBedrock.h"
+#include "mc/client/input/KeyboardRemappingLayout.h"
+#include "mc/client/input/Keymapping.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include "features/recipes/ItemList.h"
 #include "ui/CapabilityStatus.h"
 #include "ui/HighlightView.h"
@@ -12,6 +15,7 @@
 #include "ui/RowPages.h"
 #include "settings/Options.h"
 #include "ui/SettingsRows.h"
+#include "ui/KeyLabel.h"
 #include "ui/SettingsNavigation.h"
 #include "ui/SettingsTable.h"
 #include "ui/TextFit.h"
@@ -165,13 +169,26 @@ int nextSelectable(int from, int step) {
     for (int row = from; valid(row); row += step) if (rows[row].selectable()) return row;
     return -1;
 }
+// The keys the game binds to dropping an item (its keymap's "key.drop"); empty when unreadable.
+std::vector<int> gameDropKeys(IClientInstance& current) {
+    auto layout = current.getOptions().getCurrentKeyboardRemapping();
+    if (!layout) return {};
+    auto const& mapped = layout->getKeymappingByAction("key.drop").mKeys.get();
+    if (mapped.size() > 4) return {};
+    std::vector<int> keys;
+    for (int code : mapped) if (code > 0) keys.push_back(code);
+    return keys;
+}
 void rebuild_(bool keepSelection) {
     std::optional<SettingsRow> previous;
     if (keepSelection && valid(selected)) previous = rows[selected];
     // preferences() returns a copy: keep it alive while its bindings are read.
     auto const preferences = Runtime::instance().preferences();
     std::optional<KeyFilter> keys;
-    if (keyQuery && hotkeysView()) keys = KeyFilter{*keyQuery, preferences.bindings};
+    if (keyQuery && hotkeysView()) {
+        keys = KeyFilter{*keyQuery, preferences.bindings};
+        if (auto client = ll::service::getClientInstance()) keys->dropKeys = gameDropKeys(*client);
+    }
     std::string search = query.value();
     if (keyQuery) for (auto token : *keyQuery) search += "|" + std::to_string(static_cast<int>(token.device)) + ":" + std::to_string(token.code);
     if (search != revealedFor) { revealed.clear(); revealedFor = search; }
@@ -718,15 +735,20 @@ std::string placeLine(unsigned layers, input::Condition condition, input::FixedT
     if (condition == input::Condition::Plan) note("where.cond.plan");
     return translated("where.line", text);
 }
-// A fixed press's caps: the token's own name, or the text for what a token cannot say (a drag, the drop key).
+// A fixed press's caps: as a binding names the token, the game's key for the drop key, or words (a drag).
 std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress const& press) {
     std::vector<std::string> keys;
     for (int i = 0; i < input::fixedCapCount(press); ++i) {
         auto const& cap = press.caps[i];
-        if (!cap.text.empty() && !cap.suffix) { keys.push_back(translated(cap.text)); continue; }
-        auto names = chordKeys(current, input::Chord{cap.token});
-        if (names.empty()) continue;
-        keys.push_back(cap.suffix ? names.front() + " " + translated(cap.text) : names.front());
+        if (cap.drop) {
+            // The key the game has for dropping, as its keymap names it; the words where it has none.
+            auto const drop = gameDropKeys(current);
+            auto layout = current.getOptions().getCurrentKeyboardRemapping();
+            keys.push_back(drop.empty() || !layout ? translated(cap.text) : keyLabel(drop.front(), layout->getMappedKeyName(drop.front())));
+            continue;
+        }
+        if (!cap.text.empty()) { keys.push_back(translated(cap.text)); continue; }
+        if (auto names = chordKeys(current, input::Chord{cap.token}); !names.empty()) keys.push_back(names.front());
     }
     return keys;
 }

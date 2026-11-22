@@ -23,9 +23,18 @@ void settingsRowsTests() {
         check(navigation.current == 4, "manual navigation from a dedicated screen becomes the normal destination");
     }
     auto translate = [](std::string_view key) { return std::string(ui::translations::find(key, "en_US")); };
-    check(ui::mouseGlyph(1) == "" && ui::mouseGlyph(2) == "" && ui::mouseGlyph(3) == ""
-          && ui::mouseGlyph(4).empty() && ui::mouseGlyph(5).empty(),
-          "mouse buttons 1-3 are the game font's light mouse glyphs; the side buttons keep their number (L-372)");
+    check(translate(ui::mouseNameKey(1)) == "Left click" && translate(ui::mouseNameKey(3)) == "Middle click"
+          && ui::mouseNameKey(4).empty() && ui::mouseNameKey(5).empty(),
+          "mouse buttons 1-3 are named by what they are; the side buttons keep their number (L-372)");
+    check(ui::keyLabel(0x10, "SHIFT キー") == "SHIFT" && ui::keyLabel(0x43, "C キー") == "C" && ui::keyLabel(0x51, "Q") == "Q"
+          && ui::keyLabel(0x20, "キー") == "キー", "Shift is short and the game's key word is dropped (L-372)");
+    {
+        auto const& drop = *std::ranges::find_if(input::fixedPresses, [](auto const& p) { return p.option == "inventory.transferDropAll"; });
+        std::vector<int> q{0x51};
+        check(input::fixedUses(drop, {{input::Device::Key, 0x51}}, q) && !input::fixedUses(drop, {{input::Device::Key, 0x51}})
+              && input::fixedUses(drop, {{input::Device::Key, 0x10}, {input::Device::Key, 0x51}}, q),
+              "find by key finds a drop gesture by the game's drop key");
+    }
     check(ui::actionTitle(input::Action::Zoom, translate) == "Zoom"
           && ui::actionTitle(input::Action::HideWeather, translate) == "Hide effects > Rain and snow"
           && ui::actionTitle(input::Action::FreeCameraSpeedUp, translate) == "FreeCamera > Increase speed"

@@ -181,8 +181,8 @@ std::string bindingChordName(IClientInstance& client, input::Chord const& chord)
         if (!result.empty()) result += " + ";
         if (token.device == input::Device::Wheel) result += ui::translated(token.code > 0 ? "wheelUp" : "wheelDown");
         else if (token.device == input::Device::Mouse) {
-            auto glyph = ui::mouseGlyph(token.code);
-            result += glyph.empty() ? ui::translated("mouseButton", token.code) : glyph;
+            auto name = ui::mouseNameKey(token.code);
+            result += name.empty() ? ui::translated("mouseButton", token.code) : ui::translated(name);
         }
         else result += ui::keyLabel(token.code, layout ? layout->getMappedKeyName(token.code) : std::to_string(token.code));
     }

@@ -361,6 +361,7 @@ inline std::string_view toggleToastKey(input::Action action) {
 struct KeyFilter {
     input::Chord pressed;
     input::Bindings bindings;
+    std::vector<int> dropKeys; // the game's drop key, for the fixed presses that use it
 };
 struct SettingsRow {
     RowKind kind;
@@ -490,7 +491,7 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                 bool const hasPrimary = primary && !input::retired(*primary);
                 if (!hasPrimary && children.empty()) continue;
                 auto uses = [&](SettingsRow const& row) {
-                    if (row.kind == RowKind::Fixed) return input::fixedUses(input::fixedPresses[static_cast<size_t>(row.press)], keys->pressed);
+                    if (row.kind == RowKind::Fixed) return input::fixedUses(input::fixedPresses[static_cast<size_t>(row.press)], keys->pressed, keys->dropKeys);
                     auto action = row.option ? optionAction(row.option->id) : row.action;
                     return action && input::chordUses(input::effectiveChord(keys->bindings, *action), keys->pressed);
                 };

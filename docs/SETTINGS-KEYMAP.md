@@ -171,12 +171,18 @@ append-only action ids and default keys in `src/input/Binding.h`.
   without its siblings; a feature-name hit shows all its children, and
   pressing a parent while searching shows them too. Hotkeys changes keys
   only, never a setting's value.
-- (Trial 2026-11-23) Mouse buttons 1-3 are named by the game font's light
-  mouse glyphs (U+E070-E072) wherever a key is named; the side buttons
-  keep "Mouse 4", "Mouse 5" (the game passes no others). A fixed drag is
-  the button's glyph and "drag"; a fixed wheel in either direction is
-  "Wheel". The key column grows with the table, 28 % of it between 88
-  and 150 units (70 below a 380-unit table).
+- (Decided 2026-11-23) Mouse buttons 1-3 are named by what they are
+  (Left click, Right click, Middle click) wherever a key is named; the
+  side buttons keep "Mouse 4", "Mouse 5" (the game passes no others).
+  The game font's mouse glyphs (U+E070-E072) were tried and dropped: they
+  stand taller than the caps and the text lines. Fixed presses say "Left
+  drag", "Right drag", "Wheel" (either direction) and the key the game
+  has for dropping (its keymap's "key.drop"; the words "Drop key" when
+  unread), which Find by key matches too.
+- Key names: ALT, CTRL and SHIFT short in every language; the word the
+  game adds after a key's name in Japanese ("C キー") is dropped. The key
+  column grows with the table, 28 % of it between 88 and 150 units (70
+  below a 380-unit table).
 - An action named alone (the conflict tip's list, the capture line) is
   composed from the tree like a toggle toast (`ui::actionTitle`): the
   feature for its toggle key, "Feature > option" for a keyed option,
