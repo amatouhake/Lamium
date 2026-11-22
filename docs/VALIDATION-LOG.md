@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Hotkeys' place column and fixed presses (L-372, 2026-11-23)
+
+Build `498da065` (DLL
+`78d7391303709dbb64d26115888253f65712b2d018eb60b946c898e5b83cdb3a`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the place column on
+every Hotkeys row and the footer's "Works:" line; Item transfer's and the
+recipe lists' fixed presses as rows with faint caps, a press starts no
+edit, a gesture switched off dims its row; Find by key with Shift lists
+the fixed presses. Seen wrong: a clipped fixed key has no hover tip
+showing it whole, as a bound key's cell has; the fixed rows' names in
+grey read oddly next to the white action names.
+
 ## The widened conflict tip, the game-click note and the one-group headings (L-340, L-372, 2026-11-23)
 
 Build `089807ae` (DLL
