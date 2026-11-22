@@ -12,6 +12,38 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Review fixes since 0.7.0, local part 2 (L-390, 2026-11-23)
+
+Build `14e2c83c` (DLL
+`2b2c51cee64416d02e67c18741d33094eb5c3259285f11a7a50fd450b88860ee`),
+1.26.60.05 Dev instance, local worlds, the maintainer. Confirmed:
+- Stores: moving items in and out of a marked chest and of the ender
+  chest without a hitch; contents kept when the world is left within a
+  second and joined again; a wanted count changed just before closing
+  the screen and leaving kept.
+- The panel editor: ended by a death and by minimising the window (the
+  maintainer finds the latter fine); "cannot go here" on a yellow chip,
+  readable; the tray's frame yellow while a panel is over it.
+- The plan window: the state tags ("Automatic", a chosen recipe) and the
+  wanted count box look as before, light up under the pointer, lead to
+  How to make and take a typed count; a schematic with many materials
+  in the wanted list without a hitch, with the log's "shares of ... were
+  shown after" line.
+- The schematic's hand-over: switching between two placements leaves
+  none of the last one's materials, the new ones following shortly.
+- Settings: a click on a transfer gesture's key caps does not switch it;
+  an armed reset is cleared after closing and reopening.
+- Saved data shows no "places" row; the minimap's dimension icon shows,
+  also after leaving for another world; a group's wheel position is not
+  kept in another world.
+Not clear (the maintainer could not tell): the plan's materials after
+removing the earlier of two placements; a local world's stores gone
+after deleting its saved data.
+Found while testing (new items): the schematic's water listed under
+"Gather", and granite, diorite and andesite crafted by default (L-391);
+the settings sidebar's "on/total" numbers unexplained and its categories
+of very uneven size (L-392).
+
 ## Review fixes since 0.7.0, local part 1 (L-390, 2026-11-23)
 
 Build `14e2c83c` (DLL

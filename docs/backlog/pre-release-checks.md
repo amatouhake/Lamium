@@ -25,26 +25,15 @@ Do not infer game success from a build or unit-test result.
   both views, gathered rows on the panel. Not seen: a picked log kind, a
   group gathered from its breakdown step, the window's tabs beyond those
   (split by tab in `37301b53`, moves only), servers.
-- Fixes from the review since 0.7.0 (L-390). Seen on `14e2c83c`
-  (VALIDATION-LOG 2026-11-23): "make" and "Make all" and their stops,
-  "Place", the wanted key's tap, Mass Craft keeping carried stacks and
-  throwing a surplus, the search after a language change. Not seen yet,
-  in a local world: stores written once changes settle (no hitch, kept
-  across a rejoin) and a wanted count kept after a quick rejoin; the
-  panel editor ended by a death or a minimised window, its refusal chip
-  and tray in yellow; the plan window's state tag and count box looking
-  as before; the Wanted tab with a large schematic (the log's "shares of
-  N wanted items were shown after" line); the plan's schematic materials
-  when another placement is selected or an earlier one removed; a
-  gesture row's key caps not switching it; an armed reset cleared on
-  reopening; no "places" row on the Saved data page, and a local world's
-  deleted data taking its stores; the minimap's dimension icon after a
-  rejoin; a group's wheel position not kept across worlds; Mass Craft
-  waiting for a round crafted onto the pointer. Needing a server or
-  another player: a server's own stores file (two servers), a friend's
-  world or Realm kept together keeping chosen data, an unreadable
-  servers.json, a key the game calls "ButtonNNN" (extended), "make" on a
-  server.
+- Fixes from the review since 0.7.0 (L-390): the local checks seen on
+  `14e2c83c` (VALIDATION-LOG 2026-11-23, parts 1 and 2). Not clear yet:
+  the plan's schematic materials after the earlier of two placements is
+  removed; a local world's stores gone with its deleted saved data; Mass
+  Craft waiting for a round crafted onto the pointer (its start delay
+  set to 0 makes it easier). Needing a server or another player: a
+  server's own stores file (two servers), a friend's world or Realm kept
+  together keeping chosen data, an unreadable servers.json, a key the
+  game calls "ButtonNNN" (extended), "make" on a server.
 - How to make's shape (L-389) seen on `a11be728`: a group's ways and
   members in the item list's order, recipes with the rule's first and
   re-dyeing folded. Not seen: the wheel turning in that order.
