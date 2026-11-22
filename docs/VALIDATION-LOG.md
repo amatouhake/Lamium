@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The widened conflict tip, the game-click note and the one-group headings (L-340, L-372, 2026-11-23)
+
+Build `089807ae` (DLL
+`d2b0495708139e163bc99760f390df6c026359f124003dd66d9ba7e0944aeba1`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: with R and Sort on
+one key the tip shows the place whole after the long action name; Sort
+on the middle button has no pick-block note while a play action (Zoom)
+still has it; Actions and General carry their green heading in their
+own view and in All. Not checked: English/Chinese text fit.
+
 ## Settings groups and hotkey layers (L-340, L-372, 2026-11-23)
 
 Build `c06c30c8` (DLL

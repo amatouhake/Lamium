@@ -137,7 +137,7 @@ from the file); never restate them here.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10), in this order: the follow-ups of L-170 enchantment order
    planner and L-319 item details; then
-   L-340 settings grouping, L-330 radar icons, L-166 trade helpers, L-167
+   L-330 radar icons, L-166 trade helpers, L-167
    resource packs, L-168 trade finder, L-169 transfer extensions, L-173
    quick shapes, L-163 a Lamium inventory screen, L-249 simulation distance
    and L-265 placement assist.
@@ -159,7 +159,7 @@ from the file); never restate them here.
 7. **Before the next release:** the release after 0.7.0 takes (maintainer
    2026-11-21) the recipe screens' remainder (L-385: making a plan's
    steps; L-386 tracing "any" past its kind and L-387 one way of writing
-   counts, 2026-11-22), L-340 settings grouping, L-372 hotkeys by context, and a
+   counts, 2026-11-22), L-372 hotkeys by context, and a
    review of the changes since 0.7.0 with its fixes; L-384 is not bound
    to it. Then changed-feature smoke and the relevant
    [pre-release checks](backlog/pre-release-checks.md). Latest release: 0.7.0, 2026-11-16 (`v0.7.0`). A full
@@ -206,11 +206,10 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
-- [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Layers built 2026-11-22 (not checked in game); the Hotkeys display and the rest open
+- [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Layers built and checked in game 2026-11-23; the Hotkeys display and the rest open
 - [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); split into L-373 to L-379 and existing items
 - [L-369](backlog/L-369.md) Recipe screens: open fixes of the look (Ready): All seen in game 2026-11-21; to close with the next release notes
 - [L-364](backlog/L-364.md) Draw "one of several" the agreed way on the other screens (Polish): Built and seen in game 2026-11-19; to close with the next release notes
-- [L-340](backlog/L-340.md) Settings grouping (Ready): Built 2026-11-22, not checked in game
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature): Built 2026-11-13 after 0.6.0 (not released) and checked in game; unchecked cases remain
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.

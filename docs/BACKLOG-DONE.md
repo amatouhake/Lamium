@@ -93,6 +93,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-340](backlog/done/L-340.md) Settings grouping
 - [L-389](backlog/done/L-389.md) How to make: one way to offer an item's and a group's choices
 - [L-357](backlog/done/L-357.md) HUD elements: their size and their text size apart
 - [L-356](backlog/done/L-356.md) Save shapes per server, like waypoints and placements
