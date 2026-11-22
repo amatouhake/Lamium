@@ -23,6 +23,8 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
 // A step of "to make" under the pointer, the same in the window and on the panel: the product and the inputs short
 // of what is carried, by how many; the counts are the row's (2026-11-22).
 void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step);
+// The placement the schematic's remainder comes from (the checked one), "name (x, y, z)"; empty when none is.
+std::string checkedPlacement();
 // A wanted row under the pointer, the same in the window and on the panel: whose a handed row is, and whether rows
 // above took a share of what is held; the counts are the row's.
 void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove);

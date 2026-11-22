@@ -10,7 +10,9 @@
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeText.h"
 #include "features/recipes/RecipeView.h"
+#include "features/schematic/GhostRenderer.h"
 #include "features/schematic/SchematicItems.h"
+#include "features/schematic/SchematicSession.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
@@ -125,11 +127,23 @@ void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step) {
     else late.tip = planItemName(index, step.item), late.hovered = planPicture(plan, step.item), late.tipLines.clear();
     for (auto& line : shortInputLines(index, plan.request, step, plan.held)) late.tipLines.push_back(std::move(line));
 }
+std::string checkedPlacement() {
+    auto const checked = schematic::ghosts::verification();
+    if (!checked || checked->placement < 0) return {};
+    auto const set = schematic::session::current();
+    if (checked->placement >= static_cast<int>(set.placements.size())) return {};
+    auto const& placed = set.placements[static_cast<size_t>(checked->placement)];
+    auto const& at = placed.placement.origin;
+    return std::format("{} ({}, {}, {})", placed.name, at.x, at.y, at.z);
+}
 void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove) {
     using namespace lamium::ui;
     late.tip = schematic::items::shown(entry.key).name, late.hovered = entry.key;
     late.tipLines.clear();
-    if (!entry.source.empty()) late.tipLines.push_back(translated("recipes.from." + entry.source));
+    // The schematic's rows name the placement they come from.
+    if (std::string const from = entry.source == "schematic" ? checkedPlacement() : std::string(); !from.empty())
+        late.tipLines.push_back(translated("recipes.from." + entry.source) + ": " + from);
+    else if (!entry.source.empty()) late.tipLines.push_back(translated("recipes.from." + entry.source));
     if (sharedAbove) late.tipLines.push_back(translated("recipes.sharedAbove"));
 }
 void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line, std::string const& key) {
@@ -197,6 +211,10 @@ struct Window {
         return std::max(1, fit);
     }
     void note(std::string text) { windowLabel(context, left, top + 2, right - left, std::move(text), true); }
+    // How to fill an empty tab: faint, as many lines as the window has room for.
+    void hint(float y, std::string const& text) {
+        windowParagraph(context, left, y, right - left, text, static_cast<size_t>(std::max(1.f, (bottom - y) / 12)), true);
+    }
     // A place by what it is: the ender chest, or a store's block and where it stands.
     std::string placeName(Place const& place) {
         std::string name = schematic::items::shown(place.block).name;
@@ -247,7 +265,7 @@ struct Window {
             }
             windowLabel(context, left + 26, y + 5, sx - left - 30, std::move(name));
         }
-        if (places.empty()) paragraph(context, left, top + rowHeight + 4, right - left, translated("recipes.place.how"), 3, v::windowFaint);
+        if (places.empty()) hint(top + rowHeight + 4, translated("recipes.place.how"));
     }
 };
 
@@ -455,6 +473,14 @@ struct Lists : Window {
             float const wordsW = std::min(textWidth(context, words), right - left - switchWidth - 8);
             windowLabel(context, left, y + 4, wordsW, words);
             toggleSwitch(context, left + wordsW + 8, y + 4.5f, on);
+            // Whose remainder it is, at the row's right end (2026-11-22): the checked placement, or that none is.
+            float const fromX = left + wordsW + 8 + switchWidth + 12;
+            if (right - fromX > 20) {
+                std::string const from = checkedPlacement();
+                std::string const shown = from.empty() ? translated("recipes.plan.noChecked") : from;
+                windowLabel(context, fromX, y + 4, right - fromX, shown, true, Align::Right);
+                if (textWidth(context, shown) > right - fromX && over(fromX, y, right - fromX, switchLine)) late.tip = shown, late.tipLines.clear();
+            }
             if (took(left, y, right - left, switchLine)) {
                 auto value = Runtime::instance().preferences();
                 value.schematic.planMaterials = !on;
@@ -463,7 +489,7 @@ struct Lists : Window {
         };
         if (entries.empty()) {
             if (schematicSwitch) drawSwitch(top), top += switchLine;
-            paragraph(context, left, top + 2, right - left, translated("recipes.wantedHow"), 3, v::windowInk);
+            hint(top + 2, translated("recipes.wantedHow"));
             return;
         }
         // What of each is held: the finished items (what is gathered shows in "to gather"). Whether an item is all

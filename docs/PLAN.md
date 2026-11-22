@@ -195,7 +195,11 @@ plan's recipes are in [L-116](backlog/L-116.md).
   search field, and a press on an item opens no recipe view.
 - The wanted tab has "Include what the schematic still needs", the
   switch of the schematic's Materials tab, while Schematics is on; the
-  settings screen has it on the Plan's row (the same saved value).
+  settings screen has it on the Plan's row (the same saved value). The
+  row's right end names, faint, the checked placement the remainder
+  comes from ("name (x, y, z)") or that none is checked, and a
+  schematic row's tip names it too. A tab's hint on how to fill it is
+  faint window text without a shadow, every line shown.
 
 ### The stores
 - With the stores off, what is held is what is carried. With them on it

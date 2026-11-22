@@ -182,6 +182,9 @@ void sunkFace(MinecraftUIRenderContext&, float x, float y, float w, float h, boo
 // The game's raised button shape: an edge (vanilla::controlEdge), half a unit of `light` along the top and left inside it
 // and of `shadow` along the bottom and right, `face` inside.
 void raisedBox(MinecraftUIRenderContext&, float x, float y, float w, float h, Rgb face, Rgb light, Rgb shadow);
+// Lines wrapped to `width` on the game's window, 12 apart: windowLabel's ink and no shadow (paragraph's shadow
+// read as dark bold type there, 2026-11-22), at most `maxLines`.
+void windowParagraph(MinecraftUIRenderContext&, float x, float y, float width, std::string_view text, size_t maxLines, bool faint = false);
 void windowLabel(MinecraftUIRenderContext&, float x, float y, float width, std::string text, bool faint = false,
                  Align align = Align::Left);
 // HUD card: the panel fill with corners stepped by one GUI pixel, like
