@@ -31,11 +31,10 @@ std::string planItemName(Index const& index, Item id) {
     if (id >= items) return groupName(index, id - items);
     return id >= 0 ? schematic::items::shown(index.items[static_cast<size_t>(id)]).name : std::string();
 }
-std::string countsLine(char const* lead, Count held, Count need) {
-    std::string line = ui::translated(lead) + "/" + ui::translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(held)) + "/"
-                     + wholeCountText(static_cast<std::uint64_t>(need));
-    if (held < need) line += "  " + ui::translated("recipes.stepShort", wholeCountText(static_cast<std::uint64_t>(need - held)));
-    return line;
+std::string heldLine(Count held, Count need) {
+    std::string const have = wholeCountText(static_cast<std::uint64_t>(held));
+    return held < need ? ui::translated("recipes.heldShort", have, wholeCountText(static_cast<std::uint64_t>(need - held)))
+                       : ui::translated("recipes.heldIs", have);
 }
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step) {
     std::vector<std::string> out;
@@ -43,16 +42,11 @@ std::vector<std::string> stepInputLines(Index const& index, Request const& reque
         out.push_back(std::format("{}: {}", planItemName(index, id), wholeCountText(static_cast<std::uint64_t>(count))));
     return out;
 }
-std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
+std::vector<std::string> shortInputLines(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock) {
     std::vector<std::string> out;
-    for (auto const& part : stepParts(index, request, step)) {
-        Count const need = part.need, have = heldOf(index, stock, part.item);
-        std::string const name = planItemName(index, part.item);
-        // Name first, then held/needed (L-370, 2026-11-22): "Stone: 146/44,844".
-        std::string line = std::format("{}: {}/{}", name, wholeCountText(static_cast<std::uint64_t>(std::min(have, need))), wholeCountText(static_cast<std::uint64_t>(need)));
-        if (have < need) line += "  " + ui::translated("recipes.stepShort", wholeCountText(static_cast<std::uint64_t>(need - have)));
-        out.push_back(std::move(line));
-    }
+    for (auto const& part : stepParts(index, request, step))
+        if (Count const have = heldOf(index, stock, part.item); have < part.need)
+            out.push_back(planItemName(index, part.item) + ": " + ui::translated("recipes.stepShort", wholeCountText(static_cast<std::uint64_t>(part.need - have))));
     return out;
 }
 }

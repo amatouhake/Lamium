@@ -234,7 +234,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         float const y = panel.rowY(0);
         if (heldShown) labelScaled(context, heldX - 12, y + 3, numW + 12, translated(sideList == SideList::Make ? "recipes.col.now" : "recipes.col.held"), .75f,
                     palette::faint, Align::Right, false);
-        labelScaled(context, needX - 6, y + 3, numW + 6, translated("recipes.col.need"), .75f, palette::faint, Align::Right, false);
+        labelScaled(context, needX - 6, y + 3, numW + 6, translated(sideList == SideList::Make ? "recipes.col.toMake" : "recipes.col.need"), .75f, palette::faint,
+                    Align::Right, false);
     }
     // A count cut to fit its column shows whole under the pointer.
     auto number = [&](float x, float y, Count count, Rgb color) {
@@ -294,7 +295,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             // The tips are the window's (L-387). A control or a cut count under the pointer has its own tip.
             if (!late.tip.empty()) {
             } else if (sideList == SideList::Make && plan && !row.done) {
-                planView::stepTip(late, *plan, row.line, row.held, row.stored);
+                planView::stepTip(late, *plan, row.line);
             } else if (row.gather && plan) {
                 planView::gatherTip(late, *plan, row.gatherLine, row.loose ? row.key : std::string());
             } else if (sideList == SideList::Wanted) {
@@ -302,8 +303,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 if (shares && static_cast<size_t>(row.entry) < shares->entries.size()) {
                     auto const e = static_cast<size_t>(row.entry);
                     bool const above = e < shares->targets.size() && shares->targets[e].item >= 0 && shares->targets[e].sharedAbove();
-                    planView::wantedTip(late, shares->entries[e], row.held, above);
-                } else planView::wantedTip(late, {row.key, row.count, row.source}, row.held, false);
+                    planView::wantedTip(late, shares->entries[e], above);
+                } else planView::wantedTip(late, {row.key, row.count, row.source}, false);
             } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
             else if (!panel.wide()) late.tip = row.name;
         }

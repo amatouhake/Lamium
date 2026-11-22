@@ -197,7 +197,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
 - [L-388](backlog/L-388.md) One craft run for making a plan's steps and Mass Craft (Refactor): Open; waits for L-385's server check
-- [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built; the tips in both views seen in game 2026-11-22 (Japanese)
+- [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)
 - [L-386](backlog/L-386.md) Trace an "any" ingredient past its kind (planks to logs) (Ready): Built; planks from logs, make over two kinds and the group's gather seen in game (local); a picked log kind and a server not
 - [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Ready): Panel's lay in and make seen in game (local); the window, make all and stores not yet; a server unchecked
 - [L-384](backlog/L-384.md) HUD: scale above 200 %, and a paper doll cut to its upper body (Design): Requested by a player (Discord, 2026-11-21); not started, no release target

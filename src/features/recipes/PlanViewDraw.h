@@ -17,16 +17,15 @@ void open(Tab tab);
 // Opens on the tab shown last (the bottom row's button, L-382).
 void openLast();
 void close();
-// A line of "to gather" under the pointer, the same in the window and on the band (L-369): its name (a group's
-// members as icons), held/needed and what is left, a group's choice, and where counted stores hold some. `key`: a wanted item the recipe table does not know, else empty.
+// A line of "to gather" under the pointer, the same in the window and on the band (L-369): what its row does not
+// show (2026-11-22): its name (a group's members as icons), a group's choice, and where counted stores hold some. `key`: a wanted item the recipe table does not know, else empty.
 void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line, std::string const& key);
-// A step of "to make" under the pointer, the same in the window and on the panel (L-387): the product, what can be
-// made now against what is needed, each input as held/needed from what is carried, and with `stored` where the
-// stores hold what is short.
-void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step, Count now, bool stored);
-// A wanted row under the pointer, the same in the window and on the panel: held/needed, whose a handed row is,
-// and whether rows above took a share of what is held.
-void wantedTip(view::Late& late, WantedEntry const& entry, Count held, bool sharedAbove);
+// A step of "to make" under the pointer, the same in the window and on the panel: the product and the inputs short
+// of what is carried, by how many; the counts are the row's (2026-11-22).
+void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step);
+// A wanted row under the pointer, the same in the window and on the panel: whose a handed row is, and whether rows
+// above took a share of what is held; the counts are the row's.
+void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove);
 // An item or a group of the plan as its picture's key: a group as the member it shows (GroupLook.h).
 std::string planPicture(state::Plan const& plan, Item id);
 // What the counted stores hold of `item`, with what is carried, as tip lines (L-359, L-385).

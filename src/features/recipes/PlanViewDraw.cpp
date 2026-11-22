@@ -104,22 +104,15 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     if (took(makeX, y, size, size) && can) placer->make(stepRuns(index, plan.request, step, plan.held));
     return false;
 }
-void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step, Count now, bool stored) {
+void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step) {
     auto const& index = plan.table->index;
     late.tip = planItemName(index, step.item), late.hovered = planPicture(plan, step.item);
-    late.tipLines = {countsLine("recipes.col.now", now, step.made)};
-    for (auto& line : stepInputLines(index, plan.request, step, plan.held)) late.tipLines.push_back(std::move(line));
-    if (!stored) return;
-    auto const parts = stepParts(index, plan.request, step);
-    auto const short_ = stepShort(index, plan.request, step, plan.held);
-    Item const items = static_cast<Item>(index.items.size());
-    for (size_t k = 0; k < parts.size() && k < short_.size(); ++k)
-        if (short_[k] && parts[k].item < items) storedLines(late, plan, parts[k].item);
+    late.tipLines = shortInputLines(index, plan.request, step, plan.held);
 }
-void wantedTip(view::Late& late, WantedEntry const& entry, Count held, bool sharedAbove) {
+void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove) {
     using namespace lamium::ui;
     late.tip = schematic::items::shown(entry.key).name, late.hovered = entry.key;
-    late.tipLines = {countsLine("recipes.col.held", held, entry.count)};
+    late.tipLines.clear();
     if (!entry.source.empty()) late.tipLines.push_back(translated("recipes.from." + entry.source));
     if (sharedAbove) late.tipLines.push_back(translated("recipes.sharedAbove"));
 }
@@ -139,8 +132,6 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
         if (picture.empty() && line.id >= 0) picture = index.items[static_cast<size_t>(line.id)];
         late.tip = schematic::items::shown(picture).name, late.hovered = picture;
     }
-    // Held/needed and what is left first (L-387); a group's own lines follow.
-    late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", line.held, line.need));
     // What the counted stores held when last seen, place by place, beside what is carried.
     if (key.empty() && line.id >= 0 && line.id < itemCount) storedLines(late, plan, line.id);
 }
@@ -357,13 +348,12 @@ struct Lists : Window {
     static constexpr float inputsW = 72;
     // How to make's room: the longest recipe in the game's table, five inputs (rabbit stew).
     static constexpr float howInputsW = 90;
-    // What "to make" counts as held: its steps' tips give the step and each input as held/needed, as the panel's do
-    // (stepTip); `tipNow` what can be made now, `tipStored` whether the stores make up what is short.
+    // What "to make" counts as held: an input's tip says how many are held and how many more, the product's which
+    // inputs are short (stepTip), as the panel's do.
     std::map<Item, Count> const* tipStock = nullptr;
-    Count tipNow = 0;
-    bool tipStored = false;
+    // Every input of a step whose slots do not all show, a line each.
     std::vector<std::string> inputLines(StepLine const& step) {
-        return tipStock ? stepInputLines(index, request, step, *tipStock) : stepInputLines(index, request, step);
+        return stepInputLines(index, request, step);
     }
     float inputsRoom(std::vector<StepLine> const& steps) {
         size_t most = 1;
@@ -396,7 +386,7 @@ struct Lists : Window {
                     if (interactive) late.hints.push_back(translated("recipes.howTo.change"));
                 } else late.tip = nameOf(item), late.hovered = pictureOf(item);
                 // Held/needed where what is held is counted (L-387); else the slot's count whole where it shows cut ("44k").
-                if (tipStock) late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", heldOf(index, *tipStock, item), n));
+                if (tipStock) late.tipLines.insert(late.tipLines.begin(), heldLine(heldOf(index, *tipStock, item), n));
                 else if (n >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(n)));
                 if (stored && item < itemCount) storedLines(late, *plan, item);
             }
@@ -411,10 +401,10 @@ struct Lists : Window {
         // How to make's rows (not interactive) name every picture and nothing else (L-389).
         if (!interactive && over(productX, y + 1, 18, 18)) late.tip = nameOf(step.item), late.hovered = key;
         if (interactive && over(productX, y + 1, 18, 18)) {
-            if (tipStock) stepTip(late, *plan, step, tipNow, tipStored);
-            else if (grouped) groupTip(step.item - itemCount, productX, y + 1), late.tipLines = inputLines(step);
+            if (tipStock) stepTip(late, *plan, step);
+            else if (grouped) groupTip(step.item - itemCount, productX, y + 1);
             else {
-                late.tip = nameOf(step.item), late.tipLines = inputLines(step), late.hovered = key;
+                late.tip = nameOf(step.item), late.tipLines.clear(), late.hovered = key;
                 if (step.made >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));
             }
         }
@@ -547,8 +537,6 @@ struct Lists : Window {
                 if (late.tip.empty() && over(iconX, y, barX + barW - iconX, rowHeight)) {
                     if (material.id >= itemCount) groupTip(material.id - itemCount, iconX - 1, y);
                     else late.tip = nameOf(material.id), late.hovered = pictureOf(material.id);
-                    // The columns' counts repeated, as every row's tip does (L-387).
-                    late.tipLines.insert(late.tipLines.begin(), countsLine("recipes.col.held", material.held, material.need));
                 }
             } else if (line.kind == Line::Kind::Target) {
                 bool const manual = entry.source.empty();
@@ -596,7 +584,7 @@ struct Lists : Window {
                 } else labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);
                 if (late.tip.empty() && hot && !onControl) {
                     // As the panel's (L-387): the columns' counts repeated.
-                    wantedTip(late, entry, have, known && target->sharedAbove());
+                    wantedTip(late, entry, known && target->sharedAbove());
                 }
                 if (known && !onControl && took(left, y, controlsX - left, rowHeight)) openEntry = openEntry == id ? std::string() : id;
             }
@@ -713,7 +701,7 @@ struct Lists : Window {
             return placer && placer->preview(index.recipes[static_cast<size_t>(layRecipe(index, request, step, plan->held))], false).ready();
         };
         // The columns of "to gather" (L-370): what can be made now and what is needed, in items, and a bar.
-        columnHeads(top, "recipes.col.need", false, {}, "recipes.col.now");
+        columnHeads(top, "recipes.col.toMake", false, {}, "recipes.col.now");
         top += headHeight;
         int const count = static_cast<int>(lines.size());
         std::vector<float> heights;
@@ -753,9 +741,8 @@ struct Lists : Window {
                     for (size_t k = 0; k < storedParts.size(); ++k) storedParts[k] = storedParts[k] && !shortParts[k];
                 }
                 tipStock = line.state != StepState::Held ? &carried : nullptr;
-                tipNow = line.row->now, tipStored = line.state == StepState::Stored;
                 stepSlots(left, y, step, faint, true, inputsW, &shortParts, &storedParts);
-                tipStock = nullptr, tipNow = 0, tipStored = false;
+                tipStock = nullptr;
                 if (line.state == StepState::Held) {
                     // Held: a check where the counts would be.
                     drawCheckMark(context, wantX + wantW - 8, y + 6, v::windowFaint);

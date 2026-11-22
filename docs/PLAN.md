@@ -90,12 +90,14 @@ plan's recipes are in [L-116](backlog/L-116.md).
   headings). Done rows at the end, checked, kept in place while the
   pointer is over the list; the panel lists the same rows as the window
   (gathered ones too, faint).
-- Tips write counts one way, in the window and on the panel alike, and
-  repeat what the columns show (L-387): a row's first line "Held/Need:
-  146/44,845  44,699 more" (a step's "Now/Need: ..."), the "more" in
-  items; an input as "Stone: 146/44,844  44,698 more" where what is held
-  is counted, "Stone: 44,844" where not. A "to gather" row's tip adds a
-  group's members and the stores holding some.
+- Tips say only what their row does not show, in the window and on the
+  panel alike (L-387); a count cut to fit shows whole under the pointer.
+  A "to gather" row: its name, a group's members and the stores holding
+  some. A wanted row: its name, whose a handed row is, a share taken
+  above. A step's product: its name and the inputs short of what is
+  carried, "Logs: 2 more". An input: its name, "Held: 0 (2 more)" (its
+  slot shows what is needed) and the stores holding some. "To make"'s
+  second column is "To make", what the step makes.
 - Marks: a favorite carries none (it stands in the favorites' panel); a
   wanted item its count; a chosen candidate in "How to make" a green
   frame in the unit outside its slot; a group's slot always its "*",

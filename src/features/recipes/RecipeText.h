@@ -13,13 +13,13 @@ std::string kindName(Kind kind);
 // A group by its name alone: a known tag's ("Planks"), else its first member's and "etc."; the Recipes screens
 // mark its icon (anyMark) to say any member will do.
 std::string groupName(Index const& index, int group);
-// A row's counts as every tip writes them (L-387): "Held/Need: 146/44,845  44,699 more". `lead` is the first
-// column's heading key: recipes.col.held, or recipes.col.now for a step.
-std::string countsLine(char const* lead, Count held, Count need);
+// An input's tip line (2026-11-22): how many are held, and how many more where short ("Held: 0 (2 more)"); its
+// slot shows how many are needed.
+std::string heldLine(Count held, Count need);
 // An item of a plan by its name, or a group (an item past Index::items) by groupName.
 std::string planItemName(Index const& index, Item id);
 // What a step of a plan takes in all its crafts, a line each: the count, then the name.
 std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step);
-// The same with what `stock` holds of each, "held/needed", and how many more where it is short (L-370).
-std::vector<std::string> stepInputLines(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock);
+// The inputs `stock` holds too few of, a line each with how many more ("Logs: 2 more"), the rest left out.
+std::vector<std::string> shortInputLines(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& stock);
 }
