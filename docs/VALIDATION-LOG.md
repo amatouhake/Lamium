@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mass Craft beside a round crafted onto the pointer, accepted (L-390, 2026-11-23)
+
+Build `14e2c83c` and later, the maintainer: Mass Craft started right
+after a Ctrl press on "Place" was tried; its start delay makes the
+overlap hard to hit, nothing went wrong, and the maintainer closed the
+check, to be taken up again if it ever misbehaves.
+
 ## Settings categories regrouped, one review check (L-392, L-390, 2026-11-23)
 
 Build `ad38e53f` (DLL

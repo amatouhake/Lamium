@@ -27,10 +27,8 @@ Do not infer game success from a build or unit-test result.
   group gathered from its breakdown step, the window's tabs beyond those
   (split by tab in `37301b53`, moves only), servers.
 - Fixes from the review since 0.7.0 (L-390): the local checks seen on
-  `14e2c83c` and `ad38e53f` (VALIDATION-LOG 2026-11-23). Not seen yet:
-  Mass
-  Craft waiting for a round crafted onto the pointer (its start delay
-  set to 0 makes it easier). Needing a server or another player: a
+  `14e2c83c` and `ad38e53f` (VALIDATION-LOG 2026-11-23); every local
+  one is done. Needing a server or another player: a
   server's own stores file (two servers), a friend's world or Realm kept
   together keeping chosen data, an unreadable servers.json, a key the
   game calls "ButtonNNN" (extended), "make" on a server.
