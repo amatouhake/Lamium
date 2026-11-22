@@ -123,6 +123,9 @@ void start() {
             }
             if (!screen.mHasFocus || !screen.mController || !screen.mController->_isContainerScreen()) return;
             if (now - bundlesAt < std::chrono::milliseconds(250)) return;
+            // What bundles and shulker boxes carry is read for the plan, the stores and the schematic's counts only.
+            auto const prefs = Runtime::instance().snapshot();
+            if (!prefs->inventory.recipes && !prefs->inventory.plan && !prefs->inventory.stores && !prefs->schematic.enabled) return;
             bundlesAt = now;
             schematic::items::carriedStacks(*player, &static_cast<ContainerScreenController&>(*screen.mController));
         } catch (...) {}

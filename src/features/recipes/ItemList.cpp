@@ -263,9 +263,16 @@ void narrow(LocalPlayer& player, Bench const& bench) {
     if (search::uses(parsed, search::Field::Tooltip))
         for (int budget = 40; budget > 0 && tooltipTexts.size() < names.size(); --budget) {
             std::string text;
-            if (auto const* stack = schematic::items::iconStack(schematic::items::shown(names[tooltipTexts.size()]).icon))
-                for (auto const& line : hoverLines(stack->getFormattedHovertext(player.getLevel(), false).mUnredactedString, 24))
-                    text += line.text + "\n";
+            // An item whose text the game cannot build is searched without it, not asked again every frame.
+            try {
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(names[tooltipTexts.size()]).icon))
+                    for (auto const& line : hoverLines(stack->getFormattedHovertext(player.getLevel(), false).mUnredactedString, 24))
+                        text += line.text + "\n";
+            } catch (...) {
+                static int told = 0;
+                if (told < 3) ++told, Runtime::instance().self().getLogger().warn("Recipes: no tooltip text for {}", names[tooltipTexts.size()]);
+                text.clear();
+            }
             tooltipTexts.push_back(search::folded(text));
         }
     auto const now = std::chrono::steady_clock::now();
@@ -514,6 +521,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, viewLayout.hintY() - 1);
     // Asked for from the settings, the editor starts on the first item screen drawn.
     static std::string editScreen; // the editor belongs to the screen it started on
+    // A screen the game closed (a death, the server) and opened again: arranging ended with it.
+    if (bandEditor::active() && !fresh()) bandEditor::stop();
     if (pendingEdit) closeViews(), bandEditor::start(*pendingEdit), pendingEdit.reset(), editScreen = screenName;
     if (bandEditor::active() && screenName != editScreen) bandEditor::stop();
     bool const editing = bandEditor::active();
@@ -671,7 +680,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     view::Late late;
     // A wanted item carries how many are wanted, where a stack has its count.
-    std::map<std::string_view, Count> wantedCounts;
+    // Owned keys: "x" on a panel drawn below takes the item out of the list while later panels still mark.
+    std::map<std::string, Count, std::less<>> wantedCounts;
     if (planOn) for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
     // What a feature handed over is wanted too.
     auto const handed = state::handed(); // a copy: asking for the plan below may replace the list

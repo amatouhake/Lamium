@@ -42,6 +42,7 @@ struct Waiting {
     bool many = false;
     int most = 64; // with `many`, no more crafts than that (L-385)
     int tries = 0; // frames waited for the grid to read empty
+    std::chrono::steady_clock::time_point seen; // last ticked: a screen closed meanwhile drops it
 } going;
 constexpr int mostTries = 20;
 // The crafting screens: the inventory's 2x2 and the crafting table's 3x3 (seen with craft_trace, 2026-11-18).
@@ -343,7 +344,7 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             controller->_evacuateCraftingGrid();
             // Not read as empty at once: the recipe is laid in when it is, a few frames on.
             if (!gridEmpty(manager)) {
-                going = {table, recipe, picks, screen.getScreenName(), many, most, 0};
+                going = {table, recipe, picks, screen.getScreenName(), many, most, 0, std::chrono::steady_clock::now()};
                 return true;
             }
         }
@@ -359,6 +360,9 @@ void tick(ScreenView& screen) {
     tickOnto(screen);
     tickMaking(screen);
     if (going.recipe < 0) return;
+    auto const now = std::chrono::steady_clock::now();
+    if (now - going.seen > std::chrono::milliseconds(300)) { going = {}; return; }
+    going.seen = now;
     try {
         auto* controller = crafting(screen);
         if (!controller || screen.getScreenName() != going.screen) { going = {}; return; }

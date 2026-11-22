@@ -31,12 +31,6 @@ take are still sent; `clearPointer` is uncounted; a cell laid by the
 pointer is charged three, not two; "make" has no budget at all.
 Read; Server (L-165 "Next" asks the same).
 
-### 1-9 Low: a waiting place has no stale check
-`src/features/recipes/RecipePlace.cpp:36`, `:360`. While it waits for the
-grid to empty, a screen closed by its X button or by the server leaves
-`going` set; the next screen of that name gets the old recipe laid in.
-"make" (300 ms) and craft onto the pointer (500 ms) have one. Read; rare.
-
 ### 1-10 Low: a wanted change can wait for the next item screen to be saved
 `src/features/recipes/RecipeState.cpp:86`, `:150`. Changed within 0.8 s of
 closing the screen, the list is written only when an item screen is drawn
@@ -51,30 +45,6 @@ reason. Read (frequency); Game: the hitch.
 `src/features/recipes/RecipeState.cpp:319`. VALIDATION-LOG has 8.2 ms for
 29 entries; a schematic may hand over 2048. Read (path); the larger costs
 are extrapolated.
-
-### 1-13 Low: wanted marks look into a list edited in the same frame
-`src/features/recipes/ItemList.cpp:658`, `BandPages.cpp:289`. The marks'
-map is keyed by `string_view`s into `Wanted::targets`; "x" erases from it,
-and panels drawn after that compare against moved strings (undefined
-behavior, in practice a frame of wrong marks). Not with the default layout.
-Read.
-
-### 1-14 Low: the panel editor survives a screen the game closes
-`src/features/recipes/ItemList.cpp:436`, `:504`, `BandEditorDraw.cpp:77`.
-Closed by death or the server while arranging, the same screen reopens
-with the editor on, and a drag in flight is saved. Read; Game: which
-closes.
-
-### 1-15 Low: the carried bundles listener looks at no setting
-`src/features/recipes/RecipePlaces.cpp:124`. Four times a second on any
-container screen it walks the inventory, shulker boxes and bundles, with
-Recipes, Plan, Stores and Schematics off, with Lamium disabled, and
-without a capability. `dropMissingStores` beside it checks both. Read.
-
-### 1-16 Low: a `$` search reads tooltips unguarded, and the failure is silent
-`src/features/recipes/ItemList.cpp:259`, `:1203`. An item whose hover text
-throws is asked again every frame; the list, panels and windows stop
-drawing and nothing is logged. Likely; Game.
 
 ### 1-17 Low: a group's wheel position is kept across recipe tables
 `src/features/recipes/GroupLook.cpp:24`. Kept by group index and never
