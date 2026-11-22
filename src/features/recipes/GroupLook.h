@@ -1,6 +1,7 @@
 #pragma once
 #include "features/recipes/RecipeIndex.h"
 #include <map>
+#include <vector>
 
 namespace lamium::recipes::view { struct Late; }
 
@@ -16,6 +17,8 @@ void beginFrame();
 void hover(int group, float x, float y);
 // The group whose slot the pointer rested on last frame long enough for the wheel, or -1.
 int rested();
+// A group's members in the item list's creative order (L-389), as every screen lists and turns through them.
+std::vector<Item> members(Index const& index, int group);
 // Turns what `group` shows by `steps` members.
 void turn(int group, int steps);
 // What `group` shows. `held`: what is held by item, or null where it is not known. `prefer`: a member the screen

@@ -300,6 +300,12 @@ void narrow(LocalPlayer& player, Bench const& bench) {
     if (query != visibleFor.query || filter != visibleFor.filter) page = 0;
     visibleFor = {true, std::move(query), filter, lowNames.size(), tooltipTexts.size(), bench, now};
 }
+}
+int creativeRank(std::string_view key) {
+    auto found = nameIndex.find(key);
+    return found == nameIndex.end() ? 1 << 30 : static_cast<int>(found->second);
+}
+namespace {
 void readNames(LocalPlayer& player) {
     names.clear();
     listed.clear();

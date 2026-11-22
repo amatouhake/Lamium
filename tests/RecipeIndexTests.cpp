@@ -10,6 +10,7 @@
 #include "features/recipes/RawView.h"
 #include "features/recipes/PlanTargets.h"
 #include "features/recipes/PlanRows.h"
+#include "features/recipes/HowTo.h"
 #include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeView.h"
 void check(bool, char const*);
@@ -349,6 +350,38 @@ void recipeIndexTests() {
         Request fromNotes;
         apply(woods, notes, fromNotes);
         check(fromNotes.stops.contains(planksItem), "a group's gather is saved by its key and reaches the plan");
+    }
+    {
+        // L-389: How to make's recipe order and re-dyeing.
+        Source dyes;
+        dyes.recipes = {
+            {"crafting_table", "harness_white_dye", 0, {{"white_harness", 1}}, both(cells("black_harness", 1), cells("white_dye", 1))},
+            {"crafting_table", "harness_white_bone", 0, {{"white_harness", 1}}, both(cells("black_harness", 1), cells("bone_meal", 1))},
+            {"crafting_table", "harness_white", 0, {{"white_harness", 1}}, both(cells("leather", 3), both(cells("glass", 2), cells("white_wool", 1)))},
+            {"crafting_table", "terracotta_white", 0, {{"white_terracotta", 8}}, both(cells("terracotta", 8), cells("white_dye", 1))},
+            {"crafting_table", "bed_red", 0, {{"bed@14", 1}}, cells("red_wool", 3)},
+            {"crafting_table", "bed_white", 0, {{"bed@0", 1}}, cells("white_wool", 3)},
+            {"crafting_table", "bed_white_dyed", 0, {{"bed@0", 1}}, both(cells("bed@14", 1), cells("white_dye", 1))},
+        };
+        Index const dyed = build(dyes);
+        Choice const dyedChoice = choose(dyed);
+        auto made = [&](std::string const& id) {
+            for (auto const& recipe : dyed.recipes) if (recipe.id == id) return &recipe;
+            return static_cast<Recipe const*>(nullptr);
+        };
+        check(colorName("minecraft:light_blue_harness").base == "harness" && colorName("minecraft:light_blue_harness").colored
+                  && !colorName("minecraft:terracotta").colored && colorName("minecraft:bed@14").colored && !colorName("minecraft:bed").colored,
+              "a color is taken off a name, the longer color first; an aux variant is a color of its own");
+        check(redyes(dyed, *made("harness_white_dye")) && !redyes(dyed, *made("harness_white")) && !redyes(dyed, *made("terracotta_white"))
+                  && redyes(dyed, *made("bed_white_dyed")) && !redyes(dyed, *made("bed_white")),
+              "re-dyeing takes another color of the same thing; from a thing with no color it is the main recipe");
+        Item const harness = dyed.find("white_harness");
+        auto const listed = howToRecipes(dyed, harness, dyedChoice.recipe[static_cast<size_t>(harness)]);
+        check(listed.main.size() == 1 && dyed.recipes[static_cast<size_t>(listed.main[0])].id == "harness_white" && listed.redye.size() == 2,
+              "How to make lists the main recipe, the re-dyeing folded apart");
+        std::vector<Item> const members{3, 1, 2, 9};
+        check(rankedMembers(members, [](Item item) { return item == 9 ? 1000 : item; }) == std::vector<Item>{1, 2, 3, 9},
+              "a group's members stand in the item list's order, the unknown after");
     }
     {
         // The item list in a panel from x 412 to the edge of a 640x360 screen.

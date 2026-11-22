@@ -1,6 +1,7 @@
 #pragma once
 #include "features/recipes/BandLayout.h"
 #include <string>
+#include <string_view>
 // L-359: every item in a band right of the game's window on the item
 // screens, in pages, with the name under the pointer; a press shows the
 // item's recipes, a right press what it is used in (RecipeViewDraw.h).
@@ -39,4 +40,7 @@ std::string hoveredItem();
 void editLayout(band::Page page);
 // The search key (L-377): the cursor in the search field on the next frame, its text selected. Client thread.
 void focusSearch();
+// An item's place in the creative inventory's order (the list's), by its key; past the end for one not listed or
+// before the list is read. Client thread.
+int creativeRank(std::string_view key);
 }

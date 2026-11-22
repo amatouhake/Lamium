@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/GroupLook.h"
+#include "features/recipes/HowTo.h"
 #include "features/recipes/ListFilter.h"
 #include "features/recipes/PlanRows.h"
 #include "features/recipes/RecipeState.h"
@@ -31,6 +32,7 @@ std::string howScroll;  // a line of "How to make" to bring into view
 std::string howFlash;   // a line just asked for, lit for a moment
 std::chrono::steady_clock::time_point howFlashAt{};
 bool howAll = false;    // "How to make" also lists what was chosen before, beyond the current plan
+std::set<std::string> howRedye; // items whose re-dyeing recipes are open in "How to make" (L-389)
 constexpr float switchLine = 16, optionHeight = 24, rowHeight = 18, stepHeight = 20, labelHeight = 11, headHeight = 11, headTop = 4;
 }
 bool isOpen() { return opened; }
@@ -827,7 +829,12 @@ struct Lists : Window {
         // By name: a choice changes the plan, and its lines must not move under the pointer.
         std::ranges::stable_sort(groups, {}, [&](int group) { return groupName(index, group); });
         std::ranges::stable_sort(items, {}, [&](Item item) { return nameOf(item); });
-        struct Line { enum class Kind { Switch, Label, Group, GroupGather, Members, Recipe, Option } kind; int group = -1; Item item = -1; int option = -1; float height = 0; };
+        auto traced = [&](int group) { return static_cast<size_t>(group) < index.traces.size() && index.traces[static_cast<size_t>(group)].kind >= 0; };
+        // L-389 (demos/howto-choices-3.html). An open group: "<kind>から作る" where the plan traces it, "<group>を集める",
+        // then its members in the item list's order. An open item: "automatic" (the rule's way, faint), "gather", the
+        // recipes (the rule's first), re-dyeing folded under one line. `option`: a group's way (0 make, 1 gather), an
+        // item's -1 automatic, -2 gather, else the recipe's number; `inner`: inside the re-dyeing fold.
+        struct Line { enum class Kind { Switch, Label, Group, GroupWay, Members, Recipe, Option, Fold } kind; int group = -1; Item item = -1; int option = -1; float height = 0; bool inner = false; };
         std::vector<Line> lines;
         // Which lines show: the first line, scrolling with them (only column headings stay put, L-370).
         if (input.plan) lines.push_back({Line::Kind::Switch, -1, -1, -1, switchLine});
@@ -839,10 +846,9 @@ struct Lists : Window {
             if (howScroll == key) offset = static_cast<int>(lines.size()), howScroll.clear();
             lines.push_back({Line::Kind::Group, group, -1, -1, stepHeight});
             if (howOpen == key) {
-                // A group the plan traces past its kind (L-386) can be gathered as it is instead, as an item can.
-                bool const traced = static_cast<size_t>(group) < index.traces.size() && index.traces[static_cast<size_t>(group)].kind >= 0;
-                if (traced || request.stops.contains(index.groupItem(group))) lines.push_back({Line::Kind::GroupGather, group, -1, -1, optionHeight});
-                size_t const cells = index.groups[static_cast<size_t>(group)].members.size() + 1;
+                if (traced(group)) lines.push_back({Line::Kind::GroupWay, group, -1, 0, optionHeight});
+                lines.push_back({Line::Kind::GroupWay, group, -1, 1, optionHeight});
+                size_t const cells = index.groups[static_cast<size_t>(group)].members.size();
                 lines.push_back({Line::Kind::Members, group, -1, -1, static_cast<float>((cells + across - 1) / across) * pitch + 6});
             }
         }
@@ -852,11 +858,17 @@ struct Lists : Window {
             if (howScroll == key) offset = static_cast<int>(lines.size()), howScroll.clear();
             lines.push_back({Line::Kind::Recipe, -1, item, -1, stepHeight});
             if (howOpen == key) {
-                auto const options = recipeOptions(index, item);
                 lines.push_back({Line::Kind::Option, -1, item, -1, optionHeight});
-                // "Gather" second, after "automatic" (its option number is one past the recipes'), then the recipes.
-                lines.push_back({Line::Kind::Option, -1, item, static_cast<int>(options.size()), optionHeight});
-                for (size_t o = 0; o < options.size(); ++o) lines.push_back({Line::Kind::Option, -1, item, static_cast<int>(o), optionHeight});
+                lines.push_back({Line::Kind::Option, -1, item, -2, optionHeight});
+                auto const listed = howToRecipes(index, item, plan->table->choice.recipe[static_cast<size_t>(item)]);
+                for (int number : listed.main) lines.push_back({Line::Kind::Option, -1, item, number, optionHeight});
+                if (!listed.redye.empty()) {
+                    // Open while asked, or while the recipe in use is a re-dye, so the chosen one is never hidden.
+                    int const now = plan->choice->recipe[static_cast<size_t>(item)];
+                    bool const open = howRedye.contains(key) || (notes.choices.contains(key) && std::ranges::find(listed.redye, now) != listed.redye.end());
+                    lines.push_back({Line::Kind::Fold, -1, item, static_cast<int>(listed.redye.size()), labelHeight + 4});
+                    if (open) for (int number : listed.redye) lines.push_back({Line::Kind::Option, -1, item, number, optionHeight, true});
+                }
             }
         }
         howScroll.clear(); // found above or not there: either way it is done
@@ -874,6 +886,13 @@ struct Lists : Window {
         // A line's state on one line (L-370): "Automatic: from planks" or the player's "Chosen: ...", both in the
         // window's ink; the words say which (L-369).
         auto words = [&](float y, std::string text, bool) { windowLabel(context, wordsX, y + 6, right - wordsX, std::move(text)); };
+        // A group's ways (L-389): made from its kind where the plan traces it (0), gathered (1), in words from names alone.
+        auto wayWords = [&](int group, int way) {
+            if (way == 0) return translated("recipes.howTo.makeFrom", groupName(index, index.traces[static_cast<size_t>(group)].kind));
+            return translated("recipes.howTo.gatherGroup", groupName(index, group));
+        };
+        // Whether a group not decided is made (from its kind), not gathered: traced and not set to gather.
+        auto groupMade = [&](int group) { return traced(group) && !request.stops.contains(index.groupItem(group)); };
         float y = top;
         for (int at = offset; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
             auto const& line = lines[static_cast<size_t>(at)];
@@ -891,69 +910,76 @@ struct Lists : Window {
                 std::string const key = groupKey(index, line.group);
                 auto picked = request.picks.find(line.group);
                 bool const chosen = picked != request.picks.end();
-                bool const gathered = !chosen && request.stops.contains(index.groupItem(line.group));
                 if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
                 if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
                 icon(groupFace(line.group), left + 8, y + 2);
                 late.marks.push_back({left + 8, y + 2});
-                std::string const name = groupName(index, line.group);
-                windowLabel(context, nameX, y + 6, arrowX - nameX - 4, name);
+                windowLabel(context, nameX, y + 6, arrowX - nameX - 4, groupName(index, line.group));
                 changeArrow(context, arrowX + 3, y + 7.5f, 1, v::windowInk);
                 windowSlot(context, slotX, y + 1);
                 icon(chosen ? index.items[static_cast<size_t>(picked->second)] : groupFace(line.group), slotX + 1, y + 2);
-                late.marks.push_back({slotX + 1, y + 2});
+                if (!chosen) late.marks.push_back({slotX + 1, y + 2});
+                // What the group is now, in the words of its way (L-389): the member decided, made from its kind, gathered.
                 if (chosen) words(y, translated("recipes.howTo.chosenIs", nameOf(picked->second)), true);
-                else if (gathered) words(y, translated("recipes.howTo.chosenIs", translated("recipes.toGather")), true);
-                else words(y, translated("recipes.howTo.anyLine"), false);
-                // Left the group; right what is in use: the member chosen as an item, or "any" as the group.
+                else words(y, wayWords(line.group, groupMade(line.group) ? 0 : 1), false);
+                // Left the group; right what is in use: the member decided as an item, else the group.
                 if (late.tip.empty() && over(left, y, arrowX - left, stepHeight)) groupTip(line.group, left + 7, y + 1);
                 else if (late.tip.empty() && over(arrowX, y, right - arrowX, stepHeight)) {
                     if (chosen) late.tip = nameOf(picked->second), late.hovered = index.items[static_cast<size_t>(picked->second)];
                     else groupTip(line.group, slotX, y + 1);
                 }
                 if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
-            } else if (line.kind == Line::Kind::GroupGather) {
-                // "Gather" as an item's option row (L-386): the group itself in the slot; chosen, framed green.
+            } else if (line.kind == Line::Kind::GroupWay) {
+                // A way of getting the group itself, a line each: made from its kind (traced, L-386), or gathered.
                 std::string const key = groupKey(index, line.group);
-                bool const gathered = !request.picks.contains(line.group) && request.stops.contains(index.groupItem(line.group));
-                sunkFace(context, left + 18, y, right - left - 18, optionHeight, true, false);
-                if (over(left + 18, y, right - left - 18, optionHeight)) fill(context, left + 19, y, right - left - 20, optionHeight, palette::white, .2f);
-                windowSlot(context, slotX, y + 3, false);
-                icon(groupFace(line.group), slotX + 1, y + 4);
-                late.marks.push_back({slotX + 1, y + 4});
-                if (gathered) frame(context, left + 19, y + 1, right - left - 20, optionHeight - 2, palette::accentDeep);
-                windowLabel(context, slotX + 22, y + 8, right - slotX - 22, translated("recipes.toGather"));
-                if (took(left + 18, y, right - left - 18, optionHeight)) {
+                bool const firstWay = at == 0 || lines[static_cast<size_t>(at - 1)].kind != Line::Kind::GroupWay;
+                float const h = optionHeight, sy = y + 2;
+                sunkFace(context, left + 18, y, right - left - 18, h, firstWay, false);
+                bool const hot = over(left + 18, y, right - left - 18, h);
+                if (hot) fill(context, left + 19, y, right - left - 20, h, palette::white, .2f);
+                bool const on = !request.picks.contains(line.group) && (line.option == 0) == groupMade(line.group);
+                if (on) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
+                if (line.option == 0) {
+                    // The kind it is made from, an arrow, the group: as a recipe's slots, its inputs left of the arrow.
+                    auto const& trace = index.traces[static_cast<size_t>(line.group)];
+                    float const kindX = arrowX - 18;
+                    windowSlot(context, kindX, sy + 1, false);
+                    icon(groupFace(trace.kind), kindX + 1, sy + 2);
+                    late.marks.push_back({kindX + 1, sy + 2});
+                    if (trace.uses > 1) late.counts.push_back({kindX, sy + 1, slotCountText(trace.uses)});
+                    changeArrow(context, arrowX + 3, sy + 7.5f, 1, v::windowInk);
+                    if (late.tip.empty() && over(kindX, sy + 1, 18, 18)) groupTip(trace.kind, kindX, sy + 1);
+                }
+                windowSlot(context, slotX, sy + 1, false);
+                icon(groupFace(line.group), slotX + 1, sy + 2);
+                late.marks.push_back({slotX + 1, sy + 2});
+                if (line.option == 0 && index.traces[static_cast<size_t>(line.group)].makes > 1)
+                    late.counts.push_back({slotX, sy + 1, slotCountText(index.traces[static_cast<size_t>(line.group)].makes)});
+                windowLabel(context, slotX + 22, sy + 6, right - slotX - 22, wayWords(line.group, line.option));
+                if (took(left + 18, y, right - left - 18, h)) {
                     state::setPick(key, {});
-                    state::setStop(key, true);
+                    // Gathering a traced group is the player's "gather"; for one not traced it is what "any" does anyway.
+                    state::setStop(key, line.option == 1 && traced(line.group));
                     howOpen.clear();
                 }
             } else if (line.kind == Line::Kind::Members) {
-                // The candidates as the game's slots: "any" first (the group's picture, marked), then each member.
+                // The members as the game's slots, in the item list's order (L-389); a press decides one, whose own ways
+                // are then its line under "Recipes", as any item's.
                 std::string const key = groupKey(index, line.group);
                 auto picked = request.picks.find(line.group);
-                bool const gathered = picked == request.picks.end() && request.stops.contains(index.groupItem(line.group));
-                sunkFace(context, left + 18, y, right - left - 18, line.height, at == 0 || lines[static_cast<size_t>(at - 1)].kind != Line::Kind::GroupGather);
-                auto const& members = index.groups[static_cast<size_t>(line.group)].members;
-                for (size_t c = 0; c <= members.size(); ++c) {
+                sunkFace(context, left + 18, y, right - left - 18, line.height, false, true);
+                auto const members = groupLook::members(index, line.group);
+                for (size_t c = 0; c < members.size(); ++c) {
                     float const cx = left + 22 + static_cast<float>(c % across) * pitch, cy = y + 4 + static_cast<float>(c / across) * pitch;
                     bool const hot = over(cx, cy, 18, 18);
                     windowSlot(context, cx, cy, hot);
-                    if (c == 0) {
-                        icon(groupFace(line.group), cx + 1, cy + 1);
-                        late.marks.push_back({cx + 1, cy + 1});
-                        if (picked == request.picks.end() && !gathered) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
-                        if (hot) late.tip = translated("recipes.howTo.any"), late.tipLines = {translated("recipes.howTo.anyTip")};
-                        if (took(cx, cy, 18, 18)) state::setPick(key, {}), state::setStop(key, false), howOpen.clear();
-                    } else {
-                        Item const member = members[c - 1];
-                        auto const& memberKey = index.items[static_cast<size_t>(member)];
-                        icon(memberKey, cx + 1, cy + 1);
-                        if (picked != request.picks.end() && picked->second == member) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
-                        // No counts held in "How to make" (maintainer 2026-11-21).
-                        if (hot) late.tip = nameOf(member), late.hovered = memberKey;
-                        if (took(cx, cy, 18, 18)) state::setPick(key, memberKey), state::setStop(key, false), howOpen.clear();
-                    }
+                    Item const member = members[c];
+                    auto const& memberKey = index.items[static_cast<size_t>(member)];
+                    icon(memberKey, cx + 1, cy + 1);
+                    if (picked != request.picks.end() && picked->second == member) frame(context, cx - 1, cy - 1, 20, 20, palette::accentDeep);
+                    // No counts held in "How to make" (maintainer 2026-11-21).
+                    if (hot) late.tip = nameOf(member), late.hovered = memberKey;
+                    if (took(cx, cy, 18, 18)) state::setPick(key, memberKey), state::setStop(key, false), howOpen.clear();
                 }
             } else if (line.kind == Line::Kind::Recipe) {
                 std::string const& key = index.items[static_cast<size_t>(line.item)];
@@ -986,10 +1012,11 @@ struct Lists : Window {
                 }
                 if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
             } else if (line.kind == Line::Kind::Option) {
-                // The candidates as rows of slots on a sunk face: "automatic" first, then each recipe.
+                // An item's ways as rows of slots on a sunk face (L-389): "automatic" (the rule's way, faint, its word
+                // alone), "gather", then each recipe as its slots and station, named in its tip.
                 std::string const& key = index.items[static_cast<size_t>(line.item)];
-                bool const first = at == 0 || lines[static_cast<size_t>(at - 1)].kind != Line::Kind::Option;
-                bool const last = at + 1 >= count || lines[static_cast<size_t>(at + 1)].kind != Line::Kind::Option;
+                bool const first = at == 0 || (lines[static_cast<size_t>(at - 1)].kind != Line::Kind::Option && lines[static_cast<size_t>(at - 1)].kind != Line::Kind::Fold);
+                bool const last = at + 1 >= count || (lines[static_cast<size_t>(at + 1)].kind != Line::Kind::Option && lines[static_cast<size_t>(at + 1)].kind != Line::Kind::Fold);
                 float const h = optionHeight, sy = y + 2; // the slots' row inside it
                 sunkFace(context, left + 18, y, right - left - 18, h, first, last);
                 bool const gathered = request.stops.contains(line.item);
@@ -997,41 +1024,56 @@ struct Lists : Window {
                 int const now = plan->choice->recipe[static_cast<size_t>(line.item)], rule = plan->table->choice.recipe[static_cast<size_t>(line.item)];
                 bool const hot = over(left + 18, y, right - left - 18, h);
                 if (hot) fill(context, left + 19, y, right - left - 20, h, palette::white, .2f);
-                auto const options = recipeOptions(index, line.item);
                 // Making it again: the plan no longer gathers it.
                 auto make = [&] { if (gathered) state::setStop(key, false); };
-                if (line.option == static_cast<int>(options.size())) {
+                if (line.option == -2) {
                     // "Gather": the item itself in the product's slot.
-                    float const productX = slotX;
-                    windowSlot(context, productX, sy + 1, false);
-                    icon(key, productX + 1, sy + 2);
+                    windowSlot(context, slotX, sy + 1, false);
+                    icon(key, slotX + 1, sy + 2);
                     if (gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
-                    windowLabel(context, productX + 22, sy + 6, right - productX - 22, translated("recipes.toGather"));
+                    windowLabel(context, slotX + 22, sy + 6, right - slotX - 22, translated("recipes.toGather"));
                     if (took(left + 18, y, right - left - 18, h)) {
                         if (!gathered) state::setStop(key, true);
                         howOpen.clear();
                     }
-                } else if (line.option < 0) {
-                    // "Automatic" as the other options: the rule's recipe as slots, faint (L-370).
+                } else if (line.option == -1) {
+                    // "Automatic": the rule's recipe as slots, faint, or the item where the rule gathers it (L-370).
                     float after = slotX + 20;
                     if (rule >= 0) {
                         StepLine const ruled{line.item, rule, 1, index.recipes[static_cast<size_t>(rule)].count, 0, 0};
                         after = stepSlots(optionX, sy, ruled, true, false);
                     } else {
-                        // No recipe by the rule: it gathers, shown as "gather" is, the item itself in the product's slot.
                         windowSlot(context, slotX, sy + 1, false);
                         icon(key, slotX + 1, sy + 2, 1.f, .45f);
                     }
                     if (!chosen && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
-                    windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.autoNow", rule >= 0 ? recipeName(rule) : translated("recipes.toGather")));
+                    windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.auto"));
+                    if (late.tip.empty() && hot)
+                        late.tip = translated("recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.autoIs", rule >= 0 ? recipeName(rule) : translated("recipes.toGather"))};
                     if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, {}), make(), howOpen.clear();
                 } else {
-                    int const number = options[static_cast<size_t>(line.option)];
+                    int const number = line.option;
                     StepLine const one{line.item, number, 1, index.recipes[static_cast<size_t>(number)].count, 0, 0};
-                    float const after = stepSlots(optionX, sy, one, false, false);
+                    stepSlots(optionX + (line.inner ? 8 : 0), sy, one, false, false);
                     if (chosen && now == number && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
-                    windowLabel(context, after + 2, sy + 6, right - after - 2, recipeName(number));
+                    // No words on a recipe's row (L-389): its slots tell it apart; its tip names it and its station.
+                    if (late.tip.empty() && hot)
+                        late.tip = recipeName(number), late.tipLines = {stationName(index.recipes[static_cast<size_t>(number)].station)};
                     if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(number)])), make(), howOpen.clear();
+                }
+            } else if (line.kind == Line::Kind::Fold) {
+                // Re-dyeing (another color of the same thing), folded under one line that opens (L-389).
+                std::string const& key = index.items[static_cast<size_t>(line.item)];
+                bool const last = at + 1 >= count || lines[static_cast<size_t>(at + 1)].kind != Line::Kind::Option;
+                sunkFace(context, left + 18, y, right - left - 18, line.height, false, last);
+                bool const hot = over(left + 18, y, right - left - 18, line.height);
+                if (hot) fill(context, left + 19, y, right - left - 20, line.height, palette::white, .2f);
+                bool const open = at + 1 < count && lines[static_cast<size_t>(at + 1)].kind == Line::Kind::Option && lines[static_cast<size_t>(at + 1)].inner;
+                chevron(context, left + 24, y + 4, open, v::windowInk);
+                windowLabel(context, left + 34, y + 4, right - left - 38, translated("recipes.howTo.redye", line.option));
+                if (took(left + 18, y, right - left - 18, line.height)) {
+                    if (open) howRedye.erase(key);
+                    else howRedye.insert(key);
                 }
             }
             y += line.height;

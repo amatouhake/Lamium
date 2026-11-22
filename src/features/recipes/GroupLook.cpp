@@ -1,5 +1,7 @@
 #include "features/recipes/GroupLook.h"
 #include "features/recipes/CountText.h"
+#include "features/recipes/HowTo.h"
+#include "features/recipes/ItemList.h"
 #include "features/recipes/RecipeNotes.h"
 #include "features/recipes/RecipeText.h"
 #include "features/recipes/RecipeViewDraw.h"
@@ -30,12 +32,17 @@ int rested() {
     if (hovered.group < 0 || hovered.frame + 1 < frame) return -1;
     return Clock::now() - hovered.since >= restTime ? hovered.group : -1;
 }
+std::vector<Item> members(Index const& index, int group) {
+    if (group < 0 || group >= static_cast<int>(index.groups.size())) return {};
+    return rankedMembers(index.groups[static_cast<size_t>(group)].members,
+                         [&](Item item) { return itemList::creativeRank(index.items[static_cast<size_t>(item)]); });
+}
 void turn(int group, int steps) {
     if (group >= 0) looked[group] += steps;
 }
 Item face(Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held, Item prefer) {
     if (group < 0 || group >= static_cast<int>(index.groups.size())) return -1;
-    auto const& members = index.groups[static_cast<size_t>(group)].members;
+    auto const members = groupLook::members(index, group);
     if (members.empty()) return -1;
     Item base = groupLead(index, group);
     if (prefer >= 0 && std::ranges::find(members, prefer) != members.end()) base = prefer;
@@ -53,7 +60,7 @@ Item face(Index const& index, int group, std::map<int, Item> const& picks, std::
 }
 void tip(view::Late& late, Index const& index, int group, std::map<int, Item> const& picks, std::map<Item, Count> const* held, Item prefer) {
     using ui::translated;
-    auto const& members = index.groups[static_cast<size_t>(group)].members;
+    auto const members = groupLook::members(index, group);
     Item const shown = face(index, group, picks, held, prefer);
     late.tip = groupName(index, group);
     late.tipLines.clear();

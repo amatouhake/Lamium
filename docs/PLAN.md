@@ -110,8 +110,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   framed white and the one chosen green over it, with no counts held;
   no item's own lines (fuel, id) follow. The name needs no "*": the
   lines say it is a kind. In "How to make" a line's left shows the
-  group's or item's tip, its right that of what is in use; its words
-  read "Any" alone.
+  group's or item's tip, its right that of what is in use. A group's
+  members stand in the item list's creative order on every screen.
 - Tips describe the item alone; what a press or the wheel does there
   ("Wheel: look through the kinds", "Change it in How to make") is
   added to the window's hint line while the pointer is on it.
@@ -124,15 +124,17 @@ plan's recipes are in [L-116](backlog/L-116.md).
   and loops (cobblestone, nuggets) do not line a member up. A group can
   be gathered as it is instead ("gather" above its members in "How to
   make", or on its breakdown step).
-- "How to make" holds the choices for all plans and worlds: a group's
-  member (a grid of slots, "any" first) and an item's recipe (rows,
-  "automatic" first, as its recipe's slots), by name, each line's state
-  on one line ("Automatic: from planks", "Chosen: ...", both in plain ink) with one
-  arrow where the other tabs' table starts (the item on the left as their
-  rows have it, a candidate's arrow under the line's); lines for the current plan, or with a
-  switch all chosen before. Placing follows it, else what is held. An
-  item's options are "automatic", "gather" (the breakdown's "gather" and
-  "make" set the same), then its recipes. Items usually gathered
+- "How to make" holds the choices for all plans and worlds, by name,
+  each line's state on one line with one arrow where the other tabs'
+  table starts; lines for the current plan, or with a switch all chosen
+  before. Placing follows it, else what is held (L-389,
+  demos/howto-choices-3.html): words one line, right after each row's
+  pictures. A group opens "<kind>から作る" where traced, "<group>を集める",
+  then its members as slots (a press decides one; its own ways are then
+  its line under "Recipes"). An item opens "automatic" (the rule's way,
+  faint, the word alone), "gather" (the breakdown's "gather" and "make"
+  set the same), then its recipes as slots and station without words
+  (named in the tip), the rule's first, re-dyeing folded as "染め直し（N）". Items usually gathered
   (leather, white wool, anything smelted from an ore that drops it:
   `usuallyGathered`) have no automatic recipe, as a loop's base: they
   read "Automatic: gather" and are made by choosing a recipe; the notes

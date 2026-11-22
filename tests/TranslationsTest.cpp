@@ -64,7 +64,7 @@ void translationTests() {
                 || entry.key == "bookPaste.tooManyPages")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.size") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
-            else if (entry.key == "recipes.howTo.autoNow" || entry.key == "recipes.howTo.from") rendered = std::vformat(pattern, std::make_format_args(key));
+            else if (entry.key == "recipes.howTo.makeFrom" || entry.key == "recipes.howTo.gatherGroup" || entry.key == "recipes.howTo.from") rendered = std::vformat(pattern, std::make_format_args(key));
             else if (entry.key == "schematic.toast.moved")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));
             else if (entry.key == "schematic.toast.unreadable")
