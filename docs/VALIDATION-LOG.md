@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Liquids out of the plan, natural stones gathered (L-391, 2026-11-23)
+
+Build `832f3e0c` (DLL
+`5f38355f3ea05698bf330a8501081737c58b702afdf9e58b399e49cbb5f5b13d`),
+1.26.60.05 Dev instance, a local world, the maintainer. Confirmed: a
+schematic with water put into the plan no longer lists water under
+"Gather"; granite, diorite and andesite read "Automatic" as gathered and
+no Nether quartz is asked for. Also confirmed on this build (L-390): a
+local world's stores are gone after its saved data is deleted from the
+Saved data page. Not tried: the plan's materials after removing the
+earlier of two placements (the step was unclear; it was explained again).
+
 ## Review fixes since 0.7.0, local part 2 (L-390, 2026-11-23)
 
 Build `14e2c83c` (DLL

@@ -28,7 +28,7 @@ Do not infer game success from a build or unit-test result.
 - Fixes from the review since 0.7.0 (L-390): the local checks seen on
   `14e2c83c` (VALIDATION-LOG 2026-11-23, parts 1 and 2). Not clear yet:
   the plan's schematic materials after the earlier of two placements is
-  removed; a local world's stores gone with its deleted saved data; Mass
+  removed; Mass
   Craft waiting for a round crafted onto the pointer (its start delay
   set to 0 makes it easier). Needing a server or another player: a
   server's own stores file (two servers), a friend's world or Realm kept
