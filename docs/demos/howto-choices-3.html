@@ -61,7 +61,7 @@ p{margin:0;max-width:95ch}
 .cell{cursor:pointer;padding:var(--u)}
 .cell.on{outline:var(--u) solid var(--accent-deep)}
 .cellname{font-size:calc(6.5*var(--u));color:var(--win-ink);height:calc(9*var(--u))}
-.row{display:grid;grid-template-columns:calc(92*var(--u)) calc(18*var(--u)) 1fr;align-items:center;gap:calc(2*var(--u));cursor:pointer;min-height:calc(20*var(--u));padding:0 calc(2*var(--u))}
+.row{display:flex;align-items:center;gap:calc(2*var(--u));cursor:pointer;min-height:calc(20*var(--u));padding:0 calc(2*var(--u))}
 .row:hover{background:rgba(255,255,255,.3)}
 .row.on{outline:var(--u) solid var(--accent-deep);outline-offset:calc(-1*var(--u))}
 .row .slots{display:flex;align-items:center;gap:calc(1*var(--u))}
@@ -113,6 +113,7 @@ p{margin:0;max-width:95ch}
         <li>「自動が使用中」の札は無くした。</li>
         <li>レシピの行は言葉を出さず、スロットと作業場所だけ。スロットで見分けられ（白の染料か骨粉か）、名前が切れない。名前は行のツールチップに（ここでは行にマウスを置くと出る）。</li>
         <li>自動の選ぶ物が先頭、染め直しはたたむ。</li>
+        <li>言葉は列にそろえず、その行の絵のすぐ右に置く。</li>
         <li class="qq">決めたいこと：この形でよいか。レシピの行の言葉を消してよいか。</li>
       </ul>
     </div>
