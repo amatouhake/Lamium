@@ -169,7 +169,7 @@ void startCustomInput() {
             inventory::repeatTrades::cancel();
             // Modifiers stay out: Shift held for a transfer is not a press that ends a run.
             int const code = event.keyCode();
-            if (!(code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5))) recipes::itemList::playerPressed();
+            if (!(code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5))) recipes::itemList::playerPressed(code);
         }
         bool consumed = process({Device::Key, event.keyCode()}, event.isDown(), event.isCancelled(),
             event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected || recipes::itemList::typing()
@@ -194,7 +194,7 @@ void startCustomInput() {
             : Token{Device::Mouse, button > MouseAction::ActionWheel ? button - 1 : button};
         bool down = wheel || event.buttonData() == MouseAction::DataDown;
         if (down) inventory::repeatTrades::cancel();
-        if (down && !wheel) recipes::itemList::playerPressed();
+        if (down && !wheel) recipes::itemList::playerPressed(0);
         // The panels beside the anvil: their presses and wheel turns stay from the game. The Change button
         // opens the planner on the client thread.
         if (!wheel && !event.isCancelled()) {

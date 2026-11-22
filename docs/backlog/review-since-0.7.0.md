@@ -28,15 +28,6 @@ carried stays; its "Limits" says items differ by name and aux only.
 crafted onto the pointer going on; Mass Craft starts only with an empty
 pointer, so the overlap is that round's Fetch step. Read.
 
-### 1-5 Medium: a quick tap of the wanted key leaves it held
-`src/features/recipes/ItemList.cpp:1091`, `:1166`, `:1064`.
-The press goes through the action queue to the client thread; the release
-is handled in the listener. A release that arrives first finds nothing to
-clear, then the press sets `wantedHeld`. From then on every wheel notch on
-item screens steps that item's wanted count and the lists do not page,
-until the key is pressed and released again or the focus is lost.
-Read (ordering); Game: how often a tap beats the queue.
-
 ### 1-6 Medium: the item list's search keeps the old names
 `src/features/recipes/ItemList.cpp:251`, `:308`, `src/ui/GameLanguage.cpp:60`.
 The folded names, English names and tooltip texts are rebuilt only after

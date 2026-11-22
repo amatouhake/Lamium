@@ -17,8 +17,9 @@ bool wheel(int pages);
 bool press(int button, bool left, bool right, bool down);
 bool key(int code, bool down);
 // A key or button of the player's went down, whoever takes it (an action, the game's window): a run of
-// crafting ends (L-385). Called from the input listeners before anything consumes the event.
-void playerPressed();
+// crafting ends (L-385). Called from the input listeners before anything consumes the event; `code`: the
+// key, 0 for a mouse button.
+void playerPressed(int code);
 // The search field: whether it is being typed in (keys are text then, not actions), and the text the
 // game hands a focused field; true keeps it from the screen under the list.
 bool typing();

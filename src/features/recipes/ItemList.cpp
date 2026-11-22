@@ -136,6 +136,9 @@ std::atomic<bool> ctrlHeld{false}; // set by the listeners, read by the frame to
 // item that was wanted already goes out on the key's release, unless the wheel turned meanwhile.
 std::atomic<bool> wantedHeld{false};
 std::atomic<int> wantedCode{0};
+// The wanted key is down now (input thread). Its press is an action that acts a frame later, when a quick
+// tap may already be released: the hold is only taken while the key is still down (under shownLock).
+std::atomic<bool> wantedDown{false};
 std::string wantedItem;      // client thread
 bool wantedLeaves = false;   // client thread: it goes out when the key is released
 std::atomic<bool> leftHeld{false}; // the left button is down, as the mouse listener last saw it: a scrollbar's drag
@@ -1081,7 +1084,13 @@ bool press(int button, bool left, bool right, bool down) {
     if (first && (left || right) && queued.clicks.size() < 8) queued.clicks.push_back(left);
     return true;
 }
-void playerPressed() { stopRun = true; }
+void playerPressed(int code) {
+    stopRun = true;
+    if (code == wantedCode.load()) {
+        std::scoped_lock lock(shownLock);
+        wantedDown = true;
+    }
+}
 bool key(int code, bool down) {
     // The modifier keys stay the game's: one held while the view opens must still be released.
     if (code == 0x11 || code == 0xA2 || code == 0xA3) ctrlHeld = down;
@@ -1089,6 +1098,7 @@ bool key(int code, bool down) {
     if (code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5)) return false;
     if (down) stopRun = true;
     std::scoped_lock lock(shownLock);
+    if (code == wantedCode.load()) wantedDown = down;
     if (!down && code == wantedCode.load() && wantedHeld.exchange(false)) queued.wantedUp = true;
     // The focused search field takes every key: letters are text, which the game hands over itself. So
     // does a count being typed: the number keys must not move stacks to the hotbar.
@@ -1109,6 +1119,7 @@ bool key(int code, bool down) {
 }
 void focusLost() {
     wantedHeld = false;
+    wantedDown = false;
     leftHeld = false;
     std::scoped_lock lock(shownLock);
     keptKeys = {};
@@ -1164,12 +1175,18 @@ void want() {
     bool const was = state::wanted().has(item);
     // The band shows the wanted items then, so what went in or out is seen.
     bandPages::showWanted();
-    if (wantedCode.load() <= 0) { state::toggleWanted(item); return; } // not a single key: no hold to wait for
+    // Not a single key, or a tap already released: no hold to wait for.
+    bool hold = false;
+    {
+        std::scoped_lock lock(shownLock);
+        hold = wantedCode.load() > 0 && wantedDown.load();
+        if (hold) wantedHeld = true;
+    }
+    if (!hold) { state::toggleWanted(item); return; }
     // In at once; an item that was in stays until the key is released, so the wheel can change its count.
     if (!was) state::toggleWanted(item);
     wantedItem = std::move(item);
     wantedLeaves = was;
-    wantedHeld = true;
 }
 void show(bool uses) {
     if (bandEditor::active()) return;
