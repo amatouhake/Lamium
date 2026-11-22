@@ -125,12 +125,15 @@ plan's recipes are in [L-116](backlog/L-116.md).
   be gathered as it is instead ("gather" above its members in "How to
   make", or on its breakdown step).
 - "How to make" holds the choices for all plans and worlds, by name,
-  each line's state on one line with one arrow where the other tabs'
-  table starts (an item's: the way in use as its row below shows it,
-  faint with "automatic" while the rule decides); lines for the current plan, or with a switch all chosen
+  each line's state on one line (an item's: the way in use as its row
+  below shows it, in full ink, with "automatic" while the rule
+  decides); lines for the current plan, or with a switch all chosen
   before. Placing follows it, else what is held (L-389,
-  demos/howto-choices-3.html): words one line, right after each row's
-  pictures. A group opens "<kind>から作る" where traced, "<group>を集める",
+  demos/howto-choices-3.html, demos/howto-lines.html): words one line;
+  an item's station and words each keep one column, a group's words
+  follow its pictures. The arrow stands as far right as the longest
+  words allow, so the longest recipe (five inputs) shows whole and the
+  name gives way. A group opens "<kind>から作る" where traced, "<group>を集める",
   then its members as slots (a press decides one; its own ways are then
   its line under "Recipes"). An item opens "automatic" (the rule's way,
   faint, the word alone), "gather" (the breakdown's "gather" and "make"
@@ -143,9 +146,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   read "Automatic: gather" and are made by choosing a recipe; the notes
   keep only the player's choices. In a loop of items made from each
   other the one a furnace turns into another of it is the base, as mined:
-  cobblestone is gathered and stone smelted from it. An item has a line where there is a
-  choice: several recipes, or gathered (by the player or the rule) with
-  a recipe that could make it, or a recipe the player chose.
+  cobblestone is gathered and stone smelted from it. An item has a line
+  where the plan makes it ("gather" is always a choice), where it is
+  gathered with a recipe that could make it, or where the player chose.
 - A key (W by default, beside A for favorites; both rebindable) puts the
   hovered item into "wanted" or takes it out, on item screens and in the
   recipe view, with Recipes on or off. While it is held the wheel changes how many are wanted, so the

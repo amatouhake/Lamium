@@ -353,6 +353,8 @@ struct Lists : Window {
     // A step as the game's slots: inputs right-aligned to the arrow (room for four), the product in a fixed
     // column, the station. `x0` is where the inputs' room starts.
     static constexpr float inputsW = 72;
+    // How to make's room: the longest recipe in the game's table, five inputs (rabbit stew).
+    static constexpr float howInputsW = 90;
     // What "to make" counts as held: its steps' tips give the step and each input as held/needed, as the panel's do
     // (stepTip); `tipNow` what can be made now, `tipStored` whether the stores make up what is short.
     std::map<Item, Count> const* tipStock = nullptr;
@@ -375,7 +377,7 @@ struct Lists : Window {
         size_t const iconsBefore = late.icons.size();
         float const arrowX = x0 + room, productX = arrowX + 12;
         auto const uses = stepParts(index, request, step);
-        size_t const shown = std::min<size_t>(uses.size(), 4);
+        size_t const shown = std::min<size_t>(uses.size(), static_cast<size_t>(std::max(1.f, room / 18)));
         for (size_t u = 0; u < shown; ++u) {
             auto const& part = uses[u].part;
             float const sx = arrowX - static_cast<float>(shown - u) * 18;
@@ -812,7 +814,8 @@ struct Lists : Window {
             for (auto const& step : plan->view.steps) {
                 for (auto const& part : stepParts(index, request, step)) if (part.part.group) addGroup(part.part.id);
                 if (groupStep(index, step)) addGroup(step.item - itemCount);
-                if (!groupStep(index, step) && choosable(step.item)) addItem(step.item);
+                // Every item the plan makes has a line: "gather" is a choice even beside one recipe.
+                if (!groupStep(index, step) && step.item < itemCount && !recipeOptions(index, step.item).empty()) addItem(step.item);
             }
         }
         if (showAll) {
@@ -882,14 +885,6 @@ struct Lists : Window {
         offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
         bar(count, offset, fitFromEnd(heights));
         bool const flashing = std::chrono::steady_clock::now() - howFlashAt < std::chrono::milliseconds(900);
-        // The line's parts: item icon and name, an arrow, a slot, the words beside it (a second, small line under them).
-        // In the other tabs' halves (L-370, 2026-11-22): the item as their rows have it on the left, the arrow where the
-        // table starts; a candidate step's arrow under the line's.
-        float const arrowX = mid, slotX = arrowX + 12, wordsX = slotX + 22;
-        float const optionX = std::max(left + 18, arrowX - inputsW);
-        // A line's state on one line (L-370): "Automatic: from planks" or the player's "Chosen: ...", both in the
-        // window's ink; the words say which (L-369).
-        auto words = [&](float y, std::string text, bool) { windowLabel(context, wordsX, y + 6, right - wordsX, std::move(text)); };
         // A group's ways (L-389): made from its kind where the plan traces it (0), gathered (1), in words from names alone.
         auto wayWords = [&](int group, int way) {
             if (way == 0) return translated("recipes.howTo.makeFrom", groupName(index, index.traces[static_cast<size_t>(group)].kind));
@@ -897,6 +892,23 @@ struct Lists : Window {
         };
         // Whether a group not decided is made (from its kind), not gathered: traced and not set to gather.
         auto groupMade = [&](int group) { return traced(group) && !request.stops.contains(index.groupItem(group)); };
+        // The line's parts: item icon and name, the way's inputs, an arrow, the product, the station, the words. The
+        // arrow stands as far right as the longest words allow (2026-11-22): the longest recipe (five inputs) shows
+        // whole and the name gives way, not the recipe. An item's station and words keep one column each.
+        float rightNeed = 64 + std::max(textWidth(context, translated("recipes.howTo.auto")), textWidth(context, translated("recipes.toGather"))) + 4;
+        for (int group : groups) {
+            auto picked = request.picks.find(group);
+            std::string const now = picked != request.picks.end() ? translated("recipes.howTo.chosenIs", nameOf(picked->second))
+                                                                  : wayWords(group, groupMade(group) ? 0 : 1);
+            float widest = std::max(textWidth(context, now), textWidth(context, wayWords(group, 1)));
+            if (traced(group)) widest = std::max(widest, textWidth(context, wayWords(group, 0)));
+            rightNeed = std::max(rightNeed, 34 + widest + 4);
+        }
+        float const arrowX = std::clamp(std::floor(right - rightNeed), mid, std::max(mid, right - 64 - 24));
+        float const slotX = arrowX + 12, wordsX = slotX + 22, stationColumnEnd = arrowX + 64;
+        float const optionX = std::max(left + 18, arrowX - howInputsW);
+        // A group's state on one line (L-370): what it is now in the words of its way, or the member decided.
+        auto words = [&](float y, std::string text, bool) { windowLabel(context, wordsX, y + 6, right - wordsX, std::move(text)); };
         float y = top;
         for (int at = offset; at < count && y + lines[static_cast<size_t>(at)].height <= bottom + .5f; ++at) {
             auto const& line = lines[static_cast<size_t>(at)];
@@ -992,24 +1004,25 @@ struct Lists : Window {
                 bool const chosen = notes.choices.contains(key) && now >= 0;
                 if (over(left, y, right - left, stepHeight)) fill(context, left - 2, y, right - left + 4, stepHeight, palette::shade, .08f);
                 if (flashing && howFlash == key) frame(context, left - 2, y, right - left + 4, stepHeight, palette::accentDeep);
-                // The way in use as its row below shows it (L-389): a recipe's slots and station, "gather" by the item, and
-                // the rule's way faint with the word "automatic"; the name gives way to the slots.
+                // The way in use as its row below shows it (L-389), in full ink: a recipe's slots and station, "gather" by
+                // the item, the rule's way with the word "automatic"; the name gives way to the slots.
                 bool const automatic = !gathered && !chosen;
                 int const shownRecipe = gathered ? -1 : automatic ? rule : now;
-                float nameEnd = arrowX - 4, after = slotX + 22;
+                float nameEnd = arrowX - 4;
                 if (shownRecipe >= 0) {
                     StepLine const way{line.item, shownRecipe, 1, index.recipes[static_cast<size_t>(shownRecipe)].count, 0, 0};
-                    size_t const parts = std::min<size_t>(stepParts(index, request, way).size(), 4);
+                    size_t const parts = std::min<size_t>(stepParts(index, request, way).size(), static_cast<size_t>(howInputsW / 18));
                     nameEnd = std::max(optionX, arrowX - static_cast<float>(parts) * 18) - 4;
-                    after = stepSlots(optionX, y, way, automatic, false) + 2;
+                    stepSlots(optionX, y, way, false, false, howInputsW);
                 } else {
                     windowSlot(context, slotX, y + 1, false);
-                    icon(key, slotX + 1, y + 2, 1.f, automatic ? .45f : 1.f);
+                    icon(key, slotX + 1, y + 2);
                     if (over(slotX, y + 1, 18, 18)) late.tip = nameOf(line.item), late.hovered = key;
                 }
                 icon(key, left + 8, y + 2);
                 windowLabel(context, nameX, y + 6, nameEnd - nameX, nameOf(line.item));
-                if (automatic || gathered) windowLabel(context, after, y + 6, right - after, translated(automatic ? "recipes.howTo.auto" : "recipes.toGather"));
+                if (automatic || gathered)
+                    windowLabel(context, stationColumnEnd + 2, y + 6, right - stationColumnEnd - 2, translated(automatic ? "recipes.howTo.auto" : "recipes.toGather"));
                 if (late.tip.empty() && over(left, y, nameEnd - left, stepHeight)) late.tip = nameOf(line.item), late.hovered = key;
                 if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
             } else if (line.kind == Line::Kind::Option) {
@@ -1033,29 +1046,28 @@ struct Lists : Window {
                     icon(key, slotX + 1, sy + 2);
                     if (over(slotX, sy + 1, 18, 18)) late.tip = nameOf(line.item), late.hovered = key;
                     if (gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
-                    windowLabel(context, slotX + 22, sy + 6, right - slotX - 22, translated("recipes.toGather"));
+                    windowLabel(context, stationColumnEnd + 2, sy + 6, right - stationColumnEnd - 2, translated("recipes.toGather"));
                     if (took(left + 18, y, right - left - 18, h)) {
                         if (!gathered) state::setStop(key, true);
                         howOpen.clear();
                     }
                 } else if (line.option == -1) {
                     // "Automatic": the rule's recipe as slots, faint, or the item where the rule gathers it (L-370).
-                    float after = slotX + 20;
                     if (rule >= 0) {
                         StepLine const ruled{line.item, rule, 1, index.recipes[static_cast<size_t>(rule)].count, 0, 0};
-                        after = stepSlots(optionX, sy, ruled, true, false);
+                        stepSlots(optionX, sy, ruled, true, false, howInputsW);
                     } else {
                         windowSlot(context, slotX, sy + 1, false);
                         icon(key, slotX + 1, sy + 2, 1.f, .45f);
                         if (over(slotX, sy + 1, 18, 18)) late.tip = nameOf(line.item), late.hovered = key;
                     }
                     if (!chosen && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
-                    windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.auto"));
+                    windowLabel(context, stationColumnEnd + 2, sy + 6, right - stationColumnEnd - 2, translated("recipes.howTo.auto"));
                     if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, {}), make(), howOpen.clear();
                 } else {
                     int const number = line.option;
                     StepLine const one{line.item, number, 1, index.recipes[static_cast<size_t>(number)].count, 0, 0};
-                    stepSlots(optionX, sy, one, false, false);
+                    stepSlots(optionX, sy, one, false, false, howInputsW);
                     if (chosen && now == number && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
                     // No words and no tip of the row's own (L-389): its slots tell it apart, each naming itself.
                     if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(number)])), make(), howOpen.clear();
