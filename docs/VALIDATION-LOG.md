@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## One settings tree for Hotkeys, read-only keys, composed names (L-372, 2026-11-23)
+
+Build `4605f852` (DLL
+`2917b3079753e7f5b6c78005901c8be4c349cad866a19c32ff560c2a8ebfb616`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: Hotkeys as the
+settings tree with grey child rows, a child-only hit hiding its siblings
+and a pressed parent showing them; Item transfer's gestures named by
+effect with faint keys, the recipe presses as read-only rows, the hover
+tip for a cut fixed key; composed names in the conflict tip and the
+capture line. Seen wrong: the fixed caps do not follow the bindings'
+names (Left click where a binding says Mouse 1; Wheel for both
+directions; drags no binding can have), and the key column is too
+narrow for the gestures' keys.
+
 ## Hotkeys' place column and fixed presses (L-372, 2026-11-23)
 
 Build `498da065` (DLL
