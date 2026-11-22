@@ -101,8 +101,9 @@ void sync(IClientInstance& client) {
         previous = std::move(chords);
     }
 }
-// `recipeKeysOnly`: an open recipe view takes every key but the two that show another item's recipes.
-bool process(Token token, bool down, bool cancelled, bool textEditing = false, bool recipeKeysOnly = false) {
+// `windowOpen`: a Lamium window over the item screen (the recipe view, the plan window, the bands' editor),
+// which lets through only the actions declared for it (input::whereActs).
+bool process(Token token, bool down, bool cancelled, bool textEditing = false, bool windowOpen = false) {
     auto current = ll::service::getClientInstance();
     if (!current) { invalidate(); return false; }
     sync(*current);
@@ -116,13 +117,11 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false, b
     auto& tracker = inventory::game::ScreenTracker::getInstance();
     bool const container = tracker.current() && !inventory::game::TextInputTracker::getInstance().isEditing(tracker.currentView());
     ChordSet allowed;
-    bool const freeCamera = CameraSessions::instance().blocksPerspective();
-    // The recipe keys are plain letters (R, U, W): with their feature off they stay the game's on its item screens.
     auto const& inventoryPrefs = Runtime::instance().preferences().inventory;
+    InputState const state{currentLayers(gameplay, container, windowOpen, outside),
+        CameraSessions::instance().blocksPerspective(), inventoryPrefs.recipes, inventoryPrefs.plan};
     for (size_t i = 0; i < allowed.size(); ++i)
-        if (actionAllowed(static_cast<Action>(i), gameplay, container, freeCamera, outside)
-            && recipeKeyAllowed(static_cast<Action>(i), inventoryPrefs.recipes, inventoryPrefs.plan, recipeKeysOnly))
-            allowed[i] = previous[i];
+        if (actionAllowed(static_cast<Action>(i), state)) allowed[i] = previous[i];
     // A different consumer (notably Zoom's wheel adjustment) may own this
     // event. Preserve held inputs, but always observe key-up releases.
     auto result = dispatch.update(allowed, held.value(), down && !cancelled ? std::optional<Token>(token) : std::nullopt, fresh);

@@ -745,6 +745,18 @@ std::string linkTitle(input::Link link) {
     default: return "tip.reordered";
     }
 }
+// Where two bindings meet (L-372), as the tip names it after the other action.
+std::string whereText(unsigned layers) {
+    std::string text;
+    auto add = [&](unsigned bit, char const* key) {
+        if (layers & bit) text += (text.empty() ? "" : ", ") + translated(key);
+    };
+    add(input::layer::gameplay, "where.gameplay");
+    add(input::layer::itemScreen, "where.itemScreen");
+    add(input::layer::window, "where.window");
+    add(input::layer::outsideWorld, "where.outsideWorld");
+    return text;
+}
 // Lists every binding related to the action's chord, grouped by how it
 // relates, below the key cell (above it when there is more room there).
 bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, int row,
@@ -830,7 +842,11 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
         }
         float used = keycaps(context,x+pad,cursor+1,inner*.45f,
             chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
-        label(context,x+pad+used+5,cursor+1+boxTextInset(),inner-used-5,actionLabel(conflict.action));
+        auto name = actionLabel(conflict.action);
+        float const nameX = x + pad + used + 5, room = inner - used - 5;
+        label(context,nameX,cursor+1+boxTextInset(),room,name);
+        if (float const nameW = textWidth(context, name) + 6; nameW < room)
+            label(context,nameX+nameW,cursor+1+boxTextInset(),room-nameW,whereText(conflict.where),palette::faint);
         cursor += itemHeight;
     }
     if (shown < conflicts.size())

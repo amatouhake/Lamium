@@ -10,7 +10,9 @@ Do not infer game success from a build or unit-test result.
 ## Since 0.7.0
 
 - Settings grouping (L-340): six categories with group headings, and the
-  README and FEATURES.md sections to follow them before tagging.
+  README and FEATURES.md sections to follow them before tagging. Hotkeys
+  by layer (L-372): the conflict tip names where; back and Sort on one
+  key are no longer a conflict.
 
 - Recipes, the Plan and the stores (L-359, experimental, off by default):
   seen in game step by step on a local world (VALIDATION.md row); a

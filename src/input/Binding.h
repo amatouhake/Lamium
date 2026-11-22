@@ -319,34 +319,57 @@ inline Relation bindingRelation(Chord const& a, Chord const& b) {
     if (a == b) return Relation::Shared;
     return coversAll(a, b) || coversAll(b, a) ? Relation::Overlap : Relation::None;
 }
-// Transfer can be toggled in gameplay or a container; Sort and the recipe keys are container-only.
-constexpr bool containerOnly(Action action) {
-    return action == Action::Sort || action == Action::ShowRecipes || action == Action::ShowUses || action == Action::RecipeBack
-        || action == Action::RecipeFavorite || action == Action::RecipeWanted || action == Action::MassCraft || action == Action::FocusSearch;
+// Where each action works (L-372): a small fixed set of layers. Typing and
+// Lamium's own screens are no layer: no binding acts there (CustomInput.cpp).
+// A Lamium window over an item screen (the recipe view, the plan window, the
+// bands' editor) takes the item screen's place and lets through only the
+// actions declared for it.
+namespace layer {
+inline constexpr unsigned gameplay = 1, itemScreen = 2, window = 4, outsideWorld = 8;
 }
-// The recipe view's own keys: the only actions an open view lets through, and
-// the game's own while their feature is off (wanted: the Plan; the rest: Recipes).
-// Back is a key only while the view is open.
-constexpr bool recipeKey(Action action) {
-    return action == Action::ShowRecipes || action == Action::ShowUses || action == Action::RecipeBack
-        || action == Action::RecipeFavorite || action == Action::RecipeWanted || action == Action::FocusSearch;
+// What must also hold. It never keeps two bindings apart: the conditions can
+// all hold at once, so conflicts go by layers alone.
+enum class Condition { None, FreeCamera, Recipes, Plan };
+struct Where { unsigned layers; Condition condition = Condition::None; };
+constexpr Where whereActs(Action action) {
+    switch (action) {
+    case Action::Settings: return {layer::gameplay | layer::outsideWorld};
+    case Action::FreeCameraSpeedUp: case Action::FreeCameraSpeedDown: return {layer::gameplay, Condition::FreeCamera};
+    case Action::Transfer: return {layer::gameplay | layer::itemScreen};
+    case Action::Sort: case Action::MassCraft: return {layer::itemScreen};
+    // The recipe keys are plain letters (R, U, A, W): with their feature off they stay the game's.
+    case Action::ShowRecipes: case Action::ShowUses: case Action::RecipeFavorite: case Action::FocusSearch:
+        return {layer::itemScreen | layer::window, Condition::Recipes};
+    case Action::RecipeWanted: return {layer::itemScreen | layer::window, Condition::Plan};
+    case Action::RecipeBack: return {layer::window, Condition::Recipes};
+    default: return {layer::gameplay};
+    }
 }
-constexpr bool recipeKeyAllowed(Action action, bool recipesOn, bool planOn, bool viewOpen) {
-    if (!recipeKey(action)) return !viewOpen;
-    if (action == Action::RecipeWanted) return planOn;
-    return recipesOn && (viewOpen || action != Action::RecipeBack);
+// The layers in force. An open window hides the item screen under it.
+constexpr unsigned currentLayers(bool gameplay, bool itemScreen, bool windowOpen, bool outsideWorld) {
+    if (windowOpen) return itemScreen ? layer::window : 0;
+    return (gameplay ? layer::gameplay : 0) | (itemScreen ? layer::itemScreen : 0) | (outsideWorld ? layer::outsideWorld : 0);
 }
-inline bool sameInputContext(Action a, Action b) {
-    return a == Action::Transfer || b == Action::Transfer || containerOnly(a) == containerOnly(b);
-}
-inline bool actionAllowed(Action action, bool gameplay, bool container, bool freeCamera = false, bool outsideWorld = false) {
+struct InputState {
+    unsigned layers = 0;
+    bool freeCamera = false, recipes = true, plan = true;
+};
+constexpr bool actionAllowed(Action action, InputState const& state) {
     if (retired(action)) return false; // A key saved for it before must not be matched and swallowed.
-    if (action == Action::Settings && outsideWorld) return true;
-    if (action == Action::FreeCameraSpeedUp || action == Action::FreeCameraSpeedDown) return gameplay && freeCamera;
-    if (containerOnly(action)) return container;
-    if (action == Action::Transfer) return gameplay || container;
-    return gameplay;
+    auto const where = whereActs(action);
+    if (!(where.layers & state.layers)) return false;
+    switch (where.condition) {
+    case Condition::FreeCamera: return state.freeCamera;
+    case Condition::Recipes: return state.recipes;
+    case Condition::Plan: return state.plan;
+    default: return true;
+    }
 }
+constexpr bool actionAllowed(Action action, bool gameplay, bool itemScreen, bool freeCamera = false, bool outsideWorld = false) {
+    return actionAllowed(action, InputState{currentLayers(gameplay, itemScreen, false, outsideWorld), freeCamera});
+}
+// The layers where both actions can fire; none means their bindings never meet.
+constexpr unsigned sharedLayers(Action a, Action b) { return whereActs(a).layers & whereActs(b).layers; }
 // Actions that open a Lamium screen or prompt: the screen takes the input,
 // so nothing else held may follow (CustomInput.cpp).
 inline bool opensMenu(Action action) {
@@ -362,7 +385,7 @@ inline bool opensMenu(Action action) {
 }
 // How another binding relates to this one; the Hotkeys tooltip groups by it.
 enum class Link { Same, StartsWithThis, ContainsThis, InsideThis, Reordered };
-struct Conflict { Action action; Relation relation; Link link; };
+struct Conflict { Action action; Relation relation; Link link; unsigned where = 0; }; // where: the layers both work in
 inline bool startsWith(Chord const& longer, Chord const& prefix) {
     return longer.size() > prefix.size() && std::equal(prefix.begin(), prefix.end(), longer.begin());
 }
@@ -372,7 +395,8 @@ inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action a
     auto chord = effectiveChord(bindings, action);
     for (size_t i = 0; i < actions.size(); ++i) {
         auto other = static_cast<Action>(i);
-        if (other == action || retired(other) || !sameInputContext(action, other)) continue;
+        auto const where = sharedLayers(action, other);
+        if (other == action || retired(other) || !where) continue;
         auto otherChord = effectiveChord(bindings, other);
         auto relation = bindingRelation(chord, otherChord);
         if (relation == Relation::None) continue;
@@ -380,7 +404,7 @@ inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action a
             : startsWith(otherChord, chord) ? Link::StartsWithThis
             : otherChord.size() > chord.size() ? Link::ContainsThis
             : chord.size() > otherChord.size() ? Link::InsideThis : Link::Reordered;
-        result.push_back({other, relation, link});
+        result.push_back({other, relation, link, where});
     }
     std::stable_sort(result.begin(), result.end(), [](Conflict a, Conflict b) { return a.link < b.link; });
     return result;
@@ -420,7 +444,7 @@ inline std::optional<size_t> releaseLeader(ChordSet const& chords, size_t index)
 inline std::optional<Action> firesOnRelease(Bindings const& bindings, Action action) {
     ChordSet chords;
     for (size_t i = 0; i < chords.size(); ++i)
-        if (sameInputContext(action, static_cast<Action>(i))) chords[i] = effectiveChord(bindings, static_cast<Action>(i));
+        if (sharedLayers(action, static_cast<Action>(i))) chords[i] = effectiveChord(bindings, static_cast<Action>(i));
     auto leader = releaseLeader(chords, static_cast<size_t>(action));
     if (!leader) return {};
     return static_cast<Action>(*leader);

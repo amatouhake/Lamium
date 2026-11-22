@@ -42,30 +42,65 @@ void bindingTests() {
         && defaultChord(Action::Hitboxes) == Chord{{Device::Key, 0x72}, {Device::Key, 0x42}}
         && defaultChord(Action::Transfer).empty(),
         "Java-style debug defaults and unbound NightVision resolve correctly");
-    check(sameInputContext(Action::Transfer, Action::Sort)
-        && sameInputContext(Action::Transfer, Action::Zoom)
-        && !sameInputContext(Action::Sort, Action::Zoom),
-        "transfer toggle shares container and gameplay binding contexts");
+    check(sharedLayers(Action::Transfer, Action::Sort) == layer::itemScreen
+        && sharedLayers(Action::Transfer, Action::Zoom) == layer::gameplay
+        && !sharedLayers(Action::Sort, Action::Zoom),
+        "transfer toggle meets item-screen and gameplay bindings, sort and zoom never meet");
     check(actionAllowed(Action::Transfer, true, false) && actionAllowed(Action::Transfer, false, true)
         && !actionAllowed(Action::Transfer, false, false)
         && actionAllowed(Action::Sort, false, true) && !actionAllowed(Action::Sort, true, false),
         "transfer toggle works in gameplay and containers while sort remains container-only");
     check(actionAllowed(Action::ShowRecipes, false, true) && !actionAllowed(Action::ShowUses, true, false)
-        && sameInputContext(Action::ShowRecipes, Action::Sort) && !sameInputContext(Action::ShowRecipes, Action::Zoom)
+        && sharedLayers(Action::ShowRecipes, Action::Sort) && !sharedLayers(Action::ShowRecipes, Action::Zoom)
         && defaultChord(Action::ShowRecipes) == Chord{Token{Device::Key, 0x52}} && defaultChord(Action::ShowUses) == Chord{Token{Device::Key, 0x55}}
         && actionAllowed(Action::ToggleRecipes, true, false),
-        "the recipe keys are R and U on item screens only, where they share the context with Sort");
-    check(defaultChord(Action::RecipeBack) == Chord{Token{Device::Key, 0x08}} && actionAllowed(Action::RecipeBack, false, true)
-        && recipeKeyAllowed(Action::ShowRecipes, true, false, false) && recipeKeyAllowed(Action::ShowRecipes, true, false, true)
-        && !recipeKeyAllowed(Action::RecipeBack, true, false, false) && recipeKeyAllowed(Action::RecipeBack, true, false, true)
-        && !recipeKeyAllowed(Action::ShowUses, false, true, false) && !recipeKeyAllowed(Action::RecipeBack, false, true, true)
-        && recipeKeyAllowed(Action::Sort, false, false, false) && !recipeKeyAllowed(Action::Sort, true, true, true),
-        "back is a key only while the view is open, which lets no other action through; off, the recipe keys are the game's");
-    check(defaultChord(Action::RecipeFavorite) == Chord{Token{Device::Key, 0x41}} && defaultChord(Action::RecipeWanted) == Chord{Token{Device::Key, 0x57}}
-        && actionAllowed(Action::RecipeFavorite, false, true) && !actionAllowed(Action::RecipeWanted, true, false)
-        && recipeKeyAllowed(Action::RecipeFavorite, true, false, true) && !recipeKeyAllowed(Action::RecipeWanted, true, false, false)
-        && recipeKeyAllowed(Action::RecipeWanted, false, true, false),
-        "A and W over an item, on item screens and in the open view: A while Recipes is on, W while the Plan is (L-373)");
+        "the recipe keys are R and U on item screens only, where they meet Sort");
+    {
+        InputState screen{currentLayers(false, true, false, false)}, window{currentLayers(false, true, true, false)};
+        InputState off = screen, offWindow = window;
+        off.recipes = false; offWindow.recipes = false;
+        check(defaultChord(Action::RecipeBack) == Chord{Token{Device::Key, 0x08}}
+            && actionAllowed(Action::ShowRecipes, screen) && actionAllowed(Action::ShowRecipes, window)
+            && !actionAllowed(Action::RecipeBack, screen) && actionAllowed(Action::RecipeBack, window)
+            && !actionAllowed(Action::ShowUses, off) && !actionAllowed(Action::RecipeBack, offWindow)
+            && actionAllowed(Action::Sort, screen) && !actionAllowed(Action::Sort, window)
+            && !actionAllowed(Action::MassCraft, window) && !actionAllowed(Action::Transfer, window),
+            "back is a key only while a window is open, which lets no other action through; off, the recipe keys are the game's");
+        check(!sharedLayers(Action::RecipeBack, Action::Sort) && sharedLayers(Action::RecipeBack, Action::ShowRecipes) == layer::window
+            && currentLayers(false, false, true, false) == 0,
+            "back and sort never fire in the same place, so one key for both is no conflict (L-372)");
+        InputState noPlan = window;
+        noPlan.plan = false;
+        check(defaultChord(Action::RecipeFavorite) == Chord{Token{Device::Key, 0x41}} && defaultChord(Action::RecipeWanted) == Chord{Token{Device::Key, 0x57}}
+            && actionAllowed(Action::RecipeFavorite, false, true) && !actionAllowed(Action::RecipeWanted, true, false)
+            && actionAllowed(Action::RecipeFavorite, window) && !actionAllowed(Action::RecipeWanted, noPlan)
+            && actionAllowed(Action::RecipeWanted, off),
+            "A and W over an item, on item screens and in the open view: A while Recipes is on, W while the Plan is (L-373)");
+    }
+    {
+        // A conflict is shown exactly where both bindings could fire: in some state both are allowed.
+        bool agree = true;
+        std::vector<InputState> states;
+        for (unsigned layers : {layer::gameplay, layer::itemScreen, layer::window, layer::outsideWorld})
+            states.push_back({layers, true, true, true});
+        for (size_t i = 0; i < actions.size(); ++i)
+            for (size_t j = 0; j < actions.size(); ++j) {
+                auto a = static_cast<Action>(i), b = static_cast<Action>(j);
+                if (retired(a) || retired(b)) continue;
+                bool both = std::any_of(states.begin(), states.end(), [&](InputState const& s) { return actionAllowed(a, s) && actionAllowed(b, s); });
+                agree = agree && both == (sharedLayers(a, b) != 0);
+            }
+        check(agree, "bindings conflict exactly where both actions can fire");
+        Bindings bindings{};
+        bindings[static_cast<size_t>(Action::Sort)] = Chord{Token{Device::Key, 0x08}};
+        auto backConflicts = bindingConflicts(bindings, Action::RecipeBack);
+        check(std::none_of(backConflicts.begin(), backConflicts.end(), [](Conflict c) { return c.action == Action::Sort; }),
+              "Sort on Backspace is not reported against back in the recipe view");
+        bindings[static_cast<size_t>(Action::Sort)] = Chord{Token{Device::Key, 0x52}};
+        auto rConflicts = bindingConflicts(bindings, Action::ShowRecipes);
+        check(rConflicts.size() == 1 && rConflicts[0].action == Action::Sort && rConflicts[0].where == layer::itemScreen,
+              "a conflict names where the two bindings meet");
+    }
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)
         && !actionAllowed(Action::Settings, false, false), "outside a world only the settings key opens (L-175)");
     check(lamium::outsideWorldMenu("ui://./hbui/index.html", false) && !lamium::outsideWorldMenu("ui://./hbui/index.html", true)

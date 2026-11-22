@@ -142,6 +142,21 @@ append-only action ids and default keys in `src/input/Binding.h`.
   in the order modifiers, function keys, other keys, mouse, wheel (a saved
   F3+B stays F3 then B); new files carry `orderedBindings: true`.
 
+### Where actions work (L-372)
+
+- Each action declares the layers it works in (`input::whereActs`):
+  gameplay, an item screen, a Lamium window over an item screen (the
+  recipe view, the plan window, the bands' editor) and outside a world.
+  Typing and Lamium's own screens are no layer: no binding acts there.
+  An open window takes the item screen's place and lets through only the
+  actions declared for it (the recipe keys, back and the search key).
+- A condition may also have to hold (FreeCamera running for its speed
+  keys; Recipes or the Plan on for their keys, which stay the game's
+  otherwise). Conditions never keep bindings apart.
+- Two bindings conflict only where their layers meet; the same test
+  derives what fires and what is warned about. Back (window only) and
+  Sort (item screen only) on one key are no conflict.
+
 ### Conflict display
 
 - (Decided 2026-09-25, [demos/hotkey-conflicts.html](demos/hotkey-conflicts.html))
@@ -150,7 +165,8 @@ append-only action ids and default keys in `src/input/Binding.h`.
   another key cap). The tip lists every related binding grouped as same key /
   starts with this key / longer chords containing it / shorter chords inside
   it / same keys in another order, plus "fires on release" when that
-  applies; overflow ends in "N more". Keyboard selection shows the same tip
+  applies; overflow ends in "N more". Each listed binding is followed, in
+  faint text, by where the two meet ("On item screens", L-372). Keyboard selection shows the same tip
   (keyboard users are not told to use the mouse); moving the mouse returns
   to hover. The footer keeps only the description.
 - (Decided 2026-10-06, L-97) Colliding settings: when one option's value
