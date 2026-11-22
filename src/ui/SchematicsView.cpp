@@ -32,7 +32,6 @@
 #include "app/Desktop.h"
 #include "features/information/SchematicTarget.h"
 #include "features/schematic/SchematicItems.h"
-#include "features/recipes/RecipeService.h"
 #include "features/recipes/RecipeState.h"
 #include "features/schematic/Selection.h"
 #include "features/schematic/MenuModel.h"

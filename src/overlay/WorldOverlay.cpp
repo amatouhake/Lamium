@@ -80,7 +80,6 @@ std::atomic<bool> releaseMeshes{false};
 // The latest feet block per dimension, under shapeMutex (L-311): a following
 // shape stays where the player left its dimension.
 std::map<int, Cell> followFeet;
-bool identityFailed = false;
 #ifdef LAMIUM_SHAPE_TRACE
 std::atomic<unsigned> identitySamples{0};
 void traceIdentity(ll::event::ClientJoinLevelEvent& event) noexcept {
@@ -114,7 +113,6 @@ void followWorld() {
     shapeWorld = place.world;
     shapeWorkspace.leave();
     releaseMeshes = true; // Reloaded shapes get new ids; the old ids' meshes go.
-    identityFailed = false;
     if (!place.active || !place.shapeFile) return;
     try { shapeWorkspace.enter(*place.shapeFile); }
     catch (std::exception const& error) {
@@ -815,7 +813,6 @@ std::optional<ShapeDefinition> find(ShapeId id) {
 ShapeId add(ShapeDefinition definition) {
     std::lock_guard lock(shapeMutex);
     followWorld();
-    if (identityFailed) throw std::runtime_error("Shape workspace unavailable");
     return shapeWorkspace.change([&](auto& values) { return values.add(std::move(definition)); });
 }
 void edit(ShapeId id, ShapeDefinition definition) {
@@ -892,12 +889,11 @@ void clear() {
     followFeet.clear();
     shapeWorkspace.leave();
     joiningLocal = false;
-    identityFailed = false;
 }
 Storage storage() {
     std::lock_guard lock(shapeMutex);
     followWorld();
-    return identityFailed || shapeWorkspace.failedToLoad() ? Storage::LoadFailed
+    return shapeWorkspace.failedToLoad() ? Storage::LoadFailed
         : shapeWorkspace.persistent() ? Storage::Saved : Storage::Session;
 }
 }

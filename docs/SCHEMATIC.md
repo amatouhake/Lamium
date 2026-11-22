@@ -175,8 +175,8 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   bed halves count none; liquids count source cells only (a flowing cell needs
   no item; the Check still compares flow, L-289).
 - Columns need / placed / left / carried, all layers or shown layers only.
-  Carried includes shulker boxes in the inventory. Green when enough, yellow
-  when short. Blocks first, then entities ("-" carried unless an item places
+  Carried counts as the Plan does: shulker boxes, bundles, stores. Green
+  when enough, yellow when short. Blocks first, then entities ("-" carried unless an item places
   them, such as an armor stand).
 - Amounts convert to "1 chest + 4 stacks + 5" (a chest is 27 stacks; smaller
   stack sizes respected) on hover and in the right pane. The right pane has

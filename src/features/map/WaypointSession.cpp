@@ -79,6 +79,15 @@ long long held(std::filesystem::path const& config, std::string const& key) {
     constexpr long long step = 1'000'000'000'000;
     return documents * step + std::min(bytes, step - 1);
 }
+// Whether a key holds any data at all, so a new data set does not take it: `held` ranks only what makes a
+// server's data fuller, not its shapes, wanted items or counted places.
+bool anyData(std::filesystem::path const& config, std::string const& key) {
+    if (held(config, key) >= 0) return true;
+    std::error_code ignored;
+    for (auto folder : {shapeFolder, wantedFolder, placesFolder})
+        if (std::filesystem::is_regular_file(config / folder / (key + ".json"), ignored)) return true;
+    return false;
+}
 // What was joined, kept for as long as it is: the saved data page lists and switches data without a join event.
 struct Identity {
     bool local = false;
@@ -188,7 +197,7 @@ std::optional<std::string> dataKey(Identity& who) {
     auto config = configFolder();
     prints::Pick pick{*base};
     withList([&](servers::List& list) {
-        pick = prints::pick(list.prints, list.unsplit, *base, who.print, [&](std::string const& k) { return held(config, k) >= 0; });
+        pick = prints::pick(list.prints, list.unsplit, *base, who.print, [&](std::string const& k) { return anyData(config, k); });
         if (!who.byAddress() && pick.key != *base && prints::ownSet(*base, pick.key)) recordWorld(list, pick.key, who);
         if (pick.asked) questionName = shownKey(list, pick.other);
     });
@@ -555,9 +564,9 @@ std::vector<SavedData> savedData() {
     servers::List list;
     try { if (std::filesystem::exists(config / "servers.json", ignored)) list = readServers(config / "servers.json"); } catch (...) {}
     std::string const current = !identity.local && identity.key ? *identity.key : std::string();
-    // Every key any of the five folders holds.
+    // Every key any of the folders holds: data with only wanted items or counted places can be deleted too.
     std::set<std::string> keys;
-    for (auto folder : {mapFolder, waypointFolder, schematicFolder, deathFolder, shapeFolder}) {
+    for (auto folder : {mapFolder, waypointFolder, schematicFolder, deathFolder, shapeFolder, wantedFolder, placesFolder}) {
         std::filesystem::directory_iterator it(config / folder, ignored), end;
         for (; !ignored && it != end && keys.size() < savedDataLimit; it.increment(ignored)) {
             auto name = it->path().filename().u8string();
@@ -702,7 +711,7 @@ bool answerWorld(WorldAnswer answer) {
     std::lock_guard lock(mutex);
     if (!question || !joined.active || identity.base.empty()) return false;
     auto config = configFolder();
-    auto exists = [&](std::string const& k) { return held(config, k) >= 0; };
+    auto exists = [&](std::string const& k) { return anyData(config, k); };
     std::string key;
     bool const saved = withList([&](servers::List& list) {
         switch (answer) {

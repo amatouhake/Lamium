@@ -261,8 +261,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   or switch what is carried) is not reachable; the open container's line
   still marks and unmarks a store.
 - The wanted items' and the counted places' files go when a world's or a
-  server's saved data is deleted, but the Saved data screen does not count
-  or show it, and moving a server's data to another key leaves it
+  server's saved data is deleted, and the Saved data screen lists data
+  holding only them, but does not count them, and moving a server's data to another key leaves it
   ([L-358](backlog/L-358.md)).
 - Builds before the per-server places file kept every server's counted
   places in one `config/wanted/places.json`. It is not read and not

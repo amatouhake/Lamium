@@ -73,13 +73,6 @@ with a log line only. Read (logic). How the file becomes unreadable (a
 world name long enough to pass the 1 MB read limit) was reported, not
 checked.
 
-### 3-3 Low: a new world can be given a `-w<n>` key that still holds data
-`src/features/map/WaypointSession.cpp:64`. `held()` counts waypoints,
-placements, the death layout and the map, not shapes or wanted items, so
-such a key reads as unused (a counted places file in
-`config/places/` too). Data holding only wanted items is not listed
-on the Saved data page. Read.
-
 ### 3-4 Low: a merge that fails part way leaves the placements stale
 `src/features/map/WaypointSession.cpp:844`. A failed shapes write returns
 after the merged placements were written and before the world generation
@@ -89,28 +82,6 @@ them. Read; needs a write failure.
 ### 3-5 Low: the minimap keeps two `static ItemStack`s
 `src/features/map/Minimap.cpp:1018`. The only ones in `src`; other icons
 are copies for the frame (rule 2). Likely; Game: across a rejoin.
-
-### 3-6 Low: the paused notice names Recipes for Schematics alone
-`src/app/PausedFeatures.h:77`. `RecipeTable` still asks
-`schematic.enabled`; the Materials tab no longer uses the table. Read; the
-toast needs an unverified game build.
-
-### 3-7 Low: icon kind caches go by numeric id across worlds
-`src/features/inspection/render/ItemIcon.cpp:89`, `:112`. Never cleared;
-two worlds giving one id to different add-on items mix them up. Likely;
-Game.
-
-### 3-8 Low: `shown()` empties its map while references are out
-`src/features/schematic/SchematicItems.cpp:57`. Past 16384 keys in a world
-it clears; callers hold `Shown const&` across calls. `stacks` in the same
-file was changed never to do this. Read; needs a very large add-on set.
-
-### 3-9 Low: leftovers and documents
-`src/overlay/WorldOverlay.cpp:83`: `identityFailed` is never set, and
-`joiningLocal` is read by the shape trace only. `docs/SCHEMATIC.md:177`:
-"carried" now includes bundles and, with Stores on, the stores.
-`docs/OVERLAYS.md:220` lists `LocalShapePath.h`, used by
-`WaypointSession.cpp` only. Read.
 
 ## Questions for the maintainer (decided designs, not findings)
 

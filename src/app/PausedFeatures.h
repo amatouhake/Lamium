@@ -73,8 +73,8 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::SchematicBlocks: case Id::SchematicPiston: case Id::SchematicShulker: case Id::SchematicEntities:
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick:
         return s.schematic.enabled;
-    // The Materials tab's raw view and the item list with its recipe view (L-359).
-    case Id::RecipeTable: return s.schematic.enabled || s.inventory.recipes || s.inventory.plan || s.inventory.massCraft;
+    // The item list with its recipe view, the plan and Mass Craft (L-359).
+    case Id::RecipeTable: return s.inventory.recipes || s.inventory.plan || s.inventory.massCraft;
     case Id::CountedPlaces: return s.inventory.stores;
     case Id::SearchHighlight: return s.inventory.recipes && s.inventory.searchHighlight;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;

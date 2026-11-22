@@ -54,7 +54,9 @@ Shown const& shown(std::string const& item) {
         seenShown = now;
     }
     if (auto found = shownItems.find(item); found != shownItems.end()) return found->second;
-    if (shownItems.size() > 16384) shownItems.clear();
+    // Full: worked out for this call only, never clearing what callers still hold (as `stacks` does).
+    static Shown spare;
+    bool const full = shownItems.size() > 16384;
     Shown out{item, {}, 64};
     // A variant's key carries its aux ("minecraft:bed@14", recipes/ItemKey.h).
     auto const parts = recipes::splitItemKey(item);
@@ -70,6 +72,7 @@ Shown const& shown(std::string const& item) {
             out.icon = std::move(icon);
         } catch (...) { out.name = item; }
     }
+    if (full) return spare = std::move(out);
     return shownItems.emplace(item, std::move(out)).first->second;
 }
 std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {

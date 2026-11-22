@@ -86,10 +86,21 @@ constexpr mce::Color glintTint{1.0f, 1.0f, 1.0f, 1.0f};
 // answers the out-of-pane icon question with raw UVs into its strip; the strip's path is not on the item (its
 // atlas file is the item atlas), so the paths are the ones the vanilla slots were traced using. Anything else
 // keeps the item atlas. Asked once per item kind.
+// Kinds are kept by numeric id, which another world may give another item: each answer also keeps the item it was
+// asked for, whose object a new world builds anew, and is asked again when that differs.
+template<class Value> struct Kinds {
+    std::unordered_map<int, std::pair<void const*, Value>> known;
+    Value const* find(ItemStack const& stack) {
+        auto found = known.find(stack.getId());
+        return found != known.end() && found->second.first == stack.mItem.get() ? &found->second.second : nullptr;
+    }
+    Value const& keep(ItemStack const& stack, Value value) {
+        return (known[stack.getId()] = {stack.mItem.get(), std::move(value)}).second;
+    }
+};
 std::string const& ownTexture(ItemStack const& stack) {
-    static std::unordered_map<int, std::string> known;
-    int const id = stack.getId();
-    if (auto found = known.find(id); found != known.end()) return found->second;
+    static Kinds<std::string> known;
+    if (auto const* found = known.find(stack)) return *found;
     static std::pair<char const*, char const*> const strips[]{
         {"minecraft:compass", "textures/items/compass_atlas"},
         {"minecraft:recovery_compass", "textures/items/recovery_compass_atlas"},
@@ -104,22 +115,21 @@ std::string const& ownTexture(ItemStack const& stack) {
             if (static_cast<ItemIconInfoType>(info.mIconType) == ItemIconInfoType::RawUVs) name = strip;
         }
     } catch (...) { name.clear(); }
-    return known.emplace(id, std::move(name)).first->second;
+    return known.keep(stack, std::move(name));
 }
 // Heads and shulker boxes report the block chunk, but a slot draws them as a model in a default batch (UI
 // material 11 MobHead, 10 DragonHead, 13 for the box). In Lamium's terrain batch they showed nothing until a
 // slot had drawn that item once since joining (L-91, traced 2026-11-17); they take the direct path.
 bool modelInBlockChunk(ItemStack const& stack) {
-    static std::unordered_map<int, bool> known;
-    int const id = stack.getId();
-    if (auto found = known.find(id); found != known.end()) return found->second;
+    static Kinds<bool> known;
+    if (auto const* found = known.find(stack)) return *found;
     bool model = false;
     try {
         auto const type = stack.getTypeName();
         auto endsWith = [&](std::string_view tail) { return type.size() >= tail.size() && type.ends_with(tail); };
         model = endsWith("_head") || endsWith("_skull") || endsWith("shulker_box");
     } catch (...) { model = false; }
-    return known.emplace(id, model).first->second;
+    return known.keep(stack, model);
 }
 int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;
