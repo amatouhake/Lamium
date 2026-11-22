@@ -20,9 +20,9 @@ Do not infer game success from a build or unit-test result.
   both views, gathered rows on the panel. Not seen: a picked log kind, a
   group gathered from its breakdown step, the window's tabs beyond those
   (split by tab in `37301b53`, moves only), servers.
-- How to make's new shape (L-389): a group's ways and members in the
-  item list's order (also in tips and the wheel), recipes with the
-  rule's first and re-dyeing folded, words right after the pictures.
+- How to make's shape (L-389) seen on `a11be728`: a group's ways and
+  members in the item list's order, recipes with the rule's first and
+  re-dyeing folded. Not seen: the wheel turning in that order.
 
 ## Left from 0.7.0
 

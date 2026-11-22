@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## How to make's choices in one shape (L-389, 2026-11-22)
+
+Build `a11be728` (DLL
+`e15517edee44d0db1c99c6ce2ed9ffc80000d2d0b66c9112cde8fe8fc7882aab`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: planks' line opens
+"原木から作る" and "板材を集める" and the members in the item list's
+order (oak, spruce, birch, ...); a member pressed shows its own line
+under "Recipes"; sand's line has "砂などを集める" and the members only;
+the white harness reads "自動", "集める", the recipe from leather (slots
+and station), then "染め直し（30）" folded, opening when pressed; a
+recipe row's tip names it (the "集める" row has none, as built); a
+group's tip lists its members in the item list's order. Not seen on
+this build: diamond's "自動" (seen on `27149e5f`), the wheel's order.
+
 ## Repeated recipes listed once, "Automatic: gather" slots (L-370, 2026-11-22)
 
 Build `27149e5f` (DLL
