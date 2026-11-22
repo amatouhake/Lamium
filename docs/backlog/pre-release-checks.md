@@ -41,7 +41,11 @@ Do not infer game success from a build or unit-test result.
   text readable; the plan showing no schematic materials while another
   placement's pass runs; a gesture row's key caps not switching it; data
   with only wanted items on the Saved data page; Mass Craft waiting for a
-  round crafted onto the pointer.
+  round crafted onto the pointer. The deferred ones' fixes: the minimap's
+  dimension icon after a rejoin; the Wanted list with a large schematic
+  (the log's "shares of N wanted items were shown after" line); Mass
+  Craft throwing a surplus with the inventory full; a key the game calls
+  "ButtonNNN" named by Windows with the extended bit; "make" on a server.
 - How to make's shape (L-389) seen on `a11be728`: a group's ways and
   members in the item list's order, recipes with the rule's first and
   re-dyeing folded. Not seen: the wheel turning in that order.

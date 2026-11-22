@@ -3,7 +3,7 @@
 The detail behind [L-390](L-390.md). Reviewed on 2026-11-23 at `69271bd2`:
 `git diff v0.7.0..HEAD -- src tests`, in three ranges, and every finding
 read again at `72776881` (2026-11-23). A finding leaves this file when it
-is fixed; what stays is deferred, each with why it waits.
+is fixed; what stays waits, with why.
 
 "Read": confirmed by reading the code. "Likely": the code allows it, not
 shown. "Game" / "Server": only a run can confirm it. Nothing here was
