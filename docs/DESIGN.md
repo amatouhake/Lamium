@@ -24,7 +24,11 @@ stop and ask the maintainer (AGENTS.md "When to stop").
 - Each independent feature has one switch, and its row always offers a key
   that toggles it (unbound unless the maintainer picks one). Commands of a
   feature (do now, open its screen, cycle) are its child rows. A named
-  command ("Open settings") may have a key without a switch. Related settings
+  command ("Open settings") may have a key without a switch. A switch stops
+  what runs or shows unasked; a screen that opens only on request (the
+  world map, the enchantment order planner) has none, unbinding its key is
+  enough, and a part of it that runs by itself has its own (the map's
+  Record, the anvil panels) (maintainer 2026-11-22, L-340). Related settings
   may share a keyless group heading. Zoom, Freelook and FreeCamera offer
   "Activation: Hold / Toggle" (Hold lights the switch while the key is
   held); other actions decide Press/Hold/Toggle themselves. Details: [SETTINGS-KEYMAP.md](SETTINGS-KEYMAP.md).
