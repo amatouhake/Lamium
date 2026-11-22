@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hotkey Layers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  /* In-game tokens (src/ui/Widgets.h palette). */
+  --mc-panel:16,17,19; --mc-edge:rgba(255,255,255,.14);
+  --mc-text:#ffffff; --mc-dim:#b4b8b6; --mc-faint:#7f8583; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-exp:#b98bff; --mc-warn:#ffc24a; --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:start}
+.cgroup{display:grid;gap:6px}
+.cgroup > span{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;color:var(--ink-2);font:500 13px/1.2 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.note{color:var(--ink-2);font-size:14px;max-width:80ch}
+.note b{color:var(--ink)}
+
+/* ---- Stage: the screen in GUI units (640 x 470, taller than the game to fit the list), scaled to the page ---- */
+.stage-outer{border:1px solid var(--line);background:linear-gradient(#26313a,#2f3a2c 60%,#3a332b);overflow:hidden;position:relative}
+.stage{position:absolute;left:0;top:0;width:640px;height:470px;transform-origin:0 0;font:8px/1 var(--mc-font);color:var(--mc-text);user-select:none}
+.abs{position:absolute}
+.panel{background:rgba(var(--mc-panel),.8);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.hline{height:1px;background:var(--mc-edge)}
+.vline{width:1px;background:var(--mc-edge)}
+.t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dim{color:var(--mc-dim)} .faint{color:var(--mc-faint)}
+.field{height:12px;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:2px 4px}
+.btn{height:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);text-align:center;padding-top:1.5px;color:var(--mc-dim)}
+.nav{width:110px;height:14px;padding:3px 7px;color:var(--mc-dim)}
+.nav.on{background:rgba(108,195,73,.16);box-shadow:inset 2px 0 0 var(--mc-on-edge);color:#fff}
+.nav .n{position:absolute;right:6px;top:3px;color:var(--mc-faint)}
+.row{height:14px;cursor:pointer}
+.row:hover{background:rgba(255,255,255,.04)}
+.row.sel{background:rgba(108,195,73,.16);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.cap{height:10px;padding:1.5px 3px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);display:inline-block}
+.cap.warn{box-shadow:inset 0 0 0 1px var(--mc-warn);color:var(--mc-warn)}
+/* A fixed press: drawn like a key cap, but flat and faint - it cannot be edited. */
+.cap.fixed{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);color:var(--mc-faint)}
+.keys{display:flex;gap:2px;align-items:center}
+.plus{color:var(--mc-faint)}
+.sw{width:18px;height:8px;background:var(--mc-off)}
+.sw::after{content:"";position:absolute;left:1px;top:1px;width:7px;height:6px;background:#d0d1d4}
+.sw.on{background:var(--mc-on)} .sw.on::after{left:10px;background:#fff}
+.tag{color:var(--mc-faint)}
+.sub{color:var(--mc-faint)}
+.mock{color:#ff5aa0}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 18px}
+.box ul{margin:6px 0 0;padding-left:20px}
+.box li{margin:3px 0;color:var(--ink-2)}
+.legend{font-size:13px;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="eyebrow">L-372 · 2026-11-23 · 提案</div>
+    <h1>ホットキー画面で「どこで効くか」と固定の操作を見せる</h1>
+    <p class="lede">各操作が効く場所（プレイ中・アイテム画面・アイテム画面上の窓・ワールド外）はもう内部で決まっていて、衝突の吹き出しにも出ている。ホットキー画面の行でそれをどう見せるかと、割り当てられない固定の操作（レシピの一覧のクリック、インベントリ転送の操作）をどう並べるかを比べる。行を押すと選択が移り、下の説明欄が変わる。</p>
+  </div>
+
+  <div class="controls">
+    <div class="cgroup"><span>場所の出し方</span>
+      <div class="seg" id="place">
+        <button data-v="A" aria-pressed="true">A 名前の後ろに淡く</button>
+        <button data-v="B" aria-pressed="false">B 場所の列</button>
+        <button data-v="C" aria-pressed="false">C 説明欄だけ</button>
+      </div></div>
+    <div class="cgroup"><span>固定の操作</span>
+      <div class="seg" id="fixed">
+        <button data-v="none" aria-pressed="false">出さない（今）</button>
+        <button data-v="ro" aria-pressed="true">読み取り専用の行</button>
+        <button data-v="sw" aria-pressed="false">行にスイッチも</button>
+      </div></div>
+    <div class="cgroup"><span>窓の呼び方</span>
+      <div class="seg" id="win">
+        <button data-v="long" aria-pressed="true">アイテム画面上の窓</button>
+        <button data-v="recipe" aria-pressed="false">レシピの窓</button>
+        <button data-v="short" aria-pressed="false">窓</button>
+      </div></div>
+    <div class="cgroup"><span>ウィンドウ</span>
+      <div class="seg" id="width">
+        <button data-v="wide" aria-pressed="true">広い</button>
+        <button data-v="narrow" aria-pressed="false">狭い</button>
+      </div></div>
+  </div>
+
+  <div class="stage-outer" id="outer"><div class="stage" id="stage"></div></div>
+  <p class="legend"><span class="mock">ピンクの字</span> = モックアップ上の省略（実際の画面には出ない）。画面は一覧が入るように縦に伸ばしている。</p>
+  <p class="note" id="explain"></p>
+
+  <div class="box">
+    <h2>確認したいこと</h2>
+    <ul>
+      <li>場所の出し方を A / B / C のどれにするか。A はプレイ中だけで効く操作（大半）には何も付けない。</li>
+      <li>固定の操作を読み取り専用の行で出すか、そのときスイッチも付けるか。スイッチはインベントリ転送の操作には今もある（設定画面の子の行）が、レシピの一覧のクリックにはまだない。付けるなら新しい設定になる。</li>
+      <li>固定のキーの見た目（枠だけで中を塗らず、文字を淡く）。編集できないことが分かるか。</li>
+      <li>窓の呼び方。衝突の吹き出しは今「アイテム画面上の窓」。</li>
+      <li>作りながら決めた次の2点もここで確認したい：条件（フリーカメラ中、レシピや計画がオン）では割り当てを衝突から外さないこと。吹き出しで重なる場所を相手の名前の後ろに淡く出すこと。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const state = {place:'A', fixed:'ro', win:'long', width:'wide', sel:'recipeback'};
+const P = 'play', S = 'screen', Wn = 'window', O = 'outside';
+// where: the layers; cond: what must also hold; fixed: a press that cannot be bound.
+const ROWS = [
+  {sec:'カメラ'},
+  {id:'freecamera', name:'フリーカメラ', keys:[['X']], where:[P], help:'フリーカメラを始める・やめる。押すたびに切り替え。'},
+  {id:'speed', name:'フリーカメラの速度を上げる', keys:null, where:[P], cond:'フリーカメラ中', help:'フリーカメラの速度を上げる。押すたびに動作。'},
+  {sec:'アイテム画面'},
+  {id:'sort', name:'今すぐ整頓', keys:[['マウス 3']], where:[S], help:'開いている画面のアイテムを整頓する。押したときに動作。'},
+  {id:'transfer', name:'インベントリ転送の切り替え', keys:null, where:[P, S], help:'インベントリ転送のオン/オフ。押すたびに切り替え。'},
+  {id:'g1', fixed:true, name:'1 個転送', keys:[['ホイール']], where:[S], target:'ゲームのスロット', on:true, help:'カーソルのスロットから 1 個を向こうへ移す。インベントリ転送の操作で、キーは変えられない。オフにするとゲームの操作に戻る。'},
+  {id:'g2', fixed:true, name:'1 スタック転送', keys:[['Shift'],['ホイール']], where:[S], target:'ゲームのスロット', on:true, help:'カーソルのスロットから 1 スタックを向こうへ移す。キーは変えられない。'},
+  {id:'g3', fixed:true, name:'同種をすべて転送', keys:[['Alt'],['左クリック']], where:[S], target:'ゲームのスロット', on:false, help:'同じアイテムをすべて向こうへ移す。キーは変えられない。'},
+  {mock:'インベントリ転送の操作 ほか 11 行'},
+  {sec:'レシピ・計画'},
+  {id:'recipes', name:'レシピのオン/オフ', keys:null, where:[P], help:'レシピのオン/オフ。押すたびに切り替え。'},
+  {id:'showrecipes', name:'カーソルのアイテムのレシピを見る', keys:[['R']], where:[S, Wn], cond:'レシピがオン', help:'カーソルの下のアイテムのレシピを見る。Lamium の一覧でも、ゲームのスロットでも。押したときに動作。'},
+  {id:'showuses', name:'カーソルのアイテムの使い道を見る', keys:[['U']], where:[S, Wn], cond:'レシピがオン', help:'カーソルの下のアイテムの使い道を見る。押したときに動作。'},
+  {id:'recipeback', name:'前に見ていたレシピへ戻る', keys:[['Backspace']], where:[Wn], cond:'レシピがオン', help:'前に見ていたレシピへ戻る。押したときに動作。'},
+  {id:'fav', name:'カーソルのアイテムをお気に入りに入れる・外す', keys:[['A']], where:[S, Wn], cond:'レシピがオン', help:'カーソルの下のアイテムをお気に入りに入れる・外す。押したときに動作。'},
+  {id:'search', name:'検索欄にカーソルを置く', keys:[['Ctrl'],['F']], where:[S, Wn], cond:'レシピがオン', help:'検索欄にカーソルを置く。押したときに動作。'},
+  {id:'want', name:'カーソルのアイテムを欲しい物に入れる・外す', keys:[['W']], where:[S, Wn], cond:'計画がオン', help:'カーソルの下のアイテムを欲しい物に入れる・外す。押したときに動作。'},
+  {id:'mass', name:'押している間カーソルのアイテムをまとめてクラフト', keys:null, where:[S], help:'押している間、カーソルの下のアイテムをまとめてクラフトする。'},
+  {id:'f1', fixed:true, on:true, name:'レシピを見る', keys:[['左クリック']], where:[S, Wn], target:'Lamium の一覧', help:'一覧のアイテムを押すとレシピ。キーは変えられない。'},
+  {id:'f2', fixed:true, on:true, name:'使い道を見る', keys:[['右クリック']], where:[S, Wn], target:'Lamium の一覧', help:'一覧のアイテムを右クリックすると使い道。キーは変えられない。'},
+  {id:'f3', fixed:true, on:true, name:'割り切れるだけ置く', keys:[['Shift'],['左クリック']], where:[S, Wn], target:'Lamium の一覧', help:'割り切れるだけ作業台に置く。キーは変えられない。'},
+  {id:'f4', fixed:true, on:true, name:'カーソルにクラフト', keys:[['Ctrl'],['左クリック']], where:[S, Wn], target:'Lamium の一覧', help:'1 回分をカーソルにクラフトする。キーは変えられない。'},
+  {id:'f5', fixed:true, on:true, name:'ページをめくる', keys:[['ホイール']], where:[S, Wn], target:'Lamium の一覧', help:'一覧と窓のページをめくる。キーは変えられない。'},
+  {id:'f6', fixed:true, name:'窓を閉じる', keys:[['Esc'],['インベントリキー']], alt:true, where:[Wn], help:'いちばん上の窓を閉じる。下のゲームの画面は開いたまま。キーは変えられない。'},
+  {sec:'全般'},
+  {id:'settings', name:'設定を開く', keys:[['L']], where:[P, O], help:'設定を開く。押したときに動作。ワールドの外でも開ける。'},
+];
+const NAV = [['すべて',''],['視点・見た目','2/5'],['HUD','8/15'],['ワールド','6/12'],['アイテム','16/17'],['操作','2/6'],['全般','1/2']];
+const PINNED = ['ホットキー','形状','ウェイポイント','設計図','ワールドマップ','HUD レイアウト'];
+const EXPLAIN = {
+  A:'<b>A 名前の後ろに淡く：</b>プレイ中だけで効く操作（大半）には何も付けず、それ以外にだけ場所を淡い字で添える。衝突の吹き出しと同じ書き方。名前が長いと場所が「…」で切れるが、説明欄には全部出る。',
+  B:'<b>B 場所の列：</b>キーの左に「場所」の列を足し、全行に短い名前で出す。一覧で縦にそろうので見比べやすいが、名前の幅が列の分だけ狭くなる。',
+  C:'<b>C 説明欄だけ：</b>行は今のまま。選んだ行の説明欄に「使える場所」の行が増える。画面は静かだが、一覧を眺めても分からない。',
+};
+const FIXED = {
+  none:'',
+  ro:' <b>固定の操作（読み取り専用）：</b>機能の操作の後ろに、枠だけの淡いキーで並べる。押しても割り当ては始まらない。',
+  sw:' <b>固定の操作（スイッチ付き）：</b>読み取り専用の行に加え、キーの左にスイッチ。インベントリ転送の操作は今の設定と同じもの。レシピの一覧のクリックは新しい設定になる。窓を閉じる操作はオフにできない。',
+};
+
+function winName(){ return {long:'アイテム画面上の窓', recipe:'レシピの窓', short:'窓'}[state.win]; }
+function placeName(p){ return {play:'プレイ中', screen:'アイテム画面', window:winName(), outside:'ワールド外'}[p]; }
+function shortName(p){ return {play:'プレイ中', screen:'画面', window:'窓', outside:'外'}[p]; }
+function placesText(r, short){ return r.where.map(short ? shortName : placeName).join(short ? '・' : '・'); }
+function el(cls, x, y, w, h, html, extra){
+  const d = document.createElement('div');
+  d.className = 'abs ' + (cls||'');
+  d.style.left = x+'px'; d.style.top = y+'px';
+  if (w != null) d.style.width = w+'px';
+  if (h != null) d.style.height = h+'px';
+  if (html != null) d.innerHTML = html;
+  if (extra) Object.assign(d.style, extra);
+  return d;
+}
+function capsHtml(r){
+  if (!r.keys) return '<span class="faint">未割り当て</span>';
+  const cls = r.fixed ? 'fixed' : '';
+  const sep = r.alt ? '<span class="plus">/</span>' : '<span class="plus">+</span>';
+  return '<div class="keys">' + r.keys.map((k,i)=>(i?sep:'') + `<span class="cap ${cls}">${k[0]}</span>`).join('') + '</div>';
+}
+function render(){
+  const s = document.getElementById('stage');
+  s.innerHTML = '';
+  const narrow = state.width === 'narrow';
+  const W = narrow ? 430 : 624, H = 458;
+  s.appendChild(el('panel', 8, 6, W, H));
+  const L = 8, R = 8 + W;
+  const sidebar = narrow ? 0 : 114;
+  const tableLeft = L + sidebar + 1;
+  const keyW = narrow ? 84 : 100, pad = 6;
+  const keyX = R - pad - keyW;
+  const swW = state.fixed === 'sw' ? 24 : 0;
+  const placeW = state.place === 'B' ? (narrow ? 58 : 74) : 0;
+  const placeX = keyX - 8 - swW - placeW;
+  const footerTop = H + 6 - 46;
+  // Header
+  s.appendChild(el('t', L+6, 12, 80, 10, 'Lamium <span class="faint">0.7.0</span>'));
+  const closeX = R - 6 - 58, searchW = Math.min(170, W*.4), searchX = closeX - 6 - searchW;
+  s.appendChild(el('field faint t', searchX, 10, searchW, 12, '検索&nbsp;&nbsp;Ctrl+F'));
+  s.appendChild(el('btn', closeX, 10, 58, 12, '閉じる (Esc)'));
+  s.appendChild(el('hline', L, 26, W, 1));
+  if (!narrow) {
+    s.appendChild(el('vline', tableLeft-1, 27, 1, footerTop-27));
+    NAV.forEach((n,i)=> s.appendChild(el('nav t', 9, 31+i*14, 110, 14, n[0] + (n[1]?`<span class="n">${n[1]}</span>`:''))));
+    s.appendChild(el('hline', 15, footerTop-6-PINNED.length*14-6, 98, 1));
+    PINNED.forEach((n,i)=> s.appendChild(el('nav t'+(i===0?' on':''), 9, footerTop-6-(PINNED.length-i)*14, 110, 14, n)));
+  }
+  const top = 28, nameX = tableLeft + 6;
+  s.appendChild(el('faint t', nameX, top+3, 60, 9, '操作'));
+  const findW = 64, resetW = 84;
+  s.appendChild(el('btn', keyX - 6 - findW, top, findW, 11, 'キーで探す'));
+  s.appendChild(el('btn', keyX - 6 - findW - 6 - resetW, top, resetW, 11, 'キーを初期化'));
+  if (state.place === 'B') s.appendChild(el('faint t', placeX, top+3, placeW, 9, '場所'));
+  s.appendChild(el('faint', keyX, top+3, keyW, 9, 'キー'));
+  s.appendChild(el('hline', tableLeft, top+13, R-tableLeft, 1));
+  let y = top + 14;
+  let selected = null;
+  ROWS.forEach(r => {
+    if (r.fixed && state.fixed === 'none') return;
+    if (r.mock) { if (state.fixed !== 'none') { s.appendChild(el('t mock', nameX+8, y+3, 300, 9, '… ' + r.mock)); y += 14; } return; }
+    if (r.sec) { s.appendChild(el('t', nameX, y+4, 200, 9, r.sec, {color:'var(--mc-on-edge)'}));
+      s.appendChild(el('', tableLeft+1, y+13, R-tableLeft-2, 1, '', {background:'rgba(108,195,73,.3)'})); y += 14; return; }
+    const sel = r.id === state.sel;
+    if (sel) selected = r;
+    const row = el('row'+(sel?' sel':''), tableLeft+2, y, R-tableLeft-4, 14);
+    row.onclick = () => { state.sel = r.id; render(); };
+    s.appendChild(row);
+    const nameRight = (state.place === 'B' ? placeX : keyX - swW) - 6;
+    const nameLeft = nameX + 8;
+    const nameColor = r.fixed ? 'color:var(--mc-dim)' : '';
+    let tag = '';
+    if (state.place === 'A' && !(r.where.length === 1 && r.where[0] === P))
+      tag = `<span class="tag">&nbsp;&nbsp;${placesText(r, false)}</span>`;
+    const t = el('t', nameLeft, y+3, nameRight - nameLeft, 10, `<span style="${nameColor}">${r.name}</span>${tag}`);
+    t.style.pointerEvents = 'none';
+    s.appendChild(t);
+    if (state.place === 'B') { const c = el('t dim', placeX, y+3, placeW, 10, placesText(r, true)); c.style.pointerEvents='none'; s.appendChild(c); }
+    if (state.fixed === 'sw' && r.fixed && r.on !== undefined) {
+      const sw = el('sw'+(r.on?' on':''), keyX - 8 - 18, y+3, 18, 8); sw.style.pointerEvents='none'; s.appendChild(sw); }
+    const k = el('', keyX, y+2, keyW, 10, capsHtml(r)); k.style.pointerEvents='none'; s.appendChild(k);
+    y += 14;
+  });
+  // Footer: the selected row's description, the place line in C (and the condition in every variant).
+  s.appendChild(el('hline', L, footerTop, W, 1));
+  if (selected) {
+    s.appendChild(el('t dim', L+6, footerTop+5, W-12, 10, selected.help));
+    let line = '';
+    if (state.place === 'C' || selected.cond || selected.target)
+      line = '使える場所: ' + placesText(selected, false) + (selected.target ? `（${selected.target}の上）` : '') + (selected.cond ? `（${selected.cond}のとき）` : '');
+    if (line) s.appendChild(el('t faint', L+6, footerTop+18, W-12, 10, line));
+    const hint = selected.fixed ? 'キーは変えられない' : 'クリック: 割り当て | 右クリック: 解除';
+    s.appendChild(el('t faint', L+6, footerTop+33, W-12, 10, hint));
+  }
+  document.getElementById('explain').innerHTML = EXPLAIN[state.place] + FIXED[state.fixed];
+  fit();
+}
+function fit(){
+  const outer = document.getElementById('outer');
+  const scale = outer.clientWidth / 640;
+  document.getElementById('stage').style.transform = `scale(${scale})`;
+  outer.style.height = (470*scale) + 'px';
+}
+for (const id of ['place','fixed','win','width']) {
+  document.getElementById(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state[id] = b.dataset.v;
+    for (const x of e.currentTarget.querySelectorAll('button')) x.setAttribute('aria-pressed', x === b);
+    render();
+  });
+}
+window.addEventListener('resize', fit);
+render();
+</script>
+</body>
+</html>
