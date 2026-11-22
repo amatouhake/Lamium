@@ -61,7 +61,7 @@ p{margin:0;max-width:95ch}
 .cell{cursor:pointer;padding:var(--u)}
 .cell.on{outline:var(--u) solid var(--accent-deep)}
 .cellname{font-size:calc(6.5*var(--u));color:var(--win-ink);height:calc(9*var(--u))}
-.row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:calc(2*var(--u));cursor:pointer;min-height:calc(20*var(--u));padding:0 calc(2*var(--u))}
+.row{display:grid;grid-template-columns:calc(92*var(--u)) calc(18*var(--u)) 1fr;align-items:center;gap:calc(2*var(--u));cursor:pointer;min-height:calc(20*var(--u));padding:0 calc(2*var(--u))}
 .row:hover{background:rgba(255,255,255,.3)}
 .row.on{outline:var(--u) solid var(--accent-deep);outline-offset:calc(-1*var(--u))}
 .row .slots{display:flex;align-items:center;gap:calc(1*var(--u))}
@@ -109,11 +109,11 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>レシピ</h2>
       <ul>
-        <li>「自動」は先頭の選べる行。言葉だけで「いまは〜」。ルールが変われば中身が変わる、固定の選択とは別の物。</li>
-        <li>自動が今使っている行には「自動が使用中」の札だけ。押すと固定でそれを選んだことになり、そこに緑の枠。</li>
-        <li>選んでいる物（自動か、固定の 1 つ）にいつも緑の枠。「自動に戻す」ボタンは無くし、自動の行を押して戻す。</li>
-        <li>自動の選ぶ物が先頭、染め直しはたたむ。最初の材料が同じレシピは 2 つ目の材料も名前に。</li>
-        <li class="qq">決めたいこと：この形でよいか。</li>
+        <li>「自動」は今の形のまま先頭に：ルールが今使うレシピ（または集める）を薄いスロットで見せ、言葉は「自動」だけ。選ばれていれば緑の枠。</li>
+        <li>「自動が使用中」の札は無くした。</li>
+        <li>レシピの行は言葉を出さず、スロットと作業場所だけ。スロットで見分けられ（白の染料か骨粉か）、名前が切れない。名前は行のツールチップに（ここでは行にマウスを置くと出る）。</li>
+        <li>自動の選ぶ物が先頭、染め直しはたたむ。</li>
+        <li class="qq">決めたいこと：この形でよいか。レシピの行の言葉を消してよいか。</li>
       </ul>
     </div>
   </div>
@@ -158,27 +158,33 @@ function recipeName(rs, r){
   const shared = rs.filter(o => o.uses[0][0] === r.uses[0][0]).length > 1;
   return shared && r.uses[1] ? `${first}＋${I[r.uses[1][0]][0]}` : `${first}から`;
 }
-function recipeRow(k, rs, r, i, on, auto, data){
-  return `<div class="row${on?' on':''}" data-pick="${data}"><span class="slots">${r.uses.map(([kk,c])=>slot(kk,c)).join('')}<span class="arrow" style="width:calc(9*var(--u))">→</span>${slot(k,r.makes)}</span>`
-    + `<span class="w">${recipeName(rs, r)}<small>${r.at}</small></span>${auto?'<span class="tag">自動</span>':''}</div>`;
+// A recipe as its slots and its station, no words: the slots tell recipes apart (white dye or bone meal), the names
+// stay in the row's tip (here: the title), so nothing is cut.
+function stationIcon(at){ return `<span class="station" style="background:${at==='石切'?'#777':at==='かまど'?'#555':'#6b4f2a'}">${at}</span>`; }
+function recipeSlots(k, r, faint){
+  return `<span class="slots"${faint?' style="opacity:.5"':''}>${r.uses.map(([kk,c])=>slot(kk,c)).join('')}<span class="arrow" style="width:calc(9*var(--u))">→</span>${slot(k,r.makes)}</span>`;
 }
-// An item's ways: gather, then the recipes, the rule's first, re-dyeing folded.
+function recipeRow(k, rs, r, i, on, auto, data){
+  return `<div class="row${on?' on':''}" data-pick="${data}" title="${recipeName(rs, r)}（${r.at}）">${recipeSlots(k, r)}${stationIcon(r.at)}<span></span></div>`;
+}
+// An item's ways: automatic (as today: the rule's way, faint, words "自動"), gather, then the recipes, the rule's first,
+// re-dyeing folded.
 function itemPanel(id, it, scope){
   const ch = state.choice[scope];
   const chosen = ch === undefined ? null : ch;           // null: automatic
-  const used = chosen !== null ? chosen : (it.rule < 0 ? 'gather' : it.rule); // what the plan does now
-  const autoNow = it.rule < 0 ? '集める' : recipeName(it.recipes, it.recipes[it.rule]);
-  const tag = on => on && chosen === null ? '<span class="tag">自動が使用中</span>' : '';
-  let h = `<div class="q"><span>手に入れ方</span></div>`;
-  h += `<div class="row${chosen===null?' on':''}" data-pick="${scope}|auto"><span class="slots"><span class="slot" style="font:calc(6*var(--u))/1 var(--pix)">自動</span></span><span class="w">自動<small>いまは「${autoNow}」・ルールが変われば変わる</small></span></div>`;
-  h += `<div class="row${chosen==='gather'?' on':''}" data-pick="${scope}|gather"><span class="slots">${slot(it.key,1)}</span><span class="w">集める</span>${tag(it.rule<0)}</div>`;
+  const rule = it.rule >= 0 ? it.recipes[it.rule] : null;
+  let h = '';
+  h += `<div class="row${chosen===null?' on':''}" data-pick="${scope}|auto" title="ルールに従う（いまは「${rule ? recipeName(it.recipes, rule) : '集める'}」）">`
+    + (rule ? recipeSlots(it.key, rule, true) + stationIcon(rule.at) : `<span class="slots" style="opacity:.5">${slot(it.key,1)}</span><span></span>`)
+    + `<span class="w">自動</span></div>`;
+  h += `<div class="row${chosen==='gather'?' on':''}" data-pick="${scope}|gather"><span class="slots">${slot(it.key,1)}</span><span></span><span class="w">集める</span></div>`;
   const order = it.recipes.map((r,i)=>i).filter(i=>!it.recipes[i].dye);
   if (it.rule >= 0) order.sort((a,b) => (a===it.rule?-1:0) - (b===it.rule?-1:0));
-  order.forEach(i => h += recipeRow(it.key, it.recipes, it.recipes[i], i, chosen===i, false, `${scope}|${i}`).replace('</div>', tag(it.rule===i) + '</div>'));
+  order.forEach(i => h += recipeRow(it.key, it.recipes, it.recipes[i], i, chosen===i, false, `${scope}|${i}`));
   const dyes = it.recipes.map((r,i)=>i).filter(i=>it.recipes[i].dye);
   if (dyes.length) {
     const open = state.open[scope] || (typeof chosen === 'number' && it.recipes[chosen].dye);
-    h += `<div class="fold" data-fold="${scope}"><span class="tri">${open?'▼':'▶'}</span>染め直し（${dyes.length}）<span style="color:var(--win-faint);font-size:calc(6*var(--u))">別の色の${I[it.key][0].replace(/^.+の/,'')}から</span></div>`;
+    h += `<div class="fold" data-fold="${scope}"><span class="tri">${open?'▼':'▶'}</span>染め直し（${dyes.length}）</div>`;
     if (open) { h += `<div class="inner">`; dyes.forEach(i => h += recipeRow(it.key, it.recipes, it.recipes[i], i, chosen===i, false, `${scope}|${i}`)); h += `</div>`; }
   }
   return h;
@@ -189,7 +195,7 @@ function groupPanel(k){
   const g = groups[k];
   const ch = state.choice[k] || (g.traced ? 'make' : 'gather');   // 'make' | 'gather' | 'pick' (a member)
   const member = state.member[k];
-  const row = (on, slots, w, data) => `<div class="row${on?' on':''}" data-pick="${data}"><span class="slots">${slots}</span><span class="w">${w}</span></div>`;
+  const row = (on, slots, w, data) => `<div class="row${on?' on':''}" data-pick="${data}"><span class="slots">${slots}</span><span></span><span class="w">${w}</span></div>`;
   let h = '';
   if (g.traced) h += row(ch==='make', `${slot(g.traced.from,g.traced.uses,true)}<span class="arrow" style="width:calc(8*var(--u))">→</span>${slot(k,g.traced.makes,true)}`, `${I[g.traced.from][0]}から作る`, `${k}|make`);
   h += row(ch==='gather', slot(k,1,true), `${I[k][0]}を集める`, `${k}|gather`);
