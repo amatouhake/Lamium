@@ -617,7 +617,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // One press a frame. Each control asks whether it was on it; what none takes goes to the recipe view.
     bool pressed = !input.clicks.empty();
     // A run of crafting goes on by itself a round every few frames; any press of the player's, or leaving, ends it.
-    if (pressed || input.outside || input.close || stopRun.exchange(false)) place::stop();
+    // Read every frame: the press that starts a run set it too, and left set it would end that run the next frame.
+    bool const keyStop = stopRun.exchange(false);
+    if (pressed || input.outside || input.close || keyStop) place::stop();
     place::tick(screenView);
     bool const leftPress = pressed && input.clicks.front();
     // While the panels are arranged every press is the editor's, and nothing under it acts; but the layout's own
