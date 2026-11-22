@@ -38,7 +38,7 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
 // What "Make all" makes (L-385, 2026-11-22): every step the open crafting grid makes, in the plan's order (inputs
 // first), each as far as what is carried allows when its turn comes, so a step's product feeds the next and a step
 // that cannot be made is passed; empty where none can be begun now.
-std::vector<std::pair<int, int>> makeAllRuns(view::Placer* placer, state::Plan const& plan);
+std::vector<MakeRun> makeAllRuns(view::Placer* placer, state::Plan const& plan);
 // `shift`: a stepper moves by 16. `showItem` is set to the item whose name was pressed, for the recipe
 // view; `showChoice` with it when that was in the list of what to make.
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift,

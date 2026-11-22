@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/PlacePlan.h"
 #include "features/recipes/RawView.h"
 #include "features/recipes/RecipeNotes.h"
 #include <algorithm>
@@ -102,15 +103,13 @@ inline std::vector<bool> stepShort(Index const& index, Request const& request, S
     for (auto const& part : stepParts(index, request, step)) out.push_back(heldOf(index, stock, part.item) < part.need);
     return out;
 }
-// What "make" runs for a step (L-385): its recipe for all its crafts; a traced group's step (L-386) split over its
-// members' recipes, the one whose input is most carried first, each as far as `carried` holds its input.
-inline std::vector<std::pair<int, int>> stepRuns(Index const& index, Request const& request, StepLine const& step,
-                                                 std::map<Item, Count> const& carried) {
-    int const all = static_cast<int>(std::min<Count>(step.crafts, 1 << 20));
+// A traced group's step (L-386): its members' recipes with what `carried` holds of each one's input, most first; a
+// member of the kind picked in How to make (oak logs) keeps them to the recipes that take it. Empty for another step.
+inline std::vector<std::pair<Count, int>> memberRecipes(Index const& index, Request const& request, StepLine const& step,
+                                                        std::map<Item, Count> const& carried) {
     size_t const group = static_cast<size_t>(step.item - static_cast<Item>(index.items.size()));
-    if (!groupStep(index, step) || group >= index.traces.size() || index.traces[group].kind < 0) return {{step.recipe, all}};
+    if (!groupStep(index, step) || group >= index.traces.size() || index.traces[group].kind < 0) return {};
     auto const& trace = index.traces[group];
-    // A member of the kind picked in How to make (oak logs) keeps the run to the recipes that take it.
     Item const kind = partItem(index, request, Part{true, trace.kind, trace.uses});
     bool const picked = kind < static_cast<Item>(index.items.size());
     std::vector<std::pair<Count, int>> byHeld; // what is carried of a recipe's input, the recipe
@@ -119,11 +118,29 @@ inline std::vector<std::pair<int, int>> stepRuns(Index const& index, Request con
         if (!picked || input == kind) byHeld.emplace_back(heldOf(index, carried, input), number);
     }
     std::stable_sort(byHeld.begin(), byHeld.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
+    return byHeld;
+}
+// What "make" hands the screen for a step (L-385): its recipe for all its crafts; a traced group's step every member's
+// recipe, the one whose input is most carried first. The screen picks at the step's turn (MakeRun).
+inline MakeRun makeRun(Index const& index, Request const& request, StepLine const& step, std::map<Item, Count> const& carried) {
+    MakeRun out{{}, static_cast<int>(std::min<Count>(step.crafts, 1 << 20))};
+    for (auto const& [have, number] : memberRecipes(index, request, step, carried)) out.recipes.push_back(number);
+    if (out.recipes.empty()) out.recipes.push_back(step.recipe);
+    return out;
+}
+// A step split as `carried` holds each member's input now: a traced group's step over its members' recipes, the one
+// whose input is most carried first, each as far as its input goes; another step its recipe for all its crafts.
+inline std::vector<std::pair<int, int>> stepRuns(Index const& index, Request const& request, StepLine const& step,
+                                                 std::map<Item, Count> const& carried) {
+    int const all = static_cast<int>(std::min<Count>(step.crafts, 1 << 20));
+    auto const byHeld = memberRecipes(index, request, step, carried);
+    if (byHeld.empty()) return {{step.recipe, all}};
+    Count const uses = index.traces[static_cast<size_t>(step.item - static_cast<Item>(index.items.size()))].uses;
     std::vector<std::pair<int, int>> out;
     int left = all;
     for (auto const& [have, number] : byHeld) {
-        if (left <= 0 || have < trace.uses) break;
-        int const rounds = static_cast<int>(std::min<Count>(have / trace.uses, static_cast<Count>(left)));
+        if (left <= 0 || have < uses) break;
+        int const rounds = static_cast<int>(std::min<Count>(have / uses, static_cast<Count>(left)));
         out.emplace_back(number, rounds);
         left -= rounds;
     }

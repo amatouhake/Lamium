@@ -10,6 +10,14 @@ namespace lamium::recipes {
 // One carried stack: where it is, what and how many, and how many of it one grid cell holds.
 struct PlaceSource { int slot = 0; Item item = -1; int count = 0, stack = 64; };
 // `amount` from `slot` into grid cell `cell` (row by row).
+// A step to make (L-385): the recipes that make it, a traced group's members in order of preference (L-386), and
+// one count of rounds for them all; at the step's turn the screen lays in the one it can lay most of, so what an
+// earlier step made counts.
+struct MakeRun {
+    std::vector<int> recipes;
+    int rounds = 0;
+    bool operator==(MakeRun const&) const = default;
+};
 struct PlaceMove { int slot = 0, amount = 0, cell = 0; bool operator==(PlaceMove const&) const = default; };
 struct PlacePlan {
     bool fits = false;         // the grid is large enough for the recipe's shape

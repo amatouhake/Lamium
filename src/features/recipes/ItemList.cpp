@@ -176,11 +176,7 @@ struct GridPlacer : view::Placer {
     }
     bool craft(int recipe) override { return crafting() && place::craft(screen, table, recipe, picks); }
     bool runMost(int recipe, int most) override { return place::run(screen, table, recipe, picks, true, most); }
-    bool make(std::vector<std::pair<int, int>> const& steps) override {
-        std::vector<place::MakeStep> out;
-        for (auto [recipe, rounds] : steps) out.push_back({recipe, rounds});
-        return place::make(screen, table, std::move(out), picks);
-    }
+    bool make(std::vector<MakeRun> const& steps) override { return place::make(screen, table, steps, picks); }
 };
 bool anyView() { return view::isOpen() || planView::isOpen(); }
 // "Can be made" (L-367): a press lays the item's recipe into the grid, or at a station into its slots (L-380), as

@@ -1,4 +1,5 @@
 #include "features/recipes/RecipePlace.h"
+#include <utility>
 #include <ranges>
 #include "app/Runtime.h"
 #include "features/inspection/hover/HoverTracker.h"
@@ -363,7 +364,7 @@ struct Making {
     bool on = false;
     std::shared_ptr<service::Table const> table;
     std::map<int, Item> picks;
-    std::vector<MakeStep> steps; // what is left, in order
+    std::vector<MakeRun> steps; // what is left, in order
     std::string screen;
     enum class Phase { Lay, Take } phase = Phase::Lay;
     int laid = 0;   // rounds laid in by the last Lay
@@ -393,7 +394,6 @@ void tickMaking(ScreenView& screen) {
         if (making.steps.empty()) { finishMaking("done"); return; }
         auto& step = making.steps.front();
         auto const& index = making.table->index;
-        auto const& recipe = index.recipes[static_cast<size_t>(step.recipe)];
         if (making.phase == Making::Phase::Lay) {
             if (!gridEmpty(manager)) {
                 if (!making.tries++) controller->_evacuateCraftingGrid();
@@ -401,13 +401,19 @@ void tickMaking(ScreenView& screen) {
                 return;
             }
             making.tries = 0;
-            auto const plan = placePlan(index, recipe, sideOf(manager), carriedOf(manager, index), making.picks, true, step.rounds);
+            // Of the step's recipes the one laid most of now: a group's member whose input an earlier step made counts.
+            auto const carried = carriedOf(manager, index);
+            PlacePlan plan;
+            for (int number : step.recipes)
+                if (auto next = placePlan(index, index.recipes[static_cast<size_t>(number)], sideOf(manager), carried, making.picks, true, step.rounds);
+                    next.ready() && (!plan.ready() || next.crafts > plan.crafts))
+                    plan = std::move(next);
             if (!plan.ready() || step.rounds <= 0) {
                 // Nothing more of this step can be laid in: the next one.
                 making.steps.erase(making.steps.begin());
                 return;
             }
-            if (!apply(*controller, plan.moves)) { finishMaking("laying a round in failed"); return; }
+            if (!apply(*controller, std::as_const(plan.moves))) { finishMaking("laying a round in failed"); return; }
             making.laid = plan.crafts;
             making.took = false;
             making.phase = Making::Phase::Take;
@@ -438,17 +444,18 @@ void tickMaking(ScreenView& screen) {
     }
 }
 }
-bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table, std::vector<MakeStep> steps, std::map<int, Item> const& picks) {
+bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table, std::vector<MakeRun> steps, std::map<int, Item> const& picks) {
     finishMaking("started again");
     going = {};
     if (!table || steps.empty()) return false;
     for (auto const& step : steps)
-        if (step.recipe < 0 || step.recipe >= static_cast<int>(table->index.recipes.size())) return false;
+        if (step.recipes.empty() || std::ranges::any_of(step.recipes, [&](int number) { return number < 0 || number >= static_cast<int>(table->index.recipes.size()); }))
+            return false;
     try {
         if (!crafting(screen)) {
             // At a station its slots take the first step's rounds, and the station makes them.
             auto const& first = steps.front();
-            return run(screen, table, first.recipe, picks, true, first.rounds);
+            return run(screen, table, first.recipes.front(), picks, true, first.rounds);
         }
     } catch (...) { return false; }
     making = {};

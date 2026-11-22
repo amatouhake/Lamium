@@ -101,11 +101,11 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     if (took(x, y, size, size) && can)
         return ctrl ? placer->craft(lay) : shift ? placer->runMost(lay, std::min(rounds, 64)) : placer->run(lay, false);
     // A traced group's step (L-386) makes its members, the one whose input is most carried first.
-    if (took(makeX, y, size, size) && can) placer->make(stepRuns(index, plan.request, step, plan.held));
+    if (took(makeX, y, size, size) && can) placer->make({makeRun(index, plan.request, step, plan.held)});
     return false;
 }
-std::vector<std::pair<int, int>> makeAllRuns(view::Placer* placer, state::Plan const& plan) {
-    std::vector<std::pair<int, int>> out;
+std::vector<MakeRun> makeAllRuns(view::Placer* placer, state::Plan const& plan) {
+    std::vector<MakeRun> out;
     if (!placer || placer->gridSide() <= 0) return out;
     auto const& index = plan.table->index;
     bool begun = false;
@@ -113,15 +113,17 @@ std::vector<std::pair<int, int>> makeAllRuns(view::Placer* placer, state::Plan c
         auto const& recipe = index.recipes[static_cast<size_t>(layRecipe(index, plan.request, step, plan.held))];
         if (!placer->places(kindOf(recipe.station)) || !fitsGrid(recipe, placer->gridSide())) continue;
         begun = begun || placer->preview(recipe, false).ready();
-        for (auto const& run : stepRuns(index, plan.request, step, plan.held)) out.push_back(run);
+        out.push_back(makeRun(index, plan.request, step, plan.held));
     }
     if (!begun) out.clear();
     return out;
 }
 void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step) {
     auto const& index = plan.table->index;
-    late.tip = planItemName(index, step.item), late.hovered = planPicture(plan, step.item);
-    late.tipLines = shortInputLines(index, plan.request, step, plan.held);
+    // A traced group's step (L-386) is the group's tip, its members and all, as its slots elsewhere have.
+    if (groupStep(index, step)) groupLook::tip(late, index, step.item - static_cast<Item>(index.items.size()), plan.request.picks, &plan.held);
+    else late.tip = planItemName(index, step.item), late.hovered = planPicture(plan, step.item), late.tipLines.clear();
+    for (auto& line : shortInputLines(index, plan.request, step, plan.held)) late.tipLines.push_back(std::move(line));
 }
 void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove) {
     using namespace lamium::ui;
@@ -417,8 +419,10 @@ struct Lists : Window {
         // How to make's rows (not interactive) name every picture and nothing else (L-389).
         if (!interactive && over(productX, y + 1, 18, 18)) late.tip = nameOf(step.item), late.hovered = key;
         if (interactive && over(productX, y + 1, 18, 18)) {
-            if (tipStock) stepTip(late, *plan, step);
-            else if (grouped) groupTip(step.item - itemCount, productX, y + 1);
+            if (tipStock) {
+                if (grouped) groupLook::hover(step.item - itemCount, productX, y + 1);
+                stepTip(late, *plan, step);
+            } else if (grouped) groupTip(step.item - itemCount, productX, y + 1);
             else {
                 late.tip = nameOf(step.item), late.tipLines.clear(), late.hovered = key;
                 if (step.made >= 1000) late.tipLines.insert(late.tipLines.begin(), translated("recipes.col.need") + ": " + wholeCountText(static_cast<std::uint64_t>(step.made)));

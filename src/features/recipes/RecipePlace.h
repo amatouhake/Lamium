@@ -34,8 +34,7 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
 // again until they are made or nothing more can be laid in; the product stays in the inventory. At a station the
 // rounds are laid in and the station makes them. Over the next frames (tick), a step every 50 ms; any press of
 // the player's ends it (stop). False when it cannot start.
-struct MakeStep { int recipe = -1; int rounds = 0; };
-bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table, std::vector<MakeStep> steps, std::map<int, Item> const& picks);
+bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table, std::vector<MakeRun> steps, std::map<int, Item> const& picks);
 // Lays a waiting recipe in, if there is one; called every frame the item screen is drawn.
 void tick(ScreenView& screen);
 // Gives a waiting recipe up: the screen went, the player pressed something, the window lost the focus.

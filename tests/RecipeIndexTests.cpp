@@ -329,6 +329,9 @@ void recipeIndexTests() {
                   && two.size() == 2 && two[0].second == 1 && two[1].second == 1
                   && woods.recipes[static_cast<size_t>(two[1].first)].makes == at("spruce_planks"),
               "making the group's step makes the member whose input is most carried first, then the next");
+        auto const run = step != view.steps.end() ? makeRun(woods, chest, *step, carried) : MakeRun{};
+        check(run.recipes.size() >= 2 && woods.recipes[static_cast<size_t>(run.recipes[0])].makes == at("spruce_planks") && run.rounds == 2,
+              "making hands every member's recipe over, the most carried first, with one count for all (picked at its turn)");
         // The stores hold oak logs, spruce logs are carried: the step is laid in from what is carried.
         if (step != view.steps.end()) {
             Request stored{{{at("chest"), 1}}, {{at("oak_log"), 5}, {at("spruce_log"), 2}}, {}, {}};

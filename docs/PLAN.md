@@ -97,8 +97,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   panel alike (L-387); a count cut to fit shows whole under the pointer.
   A "to gather" row: its name, a group's members and the stores holding
   some. A wanted row: its name, whose a handed row is, a share taken
-  above. A step's product: its name and the inputs short of what is
-  carried, "Logs: 2 more". An input: its name, "Held: 0 (2 more)" (its
+  above. A step's product: its name (a group's step: the group's tip,
+  members and all) and the inputs short of what is carried, "Logs: 2
+  more". An input: its name, "Held: 0 (2 more)" (its
   slot shows what is needed) and the stores holding some. "To make"'s
   columns read "Can make" and "To make" (作れる / 作る). A cut count's
   tip is the number alone, never the row's item lines.
