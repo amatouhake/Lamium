@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.8.0 release smoke (2026-11-23)
+
+The commit's CI package of `5428b5f3` (run 45082353482, DLL
+`0f42c77e60beb08bd7d0f71f0f71ef1193c3dd8ad28bc5aeb3e7713975259be5`,
+manifest 0.8.0), installed whole into the 1.26.60.05 Dev instance
+(LeviLamina 26.60.5), the maintainer: the game starts and a world opens;
+`L` opens the settings with "Lamium 0.8.0" in the header. The log shows
+no error, only the timing notes (shares of 25 wanted items shown after
+17 ms; writes of 9 to 10 ms). Tagged `v0.8.0` on `5428b5f3`.
+
 ## Release gates on two local servers (L-390, L-385, 2026-11-23)
 
 Build `ad38e53f` (DLL

@@ -15,7 +15,7 @@ the game, so item requests were seen accepted there; a local Bedrock
 Dedicated Server adds a join by address, which is what keys a server's
 data.
 
-Before tagging:
+Before tagging (all done for 0.8.0, VALIDATION-LOG 2026-11-23):
 - The release build (the commit's CI package) loads, the settings open,
   the log shows no error.
 - Done on `ad38e53f` (VALIDATION-LOG 2026-11-23): on a local BDS "Make
