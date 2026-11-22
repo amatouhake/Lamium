@@ -18,9 +18,9 @@ data.
 Before tagging:
 - The release build (the commit's CI package) loads, the settings open,
   the log shows no error.
-- On a local BDS: "Make all" and Mass Craft each run to the end once.
-- On a local BDS joined on two ports: the stores do not mix, each server
-  gets its own file under `config/places/` (L-390 1-1).
+- Done on `ad38e53f` (VALIDATION-LOG 2026-11-23): on a local BDS "Make
+  all" and Mass Craft ran to the end; on two local servers the stores did
+  not mix, each with its own file under `config/places/` (L-390 1-1).
 - README and FEATURES.md follow the seven settings categories (L-340,
   L-392).
 - The release notes say: Sort has no default key (L-359); the settings

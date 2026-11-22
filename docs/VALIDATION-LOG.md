@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Release gates on two local servers (L-390, L-385, 2026-11-23)
+
+Build `ad38e53f` (DLL
+`4a7fdbdddeacbad8093d82355755169f36b4c47518022f9c868312098b3bdbca`),
+1.26.60.05 Dev instance, two local BDS 1.26.60.6 joined by address:
+A on 127.0.0.1:19132 (new survival world, seed 11111) and B on
+127.0.0.1:19142 (seed 22222), the maintainer. Confirmed:
+- On A, "Make all" ran to the end (log: 4 rounds, done) and Mass Craft
+  ran to the end twice without the world closing (log: 400 requests in
+  2.8 s and 2918 in 15.7 s, no step tried again).
+- A chest marked as a store on A is not listed or outlined on B; one
+  marked on B is not on A. The config holds one file per server:
+  `config/places/127.0.0.1_19132-w2.json` and `127.0.0.1_19142.json`,
+  one store each (A's key is `-w2` because that address held data of an
+  earlier test world, so the world question was asked).
+Noted: Mass Craft threw 207 and 1960 stacks in those runs, the planks
+thrown out and picked up again where the player stood (as recorded for
+L-165); `writePlaces` took 6 to 7 ms a write, now once changes settle.
+
 ## Mass Craft beside a round crafted onto the pointer, accepted (L-390, 2026-11-23)
 
 Build `14e2c83c` and later, the maintainer: Mass Craft started right
