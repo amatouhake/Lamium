@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.7.0 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.8.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -228,7 +228,7 @@ requests are handled. What has been checked in game, per feature, is in
   the check does not compare a note block's instrument. Real note blocks show
   theirs, and the note is still compared.
 
-**Camera & view**
+**View**
 
 - **FreeCamera:** underground terrain drawing is checked in a local world and
   on BDS; Hold/Toggle operation, menus, focus loss and dimension travel are
@@ -253,13 +253,8 @@ requests are handled. What has been checked in game, per feature, is in
   sandstone connect. Joined glass panes stretch their glass by one texel at
   the joins instead of keeping the texture's own scale (drawn that way,
   panes shaded dark on one half).
-- **Block highlight:** checked in a local world in Fancy graphics; Vibrant
-  Visuals and servers are unverified. A block that is not a full cube glows
-  as its whole cell, not along its shape. The rainbow costs frame rate when
-  many blocks are listed (a single color is cheaper). Some servers may treat
-  "Through walls" as unfair.
 
-**HUD & overlays**
+**HUD**
 
 - **Game HUD placement:** checked in a local world at the desktop GUI scale;
   Pocket UI, other GUI scales and servers' own sidebars are untested. The
@@ -274,8 +269,13 @@ requests are handled. What has been checked in game, per feature, is in
   (offhand slot, Shulker/Bundle previews, the inventory HUD); enchanted
   golden apples and other flat icons do.
 
-**Map**
+**World**
 
+- **Block highlight:** checked in a local world in Fancy graphics; Vibrant
+  Visuals and servers are unverified. A block that is not a full cube glows
+  as its whole cell, not along its shape. The rainbow costs frame rate when
+  many blocks are listed (a single color is cheaper). Some servers may treat
+  "Through walls" as unfair.
 - Minimap, radar and world map have local and external BDS checks with a
   large explored area. Waypoint storage per server, distant players on
   dedicated servers, and the latest section-request/teleport changes on
@@ -308,7 +308,7 @@ requests are handled. What has been checked in game, per feature, is in
 - In the 3D previews parts behind some cut-out blocks (seagrass, a spawner)
   can be missing, and grass and leaves take the biome you stand in.
 
-**Inventory**
+**Items**
 
 - **All trader levels:** the locked trades are checked only in local worlds.
 - **Inventory transfer:** bulk and leave-one moves are checked in chest,
@@ -316,25 +316,20 @@ requests are handled. What has been checked in game, per feature, is in
   Other screen families, other servers and rejected moves on laggy servers
   are untested. The held-stack Shift + click and drop gestures are checked in
   a chest screen in a local world only.
-- **Hand Restock:** checked in local worlds and in everyday server use; server timing and very fast use
-  or ambiguous inventory changes may skip a refill. It does not refill tools
-  (Tool Protection swaps a tool before it breaks).
 - **Enchantment order:** checked in a local Creative world with swords, a pickaxe, a mace and
   books. Survival (the 40-level refusal and the level warning), servers and other GUI scales are
   untested. It plans with fresh books only and does not merge two books of one enchantment into a
   higher level. The cost rules were read from the anvil of 1.26.60; on another game version the
   planner says it is not checked and stays closed.
-- **Death layout restore:** checked in local worlds; with instant respawn the
-  inventory may be read as kept and nothing is restored. In use it sometimes
-  restored after a death you did not expect, or in a layout that looked
-  wrong; a layout now ends once the dropped items must be gone, and whether
-  that stops it is being watched. On a server other players can keep the
-  place loaded while you are away, so the items can be gone before the
-  layout ends. Servers with latency are untested.
 - **Paste across book pages:** checked in a local world. Servers, replacing a
   selection and the message when 50 pages are not enough are untested.
+- **Recipes, Plan, Stores and Mass Craft:** checked in local worlds and on a
+  local dedicated server; servers with real latency are untested, and a
+  server that refuses a craft may make "Make" count rounds that were not
+  made. Items that differ only in their data (enchanted books, a filled
+  map) are one item in the lists. The search field takes no pasted text.
 
-**Actions**
+**Player**
 
 - **Edge Guard:** checked in local worlds, on a test BDS (including server
   position corrections) and in server use. It keeps you on the edge in
@@ -346,6 +341,16 @@ requests are handled. What has been checked in game, per feature, is in
   "Crouch briefly".
 - **Auto Attack/Use:** whether several clicks per tick land on servers is not
   verified.
+- **Hand Restock:** checked in local worlds and in everyday server use; server timing and very fast use
+  or ambiguous inventory changes may skip a refill. It does not refill tools
+  (Tool Protection swaps a tool before it breaks).
+- **Death layout restore:** checked in local worlds; with instant respawn the
+  inventory may be read as kept and nothing is restored. In use it sometimes
+  restored after a death you did not expect, or in a layout that looked
+  wrong; a layout now ends once the dropped items must be gone, and whether
+  that stops it is being watched. On a server other players can keep the
+  place loaded while you are away, so the items can be gone before the
+  layout ends. Servers with latency are untested.
 
 **General**
 
