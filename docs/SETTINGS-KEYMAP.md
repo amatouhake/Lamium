@@ -14,17 +14,21 @@ append-only action ids and default keys in `src/input/Binding.h`.
 
 ## Behavior
 
-### Categories and groups (L-340, decided 2026-11-22)
+### Categories and groups (L-340, L-392, decided 2026-11-22/23)
 
-- Two levels. The sidebar lists the categories (View, HUD, World, Items,
-  Actions, General); each holds groups named by green headings. The table
+- Two levels. The sidebar lists the categories (View, HUD, World,
+  Schematics, Items, Player, General); each holds groups named by green
+  headings. Player holds Action helpers and Hands and equipment. A
+  category's size is judged by its rows as the page opens (features and
+  headings), kept within about 6 to 17. The table
   `groups` in `SettingsRows.h` places every feature in one group, in
   display order; a test fails for a feature no group lists.
 - Every view (All, a category, search results, Hotkeys) heads its rows
-  by group, in category order. A category of one group (Actions,
+  by group, in category order. A category of one group (Schematics,
   General) is headed by its own name. Group names are searched.
-- The sidebar's on/total count and Tab work per category; screens that
-  open only on request (no switch) are not counted.
+- Tab works per category. The categories show no count (an on/total
+  count read as a riddle, L-392); the pinned Shapes, Waypoints and
+  Schematics show how many they hold.
 
 ### Rows (L-83, decided 2026-10-01)
 

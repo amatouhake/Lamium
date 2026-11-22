@@ -20,7 +20,7 @@ struct FeatureInfo {
 // then General (L-83); inside each, groups headed in green in every view. A
 // category of one group names that group with its own key.
 inline constexpr auto sections = std::to_array<std::string_view>({
-    "section.view", "section.hud", "section.world", "section.items", "section.interaction", "section.interface"});
+    "section.view", "section.hud", "section.world", "section.schematic", "section.items", "section.interaction", "section.interface"});
 struct GroupInfo {
     std::string_view key, section;
     std::span<std::string_view const> features; // in display order
@@ -52,11 +52,11 @@ inline constexpr auto groups = std::to_array<GroupInfo>({
     {"group.handStatus", "section.hud", group_members::handStatus},
     {"group.inWorld", "section.world", group_members::inWorld},
     {"group.map", "section.world", group_members::map},
-    {"group.schematics", "section.world", group_members::schematics},
+    {"section.schematic", "section.schematic", group_members::schematics},
     {"group.itemScreens", "section.items", group_members::itemScreens},
     {"group.recipesPlan", "section.items", group_members::recipesPlan},
-    {"group.handsEquipment", "section.items", group_members::handsEquipment},
-    {"section.interaction", "section.interaction", group_members::actions},
+    {"group.actionHelpers", "section.interaction", group_members::actions},
+    {"group.handsEquipment", "section.interaction", group_members::handsEquipment},
     {"section.interface", "section.interface", group_members::general},
 });
 // The group a feature is listed in; null for an id no group lists (a test keeps that from happening).

@@ -9,8 +9,9 @@ Do not infer game success from a build or unit-test result.
 
 ## Since 0.7.0
 
-- Settings grouping (L-340): six categories with group headings, and the
-  README and FEATURES.md sections to follow them before tagging. Hotkeys
+- Settings grouping (L-340, L-392): seven categories with group headings
+  (Schematics its own, Hands and equipment under Player), no counts on
+  them, and the README and FEATURES.md sections to follow before tagging. Hotkeys
   by layer (L-372): the conflict tip names where; back and Sort on one
   key are no longer a conflict.
 

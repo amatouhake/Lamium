@@ -708,17 +708,6 @@ std::string navLabel(int index) {
     auto key = std::string(sections[index-1]);
     return translated(key);
 }
-std::string sectionCount(std::string_view section, Settings const& preferences) {
-    int on = 0, total = 0;
-    for (auto const& feature : features) {
-        if (featureSection(feature.id) != section) continue;
-        if (auto option = settings::find(feature.toggle)) {
-            ++total;
-            if (std::get<bool>(option->read(preferences))) ++on;
-        }
-    }
-    return total ? std::to_string(on) + "/" + std::to_string(total) : std::string{};
-}
 // Where an action works (L-372): the tip and the footer use the full names, Hotkeys' place column the short ones.
 std::string placeNames(unsigned layers, bool brief) {
     std::string text;
@@ -1145,7 +1134,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (active) { fill(context,x,y,w,t.navStep,palette::accent,.16f); fill(context,x,y,2,t.navStep,palette::accent); }
         else if (over) fill(context,x,y,w,t.navStep,palette::white,.07f);
         bool unavailable = nav::needsWorld(i) && !(screen::client() && screen::client()->getLocalPlayer());
-        std::string count = unavailable ? std::string{} : i > 0 && i < nav::hotkeys ? sectionCount(sections[i-1], preferences)
+        // The categories show no count (L-392: an on/total count read as a riddle); a pinned screen its items.
+        std::string count = unavailable ? std::string{}
             : i == nav::shapes ? std::to_string(overlay::shapes::list().size())
             : i == nav::waypoints ? std::to_string(map::waypoints::current().waypoints.size())
             : i == nav::schematics ? std::to_string(schematic::session::current().placements.size()) : std::string{};
