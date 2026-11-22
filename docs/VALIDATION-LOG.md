@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Notes' hints as window text, the checked placement named (L-370, 2026-11-22)
+
+Build `a54b335e` (DLL
+`f4fedf77f2cf3b68917c749380cef10cdd3e0c232590aae183339ba377da3a75`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the empty wanted
+and stores tabs' hints in faint window text, every line; the schematic
+switch's row names the checked placement at its right end, "none"
+without one; a schematic row's tip names the placement. Raised: the
+schematic screen's Materials switches show no cut name or help.
+
 ## Lay in's presses, the 2x2 greying, steps after taking out (L-385, 2026-11-22)
 
 Build `9d0a6695` (DLL
