@@ -63,8 +63,9 @@ plan's recipes are in [L-116](backlog/L-116.md).
   pointer. A press opens its read-only breakdown: steps as slots one indent
   in, the products in one column after the most inputs' room, then
   what it needs gathered on the table's held, needed and bar columns,
-  "gather" and "make" in the controls' column. A recipe's state and an any-of input's slot (framed green
-  when chosen) go to "How to make"; "gather" on a step, "make" on a
+  "gather" and "make" in the controls' column. A recipe's state (on every step made, a recipe or
+  not to choose from) and an any-of input's slot (framed green when
+  chosen) go to "How to make"; "gather" on a step, "make" on a
   material set to gather.
 - "To gather" uses the same columns, "All" as the first row (a row as
   the others, no icon, a rule under it), then under headings what is still to gather (most left first) and what is
@@ -124,7 +125,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   and loops (cobblestone, nuggets) do not line a member up. A group can
   be gathered as it is instead ("gather" above its members in "How to
   make", or on its breakdown step).
-- "How to make" holds the choices for all plans and worlds, by name,
+- "How to make" holds the choices for all plans and worlds, in the item
+  list's creative order (a group by the member it is known by),
   each line's state on one line (an item's: the way in use as its row
   below shows it, in full ink, with "automatic" while the rule
   decides); lines for the current plan, or with a switch all chosen

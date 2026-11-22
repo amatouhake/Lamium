@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/GroupLook.h"
+#include "features/recipes/ItemList.h"
 #include "features/recipes/HowTo.h"
 #include "features/recipes/ListFilter.h"
 #include "features/recipes/PlanRows.h"
@@ -338,7 +339,8 @@ struct Lists : Window {
         return x - 3;
     }
     float recipeState(float end, float y, Item item, float room = 64) {
-        if (recipeOptions(index, item).size() < 2) return end;
+        // Every item made has one (2026-11-22): "gather" is a choice even beside one recipe.
+        if (recipeOptions(index, item).empty()) return end;
         auto const& key = index.items[static_cast<size_t>(item)];
         int const now = plan->choice->recipe[static_cast<size_t>(item)];
         bool const chosen = notes.choices.contains(key) && now >= 0;
@@ -833,9 +835,11 @@ struct Lists : Window {
                     if (groupKey(index, static_cast<int>(group)) == howOpen) { addGroup(static_cast<int>(group)); break; }
         }
         if (groups.empty() && items.empty()) { howScroll.clear(); note(translated(input.plan ? "recipes.nothingWanted" : "recipes.howTo.none")); return; }
-        // By name: a choice changes the plan, and its lines must not move under the pointer.
-        std::ranges::stable_sort(groups, {}, [&](int group) { return groupName(index, group); });
-        std::ranges::stable_sort(items, {}, [&](Item item) { return nameOf(item); });
+        // In the item list's creative order (2026-11-22), a group by the member it is known by: the order holds still
+        // when a choice changes the plan, so no line moves under the pointer.
+        auto rank = [&](Item item) { return std::pair{itemList::creativeRank(index.items[static_cast<size_t>(item)]), nameOf(item)}; };
+        std::ranges::stable_sort(groups, {}, [&](int group) { return rank(groupLead(index, group)); });
+        std::ranges::stable_sort(items, {}, rank);
         auto traced = [&](int group) { return static_cast<size_t>(group) < index.traces.size() && index.traces[static_cast<size_t>(group)].kind >= 0; };
         // L-389 (demos/howto-choices-3.html). An open group: "<kind>から作る" where the plan traces it, "<group>を集める",
         // then its members in the item list's order. An open item: "automatic" (the rule's way, faint), "gather", the
