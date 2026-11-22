@@ -404,6 +404,8 @@ struct Lists : Window {
         windowSlot(context, productX, y + 1, over(productX, y + 1, 18, 18));
         itemIcon(step.item, productX + 1, y + 2);
         if (step.made > 1) late.counts.push_back({productX, y + 1, slotCountText(step.made)});
+        // How to make's rows (not interactive) name every picture and nothing else (L-389).
+        if (!interactive && over(productX, y + 1, 18, 18)) late.tip = nameOf(step.item), late.hovered = key;
         if (interactive && over(productX, y + 1, 18, 18)) {
             if (tipStock) stepTip(late, *plan, step, tipNow, tipStored);
             else if (grouped) groupTip(step.item - itemCount, productX, y + 1), late.tipLines = inputLines(step);
@@ -1013,7 +1015,7 @@ struct Lists : Window {
                 if (took(left, y, right - left, stepHeight)) howOpen = howOpen == key ? std::string() : key;
             } else if (line.kind == Line::Kind::Option) {
                 // An item's ways as rows of slots on a sunk face (L-389): "automatic" (the rule's way, faint, its word
-                // alone), "gather", then each recipe as its slots and station, named in its tip.
+                // alone), "gather", then each recipe as its slots and station; a row has no tip, its pictures name themselves.
                 std::string const& key = index.items[static_cast<size_t>(line.item)];
                 bool const first = at == 0 || (lines[static_cast<size_t>(at - 1)].kind != Line::Kind::Option && lines[static_cast<size_t>(at - 1)].kind != Line::Kind::Fold);
                 bool const last = at + 1 >= count || (lines[static_cast<size_t>(at + 1)].kind != Line::Kind::Option && lines[static_cast<size_t>(at + 1)].kind != Line::Kind::Fold);
@@ -1030,6 +1032,7 @@ struct Lists : Window {
                     // "Gather": the item itself in the product's slot.
                     windowSlot(context, slotX, sy + 1, false);
                     icon(key, slotX + 1, sy + 2);
+                    if (over(slotX, sy + 1, 18, 18)) late.tip = nameOf(line.item), late.hovered = key;
                     if (gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
                     windowLabel(context, slotX + 22, sy + 6, right - slotX - 22, translated("recipes.toGather"));
                     if (took(left + 18, y, right - left - 18, h)) {
@@ -1045,20 +1048,17 @@ struct Lists : Window {
                     } else {
                         windowSlot(context, slotX, sy + 1, false);
                         icon(key, slotX + 1, sy + 2, 1.f, .45f);
+                        if (over(slotX, sy + 1, 18, 18)) late.tip = nameOf(line.item), late.hovered = key;
                     }
                     if (!chosen && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
                     windowLabel(context, after + 2, sy + 6, right - after - 2, translated("recipes.howTo.auto"));
-                    if (late.tip.empty() && hot)
-                        late.tip = translated("recipes.howTo.auto"), late.tipLines = {translated("recipes.howTo.autoIs", rule >= 0 ? recipeName(rule) : translated("recipes.toGather"))};
                     if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, {}), make(), howOpen.clear();
                 } else {
                     int const number = line.option;
                     StepLine const one{line.item, number, 1, index.recipes[static_cast<size_t>(number)].count, 0, 0};
-                    stepSlots(optionX + (line.inner ? 8 : 0), sy, one, false, false);
+                    stepSlots(optionX, sy, one, false, false);
                     if (chosen && now == number && !gathered) frame(context, left + 19, y + 1, right - left - 20, h - 2, palette::accentDeep);
-                    // No words on a recipe's row (L-389): its slots tell it apart; its tip names it and its station.
-                    if (late.tip.empty() && hot)
-                        late.tip = recipeName(number), late.tipLines = {stationName(index.recipes[static_cast<size_t>(number)].station)};
+                    // No words and no tip of the row's own (L-389): its slots tell it apart, each naming itself.
                     if (took(left + 18, y, right - left - 18, h)) state::setChoice(key, choiceKey(index.recipes[static_cast<size_t>(number)])), make(), howOpen.clear();
                 }
             } else if (line.kind == Line::Kind::Fold) {

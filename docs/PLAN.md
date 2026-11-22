@@ -133,8 +133,10 @@ plan's recipes are in [L-116](backlog/L-116.md).
   then its members as slots (a press decides one; its own ways are then
   its line under "Recipes"). An item opens "automatic" (the rule's way,
   faint, the word alone), "gather" (the breakdown's "gather" and "make"
-  set the same), then its recipes as slots and station without words
-  (named in the tip), the rule's first, re-dyeing folded as "染め直し（N）". Items usually gathered
+  set the same), then its recipes as slots and station without words,
+  the rule's first, re-dyeing folded as "染め直し（N）" (its rows in line
+  with the others). Rows have no tip of their own; each picture names
+  itself. Items usually gathered
   (leather, white wool, anything smelted from an ore that drops it:
   `usuallyGathered`) have no automatic recipe, as a loop's base: they
   read "Automatic: gather" and are made by choosing a recipe; the notes
