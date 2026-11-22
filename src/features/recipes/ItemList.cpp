@@ -669,7 +669,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         (void)framed;
         auto wanted = wantedCounts.find(key);
         if (wanted == wantedCounts.end()) return;
-        // Three characters fit a cell: thousands above that, and "++" past them.
+        // As a slot's count: thousands and millions above three digits (slotCountText).
         Count const n = wanted->second;
         late.counts.push_back({x, y, slotCountText(n)});
     };

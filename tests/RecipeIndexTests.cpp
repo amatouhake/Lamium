@@ -674,8 +674,10 @@ void recipeIndexTests() {
                 done.done.push_back({awkward, 3, 3, 0});
                 auto const held = heldSteps(brewed, brewChoice, done);
                 check(held.size() == 1 && held[0].item == awkward && held[0].made == 3, "what held stock covers whole is a held step");
-                check(slotCountText(999) == "999" && slotCountText(2880) == "2k" && slotCountText(23040) == "23k" && slotCountText(100000) == "++",
-                      "a slot's count fits three characters (L-370)");
+                check(slotCountText(999) == "999" && slotCountText(2880) == "2k" && slotCountText(23040) == "23k" && slotCountText(749966) == "749k"
+                          && slotCountText(1000002) == "1.0M" && slotCountText(1290000) == "1.2M" && slotCountText(12345678) == "12M"
+                          && slotCountText(999999999) == "999M" && slotCountText(1000000000) == "++",
+                      "a slot's count is at most four characters, rounded down (L-370)");
                 check(wholeCountText(999) == "999" && wholeCountText(1000) == "1,000" && wholeCountText(2400008) == "2,400,008",
                       "a cut count's tip shows it whole with its thousands apart");
             }

@@ -408,8 +408,9 @@ void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string 
     // Inside the slot's edge, right-aligned a unit in and a unit up: not where the game puts a stack's count (it
     // sits further right and lower), kept for being easier to read (maintainer 2026-11-21).
     // Measured, never cut: three digits are 18 wide in the English font, more than the slot's inside (2026-11-21).
-    float const w = labelWidth(context, text, 1);
-    label(context, x + 17 - w, y + 8, w + 1, std::move(text), palette::text, Align::Left);
+    // A fourth character ("749k", "1.2M") draws the count at three quarters, as wide as three, its foot kept.
+    float const size = text.size() > 3 ? .75f : 1.f, w = labelWidth(context, text, size);
+    labelScaled(context, x + 17 - w, y + 8 + 8 * (1 - size), w + 1, std::move(text), size, palette::text, Align::Left);
 }
 void anyMark(MinecraftUIRenderContext& context, float x, float y, float scale) {
     // Inside the icon's corner, so it stays within a slot's edge (maintainer 2026-11-21); "*" reads as any.
