@@ -468,6 +468,8 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         if (linked && hit.column == Column::Key) { startCapture(*linked); return; }
         auto value = entry.option->read(Runtime::instance().preferences());
         if (std::holds_alternative<bool>(value)) {
+            // A gesture's key caps are read-only: a press on them does nothing (SETTINGS-KEYMAP.md).
+            if (hit.column == Column::Key && fixedPressOf(entry.option->id)) return;
             if (hit.column != Column::Name) adjustOption_(*entry.option, 1);
             return;
         }
@@ -1437,6 +1439,7 @@ void open() {
     endEditing();
     query.clear(); searchCollapsed.clear(); searchFocused_() = false; capturing_.reset(); bindingEdit.reset();
     findingKey = false; foundKey.reset(); keyQuery.reset();
+    resetArmed = false; // armed before the screen closed: one press must not reset after reopening
 }
 void reset() {
     helpText.clear(); wrapped = {};

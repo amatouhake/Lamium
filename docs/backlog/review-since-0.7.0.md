@@ -55,12 +55,6 @@ code has the count box and "x" (as the same document says earlier).
 
 ## Range 2: settings screen, hotkeys, input
 
-### 2-1 Low: a click on read-only key caps toggles the row's switch
-`src/ui/SettingsTableView.cpp:470`, `:1291`. On the settings screen a click
-in the key column of an Item transfer gesture row switches the gesture;
-SETTINGS-KEYMAP.md says a press does nothing. Read. The click rule is from
-before 0.7.0, the caps are new.
-
 ### 2-2 Low: the "fires and conflicts agree" test cannot fail
 `tests/BindingTests.cpp:83`. Both sides come from `whereActs`. Not
 covered: two layers at once, and the second gate in
@@ -69,9 +63,6 @@ covered: two layers at once, and the second gate in
 ### 2-3 Low: Windows' key name is asked without the extended-key bit
 `src/app/Desktop.cpp:61`. An extended key the game only calls "ButtonNNN"
 would get its non-extended twin's name or none. Likely; Game.
-
-From before 0.7.0, outside this review: an armed reset stays armed over
-closing and reopening the settings (`src/ui/SettingsTableView.cpp:387`).
 
 ## Range 3: everything else
 
