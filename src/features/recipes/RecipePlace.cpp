@@ -8,6 +8,7 @@
 #include "features/recipes/ItemList.h"
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/RecipeState.h"
+#include "features/schematic/SchematicItems.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
@@ -79,6 +80,16 @@ std::vector<PlaceSource> carriedOf(ContainerManagerController& manager, Index co
     };
     add(hotbar, 9, 0);
     add(inventory, 27, 9);
+    return out;
+}
+// The empty slots of the hotbar and the inventory.
+int emptySlots(ContainerManagerController& manager) {
+    int out = 0;
+    for (auto const& [collection, size] : {std::pair{&hotbar, 9}, std::pair{&inventory, 27}}) {
+        if (!manager.hasContainerController(*collection) || manager.getContainerSize(*collection) < size) continue;
+        for (int i = 0; i < size; ++i)
+            if (auto const& stack = manager.getItemStack(*collection, i); stack.isNull() || stack.mCount <= 0) ++out;
+    }
     return out;
 }
 int cellCount(ContainerManagerController& manager, int cell) {
@@ -402,14 +413,21 @@ void tickMaking(ScreenView& screen) {
             }
             making.tries = 0;
             // Of the step's recipes the one laid most of now: a group's member whose input an earlier step made counts.
+            // No more rounds than the inventory has room for (2026-11-22): a take the inventory cannot hold stuck the
+            // grid, and the run ended there.
             auto const carried = carriedOf(manager, index);
+            int const empty = emptySlots(manager);
             PlacePlan plan;
-            for (int number : step.recipes)
-                if (auto next = placePlan(index, index.recipes[static_cast<size_t>(number)], sideOf(manager), carried, making.picks, true, step.rounds);
-                    next.ready() && (!plan.ready() || next.crafts > plan.crafts))
+            for (int number : step.recipes) {
+                auto const& recipe = index.recipes[static_cast<size_t>(number)];
+                int const stack = recipe.makes >= 0 ? std::max(1, schematic::items::shown(index.items[static_cast<size_t>(recipe.makes)]).stack) : 64;
+                int const most = std::min(step.rounds, roundsWithRoom(carried, empty, recipe.makes, static_cast<int>(recipe.count), stack));
+                if (most <= 0) continue;
+                if (auto next = placePlan(index, recipe, sideOf(manager), carried, making.picks, true, most); next.ready() && (!plan.ready() || next.crafts > plan.crafts))
                     plan = std::move(next);
+            }
             if (!plan.ready() || step.rounds <= 0) {
-                // Nothing more of this step can be laid in: the next one.
+                // Nothing more of this step can be laid in, from what is carried or for the room left: the next one.
                 making.steps.erase(making.steps.begin());
                 return;
             }

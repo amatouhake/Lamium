@@ -83,7 +83,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   greyed with where it is made; the first heading's "Make all" makes
   every step of the open crafting grid in the plan's order, each as far
   as what is carried allows, in part too, so one step's product feeds
-  the next; on the panel it is the make picture over the rows' make
+  the next, and as far as the inventory has room (a step with none is
+  passed, nothing thrown); on the panel it is the make picture over the rows' make
   buttons, on the column headings' line. The panel's lists keep the
   window's order and its columns (demos/panel-table.html A): under a line
   of headings, held (or can make now) and needed in six-digit columns, no
