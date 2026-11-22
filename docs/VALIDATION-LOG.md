@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## How to make laid out for whole recipes (L-389, 2026-11-22)
+
+Build `e3cddb10` (DLL
+`d29a5ac478eb57e7511ba33704d18a23ed228ec27de8270ab6835db6fd782a4c`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: a piston has a line
+with its four inputs whole, the name giving way, and can be set to
+gather; an item's station, "自動" and "集める" stand in one column each;
+the line is in full ink while automatic. Open for discussion: where the
+slots line up, the order and finding of the longer list, and whether
+the other tabs keep their gather and make buttons.
+
 ## Cobblestone gathered, the Wanted tab still on the wheel (L-370, 2026-11-22)
 
 Build `95cf0251` (DLL
