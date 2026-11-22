@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## How to make's line showing the way in use (L-389, 2026-11-22)
+
+Build `0dd490d5` (DLL
+`cdb4c8b621af0bf53e18aca489475e79f47ea2d3ca6d91b4a90c4d311d6489bc`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the white harness's
+line shows leather 3, glass 2 and wool to the harness and the crafting
+table, faint, with "自動"; a recipe chosen shows it in full ink without
+words, "集める" the item and the word. Read as wrong: the station,
+"自動" and "集める" stand at different places line to line; "自動" stays
+faint once chosen; a long recipe pushes the name out; an item with one
+recipe (piston) has no line, so it cannot be set to gather there; a
+piston's cobblestone was cut from stone at the stonecutter, though
+cobblestone is usually mined; the Wanted tab jumps for a frame on the
+wheel when nothing scrolls.
+
 ## How to make's choices in one shape (L-389, 2026-11-22)
 
 Build `a11be728` (DLL
