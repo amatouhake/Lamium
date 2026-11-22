@@ -179,7 +179,8 @@ dark look. No control plays a sound.
 - **A count cut to fit** (a slot's "44k", a cell's "…") shows whole,
   thousands apart, in its tip (L-370), the number alone. A slot writes
   thousands and millions rounded down ("749k", "1.2M", "12M"); a fourth
-  character draws it at three quarters, as wide as three.
+  character draws it smaller (at most three quarters, within the slot
+  whatever the font), twice half a unit apart to keep its weight.
 - **A list's scrollbar** (`listScrollbar`): a view without a layout of
   its own draws the shared bar, takes a press on it and follows the drag
   in one call; the rows leave it a gutter.
@@ -274,11 +275,15 @@ dark look. No control plays a sound.
   has no shown switch, so no summary line and no Delete: Show in world,
   Ignore places and Stop ignoring share the row, its names sit under the
   preview it keeps, and a button that would change nothing is disabled.
-- **Tips** open below their anchor (above when there is no room) and look
-  the same everywhere (`drawTipBox`): the floating panel, a `keyEdge` edge
-  (`warning` when the tip warns), 4 units of padding, white text. The
-  locked-trade tip copies the game's own tooltip instead, and an item
-  in the recipe screens has the game's tooltip box (`gameTooltipBox`).
+- **Tips** open below their anchor (above when there is no room). On
+  Lamium's own screens they look the same everywhere (`drawTipBox`): the
+  floating panel, a `keyEdge` edge (`warning` when the tip warns), 4
+  units of padding, white text. On the game's screens (the inventory and
+  containers, with their panels, bands and windows) every tip is the
+  game's tooltip box (`gameTooltipBox`), as is the locked-trade tip
+  (2026-11-22). The game's lines and the item details (L-363) follow
+  only a tip whose title is that item's name, never a button's, a
+  count's or a group's over its row.
 
 ## Screens
 

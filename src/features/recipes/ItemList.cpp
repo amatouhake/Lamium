@@ -982,9 +982,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
             }
         }
     if (!late.tip.empty()) {
-        // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
-        // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.
-        bool const item = !tipItem.empty() && !late.tipGroup && !late.tipCount; // a group's tip is about the group, not the member shown
+        // What the game says of an item, with Lamium's item details (L-363), only under a tip whose title is that
+        // item's name (2026-11-22): a button, a count or a group over the item's row is not about the item, though the
+        // keys still act on it.
+        bool const item = !tipItem.empty() && !late.tipGroup && late.tip == schematic::items::shown(tipItem).name;
         static std::string detailsOf;
         static std::vector<HoverLine> details;
         if (item && tipItem != detailsOf) {
@@ -1013,22 +1014,18 @@ bool drawList(ll::event::UIRenderEvent& event) {
         size_t const members = std::min<size_t>(late.tipItems.size(), 40);
         float const membersH = members ? static_cast<float>((members + perRow - 1) / perRow) * cellSize + 2 : 0.f;
         if (members) w = std::max(w, static_cast<float>(std::min(members, perRow)) * cellSize);
-        // An item's tip, and any tip over Lamium's light windows, is the game's tooltip box (VanillaFrame.h,
-        // L-367); other tips are Lamium's, two units under the last line so letters that reach below it
-        // (p, y) stay inside the frame.
+        // Every tip on the game's screens is the game's tooltip box (VanillaFrame.h, 2026-11-22): the panels, the
+        // bands and the windows alike; Lamium's own tip box is for Lamium's own screens.
         namespace vf = vanilla_frame;
-        bool const game = item || late.tipGroup || covered || late.tipGame; // a group's tip is an item's too
-        float const inset = game ? vf::tooltipTextLeft : 4, top = game ? vf::tooltipTextTop - 1 : 2;
-        w = std::min(game ? vf::tooltipWidth(w) : w + 8, screen.x - 4);
-        float const h = (game ? vf::tooltipHeight(lines) : 4 + 10 * static_cast<float>(lines)) + membersH;
+        float const inset = vf::tooltipTextLeft, top = vf::tooltipTextTop - 1;
+        w = std::min(vf::tooltipWidth(w), screen.x - 4);
+        float const h = vf::tooltipHeight(lines) + membersH;
         // On whole units: the pointer lies between them, and the box and the text, rounded to pixels each their
         // own way, moved a pixel apart now and then as it went.
         w = std::ceil(w);
         float const x = std::round(std::max(2.f, std::min(px + 8, screen.x - w - 2))), y = std::round(std::max(2.f, std::min(py + 8, screen.y - h - 2)));
-        if (game) {
-            context.flushText(0, std::nullopt);
-            gameTooltipBox(context, x, y, w, h);
-        } else drawTipBox(context, x, y, w, h);
+        context.flushText(0, std::nullopt);
+        gameTooltipBox(context, x, y, w, h);
         label(context, x + inset, y + top, w - 2 * inset, late.tip);
         float line = y + top + 10;
         for (auto const& text : late.tipLines) label(context, x + inset, line, w - 2 * inset, text, palette::dim), line += 10;

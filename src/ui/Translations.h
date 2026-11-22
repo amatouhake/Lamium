@@ -1100,7 +1100,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.stored", "Make after taking out", "取り出せば作れる"},
     {"recipes.makeSteps", "Make what is needed", "要る分を作る"},
     {"recipes.makeAll", "Make all", "すべて作る"},
-    {"recipes.makeAllTip", "Makes every step that can be made now, top down", "今作れる手順を上から順にすべて作る"},
+    {"recipes.makeAllTip", "Makes as much as what you carry allows, step by step; what one makes feeds the next", "手持ちで作れるだけ手順の順に作る（作った物は次の手順に使う）"},
     {"recipes.makeAt", "Made at: {}", "作る場所: {}"},
     {"recipes.hint.placeStep", "Shift: what is needed | Ctrl: one round onto the pointer", "Shift: 要る分 | Ctrl: 1 回分作ってカーソルへ"},
     {"recipes.stepShort", "{} more", "あと {}"},

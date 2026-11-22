@@ -104,13 +104,18 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     if (took(makeX, y, size, size) && can) placer->make(stepRuns(index, plan.request, step, plan.held));
     return false;
 }
-std::vector<std::pair<int, int>> readyRuns(view::Placer* placer, state::Plan const& plan, std::vector<MakeRow> const& rows) {
+std::vector<std::pair<int, int>> makeAllRuns(view::Placer* placer, state::Plan const& plan) {
     std::vector<std::pair<int, int>> out;
     if (!placer || placer->gridSide() <= 0) return out;
     auto const& index = plan.table->index;
-    for (auto const& row : rows)
-        if (row.state == StepState::Ready && placer->preview(index.recipes[static_cast<size_t>(layRecipe(index, plan.request, row.step, plan.held))], false).ready())
-            for (auto const& run : stepRuns(index, plan.request, row.step, plan.held)) out.push_back(run);
+    bool begun = false;
+    for (auto const& step : plan.view.steps) {
+        auto const& recipe = index.recipes[static_cast<size_t>(layRecipe(index, plan.request, step, plan.held))];
+        if (!placer->places(kindOf(recipe.station)) || !fitsGrid(recipe, placer->gridSide())) continue;
+        begun = begun || placer->preview(recipe, false).ready();
+        for (auto const& run : stepRuns(index, plan.request, step, plan.held)) out.push_back(run);
+    }
+    if (!begun) out.clear();
     return out;
 }
 void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step) {
@@ -721,9 +726,10 @@ struct Lists : Window {
             auto const& line = lines[static_cast<size_t>(at)];
             if (line.label) {
                 labelScaled(context, left, y + 3, right - left, translated(line.label), .75f, v::windowFaint, Align::Left, false);
-                if (line.state == StepState::Ready) {
-                    // "Make all": what can be made now here, top down; a grid holds one recipe at a time, so it only makes.
-                    auto const ready = readyRuns(placer, *plan, made);
+                if (at == 0 && line.state != StepState::Held) {
+                    // "Make all" on the first heading: every step as far as what is carried allows (makeAllRuns); a grid
+                    // holds one recipe at a time, so it only makes.
+                    auto const ready = makeAllRuns(placer, *plan);
                     bool const can = !ready.empty();
                     std::string const text = translated("recipes.makeAll");
                     float const w = rowButtonWidth(context, text), bx = tableRight - w, by = y;
@@ -1143,6 +1149,6 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     else if (tab == Tab::Gather) lists.gatherTab();
     else if (tab == Tab::Make) lists.makeTab();
     else lists.howToTab();
-    if (!lists.countTip.empty()) late.tip = lists.countTip, late.tipLines.clear(), late.tipItems.clear(), late.tipTable.clear(), late.tipCount = true;
+    if (!lists.countTip.empty()) late.tip = lists.countTip, late.tipLines.clear(), late.tipItems.clear(), late.tipTable.clear();
 }
 }

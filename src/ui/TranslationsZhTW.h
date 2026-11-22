@@ -1091,7 +1091,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"recipes.stored", "取出後可製作"},
     {"recipes.makeSteps", "製作所需數量"},
     {"recipes.makeAll", "全部製作"},
-    {"recipes.makeAllTip", "從上到下製作現在能製作的所有步驟"},
+    {"recipes.makeAllTip", "按步驟順序用攜帶的材料盡量製作（做出的物品用於下一步）"},
     {"recipes.makeAt", "製作地點: {}"},
     {"recipes.hint.placeStep", "Shift: 所需數量 | Ctrl: 製作一次到游標上"},
     {"recipes.stepShort", "還差 {}"},

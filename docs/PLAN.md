@@ -80,9 +80,11 @@ plan's recipes are in [L-116](backlog/L-116.md).
   round onto the pointer) and "make" (what is still needed: rounds laid in
   and taken as a Shift click takes them, again, the product kept; at a
   station only laid in), both only where the open screen takes it, else
-  greyed with where it is made; the first heading's "Make all" makes every
-  step there top down, at a crafting grid; on the panel it is the make
-  picture over the rows' make buttons, on the column headings' line. The panel's lists keep the
+  greyed with where it is made; the first heading's "Make all" makes
+  every step of the open crafting grid in the plan's order, each as far
+  as what is carried allows, in part too, so one step's product feeds
+  the next; on the panel it is the make picture over the rows' make
+  buttons, on the column headings' line. The panel's lists keep the
   window's order and its columns (demos/panel-table.html A): under a line
   of headings, held (or can make now) and needed in six-digit columns, no
   bar, controls always shown: "wanted" the count in a box typed or

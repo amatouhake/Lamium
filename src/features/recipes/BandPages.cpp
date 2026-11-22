@@ -137,7 +137,6 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         int entry = -1;           // a wanted row: its entry in the plan's shares
     };
     std::vector<SideRow> rows;
-    std::vector<MakeRow> madeRows; // "to make": for its heading's Make all
     auto const* plan = state::plan(player);
     if (sideList == SideList::Wanted) {
         // As the window's tab (L-370, PlanRows.h): the count only, the stepper under the pointer; what is all held
@@ -190,8 +189,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         std::map<Item, Count> all, carried;
         for (auto const& [id, have] : plan->request.held) all[id] += have;
         for (auto const& [id, have] : plan->held) carried[id] += have;
-        madeRows = makeRows(index, plan->request, plan->view, heldSteps(index, *plan->choice, plan->view), carried, all);
-        for (auto const& made : madeRows) {
+        for (auto const& made : makeRows(index, plan->request, plan->view, heldSteps(index, *plan->choice, plan->view), carried, all)) {
             bool const held = made.state == StepState::Held;
             // A traced group's step (L-386): the group's picture, marked, and its name.
             SideRow row{planView::planPicture(*plan, made.step.item), planItemName(index, made.step.item), made.step.made, !held, {},
@@ -240,7 +238,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                     Align::Right, false);
         // "Make all" heads the rows' make buttons (2026-11-22): their picture, greyed where nothing can be made here.
         if (sideList == SideList::Make && plan) {
-            auto const ready = planView::readyRuns(frame.placer, *plan, madeRows);
+            auto const ready = planView::makeAllRuns(frame.placer, *plan);
             ListBox const box{controlsX + 13, y + .5f, 11, 11};
             bool const hot = box.has(px, py);
             drawPictureButton(context, box.x, box.y, box.w, Picture::Make, hot, false, !ready.empty());
@@ -251,7 +249,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     // A count cut to fit its column shows whole under the pointer.
     auto number = [&](float x, float y, Count count, Rgb color) {
         std::string text = std::to_string(count);
-        if (textWidth(context, text) > numW && ListBox{x, y, numW, 12}.has(px, py)) late.tip = wholeCountText(static_cast<std::uint64_t>(count)), late.tipLines.clear(), late.tipCount = true;
+        if (textWidth(context, text) > numW && ListBox{x, y, numW, 12}.has(px, py)) late.tip = wholeCountText(static_cast<std::uint64_t>(count)), late.tipLines.clear();
         label(context, x, y + 2, numW, std::move(text), color, Align::Right);
     };
     int const drawn = std::min(fits, total - first);
@@ -339,7 +337,7 @@ void storeButton(Frame& frame, ListBox box, placesGame::Open const& open) {
     int const index = open.ender ? state::places().ender() : state::places().store(open.spot);
     bool const on = index >= 0 && (!open.ender || state::places().list[static_cast<size_t>(index)].counted);
     drawWindowPictureButton(context, box.x, box.y, box.w, Picture::Store, box.has(px, py), on);
-    if (box.has(px, py)) late.tip = translated("recipes.place.countState", translated(on ? "on" : "off")), late.tipGame = true;
+    if (box.has(px, py)) late.tip = translated("recipes.place.countState", translated(on ? "on" : "off"));
     if (leftPress && took(box)) {
         if (open.ender) { if (index >= 0) state::setPlaceCounted(index, !on); }
         else if (index < 0) state::markStore(open.spot, open.pair, open.block, open.items);
