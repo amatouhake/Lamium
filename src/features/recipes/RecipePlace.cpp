@@ -102,7 +102,8 @@ int cellCount(ContainerManagerController& manager, int cell) {
 // move stacks (the manager's place-amount), so what the pointer holds stays there (L-381). Where a move shows
 // nothing, it goes as a hand would: taken onto the pointer and put down, only while the pointer is empty. False
 // where the game did not do as planned; what the pointer holds then is left to the player. The first of each
-// way a session is logged. `spent`, if given, grows by the requests sent: one a straight move, two by the pointer.
+// way a session is logged. `spent`, if given, grows by the requests sent: one a straight move, three for a cell that
+// went by the pointer (the straight move was sent too).
 bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& moves, int* spent = nullptr) {
     auto& manager = *controller.mContainerManagerController;
     static bool toldDirect = false, toldHand = false;
@@ -689,8 +690,8 @@ void again(char const* why, Clock::time_point now) {
 }
 // What a step of the run left on the pointer (a cell that was not placed, a take the server answered
 // late): the product is thrown out, anything else goes back to a slot that takes it, and out if none does.
-// The pointer was empty when the run began, so what it holds is the run's.
-bool clearPointer(CraftingScreenController& controller, Index const& index, Item product) {
+// The pointer was empty when the run began, so what it holds is the run's. `spent` grows by the calls sent.
+bool clearPointer(CraftingScreenController& controller, Index const& index, Item product, int& spent) {
     auto& manager = *controller.mContainerManagerController;
     if (!held(manager)) return true;
     auto const& stack = manager.getItemStack(pointer, 0);
@@ -703,10 +704,10 @@ bool clearPointer(CraftingScreenController& controller, Index const& index, Item
                 bool const empty = there.isNull() || there.mCount <= 0;
                 // Stacks of the same item first, then an empty slot.
                 bool const takes = pass ? empty : !empty && there.mCount < there.getMaxStackSize() && there.getTypeName() == name && there.getAuxValue() == aux;
-                if (takes) controller._handlePlaceAll(collectionOf(slot), indexOf(slot));
+                if (takes) controller._handlePlaceAll(collectionOf(slot), indexOf(slot)), ++spent;
             }
     }
-    if (held(manager)) inventory::game::transferRoutes::dropCursor(controller);
+    if (held(manager)) inventory::game::transferRoutes::dropCursor(controller), ++spent;
     return !held(manager);
 }
 // Throws out what the inventory holds of the product beyond what was carried at the start: how many
@@ -731,7 +732,10 @@ void advance(CraftingScreenController& controller) {
     auto const now = Clock::now();
     if (now < run.next) return;
     if (run.phase != Phase::Hand && held(manager)) {
-        if (!clearPointer(controller, index, recipe.makes)) { finish("the pointer holds an item"); return; }
+        int spent = 0;
+        bool const cleared = clearPointer(controller, index, recipe.makes, spent);
+        run.requests += spent;
+        if (!cleared) { finish("the pointer holds an item"); return; }
         ++run.cleared;
         again("the pointer holds an item", now);
         return;
@@ -768,6 +772,7 @@ void advance(CraftingScreenController& controller) {
         // Also what came back: thrown out and picked up again, or a throw the server refused.
         if (int const thrown = throwExcess(controller, index, recipe.makes, budget); thrown < 0) { finish("throwing the product out failed"); return; }
         else if (thrown) run.thrown += thrown, run.stalls = 0;
+        if (budget <= 0) return; // the take waits for the next step
         if (!makesProduct(manager, index, recipe.makes)) {
             if (gridEmpty(manager)) { run.phase = Phase::Lay; run.since = now; continue; }
             // What a recipe leaves behind (a bucket), a product not shown yet, or a part of the recipe only.
@@ -782,6 +787,7 @@ void advance(CraftingScreenController& controller) {
         if (!roomFor(manager, index, recipe.makes)) {
             // No slot for the product: one stack of an ingredient goes out, so the take has one. Only where
             // nothing can go (it is the ingredient's only stack) the product goes out over the pointer.
+            if (budget < 2) return; // the drop and the take go in one step
             int const slot = roomSlot(index, recipe, carriedOf(manager, index));
             if (slot < 0 || !inventory::game::transferRoutes::drop(controller, collectionOf(slot), indexOf(slot), false)) {
                 run.phase = Phase::Hand; run.since = now; run.clicked = false;
@@ -827,7 +833,10 @@ void advance(CraftingScreenController& controller) {
         // Another item on the pointer is put away first, and the step tried again.
         auto foreign = [&] {
             if (!have || product()) return false;
-            if (!clearPointer(controller, index, recipe.makes)) finish("the pointer holds an item");
+            int spent = 0;
+            bool const cleared = clearPointer(controller, index, recipe.makes, spent);
+            budget -= spent;
+            if (!cleared) finish("the pointer holds an item");
             else ++run.cleared, again("the pointer holds an item", now);
             return true;
         };
@@ -874,7 +883,7 @@ void advance(CraftingScreenController& controller) {
         if (!plan.fits) { finish("the recipe does not fit the grid"); return; }
         if (plan.ready()) {
             // A round is laid in by a step that has all its calls left, however many cells it has: a move straight
-            // from its slot is one call (L-381), what went by the pointer two, counted as sent.
+            // from its slot is one call (L-381), one that went by the pointer three, counted as sent.
             int const cost = static_cast<int>(plan.moves.size());
             if (cost > budget && budget < mostRequests) { run.wait = "the step has no calls left to lay in"; return; }
             int calls = 0;
@@ -895,8 +904,11 @@ void advance(CraftingScreenController& controller) {
         run.next = now + (back ? step : idle);
         slotsOf(manager, index, anyFree);
         if (anyFree) return;
+        // Within the step's calls: what is left goes after the wait, if a slot is still wanted then.
         for (int slot : surplusSlots(index, recipe, carried)) {
+            if (budget <= 0) break;
             if (!inventory::game::transferRoutes::drop(controller, collectionOf(slot), indexOf(slot), false)) { finish("throwing a surplus out failed"); return; }
+            --budget;
             ++run.surplus;
             run.next = now + afterSurplus;
         }

@@ -19,15 +19,6 @@ steps lack their inputs and the run ends "done". Nothing is lost.
 Likely; Server. Deferred: to the server check (L-165 "Next"); a fix counts
 only after a take and confirms by the product in the inventory.
 
-### 1-8 Low: the 16 slot calls a step are not kept on every path
-`RecipePlace.cpp` `massCraft::advance`. The surplus drops (about thirty in
-a frame with no slot free, at most once a second) are not charged; after
-the budget is spent in a take, the room drop and the take still go (about
-two over); `clearPointer`'s few calls are uncounted. "make" has no budget
-but one apply a tick, the same envelope. (A cell laid by the pointer is
-charged three: safe, only the comment is off.) Read; Server. Deferred:
-with L-165, before Mass Craft is offered for servers.
-
 ### 1-12 Low: the plan's shares are worked out without a bound
 `RecipeState.cpp` `shares()`. VALIDATION-LOG has 8.2 ms for 29 entries; a
 schematic hands over its distinct materials (capped at 2048, in practice
