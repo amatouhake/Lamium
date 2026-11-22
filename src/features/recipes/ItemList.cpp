@@ -451,9 +451,11 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!player) return false;
     if (forget.exchange(false)) names.clear(), closeViews(), search.clear(), searchFocus = false;
     cost.at("start");
-    if (!names.empty() && (Runtime::instance().snapshot()->inspection.englishSearch != namesEnglish
-                           || ui::game_language::currentCode() != namesLanguage))
-        names.clear();
+    if (!names.empty()) {
+        // A language chosen in the game's own settings does not pass Lamium's switch, which forgets the shown names.
+        if (ui::game_language::currentCode() != namesLanguage) schematic::items::forget(), names.clear();
+        else if (Runtime::instance().snapshot()->inspection.englishSearch != namesEnglish) names.clear();
+    }
     if (names.empty()) readNames(*player);
     cost.at("names");
     glm::vec2 at{}, size{};
