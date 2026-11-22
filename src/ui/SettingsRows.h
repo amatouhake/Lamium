@@ -553,6 +553,26 @@ inline LabelParts splitLabel(std::string_view pattern) {
     }
     return {std::string(pattern.substr(0, split)), std::string(pattern.substr(split + 2))};
 }
+// An action named alone (conflict tip, capture line, Hotkeys' footer) is composed from the tree like a
+// toggle toast (L-372): the feature alone for its toggle key, "Feature > option" for a keyed option,
+// "Feature > child" for a child action. ASCII " > ": another sign changes the font in English.
+inline bool namedByTree(input::Action action) {
+    auto const& id = input::actions[static_cast<size_t>(action)].feature;
+    for (auto const& feature : features)
+        if (feature.id == id && feature.primary == action) return true;
+    return shownOnOption(action);
+}
+template<class Translate>
+std::string actionTitle(input::Action action, Translate translate) {
+    auto const& id = input::actions[static_cast<size_t>(action)].feature;
+    auto const nameKey = featureNameKey(id);
+    std::string const feature = nameKey.empty() ? std::string(id) : std::string(translate(nameKey));
+    for (auto const& info : features)
+        if (info.id == id && info.primary == action) return feature;
+    for (auto const& option : settings::options)
+        if (optionAction(option.id) == action) return feature + " > " + splitLabel(translate(option.label)).name;
+    return feature + " > " + actionName(std::string(translate(actionTranslationKey(action, true))));
+}
 // Reset a settings category: every option owned by its features and the HUD
 // placement of their elements. Key bindings stay; Hotkeys has its own reset.
 inline void resetSection(Settings& value, std::string_view section) {

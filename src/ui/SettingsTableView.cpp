@@ -543,6 +543,10 @@ std::string pausedSuffix(std::string_view feature) {
 std::string actionLabel(input::Action action, bool child = false) {
     return actionName(translated(actionTranslationKey(action, child)));
 }
+// An action named alone: composed from the tree (L-372).
+std::string actionTitle(input::Action action) {
+    return ui::actionTitle(action, [](std::string_view key) { return translated(key); });
+}
 std::string behaviorText(input::Action action) {
     auto behavior = input::actions[static_cast<size_t>(action)].behavior;
     // Freelook is the one action whose activation is a named feature setting.
@@ -746,7 +750,7 @@ float placeColumnWidth(MinecraftUIRenderContext& context, SettingsTable const& t
 }
 float placeX(SettingsTable const& t) { return t.keyX - SettingsTable::gap - placeWidth; }
 std::string baseDescription() {
-    if (capturing_) return actionLabel(*capturing_) + " - " + behaviorText(*capturing_);
+    if (capturing_) return actionTitle(*capturing_) + " - " + behaviorText(*capturing_);
     // A category's reset waits for its second press: say what it resets (L-340).
     if (resetArmed && resetScope() == ResetScope::Section) {
         std::string names;
@@ -888,7 +892,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     float width = std::max(conflicts.empty() && gameNote.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth);
     for (auto const& conflict : conflicts) {
         float caps = keycapsWidth(context, chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
-        float text = 5 + textWidth(context, actionLabel(conflict.action)) + 6 + textWidth(context, whereText(conflict.where));
+        float text = 5 + textWidth(context, actionTitle(conflict.action)) + 6 + textWidth(context, whereText(conflict.where));
         width = std::max(width, 2*pad + std::max(caps / .45f, caps + text));
     }
     width = std::min(available, width);
@@ -952,7 +956,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
         }
         float used = keycaps(context,x+pad,cursor+1,inner*.45f,
             chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
-        auto name = actionLabel(conflict.action);
+        auto name = actionTitle(conflict.action);
         float const nameX = x + pad + used + 5, room = inner - used - 5;
         label(context,nameX,cursor+1+boxTextInset(),room,name);
         if (float const nameW = textWidth(context, name) + 6; nameW < room)

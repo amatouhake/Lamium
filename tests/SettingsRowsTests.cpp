@@ -22,6 +22,11 @@ void settingsRowsTests() {
         check(navigation.current == 4, "manual navigation from a dedicated screen becomes the normal destination");
     }
     auto translate = [](std::string_view key) { return std::string(ui::translations::find(key, "en_US")); };
+    check(ui::actionTitle(input::Action::Zoom, translate) == "Zoom"
+          && ui::actionTitle(input::Action::HideWeather, translate) == "Hide effects > Rain and snow"
+          && ui::actionTitle(input::Action::FreeCameraSpeedUp, translate) == "FreeCamera > Increase speed"
+          && ui::actionTitle(input::Action::Sort, translate) == "Inventory sorting > Sort now",
+          "an action named alone is composed from the tree like a toast (L-372)");
     {
         // The two levels (L-340): every feature in exactly one group, every group in a category, and a group
         // named apart from its category unless it is the category's only one.
@@ -187,8 +192,12 @@ void settingsRowsTests() {
         for (size_t i = 0; i < static_cast<size_t>(input::Action::Count); ++i) {
             auto action = static_cast<input::Action>(i);
             if (input::retired(action)) continue;
-            has(ui::actionTranslationKey(action), input::actions[i].id);
-            has(ui::actionTranslationKey(action, true), input::actions[i].id);
+            // A toggle key or a keyed option is named by the tree alone (L-372).
+            if (!ui::namedByTree(action)) {
+                has(ui::actionTranslationKey(action), input::actions[i].id);
+                has(ui::actionTranslationKey(action, true), input::actions[i].id);
+            }
+            check(!ui::actionTitle(action, [&](std::string_view key) { return std::string(ui::translations::find(key, locale)); }).empty(), "every action has a composed name");
             if (input::actions[i].behavior == input::Behavior::Toggle) has(ui::toggleToastKey(action), input::actions[i].id);
         }
         for (auto feature : paused::gatedFeatures) has(ui::featureNameKey(feature), feature);

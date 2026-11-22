@@ -171,6 +171,11 @@ append-only action ids and default keys in `src/input/Binding.h`.
   without its siblings; a feature-name hit shows all its children, and
   pressing a parent while searching shows them too. Hotkeys changes keys
   only, never a setting's value.
+- An action named alone (the conflict tip's list, the capture line) is
+  composed from the tree like a toggle toast (`ui::actionTitle`): the
+  feature for its toggle key, "Feature > option" for a keyed option,
+  "Feature > child" for a child action. Toggle keys and keyed options
+  have no name of their own in the translations.
 - The mark and note that a lone mouse button is also the game's attack,
   use or pick block show only for actions that work in play; on an item
   screen that button is a slot's.
