@@ -17,7 +17,7 @@ struct FixedCap {
 };
 enum class FixedTarget { None, LamiumList, GameSlot };
 struct FixedPress {
-    std::string_view feature, name;
+    std::string_view feature, name; // name: empty where its switch's label names it
     std::string_view option; // its own switch in the settings, if any
     unsigned where;
     FixedTarget target;
@@ -36,20 +36,20 @@ inline constexpr auto fixedPresses = [] {
     constexpr unsigned screen = layer::itemScreen, both = layer::itemScreen | layer::window;
     constexpr auto slot = FixedTarget::GameSlot, list = FixedTarget::LamiumList;
     return std::to_array<FixedPress>({
-        {"transfer", "fixed.transferWheelOne", "inventory.transferWheelOne", screen, slot, {wheel}},
-        {"transfer", "fixed.transferWheelStack", "inventory.transferWheelStack", screen, slot, {shift, wheel}},
-        {"transfer", "fixed.transferDragStack", "inventory.transferDragStack", screen, slot, {shift, leftDrag}},
-        {"transfer", "fixed.transferDragOne", "inventory.transferDragOne", screen, slot, {ctrl, leftDrag}},
-        {"transfer", "fixed.transferWheelMatching", "inventory.transferWheelMatching", screen, slot, {ctrl, wheel}},
-        {"transfer", "fixed.transferWheelAll", "inventory.transferWheelAll", screen, slot, {ctrl, shift, wheel}},
-        {"transfer", "fixed.transferClickMatching", "inventory.transferClickMatching", screen, slot, {alt, leftClick}},
-        {"transfer", "fixed.transferClickAll", "inventory.transferClickAll", screen, slot, {alt, shift, leftClick}},
-        {"transfer", "fixed.transferDragKeepOne", "inventory.transferDragKeepOne", screen, slot, {shift, rightDrag}},
-        {"transfer", "fixed.transferCursorMatching", "inventory.transferCursorMatching", screen, slot, {shift, click}},
-        {"transfer", "fixed.transferDropOne", "inventory.transferDropOne", screen, slot, {dropKey, ctrl, leftDrag}},
-        {"transfer", "fixed.transferDropKeepOne", "inventory.transferDropKeepOne", screen, slot, {dropKey, shift, rightDrag}},
-        {"transfer", "fixed.transferDropAll", "inventory.transferDropAll", screen, slot, {dropKey, shift, leftDrag}},
-        {"transfer", "fixed.transferDropMatching", "inventory.transferDropMatching", screen, slot, {shift, click}},
+        {"transfer", "", "inventory.transferWheelOne", screen, slot, {wheel}},
+        {"transfer", "", "inventory.transferWheelStack", screen, slot, {shift, wheel}},
+        {"transfer", "", "inventory.transferDragStack", screen, slot, {shift, leftDrag}},
+        {"transfer", "", "inventory.transferDragOne", screen, slot, {ctrl, leftDrag}},
+        {"transfer", "", "inventory.transferWheelMatching", screen, slot, {ctrl, wheel}},
+        {"transfer", "", "inventory.transferWheelAll", screen, slot, {ctrl, shift, wheel}},
+        {"transfer", "", "inventory.transferClickMatching", screen, slot, {alt, leftClick}},
+        {"transfer", "", "inventory.transferClickAll", screen, slot, {alt, shift, leftClick}},
+        {"transfer", "", "inventory.transferDragKeepOne", screen, slot, {shift, rightDrag}},
+        {"transfer", "", "inventory.transferCursorMatching", screen, slot, {shift, click}},
+        {"transfer", "", "inventory.transferDropOne", screen, slot, {dropKey, ctrl, leftDrag}},
+        {"transfer", "", "inventory.transferDropKeepOne", screen, slot, {dropKey, shift, rightDrag}},
+        {"transfer", "", "inventory.transferDropAll", screen, slot, {dropKey, shift, leftDrag}},
+        {"transfer", "", "inventory.transferDropMatching", screen, slot, {shift, click}},
         {"recipes", "fixed.recipesClick", "", both, list, {leftClick}},
         {"recipes", "fixed.recipesRightClick", "", both, list, {rightClick}},
         {"recipes", "fixed.recipesShiftClick", "", both, list, {shift, leftClick}},
@@ -77,5 +77,15 @@ inline bool fixedUses(FixedPress const& press, Chord const& pressed) {
         if (!found) return false;
     }
     return true;
+}
+}
+
+namespace lamium::input {
+// The fixed press a settings switch turns on and off, if any.
+inline FixedPress const* fixedPressOf(std::string_view option) {
+    if (option.empty()) return nullptr;
+    for (auto const& press : fixedPresses)
+        if (press.option == option) return &press;
+    return nullptr;
 }
 }

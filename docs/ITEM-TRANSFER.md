@@ -7,7 +7,8 @@ inventory and the other side of an item screen with the mouse wheel and
 modified clicks and drags. One saved switch `inventory.transfer`, off for
 new installs since 0.3.0 (a saved on stays on), with an unbound toggle
 action (`transfer`, "Toggle Inventory Transfer") usable in gameplay or an
-item screen. Each gesture has its own saved child switch, all default on;
+item screen. Each gesture has its own saved child switch, all default on,
+named by its effect with the gesture's keys read-only beside it (L-372);
 an off gesture passes through to vanilla:
 
 | Gesture | Setting (`inventory.`) |

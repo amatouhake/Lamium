@@ -257,6 +257,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "schematic.ignoreSignText") return input::Action::ToggleIgnoreSignText;
     return {};
 }
+using input::fixedPressOf;
 inline bool shownOnOption(input::Action action) {
     return std::any_of(settings::options.begin(), settings::options.end(),
         [&](settings::Option const& option) { return optionAction(option.id) == action; });
@@ -378,7 +379,7 @@ struct SettingsRow {
     bool selectable() const { return kind != RowKind::Section; }
     bool child() const {
         return kind == RowKind::Option || kind == RowKind::Action || kind == RowKind::Layout || kind == RowKind::MapCache
-            || kind == RowKind::SavedData || kind == RowKind::BandLayout;
+            || kind == RowKind::SavedData || kind == RowKind::BandLayout || kind == RowKind::Fixed;
     }
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
@@ -386,6 +387,13 @@ struct SettingsRow {
             && group == other.group && press == other.press;
     }
 };
+// The binding a row carries: its own action, a keyed option's, a feature's toggle key.
+inline std::optional<input::Action> rowAction(SettingsRow const& row) {
+    if (row.kind == RowKind::Action) return row.action;
+    if (row.kind == RowKind::Option && row.option) return optionAction(row.option->id);
+    if (row.kind == RowKind::Feature && row.feature) return primaryAction(*row.feature);
+    return std::nullopt;
+}
 // Category is a section key, or empty for all sections. A query searches every
 // section and initially expands features whose settings, but not name, match it.
 // Rows are headed by group in every view, a category of one group by its own name (L-340).
@@ -422,34 +430,14 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             std::stable_sort(actionOrder.begin(), actionOrder.end(), [](size_t a, size_t b) {
                 return actionRank(static_cast<input::Action>(a)) < actionRank(static_cast<input::Action>(b));
             });
-            if (hotkeys) {
-                for (size_t i : actionOrder) {
-                    auto const& action = input::actions[i];
-                    if (action.feature != feature.id) continue;
-                    if (keys ? !input::chordUses(input::effectiveChord(keys->bindings, static_cast<input::Action>(i)), keys->pressed)
-                             : !query.matches(scope + " " + std::string(action.id) + " "
-                                   + translate(actionTranslationKey(static_cast<input::Action>(i))))) continue;
-                    sectionRow();
-                    rows.push_back({RowKind::Action, &feature, nullptr, static_cast<input::Action>(i), section});
-                }
-                // The feature's fixed presses follow its bindings, read-only.
-                for (size_t i = 0; i < input::fixedPresses.size(); ++i) {
-                    auto const& press = input::fixedPresses[i];
-                    if (press.feature != feature.id) continue;
-                    if (keys ? !input::fixedUses(press, keys->pressed) : !query.matches(scope + " " + translate(press.name))) continue;
-                    sectionRow();
-                    SettingsRow row{RowKind::Fixed, &feature, nullptr, {}, section, std::nullopt, std::nullopt};
-                    row.press = static_cast<int>(i);
-                    rows.push_back(row);
-                }
-                continue;
-            }
             std::vector<SettingsRow> children;
             for (auto const& option : settings::options) {
                 if (option.feature != feature.id || option.id == feature.toggle) continue;
                 if (option.id.starts_with("hud.")) continue; // Edited in the layout editor.
                 // Saved and loaded, but nothing reads it until placement restrictions are built (L-15, L-338).
                 if (option.id == "interaction.placementMode") continue;
+                // Hotkeys lists the options that carry a key; a gesture's switch is its fixed row there.
+                if (hotkeys && !optionAction(option.id)) continue;
                 children.push_back({RowKind::Option, &feature, &option, {}, section});
             }
             for (size_t i : actionOrder) {
@@ -462,24 +450,69 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                     return row.action == input::Action::Sort || row.action == input::Action::FakeOffhandUse
                         || row.action == input::Action::SwapOffhand;
                 });
-            // Info lines keep catalog order (grouped by kind), not the HUD's
-            // order: the HUD layout arranges them (L-219).
-            if (auto element = layoutElement(feature.id))
-                children.push_back({RowKind::Layout, &feature, nullptr, {}, section, element});
-            if (auto page = bandPageOf(feature.id))
-                children.push_back({RowKind::BandLayout, &feature, nullptr, {}, section, std::nullopt, page});
-            if (feature.id == "worldMap") children.push_back({RowKind::MapCache, &feature, nullptr, {}, section});
-            if (keepsSavedData(feature.id)) children.push_back({RowKind::SavedData, &feature, nullptr, {}, section});
+            // Fixed presses (L-372): read-only rows after the bindings. On the settings screen a gesture with
+            // its own switch is that switch's row, which shows the keys.
+            for (size_t i = 0; i < input::fixedPresses.size(); ++i) {
+                auto const& press = input::fixedPresses[i];
+                if (press.feature != feature.id || (!hotkeys && !press.option.empty())) continue;
+                SettingsRow row{RowKind::Fixed, &feature, nullptr, {}, section, std::nullopt, std::nullopt};
+                row.press = static_cast<int>(i);
+                children.push_back(row);
+            }
+            if (!hotkeys) {
+                // Info lines keep catalog order (grouped by kind), not the HUD's
+                // order: the HUD layout arranges them (L-219).
+                if (auto element = layoutElement(feature.id))
+                    children.push_back({RowKind::Layout, &feature, nullptr, {}, section, element});
+                if (auto page = bandPageOf(feature.id))
+                    children.push_back({RowKind::BandLayout, &feature, nullptr, {}, section, std::nullopt, page});
+                if (feature.id == "worldMap") children.push_back({RowKind::MapCache, &feature, nullptr, {}, section});
+                if (keepsSavedData(feature.id)) children.push_back({RowKind::SavedData, &feature, nullptr, {}, section});
+            }
             auto childText = [&](SettingsRow const& row) {
                 if (row.kind == RowKind::MapCache) return std::string(translate("mapCache"));
                 if (row.kind == RowKind::BandLayout) return std::string(translate("band.layoutLink"));
                 if (row.kind == RowKind::SavedData) return std::string(translate("savedData.row")) + " " + translate("feature.savedData");
                 if (row.layout) return std::string(translate(layoutLinkLabel(*row.layout))) + " " + translate("nav.hudLayout");
+                if (row.kind == RowKind::Fixed) {
+                    auto const& press = input::fixedPresses[static_cast<size_t>(row.press)];
+                    auto const* option = press.option.empty() ? nullptr : settings::find(press.option);
+                    return std::string(translate(option ? option->label : press.name));
+                }
                 if (row.option) return std::string(row.option->id) + " " + translate(row.option->label);
                 // The child label shown here, plus the Hotkeys name as an alias.
                 return std::string(input::actions[static_cast<size_t>(*row.action)].id) + " "
                     + translate(actionTranslationKey(*row.action, true)) + " " + translate(actionTranslationKey(*row.action));
             };
+            if (hotkeys) {
+                // Hotkeys (L-372): the same tree, always open, only rows with a key. A hit child shows under its
+                // parent without its siblings; a parent hit, or a parent pressed while searching, shows them all.
+                bool const hasPrimary = primary && !input::retired(*primary);
+                if (!hasPrimary && children.empty()) continue;
+                auto uses = [&](SettingsRow const& row) {
+                    if (row.kind == RowKind::Fixed) return input::fixedUses(input::fixedPresses[static_cast<size_t>(row.press)], keys->pressed);
+                    auto action = row.option ? optionAction(row.option->id) : row.action;
+                    return action && input::chordUses(input::effectiveChord(keys->bindings, *action), keys->pressed);
+                };
+                bool const self = keys ? hasPrimary && input::chordUses(input::effectiveChord(keys->bindings, *primary), keys->pressed)
+                                       : query.matches(scope);
+                std::vector<SettingsRow> matching;
+                for (auto const& child : children)
+                    if (keys ? uses(child) : query.matches(scope + " " + childText(child))) matching.push_back(child);
+                if (!self && matching.empty()) continue;
+                bool const all = (!keys && self) || (!keys && !searching) || expanded.contains(feature.id);
+                auto const& shown = all ? children : matching;
+                sectionRow();
+                SettingsRow heading{RowKind::Feature, &feature, nullptr, {}, section};
+                heading.children = static_cast<int>(children.size());
+                heading.expanded = all || matching.size() == children.size();
+                rows.push_back(heading);
+                for (size_t i = 0; i < shown.size(); ++i) {
+                    rows.push_back(shown[i]);
+                    rows.back().lastChild = i + 1 == shown.size();
+                }
+                continue;
+            }
             bool self = query.matches(scope);
             std::vector<SettingsRow> matching;
             if (!self) {

@@ -159,10 +159,18 @@ append-only action ids and default keys in `src/input/Binding.h`.
   short names (Play, Screen, Window, Outside) for every action. The
   footer names the places in full, with on what and the condition.
 - Fixed presses (`input::fixedPresses`: Item transfer's gestures, the
-  recipe lists' clicks, wheel and Esc) are read-only rows in Hotkeys after
-  their feature's bindings: faint unfilled caps, no switch, a press does
-  nothing; Find by key finds them. The settings screen keeps the gesture
-  switches and lists no fixed rows.
+  recipe lists' clicks, wheel and Esc) show read-only keys: faint unfilled
+  caps, a hover tip when cut, a press does nothing; Find by key finds
+  them. On the settings screen a gesture's row is named by its effect and
+  keeps its switch, its keys read-only in the key column; the recipe
+  presses are read-only child rows of Recipes.
+- (Decided 2026-11-23) Hotkeys draws the settings tree, always open and
+  without chevrons: the feature row carries its toggle key, its children
+  are child actions, keyed options (by the option's name) and fixed
+  presses. A search or key hit on a child shows it under its parent
+  without its siblings; a feature-name hit shows all its children, and
+  pressing a parent while searching shows them too. Hotkeys changes keys
+  only, never a setting's value.
 - The mark and note that a lone mouse button is also the game's attack,
   use or pick block show only for actions that work in play; on an item
   screen that button is a slot's.

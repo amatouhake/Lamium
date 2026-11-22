@@ -87,20 +87,20 @@ void settingsRowsTests() {
         keys.bindings[static_cast<size_t>(input::Action::Hitboxes)] = ctrlZ;
         auto found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, &keys);
         std::vector<input::Action> listed;
-        for (auto const& row : found) if (row.action) listed.push_back(*row.action);
+        for (auto const& row : found) if (auto action = ui::rowAction(row)) listed.push_back(*action);
         check(listed.size() == 2 && std::ranges::count(listed, input::Action::Zoom) && std::ranges::count(listed, input::Action::Hitboxes),
               "Hotkeys found by key lists exactly the actions whose binding uses the key");
         keys.pressed = {{Device::Key, 0x72}, {Device::Key, 0x47}}; // F3+G, Chunk Borders' default
         found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, &keys);
-        check(std::ranges::any_of(found, [](auto const& row) { return row.action == input::Action::ChunkBorders; }),
+        check(std::ranges::any_of(found, [](auto const& row) { return ui::rowAction(row) == input::Action::ChunkBorders; }),
               "find by key sees default bindings");
         // Fixed presses (L-372): listed read-only under their feature, found by their inputs.
         keys.pressed = {{Device::Key, 0x10}, {Device::Wheel, -1}}; // Shift and the wheel down
         found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, &keys);
         std::set<std::string_view> fixedFound;
         for (auto const& row : found)
-            if (row.kind == RowKind::Fixed) fixedFound.insert(input::fixedPresses[static_cast<size_t>(row.press)].name);
-        check(fixedFound == std::set<std::string_view>{"fixed.transferWheelStack", "fixed.transferWheelAll"},
+            if (row.kind == RowKind::Fixed) fixedFound.insert(input::fixedPresses[static_cast<size_t>(row.press)].option);
+        check(fixedFound == std::set<std::string_view>{"inventory.transferWheelStack", "inventory.transferWheelAll"},
               "find by key finds the fixed presses that use every input pressed, a wheel in either direction");
     }
     {
@@ -112,12 +112,33 @@ void settingsRowsTests() {
             ++fixedRows;
             auto const& press = input::fixedPresses[static_cast<size_t>(all[i].press)];
             afterActions = afterActions && all[i].feature->id == press.feature
-                && (i + 1 == all.size() || all[i+1].kind != RowKind::Action || all[i+1].feature != all[i].feature);
+                && (i + 1 == all.size() || all[i+1].kind == RowKind::Fixed || all[i+1].feature != all[i].feature);
         }
         check(fixedRows == input::fixedPresses.size() && afterActions, "every fixed press is a Hotkeys row after its feature's bindings");
         auto settingsRows = ui::buildSettingsRows(false, {}, ui::SearchQuery{}, {"transfer", "recipes"}, translate);
-        check(std::ranges::none_of(settingsRows, [](auto const& row) { return row.kind == RowKind::Fixed; }),
-              "the settings screen keeps its gesture switches and lists no fixed rows");
+        size_t settingsFixed = 0, gestureKeys = 0;
+        for (auto const& row : settingsRows) {
+            settingsFixed += row.kind == RowKind::Fixed;
+            gestureKeys += row.option && ui::fixedPressOf(row.option->id) != nullptr;
+        }
+        check(settingsFixed == 6 && gestureKeys == 14,
+              "the settings screen shows the recipe lists' presses as rows and each gesture's keys on its switch's row");
+        // One tree (L-372): Hotkeys shows every feature always open, its children in grey under it.
+        bool open = true, children = true;
+        for (size_t i = 0; i < all.size(); ++i) {
+            if (all[i].kind == RowKind::Feature) open = open && all[i].expanded;
+            if (all[i].kind == RowKind::Option || all[i].kind == RowKind::Action || all[i].kind == RowKind::Fixed)
+                children = children && i > 0 && all[i].child() && all[i].feature == all[i-1].feature;
+        }
+        check(open && children, "Hotkeys is the settings tree, always open");
+        ui::SearchQuery speed;
+        speed.append("Increase speed");
+        auto hit = ui::buildSettingsRows(true, {}, speed, {}, translate);
+        check(hit.size() == 3 && hit[1].kind == RowKind::Feature && hit[1].feature->id == "freecamera" && !hit[1].expanded
+            && hit[2].action == input::Action::FreeCameraSpeedUp,
+            "a child hit shows under its parent without its siblings");
+        hit = ui::buildSettingsRows(true, {}, speed, {"freecamera"}, translate);
+        check(hit.size() > 3 && hit[1].expanded, "a parent pressed while searching shows all its children");
         bool known = true;
         for (auto const& press : input::fixedPresses) {
             known = known && !ui::featureNameKey(press.feature).empty() && input::fixedCapCount(press) > 0 && press.where != 0;
@@ -150,7 +171,7 @@ void settingsRowsTests() {
         };
         for (auto section : ui::sections) has(section, section);
         for (auto const& press : input::fixedPresses) {
-            has(press.name, press.name);
+            if (!press.name.empty()) has(press.name, press.name);
             for (int i = 0; i < input::fixedCapCount(press); ++i)
                 if (!press.caps[i].text.empty()) has(press.caps[i].text, press.name);
         }
@@ -464,9 +485,10 @@ void settingsRowsTests() {
     auto hotkeyRows = ui::buildSettingsRows(true, {}, query, expanded, translate);
     size_t shapeKeys = 0;
     for (auto const& row : hotkeyRows) {
-        if (row.action == input::Action::ToggleShapes || row.action == input::Action::OpenShapes) ++shapeKeys;
-        // Map marks has a Shapes switch, so its key matches too (L-297).
-        else check(!row.action || row.action == input::Action::ToggleMapMarks, "shape search lists only shape keys");
+        auto action = ui::rowAction(row);
+        if (action == input::Action::ToggleShapes || action == input::Action::OpenShapes) ++shapeKeys;
+        // Map marks has a Shapes switch, so its rows match too (L-297).
+        else check(!action || row.feature->id == "mapMarks", "shape search lists only shape keys");
     }
     check(shapeKeys == 2, "both shape keys are listed in Hotkeys");
     query.clear(); query.append("not-a-real-setting");
@@ -477,9 +499,10 @@ void settingsRowsTests() {
     rows = ui::buildSettingsRows(true, {}, query, expanded, translate);
     size_t actionRows = 0;
     for (auto const& row : rows) {
-        check(row.kind == RowKind::Section || (row.kind == RowKind::Action && row.action) || (row.kind == RowKind::Fixed && row.press >= 0),
-              "Hotkeys contains only bindings and fixed presses");
-        if (row.action) ++actionRows;
+        check(row.kind == RowKind::Section || row.kind == RowKind::Feature || (row.kind == RowKind::Action && row.action)
+              || (row.kind == RowKind::Option && ui::optionAction(row.option->id)) || (row.kind == RowKind::Fixed && row.press >= 0),
+              "Hotkeys contains only features, bindings and fixed presses");
+        if (auto action = ui::rowAction(row); action && !input::retired(*action)) ++actionRows;
     }
     check(actionRows == live, "Hotkeys includes every action that is not retired");
     query.clear();
@@ -515,7 +538,7 @@ void settingsRowsTests() {
         size_t section = hotkeys.size();
         for (size_t i = 0; i < hotkeys.size(); ++i)
             if (hotkeys[i].kind == RowKind::Section && hotkeys[i].group == "section.interface") section = i;
-        check(section + 3 < hotkeys.size() && hotkeys[section+1].action == input::Action::Settings
+        check(section + 3 < hotkeys.size() && ui::rowAction(hotkeys[section+1]) == input::Action::Settings
             && hotkeys[section+2].action == input::Action::OpenHotkeys
             && hotkeys[section+3].action == input::Action::OpenHudLayout,
             "Hotkeys lists General's openers in sidebar order");

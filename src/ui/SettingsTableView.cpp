@@ -112,6 +112,9 @@ ScrollBar descriptionBar(SettingsTable const& t, int lines, int first) {
 }
 std::set<std::string_view> expanded;
 std::set<std::string_view> searchCollapsed;
+// Hotkeys: parents pressed while searching show all their children; cleared when the search changes (L-372).
+std::set<std::string_view> revealed;
+std::string revealedFor;
 std::vector<SettingsRow> rows;
 int selected = -1;
 int first = 0;
@@ -169,7 +172,10 @@ void rebuild_(bool keepSelection) {
     auto const preferences = Runtime::instance().preferences();
     std::optional<KeyFilter> keys;
     if (keyQuery && hotkeysView()) keys = KeyFilter{*keyQuery, preferences.bindings};
-    rows = buildSettingsRows(hotkeysView(), categoryKey(), query, expanded,
+    std::string search = query.value();
+    if (keyQuery) for (auto token : *keyQuery) search += "|" + std::to_string(static_cast<int>(token.device)) + ":" + std::to_string(token.code);
+    if (search != revealedFor) { revealed.clear(); revealedFor = search; }
+    rows = buildSettingsRows(hotkeysView(), categoryKey(), query, hotkeysView() ? revealed : expanded,
         [](std::string_view key) { return translated(key); },
         searchCollapsed, keys ? &*keys : nullptr);
     selected = -1;
@@ -250,6 +256,14 @@ void toggleFeature(FeatureInfo const& feature) {
 void setExpanded(int row, bool open) {
     if (!valid(row) || !rows[row].heading() || !rows[row].children) return;
     if (open == rows[row].expanded) return;
+    if (hotkeysView()) {
+        // Hotkeys never folds: pressing a parent shows the children a search left out.
+        if (!open) return;
+        selected = row;
+        revealed.insert(rows[row].feature->id);
+        rebuild_(true);
+        return;
+    }
     bool searching = query.value().find_first_not_of(' ') != std::string::npos;
     auto id = rows[row].feature->id;
     selected = row;
@@ -311,6 +325,11 @@ void activateRow(int row, bool space) {
     switch (entry.kind) {
     case RowKind::Section: return;
     case RowKind::Feature:
+        if (hotkeysView()) {
+            if (!entry.expanded) { setExpanded(row, true); return; }
+            if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
+            return;
+        }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) { screen::openTool(*primary); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
@@ -318,6 +337,10 @@ void activateRow(int row, bool space) {
         if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
         return;
     case RowKind::Option:
+        if (hotkeysView()) {
+            if (auto linked = optionAction(entry.option->id)) startCapture(*linked);
+            return;
+        }
         if (entry.option->numeric) beginNumber(*entry.option);
         else adjustOption_(*entry.option, 1);
         return;
@@ -402,7 +425,14 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     selected = hit.index;
     auto const& entry = rows[hit.index];
     if (right) {
-        if (entry.option) adjustOption_(*entry.option, -1);
+        if (entry.option && !hotkeysView()) adjustOption_(*entry.option, -1);
+        return;
+    }
+    // Hotkeys has no state column: a press edits the key in the key column, nothing else changes a setting.
+    if (hotkeysView() && (entry.kind == RowKind::Feature || entry.kind == RowKind::Option)) {
+        auto action = entry.kind == RowKind::Feature ? primaryAction(*entry.feature) : optionAction(entry.option->id);
+        if (hit.column == Column::Key && action) startCapture(*action);
+        else if (entry.kind == RowKind::Feature && !entry.expanded) setExpanded(hit.index, true);
         return;
     }
     switch (entry.kind) {
@@ -492,7 +522,7 @@ void handleKey(int key) {
         int direction = key == 0x27 ? 1 : -1;
         if (!entry) break;
         if (entry->heading()) setExpanded(selected, direction > 0);
-        else if (entry->option) adjustOption_(*entry->option, direction);
+        else if (entry->option && !hotkeysView()) adjustOption_(*entry->option, direction); // Hotkeys changes keys only
         break;
     }
     case 0x0d: activateRow(selected, false); break;
@@ -694,6 +724,10 @@ std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress c
     }
     return keys;
 }
+std::string fixedName(input::FixedPress const& press) {
+    if (auto option = settings::find(press.option)) return splitLabel(translated(option->label)).name;
+    return translated(press.name);
+}
 // A fixed press whose feature or own switch is off: its row is drawn dimmed.
 bool fixedOff(input::FixedPress const& press, Settings const& value) {
     if (effectsPaused(press.feature, value)) return true;
@@ -729,7 +763,13 @@ std::string baseDescription() {
     switch (entry.kind) {
     case RowKind::Feature: {
         auto text = translated(entry.feature->description);
-        if (auto primary = primaryAction(*entry.feature)) text += " " + behaviorText(*primary);
+        if (auto primary = primaryAction(*entry.feature)) {
+            text += " " + behaviorText(*primary);
+            if (hotkeysView()) {
+                auto const where = input::whereActs(*primary);
+                text += "\n" + placeLine(where.layers, where.condition, input::FixedTarget::None);
+            }
+        }
         return text;
     }
     case RowKind::Option: {
@@ -743,6 +783,13 @@ std::string baseDescription() {
         }
         // The setting's own help stays readable under the note.
         if (effectsPaused(entry.feature->id,Runtime::instance().preferences())) text = translated("help.effectsPaused") + "\n" + text;
+        // Where its key works (Hotkeys) or where its fixed gesture does (L-372).
+        if (auto linked = optionAction(entry.option->id); linked && hotkeysView()) {
+            auto const where = input::whereActs(*linked);
+            text += "\n" + placeLine(where.layers, where.condition, input::FixedTarget::None);
+        } else if (auto press = fixedPressOf(entry.option->id)) {
+            text += "\n" + translated("fixed.help") + " " + placeLine(press->where, input::Condition::None, press->target);
+        }
         return text;
     }
     case RowKind::Action: {
@@ -763,7 +810,7 @@ std::string baseDescription() {
         std::string keys;
         if (auto client = ll::service::getClientInstance())
             for (auto const& key : fixedKeys(*client, press)) keys += (keys.empty() ? "" : " + ") + key;
-        auto text = featureName(*entry.feature) + ": " + translated(press.name) + " (" + keys + "). " + translated("fixed.help");
+        auto text = featureName(*entry.feature) + ": " + fixedName(press) + " (" + keys + "). " + translated("fixed.help");
         if (!press.option.empty()) text += " " + translated("fixed.helpSwitch");
         return text + "\n" + placeLine(press.where, input::Condition::None, press.target);
     }
@@ -933,6 +980,27 @@ void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, S
     if (noteLines) paragraph(context,x+pad,y+pad+lineHeight,width-2*pad,note,noteLines,palette::warning);
     label(context,x+pad,y+pad+(1 + noteLines)*lineHeight,width-2*pad,std::move(hint),palette::faint);
     context.flushText(0, std::nullopt);
+}
+// A fixed key cut short in its cell shows whole under it on hover (L-372), like a bound key's.
+// Returns the row it is drawn for, or -1.
+int drawFixedTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, SettingsTable::Hit const& hover) {
+    if (hover.zone != Zone::Row || hover.column != Column::Key || !valid(hover.index)) return -1;
+    if (hover.index < t.first || hover.index >= t.first + t.visible) return -1;
+    auto const& entry = rows[hover.index];
+    input::FixedPress const* press = entry.kind == RowKind::Fixed ? &input::fixedPresses[static_cast<size_t>(entry.press)]
+        : entry.kind == RowKind::Option && !(hotkeysView()) ? fixedPressOf(entry.option->id) : nullptr;
+    if (!press) return -1;
+    auto keys = fixedKeys(current, *press);
+    if (keycapsWidth(context, keys) <= t.keyWidth) return -1;
+    constexpr float pad = 4;
+    float width = std::min(t.width - 2*SettingsTable::pad, keycapsWidth(context, keys) + 2*pad);
+    float height = keycapsWrapHeight(context, width - 2*pad, keys, 3) + 2*pad;
+    float rowTop = t.rowY(hover.index), rowBottom = rowTop + SettingsTable::rowHeight;
+    bool under = rowBottom + 1 + height <= t.top + t.height - 2;
+    float x = std::max(t.left + 2, t.keyX + t.keyWidth - width), y = under ? rowBottom + 1 : rowTop - 1 - height;
+    drawTipBox(context,x,y,width,height,false);
+    keycapsWrap(context,x+pad,y+pad,width-2*pad,keys,KeyTone::Fixed,3);
+    return hover.index;
 }
 // A stepper value cut with "..." shows whole below the stepper, like a key
 // cell that clips its binding: on hover, or for the keyboard-selected row.
@@ -1115,6 +1183,18 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         switch (entry.kind) {
         case RowKind::Feature: {
             auto primary = primaryAction(*entry.feature);
+            if (hotkeysView()) {
+                // Always open, no chevron; the toggle key on the feature's own row (L-372).
+                float const place = placeX(t);
+                drawName(context,t.nameX,y,editingRow ? std::min(nameRight, place - SettingsTable::gap) : place - SettingsTable::gap,
+                    featureName(*entry.feature),palette::text,0,entry.feature->experimental);
+                if (primary) {
+                    if (!editingRow || buttonsX > place + placeWidth)
+                        label(context,place,y+3,placeWidth,placeNames(input::whereActs(*primary).layers, true),palette::dim);
+                    drawKeyCell(context,current,y,*primary);
+                }
+                break;
+            }
             bool open = primary && opensTool(*primary) && !editingRow;
             if (entry.children) chevron(context,t.nameX,y+5,entry.expanded);
             drawName(context,t.nameX+9,y,open ? nameRight - 14 : nameRight,featureName(*entry.feature)+pausedSuffix(entry.feature->id),palette::text,
@@ -1140,6 +1220,18 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawGuide(context,y,entry.lastChild);
             auto value = entry.option->read(preferences);
             auto name = splitLabel(translated(entry.option->label)).name;
+            if (hotkeysView()) {
+                float const place = placeX(t);
+                auto linked = optionAction(entry.option->id);
+                label(context,t.nameX+12,y+3,(editingRow ? std::min(nameRight, place - SettingsTable::gap) : place - SettingsTable::gap)-t.nameX-12,
+                    std::move(name),palette::dim);
+                if (linked) {
+                    if (!editingRow || buttonsX > place + placeWidth)
+                        label(context,place,y+3,placeWidth,placeNames(input::whereActs(*linked).layers, true),palette::dim);
+                    drawKeyCell(context,current,y,*linked);
+                }
+                break;
+            }
             // Dimmed by `dim` above, the name as it is: the footer says why.
             if (editingRow) {
                 label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
@@ -1163,15 +1255,18 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 }
             }
             if (auto linked = optionAction(entry.option->id)) drawKeyCell(context,current,y,*linked);
+            else if (auto press = fixedPressOf(entry.option->id)) keycaps(context,t.keyX,y+2,t.keyWidth,fixedKeys(current, *press),KeyTone::Fixed);
             break;
         }
         case RowKind::Action: {
             bool open = !hotkeysView() && opensTool(*entry.action) && !editingRow;
             if (hotkeysView()) {
-                // The place column (L-372) gives way to the edited row's buttons.
+                // A child of its feature, named as on the settings screen; the place column (L-372) gives way to
+                // the edited row's buttons.
+                drawGuide(context,y,entry.lastChild);
                 float const place = placeX(t);
-                drawName(context,t.nameX,y,editingRow ? std::min(nameRight, place - SettingsTable::gap) : place - SettingsTable::gap,
-                    actionLabel(*entry.action),palette::text,0,entry.feature->experimental);
+                label(context,t.nameX+12,y+3,(editingRow ? std::min(nameRight, place - SettingsTable::gap) : place - SettingsTable::gap)-t.nameX-12,
+                    actionLabel(*entry.action,true),palette::dim);
                 if (!editingRow || buttonsX > place + placeWidth)
                     label(context,place,y+3,placeWidth,placeNames(input::whereActs(*entry.action).layers, true),palette::dim);
             } else {
@@ -1184,9 +1279,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         }
         case RowKind::Fixed: {
             auto const& press = input::fixedPresses[static_cast<size_t>(entry.press)];
-            float const place = placeX(t);
-            label(context,t.nameX,y+3,place-SettingsTable::gap-t.nameX,translated(press.name),palette::dim);
-            label(context,place,y+3,placeWidth,placeNames(press.where, true),palette::dim);
+            drawGuide(context,y,entry.lastChild);
+            float const nameEnd = hotkeysView() ? placeX(t) - SettingsTable::gap : t.keyX - SettingsTable::gap;
+            label(context,t.nameX+12,y+3,nameEnd-t.nameX-12,fixedName(press),palette::dim);
+            if (hotkeysView()) label(context,placeX(t),y+3,placeWidth,placeNames(press.where, true),palette::dim);
             keycaps(context,t.keyX,y+2,t.keyWidth,fixedKeys(current, press),KeyTone::Fixed);
             break;
         }
@@ -1291,6 +1387,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             if (drawConflictTip(context,current,t,target->first,target->second,
                     hover.zone == Zone::Row && hover.column == Column::Key))
                 conflictRow = target->first;
+    if (!capturing_ && !findingKey && conflictRow < 0) conflictRow = drawFixedTip(context, current, t, hover);
     if (!capturing_ && !findingKey) drawValueTip(context, t, hover, conflictRow);
     drawVersionTip(context, t, hover);
     context.flushText(0,std::nullopt);
