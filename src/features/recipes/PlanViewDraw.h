@@ -1,4 +1,5 @@
 #pragma once
+#include "features/recipes/PlanRows.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeViewDraw.h"
 #include <functional>
@@ -35,6 +36,9 @@ void storedLines(view::Late& late, state::Plan const& plan, Item item);
 // cannot, the tip saying why. `took` takes the frame's press over a box. True when a recipe was laid in.
 bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Placer* placer, state::Plan const& plan, StepLine const& step, float x,
                  float y, float px, float py, std::function<bool(float, float, float, float)> const& took, bool ctrl, bool shift);
+// What "Make all" makes (L-385): the runs of every step that can be made now and laid in at the open screen, top
+// down, so a step's product feeds the next; empty where nothing can.
+std::vector<std::pair<int, int>> readyRuns(view::Placer* placer, state::Plan const& plan, std::vector<MakeRow> const& rows);
 // `shift`: a stepper moves by 16. `showItem` is set to the item whose name was pressed, for the recipe
 // view; `showChoice` with it when that was in the list of what to make.
 void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Late& late, LocalPlayer& player, bool shift,

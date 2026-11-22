@@ -137,6 +137,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         int entry = -1;           // a wanted row: its entry in the plan's shares
     };
     std::vector<SideRow> rows;
+    std::vector<MakeRow> madeRows; // "to make": for its heading's Make all
     auto const* plan = state::plan(player);
     if (sideList == SideList::Wanted) {
         // As the window's tab (L-370, PlanRows.h): the count only, the stepper under the pointer; what is all held
@@ -189,7 +190,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         std::map<Item, Count> all, carried;
         for (auto const& [id, have] : plan->request.held) all[id] += have;
         for (auto const& [id, have] : plan->held) carried[id] += have;
-        for (auto const& made : makeRows(index, plan->request, plan->view, heldSteps(index, *plan->choice, plan->view), carried, all)) {
+        madeRows = makeRows(index, plan->request, plan->view, heldSteps(index, *plan->choice, plan->view), carried, all);
+        for (auto const& made : madeRows) {
             bool const held = made.state == StepState::Held;
             // A traced group's step (L-386): the group's picture, marked, and its name.
             SideRow row{planView::planPicture(*plan, made.step.item), planItemName(index, made.step.item), made.step.made, !held, {},
@@ -236,6 +238,15 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                     palette::faint, Align::Right, false);
         labelScaled(context, needX - 6, y + 3, numW + 6, translated(sideList == SideList::Make ? "recipes.col.toMake" : "recipes.col.need"), .75f, palette::faint,
                     Align::Right, false);
+        // "Make all" heads the rows' make buttons (2026-11-22): their picture, greyed where nothing can be made here.
+        if (sideList == SideList::Make && plan) {
+            auto const ready = planView::readyRuns(frame.placer, *plan, madeRows);
+            ListBox const box{controlsX + 13, y + .5f, 11, 11};
+            bool const hot = box.has(px, py);
+            drawPictureButton(context, box.x, box.y, box.w, Picture::Make, hot, false, !ready.empty());
+            if (hot) late.tip = translated("recipes.makeAll"), late.tipLines = {translated("recipes.makeAllTip")};
+            if (leftPress && took(box) && !ready.empty()) frame.placer->make(ready);
+        }
     }
     // A count cut to fit its column shows whole under the pointer.
     auto number = [&](float x, float y, Count count, Rgb color) {

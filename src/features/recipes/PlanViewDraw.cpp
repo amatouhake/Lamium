@@ -104,6 +104,15 @@ bool stepButtons(MinecraftUIRenderContext& context, view::Late& late, view::Plac
     if (took(makeX, y, size, size) && can) placer->make(stepRuns(index, plan.request, step, plan.held));
     return false;
 }
+std::vector<std::pair<int, int>> readyRuns(view::Placer* placer, state::Plan const& plan, std::vector<MakeRow> const& rows) {
+    std::vector<std::pair<int, int>> out;
+    if (!placer || placer->gridSide() <= 0) return out;
+    auto const& index = plan.table->index;
+    for (auto const& row : rows)
+        if (row.state == StepState::Ready && placer->preview(index.recipes[static_cast<size_t>(layRecipe(index, plan.request, row.step, plan.held))], false).ready())
+            for (auto const& run : stepRuns(index, plan.request, row.step, plan.held)) out.push_back(run);
+    return out;
+}
 void stepTip(view::Late& late, state::Plan const& plan, StepLine const& step) {
     auto const& index = plan.table->index;
     late.tip = planItemName(index, step.item), late.hovered = planPicture(plan, step.item);
@@ -697,11 +706,8 @@ struct Lists : Window {
             }
             lines.push_back({&row, row.state, nullptr, stepHeight});
         }
-        // What the open screen can do with a step: one round laid in from what is carried.
+        // The open screen, which lays in and makes (stepButtons, readyRuns).
         auto* placer = input.placer;
-        auto canLay = [&](StepLine const& step) {
-            return placer && placer->preview(index.recipes[static_cast<size_t>(layRecipe(index, request, step, plan->held))], false).ready();
-        };
         // The columns of "to gather" (L-370): what can be made now and what is needed, in items, and a bar.
         columnHeads(top, "recipes.col.toMake", false, {}, "recipes.col.now");
         top += headHeight;
@@ -717,11 +723,8 @@ struct Lists : Window {
                 labelScaled(context, left, y + 3, right - left, translated(line.label), .75f, v::windowFaint, Align::Left, false);
                 if (line.state == StepState::Ready) {
                     // "Make all": what can be made now here, top down; a grid holds one recipe at a time, so it only makes.
-                    std::vector<std::pair<int, int>> ready;
-                    for (auto const& other : made)
-                        if (other.state == StepState::Ready && canLay(other.step))
-                            for (auto const& run : stepRuns(index, request, other.step, plan->held)) ready.push_back(run);
-                    bool const can = !ready.empty() && placer && placer->gridSide() > 0;
+                    auto const ready = readyRuns(placer, *plan, made);
+                    bool const can = !ready.empty();
                     std::string const text = translated("recipes.makeAll");
                     float const w = rowButtonWidth(context, text), bx = tableRight - w, by = y;
                     bool const hot = over(bx, by, w, rowButtonHeight);
