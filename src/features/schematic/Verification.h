@@ -106,6 +106,10 @@ inline std::vector<std::pair<std::string, std::uint64_t>> planTargets(std::vecto
     std::vector<std::pair<std::string, std::uint64_t>> out;
     for (auto const& line : lines) {
         if (line.item.empty() || !line.remaining()) continue;
+        // Water and lava are placed, not gathered or made (L-391): they stay in the Materials tab only.
+        std::string_view name = line.item;
+        if (name.starts_with("minecraft:")) name.remove_prefix(10);
+        if (name == "water" || name == "lava" || name == "flowing_water" || name == "flowing_lava") continue;
         auto found = std::find_if(out.begin(), out.end(), [&](auto const& target) { return target.first == line.item; });
         if (found == out.end()) out.emplace_back(line.item, line.remaining()); else found->second += line.remaining();
     }

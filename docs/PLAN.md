@@ -153,7 +153,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   the rule's first, re-dyeing folded as "染め直し（N）" (its rows in line
   with the others). Rows have no tip of their own; each picture names
   itself. Items usually gathered
-  (leather, white wool, anything smelted from an ore that drops it:
+  (leather, white wool, granite, diorite, andesite, anything smelted
+  from an ore that drops it:
   `usuallyGathered`) have no automatic recipe, as a loop's base: they
   read "Automatic: gather" and are made by choosing a recipe; the notes
   keep only the player's choices. In a loop of items made from each
@@ -254,7 +255,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   plan asks twice a second); `schematic/PlanHandOver.cpp` is the
   schematic's, from the last check's material lines of the selected
   placement (none while another placement's pass is the last)
-  (`Verification.h` `planTargets`).
+  (`Verification.h` `planTargets`); water and lava are placed, not
+  gathered, and are not handed over (L-391).
 
 ## Limits
 - With the stores on and the plan off, the stores list (to remove a store,

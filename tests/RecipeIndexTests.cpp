@@ -58,6 +58,9 @@ void recipeIndexTests() {
         {"crafting_table", "furnace", -1, {{"furnace", 1}}, cells("cobblestone", 8)},
         {"crafting_table", "lever", 0, {{"lever", 1}}, both(cells("cobblestone", 1), cells("stick", 1))},
         {"crafting_table", "dropper", 0, {{"dropper", 1}}, both(cells("cobblestone", 7), cells("redstone", 1))},
+        // Stones a player mines, though Nether quartz makes them (L-391).
+        {"crafting_table", "diorite", 0, {{"diorite", 2}}, both(cells("cobblestone", 2), cells("quartz", 2))},
+        {"crafting_table", "polished_diorite", 0, {{"polished_diorite", 4}}, cells("diorite", 4)},
         {"crafting_table", "string_to_wool", 0, {{"white_wool", 1}}, cells("string", 4)},
         {"crafting_table", "wool_white_from_black", 50, {{"white_wool", 1}}, both(cells("bone_meal", 1), cells("black_wool", 1))},
         {"crafting_table", "wool_black_from_red", 50, {{"black_wool", 1}}, both(cells("ink_sac", 1), cells("red_wool", 1))},
@@ -127,6 +130,8 @@ void recipeIndexTests() {
               "in a loop across stations the item more recipes use is gathered");
         check(made("white_wool").empty() && choice.base[id("red_wool")] == id("white_wool"),
               "an item with a recipe from outside the loop is its base");
+        check(made("diorite").empty() && made("polished_diorite") == "polished_diorite",
+              "diorite is gathered by default, and what is made from it is still made (L-391)");
         check(made("black_wool") == "wool_black_from_white" && made("red_wool") == "wool_red_from_white",
               "among equal recipes the one closest to the base wins, not the first by name");
         check(made("white_stained_glass") == "white_stained_glass_from_bone_meal",

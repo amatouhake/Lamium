@@ -1293,6 +1293,9 @@ void verificationOrder() {
     check(planTargets({{"a", "Stone", "", 10, 10}, {"b", "Planks", "", 5, 1}, {"", "Air", "", 4, 0}, {"b", "Planks", "", 3, 0}})
               == std::vector<std::pair<std::string, std::uint64_t>>{{"b", 7}},
           "the plan gets what is still to place, item by item, without finished lines and lines no item places");
+    check(planTargets({{"minecraft:water", "Water", "", 34, 0}, {"minecraft:lava", "Lava", "", 2, 0}, {"b", "Planks", "", 3, 0}})
+              == std::vector<std::pair<std::string, std::uint64_t>>{{"b", 3}},
+          "water and lava are not handed to the plan (L-391)");
     std::vector<MaterialLine> lines{{"a", "Stone", "", 10, 10}, {"b", "Planks", "", 5, 1}, {"c", "Glass", "", 9, 1}};
     sortMaterials(lines);
     check(lines[0].name == "Glass" && lines[1].name == "Planks" && lines[2].name == "Stone" && lines[2].remaining() == 0,

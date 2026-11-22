@@ -438,14 +438,14 @@ inline bool smeltsOreOnly(Index const& index, Recipe const& recipe) {
 }
 // Items players gather rather than make although a recipe makes them (L-370): one smelted from an ore that drops it
 // when mined (diamond, coal, redstone: smeltsOreOnly), or one whose recipe turns something rarer into it (rabbit hide
-// into leather, string into wool), named here. The one rule for "usually gathered" (maintainer 2026-11-22): choose()
+// into leather, string into wool, Nether quartz into granite, diorite and andesite: L-391), named here. The one rule for "usually gathered" (maintainer 2026-11-22): choose()
 // gives such an item no recipe, so "automatic" gathers it, as a loop's base; the player makes one by choosing a
 // recipe, and nothing of the rule is kept in the notes.
 inline bool usuallyGathered(Index const& index, Item item) {
     if (item < 0 || static_cast<size_t>(item) >= index.items.size()) return false;
     std::string_view key = index.items[static_cast<size_t>(item)];
     if (key.starts_with("minecraft:")) key.remove_prefix(10);
-    if (key == "leather" || key == "white_wool") return true;
+    if (key == "leather" || key == "white_wool" || key == "granite" || key == "diorite" || key == "andesite") return true;
     auto const& makers = index.makers[static_cast<size_t>(item)];
     return std::any_of(makers.begin(), makers.end(), [&](int number) { return smeltsOreOnly(index, index.recipes[static_cast<size_t>(number)]); });
 }
