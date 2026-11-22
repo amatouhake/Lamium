@@ -14,6 +14,8 @@ void executeAction(IClientInstance& client, input::Action action);
 void releaseAction(input::Action action);
 std::string actionBindingName(IClientInstance& client, input::Action action);
 std::string bindingChordName(IClientInstance& client, input::Chord const& chord);
+// A keyboard key as the key column names it: the game's name, Windows' where the game has none.
+std::string keyName(IClientInstance& client, int code);
 // Session features (Zoom, Freelook, FreeCamera, Permanent Sneak/Sprint)
 // have no saved switch: their settings switch shows and flips whether
 // they are wanted (BACKLOG L-47).

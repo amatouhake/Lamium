@@ -10,4 +10,6 @@ bool copyText(std::string const& text);
 std::string clipboardText();
 // Whether the keyboard key (a virtual-key code) is held down right now.
 bool keyDown(int key);
+// Windows' name for the key (a virtual-key code) in the current keyboard layout; empty when it has none.
+std::string keyName(int key);
 }

@@ -17,6 +17,14 @@ inline std::string_view mouseNameKey(int button) {
     default: return {};
     }
 }
+// The game names a key it has no name for "Button" and its code ("Button226": the JIS ろ key); such a
+// key takes Windows' name instead, where Windows has one (maintainer 2026-11-23).
+inline bool unnamedByGame(std::string_view mapped) {
+    constexpr std::string_view prefix = "Button";
+    if (!mapped.starts_with(prefix) || mapped.size() == prefix.size()) return false;
+    for (char c : mapped.substr(prefix.size())) if (c < '0' || c > '9') return false;
+    return true;
+}
 inline std::string keyLabel(int code, std::string_view mapped) {
     if (code == 0x12 || code == 0xA4 || code == 0xA5) return "ALT";
     if (code == 0x11 || code == 0xA2 || code == 0xA3) return "CTRL";

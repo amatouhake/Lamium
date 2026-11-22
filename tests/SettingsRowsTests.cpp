@@ -28,6 +28,8 @@ void settingsRowsTests() {
           "mouse buttons 1-3 are named by what they are; the side buttons keep their number (L-372)");
     check(ui::keyLabel(0x10, "SHIFT キー") == "SHIFT" && ui::keyLabel(0x43, "C キー") == "C" && ui::keyLabel(0x51, "Q") == "Q"
           && ui::keyLabel(0x20, "キー") == "キー", "Shift is short and the game's key word is dropped (L-372)");
+    check(ui::unnamedByGame("Button226") && !ui::unnamedByGame("BACKSLASH") && !ui::unnamedByGame("Button")
+          && !ui::unnamedByGame("Button2x"), "a key the game calls Button and its code has no name of the game's");
     {
         auto const& drop = *std::ranges::find_if(input::fixedPresses, [](auto const& p) { return p.option == "inventory.transferDropAll"; });
         std::vector<int> q{0x51};

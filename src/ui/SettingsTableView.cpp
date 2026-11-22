@@ -749,8 +749,7 @@ std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress c
         if (cap.drop) {
             // The key the game has for dropping, as its keymap names it; the words where it has none.
             auto const drop = gameDropKeys(current);
-            auto layout = current.getOptions().getCurrentKeyboardRemapping();
-            keys.push_back(drop.empty() || !layout ? translated(cap.text) : keyLabel(drop.front(), layout->getMappedKeyName(drop.front())));
+            keys.push_back(drop.empty() ? translated(cap.text) : keyName(current, drop.front()));
             continue;
         }
         if (!cap.text.empty()) { keys.push_back(translated(cap.text)); continue; }

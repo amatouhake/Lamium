@@ -182,7 +182,10 @@ append-only action ids and default keys in `src/input/Binding.h`.
   has for dropping (its keymap's "key.drop"; the words "Drop key" when
   unread), which Find by key matches too.
 - Key names: ALT, CTRL and SHIFT short in every language; the word the
-  game adds after a key's name in Japanese ("C キー") is dropped. The key
+  game adds after a key's name in Japanese ("C キー") is dropped. A key
+  the game only calls "Button" and its code (the JIS ろ key, "Button226")
+  takes Windows' name for it in the current layout (`\`); without the
+  Shift character, which would read as a second key (2026-11-23). The key
   column grows with the table, 28 % of it between 88 and 150 units (70
   below a 380-unit table).
 - An action named alone (the conflict tip's list, the capture line) is

@@ -36,6 +36,7 @@
 #include "features/schematic/Selection.h"
 #include "ui/Localization.h"
 #include "ui/KeyLabel.h"
+#include "app/Desktop.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/input/KeyboardRemappingLayout.h"
 #include "mc/client/options/IOptionRegistry.h"
@@ -173,8 +174,14 @@ void toggleSession(IClientInstance& client, std::string_view feature) {
     else if (feature == "permanentSneak") interaction::sneak::toggle(client);
     else if (feature == "permanentSprint") interaction::sprint::toggle(client);
 }
-std::string bindingChordName(IClientInstance& client, input::Chord const& chord) {
+std::string keyName(IClientInstance& client, int code) {
     auto layout = client.getOptions().getCurrentKeyboardRemapping();
+    std::string mapped = layout ? layout->getMappedKeyName(code) : std::to_string(code);
+    if (ui::unnamedByGame(mapped))
+        if (auto windows = lamium::keyName(code); !windows.empty()) mapped = std::move(windows);
+    return ui::keyLabel(code, mapped);
+}
+std::string bindingChordName(IClientInstance& client, input::Chord const& chord) {
     if (chord.empty()) return ui::translated("unbound");
     std::string result;
     for (auto token : chord) {
@@ -184,7 +191,7 @@ std::string bindingChordName(IClientInstance& client, input::Chord const& chord)
             auto name = ui::mouseNameKey(token.code);
             result += name.empty() ? ui::translated("mouseButton", token.code) : ui::translated(name);
         }
-        else result += ui::keyLabel(token.code, layout ? layout->getMappedKeyName(token.code) : std::to_string(token.code));
+        else result += keyName(client, token.code);
     }
     return result;
 }
