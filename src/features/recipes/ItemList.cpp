@@ -55,6 +55,7 @@
 #include "mc/world/item/registry/CreativeItemRegistry.h"
 #include "mc/world/item/registry/ItemRegistryRef.h"
 #include "mc/world/level/Level.h"
+#include "ui/GameLanguage.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/TextEdit.h"
@@ -89,6 +90,9 @@ bool searchFocus = false, keyboardOwned = false;
 // the game). Their English names and tags are read with the list; their tooltips only once a search asks for
 // them, a part a frame.
 std::vector<std::string> lowNames, englishNames, tagTexts, tooltipTexts;
+// What the names were read for: a language chosen in the world, or English search switched, reads them again.
+std::string namesLanguage;
+bool namesEnglish = false;
 search::History searchHistory;
 std::vector<int> visible; // positions in `names`
 struct VisibleFor {
@@ -314,6 +318,8 @@ void readNames(LocalPlayer& player) {
     // English names where English search is on; tags where reading item data is confirmed for this version.
     bool const english = Runtime::instance().snapshot()->inspection.englishSearch;
     bool const tags = versionSensitiveAllowed(capabilities::Id::ItemDetails);
+    namesEnglish = english;
+    namesLanguage = ui::game_language::currentCode();
     auto const* registry = player.getLevel().getItemRegistry().getCreativeItemRegistry().get();
     if (!registry) return;
     auto const& entries = registry->mCreativeItems.get();
@@ -445,6 +451,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!player) return false;
     if (forget.exchange(false)) names.clear(), closeViews(), search.clear(), searchFocus = false;
     cost.at("start");
+    if (!names.empty() && (Runtime::instance().snapshot()->inspection.englishSearch != namesEnglish
+                           || ui::game_language::currentCode() != namesLanguage))
+        names.clear();
     if (names.empty()) readNames(*player);
     cost.at("names");
     glm::vec2 at{}, size{};

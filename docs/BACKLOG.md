@@ -180,7 +180,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; every question and answer checked on a local BDS (2026-11-19); a Realm not seen
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; nothing here is agreed work): Being fixed; the candidates to fix before the next release first
+- [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; nothing here is agreed work): Five of the seven high and medium findings fixed (not seen in game); 3-1 waits for a decision on L-365
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns

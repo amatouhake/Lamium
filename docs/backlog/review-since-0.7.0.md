@@ -11,14 +11,6 @@ here was seen in game. Line numbers are that commit's.
 
 ## Range 1: recipes, plan, stores, Mass Craft
 
-### 1-6 Medium: the item list's search keeps the old names
-`src/features/recipes/ItemList.cpp:251`, `:308`, `src/ui/GameLanguage.cpp:60`.
-The folded names, English names and tooltip texts are rebuilt only after
-the world is left. A language change in a world leaves the search in the
-old language; English search switched on in a world finds nothing by
-English name.
-Read.
-
 ### 1-7 Low: "make" counts rounds as made once the grid reads empty
 `src/features/recipes/RecipePlace.cpp:449`. A server that refuses and puts
 the inputs back empties the grid too: the step is dropped as done and the
