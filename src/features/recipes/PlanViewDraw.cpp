@@ -490,7 +490,8 @@ struct Lists : Window {
         top += headHeight;
         std::vector<float> heights;
         for (auto const& line : lines) heights.push_back(line.height);
-        bar(count, offset, fitFromEnd(heights));
+        int const fits = fitFromEnd(heights);
+        bar(count, offset, fits);
         float const faceX = left + 8, faceW = right - faceX, x0 = faceX + 4;
         // A breakdown's steps and materials one indent in from its labels, the products in one column after the room
         // the most inputs take (L-370, 2026-11-22).
@@ -597,7 +598,8 @@ struct Lists : Window {
             }
             y += line.height;
         }
-        offset = std::clamp(offset + wheel, 0, std::max(0, count - 1));
+        // The wheel last, as a count's box may take it; held to what the bar allows, so a list that fits stays put.
+        offset = std::clamp(offset + wheel, 0, std::max(0, count - fits));
     }
 
     void gatherTab() {
