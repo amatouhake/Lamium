@@ -35,7 +35,8 @@ Do not infer game success from a build or unit-test result.
   world or Realm kept together keeping the data chosen on the Saved data
   page across a rejoin, and "Do not split here" going back to its own.
   The lower findings' fixes: "make" and a placing still running after the
-  press that starts them (`158e0fe2`); the panel editor ended by a death;
+  press that starts them (`158e0fe2`); the panel editor ended by a death
+  (and by any gap of 300 ms in drawing, such as a minimised window);
   the editor's refusal chip and tray in the warning color, the chip's dark
   text readable; the plan showing no schematic materials while another
   placement's pass runs; a gesture row's key caps not switching it; data

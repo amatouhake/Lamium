@@ -351,7 +351,6 @@ Shares const* shares(LocalPlayer& player) {
 void start() {
     // The stores' outlines are the world's: none in the next one until its places are read.
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
-        try { flushWanted(true); } catch (...) {} // still the files of the world left
         left = true;
         marks.store(nullptr);
     });

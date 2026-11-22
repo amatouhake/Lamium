@@ -238,7 +238,8 @@ A setting of its own, off by default, and it works with Recipes off
   the key has no default, and a key of several inputs matches in any
   order. It starts once the key was held for a time the
   player sets, 0 to 1 s, 0.3 s unless changed, so a brush of the key
-  does nothing.
+  does nothing. Starting ends a plan's "make" and a recipe waiting to be
+  laid in, and waits for a round being crafted onto the pointer.
 - The recipe is that of the item under the pointer, as for the recipe
   keys: in Lamium's lists or a slot of the game. Of its crafting recipes
   that fit the grid, the one the player's choices name, else the first;

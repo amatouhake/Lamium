@@ -574,6 +574,8 @@ std::vector<SavedData> savedData() {
             if (folder != mapFolder) {
                 if (!key.ends_with(".json")) continue;
                 key.resize(key.size() - 5);
+                // The counted places every server once shared, left unread (PLAN.md "Limits"): no data set.
+                if (folder == wantedFolder && key == "places") continue;
             }
             if (safeKey(key)) keys.insert(std::move(key));
         }
