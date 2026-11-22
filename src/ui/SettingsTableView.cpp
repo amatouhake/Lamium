@@ -565,8 +565,8 @@ KeyTone conflictTone(input::Relation relation, bool gameClick = false) {
         : relation == input::Relation::Overlap || gameClick ? KeyTone::Outline : KeyTone::Plain;
 }
 // The tip's line for a binding that is the game's own click, empty otherwise.
-std::string gameClickNote(input::Chord const& chord) {
-    switch (input::gameClick(chord)) {
+std::string gameClickNote(input::Action action, input::Chord const& chord) {
+    switch (input::gameClick(action, chord)) {
     case input::GameClick::Attack: return translated("tip.gameAttack");
     case input::GameClick::Use: return translated("tip.gameUse");
     case input::GameClick::Pick: return translated("tip.gamePick");
@@ -605,7 +605,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
     auto const& bindings = Runtime::instance().preferences().bindings;
     auto relation = strongestConflict(input::bindingConflicts(bindings, action));
-    keycaps(context,x,cy,width,keys,conflictTone(relation, input::gameClick(input::effectiveChord(bindings, action)) != input::GameClick::None));
+    keycaps(context,x,cy,width,keys,conflictTone(relation, input::gameClick(action, input::effectiveChord(bindings, action)) != input::GameClick::None));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -766,7 +766,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (chord.empty()) return false;
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
     auto const keys = chordKeys(current, chord);
-    auto const gameNote = gameClickNote(chord);
+    auto const gameNote = gameClickNote(action, chord);
     // Hovering the key cell reveals a binding only when the cell clips it; the
     // keyboard tip still appears only when there is a conflict (L-235) or the game's click.
     bool const warns = !conflicts.empty() || !gameNote.empty();
@@ -781,7 +781,14 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     float capsWidth = keycapsWidth(context, keys);
     float countWidth = count.empty() ? 0 : textWidth(context, count) + 8;
     float available = std::max(80.0f, t.width - 2*SettingsTable::pad);
-    float width = std::min(available, std::max(conflicts.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth));
+    // Wide enough for a note in two lines and for each listed binding's caps, name and place on one (L-372).
+    float width = std::max(conflicts.empty() && gameNote.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth);
+    for (auto const& conflict : conflicts) {
+        float caps = keycapsWidth(context, chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
+        float text = 5 + textWidth(context, actionLabel(conflict.action)) + 6 + textWidth(context, whereText(conflict.where));
+        width = std::max(width, 2*pad + std::max(caps / .45f, caps + text));
+    }
+    width = std::min(available, width);
     float inner = width - 2*pad;
     float headerWidth = std::max(40.0f, inner - countWidth);
     float capsHeight = keycapsWrapHeight(context, headerWidth, keys, 3);
@@ -1191,7 +1198,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
-        if (auto note = gameClickNote(capture.value()); !note.empty())
+        if (auto note = gameClickNote(*capturing_, capture.value()); !note.empty())
             label(context,textLeft,t.footerTop+16,textWidthAvailable,note,palette::warning);
         label(context,textLeft,t.footerTop+30,textWidthAvailable,captureText(*capturing_),palette::faint);
     } else {
@@ -1286,7 +1293,7 @@ void applyBinding() {
     value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
     bool saved = Runtime::instance().save(value);
     // A binding on the game's own click keeps saying so in the footer after the button is let go.
-    auto note = gameClickNote(input::effectiveChord(value.bindings, bindingEdit->action));
+    auto note = gameClickNote(bindingEdit->action, input::effectiveChord(value.bindings, bindingEdit->action));
     cancelCapture_();
     screen::setMessage(saved ? note : translated("saveError"));
 }

@@ -416,6 +416,9 @@ void bindingTests() {
         check(gameClick({side}) == GameClick::None && gameClick({Token{Device::Key, 0x12}, left}) == GameClick::None
               && gameClick({b}) == GameClick::None && gameClick({}) == GameClick::None,
               "side buttons, chords with a modifier and keys are not the game's click");
+        check(gameClick(Action::Zoom, {middle}) == GameClick::Pick && gameClick(Action::Sort, {middle}) == GameClick::None
+              && gameClick(Action::Transfer, {right}) == GameClick::Use,
+              "only an action that works in play is told it shares the game's click");
         Keys keys;
         keys.bind(shortA, {right});
         keys.bind(Action::DebugView, {alt, right});

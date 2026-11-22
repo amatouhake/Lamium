@@ -423,6 +423,11 @@ inline GameClick gameClick(Chord const& chord) {
     default: return GameClick::None;
     }
 }
+// The game's click matters only for an action that works in play: on an item
+// screen the same button is a slot's, not attack, use or pick block (L-372).
+inline GameClick gameClick(Action action, Chord const& chord) {
+    return whereActs(action).layers & layer::gameplay ? gameClick(chord) : GameClick::None;
+}
 
 using ChordSet = std::array<Chord, actions.size()>;
 // Like Java's F3: a Press/Toggle action whose chord begins a longer bound

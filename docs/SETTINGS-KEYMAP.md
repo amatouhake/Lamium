@@ -156,6 +156,9 @@ append-only action ids and default keys in `src/input/Binding.h`.
 - Two bindings conflict only where their layers meet; the same test
   derives what fires and what is warned about. Back (window only) and
   Sort (item screen only) on one key are no conflict.
+- The mark and note that a lone mouse button is also the game's attack,
+  use or pick block show only for actions that work in play; on an item
+  screen that button is a slot's.
 
 ### Conflict display
 
@@ -166,7 +169,8 @@ append-only action ids and default keys in `src/input/Binding.h`.
   starts with this key / longer chords containing it / shorter chords inside
   it / same keys in another order, plus "fires on release" when that
   applies; overflow ends in "N more". Each listed binding is followed, in
-  faint text, by where the two meet ("On item screens", L-372). Keyboard selection shows the same tip
+  faint text, by where the two meet ("On item screens", L-372); the tip
+  widens so names and places fit on one line where the screen allows. Keyboard selection shows the same tip
   (keyboard users are not told to use the mouse); moving the mouse returns
   to hover. The footer keeps only the description.
 - (Decided 2026-10-06, L-97) Colliding settings: when one option's value
