@@ -11,13 +11,12 @@ seen in game. Line numbers are `69271bd2`'s unless a function is named.
 
 ## Range 1: recipes, plan, stores, Mass Craft
 
-### 1-7 Low: "make" counts rounds as made once the grid reads empty
-`RecipePlace.cpp` `tickMaking`, the Take phase. It tests `gridEmpty`
-before any take is sent, so a lay the server refuses and rolls back counts
-as made with no take at all: `step.rounds` drops, the step may go, later
-steps lack their inputs and the run ends "done". Nothing is lost.
-Likely; Server. Deferred: to the server check (L-165 "Next"); a fix counts
-only after a take and confirms by the product in the inventory.
+### 1-7 Low (rest): "make" counts a take as made once the grid reads empty
+`RecipePlace.cpp` `tickMaking`. A grid empty before any take is sent is a
+refused lay now, laid in again (at most `mostTries` in a row). A take
+the server refuses with the grid still emptied would still count; what
+the grid shows then is unknown. Server. Deferred: to the server check
+(L-165 "Next"), which can confirm rounds by the product in the inventory.
 
 ## Range 2: settings screen, hotkeys, input
 
