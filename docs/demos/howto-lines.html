@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How To Lines</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* One GUI unit is 3 pixels (1920x1080, UI 75%). How to make's lines after L-389's X: four open points. */
+:root{
+  color-scheme: dark;
+  --u:3px;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --accent-deep:#3c8527; --warn:#e0b040;
+  --win:#c6c6c6; --win-ink:#3f3f3f; --win-faint:#6b6b6b; --slot:#8b8b8b; --slot-dark:#373737; --shadow:#555; --inset:#b4b4b4;
+  --pix:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:20px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0;max-width:95ch}
+.lede{color:var(--ink-2);margin-top:8px}
+.controls{display:grid;gap:8px}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lbl{color:var(--ink-2);font-size:13px;margin-right:4px;min-width:13em}
+.chip{all:unset;cursor:pointer;padding:3px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--ground-2)}
+.chip.on{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.stage{overflow-x:auto}
+.win{position:relative;width:calc(330*var(--u));background:var(--win);color:var(--win-ink);font:calc(8*var(--u))/1 var(--pix);
+  box-shadow:inset calc(2*var(--u)) calc(2*var(--u)) #fff,inset calc(-2*var(--u)) calc(-2*var(--u)) var(--shadow),0 0 0 var(--u) #000;padding:calc(5*var(--u)) 0}
+.ln{position:relative;height:calc(20*var(--u))}
+.ln.opt{height:calc(22*var(--u))}
+.ln.fold{height:calc(14*var(--u))}
+.panel{position:absolute;left:calc(32*var(--u));right:calc(6*var(--u));top:0;bottom:0;background:var(--inset);
+  box-shadow:inset var(--u) 0 var(--shadow),inset calc(-1*var(--u)) 0 #fff}
+.panel.first{box-shadow:inset var(--u) var(--u) var(--shadow),inset calc(-1*var(--u)) 0 #fff}
+.panel.last{box-shadow:inset var(--u) 0 var(--shadow),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.panel.on{outline:var(--u) solid var(--accent-deep);outline-offset:calc(-1*var(--u))}
+.a{position:absolute;top:var(--u)}
+.opt .a{top:calc(2*var(--u))}
+.fold .a{top:calc(3*var(--u))}
+.slot{width:calc(18*var(--u));height:calc(18*var(--u));background:var(--slot);display:grid;place-items:center;
+  box-shadow:inset var(--u) var(--u) var(--slot-dark),inset calc(-1*var(--u)) calc(-1*var(--u)) #fff}
+.ico{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:0 0 2px #000;position:relative}
+.slot b{position:absolute;right:calc(1*var(--u));bottom:calc(-1*var(--u));font:calc(7*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.slot i{position:absolute;left:var(--u);top:calc(-1*var(--u));font:normal calc(6*var(--u))/1 var(--pix);color:#fff;text-shadow:calc(.7*var(--u)) calc(.7*var(--u)) #3f3f3f}
+.station{width:calc(16*var(--u));height:calc(16*var(--u));display:grid;place-items:center;font:calc(5.5*var(--u))/1 var(--pix);color:#fff}
+.faint{opacity:.45}
+.name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(8.5*var(--u));top:calc(6*var(--u))}
+.w{font-size:calc(8*var(--u));top:calc(6*var(--u));white-space:nowrap}
+.opt .w{top:calc(7*var(--u))}
+.arr{font-size:calc(8*var(--u));top:calc(6*var(--u))}
+.more{font-size:calc(7*var(--u));top:calc(7*var(--u));color:var(--win-faint)}
+.guide{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed rgba(200,60,60,.6);pointer-events:none}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:18px}
+.card{background:var(--ground-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card ul{margin:6px 0 0;padding-left:20px}
+.card li{margin:3px 0}
+.qq{color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>「作り方」の行、残りの4点（モック）</h1>
+    <p class="lede">L-389 の X（選んでいる作り方を行と同じ絵で出す）を入れた後に見つかった4点を、切り替えて比べます。白のハーネスは開いた状態です。赤い点線は列の位置の目安です（「そろえる」のときだけ）。</p>
+  </header>
+
+  <div class="controls">
+    <div class="grp"><span class="lbl">1. 右側の位置</span>
+      <button class="chip on" data-k="align" data-v="after">今：絵のすぐ後ろ</button>
+      <button class="chip" data-k="align" data-v="col">作業場所と言葉の位置をそろえる</button>
+    </div>
+    <div class="grp"><span class="lbl">2. 上の行の「自動」</span>
+      <button class="chip on" data-k="faint" data-v="faint">今：薄い</button>
+      <button class="chip" data-k="faint" data-v="ink">濃く、「自動」の言葉で区別</button>
+    </div>
+    <div class="grp"><span class="lbl">3. 長いレシピ</span>
+      <button class="chip on" data-k="long" data-v="now">今：名前が縮む</button>
+      <button class="chip" data-k="long" data-v="more">名前の幅を確保し、入らない材料は「+N」</button>
+      <button class="chip" data-k="long" data-v="product">上の行は出来上がりと作業場所だけ</button>
+    </div>
+    <div class="grp"><span class="lbl">4. 行が出る物</span>
+      <button class="chip on" data-k="lines" data-v="choice">今：選べる物だけ</button>
+      <button class="chip" data-k="lines" data-v="all">計画で作る物すべて</button>
+    </div>
+    <div class="grp"><span class="lbl">白のハーネスの選択</span>
+      <button class="chip on" data-k="pick" data-v="auto">自動</button>
+      <button class="chip" data-k="pick" data-v="recipe">レシピを選択</button>
+      <button class="chip" data-k="pick" data-v="gather">集める</button>
+    </div>
+  </div>
+
+  <div class="stage"><div class="win" id="win"></div></div>
+
+  <div class="cols">
+    <div class="card">
+      <h2>案の中身</h2>
+      <ul>
+        <li><b>1 そろえる</b>：出来上がりの後に作業場所の場所を必ず取り、言葉はその後ろの同じ位置。作業場所の無い行（集める、ルールが集める物）はそこが空く。L-389 の「言葉は列にせず絵のすぐ後ろ」を変えることになる。</li>
+        <li><b>2 濃く</b>：上の行は自動でも濃い絵。開いた中の「自動」の行だけ薄いまま（下の同じレシピの行と見分けるため）。</li>
+        <li><b>3 +N</b>：名前に最低限の幅（約6文字）を取り、入らない材料は左から「+N」にまとめる。全部は開くと見える。</li>
+        <li><b>3 出来上がりだけ</b>：上の行は材料を出さず、出来上がりと作業場所。どのレシピかは開くまで分からない。</li>
+        <li><b>4 すべて</b>：計画で作る物はレシピが1つでも行が出る（「集める」はいつでも選べるため）。ここではピストンとレッドストーンリピーターが増える。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>確認したいこと</h2>
+      <ul>
+        <li><span class="qq">1</span>：位置をそろえるか（L-389 の決定を変えるか）。</li>
+        <li><span class="qq">2</span>：上の行を濃くするか。</li>
+        <li><span class="qq">3</span>：「+N」か、出来上がりだけか、今のままか。</li>
+        <li><span class="qq">4</span>：計画で作る物すべてに行を出すか。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+const S = {align:"after", faint:"faint", long:"now", lines:"choice", pick:"auto"};
+// Positions in GUI units, as the window has them: the item's icon and name, the arrow where the other tabs' table starts.
+const ICON = 20, NAME = 39, ARROW = 153, PRODUCT = ARROW + 12, STATION = PRODUCT + 32, WORDS_AFTER_STATION = STATION + 20, WORDS_AFTER_PRODUCT = PRODUCT + 22;
+const NAME_MIN = 56;
+const I = {
+  redstone:{t:"赤", bg:"#b3261e"}, stick:{t:"棒", bg:"#8a6a3a"}, planks:{t:"板", bg:"#b8945a"}, leather:{t:"革", bg:"#a0522d"}, glass:{t:"ガ", bg:"#9fc7d4"},
+  wool:{t:"羊", bg:"#e8e8e8"}, harness:{t:"ハ", bg:"#7a4a22"}, iron:{t:"鉄", bg:"#d8d8d8"}, rawiron:{t:"原", bg:"#b08a6a"}, stone:{t:"石", bg:"#7d7d7d"},
+  cobble:{t:"丸", bg:"#6b6b6b"}, piston:{t:"ピ", bg:"#9a8250"}, repeater:{t:"リ", bg:"#a8a8a8"}, torch:{t:"松", bg:"#c08a2a"}, black:{t:"黒", bg:"#2a2a2a"}, dye:{t:"白", bg:"#f4f4f4"},
+};
+const ST = {table:{t:"台", bg:"#6b4f2a"}, furnace:{t:"炉", bg:"#5a5a5a"}};
+const R = {
+  stick:{in:[["planks",2,1]], out:4, st:"table"},
+  harness:{in:[["leather",3],["glass",2],["wool"]], st:"table"},
+  iron:{in:[["rawiron",0,1]], st:"furnace"},
+  stone:{in:[["cobble"]], st:"furnace"},
+  piston:{in:[["planks",3,1],["cobble",4],["iron"],["redstone"]], st:"table"},
+  repeater:{in:[["torch",2],["redstone"],["stone",3]], st:"table"},
+  redye:{in:[["black"],["dye"]], st:"table"},
+};
+const u = n => "calc(" + n + "*var(--u))";
+const at = (x, html, cls = "") => '<div class="a ' + cls + '" style="left:' + u(x) + '">' + html + '</div>';
+const slot = (k, n, any, faint) => '<div class="slot' + (faint ? " faint" : "") + '"><div class="ico" style="background:' + I[k].bg + '">' + I[k].t + '</div>' + (n ? "<b>" + n + "</b>" : "") + (any ? "<i>*</i>" : "") + '</div>';
+const station = (k, faint) => '<div class="station' + (faint ? " faint" : "") + '" style="background:' + ST[k].bg + '">' + ST[k].t + '</div>';
+// A way's pictures from `start` (inputs right-aligned to the arrow); returns [html, where its words go, the first input's x].
+function way(item, recipe, faint, room) {
+  let html = "", inputs = recipe.in, first = ARROW;
+  if (S.long === "product" && room !== undefined) inputs = [];
+  if (S.long === "more" && room !== undefined) {
+    const fit = Math.floor((ARROW - room) / 18);
+    if (inputs.length > fit) {
+      const k = Math.max(1, Math.floor((ARROW - room - 14) / 18));
+      html += at(ARROW - k * 18 - 14, "+" + (inputs.length - k), "more");
+      inputs = inputs.slice(inputs.length - k);
+      first = ARROW - k * 18 - 14;
+    }
+  }
+  inputs.forEach((p, i) => { const x = ARROW - (inputs.length - i) * 18; html += at(x, slot(p[0], p[1], p[2], faint)); first = Math.min(first, x); });
+  html += at(ARROW + 3, "→", "arr" + (faint ? " faint" : ""));
+  html += at(PRODUCT, slot(item, recipe.out, false, faint));
+  html += at(STATION, station(recipe.st, faint));
+  return [html, WORDS_AFTER_STATION, first];
+}
+function gatherWay(item, faint) {
+  return [at(PRODUCT, slot(item, 0, false, faint)), S.align === "col" ? WORDS_AFTER_STATION : WORDS_AFTER_PRODUCT];
+}
+function itemLine(item, name, recipe, mode) {
+  // mode: "auto" (the rule's recipe), "autoGather" (the rule gathers it), "recipe" (chosen), "gather" (chosen).
+  const faint = S.faint === "faint" && (mode === "auto" || mode === "autoGather");
+  let html = at(ICON, '<div class="ico" style="background:' + I[item].bg + '">' + I[item].t + '</div>');
+  let words = "", end = ARROW - 4, x;
+  if (mode === "auto" || mode === "recipe") {
+    const [h, w, first] = way(item, recipe, faint, NAME + NAME_MIN + 4);
+    html += h; x = w; end = first - 4;
+    if (mode === "auto") words = "自動";
+  } else {
+    const [h, w] = gatherWay(item, faint);
+    html += h; x = w; words = mode === "gather" ? "集める" : "自動";
+  }
+  html += '<div class="a name" style="left:' + u(NAME) + ';width:' + u(end - NAME) + '">' + name + '</div>';
+  if (words) html += at(x, words, "w");
+  return '<div class="ln">' + html + '</div>';
+}
+function optLine(inner, cls) { return '<div class="ln opt"><div class="panel ' + cls + '"></div>' + inner + '</div>'; }
+function draw() {
+  const rows = [];
+  const lines = [
+    ["cobble", "丸石", null, "autoGather", true],
+    ["harness", "白のハーネス", R.harness, S.pick === "auto" ? "auto" : S.pick, true, true],
+    ["piston", "ピストン", R.piston, "auto", false],
+    ["redstone", "レッドストーンダスト", null, "autoGather", true],
+    ["repeater", "レッドストーンリピーター", R.repeater, "auto", false],
+    ["stone", "石", R.stone, "auto", true],
+    ["stick", "棒", R.stick, "auto", true],
+    ["iron", "鉄インゴット", R.iron, "auto", true],
+  ];
+  for (const [item, name, recipe, mode, choosable, open] of lines) {
+    if (!choosable && S.lines === "choice") continue;
+    rows.push(itemLine(item, name, recipe, mode));
+    if (!open) continue;
+    // The open line: automatic (faint, as today), gather, the recipe, re-dyeing folded.
+    const autoOn = S.pick === "auto", gatherOn = S.pick === "gather", recipeOn = S.pick === "recipe";
+    let [h, w] = way(item, recipe, true);
+    rows.push(optLine(h + at(w, "自動", "w"), "first" + (autoOn ? " on" : "")));
+    [h, w] = gatherWay(item, false);
+    rows.push(optLine(h + at(w, "集める", "w"), gatherOn ? "on" : ""));
+    [h] = way(item, recipe, false);
+    rows.push(optLine(h, recipeOn ? "on" : ""));
+    rows.push('<div class="ln fold"><div class="panel last"></div>' + at(38, "▸ 染め直し（30）", "w") + '</div>');
+  }
+  let guides = "";
+  if (S.align === "col") guides = '<div class="guide" style="left:' + u(STATION) + '"></div><div class="guide" style="left:' + u(WORDS_AFTER_STATION) + '"></div>';
+  if (S.long === "more") guides += '<div class="guide" style="left:' + u(NAME + NAME_MIN) + ';border-color:rgba(60,90,200,.6)"></div>';
+  document.getElementById("win").innerHTML = guides + rows.join("");
+}
+document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+  S[b.dataset.k] = b.dataset.v;
+  document.querySelectorAll('.chip[data-k="' + b.dataset.k + '"]').forEach(o => o.classList.toggle("on", o === b));
+  draw();
+}));
+draw();
+</script>
+</body>
+</html>
