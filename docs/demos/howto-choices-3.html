@@ -100,10 +100,10 @@ p{margin:0;max-width:95ch}
     <div class="card">
       <h2>どれでもよい材料</h2>
       <ul>
-        <li>選択肢を 1 列に、結果を言葉で。左のスロットは「集める物」に出る物（＊はどれでも）。</li>
-        <li>板材：「原木を集めて作る（どの木でも）」「板材を集める（どの板材でも）」「種類を決める」。砂：「砂などを集める（どれでも）」「種類を決める」。</li>
-        <li>「どれでも」はマスにしない。種類のマスは「種類を決める」を押したときだけ、アイテム一覧の順で。</li>
-        <li>種類を決めると、その種類の入手方法は「レシピ」にその種類の行として出る（ほかのアイテムと同じ）。グループの欄はどの種類かだけを受け持つ。</li>
+        <li>1 行に収まる言葉だけ。説明はツールチップへ（ここでは出していない）。</li>
+        <li>言葉は名前から作る一般の形：たどるグループは「&lt;たどる先&gt;から作る」（板材→「原木から作る」、木のハーフブロック→「板材から作る」）、どのグループも「&lt;グループ&gt;を集める」。</li>
+        <li>この 1〜2 行が、今の「＊」のマス（どれでも）の言い換え。板材の「どれでも」は原木から作る、砂の「どれでも」は集める、という違いを言葉で見せる。たどれない砂は 1 行だけ。</li>
+        <li>種類のマスは最初から並べ、押せばその種類に決まる（「種類を決める」の行は無くした）。決めた種類の入手方法は「レシピ」のその種類の行で。</li>
       </ul>
     </div>
     <div class="card">
@@ -184,28 +184,23 @@ function itemPanel(id, it, scope){
   return h;
 }
 function groupPanel(k){
+  // One line each, as in the game: "<kind>から作る" where the group is traced (L-386), "<group>を集める" always; then the
+  // members, each pressed to decide it. The words come from the names alone, so any group reads the same way.
   const g = groups[k];
   const ch = state.choice[k] || (g.traced ? 'make' : 'gather');   // 'make' | 'gather' | 'pick' (a member)
   const member = state.member[k];
-  const row = (on, slots, w, sub, data) => `<div class="row${on?' on':''}" data-pick="${data}"><span class="slots">${slots}</span><span class="w">${w}${sub?`<small>${sub}</small>`:''}</span></div>`;
-  const kindWord = I[k][0].replace(/など$/, '');
-  let h = `<div class="q"><span>どうする</span></div>`;
-  if (g.traced) h += row(ch==='make', `${slot(g.traced.from,g.traced.uses,true)}<span class="arrow" style="width:calc(8*var(--u))">→</span>${slot(k,g.traced.makes,true)}`, `${I[g.traced.from][0]}を集めて作る`, 'どの木でも・持っている板材は先に使う', `${k}|make`);
-  h += row(ch==='gather', slot(k,1,true), `${I[k][0]}を集める`, `どの${kindWord}でも・持っている種類を合わせて数える`, `${k}|gather`);
-  h += row(ch==='pick', member ? slot(member,1) : `<span class="slot" style="font:calc(6*var(--u))/1 var(--pix)">選ぶ</span>`, '種類を決める', member ? I[member][0] : '下のマスから', `${k}|pick`);
-  if (ch === 'pick') {
-    h += `<div class="inner"><div class="grid">${g.members.map(m=>`<span class="cell${member===m?' on':''}" data-pick="${k}|m|${m}">${slot(m,1)}</span>`).join('')}</div>`;
-    h += `<div class="cellname">${member ? I[member][0] : '種類を押すと決まる'}</div>`;
-    // The member's own ways are its line under "レシピ", as for any item: the group says only which member.
-    h += `</div>`;
-  }
+  const row = (on, slots, w, data) => `<div class="row${on?' on':''}" data-pick="${data}"><span class="slots">${slots}</span><span class="w">${w}</span></div>`;
+  let h = '';
+  if (g.traced) h += row(ch==='make', `${slot(g.traced.from,g.traced.uses,true)}<span class="arrow" style="width:calc(8*var(--u))">→</span>${slot(k,g.traced.makes,true)}`, `${I[g.traced.from][0]}から作る`, `${k}|make`);
+  h += row(ch==='gather', slot(k,1,true), `${I[k][0]}を集める`, `${k}|gather`);
+  h += `<div class="grid">${g.members.map(m=>`<span class="cell${ch==='pick'&&member===m?' on':''}" data-pick="${k}|m|${m}" title="${I[m][0]}">${slot(m,1)}</span>`).join('')}</div>`;
   return h;
 }
 function headWords(k){
   if (groups[k]) {
     const g = groups[k], ch = state.choice[k] || (g.traced ? 'make' : 'gather'), m = state.member[k];
     if (ch === 'pick' && m) return [slot(m,1), `種類: ${I[m][0]}`];
-    if (ch === 'make') return [slot(g.traced.from,1,true), `${I[g.traced.from][0]}を集めて作る`];
+    if (ch === 'make') return [slot(g.traced.from,1,true), `${I[g.traced.from][0]}から作る`];
     return [slot(k,1,true), `${I[k][0]}を集める`];
   }
   const it = items[k], ch = state.choice[k];
