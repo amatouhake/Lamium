@@ -408,23 +408,12 @@ void slotCount(MinecraftUIRenderContext& context, float x, float y, std::string 
     // Inside the slot's edge, right-aligned a unit in and a unit up: not where the game puts a stack's count (it
     // sits further right and lower), kept for being easier to read (maintainer 2026-11-21).
     // Measured, never cut: three digits are 18 wide in the English font, more than the slot's inside (2026-11-21).
-    if (text.size() <= 3) {
-        float const w = labelWidth(context, text, 1);
-        label(context, x + 17 - w, y + 8, w + 1, std::move(text), palette::text, Align::Left);
-        return;
-    }
     // A fourth character ("749k", "1.2M") draws the count smaller, at most three quarters and within the slot's 16
-    // inside whatever the font, its foot kept, in the game's own bold (a formatting code) to keep the weight of the
-    // full size (2026-11-22; two copies half a unit apart looked odd). One run, which the code must lead; raised as
-    // labelScaled raises Latin text.
-    auto& font = defaultFont(context);
-    std::string const bold = "\u00a7l" + text;
-    float const whole = measured(font, bold, 1);
-    float const size = whole > 0 ? std::min(.75f, 16 / whole) : .75f, w = measured(font, bold, size);
-    float const left = x + 17 - w, top = y + 8 + 8 * (1 - size) - latinRaise() * size, offset = labelShadowOffset * size;
-    Rgb const ink = palette::text;
-    drawRun(context, font, left + offset, top + offset, w + 2, bold, Rgb{ink.r * .25f, ink.g * .25f, ink.b * .25f}, ::ui::TextAlignment::Left, size);
-    drawRun(context, font, left, top, w + 2, bold, ink, ::ui::TextAlignment::Left, size);
+    // inside whatever the font, its foot kept; thin, as the font draws it (2026-11-22: two copies half a unit apart
+    // looked odd, and the game's bold code does not take on Lamium's text).
+    float const whole = labelWidth(context, text, 1);
+    float const size = text.size() > 3 && whole > 0 ? std::min(.75f, 16 / whole) : 1.f, w = labelWidth(context, text, size);
+    labelScaled(context, x + 17 - w, y + 8 + 8 * (1 - size), w + 1, std::move(text), size, palette::text, Align::Left);
 }
 void anyMark(MinecraftUIRenderContext& context, float x, float y, float scale) {
     // Inside the icon's corner, so it stays within a slot's edge (maintainer 2026-11-21); "*" reads as any.

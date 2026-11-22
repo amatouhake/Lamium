@@ -180,7 +180,7 @@ dark look. No control plays a sound.
   thousands apart, in its tip (L-370), the number alone. A slot writes
   thousands and millions rounded down ("749k", "1.2M", "12M"); a fourth
   character draws it smaller (at most three quarters, within the slot
-  whatever the font), in the game's own bold to keep its weight.
+  whatever the font), thin as the font draws it.
 - **A list's scrollbar** (`listScrollbar`): a view without a layout of
   its own draws the shared bar, takes a press on it and follows the drag
   in one call; the rows leave it a gutter.
