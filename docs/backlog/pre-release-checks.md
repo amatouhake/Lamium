@@ -7,7 +7,7 @@ and a full regression and every server case are not release gates. [VALIDATION.m
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-## For the next release (decided 2026-11-23)
+## For 0.8.0 (decided 2026-11-23; released 2026-11-23)
 
 Only these hold the release (maintainer 2026-11-23, following the
 Release policy). A local world already runs the game's own server inside

@@ -94,6 +94,8 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 ## Ready
 
 - [L-340](backlog/done/L-340.md) Settings grouping
+- [L-369](backlog/done/L-369.md) Recipe screens: open fixes of the look
+- [L-364](backlog/done/L-364.md) Draw "one of several" the agreed way on the other screens
 - [L-392](backlog/done/L-392.md) Settings sidebar: what its numbers mean, and categories of uneven size
 - [L-391](backlog/done/L-391.md) The plan's "Gather": liquids, and natural stones it would craft
 - [L-389](backlog/done/L-389.md) How to make: one way to offer an item's and a group's choices

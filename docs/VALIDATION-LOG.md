@@ -20,7 +20,11 @@ manifest 0.8.0), installed whole into the 1.26.60.05 Dev instance
 (LeviLamina 26.60.5), the maintainer: the game starts and a world opens;
 `L` opens the settings with "Lamium 0.8.0" in the header. The log shows
 no error, only the timing notes (shares of 25 wanted items shown after
-17 ms; writes of 9 to 10 ms). Tagged `v0.8.0` on `5428b5f3`.
+17 ms; writes of 9 to 10 ms). Tagged `v0.8.0` on `5428b5f3`; the tag's run
+45084130017 attached `Lamium-0.8.0-client-windows-x64.zip` (SHA-256
+`0e3d84ac958986344eaaafc2f70016f610047e24e8119bb05796d2aa6ec9ccf2`) and
+the symbols ZIP, and the release was published the same day. The
+published ZIP itself and the listings are not checked yet.
 
 ## Release gates on two local servers (L-390, L-385, 2026-11-23)
 
