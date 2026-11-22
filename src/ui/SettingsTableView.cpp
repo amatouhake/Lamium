@@ -684,6 +684,12 @@ void drawOptionStepper(MinecraftUIRenderContext& context, float y, settings::Opt
     drawStepper(context,x,y+1,w,SettingsTable::rowHeight-2,option.numeric.has_value(),value,
         {.editing = editing ? &screen::number() : nullptr, .warn = warn, .cell = aw, .pointerX = pointer.x, .pointerY = pointer.y});
 }
+// A link row's value ("Edit in HUD layout >") starts at the key column, where the eye already is
+// (maintainer 2026-11-23); a text longer than that column moves left to end at the row's edge, never cut.
+float linkX(MinecraftUIRenderContext& context, SettingsTable const& t, std::string const& text) {
+    float const right = t.stateX + t.controlWidth();
+    return std::max(t.stateX, std::min(t.keyX, right - textWidth(context, text)));
+}
 void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
     float x = displayed.nameX + 3;
     fill(context,x,y,1,last ? SettingsTable::rowHeight / 2 : SettingsTable::rowHeight,palette::white,.18f);
@@ -1317,7 +1323,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         case RowKind::Layout: {
             drawGuide(context,y,entry.lastChild);
             label(context,t.nameX+12,y+3,nameRight-t.nameX-12,translated(layoutLinkLabel(*entry.layout)),palette::dim);
-            label(context,t.stateX,y+3,t.controlWidth(),translated("layoutLinkValue"),palette::accent,Align::Right);
+            auto link = translated("layoutLinkValue");
+            float const x = linkX(context, t, link);
+            label(context,x,y+3,t.stateX + t.controlWidth() - x,std::move(link),palette::accent);
             break;
         }
         case RowKind::BandLayout: {
@@ -1325,7 +1333,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             bool const can = game_language::inWorld();
             drawGuide(context,y,entry.lastChild);
             label(context,t.nameX+12,y+3,nameRight-t.nameX-12,translated("band.layoutLink"),can ? palette::dim : palette::faint);
-            label(context,t.stateX,y+3,t.controlWidth(),translated("band.layoutLinkValue"),can ? palette::accent : palette::faint,Align::Right);
+            auto link = translated("band.layoutLinkValue");
+            float const x = linkX(context, t, link);
+            label(context,x,y+3,t.stateX + t.controlWidth() - x,std::move(link),can ? palette::accent : palette::faint);
             break;
         }
         case RowKind::SavedData: {
@@ -1333,14 +1343,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawGuide(context,y,entry.lastChild);
             auto name = saved_data_view::currentName();
             auto link = translated(name.empty() ? "savedData.rowOpen" : "savedData.rowChoose");
-            float linkWidth = textWidth(context,link) + SettingsTable::gap;
+            float const linkLeft = linkX(context, t, link);
             auto title = translated(entry.feature->id == "savedData" ? "savedData.rowServer" : "savedData.row");
             // The name takes the row's free width, not only the value column: an address is long.
             float nameLeft = t.nameX + 12 + textWidth(context,title) + 2 * SettingsTable::gap;
-            float nameEnd = t.stateX + t.controlWidth() - linkWidth;
+            float nameEnd = linkLeft - SettingsTable::gap;
             label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(title),palette::dim);
             if (nameEnd > nameLeft) label(context,nameLeft,y+3,nameEnd-nameLeft,std::move(name),palette::text,Align::Right);
-            label(context,t.stateX,y+3,t.controlWidth(),std::move(link),palette::accent,Align::Right);
+            label(context,linkLeft,y+3,t.stateX + t.controlWidth() - linkLeft,std::move(link),palette::accent);
             break;
         }
         case RowKind::MapCache: {

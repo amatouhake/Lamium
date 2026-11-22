@@ -47,7 +47,9 @@ append-only action ids and default keys in `src/input/Binding.h`.
   existing bindings stay.
 - (Decided 2026-11-15, L-349) Steppers have one width on every row and end
   before the key column, keyed row or not, so a choice never runs into a key
-  cell; a long name or value is cut with "...". Sliders and links still span
+  cell; a long name or value is cut with "...". A link row's value ("Edit
+  in HUD layout >") starts at the key column, moving left only when it is
+  longer than that column (2026-11-23). Sliders and links still span
   the state and key columns of a keyless row.
 
 ### Resetting settings
