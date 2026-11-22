@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Link values at the key column (2026-11-23)
+
+Build `30d8d8fa` (DLL
+`303f97171ca17ba826ef8bb2d7711b6aaa718e9cf66c400b7875a6db9f64e80b`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: "Edit in HUD layout
+>" and "Edit over the inventory >" start at the key column; on the saved
+data row the server name and the link do not overlap. Noted: that link's
+"Open >" is short enough to pass for a key cap (lengthened after this
+build).
+
 ## Mouse names, short key names, the game's drop key (L-372, 2026-11-23)
 
 Build `00fbefe1` (DLL
