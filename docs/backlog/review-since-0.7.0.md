@@ -19,13 +19,6 @@ steps lack their inputs and the run ends "done". Nothing is lost.
 Likely; Server. Deferred: to the server check (L-165 "Next"); a fix counts
 only after a take and confirms by the product in the inventory.
 
-### 1-19 Low: UI rules (Design)
-`PlanViewDraw.cpp` `stateTag` and the window's count field are built in
-the screen's file. `drawFieldBox` has no window look, so the field needs
-a window variant in `ListViewWidgets`, and moving the tag to the framed
-`drawTag` changes its look. Read. Deferred: a Design question (AGENTS
-rule 7). The editor's refusal chip and lit tray are `warning` now.
-
 ## Range 2: settings screen, hotkeys, input
 
 ## Range 3: everything else

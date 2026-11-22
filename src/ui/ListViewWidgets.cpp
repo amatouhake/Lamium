@@ -376,6 +376,18 @@ void drawFieldBox(MinecraftUIRenderContext& context, float x, float y, float w, 
     fill(context,x,y,w,h,palette::shade,.45f);
     frame(context,x,y,w,h,editing ? palette::accent : palette::keyEdge);
 }
+void drawWindowFieldBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing, bool hot) {
+    sunkFace(context,x,y,w,h,true,true);
+    if (editing) frame(context,x,y,w,h,palette::accentDeep);
+    else if (hot) fill(context,x + 1,y + 1,w - 2,h - 2,palette::white,.25f);
+}
+float windowTagWidth(MinecraftUIRenderContext& context, std::string const& text, float room) {
+    return std::min(room, textWidthScaled(context, text, .75f) + 6);
+}
+void drawWindowTag(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool chosen, bool hot) {
+    if (hot) fill(context,x,y,w,windowTagHeight,palette::white,.2f);
+    labelScaled(context,x + 3,y + 1.5f,w - 6,std::move(text),.75f,chosen ? palette::vanilla::windowInk : palette::vanilla::windowFaint,Align::Left,false);
+}
 void drawTextField(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing, TextEdit const* input,
                    std::string const& text, std::string const& placeholder, float inset, Align align, bool centred) {
     drawFieldBox(context,x,y,w,h,editing);

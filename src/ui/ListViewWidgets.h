@@ -192,6 +192,15 @@ void caretBar(MinecraftUIRenderContext& context, float x, float top, float heigh
 // typing. drawFieldBox is the box alone, for a field whose content is special
 // (the settings search while finding a key).
 void drawFieldBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing);
+// The same on the game's grey window (the plan's window, L-370): a sunk face, the accent edge while typing,
+// a light face while pointed at.
+void drawWindowFieldBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing, bool hot);
+// A pressable state on the game's grey window (the plan's "automatic" or chosen recipe, L-370): its words at
+// three quarters, ink when chosen, faint when not, a light face while pointed at; no frame. The width is its
+// words', at most `room`; `windowTagHeight` tall.
+inline constexpr float windowTagHeight = 10;
+float windowTagWidth(MinecraftUIRenderContext& context, std::string const& text, float room);
+void drawWindowTag(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool chosen, bool hot);
 // While `editing` (and `input` given) the typed text with its caret, else
 // `text`, or `placeholder` faintly when `text` is empty. `inset` leaves room
 // on the left (an icon).

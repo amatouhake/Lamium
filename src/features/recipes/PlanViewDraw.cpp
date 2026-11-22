@@ -359,11 +359,11 @@ struct Lists : Window {
     float stateTag(float end, float y, std::string text, bool chosen, std::string const& key, float room = 64) {
         if (room < 14) return end;
         // As wide as its words at the size drawn, cut only where the row has no more room (2026-11-22).
-        float const w = std::min(room, textWidthScaled(context, text, .75f) + 6), x = end - w;
-        bool const hot = over(x, y, w, 10);
-        if (hot) fill(context, x, y, w, 10, palette::white, .2f), late.hints.push_back(translated("recipes.howTo.change"));
-        labelScaled(context, x + 3, y + 1.5f, w - 6, std::move(text), .75f, chosen ? v::windowInk : v::windowFaint, Align::Left, false);
-        if (took(x, y, w, 10)) jumpHowTo(key);
+        float const w = windowTagWidth(context, text, room), x = end - w;
+        bool const hot = over(x, y, w, windowTagHeight);
+        if (hot) late.hints.push_back(translated("recipes.howTo.change"));
+        drawWindowTag(context, x, y, w, std::move(text), chosen, hot);
+        if (took(x, y, w, windowTagHeight)) jumpHowTo(key);
         return x - 3;
     }
     float recipeState(float end, float y, Item item, float room = 64) {
@@ -607,15 +607,15 @@ struct Lists : Window {
                 if (manual && editing) {
                     // Typed as the search field is (L-370, 2026-11-22): all selected at first, the caret where a
                     // press puts it; Enter keeps it, Esc does not.
-                    sunkFace(context, boxX, y + 3, boxW, 12, true, true);
-                    frame(context, boxX, y + 3, boxW, 12, palette::accentDeep);
+                    drawWindowFieldBox(context, boxX, y + 3, boxW, 12, true, false);
                     drawEditField(context, wantX, y + 3, 12, wantW + 3, *editing, Align::Right, v::windowInk, false);
                     onControl = over(boxX, y + 3, boxW, 12);
                     if (took(boxX, y + 3, boxW, 12)) placeCaret(context, countEdit::typed, px, py);
                 } else {
                     if (manual) {
-                        sunkFace(context, boxX, y + 3, boxW, 12, true, true);
-                        if (over(boxX, y + 3, boxW, 12)) fill(context, boxX + 1, y + 4, boxW - 2, 10, palette::white, .25f), onControl = true;
+                        bool const hot = over(boxX, y + 3, boxW, 12);
+                        drawWindowFieldBox(context, boxX, y + 3, boxW, 12, false, hot);
+                        if (hot) onControl = true;
                         if (took(boxX, y + 3, boxW, 12)) countEdit::begin(entry.key, entry.count, countEdit::Where::Window);
                         else if (wheel && over(boxX, y + 3, boxW, 12)) state::stepWanted(entry.key, wheel < 0, shift, false), wheel = 0;
                     }

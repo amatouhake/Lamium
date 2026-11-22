@@ -147,7 +147,9 @@ off face the game's lighter grey; tabs are the game's
 grey. Controls and a recipe's face take a dark grey edge
 (`vanilla::controlEdge`), not the game's black, which stood out on the
 window (maintainer 2026-11-21, L-379); the window's frame and its tabs keep
-the black. A check box is sunk as a slot is, with no edge. A tip there is
+the black. A check box is sunk as a slot is, with no edge. A count typed
+in place is a sunk box (`drawWindowFieldBox`), a pressable state small
+faint or dark words with no frame (`drawWindowTag`). A tip there is
 the game's tooltip box. Elsewhere they keep Lamium's
 dark look. No control plays a sound.
 
