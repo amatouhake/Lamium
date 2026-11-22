@@ -269,10 +269,12 @@ struct Lists : Window {
         labelScaled(context, heldX - 12, y + 2, heldW + 12, translated(heldKey), .75f, v::windowFaint, Align::Right, false);
         labelScaled(context, wantX - 6, y + 2, wantW + 6, translated(wantKey), .75f, v::windowFaint, Align::Right, false);
     }
-    // A count cut to fit its column shows whole under the pointer.
+    // A count cut to fit its column shows whole under the pointer: the number alone, over the row's tip, which is
+    // set later in a row (countTip, 2026-11-22).
+    std::string countTip;
     void number(float x, float w, float y, Count count, bool faint) {
         std::string text = std::to_string(count);
-        if (late.tip.empty() && textWidth(context, text) > w && over(x, y - 2, w, 12)) late.tip = wholeCountText(static_cast<std::uint64_t>(count));
+        if (textWidth(context, text) > w && over(x, y - 2, w, 12)) countTip = wholeCountText(static_cast<std::uint64_t>(count));
         windowLabel(context, x, y, w, std::move(text), faint, Align::Right);
     }
     // A group as its picture, holding still (GroupLook.h): the member chosen, else the one most held, else the one it
@@ -321,11 +323,11 @@ struct Lists : Window {
     }
     float stateTag(float end, float y, std::string text, bool chosen, std::string const& key, float room = 64) {
         if (room < 14) return end;
-        float const w = std::min({64.f, room, textWidth(context, text) * .75f + 6}), x = end - w;
-
+        // As wide as its words at the size drawn, cut only where the row has no more room (2026-11-22).
+        float const w = std::min(room, textWidthScaled(context, text, .75f) + 6), x = end - w;
         bool const hot = over(x, y, w, 10);
         if (hot) fill(context, x, y, w, 10, palette::white, .2f), late.hints.push_back(translated("recipes.howTo.change"));
-        labelScaled(context, x + 3, y + 2.5f, w - 6, std::move(text), .75f, chosen ? v::windowInk : v::windowFaint, Align::Left, false);
+        labelScaled(context, x + 3, y + 1.5f, w - 6, std::move(text), .75f, chosen ? v::windowInk : v::windowFaint, Align::Left, false);
         if (took(x, y, w, 10)) jumpHowTo(key);
         return x - 3;
     }
@@ -434,7 +436,7 @@ struct Lists : Window {
             std::string const words = translated("recipes.plan.schematic");
             float const wordsW = std::min(textWidth(context, words), right - left - switchWidth - 8);
             windowLabel(context, left, y + 4, wordsW, words);
-            toggleSwitch(context, left + wordsW + 8, y + 3.5f, on);
+            toggleSwitch(context, left + wordsW + 8, y + 4.5f, on);
             if (took(left, y, right - left, switchLine)) {
                 auto value = Runtime::instance().preferences();
                 value.schematic.planMaterials = !on;
@@ -908,7 +910,7 @@ struct Lists : Window {
                 std::string const words = translated("recipes.howTo.showAll");
                 float const wordsW = std::min(textWidth(context, words), right - left - switchWidth - 8);
                 windowLabel(context, left, y + 4, wordsW, words);
-                toggleSwitch(context, left + wordsW + 8, y + 3.5f, howAll);
+                toggleSwitch(context, left + wordsW + 8, y + 4.5f, howAll);
                 if (took(left, y, right - left, switchLine)) howAll = !howAll;
             } else if (line.kind == Line::Kind::Label) {
                 labelScaled(context, left, y + 3, right - left, translated(line.option == 0 ? "recipes.howTo.groups" : "recipes.howTo.recipes"), .75f, v::windowFaint,
@@ -1138,5 +1140,6 @@ void draw(MinecraftUIRenderContext& context, view::Input const& input, view::Lat
     else if (tab == Tab::Gather) lists.gatherTab();
     else if (tab == Tab::Make) lists.makeTab();
     else lists.howToTab();
+    if (!lists.countTip.empty()) late.tip = lists.countTip, late.tipLines.clear(), late.tipItems.clear(), late.tipTable.clear(), late.tipCount = true;
 }
 }

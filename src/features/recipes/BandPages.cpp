@@ -240,7 +240,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
     // A count cut to fit its column shows whole under the pointer.
     auto number = [&](float x, float y, Count count, Rgb color) {
         std::string text = std::to_string(count);
-        if (textWidth(context, text) > numW && ListBox{x, y, numW, 12}.has(px, py)) late.tip = wholeCountText(static_cast<std::uint64_t>(count)), late.tipLines.clear();
+        if (textWidth(context, text) > numW && ListBox{x, y, numW, 12}.has(px, py)) late.tip = wholeCountText(static_cast<std::uint64_t>(count)), late.tipLines.clear(), late.tipCount = true;
         label(context, x, y + 2, numW, std::move(text), color, Align::Right);
     };
     int const drawn = std::min(fits, total - first);

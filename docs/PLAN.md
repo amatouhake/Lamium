@@ -97,7 +97,8 @@ plan's recipes are in [L-116](backlog/L-116.md).
   above. A step's product: its name and the inputs short of what is
   carried, "Logs: 2 more". An input: its name, "Held: 0 (2 more)" (its
   slot shows what is needed) and the stores holding some. "To make"'s
-  second column is "To make", what the step makes.
+  columns read "Can make" and "To make" (作れる / 作る). A cut count's
+  tip is the number alone, never the row's item lines.
 - Marks: a favorite carries none (it stands in the favorites' panel); a
   wanted item its count; a chosen candidate in "How to make" a green
   frame in the unit outside its slot; a group's slot always its "*",

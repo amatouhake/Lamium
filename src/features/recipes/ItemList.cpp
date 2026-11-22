@@ -984,7 +984,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (!late.tip.empty()) {
         // An item Lamium draws gets what the game says of it under its name, with Lamium's item details
         // (L-363), in a frame like the game's tooltip; other tips (a tab's name) stay Lamium's plain tip.
-        bool const item = !tipItem.empty() && !late.tipGroup; // a group's tip is about the group, not the member shown
+        bool const item = !tipItem.empty() && !late.tipGroup && !late.tipCount; // a group's tip is about the group, not the member shown
         static std::string detailsOf;
         static std::vector<HoverLine> details;
         if (item && tipItem != detailsOf) {

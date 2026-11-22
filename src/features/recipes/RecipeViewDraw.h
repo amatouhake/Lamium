@@ -66,6 +66,7 @@ struct Late {
     int tipCurrent = -1; // the one of tipItems a group's slot shows, framed white
     int tipChosen = -1;  // the one of tipItems "How to make" chose, framed green over the white
     bool tipGroup = false; // the tip is a group's: no item's own lines under it
+    bool tipCount = false; // the tip is a count cut to fit, whole: no item's lines, though the keys still act on the row's
     bool tipGame = false;  // drawn in the game's tooltip box, as over the game's own window
     // What the thing under the pointer does with a press or the wheel: on the window's hint line, never in the
     // tip, which describes the item alone (L-369).
