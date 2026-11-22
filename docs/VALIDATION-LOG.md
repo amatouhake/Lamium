@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Saved data link wording and Windows' key names (L-372, 2026-11-23)
+
+Build `82b8aeee` (DLL
+`34f485a229520b583eddfe1b953322c5109b17a921b78216d2dcef9883c76025`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: the JIS ろ key, which
+the game calls "Button226", shows Windows' name `\`; the key left of
+Backspace keeps the game's "BACKSLASH". Not seen: the saved data row's
+longer link wording (`32c5f8cd`) was not reported separately.
+
 ## Link values at the key column (2026-11-23)
 
 Build `30d8d8fa` (DLL
