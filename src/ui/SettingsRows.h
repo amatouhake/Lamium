@@ -16,9 +16,8 @@ struct FeatureInfo {
     std::optional<input::Action> primary = std::nullopt;
 };
 // Two levels (L-340): the sidebar's categories, seeing first, then doing,
-// then General (L-83); inside each, groups headed in green. All, search and
-// Hotkeys head their rows by group. A category of one group names that group
-// with its own key.
+// then General (L-83); inside each, groups headed in green in every view. A
+// category of one group names that group with its own key.
 inline constexpr auto sections = std::to_array<std::string_view>({
     "section.view", "section.hud", "section.world", "section.items", "section.interaction", "section.interface"});
 struct GroupInfo {
@@ -386,8 +385,7 @@ struct SettingsRow {
 };
 // Category is a section key, or empty for all sections. A query searches every
 // section and initially expands features whose settings, but not name, match it.
-// Rows are headed by group: always when all sections show, inside one category
-// only when it has more than one group (L-340).
+// Rows are headed by group in every view, a category of one group by its own name (L-340).
 // Presentation independent of Minecraft objects, so it is testable without rendering.
 template<class Translate>
 std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view category, SearchQuery const& query,
@@ -400,9 +398,8 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
     for (auto const& group : groups) {
         auto const section = group.section;
         if (!category.empty() && category != section) continue;
-        bool const headed = category.empty() || groupCount(section) > 1;
         auto sectionRow = [&] {
-            if (headed && group.key != lastGroup) {
+            if (group.key != lastGroup) {
                 SettingsRow row{RowKind::Section, nullptr, nullptr, {}, section, std::nullopt, std::nullopt};
                 row.group = group.key;
                 rows.push_back(row);

@@ -369,8 +369,9 @@ void settingsRowsTests() {
         && rows[4].kind == RowKind::Section && rows[4].group == "group.look", "a category of several groups heads each");
     for (auto const& row : rows) check(row.section == "section.view", "category filters features");
     rows = ui::buildSettingsRows(false, "section.interface", query, expanded, translate);
-    check(!rows.empty(), "category has features");
-    for (auto const& row : rows) check(row.heading(), "a category of one group shows no heading of its own");
+    check(rows.size() > 1 && rows[0].kind == RowKind::Section && rows[0].group == "section.interface"
+        && std::all_of(rows.begin() + 1, rows.end(), [](auto const& row) { return row.heading(); }),
+        "a category of one group is headed by its own name");
 
     // Search spans all categories and opens features whose settings match.
     query.append("magnification");

@@ -20,10 +20,9 @@ append-only action ids and default keys in `src/input/Binding.h`.
   Actions, General); each holds groups named by green headings. The table
   `groups` in `SettingsRows.h` places every feature in one group, in
   display order; a test fails for a feature no group lists.
-- All, search results and Hotkeys head their rows by group, in category
-  order. A category's own view heads its groups when it has more than
-  one; a category of one group (Actions, General) shows no heading there
-  and its name in All. Group names are searched.
+- Every view (All, a category, search results, Hotkeys) heads its rows
+  by group, in category order. A category of one group (Actions,
+  General) is headed by its own name. Group names are searched.
 - The sidebar's on/total count and Tab work per category; screens that
   open only on request (no switch) are not counted.
 
