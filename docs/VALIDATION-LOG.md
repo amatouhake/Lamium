@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Slot counts in thousands and millions, the panel's Make all (L-370, L-385, 2026-11-22)
+
+Build `ddd8d885` (DLL
+`79e04d79602cf90906bbff8c0eb20baa1db754e0a2423dac77736b0e8f370f50`),
+1.26.60.05 Dev instance, the maintainer. Confirmed: slots read "750k",
+"3.0M", "999k" in smaller letters; the panel's make picture heads the
+make buttons with the "Make all" tip; greyed with no grid open. Faults:
+in English a four-character count runs a little past the slot, and the
+smaller letters look thin; tips on the panel mix the game's box and
+Lamium's grey, and its row buttons' tips carry the item's details and
+id; Make all made a few rounds of the steps whole at the press only,
+leaving steps made in part and those a product fed.
+
 ## Plan tips cut to what rows lack, How to make in item-list order (L-387, L-389, 2026-11-22)
 
 Build `38017d71` (DLL
