@@ -9,9 +9,9 @@ Do not infer game success from a build or unit-test result.
 
 ## Since 0.7.0
 
-- Settings grouping (L-340, L-392): seven categories with group headings
-  (Schematics its own, Hands and equipment under Player), no counts on
-  them, and the README and FEATURES.md sections to follow before tagging. Hotkeys
+- Settings grouping (L-340, L-392, seen in game): seven categories with
+  group headings; the README and FEATURES.md sections to follow before
+  tagging. Hotkeys
   by layer (L-372): the conflict tip names where; back and Sort on one
   key are no longer a conflict.
 
@@ -27,9 +27,8 @@ Do not infer game success from a build or unit-test result.
   group gathered from its breakdown step, the window's tabs beyond those
   (split by tab in `37301b53`, moves only), servers.
 - Fixes from the review since 0.7.0 (L-390): the local checks seen on
-  `14e2c83c` (VALIDATION-LOG 2026-11-23, parts 1 and 2). Not clear yet:
-  the plan's schematic materials after the earlier of two placements is
-  removed; Mass
+  `14e2c83c` and `ad38e53f` (VALIDATION-LOG 2026-11-23). Not seen yet:
+  Mass
   Craft waiting for a round crafted onto the pointer (its start delay
   set to 0 makes it easier). Needing a server or another player: a
   server's own stores file (two servers), a friend's world or Realm kept

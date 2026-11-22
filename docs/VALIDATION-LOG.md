@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Settings categories regrouped, one review check (L-392, L-390, 2026-11-23)
+
+Build `ad38e53f` (DLL
+`4a7fdbdddeacbad8093d82355755169f36b4c47518022f9c868312098b3bdbca`),
+1.26.60.05 Dev instance, a local world, the maintainer. Confirmed: the
+sidebar's seven categories without counts, Schematics between World and
+Items; Player with the green headings Action helpers and Hands and
+equipment; Items holding only Item screens and Recipes and plan; in a
+small window the categories and the pinned screens do not meet. L-390:
+with two placements A (first) and B selected, removing A leaves B's
+materials in the plan after a few seconds. No other problem found.
+
 ## Liquids out of the plan, natural stones gathered (L-391, 2026-11-23)
 
 Build `832f3e0c` (DLL
