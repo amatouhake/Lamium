@@ -325,7 +325,41 @@ void layOut(CraftingScreenController& screen, ContainerManagerController& manage
     for (auto const& [cell, source] : served) steps.push_back({each, sources[source].from, sources[source].index, cell});
     log(callBudget, 400, "lay: {} ({}) into {} cells, {} each", key, recipe.id, steps.size(), each);
 }
+// L-397, read only: which recipes the book's cells show, as their shown item, whenever that changes (the book
+// opened or closed, a tab, the search, what is carried). A book call names a cell, so this says whether Lamium
+// could find one for a recipe.
+TraceBudget cellBudget;
+std::string lastCells;
+std::string shortName(std::string const& name) { return name.starts_with("minecraft:") ? name.substr(10) : name; }
+std::string bookCells(ContainerScreenController& screen, ContainerManagerController& manager, std::string const& only = {}) {
+    std::string out;
+    for (auto const& [name, container] : manager.mContainers.get()) {
+        if (!name.starts_with("recipe_")) continue;
+        int const size = manager.getContainerSize(name);
+        out += std::format(" [{}:{}", name, size);
+        int listed = 0;
+        for (int i = 0; i < size && i < 400; ++i) {
+            auto const& stack = screen._getVisualItemStack(name, i);
+            std::string const item = stack.isNull() ? std::string("-") : stack.getTypeName();
+            if (!only.empty()) {
+                if (item == only) out += std::format(" {}", i);
+                continue;
+            }
+            if (++listed <= 160) out += std::format(" {}", shortName(item));
+        }
+        if (only.empty() && listed > 160) out += std::format(" +{}", listed - 160);
+        out += "]";
+    }
+    return out.empty() ? " (no recipe collections)" : out;
+}
+void seeBook(CraftingScreenController& screen, ContainerManagerController& manager) {
+    std::string cells = bookCells(screen, manager);
+    if (cells == lastCells) return;
+    lastCells = cells;
+    log(cellBudget, 80, "book cells{}", cells);
+}
 void experiment(CraftingScreenController& screen, ContainerManagerController& manager) {
+    seeBook(screen, manager);
     bool const shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
     if (edge(VK_F7, f7Down)) layOut(screen, manager, shift);
     bool const once = edge(VK_F8, f8Down);
@@ -334,6 +368,12 @@ void experiment(CraftingScreenController& screen, ContainerManagerController& ma
     // pointer in Lamium's lists). Shift + F6: the last auto craft. F10: the last manager select.
     bool const ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
     bool const press = edge(VK_F6, f6Down), take = edge(VK_F10, f10Down);
+    if (press && !shift) {
+        // Read only: the cells that show the item under the pointer in Lamium's lists.
+        std::string const key = lamium::recipes::itemList::hoveredItem();
+        std::string const name(lamium::recipes::splitItemKey(key).name);
+        log(experimentBudget, 400, "book cells for '{}':{}", key, name.empty() ? std::string(" (nothing hovered)") : bookCells(screen, manager, name));
+    }
     if (press || take) {
         auto& crafting = static_cast<CraftingContainerManagerController&>(manager);
         replaying = true;
