@@ -1,6 +1,7 @@
 #include "features/research/RecipeTrace.h"
 #ifdef LAMIUM_RECIPE_TRACE
 #include "app/TraceLog.h"
+#include "features/recipes/ItemKey.h"
 #include "features/recipes/RecipeSnapshot.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -19,13 +20,18 @@
 #include "mc/world/item/crafting/Recipe.h"
 #include "mc/world/item/crafting/RecipeIngredient.h"
 #include "mc/world/item/crafting/Recipes.h"
+#include "mc/deps/nbt/CompoundTag.h"
+#include "mc/world/item/registry/CreativeItemEntry.h"
+#include "mc/world/item/registry/CreativeItemRegistry.h"
 #include "mc/world/item/registry/ItemRegistryRef.h"
 #include "mc/world/level/Level.h"
+#include "mc/world/level/block/Block.h"
 #include <chrono>
 #include <ctime>
 #include <format>
 #include <fstream>
 #include <map>
+#include <set>
 #include <string>
 
 namespace lamium::researchTrace::recipeTable {
@@ -340,6 +346,69 @@ void dumpBrewing(Level& level) {
     traceLog(summaryBudget, 12, "L-361 brewing: {} mixes from {} ingredients on {} potion kinds, written to {}", mixes, ingredients.size(), bases.size(),
              path.filename().string());
 }
+// L-363: every creative entry, to see which ones the item list folds (same name and aux, other data). Written
+// to `logs/creative-<time>-<local|remote>.txt`: one E line per entry (place, group, key, user data and block
+// states as SNBT, "-" for none), then one K line per key more than one entry holds (entries, distinct data,
+// the user data's top-level tag names).
+void dumpCreative(Level& level) {
+    auto const* registry = level.getItemRegistry().getCreativeItemRegistry().get();
+    if (!registry) return;
+    auto const& entries = registry->mCreativeItems.get();
+    guard(entries.size(), 20000, "the creative list");
+    struct Key {
+        int entries = 0;
+        std::set<std::string> data, tags;
+    };
+    std::map<std::string, Key> keys;
+    std::string lines;
+    int nulls = 0, withData = 0;
+    size_t place = 0;
+    for (auto const& entry : entries) {
+        auto const& item = entry.mItemInstance.get();
+        size_t const at = place++;
+        if (item.isNull()) { ++nulls; continue; }
+        int const aux = item.getAuxValue();
+        std::string const key = recipes::itemKey(item.getTypeName(), aux == recipes::anyAux ? 0 : aux);
+        auto& known = keys[key];
+        std::string data;
+        if (auto const* user = item.mUserData.get()) {
+            data = user->toSnbt(SnbtFormat::Minimize);
+            for (auto const& [name, tag] : user->mTags) known.tags.insert(name);
+        }
+        if (auto const* block = item.mBlock) {
+            auto const& id = block->mSerializationId.get();
+            if (auto found = id.mTags.find("states"); found != id.mTags.end()) {
+                std::string states = found->second.toSnbt(SnbtFormat::Minimize);
+                if (states != "{}") data += (data.empty() ? "" : " ") + std::string("states=") + states;
+            }
+        }
+        if (!data.empty()) ++withData;
+        ++known.entries;
+        known.data.insert(data);
+        lines += std::format("E\t{}\t{}\t{}\t{}\n", at, static_cast<unsigned>(entry.mGroupIndex), key, data.empty() ? "-" : data);
+    }
+    int folded = 0, sameData = 0, shared = 0;
+    std::string summary;
+    for (auto const& [key, known] : keys) {
+        if (known.entries < 2) continue;
+        ++shared;
+        folded += known.entries - 1;
+        sameData += known.entries - static_cast<int>(known.data.size());
+        std::string tags;
+        for (auto const& tag : known.tags) tags += (tags.empty() ? "" : ",") + tag;
+        summary += std::format("K\t{}\t{}\t{}\t{}\n", key, known.entries, known.data.size(), tags.empty() ? "-" : tags);
+    }
+    std::string const head = std::format(
+        "# L-363 creative list: {} entries ({} null), {} keys, {} with data; {} keys held by more than one entry, "
+        "{} entries folded today, {} of them identical to another\n# E: place, group, key, data\n# K: key, entries, "
+        "distinct data, user data tags\n",
+        entries.size(), nulls, keys.size(), withData, shared, folded, sameData);
+    auto const path = Runtime::instance().self().getModDir() / "logs" / std::format("creative-{}-{}.txt", timeStamp(), local ? "local" : "remote");
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    file << head << summary << lines;
+    traceLog(summaryBudget, 12, "L-363 creative list: {} entries, {} keys, {} folded ({} identical), written to {}", entries.size(), keys.size(),
+             folded, sameData, path.filename().string());
+}
 void reset() {
     ticks = steady = 0;
     seen = dumped = -1;
@@ -369,6 +438,7 @@ void tick() noexcept {
         ++written;
         dump(level, recipes);
         try { dumpBrewing(level); } catch (...) { traceLog(failBudget, 4, "L-361 brewing unreadable"); }
+        try { dumpCreative(level); } catch (...) { traceLog(failBudget, 4, "L-363 creative list unreadable"); }
         snapshot.reset();
         indexSteps = 0;
         longestStep = 0;

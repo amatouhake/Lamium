@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## What the item list folds of the creative list (L-363, 2026-11-24)
+
+Trace build of `ab8c319a` with the creative dump uncommitted
+(`recipe_trace`, DLL
+`9bae9d18be99d905b1c25b3095b390a82f3b1185502fd9f6701f374325c80ee0`),
+1.26.60.05 Dev, LeviLamina 26.60.5, a local world, read only
+(`logs/creative-*-local.txt`):
+- 1980 creative entries, 1839 keys: 141 entries share a key with an
+  earlier one and are left out of the item list today; none of them is
+  identical to another.
+- Only three keys fold: `minecraft:enchanted_book` (125 entries, user data
+  `ench`, one enchantment and level each), `minecraft:firework_rocket`
+  (17: no explosion and one per dye color, all `Flight:1b`, data
+  `Fireworks`) and `minecraft:banner@15` (2: the white banner `Type:0`
+  and the ominous banner `Type:1`, which the list loses).
+- Other user data rides on items already told apart by aux: every banner
+  color (`Type:0`) and firework star (`FireworksItem`, `customColor`).
+  Every other entry with data carries block states only.
+- The recipe table's firework rocket results are `firework_rocket:0`,
+  whatever star goes in.
+- A server was not checked.
+
 ## The recipe book's cells follow its own view (L-397, 2026-11-23)
 
 Trace build of `90aaa603` (`craft_trace`, DLL
