@@ -237,26 +237,59 @@ TargetIcon textureIcon(Block const& block) {
 }
 // Blocks without an item (portal, fire, ...) draw their own texture, and so
 // does water (L-294).
+// An icon's item data (L-393). Several lookups a frame ask, and a full
+// shulker box would be saved whole each time, so one target's data is read at
+// most every 250 ms. One item: a pile's size changes as piles merge, and each
+// new string would be another decoded stack to keep.
+struct StackDataCache {
+    std::string key;
+    std::chrono::steady_clock::time_point read{};
+    std::string stack;
+};
+StackDataCache droppedStackCache, frameStackCache;
+std::string const& stackData(StackDataCache& cached, std::string key, ItemStackBase const& stack) {
+    auto now = std::chrono::steady_clock::now();
+    if (cached.key != key || now - cached.read >= std::chrono::milliseconds(250)) {
+        cached = {std::move(key), now, {}};
+        try {
+            auto context = SaveContextFactory::createCloneSaveContext();
+            if (auto tag = context ? stack.save(*context) : nullptr) {
+                tag->putByte("Count", 1);
+                cached.stack = tag->toBinaryNbt();
+            }
+        } catch (...) { cached.stack.clear(); }
+    }
+    return cached.stack;
+}
+void forgetStackData() { droppedStackCache = frameStackCache = {}; }
 TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& block) {
     if (schematic::isWaterName(block.getTypeName())) return textureIcon(block);
     std::string pick;
     short aux = 0;
+    std::string data;
     try {
         auto item = block.asItemInstance(source, pos, true);
         if (!item.isNull() && item.mItem) {
             pick = item.mItem->mFullName->getString();
             aux = item.getAuxValue();
+            // A frame picks the item it holds, whose data draws its look
+            // (glint, dye). Other blocks keep name and aux: their picked
+            // data is their contents, which an icon does not show.
+            auto const& type = block.getTypeName();
+            if (type == "minecraft:frame" || type == "minecraft:glow_frame")
+                data = stackData(frameStackCache,
+                                 std::format("{} {} {} {}", static_cast<int>(source.getDimensionId()), pos.x, pos.y,
+                                             pos.z),
+                                 item);
         }
     } catch (...) {}
-    if (!pick.empty()) return chooseBlockIcon(std::move(pick), aux, {});
+    if (!pick.empty()) {
+        auto icon = chooseBlockIcon(std::move(pick), aux, {});
+        icon.stack = std::move(data);
+        return icon;
+    }
     return textureIcon(block);
 }
-struct DroppedStackCache {
-    std::uint64_t id = 0;
-    std::chrono::steady_clock::time_point read{};
-    std::string stack;
-};
-DroppedStackCache droppedStackCache;
 // A dropped stack shows the item it holds; its own identifier is
 // "minecraft:item", which names no item of its own.
 TargetIcon droppedIcon(Actor& entity) {
@@ -265,24 +298,7 @@ TargetIcon droppedIcon(Actor& entity) {
         auto& stack = static_cast<ItemActor&>(entity).item();
         if (!stack.mItem) return {};
         TargetIcon icon{IconKind::Item, stack.mItem->mFullName->getString(), stack.getAuxValue()};
-        // Several lookups a frame ask: a full shulker box would be saved
-        // whole each time, so the data is read at most every 250 ms.
-        auto& cached = droppedStackCache;
-        auto id = entity.getRuntimeID().rawID;
-        auto now = std::chrono::steady_clock::now();
-        if (cached.id != id || now - cached.read >= std::chrono::milliseconds(250)) {
-            cached = {id, now, {}};
-            try {
-                auto context = SaveContextFactory::createCloneSaveContext();
-                if (auto tag = context ? stack.save(*context) : nullptr) {
-                    // One item: a pile's size changes as piles merge, and each
-                    // new string would be another decoded stack to keep.
-                    tag->putByte("Count", 1);
-                    cached.stack = tag->toBinaryNbt();
-                }
-            } catch (...) { cached.stack.clear(); }
-        }
-        icon.stack = cached.stack;
+        icon.stack = stackData(droppedStackCache, std::to_string(entity.getRuntimeID().rawID), stack);
         return icon;
     } catch (...) { return {}; }
 }
@@ -780,7 +796,7 @@ void startTargetIcons() {
             clearSpawnEggIndex();
             forgetNoteSounds();
             forgetBlockEntityRows();
-            droppedStackCache = {};
+            forgetStackData();
             playerList::forget();
         });
 }
