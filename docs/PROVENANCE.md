@@ -177,7 +177,9 @@ Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION-LOG.md).
   is not opened; no code, strings, assets or screen layout are used.
   On 2026-11-20 the maintainer also referred to EMI's public pages (README,
   wiki, changelog, the descriptions in the config file it writes) for the
-  L-371 direction; its source is still not opened.
+  L-371 direction; its source is still not opened. On 2026-11-24 JEI's
+  public wiki pages on item subtypes were read for L-363 (what makes two
+  stacks of one item different); its source is not opened.
 - The Bedrock slime chunk rule (L-232, `features/information/SlimeChunk.h`):
   MT19937 seeded with `uint32(chunkX) * 0x1f1f1f1f ^ uint32(chunkZ)`, slime
   chunk when the first output `% 10 == 0`. It is a fact about the game, as
