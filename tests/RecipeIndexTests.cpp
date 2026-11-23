@@ -660,6 +660,9 @@ void recipeIndexTests() {
         check(identityData("minecraft:banner", values({{"Type", "0"}})).empty() && identityData("minecraft:banner", values({})).empty()
                   && identityData("minecraft:banner", values({{"Type", "1"}})) == "{Type:1}",
               "a plain banner keeps its key; the ominous one carries its type");
+        check(identityData("minecraft:banner", values({{"Type", "0"}, {"Patterns", "[{Color:1,Pattern:\"bo\"}]"}})) == "{Patterns:[{Color:1,Pattern:\"bo\"}]}"
+                  && identityData("minecraft:banner", values({{"Type", "0"}, {"Patterns", "[]"}})).empty(),
+              "a banner's patterns are part of its key; no patterns are none");
         check(identityData("minecraft:firework_star", values({{"FireworksItem", "{}"}})).empty() && identityData("minecraft:stone", values({{"x", "1"}})).empty(),
               "an item outside the table carries no data");
         check(identityData("minecraft:enchanted_book", values({{"ench", std::string(300, 'x')}})).empty(), "data too long to save is left out");

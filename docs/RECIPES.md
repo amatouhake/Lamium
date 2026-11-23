@@ -333,8 +333,9 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   the RecipeTable capability ([GAME-UPDATES.md](GAME-UPDATES.md)).
 - `ItemKey.h`: an item's key, the name plus the aux where the table tells
   variants apart (`settled()`, `RecipeIndex.h`), plus the data that makes
-  a book, rocket or ominous banner what it is (`identityTags`, L-363), from
-  a game stack by `StackKey.cpp`. Table keys carry none; `findKey` drops it.
+  a book, rocket or banner (type, patterns) what it is (`identityTags`,
+  L-363), from a game stack by `StackKey.cpp`, kept from a slot the list
+  lacks. Table keys carry none; `findKey` drops it. Icons show their glint.
 - `BandLayout.h` (pure, L-374): the panels as regions beside, above and
   below the game's window, panels split along a region, one page to a
   panel; the layout is kept in the settings (`inventory.bands`, today's

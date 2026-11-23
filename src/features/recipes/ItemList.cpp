@@ -965,7 +965,9 @@ bool drawList(ll::event::UIRenderEvent& event) {
             int const aux = stack->getAuxValue();
             auto const table = service::table();
             if (name.size() > 200) {}
-            else if (std::string key = stackKey(*stack); listed.contains(key)) hoverItem = std::move(key);
+            // A stack told apart by its data keeps it though the list lacks it (L-363: a book with two
+            // enchantments, a banner with patterns), so a favorite is that stack.
+            else if (std::string key = stackKey(*stack); listed.contains(key) || key.size() != baseKey(key).size()) hoverItem = std::move(key);
             else hoverItem = table ? table->index.keyOf(name, aux) : name;
         }
     }
@@ -988,7 +990,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
             || std::any_of(bandBoxes.begin(), bandBoxes.end(), [&](ListBox const& b) { return over(b.x, b.y, b.w, b.h); })
             || (open && over(coverLeft, viewLayout.top - RecipeViewLayout::tabsAbove, right - coverLeft, viewLayout.height + RecipeViewLayout::tabsAbove));
     });
-    for (auto& icon : late.icons) icon.alpha *= shownOpacity;
+    // With the glint of items that have one, as the game's slots show them (L-363: an enchanted book).
+    for (auto& icon : late.icons) icon.alpha *= shownOpacity, icon.glint = true;
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
     // The icons' counts and marks before the held item, which goes over them too.
     for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
@@ -1089,7 +1092,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             for (size_t i = 0; i < members; ++i)
                 if (auto const* stack = schematic::items::iconStack(schematic::items::shown(late.tipItems[i]).icon)) {
                     auto const [cx, cy] = cellAt(i);
-                    icons.push_back({stack, cx + 1, cy + 1});
+                    icons.push_back({stack, cx + 1, cy + 1, 1.f, 0, 1.f, true});
                 }
             if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
             context.flushText(0, std::nullopt);

@@ -51,12 +51,13 @@ inline ItemKeyParts splitItemKey(std::string_view key) {
 }
 // The top-level user data tags that make an item what it is (seen in the creative list, VALIDATION-LOG
 // 2026-11-24), each with the value (SNBT) that adds nothing: every banner color has Type 0, the ominous one 1.
+// A banner's patterns count too, though no creative banner has any (a carried one keeps them); none is plain.
 struct IdentityTag {
     std::string_view tag;
     std::string_view plain; // empty: every value counts
 };
 inline std::span<IdentityTag const> identityTags(std::string_view name) {
-    static constexpr IdentityTag book[]{{"ench", ""}}, rocket[]{{"Fireworks", ""}}, banner[]{{"Type", "0"}};
+    static constexpr IdentityTag book[]{{"ench", ""}}, rocket[]{{"Fireworks", ""}}, banner[]{{"Type", "0"}, {"Patterns", "[]"}};
     if (name == "minecraft:enchanted_book") return book;
     if (name == "minecraft:firework_rocket") return rocket;
     if (name == "minecraft:banner") return banner;
