@@ -182,6 +182,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; one part left): Fixed by commit, none seen in game; 1-7's refused take waits for the server check
+- [L-393](backlog/L-393.md) Target card icon loses the item's data (glint, dye, modded icons) (Ready): Reported on GitHub (issue 83, 2026-11-23); not started
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
@@ -202,7 +203,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)
 - [L-386](backlog/L-386.md) Trace an "any" ingredient past its kind (planks to logs) (Ready): Built; planks from logs, make over two kinds and the group's gather seen in game (local); a picked log kind and a server not
 - [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Ready): Seen in game on a local world (2026-11-22); a server unchecked
-- [L-384](backlog/L-384.md) HUD: scale above 200 %, and a paper doll cut to its upper body (Design): Requested by a player (Discord, 2026-11-21); not started, no release target
+- [L-384](backlog/L-384.md) HUD: a wider scale range and placement past the screen edge (Design): Requested by a player (Discord, 2026-11-21, answers 2026-11-22); not started, no release target
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
