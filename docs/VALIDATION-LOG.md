@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Carried variants and glint in the recipe screens (L-363, 2026-11-24)
+
+`1617103b` on branch `l363-data-keys` (DLL
+`114af0319f7e1541aa95fbf140ebe005c07b2b54cff0cd276c190d768615001d`),
+1.26.60.05 Dev, a local world:
+- Seen: a two-enchantment book and a patterned banner favorited from the
+  inventory keep their enchantments and patterns in the favorites and
+  their tips; a crafted colored rocket (one gunpowder) is the listed
+  rocket of its color (favoriting one takes the other out); the books
+  glint in the list, favorites and recipe view, with no slowdown on a
+  page of books and the held item still on top; nothing else changed.
+- Firework stars in the list are all drawn black and their tip has no
+  explosion lines, while the game's creative list and a crafted star show
+  their color and description: the list draws a stack rebuilt from the
+  key (name and aux), without the entry's `FireworksItem` and
+  `customColor`.
+
 ## Keys with data in the item list (L-363, 2026-11-24)
 
 `04f441ac` on branch `l363-data-keys` (DLL
