@@ -4,6 +4,7 @@
 #include "app/Runtime.h"
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inventory/game/TransferRoutes.h"
+#include "features/recipes/CraftRun.h"
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemList.h"
 #include "features/recipes/MassCraftPlan.h"
@@ -41,10 +42,11 @@ struct Waiting {
     std::string screen;
     bool many = false;
     int most = 64; // with `many`, no more crafts than that (L-385)
-    int tries = 0; // frames waited for the grid to read empty
-    std::chrono::steady_clock::time_point seen; // last ticked: a screen closed meanwhile drops it
+    craftRun::Run run;
 } going;
+constexpr auto layRules = craftRun::rulesFor(craftRun::Kind::Lay);
 constexpr int mostTries = 20;
+long long msNow() { return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 // The crafting screens: the inventory's 2x2 and the crafting table's 3x3 (seen with craft_trace, 2026-11-18).
 CraftingScreenController* crafting(ScreenView& screen) {
     if (!screen.mController || !screen.mController->_isContainerScreen()) return nullptr;
@@ -345,7 +347,8 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             controller->_evacuateCraftingGrid();
             // Not read as empty at once: the recipe is laid in when it is, a few frames on.
             if (!gridEmpty(manager)) {
-                going = {table, recipe, picks, screen.getScreenName(), many, most, 0, std::chrono::steady_clock::now()};
+                going = {table, recipe, picks, screen.getScreenName(), many, most, {}};
+                going.run.seen = msNow();
                 return true;
             }
         }
@@ -363,16 +366,20 @@ void tick(ScreenView& screen) {
     tickOnto(screen);
     tickMaking(screen);
     if (going.recipe < 0) return;
-    auto const now = std::chrono::steady_clock::now();
-    if (now - going.seen > std::chrono::milliseconds(300)) { going = {}; return; }
-    going.seen = now;
+    auto const now = msNow();
+    if (craftRun::stale(going.run, layRules, now)) { going = {}; return; }
     try {
         auto* controller = crafting(screen);
         if (!controller || screen.getScreenName() != going.screen) { going = {}; return; }
-        // Waiting for what lay in the grid to be back in the inventory (no room for it: given up).
-        if (!gridEmpty(*controller->mContainerManagerController)) { if (++going.tries > mostTries) going = {}; return; }
-        lay(*controller, going.table->index, going.table->index.recipes[static_cast<size_t>(going.recipe)], going.picks, going.many, nullptr,
-            going.most);
+        craftRun::Seen seen;
+        seen.gridEmpty = gridEmpty(*controller->mContainerManagerController);
+        auto const act = craftRun::step(going.run, layRules, seen, now);
+        if (act.what == craftRun::Do::Wait) return;
+        if (act.what == craftRun::Do::Lay) {
+            bool const laid = lay(*controller, going.table->index, going.table->index.recipes[static_cast<size_t>(going.recipe)], going.picks,
+                                  going.many, nullptr, going.most);
+            craftRun::laid(going.run, layRules, laid ? 1 : -1, now);
+        }
     } catch (...) {}
     going = {};
 }

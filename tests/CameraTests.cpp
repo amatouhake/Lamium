@@ -47,6 +47,8 @@ int main() try {
     rawMaterialsTests();
     extern void recipeIndexTests();
     recipeIndexTests();
+    extern void craftRunTests();
+    craftRunTests();
     extern void sectionLayersTests();
     sectionLayersTests();
     extern void checkIgnoresTests();
