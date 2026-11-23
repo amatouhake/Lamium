@@ -45,7 +45,6 @@ struct Waiting {
     craftRun::Run run;
 } going;
 constexpr auto layRules = craftRun::rulesFor(craftRun::Kind::Lay);
-constexpr int mostTries = 20;
 long long msNow() { return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 // The crafting screens: the inventory's 2x2 and the crafting table's 3x3 (seen with craft_trace, 2026-11-18).
 CraftingScreenController* crafting(ScreenView& screen) {
@@ -963,19 +962,14 @@ void stop() {
 namespace place {
 namespace {
 using Clock = std::chrono::steady_clock;
-constexpr auto ontoWait = std::chrono::milliseconds(200), ontoGiveUp = std::chrono::milliseconds(1500);
-// A run not ticked for this long belongs to a screen that was closed: it is dropped without a game call.
-constexpr auto ontoStale = std::chrono::milliseconds(500);
+constexpr auto ontoRules = craftRun::rulesFor(craftRun::Kind::Onto);
 struct Onto {
     std::shared_ptr<service::Table const> table;
     int recipe = -1;
     std::map<int, Item> picks;
     std::string screen;
-    enum class Step { Clear, Laid, Take, Fetch } step = Step::Clear;
-    int heldBefore = 0; // what the pointer held of the product before the take
-    int tries = 0;
-    std::vector<int> before; // Fetch: the product per slot (0-8 the hotbar, 9-35 the inventory) before the Shift take
-    Clock::time_point began, since, ticked;
+    Clock::time_point began;
+    craftRun::Run run;
 } onto;
 Item heldItem(ContainerManagerController& manager, Index const& index) {
     auto const& stack = manager.getItemStack(pointer, 0);
@@ -1010,68 +1004,31 @@ void advanceOnto(CraftingScreenController& controller) {
     auto& manager = *controller.mContainerManagerController;
     auto const& index = onto.table->index;
     auto const& recipe = index.recipes[static_cast<size_t>(onto.recipe)];
-    auto const now = Clock::now();
-    auto holdsMore = [&] { return heldItem(manager, index) == recipe.makes && held(manager) > onto.heldBefore; };
-    // Crafted: more of the product on the pointer and the round gone from the grid (one round was laid in).
-    auto crafted = [&] { return holdsMore() && !massCraft::makesProduct(manager, index, recipe.makes); };
-    switch (onto.step) {
-    case Onto::Step::Clear:
-        if (!gridEmpty(manager)) {
-            if (!onto.tries) controller._evacuateCraftingGrid();
-            if (!gridEmpty(manager)) {
-                if (++onto.tries > mostTries) finishOnto(controller, "given up: the grid did not empty");
-                return;
-            }
-        }
-        if (!lay(controller, index, recipe, onto.picks, false)) { finishOnto(controller, "given up: the round could not be laid in"); return; }
-        onto.step = Onto::Step::Laid, onto.since = now;
-        [[fallthrough]];
-    case Onto::Step::Laid:
-        // The output may show a few frames after the round is laid in.
-        if (!massCraft::makesProduct(manager, index, recipe.makes)) {
-            if (now - onto.since > ontoWait) finishOnto(controller, "given up: the grid did not make it");
-            return;
-        }
-        onto.heldBefore = heldItem(manager, index) == recipe.makes ? held(manager) : 0;
-        controller._handleTakeAmount(static_cast<int>(recipe.count), output, 0);
-        onto.step = Onto::Step::Take, onto.since = now;
-        if (crafted()) finishOnto(controller, onto.heldBefore ? "onto the held stack by taking the output" : "by taking the output");
-        return;
-    case Onto::Step::Take:
-        if (crafted()) { finishOnto(controller, "by taking the output, a moment later"); return; }
-        if (now - onto.since < ontoWait) return;
-        // More on the pointer while the grid still makes it: shown by the client only, not crafted.
-        if (holdsMore()) { finishOnto(controller, "not confirmed: the pointer shows more but the grid still holds the round"); return; }
-        // With something held the round stays laid in, as when the pointer had no room.
-        if (held(manager)) { finishOnto(controller, "not taken onto the held stack: the round is left laid in", false); return; }
-        onto.before = productCounts(manager, index, recipe.makes);
-        controller._handleAutoPlace(INT_MAX, output, 0);
-        onto.step = Onto::Step::Fetch, onto.since = now;
-        [[fallthrough]];
-    case Onto::Step::Fetch: {
-        auto const after = productCounts(manager, index, recipe.makes);
-        for (int i = 0; i < 36; ++i) {
-            int const more = after[static_cast<size_t>(i)] - onto.before[static_cast<size_t>(i)];
-            if (more <= 0) continue;
-            controller._handleTakeAmount(more, i < 9 ? hotbar : inventory, i < 9 ? i : i - 9);
-            finishOnto(controller, crafted() ? "by the Shift take, then from the inventory" : "given up: the Shift take's product could not be picked up");
-            return;
-        }
-        if (now - onto.since > ontoGiveUp) finishOnto(controller, "given up: nothing came");
-        return;
-    }
+    auto const now = msNow();
+    for (int pass = 0; pass < 8; ++pass) {
+        craftRun::Seen seen;
+        seen.gridEmpty = gridEmpty(manager);
+        seen.makesProduct = massCraft::makesProduct(manager, index, recipe.makes);
+        seen.held = held(manager);
+        seen.heldProduct = heldItem(manager, index) == recipe.makes;
+        seen.products = productCounts(manager, index, recipe.makes);
+        auto act = craftRun::step(onto.run, ontoRules, seen, now);
+        if (act.what == craftRun::Do::Lay) act = craftRun::laid(onto.run, ontoRules, lay(controller, index, recipe, onto.picks, false) ? 1 : 0, now);
+        if (act.what == craftRun::Do::Finish) { finishOnto(controller, act.why, act.tidy); return; }
+        perform(controller, act, static_cast<int>(recipe.count));
+        if (!act.next) return;
     }
 }
 }
 void abandonCraft() { onto = {}; finishMaking("the screen went"); }
-bool ontoBusy() { return onto.recipe >= 0 && Clock::now() - onto.ticked <= ontoStale; }
+bool ontoBusy() { return onto.recipe >= 0 && msNow() - onto.run.seen <= ontoRules.stale; }
 void tickOnto(ScreenView& screen) {
     if (onto.recipe < 0) return;
-    if (auto const now = Clock::now(); now - onto.ticked > ontoStale) {
+    if (craftRun::stale(onto.run, ontoRules, msNow())) {
         logOnto("crafting onto the pointer dropped: its screen was not drawn");
         onto = {};
         return;
-    } else onto.ticked = now;
+    }
     try {
         auto* controller = crafting(screen);
         if (!controller || screen.getScreenName() != onto.screen) {
@@ -1109,7 +1066,8 @@ bool craft(ScreenView& screen, std::shared_ptr<service::Table const> const& tabl
         }
         onto = {};
         onto.table = table, onto.recipe = recipe, onto.picks = picks, onto.screen = screen.getScreenName();
-        onto.began = onto.since = onto.ticked = Clock::now();
+        onto.began = Clock::now();
+        onto.run.seen = msNow();
         advanceOnto(*controller);
         return true;
     } catch (...) {
