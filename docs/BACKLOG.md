@@ -193,7 +193,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Feature work and research
 
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
-- [L-388](backlog/L-388.md) One craft run for making a plan's steps and Mass Craft (Refactor): Three runs on one planner, not checked in game; whether Mass Craft joins it is open
+- [L-388](backlog/L-388.md) One craft run for making a plan's steps and Mass Craft (Refactor): Three runs on one planner, seen in a local world (2026-11-23); whether Mass Craft joins it is open
 - [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)
 - [L-384](backlog/L-384.md) HUD: a wider scale range and placement past the screen edge (Design): Requested by a player (Discord, 2026-11-21, answers 2026-11-22); not started, no release target
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started

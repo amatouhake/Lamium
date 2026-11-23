@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Craft runs on one planner (L-388, 2026-11-23)
+
+`f7fd1d78` (DLL
+`9f9c8a0b34b9af5ac1f2299f4e38eb9a961616dfeabd92b7ebb01da1988bebd9`),
+1.26.60.05 Dev, a local world, the maintainer, nothing amiss: a plan's
+steps made to the end three times (15 rounds each, "done"); crafting
+oak planks onto an empty pointer and twice onto the held stack, each by
+the output take at once; with another item held, laid in only; Mass
+Craft's runs as before (up to 191 rounds, 18 stacks thrown for room).
+A recipe laid in over a full grid was tried; it logs nothing. Not seen:
+a server, a step given back, the take showing a moment later, the Shift
+take's fall-back. The same session showed a list's count drawn over the
+held stack; `751cc363` draws it under, not seen yet.
+
 ## Target Info settings order and names (L-396, 2026-11-23)
 
 `33b18fcb` (DLL
