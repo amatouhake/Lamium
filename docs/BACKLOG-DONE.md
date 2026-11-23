@@ -95,6 +95,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-396](backlog/done/L-396.md) Target Info settings: one order and one way of naming the rows
 - [L-395](backlog/done/L-395.md) Target card grows too large for signs and patterned banners
 - [L-385](backlog/done/L-385.md) Make a plan's steps from its "to make" tab
 - [L-386](backlog/done/L-386.md) Trace an "any" ingredient past its kind (planks to logs)

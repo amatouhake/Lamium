@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target Info settings order and names (L-396, 2026-11-23)
+
+`33b18fcb` (DLL
+`c19ef15a4e8f5c8017789a0e5ec4c24041d8f663910bab07e64dffe73c0e3c1d`),
+1.26.60.05 Dev, the maintainer: the Target Info rows show the targeting
+rows first, then the display rows in the card's order, with the new names,
+in English and Japanese; HUD layout's Contents for the target has Position
+and Distance and their switches work. Chinese not seen.
+
 ## Target card width, block entity data switch and row keys (L-395, 2026-11-23)
 
 `c4e20328` (DLL
