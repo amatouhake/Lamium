@@ -2,6 +2,7 @@
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "features/recipes/ItemKey.h"
+#include "features/recipes/StackKey.h"
 #include "ui/Widgets.h"
 #include "mc/client/gui/controls/UIControl.h"
 #include "mc/client/gui/controls/VisualTree.h"
@@ -133,7 +134,7 @@ void draw(MinecraftUIRenderContext& context, ScreenView& screen, bool settled, f
         }
         for (auto& cell : cells) {
             auto const& stack = manager->getItemStack(cell.collection, cell.index);
-            std::string key = stack.isNull() ? std::string() : itemKey(stack.getTypeName(), stack.getAuxValue());
+            std::string key = stackKey(stack); // with its data: two books swapped in a slot are matched again
             if (key != cell.seen || key.empty()) cell.matched = !key.empty() && matches(stack), cell.seen = std::move(key);
             if (cell.matched) continue;
             ui::fill(context, cell.x, cell.y, cell.w, cell.h, ui::palette::shade, .55f);

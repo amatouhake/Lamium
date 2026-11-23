@@ -636,6 +636,33 @@ void recipeIndexTests() {
         check(!hopper.uses[0].group && hopper.uses[0].id == index.find("chest"), "any aux of a name without variants is the item");
         check(splitItemKey("a:b@14").aux == 14 && splitItemKey("a:b@*").aux == anyAux && splitItemKey("a:b").aux == 0 && splitItemKey("a@b").name == "a@b"
               && itemKey("a:b", 0) == "a:b" && itemKey("a:b", 3) == "a:b@3", "a key is the name, with the aux after an @ when it is not 0");
+        // L-363: data after the rest, split off before the aux.
+        auto const book = splitItemKey("minecraft:enchanted_book{ench:[{id:9s,lvl:5s}]}");
+        check(book.name == "minecraft:enchanted_book" && book.aux == 0 && book.data == "{ench:[{id:9s,lvl:5s}]}"
+              && itemKey(book.name, book.aux, book.data) == "minecraft:enchanted_book{ench:[{id:9s,lvl:5s}]}",
+              "a key's data follows the name and splits back off");
+        auto const banner = splitItemKey("minecraft:banner@15{Type:1}");
+        check(banner.name == "minecraft:banner" && banner.aux == 15 && banner.data == "{Type:1}" && baseKey("minecraft:banner@15{Type:1}") == "minecraft:banner@15",
+              "the aux is read before the data");
+        auto const named = splitItemKey("a:b@3{n:\"x@4\"}");
+        check(named.name == "a:b" && named.aux == 3 && named.data == "{n:\"x@4\"}" && splitItemKey("a:b@*{t:1}").aux == anyAux,
+              "an @ inside the data is not the aux");
+        check(baseKey("a:b") == "a:b" && baseKey("") == "" && splitItemKey("a:b{").data.empty(), "a key without whole data has none");
+        auto values = [](std::map<std::string, std::string> held) {
+            return [held](std::string_view tag) -> std::optional<std::string> {
+                auto found = held.find(std::string(tag));
+                return found == held.end() ? std::nullopt : std::optional(found->second);
+            };
+        };
+        check(identityData("minecraft:enchanted_book", values({{"ench", "[{id:9s,lvl:5s}]"}, {"RepairCost", "1"}, {"display", "{Name:\"x\"}"}}))
+                  == "{ench:[{id:9s,lvl:5s}]}",
+              "only the tags that make an item what it is count, not a repair cost or a name");
+        check(identityData("minecraft:banner", values({{"Type", "0"}})).empty() && identityData("minecraft:banner", values({})).empty()
+                  && identityData("minecraft:banner", values({{"Type", "1"}})) == "{Type:1}",
+              "a plain banner keeps its key; the ominous one carries its type");
+        check(identityData("minecraft:firework_star", values({{"FireworksItem", "{}"}})).empty() && identityData("minecraft:stone", values({{"x", "1"}})).empty(),
+              "an item outside the table carries no data");
+        check(identityData("minecraft:enchanted_book", values({{"ench", std::string(300, 'x')}})).empty(), "data too long to save is left out");
     }
     {
         // Narrowing the list to what the held items make at once (the words: ItemSearch.h, L-377).

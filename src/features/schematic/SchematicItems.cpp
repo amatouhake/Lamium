@@ -1,5 +1,6 @@
 #include "features/recipes/ItemKey.h"
 #include "features/schematic/SchematicItems.h"
+#include "app/Versions.h"
 #include "features/inspection/preview/BundleContents.h"
 #include "features/schematic/Nbt.h"
 #include "mc/client/gui/screens/controllers/BundleHelper.h"
@@ -65,6 +66,14 @@ Shown const& shown(std::string const& item) {
     tag.compound.set("Count", {std::int8_t{1}});
     tag.compound.set("Damage", {static_cast<std::int16_t>(parts.aux == recipes::anyAux ? 0 : parts.aux)});
     std::string icon = nbt::write(tag);
+    // An item told apart by its data (L-363) gets it as the stack's user data, where reading item data is confirmed
+    // for this version; data the game cannot read leaves the stack bare.
+    if (!parts.data.empty() && versionSensitiveAllowed(capabilities::Id::ItemDetails))
+        if (auto data = CompoundTag::fromSnbt(parts.data))
+            if (auto stackTag = CompoundTag::fromBinaryNbt(icon)) {
+                stackTag->putCompound("tag", std::move(*data));
+                icon = stackTag->toBinaryNbt();
+            }
     if (auto const* stack = iconStack(icon)) {
         try {
             out.name = stack->getName();

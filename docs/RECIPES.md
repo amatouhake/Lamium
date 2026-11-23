@@ -333,7 +333,9 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   time a screen asks and publishes the index until the world is left, behind
   the RecipeTable capability ([GAME-UPDATES.md](GAME-UPDATES.md)).
 - `ItemKey.h`: an item's key, the name plus the aux where the table tells
-  variants apart; `settled()` in `RecipeIndex.h` decides where.
+  variants apart (`settled()`, `RecipeIndex.h`), plus the data that makes
+  a book, rocket or ominous banner what it is (`identityTags`, L-363), from
+  a game stack by `StackKey.cpp`. Table keys carry none; `findKey` drops it.
 - `BandLayout.h` (pure, L-374): the panels as regions beside, above and
   below the game's window, panels split along a region, one page to a
   panel; the layout is kept in the settings (`inventory.bands`, today's
@@ -385,14 +387,12 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 - Crafting onto the pointer: a server is unchecked.
 - "Place": a server is unchecked. Shift + place with Item transfer on and
   an inventory slot under the pointer was not tried.
-- Not built: held members first in a group's turn. Their own
-  items: taking an item out of the list in creative
-  ([L-360](backlog/L-360.md)), what
-  a recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), and
-  a listed item's own data ([L-363](backlog/L-363.md): no potion effect).
-- Items are told apart by name and aux. Items that differ only in their
-  data (enchanted books, a filled map) are one item. The schematic
-  Materials tab still counts what is carried by name alone.
+- Not built: held members first in a group's turn. Their own items: taking
+  an item out of the list in creative ([L-360](backlog/L-360.md)), what a
+  recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), a
+  listed item's own data ([L-363](backlog/L-363.md): no potion effect).
+- Data parts items (`identityTags` kinds) in the list, favorites, tip and lit
+  slots only; the plan, wanted counts and Materials count the base item.
 - Trades and drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated
   Server; other servers and Realms are not.

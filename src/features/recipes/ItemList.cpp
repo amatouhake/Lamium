@@ -1,6 +1,7 @@
 #include "features/recipes/CountText.h"
 #include "features/recipes/GroupLook.h"
 #include "features/recipes/ItemList.h"
+#include "features/recipes/StackKey.h"
 #include <cmath>
 #include "app/Runtime.h"
 #include "app/Versions.h"
@@ -297,7 +298,7 @@ void narrow(LocalPlayer& player, Bench const& bench) {
     for (size_t i = 0; i < names.size(); ++i) {
         auto field = [&](std::vector<std::string> const& from) { return i < from.size() ? std::string_view(from[i]) : std::string_view(); };
         if (!parsed.empty()
-            && !search::matches(parsed, {field(lowNames), names[i], field(englishNames), field(tagTexts), field(tooltipTexts)}))
+            && !search::matches(parsed, {field(lowNames), baseKey(names[i]), field(englishNames), field(tagTexts), field(tooltipTexts)}))
             continue;
         if (filter == Filter::CanMake) {
             if (!table) continue; // not read yet
@@ -334,10 +335,12 @@ void readNames(LocalPlayer& player) {
     for (auto const& entry : entries) {
         auto const& item = entry.mItemInstance.get();
         if (item.isNull()) continue;
-        int const aux = item.getAuxValue();
-        std::string name = itemKey(item.getTypeName(), aux == anyAux ? 0 : aux);
-        if (name.size() > 200 || !listed.insert(name).second) continue;
+        // L-363: an enchanted book, a firework rocket, the ominous banner carry their data in the key, so each
+        // creative entry is listed; the first under a key without data stands for its base (the recipe table's).
+        std::string name = stackKey(item);
+        if (name.empty() || !listed.insert(name).second) continue;
         nameIndex.emplace(name, names.size());
+        if (name.size() != baseKey(name).size()) nameIndex.emplace(std::string(baseKey(name)), names.size());
         names.push_back(std::move(name));
         englishNames.push_back(english ? search::folded(inspection::englishSearch::englishNameOf(item)) : std::string());
         std::string tagText;
@@ -345,6 +348,18 @@ void readNames(LocalPlayer& player) {
             for (auto const& tag : *type->mTags) tagText += tag.getString() + "\n";
         tagTexts.push_back(search::folded(tagText));
     }
+    // A key with data must come back from the stack rebuilt from it (SchematicItems.cpp `shown`), or its icon and
+    // tip are not the entry's.
+    int withData = 0, lost = 0;
+    for (auto const& name : names) {
+        if (name.size() == baseKey(name).size()) continue;
+        ++withData;
+        auto const* stack = schematic::items::iconStack(schematic::items::shown(name).icon);
+        if (!stack || stackKey(*stack) != name) {
+            if (++lost <= 3) Runtime::instance().self().getLogger().warn("Recipes: {} does not come back from its stack", name);
+        }
+    }
+    Runtime::instance().self().getLogger().info("Recipes: item list of {} items, {} keyed by their data, {} not rebuilt", names.size(), withData, lost);
 }
 // The game's window on this screen: the chest's and anvil's panel, the inventory's and crafting table's
 // (recipe book and all), the furnace's. Seen in game on 1.26.60 (VALIDATION-LOG 2026-11-18).
@@ -665,16 +680,15 @@ bool drawList(ll::event::UIRenderEvent& event) {
         auto const query = search::parse(search.value());
         cost.lap();
         slotHighlight::draw(context, screenView, shownOpacity >= .999f, at.x, at.y, search.value(), [&](ItemStack const& stack) {
-            int const aux = stack.getAuxValue();
-            std::string const key = itemKey(stack.getTypeName(), aux == anyAux ? 0 : aux);
+            std::string const key = stackKey(stack);
             if (auto found = nameIndex.find(key); found != nameIndex.end()) {
                 size_t const i = found->second;
                 auto field = [&](std::vector<std::string> const& from) { return i < from.size() ? std::string_view(from[i]) : std::string_view(); };
-                return search::matches(query, {field(lowNames), names[i], field(englishNames), field(tagTexts), field(tooltipTexts)});
+                return search::matches(query, {field(lowNames), baseKey(names[i]), field(englishNames), field(tagTexts), field(tooltipTexts)});
             }
             // An item the list does not hold: its shown name and its id.
             std::string const name = search::folded(schematic::items::shown(key).name);
-            return search::matches(query, {name, key, {}, {}, {}});
+            return search::matches(query, {name, baseKey(key), {}, {}, {}});
         });
         cost.highlight = cost.lap();
     }
@@ -951,7 +965,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             int const aux = stack->getAuxValue();
             auto const table = service::table();
             if (name.size() > 200) {}
-            else if (std::string key = itemKey(name, aux == anyAux ? 0 : aux); listed.contains(key)) hoverItem = std::move(key);
+            else if (std::string key = stackKey(*stack); listed.contains(key)) hoverItem = std::move(key);
             else hoverItem = table ? table->index.keyOf(name, aux) : name;
         }
     }
