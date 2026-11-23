@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe book's cells follow its own view (L-397, 2026-11-23)
+
+Trace build of `90aaa603` (`craft_trace`, DLL
+`a33d10bb8abd99e36ed9af2b4de74e51fc58883491144e06fcaf4091568ca8b8`),
+1.26.60.05 Dev, LeviLamina 26.60.5, a local world, the maintainer at a
+crafting table, read only (each `recipe_` collection's shown items):
+- The cells are what the book shows now: `recipe_search` holds the
+  "all" view (3, 18, 50, 108 cells as more was carried and the
+  craftable switch changed; 64 and 135 with it on and off), the kind tabs
+  fill `recipe_construction`, `recipe_nature`, `recipe_equipment` and
+  `recipe_items` only once opened, and the book's search narrows them
+  (652, 278, 152, 1 cell while typing).
+- One cell per item shown: the planks cell showed oak planks only; with a
+  search for planks every kind had its own cell.
+- Closing the book left the cells as they were (no change logged).
+- F6 over Lamium's oak planks found `recipe_search` cell 0; over cherry
+  stairs, which could not be made, no cell.
+
 ## The recipe book's calls are not found by name (L-397, 2026-11-23)
 
 Trace build of `bc905d64` (`craft_trace`, DLL
