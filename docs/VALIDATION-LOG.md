@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Listed items drawn as their creative entries (L-363, 2026-11-24)
+
+`86a3d68a` on branch `l363-data-keys` (DLL
+`e1fb289ec437f5823b3a9350fd565903674c2d4015f45bacd0f5980ac90a801d`),
+1.26.60.05 Dev, a local world:
+- Logged: the item list read in 10 ms (1980 items, 143 keyed by data,
+  0 not rebuilt).
+- Seen: firework stars in their colors with their explosion lines in the
+  tip, in the list, favorites and wanted items; no hitch on the first
+  inventory; nothing else changed.
+- The star's color line is white in Lamium's tip, blue in the game's: the
+  game's color runs on from the line above, which `hoverLines` did not.
+
 ## Carried variants and glint in the recipe screens (L-363, 2026-11-24)
 
 `1617103b` on branch `l363-data-keys` (DLL
