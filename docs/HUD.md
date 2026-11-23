@@ -82,7 +82,8 @@ is fixed to the screen edges and is not an element.
 - Contents (L-336): one shared popover, a row per thing the element shows,
   each with the settings row's own switch (same saved field; the settings
   rows stay). Info lines: every line, switch plus up/down, the only list
-  that reorders. Target: icon, ID, other details, block entity data. Durability: main hand
+  that reorders. Target: icon, ID, states and details, block entity data,
+  position, distance. Durability: main hand
   (on by default, L-349), offhand, armor, elytra, ammo. Inventory and Used slots HUD: the hotbar.
   Minimap: compass, coordinates, scaled coordinates, chunk coordinates, biome (#80). Look
   choices (Durability's look, Target's meters) and behavior settings stay
@@ -155,10 +156,14 @@ is fixed to the screen edges and is not an element.
   saved order is kept; a line added later goes after its default neighbor.
   The HUD order changes only in the editor's Contents list.
 - **Target** (look-at card): icon, name, identifier line, then rows chosen
-  by independent settings rows: icon, ID, health (hearts / bar / number),
-  armor (icons / bar / number), growth (bar / number), other details (states
-  and mob rows), block entity data (L-395), position, distance; each row's
-  key toggles its switch, as every switch row's key does. The
+  by independent settings rows. Settings order (L-396): first what the card
+  targets (Range, Up to the render distance, Show schematic information,
+  Target water and lava), then what it shows in the card's own order: Icon,
+  Identifier, health (hearts / bar / number), armor (icons / bar / number),
+  growth (bar / number), States and details (states and mob rows), Block
+  entity data (L-395), Position, Distance. A row that shows a part is named
+  by the part alone, no "Show". Each row's key toggles its switch, as every
+  switch row's key does. The
   element's background decides whether it has a card; there is no separate
   style. When the target changes, the card background eases to its new size
   and place in 0.1 s; the content is always drawn at once.
