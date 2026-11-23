@@ -128,6 +128,21 @@ bool apply(CraftingScreenController& controller, std::vector<PlaceMove> const& m
     }
     return true;
 }
+// Does what a craft run answered, but laying in, which is the run's own.
+void perform(CraftingScreenController& controller, craftRun::Act const& act, int makes) {
+    using craftRun::Do;
+    switch (act.what) {
+    case Do::Evacuate: controller._evacuateCraftingGrid(); break;
+    // What a Shift click on the output does: all the grid makes, as far as the inventory has room.
+    case Do::Take: controller._handleAutoPlace(INT_MAX, output, 0); break;
+    case Do::TakeOne: controller._handleTakeAmount(makes, output, 0); break;
+    case Do::Pick: controller._handleTakeAmount(act.amount, act.slot < 9 ? hotbar : inventory, act.slot < 9 ? act.slot : act.slot - 9); break;
+    case Do::Finish:
+        if (act.tidy && !gridEmpty(*controller.mContainerManagerController)) controller._evacuateCraftingGrid();
+        break;
+    default: break;
+    }
+}
 // The recipe laid into an empty grid.
 bool lay(CraftingScreenController& controller, Index const& index, Recipe const& recipe, std::map<int, Item> const& picks, bool many,
          int* spent = nullptr, int most = 64) {
@@ -392,105 +407,75 @@ struct Making {
     std::map<int, Item> picks;
     std::vector<MakeRun> steps; // what is left, in order
     std::string screen;
-    enum class Phase { Lay, Take } phase = Phase::Lay;
-    int laid = 0;   // rounds laid in by the last Lay
-    bool took = false;
-    int tries = 0;  // steps waited for the grid to read empty, or for the take to show
-    int made = 0;   // rounds made, for the log
-    int refused = 0; // lays in a row the grid gave back before any take, three at most
-    std::chrono::steady_clock::time_point next, seen; // seen: the last frame its screen was drawn
+    int made = 0; // rounds made, for the log
+    craftRun::Run run;
 } making;
+constexpr auto makeRules = craftRun::rulesFor(craftRun::Kind::Make);
 void finishMaking(char const* why) {
     if (making.on) {
         try { Runtime::instance().self().getLogger().info("Recipes: a plan's steps made, {} rounds ({})", making.made, why); } catch (...) {}
     }
     making = {};
 }
+// The front step's rounds laid in: how many, 0 when nothing more of it can be laid in (it is dropped), -1 when the
+// game did not do as planned.
+int layStep(CraftingScreenController& controller) {
+    auto& manager = *controller.mContainerManagerController;
+    auto& step = making.steps.front();
+    auto const& index = making.table->index;
+    // Of the step's recipes the one laid most of now: a group's member whose input an earlier step made counts.
+    // No more rounds than the inventory has room for once they are laid in (2026-11-22): a take the inventory
+    // cannot hold stuck the grid, and the run ended there.
+    auto const carried = carriedOf(manager, index);
+    int const empty = emptySlots(manager);
+    PlacePlan plan;
+    for (int number : step.recipes) {
+        auto const& recipe = index.recipes[static_cast<size_t>(number)];
+        int const stack = recipe.makes >= 0 ? std::max(1, schematic::items::shown(index.items[static_cast<size_t>(recipe.makes)]).stack) : 64;
+        int const makes = std::max(1, static_cast<int>(recipe.count));
+        // Fewer rounds take fewer inputs and may free fewer slots, so the room is looked at again a few times.
+        int most = step.rounds;
+        for (int tries = 0; tries < 4 && most > 0; ++tries) {
+            auto next = placePlan(index, recipe, sideOf(manager), carried, making.picks, true, most);
+            if (!next.ready()) break;
+            int const fits = static_cast<int>(std::min<long long>(roomAfter(carried, next.moves, empty, recipe.makes, stack) / makes, 1 << 20));
+            if (next.crafts <= fits) {
+                if (!plan.ready() || next.crafts > plan.crafts) plan = std::move(next);
+                break;
+            }
+            most = std::min(fits, next.crafts - 1);
+        }
+    }
+    if (!plan.ready() || step.rounds <= 0) {
+        // Nothing more of this step can be laid in, from what is carried or for the room left: the next one.
+        making.steps.erase(making.steps.begin());
+        return 0;
+    }
+    return apply(controller, std::as_const(plan.moves)) ? plan.crafts : -1;
+}
 void tickMaking(ScreenView& screen) {
     if (!making.on) return;
-    auto const now = std::chrono::steady_clock::now();
+    auto const now = msNow();
     // Its screen closed meanwhile (and maybe opened again, or another world joined): the run is over.
-    if (now - making.seen > std::chrono::milliseconds(300)) { finishMaking("the screen went"); return; }
-    making.seen = now;
-    if (now < making.next) return;
-    making.next = now + std::chrono::milliseconds(50);
+    if (craftRun::stale(making.run, makeRules, now)) { finishMaking("the screen went"); return; }
+    if (!craftRun::due(making.run, makeRules, now)) return;
     try {
         auto* controller = crafting(screen);
         if (!controller || screen.getScreenName() != making.screen) { finishMaking("the screen went"); return; }
-        auto& manager = *controller->mContainerManagerController;
         if (making.steps.empty()) { finishMaking("done"); return; }
-        auto& step = making.steps.front();
-        auto const& index = making.table->index;
-        if (making.phase == Making::Phase::Lay) {
-            if (!gridEmpty(manager)) {
-                if (!making.tries++) controller->_evacuateCraftingGrid();
-                if (making.tries > mostTries) finishMaking("the grid did not empty");
-                return;
-            }
-            making.tries = 0;
-            // Of the step's recipes the one laid most of now: a group's member whose input an earlier step made counts.
-            // No more rounds than the inventory has room for once they are laid in (2026-11-22): a take the inventory
-            // cannot hold stuck the grid, and the run ended there.
-            auto const carried = carriedOf(manager, index);
-            int const empty = emptySlots(manager);
-            PlacePlan plan;
-            for (int number : step.recipes) {
-                auto const& recipe = index.recipes[static_cast<size_t>(number)];
-                int const stack = recipe.makes >= 0 ? std::max(1, schematic::items::shown(index.items[static_cast<size_t>(recipe.makes)]).stack) : 64;
-                int const makes = std::max(1, static_cast<int>(recipe.count));
-                // Fewer rounds take fewer inputs and may free fewer slots, so the room is looked at again a few times.
-                int most = step.rounds;
-                for (int tries = 0; tries < 4 && most > 0; ++tries) {
-                    auto next = placePlan(index, recipe, sideOf(manager), carried, making.picks, true, most);
-                    if (!next.ready()) break;
-                    int const fits = static_cast<int>(std::min<long long>(roomAfter(carried, next.moves, empty, recipe.makes, stack) / makes, 1 << 20));
-                    if (next.crafts <= fits) {
-                        if (!plan.ready() || next.crafts > plan.crafts) plan = std::move(next);
-                        break;
-                    }
-                    most = std::min(fits, next.crafts - 1);
-                }
-            }
-            if (!plan.ready() || step.rounds <= 0) {
-                // Nothing more of this step can be laid in, from what is carried or for the room left: the next one.
-                making.steps.erase(making.steps.begin());
-                return;
-            }
-            if (!apply(*controller, std::as_const(plan.moves))) { finishMaking("laying a round in failed"); return; }
-            making.laid = plan.crafts;
-            making.took = false;
-            making.phase = Making::Phase::Take;
-            return;
-        }
-        if (gridEmpty(manager)) {
-            if (!making.took) {
-                // Empty before any take was sent: the lay was refused and the inputs went back (L-390 1-7). Nothing
-                // was made; it is laid in again, and the run ends when that keeps happening.
-                if (++making.refused > 3) { finishMaking("the rounds laid in were given back"); return; }
-                making.phase = Making::Phase::Lay;
-                making.tries = 0;
-                return;
-            }
-            making.refused = 0;
-            step.rounds -= making.laid;
-            making.made += making.laid;
+        craftRun::Seen seen;
+        seen.gridEmpty = gridEmpty(*controller->mContainerManagerController);
+        auto act = craftRun::step(making.run, makeRules, seen, now);
+        if (act.what == craftRun::Do::Lay) act = craftRun::laid(making.run, makeRules, layStep(*controller), now);
+        if (act.what == craftRun::Do::Made) {
+            auto& step = making.steps.front();
+            step.rounds -= act.amount;
+            making.made += act.amount;
             if (step.rounds <= 0) making.steps.erase(making.steps.begin());
-            making.phase = Making::Phase::Lay;
-            making.tries = 0;
             return;
         }
-        // What a Shift click on the output does: all the grid makes, as far as the inventory has room. The client's
-        // output slot does not show the product to read (seen 2026-11-22: a run waiting for it never took), so the
-        // take is sent as Mass Craft sends it, and again every few steps while the grid stays laid.
-        if (!making.took || making.tries % 5 == 4) {
-            controller->_handleAutoPlace(INT_MAX, output, 0);
-            making.took = true;
-        }
-        if (++making.tries > mostTries) {
-            // No room for the product, or the recipe leaves something in the grid (a bucket, L-362).
-            controller->_evacuateCraftingGrid();
-            finishMaking("the grid did not empty after the take");
-        }
+        perform(*controller, act, 0);
+        if (act.what == craftRun::Do::Finish) finishMaking(act.why);
     } catch (...) {
         finishMaking("a step failed");
     }
@@ -516,7 +501,7 @@ bool make(ScreenView& screen, std::shared_ptr<service::Table const> const& table
     making.picks = picks;
     making.steps = std::move(steps);
     making.screen = screen.getScreenName();
-    making.seen = std::chrono::steady_clock::now();
+    making.run.seen = msNow();
     return true;
 }
 void stop() { going = {}; finishMaking("stopped"); }
