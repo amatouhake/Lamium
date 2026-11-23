@@ -10,6 +10,7 @@
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
+#include "ll/api/memory/Symbol.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/gui/controls/UIControl.h"
@@ -49,6 +50,7 @@
 #include <format>
 #include <iterator>
 #include <map>
+#include <optional>
 #include <mutex>
 #include <set>
 #include <stdexcept>
@@ -122,6 +124,8 @@ std::string managerOf(ContainerScreenController& screen) {
     auto manager = screen.mContainerManagerController.get();
     return manager ? slotsText(*manager) : std::string(" no manager");
 }
+CraftingContainerManagerController* craftingOf(ContainerScreenController& screen);
+std::string bookRecipe(CraftingContainerManagerController& manager, int index);
 LL_TYPE_INSTANCE_HOOK(CraftSlotHovered, ll::memory::HookPriority::Normal, CraftingScreenController,
     &CraftingScreenController::$_onContainerSlotHovered, ::ui::ViewRequest, std::string const& collection, int index) {
     observedAt = nowMs();
@@ -130,7 +134,9 @@ LL_TYPE_INSTANCE_HOOK(CraftSlotHovered, ll::memory::HookPriority::Normal, Crafti
         std::lock_guard lock{seenMutex};
         if (cell != lastHover) {
             auto const& stack = _getVisualItemStack(collection, index);
-            log(pressBudget, 400, "slot-hovered {} item={}", cell, stack.isNull() ? std::string("-") : stack.getTypeName());
+            auto* manager = collection.starts_with("recipe_") ? craftingOf(*this) : nullptr;
+            log(pressBudget, 400, "slot-hovered {} item={}{}", cell, stack.isNull() ? std::string("-") : stack.getTypeName(),
+                manager ? " " + bookRecipe(*manager, index) : std::string());
             lastHover = std::move(cell);
             hoverCollection = collection, hoverIndex = index;
         }
@@ -170,11 +176,80 @@ LL_TYPE_INSTANCE_HOOK(CraftServerAction, ll::memory::HookPriority::Normal, Craft
     } catch (...) {}
     return result;
 }
+// L-397: the recipe book's own calls, which the SDK declares but does not link, looked up by name at run time.
+// Each found one is hooked read-only and its last call kept, so a key can make it again from Lamium.
+constexpr char const* screenSelectName =
+    "?_handleRecipeSelect@CraftingScreenController@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H_N@Z";
+constexpr char const* managerSelectName = "?handleRecipeSelect@CraftingContainerManagerController@@QEAAXAEBV?$basic_string@DU?$char_traits@D@"
+                                          "std@@V?$allocator@D@2@@std@@H_NAEBV?$vector@UAutoPlaceItem@@V?$allocator@UAutoPlaceItem@@@std@@@3@@Z";
+constexpr char const* autoCraftName = "?autoCraftItem@CraftingContainerManagerController@@QEAA_NAEBUSlotData@@W4ItemCraftType@@AEBV?$vector@"
+                                      "UAutoPlaceItem@@V?$allocator@UAutoPlaceItem@@@std@@@std@@@Z";
+constexpr char const* requestName = "??0ItemStackRequestActionCraftRecipeAuto@@QEAA@AEBV?$TypedServerNetId@URecipeNetIdTag@@I$0A@@@EAEBV?$"
+                                    "vector@VRecipeIngredient@@V?$allocator@VRecipeIngredient@@@std@@@std@@@Z";
+uintptr_t found(char const* name) {
+    try { return reinterpret_cast<uintptr_t>(ll::memory::SymbolView(name).resolve(true)); } catch (...) { return 0; }
+}
+uintptr_t screenSelectAt() { static uintptr_t const at = found(screenSelectName); return at; }
+uintptr_t managerSelectAt() { static uintptr_t const at = found(managerSelectName); return at; }
+uintptr_t autoCraftAt() { static uintptr_t const at = found(autoCraftName); return at; }
+using ScreenSelect = void (*)(CraftingScreenController*, std::string const&, int, bool);
+using ManagerSelect = void (*)(CraftingContainerManagerController*, std::string const&, int, bool, std::vector<AutoPlaceItem> const&);
+using AutoCraft = bool (*)(CraftingContainerManagerController*, SlotData const&, ItemCraftType, std::vector<AutoPlaceItem> const&);
+struct BookCall {
+    std::string collection;
+    int index = -1;
+    bool displayOnly = false;
+    int amount = 0;
+    std::vector<AutoPlaceItem> places;
+};
+std::optional<BookCall> lastScreenSelect, lastManagerSelect, lastAutoCraft;
+bool replaying = false; // a call Lamium makes is logged, not kept
+std::string bookRecipe(CraftingContainerManagerController& manager, int index) {
+    auto const& recipes = manager.mRecipes.get();
+    return std::format("mRecipes={} at {}={}", recipes.size(), index,
+                       index >= 0 && index < static_cast<int>(recipes.size()) ? recipeText(&recipes[static_cast<size_t>(index)].get()) : "-");
+}
+CraftingContainerManagerController* craftingOf(ContainerScreenController& screen) {
+    auto manager = screen.mContainerManagerController.get();
+    return manager ? static_cast<CraftingContainerManagerController*>(manager) : nullptr;
+}
+LL_TYPE_INSTANCE_HOOK(BookScreenSelect, ll::memory::HookPriority::Normal, CraftingScreenController, screenSelectAt(), void,
+    std::string const& collection, int index, bool displayOnly) {
+    try {
+        auto* manager = craftingOf(*this);
+        log(pressBudget, 400, "book screen-select {}:{} displayOnly={} replay={} {} before:{}", collection, index, displayOnly, replaying,
+            manager ? bookRecipe(*manager, index) : std::string("-"), manager ? managerText(*manager) : std::string("-"));
+        if (!replaying) lastScreenSelect = BookCall{collection, index, displayOnly};
+    } catch (...) {}
+    origin(collection, index, displayOnly);
+    try { if (auto* manager = craftingOf(*this)) log(pressBudget, 400, "book screen-select-return after:{}", managerText(*manager)); } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(BookManagerSelect, ll::memory::HookPriority::Normal, CraftingContainerManagerController, managerSelectAt(), void,
+    std::string const& collection, int index, bool displayOnly, std::vector<AutoPlaceItem> const& places) {
+    try {
+        log(pressBudget, 400, "book manager-select {}:{} displayOnly={} replay={} places:{} {}", collection, index, displayOnly, replaying,
+            placesText(places), bookRecipe(*this, index));
+        if (!replaying) lastManagerSelect = BookCall{collection, index, displayOnly, 0, places};
+    } catch (...) {}
+    origin(collection, index, displayOnly, places);
+    try { log(pressBudget, 400, "book manager-select-return after:{}", managerText(*this)); } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(BookAutoCraft, ll::memory::HookPriority::Normal, CraftingContainerManagerController, autoCraftAt(), bool,
+    SlotData const& slot, ItemCraftType amount, std::vector<AutoPlaceItem> const& places) {
+    try {
+        log(pressBudget, 400, "book auto-craft {}:{} amount={} replay={} places:{} {}", *slot.mCollectionName, int(slot.mCollectionIndex),
+            int(amount), replaying, placesText(places), bookRecipe(*this, slot.mCollectionIndex));
+        if (!replaying) lastAutoCraft = BookCall{slot.mCollectionName, slot.mCollectionIndex, false, int(amount), places};
+    } catch (...) {}
+    bool const result = origin(slot, amount, places);
+    try { log(pressBudget, 400, "book auto-craft-return result={} after:{}", result, managerText(*this)); } catch (...) {}
+    return result;
+}
 // The screen's state whenever it changes: the chosen recipe, the grid, the output.
 // The experiment (not read-only): Lamium lays a recipe into the grid and takes the output, with the slot
 // calls Item transfer uses. F7 over an item of Lamium's lists lays its recipe in, one of each ingredient
 // (with Shift: as many as divide evenly); F8 takes the output as a Shift click does; F9 keeps taking it
-// while there is one; F6 and F10 drop the output from its slot. One step a tick, each logged with what the pointer holds after it.
+// while there is one; F6 and F10 replay the recipe book's calls (L-397). One step a tick, each logged with what the pointer holds after it.
 struct Step { int amount; std::string from; int index; int cell; };
 std::vector<Step> steps;
 size_t stepAt = 0;
@@ -254,26 +329,57 @@ void experiment(CraftingScreenController& screen, ContainerManagerController& ma
     bool const shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
     if (edge(VK_F7, f7Down)) layOut(screen, manager, shift);
     bool const once = edge(VK_F8, f8Down);
-    // Crafting without laying in (L-165): the game's own request that crafts many straight from the
-    // inventory comes from a Shift click on a recipe of its book, through calls the SDK does not link.
-    // F6: the screen's virtual "slot pressed" on the recipe-book cell hovered last. F10: the slot call
-    // that takes all, on that cell. Both with and without Shift held, which the game may read itself.
+    // L-397: the recipe book's calls made again from Lamium, with the pointer wherever it is. F6: the last screen
+    // select (Ctrl: the same collection, at the cell whose book recipe is the one in use for the item under the
+    // pointer in Lamium's lists). Shift + F6: the last auto craft. F10: the last manager select.
+    bool const ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
     bool const press = edge(VK_F6, f6Down), take = edge(VK_F10, f10Down);
     if (press || take) {
-        std::string collection;
-        int index = -1;
-        {
-            std::lock_guard lock{seenMutex};
-            collection = hoverCollection, index = hoverIndex;
-        }
-        if (!collection.starts_with("recipe_") || index < 0)
-            log(experimentBudget, 400, "recipe cell: none hovered last ({}:{})", collection, index);
-        else {
-            log(experimentBudget, 400, "recipe cell {}:{} {} shift={} before:{}", collection, index, press ? "slot-pressed" : "take-all", shift, slotsText(manager));
-            if (press) screen._onContainerSlotPressed(collection, index);
-            else screen._handleAutoPlace(INT_MAX, collection, index);
-            log(experimentBudget, 400, "recipe cell return after:{}", slotsText(manager));
-        }
+        auto& crafting = static_cast<CraftingContainerManagerController&>(manager);
+        replaying = true;
+        try {
+            if (press && shift) {
+                if (!autoCraftAt() || !lastAutoCraft) log(experimentBudget, 400, "replay auto-craft: none (found={})", autoCraftAt() != 0);
+                else {
+                    log(experimentBudget, 400, "replay auto-craft {}:{} before:{}", lastAutoCraft->collection, lastAutoCraft->index, slotsText(manager));
+                    bool const result = reinterpret_cast<AutoCraft>(autoCraftAt())(&crafting, SlotData(lastAutoCraft->collection, lastAutoCraft->index),
+                        static_cast<ItemCraftType>(lastAutoCraft->amount), lastAutoCraft->places);
+                    log(experimentBudget, 400, "replay auto-craft result={}", result);
+                }
+            } else if (press) {
+                int index = lastScreenSelect ? lastScreenSelect->index : -1;
+                if (ctrl && lastScreenSelect) {
+                    index = -1;
+                    using namespace lamium::recipes;
+                    std::string const key = itemList::hoveredItem();
+                    auto const table = service::table();
+                    auto const choice = table ? state::choice(table) : nullptr;
+                    auto const parts = splitItemKey(key);
+                    Item const id = table && !key.empty() ? table->index.find(parts.name, parts.aux) : -1;
+                    int const number = id >= 0 && choice ? choice->recipe[static_cast<size_t>(id)] : -1;
+                    std::string const wanted = number >= 0 ? table->index.recipes[static_cast<size_t>(number)].id : std::string();
+                    auto const& recipes = crafting.mRecipes.get();
+                    for (size_t i = 0; i < recipes.size() && !wanted.empty(); ++i)
+                        if (*recipes[i].get().mRecipeId == wanted) { index = static_cast<int>(i); break; }
+                    log(experimentBudget, 400, "replay screen-select by recipe: {} wants '{}', mRecipes={} index={}", key, wanted, recipes.size(), index);
+                }
+                if (!screenSelectAt() || !lastScreenSelect || index < 0)
+                    log(experimentBudget, 400, "replay screen-select: none (found={}, index={})", screenSelectAt() != 0, index);
+                else {
+                    log(experimentBudget, 400, "replay screen-select {}:{} before:{}", lastScreenSelect->collection, index, slotsText(manager));
+                    reinterpret_cast<ScreenSelect>(screenSelectAt())(&screen, lastScreenSelect->collection, index, false);
+                }
+            } else {
+                if (!managerSelectAt() || !lastManagerSelect) log(experimentBudget, 400, "replay manager-select: none (found={})", managerSelectAt() != 0);
+                else {
+                    log(experimentBudget, 400, "replay manager-select {}:{} before:{}", lastManagerSelect->collection, lastManagerSelect->index, slotsText(manager));
+                    reinterpret_cast<ManagerSelect>(managerSelectAt())(&crafting, lastManagerSelect->collection, lastManagerSelect->index, false,
+                                                                         lastManagerSelect->places);
+                }
+            }
+        } catch (...) { log(experimentBudget, 400, "replay threw"); }
+        replaying = false;
+        log(experimentBudget, 400, "replay return after:{}", slotsText(manager));
     }
     if (edge(VK_F9, f9Down)) takes = takes ? 0 : 40, idle = 0;
     if (wait > 0) { --wait; return; }
@@ -500,6 +606,12 @@ Hook hooks[] = {
     {CraftResponse::hook, CraftResponse::unhook},
     {StoneHovered::hook, StoneHovered::unhook}, {StoneTakeAmount::hook, StoneTakeAmount::unhook}
 };
+struct BookHook { char const* name; uintptr_t (*at)(); Hook hook; };
+BookHook bookHooks[] = {
+    {"_handleRecipeSelect", screenSelectAt, {BookScreenSelect::hook, BookScreenSelect::unhook}},
+    {"handleRecipeSelect", managerSelectAt, {BookManagerSelect::hook, BookManagerSelect::unhook}},
+    {"autoCraftItem", autoCraftAt, {BookAutoCraft::hook, BookAutoCraft::unhook}},
+};
 }
 void start() {
     try {
@@ -507,6 +619,13 @@ void start() {
             if (hook.install(true) == 0) hook.installed = true;
             else throw std::runtime_error("Could not install craft diagnostics");
         }
+        // Only what was found by name is hooked; a name not found is logged and left alone.
+        for (auto& book : bookHooks) {
+            uintptr_t const address = book.at();
+            Runtime::instance().self().getLogger().warn("L-397 recipe book: {} {}", book.name, address ? "found" : "not found");
+            if (address && !book.hook.installed) book.hook.installed = book.hook.install(true) == 0;
+        }
+        Runtime::instance().self().getLogger().warn("L-397 recipe book: request constructor {}", found(requestName) ? "found" : "not found");
         if (!renderListener)
             renderListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
                 try { seeScreen(event); } catch (...) {}
@@ -516,6 +635,8 @@ void start() {
 }
 void stop() {
     if (renderListener) { ll::event::EventBus::getInstance().removeListener(renderListener); renderListener.reset(); }
+    for (auto& book : bookHooks)
+        if (book.hook.installed && book.hook.remove(true)) book.hook.installed = false;
     for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it)
         if (it->installed && it->remove(true)) it->installed = false;
     for (auto const& hook : hooks) if (hook.installed) {
