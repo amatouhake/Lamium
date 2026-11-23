@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card icon with the item's data, fixed (L-393, 2026-11-23)
+
+`f3855f95` (DLL
+`cf78b7c29ec0796e4ce74e7d8f633c3c48e901ab55a2089104114c70b58eae11`),
+1.26.60.05 Dev, the maintainer, against Inventory HUD: an enchanted diamond
+sword in an item frame and dropped (seen in FreeCamera) shows its glint; dyed
+leather armor in a glow item frame is dyed; dropped enchanted leather armor
+keeps its undyeable part and glints. Not seen: client mods' icons (TaCZ and
+the like), armor trims, a loaded crossbow.
+
 ## Target card icon with the item's data (L-393, 2026-11-23)
 
 `cdf0ae0b` (DLL

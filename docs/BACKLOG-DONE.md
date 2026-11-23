@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-393](backlog/done/L-393.md) Target card icon loses the item's data (glint, dye, modded icons)
 - [L-339](backlog/done/L-339.md) Toasts and the settings screen
 - [L-324](backlog/done/L-324.md) Map: custom blocks are drawn in a dirt-like brown
 - [L-344](backlog/done/L-344.md) English Search does not find enchanted books by enchantment name
