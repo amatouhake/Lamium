@@ -1,5 +1,6 @@
 #pragma once
 #include "features/information/TargetInfo.h"
+#include "features/schematic/Nbt.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -167,6 +168,19 @@ inline std::vector<std::string> entityItemCandidates(std::string_view entityIden
     if (thrown != std::string::npos) result.push_back(exact.substr(0, thrown) + exact.substr(thrown + 7));
     if (auto alias = entityItemAlias(entityIdentifier); !alias.empty()) result.push_back(std::move(alias));
     return result;
+}
+// An item frame's saved data holds the item it shows with that item's own
+// data (glint, dye), which the frame's pick item lacks (L-393): that item as
+// one, in binary NBT, for the card's icon. Empty when the frame holds none.
+inline std::string framedItemData(schematic::nbt::Compound const& saved) {
+    auto const* tag = saved.find("Item");
+    auto const* item = tag ? tag->as<schematic::nbt::Compound>() : nullptr;
+    auto const* name = item ? item->find("Name") : nullptr;
+    auto const* text = name ? name->as<std::string>() : nullptr;
+    if (!text || text->empty()) return {};
+    schematic::nbt::Root root{{}, *item};
+    root.compound.set("Count", {std::int8_t{1}});
+    return schematic::nbt::write(root);
 }
 // A block with a pick item uses it; a block without one (portal, fire, ...)
 // falls back to its own texture, never to an unrelated item.

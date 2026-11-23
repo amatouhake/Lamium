@@ -247,19 +247,20 @@ struct StackDataCache {
     std::string stack;
 };
 StackDataCache droppedStackCache, frameStackCache;
-std::string const& stackData(StackDataCache& cached, std::string key, ItemStackBase const& stack) {
+template <class Read> std::string const& stackData(StackDataCache& cached, std::string key, Read&& read) {
     auto now = std::chrono::steady_clock::now();
     if (cached.key != key || now - cached.read >= std::chrono::milliseconds(250)) {
         cached = {std::move(key), now, {}};
-        try {
-            auto context = SaveContextFactory::createCloneSaveContext();
-            if (auto tag = context ? stack.save(*context) : nullptr) {
-                tag->putByte("Count", 1);
-                cached.stack = tag->toBinaryNbt();
-            }
-        } catch (...) { cached.stack.clear(); }
+        try { cached.stack = read(); } catch (...) { cached.stack.clear(); }
     }
     return cached.stack;
+}
+std::string savedStackData(ItemStackBase const& stack) {
+    auto context = SaveContextFactory::createCloneSaveContext();
+    auto tag = context ? stack.save(*context) : nullptr;
+    if (!tag) return {};
+    tag->putByte("Count", 1);
+    return tag->toBinaryNbt();
 }
 void forgetStackData() { droppedStackCache = frameStackCache = {}; }
 TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& block) {
@@ -272,15 +273,19 @@ TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& bloc
         if (!item.isNull() && item.mItem) {
             pick = item.mItem->mFullName->getString();
             aux = item.getAuxValue();
-            // A frame picks the item it holds, whose data draws its look
-            // (glint, dye). Other blocks keep name and aux: their picked
-            // data is their contents, which an icon does not show.
+            // A frame picks the item it holds, but without that item's data
+            // (no glint or dye, 2026-11-23); its saved data has it. Other
+            // blocks keep name and aux: their data is their contents, which
+            // an icon does not show.
             auto const& type = block.getTypeName();
             if (type == "minecraft:frame" || type == "minecraft:glow_frame")
                 data = stackData(frameStackCache,
                                  std::format("{} {} {} {}", static_cast<int>(source.getDimensionId()), pos.x, pos.y,
                                              pos.z),
-                                 item);
+                                 [&] {
+                                     auto saved = savedBlockEntity(source, pos);
+                                     return saved ? framedItemData(*saved) : std::string();
+                                 });
         }
     } catch (...) {}
     if (!pick.empty()) {
@@ -298,7 +303,8 @@ TargetIcon droppedIcon(Actor& entity) {
         auto& stack = static_cast<ItemActor&>(entity).item();
         if (!stack.mItem) return {};
         TargetIcon icon{IconKind::Item, stack.mItem->mFullName->getString(), stack.getAuxValue()};
-        icon.stack = stackData(droppedStackCache, std::to_string(entity.getRuntimeID().rawID), stack);
+        icon.stack = stackData(droppedStackCache, std::to_string(entity.getRuntimeID().rawID),
+                               [&] { return savedStackData(stack); });
         return icon;
     } catch (...) { return {}; }
 }

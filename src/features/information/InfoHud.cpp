@@ -869,7 +869,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         return finalBox;
     float left = finalBox.x + padX, top = finalBox.y + padY;
     if (icon) {
-        inspection::render::drawItemIcon(context, {stack, left, top + (headerH - iconSize) / 2, z}, 17);
+        inspection::render::drawItemIcon(context, {stack, left, top + (headerH - iconSize) / 2, z, 0, 1.f, true}, 17);
     } else if (texture) {
         auto const& water = schematic::waterColor;
         ui::imageUv(context, target.icon.name, {left, top + (headerH - iconSize) / 2, iconSize, iconSize},

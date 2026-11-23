@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card icon with the item's data (L-393, 2026-11-23)
+
+`cdf0ae0b` (DLL
+`cf7b47156bbff6805d8fffd885c41e272131c7220449951b0fe8ca7ec0cfca63`),
+1.26.60.05 Dev, the maintainer: an enchanted diamond sword in an item frame
+has no glint on the card, and dyed leather armor in a glow item frame is not
+dyed; plain blocks and mobs keep their icons. A dropped enchanted diamond
+sword seen in FreeCamera has no glint; dropped enchanted leather armor is
+dyed but its undyeable part is transparent. Inventory HUD draws both items
+right. Read from this: the card drew its icon without the glint pass (the
+direct path loses enchanted leather's undyeable layer), and a frame's pick
+item carries no data while a dropped item's stack does.
+
 ## 0.8.0 release smoke (2026-11-23)
 
 The commit's CI package of `5428b5f3` (run 45082353482, DLL

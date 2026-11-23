@@ -241,4 +241,38 @@ void targetCardTests() {
               "no rows, or no room for a line, shows nothing");
         check(rowsFitting(2, lines({1, 0}), 3) == 2, "an empty line list still counts as one line");
     }
+
+    // L-393: a frame's icon is the item its saved data holds, with that
+    // item's data, as one item.
+    {
+        namespace nbt = lamium::schematic::nbt;
+        nbt::Compound display;
+        display.set("customColor", {std::int32_t{0x3366cc}});
+        nbt::Compound extra;
+        extra.set("display", {display});
+        nbt::Compound item;
+        item.set("Name", {std::string("minecraft:leather_chestplate")});
+        item.set("Count", {std::int8_t{5}});
+        item.set("Damage", {std::int16_t{0}});
+        item.set("tag", {extra});
+        nbt::Compound saved;
+        saved.set("id", {std::string("ItemFrame")});
+        saved.set("Item", {item});
+        auto data = framedItemData(saved);
+        auto back = nbt::read({reinterpret_cast<std::uint8_t const*>(data.data()), data.size()});
+        std::int64_t count = 0;
+        auto const* name = back.compound.find("Name");
+        auto const* tag = back.compound.find("tag");
+        check(name && name->as<std::string>() && *name->as<std::string>() == "minecraft:leather_chestplate"
+                  && tag && tag->as<nbt::Compound>() && tag->as<nbt::Compound>()->find("display"),
+              "a frame's icon keeps its item's name and data");
+        check(back.compound.find("Count") && back.compound.find("Count")->integer(count) && count == 1,
+              "a frame's icon item counts as one");
+        nbt::Compound empty;
+        empty.set("id", {std::string("ItemFrame")});
+        nbt::Compound unnamed;
+        unnamed.set("Item", {nbt::Compound{}});
+        check(framedItemData(empty).empty() && framedItemData(unnamed).empty(),
+              "an empty frame gives no icon data");
+    }
 }
