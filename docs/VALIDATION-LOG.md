@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## List counts under the held item (2026-11-23)
+
+`751cc363` (DLL
+`427a8405f016514a10a56882cd8423b8380a32842e334cfb781fed752cab82bf`),
+1.26.60.05 Dev, a local world, the maintainer: a wanted item's count in
+the item list now shows under the stack held on the pointer, which with
+its count is on top.
+
 ## Craft runs on one planner (L-388, 2026-11-23)
 
 `f7fd1d78` (DLL
