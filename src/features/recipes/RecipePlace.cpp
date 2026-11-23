@@ -1008,10 +1008,14 @@ void advanceOnto(CraftingScreenController& controller) {
     for (int pass = 0; pass < 8; ++pass) {
         craftRun::Seen seen;
         seen.gridEmpty = gridEmpty(manager);
-        seen.makesProduct = massCraft::makesProduct(manager, index, recipe.makes);
-        seen.held = held(manager);
-        seen.heldProduct = heldItem(manager, index) == recipe.makes;
-        seen.products = productCounts(manager, index, recipe.makes);
+        // Only what the phase reads: the product check walks the recipe table.
+        using craftRun::Phase;
+        if (auto const phase = onto.run.phase; phase != Phase::Clear) {
+            seen.makesProduct = massCraft::makesProduct(manager, index, recipe.makes);
+            seen.held = held(manager);
+            seen.heldProduct = heldItem(manager, index) == recipe.makes;
+            if (phase != Phase::Confirm) seen.products = productCounts(manager, index, recipe.makes);
+        }
         auto act = craftRun::step(onto.run, ontoRules, seen, now);
         if (act.what == craftRun::Do::Lay) act = craftRun::laid(onto.run, ontoRules, lay(controller, index, recipe, onto.picks, false) ? 1 : 0, now);
         if (act.what == craftRun::Do::Finish) { finishOnto(controller, act.why, act.tidy); return; }

@@ -64,8 +64,9 @@ inline Act go(Do what, bool next = false) { return {what, next}; }
 inline Act finish(char const* why, bool tidy = false) { return {Do::Finish, false, why, tidy}; }
 
 // Whether a frame comes too long after the last one (its screen was closed meanwhile); else the frame is noted.
+// A run whose start was not noted (`seen` 0) is stale: the glue sets `seen` when it starts one.
 inline bool stale(Run& run, Rules const& rules, long long now) {
-    if (run.seen && now - run.seen > rules.stale) return true;
+    if (!run.seen || now - run.seen > rules.stale) return true;
     run.seen = now;
     return false;
 }

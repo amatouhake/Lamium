@@ -16,8 +16,11 @@ void craftRunTests() {
     check(onto.pace == 0 && onto.stale == 500 && onto.confirm == 200 && onto.giveUp == 1500, "crafting onto the pointer keeps its waits");
 
     {
+        Run unnoted;
+        check(stale(unnoted, lay, 1000), "a run whose start was not noted is stale");
         Run run;
-        check(!stale(run, lay, 1000) && !stale(run, lay, 1300) && stale(run, lay, 1601), "a run not drawn for longer than its limit is stale");
+        run.seen = 1000;
+        check(!stale(run, lay, 1000) &&!stale(run, lay, 1300) && stale(run, lay, 1601), "a run not drawn for longer than its limit is stale");
         Run paced;
         check(due(paced, make, 0) && !due(paced, make, 49) && due(paced, make, 50), "a make run steps every 50 ms");
     }
