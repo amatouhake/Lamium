@@ -275,4 +275,35 @@ void targetCardTests() {
         check(framedItemData(empty).empty() && framedItemData(unnamed).empty(),
               "an empty frame gives no icon data");
     }
+    // L-394: a banner's icon is its pick item with the saved patterns.
+    {
+        namespace nbt = lamium::schematic::nbt;
+        nbt::Compound pattern;
+        pattern.set("Color", {std::int32_t{1}});
+        pattern.set("Pattern", {std::string("bri")});
+        nbt::Compound saved;
+        saved.set("id", {std::string("Banner")});
+        saved.set("Base", {std::int32_t{0}});
+        saved.set("Patterns", {nbt::List{nbt::Type::Compound, {nbt::Tag{pattern}}}});
+        saved.set("x", {std::int32_t{4}});
+        auto data = bannerItemData("minecraft:banner", 0, saved);
+        auto back = nbt::read({reinterpret_cast<std::uint8_t const*>(data.data()), data.size()});
+        std::int64_t aux = -1;
+        auto const* tag = back.compound.find("tag");
+        auto const* extra = tag ? tag->as<nbt::Compound>() : nullptr;
+        auto const* patterns = extra ? extra->find("Patterns") : nullptr;
+        check(back.compound.find("Name") && *back.compound.find("Name")->as<std::string>() == "minecraft:banner"
+                  && back.compound.find("Damage") && back.compound.find("Damage")->integer(aux) && aux == 0,
+              "a banner's icon keeps its pick item's name and color");
+        check(patterns && patterns->as<nbt::List>() && patterns->as<nbt::List>()->items.size() == 1
+                  && !extra->find("x") && !extra->find("id"),
+              "a banner's icon carries its patterns and no position");
+        nbt::Compound plain;
+        plain.set("id", {std::string("Banner")});
+        plain.set("Base", {std::int32_t{15}});
+        check(bannerItemData("minecraft:banner", 0, plain).empty(), "a plain banner keeps name and aux");
+        nbt::Compound ominous;
+        ominous.set("Type", {std::int32_t{1}});
+        check(!bannerItemData("minecraft:banner", 15, ominous).empty(), "an ominous banner carries its type");
+    }
 }

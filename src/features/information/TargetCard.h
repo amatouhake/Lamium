@@ -182,6 +182,23 @@ inline std::string framedItemData(schematic::nbt::Compound const& saved) {
     root.compound.set("Count", {std::int8_t{1}});
     return schematic::nbt::write(root);
 }
+// A banner's patterns are in its block entity; its pick item has only the
+// base color, which is the aux (L-394). The item the card draws: the pick
+// item's name and aux with the saved patterns and type (ominous) as the
+// item's data. Empty for a banner without either, which name and aux show.
+inline std::string bannerItemData(std::string const& name, short aux, schematic::nbt::Compound const& saved) {
+    namespace nbt = schematic::nbt;
+    nbt::Compound data;
+    for (char const* key : {"Base", "Patterns", "Type"})
+        if (auto const* tag = saved.find(key)) data.set(key, *tag);
+    if (!saved.find("Patterns") && !saved.find("Type")) return {};
+    nbt::Root root;
+    root.compound.set("Name", {name});
+    root.compound.set("Count", {std::int8_t{1}});
+    root.compound.set("Damage", {static_cast<std::int16_t>(aux)});
+    root.compound.set("tag", {std::move(data)});
+    return nbt::write(root);
+}
 // A block with a pick item uses it; a block without one (portal, fire, ...)
 // falls back to its own texture, never to an unrelated item.
 inline TargetIcon chooseBlockIcon(std::string item, short aux, std::string texture) {

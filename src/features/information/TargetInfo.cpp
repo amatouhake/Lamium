@@ -246,7 +246,7 @@ struct StackDataCache {
     std::chrono::steady_clock::time_point read{};
     std::string stack;
 };
-StackDataCache droppedStackCache, frameStackCache;
+StackDataCache droppedStackCache, blockStackCache;
 template <class Read> std::string const& stackData(StackDataCache& cached, std::string key, Read&& read) {
     auto now = std::chrono::steady_clock::now();
     if (cached.key != key || now - cached.read >= std::chrono::milliseconds(250)) {
@@ -262,7 +262,7 @@ std::string savedStackData(ItemStackBase const& stack) {
     tag->putByte("Count", 1);
     return tag->toBinaryNbt();
 }
-void forgetStackData() { droppedStackCache = frameStackCache = {}; }
+void forgetStackData() { droppedStackCache = blockStackCache = {}; }
 TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& block) {
     if (schematic::isWaterName(block.getTypeName())) return textureIcon(block);
     std::string pick;
@@ -278,13 +278,18 @@ TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& bloc
             // blocks keep name and aux: their data is their contents, which
             // an icon does not show.
             auto const& type = block.getTypeName();
-            if (type == "minecraft:frame" || type == "minecraft:glow_frame")
-                data = stackData(frameStackCache,
+            bool const frame = type == "minecraft:frame" || type == "minecraft:glow_frame";
+            // A banner's pick item has its color (the aux) but not its
+            // patterns, which are in the saved data too (L-394).
+            bool const banner = type == "minecraft:standing_banner" || type == "minecraft:wall_banner";
+            if (frame || banner)
+                data = stackData(blockStackCache,
                                  std::format("{} {} {} {}", static_cast<int>(source.getDimensionId()), pos.x, pos.y,
                                              pos.z),
                                  [&] {
                                      auto saved = savedBlockEntity(source, pos);
-                                     return saved ? framedItemData(*saved) : std::string();
+                                     if (!saved) return std::string();
+                                     return frame ? framedItemData(*saved) : bannerItemData(pick, aux, *saved);
                                  });
         }
     } catch (...) {}

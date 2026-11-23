@@ -161,7 +161,8 @@ is fixed to the screen edges and is not an element.
   style. When the target changes, the card background eases to its new size
   and place in 0.1 s; the content is always drawn at once.
   - An item frame's contents and a dropped item are drawn from the stack's
-    own data, as the detail rows and container previews are (L-393). Mobs use their spawn
+    own data, as the detail rows and container previews are (L-393); a
+    banner with its saved patterns (L-394). Mobs use their spawn
     egg as icon. Armor uses the vanilla armor-bar
     sprites; the bar mode uses the `armor` palette color. Bedrock exposes no
     armor toughness, so points only.
