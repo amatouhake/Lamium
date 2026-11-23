@@ -366,6 +366,8 @@ dark look. No control plays a sound.
 
 ## Before a design is done
 
+- Its mockup puts the proposal beside today's screen drawn by the kit from
+  the code ([demos/README.md](demos/README.md) "Making a mockup").
 - Works in all four languages, with the longest (often Japanese or English)
   fitting, and at a small GUI scale.
 - Usable by keyboard as well as mouse; Esc does what the header says.

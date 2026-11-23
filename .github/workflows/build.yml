@@ -49,6 +49,14 @@ jobs:
         run: ./scripts/Check-Docs.ps1
       - name: Check UI tokens
         run: ./scripts/Check-UiTokens.ps1
+      - name: Build mockup data
+        run: xmake build LamiumDemoData
+      - name: Check mockup data is current
+        run: |
+          xmake run LamiumDemoData
+          git diff --exit-code -- docs/demos/kit/lamium-data.js
+      - name: Check demos
+        run: ./scripts/Check-Demos.ps1
       - name: Check package
         run: ./scripts/Check-Package.ps1
       - name: Check versions and release archive

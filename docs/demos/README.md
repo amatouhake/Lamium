@@ -3,7 +3,8 @@
 Standalone HTML mockups used to agree on UI before implementation. Statuses
 below distinguish the adopted design from the mockup's original candidates;
 current runtime coverage is in [VALIDATION.md](../VALIDATION.md). Open them
-in a browser (they need network access only for the Google Fonts stylesheet).
+in a browser (they need network access only for the Google Fonts stylesheet);
+how to make one is under [Making a mockup](#making-a-mockup).
 Text in the demos is Japanese because they were reviewed in Japanese.
 
 | Demo | Status | Notes |
@@ -38,6 +39,7 @@ Text in the demos is Japanese because they were reviewed in Japanese.
 | [brewing-view.html](brewing-view.html) | Sixth version (2026-11-21), awaiting review; F liked, with D's gauge and bubbles; decided: the stand's layout, blaze powder drawn as the fuel, counting by batches, no blaze powder in a plan | L-361: F, D's height (54, three rows a page) and slot places, three tubes from the ingredient, one to each bottle, D's gauge and bubbles, and the fuel's tube going right, down through a short coil, and right into the gauge; D, E, A, B and C stay for comparison. |
 | [plan-step-states.html](plan-step-states.html) | Second version (2026-11-21), awaiting a look at the band; decided: C (headings, a partly row's count at the right), short inputs in the game's red, held steps faint at the end | L-370: the plan's "to make" steps as can make, partly, missing and held, in the window and on the left band in its short form (no headings, a partly row "now/needed", missing and held faint, held with a check, the tip giving each input held/needed); both count items. A and B stay for comparison. |
 | [any-mark.html](any-mark.html) | Decided (2026-11-21): the "*" kept, inside the icon | L-370: the mark on an any-of ingredient not chosen yet: today's "*" (outside the icon), "*" inside, two offset squares in white or outlined, or at the top right; in a game slot, the item list's cell and a band row, the icon turning through members as now. |
+| [panel-table.html](panel-table.html) | Built (A) | L-370: the plan's panel lists in the window's order and columns, controls always shown, no bar ([PLAN.md](../PLAN.md)). |
 | [notes-table.html](notes-table.html) | Decided (2026-11-22): A, a hand-added count edited in place (not the always-shown stepper drawn here) | L-370: the Notes tables with what comes before the table in the left half and the table in the right half, controls always shown: held, needed, bar and controls in columns; "held / needed" over a long bar with the controls at the right; or the controls first and the numbers and bar at the window's right edge; for wanted, gather and make. |
 | [plan-layout.html](plan-layout.html) | First version (2026-11-22), awaiting review | L-370, L-385: the panel's lists as today's small named rows, 18-unit rows with 16-unit icons and no names (a small bar where the name was), or a grid of cells with counts; the Notes tables with today's name column, or held, needed and the bar beside the icon with no name or a faint one at the right; controls always shown or under the pointer only. |
 | [plan-make.html](plan-make.html) | Decided (2026-11-22): A on the panel and the window, the recipe view's presses, a grid into one, the count kept, the store chest before it | L-385: the panel's and the window's "to make" rows with picture buttons under the pointer, the count kept beside them or replaced; pictures for making (a grid into one, an arrow up, a hammer, the recipe's arrow); the store mark as a store button's chest before or after the count; the place button's presses on the hint line (one round, Shift what is needed, Ctrl one round onto the pointer). |
@@ -100,11 +102,42 @@ Text in the demos is Japanese because they were reviewed in Japanese.
 | [plan-counts.html](plan-counts.html) | Reviewed 2026-11-22: X built; none of the count forms taken: tips say only what the row lacks (L-387) | The plan's counts in tips (today, A one per line, B what to do first, C only what the row lacks; chests and stacks or not) and How to make's line once chosen (today's first input, X the chosen row's pictures, Y words) |
 | [howto-choices-3.html](howto-choices-3.html) | Implemented (2026-11-22), seen in game on `a11be728` | L-389: a group's choices one line each ("<kind>から作る" where traced, "<group>を集める"), the members in a grid from the start in creative order, a member's own ways left to its recipe line; an item's "automatic" as today (the rule's way faint, the word alone), "gather", recipe rows as slots and station without words, the rule's first, re-dyeing folded; words right after each row's pictures. |
 
-Rules for agents:
+## Making a mockup
 
-- A demo shows intent and structure, not exact pixels. Build with the tokens
-  and widgets in `src/ui/Widgets.h` and the sizes in docs/DESIGN.md.
+A mockup starts from today's screen drawn from the code, never from memory
+(schematic-ignore-v3 was set aside for that), and uses the kit in
+[kit/](kit/), which `scripts/Check-Demos.ps1` enforces for every demo not in
+`scripts/DemoBaseline.txt` (the hand-made ones from before the kit, kept as
+records).
+
+- **Start** from [kit/template.html](kit/template.html): copy it to
+  `docs/demos/<name>.html` and point its paths at `kit/`. It loads
+  `kit/lamium-data.js` (colors, sizes, the settings rows with their default
+  values and keys, and every string in four languages, generated from `src/`
+  by `tools/DemoData.cpp`) and `kit/kit.js` (drawing that mirrors
+  `Widgets.cpp`, `ListViewWidgets.cpp` and `SettingsTableView.cpp`).
+- **Today first**: `Lamium.page.compare` puts today (`kind: 'today'`) beside
+  each proposal. Today's settings screen is `Lamium.settings(stage, {nav})`;
+  a proposal edits a copy of the real rows (`Lamium.rows(nav)` with
+  `Lamium.rows.insertAfter`, `change`, `remove`), which marks what changed.
+  [kit/settings-today.html](kit/settings-today.html) shows every category.
+  A screen the kit cannot draw yet (a game window, the world map, the HUD)
+  gets its drawing added to `kit.js` from the real layout code, or today is a
+  screenshot from the Dev instance saved under `docs/demos/img/`.
+- **Words** are real strings, `Lamium.t('<key>')`; new words come in all four
+  languages, `Lamium.text([en, ja, zh_CN, zh_TW])`.
+- **Controls** come only from `kit.js`, which follows the shared widgets; a
+  control it lacks is added there after the shared widget, not drawn in the
+  demo. Colors are tokens (`Lamium.color('<token>')`, `var(--lm-<token>)`).
+- **Before handing it over**, run the demos server (`.claude/launch.json`
+  "demos": `python -m http.server 8765 --directory docs/demos`) and open
+  `http://localhost:8765/kit/check.html`: it opens each kit demo, presses its
+  buttons and rows and must report no error. The kit also shows any error,
+  missing string, row or color at the top of the page itself.
+- **When `src/` changes** a color, size, settings row or string, regenerate
+  the data: `xmake build LamiumDemoData && xmake run LamiumDemoData`, and
+  commit `kit/lamium-data.js` (CI regenerates it and fails on a difference).
 - The box at the bottom of a demo lists either open questions ("確認したいこと")
   or, once agreed, the decisions ("決定事項"). Shared UI rules are in [DESIGN.md](../DESIGN.md); feature decisions are linked
   from [BACKLOG.md](../BACKLOG.md). Dated mockups do not override later decisions.
-- When a new demo is made, add it here with its status.
+- When a new demo is made, add it to the table above with its status.

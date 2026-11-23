@@ -12,6 +12,8 @@ working manual for any coding agent. Read it fully before changing code.
 - Document roles and the feature documents: [docs/README.md](docs/README.md).
 - Shared product and UI rules: [docs/DESIGN.md](docs/DESIGN.md) (short; one
   feature's decisions are in that feature's document).
+- UI mockups: [docs/demos/README.md](docs/demos/README.md) "Making a
+  mockup" (start from today's screen with the kit in `docs/demos/kit/`).
 - What was checked in game: [docs/VALIDATION.md](docs/VALIDATION.md).
 - Machine-specific paths: `AGENTS.local.md` if present (gitignored; never
   copy it into tracked files).
@@ -47,8 +49,10 @@ xmake build LamiumNativeTests && xmake run LamiumNativeTests   # SDK-type tests
 ```
 
 - Run `LamiumTests` after every change; it must print no failures. CI also
-  runs `scripts/Check-UiTokens.ps1`, `Check-Backlog.ps1` and `Check-Docs.ps1`;
-  run the one for what you changed.
+  runs `scripts/Check-UiTokens.ps1`, `Check-Backlog.ps1`, `Check-Docs.ps1`
+  and `Check-Demos.ps1`; run the one for what you changed. A change to a
+  color, size, settings row or string also regenerates the mockup data:
+  `xmake build LamiumDemoData && xmake run LamiumDemoData`.
 - Deploy only when the user wants to test, with Minecraft closed: copy
   `bin/Lamium/Lamium.dll`, `Lamium.pdb`, `manifest.json` into
   `<instance>/mods/Lamium/` and report the SHA-256 of both copies. Log:
