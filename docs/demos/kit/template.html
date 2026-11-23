@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Copy this file to docs/demos/<name>.html and change the paths to "kit/...". Rules: docs/demos/README.md "Making a mockup". -->
+<title>Mockup Template</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="kit.css">
+<script src="lamium-data.js"></script>
+<script src="kit.js"></script>
+</head>
+<body>
+<main class="lk-page">
+  <div>
+    <h1>例: ズームに「感度」を足す</h1>
+    <p class="lk-lede">左が今の画面（src/ から生成した行そのまま）、右が案です。案で変えた行には左端に水色の印が付きます。</p>
+    <p class="lk-meta">L-000 · 2026-11-23 · 決めること: 感度の行をどこに置くか</p>
+  </div>
+  <div class="lk-controls" id="controls"></div>
+  <div id="view"></div>
+</main>
+<script>
+// Everything the reader can switch lives in `state`; draw() redraws from it.
+const state = { place: 'A' };
+const PLACES = [['A', '案 A: 倍率の下'], ['B', '案 B: 末尾']];
+
+function proposalRows() {
+  const rows = Lamium.rows('section.view');
+  const added = {
+    kind: 'option', id: 'camera.zoomSensitivity', child: true,
+    name: Lamium.text(['Sensitivity', '感度', '灵敏度', '靈敏度']),
+    help: Lamium.text(['How fast the view turns while zoomed.', 'ズーム中に視点が回る速さ。', '缩放时视角转动的速度。', '縮放時視角轉動的速度。']),
+    control: { type: 'stepper', value: Lamium.text('50%') },
+  };
+  if (state.place === 'A') Lamium.rows.insertAfter(rows, 'camera.magnification', added);
+  else {
+    // Last child of Zoom: the old last row loses its end mark.
+    const zoomChildren = rows.filter((r, i) => r.child && rows.slice(0, i).reverse().find((x) => x.kind === 'feature')?.id === 'zoom');
+    zoomChildren.at(-1).last = false;
+    Lamium.rows.insertAfter(rows, 'zoom', { ...added, last: true });
+  }
+  return rows;
+}
+function controls() {
+  const c = document.getElementById('controls');
+  c.replaceChildren();
+  Lamium.page.choice(c, '案', PLACES, state.place, (v) => { state.place = v; draw(); });
+  Lamium.page.languages(c, () => { controls(); draw(); });
+}
+function draw() {
+  Lamium.page.compare(document.getElementById('view'), [
+    { kind: 'today', title: Lamium.t('section.view'),
+      draw: (stage) => Lamium.settings(stage, { nav: 'section.view', open: ['zoom'], selected: 'camera.magnification' }) },
+    { kind: 'proposal', title: PLACES.find(([v]) => v === state.place)[1],
+      note: '感度は倍率と一緒に使うので、案 A では倍率のすぐ下に置きます。',
+      draw: (stage) => Lamium.settings(stage, { nav: 'section.view', rows: proposalRows(), open: ['zoom'], selected: 'camera.zoomSensitivity' }) },
+  ]);
+}
+Lamium.ready(() => { controls(); draw(); });
+</script>
+</body>
+</html>

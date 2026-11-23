@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings Today</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="kit.css">
+<script src="lamium-data.js"></script>
+<script src="kit.js"></script>
+</head>
+<body>
+<main class="lk-page">
+  <div>
+    <h1>今の設定画面</h1>
+    <p class="lk-lede">lamium-data.js（src/ から生成）だけで描いた、今の設定画面です。行、名前、既定の値とキー、説明文はゲームと同じ定義から来ています。新しいモックアップの「今」はこれを使います。</p>
+    <p class="lk-meta">行をクリックすると選択し、機能の行は開閉します。キーボード名は近似です（ゲームは実行時に名前を付けます）。</p>
+  </div>
+  <div class="lk-controls" id="controls"></div>
+  <div id="view"></div>
+</main>
+<script>
+const state = { nav: 'section.view', open: ['zoom'], selected: 'zoom', first: 0 };
+const navs = Lamium.data.navigation.filter((n) => Lamium.data.rows[n.key]).map((n) => n.key);
+function controls() {
+  const c = document.getElementById('controls');
+  c.replaceChildren();
+  Lamium.page.choice(c, '分類', navs.map((k) => [k, Lamium.t(k)]), state.nav, (v) => {
+    state.nav = v; state.open = []; state.selected = null; state.first = 0; draw();
+  });
+  Lamium.page.languages(c, () => { controls(); draw(); });
+}
+function draw() {
+  Lamium.page.compare(document.getElementById('view'), [{
+    kind: 'today', title: Lamium.t(state.nav),
+    draw(stage) {
+      const s = Lamium.settings(stage, state);
+      // Clicks: select a row; a feature row also opens or closes. The wheel scrolls.
+      state.first = s.first;
+      stage.parentElement.onclick = (e) => {
+        const p = Lamium.pointer(stage, e), row = s.rowAt(p.x, p.y);
+        if (!row || !row.id) return;
+        if (row.kind === 'feature' && state.nav !== 'nav.hotkeys')
+          state.open = state.open.includes(row.id) ? state.open.filter((x) => x !== row.id) : [...state.open, row.id];
+        state.selected = row.id;
+        draw();
+      };
+      stage.parentElement.onwheel = (e) => { e.preventDefault(); state.first = Math.max(0, state.first + Math.sign(e.deltaY) * 3); draw(); };
+    },
+  }]);
+}
+Lamium.ready(() => { controls(); draw(); });
+</script>
+</body>
+</html>

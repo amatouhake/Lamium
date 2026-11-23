@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Check</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+th { color: var(--page-faint); font-weight: 500; }
+td.bad { color: var(--lm-warning); }
+td.ok { color: var(--lm-accent); }
+.wrap { overflow-x: auto; }
+</style>
+<script src="lamium-data.js"></script>
+<script src="kit.js"></script>
+</head>
+<body>
+<main class="lk-page">
+  <div>
+    <h1>デモの動作チェック</h1>
+    <p class="lk-lede">docs/demos の HTML を一つずつ開き、ボタンと行を順に押して、出たエラーを集めます。kit を使うデモは、kit が見つけた問題（無い文字列キー、無い行、無い色）も数えます。</p>
+    <p class="lk-meta">ローカルサーバーで開く: launch.json の "demos"（python -m http.server 8765 --directory docs/demos）→ http://localhost:8765/kit/check.html。?all で古いデモも含めます。</p>
+  </div>
+  <p id="status">準備中…</p>
+  <div class="wrap"><table><thead><tr><th>デモ</th><th>kit</th><th>押した数</th><th>結果</th></tr></thead><tbody id="rows"></tbody></table></div>
+</main>
+<script>
+// Result for scripts: window.demoCheck = {done, failures: [{file, errors}]}.
+window.demoCheck = { done: false, failures: [] };
+async function run() {
+  const all = new URLSearchParams(location.search).has('all');
+  const listing = await fetch('../').then((r) => r.text());
+  const own = await fetch('./').then((r) => r.text());
+  const names = (text) => [...text.matchAll(/href="([^"?#/]+\.html)"/g)].map((m) => decodeURIComponent(m[1]));
+  // The kit's own pages (its example and template) first, then the demos.
+  const files = [...names(own).filter((f) => f !== 'check.html').map((f) => 'kit/' + f), ...names(listing)];
+  const status = document.getElementById('status'), body = document.getElementById('rows');
+  let checked = 0;
+  for (const file of files) {
+    const html = await fetch('../' + file).then((r) => r.text());
+    const usesKit = /(^|["\/])kit\.js/.test(html) && /lamium-data\.js/.test(html);
+    if (!all && !usesKit) continue;
+    status.textContent = `${file} を確認中…`;
+    const errors = [];
+    window.__demoError = (m) => { if (!/ResizeObserver loop/.test(m)) errors.push(m); };
+    const probe = `<base href="${new URL('../' + file, location.href)}"><script>window.onerror=(m,s,l)=>{parent.__demoError(String(m)+' (行 '+l+')')};` +
+      `window.addEventListener('unhandledrejection',e=>parent.__demoError('Promise: '+e.reason));<\/script>`;
+    const frame = document.createElement('iframe');
+    frame.style.cssText = 'position:fixed;left:-4000px;top:0;width:1280px;height:900px';
+    document.body.append(frame);
+    await new Promise((done) => { frame.onload = done; frame.srcdoc = html.replace(/<head[^>]*>/i, (m) => m + probe); setTimeout(done, 4000); });
+    await new Promise((r) => setTimeout(r, 400)); // fonts and Lamium.ready
+    let clicks = 0;
+    try {
+      const doc = frame.contentDocument;
+      const targets = [...doc.querySelectorAll('button, [role=button], input[type=radio], input[type=checkbox], .lk-stage-outer, .row, .tab')].slice(0, 200);
+      for (const el of targets) { el.click(); clicks++; }
+      const kitErrors = frame.contentWindow.Lamium ? frame.contentWindow.Lamium.errors : [];
+      errors.push(...kitErrors.filter((e) => !/ResizeObserver loop/.test(e)));
+    } catch (e) { errors.push('チェック自体: ' + e.message); }
+    await new Promise((r) => setTimeout(r, 100));
+    frame.remove();
+    const unique = [...new Set(errors)];
+    if (unique.length) window.demoCheck.failures.push({ file, errors: unique });
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><a href="../${file}"></a></td><td>${usesKit ? 'kit' : ''}</td><td>${clicks}</td><td class="${unique.length ? 'bad' : 'ok'}"></td>`;
+    tr.querySelector('a').textContent = file;
+    tr.lastChild.textContent = unique.length ? unique.slice(0, 4).join(' / ') : 'OK';
+    body.append(tr);
+    checked++;
+  }
+  status.textContent = `${checked} 件を確認: ${window.demoCheck.failures.length} 件でエラー`;
+  window.demoCheck.done = true;
+}
+run().catch((e) => { document.getElementById('status').textContent = 'チェックが止まりました: ' + e.message; window.demoCheck.done = true; });
+</script>
+</body>
+</html>

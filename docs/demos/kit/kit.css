@@ -1,0 +1,45 @@
+/* Lamium mockup kit: the page around a mockup and the in-game stage it draws on.
+   No color literal for anything Lamium draws: kit.js sets --lm-* from lamium-data.js
+   (generated from src/ui/Widgets.h), so the stage cannot drift from the game.
+   The page chrome (outside the stage) has its own quiet neutrals below. */
+:root {
+  color-scheme: dark;
+  --page: #141618; --page-2: #1b1e21; --page-line: #2c3135; --page-ink: #e4e8e6; --page-dim: #a3aca8; --page-faint: #737d78;
+  --game-font: "DotGothic16", "MS Gothic", "Osaka-Mono", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--page-ink); font: 15px/1.65 "Noto Sans JP", system-ui, sans-serif; }
+.lk-page { max-width: 1180px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 22px; }
+.lk-page h1 { font: 700 24px/1.3 "Noto Sans JP", sans-serif; margin: 0; text-wrap: balance; }
+.lk-page h2 { font: 700 17px/1.4 "Noto Sans JP", sans-serif; margin: 0; }
+.lk-page p { margin: 0; max-width: 80ch; }
+.lk-lede { color: var(--page-dim); }
+.lk-meta { font-size: 13px; color: var(--page-faint); }
+.lk-controls { display: flex; flex-wrap: wrap; gap: 12px 26px; align-items: end; }
+.lk-cgroup { display: grid; gap: 5px; }
+.lk-cgroup > span { font-size: 12px; color: var(--page-faint); letter-spacing: .04em; }
+.lk-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--page-line); background: var(--page-2); max-width: 100%; }
+.lk-seg button { all: unset; cursor: pointer; padding: 6px 12px; color: var(--page-dim); font: 500 13px/1.2 "Noto Sans JP", sans-serif; border-right: 1px solid var(--page-line); }
+.lk-seg button:last-child { border-right: 0; }
+.lk-seg button[aria-pressed="true"] { background: var(--lm-accentDeep); color: #fff; }
+.lk-seg button:focus-visible { outline: 2px solid var(--lm-accent); outline-offset: -2px; }
+.lk-compare { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); }
+.lk-case { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.lk-case header { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.lk-case header .lk-tag { font-size: 12px; padding: 1px 8px; border: 1px solid var(--page-line); color: var(--page-dim); }
+.lk-case.today header .lk-tag { border-color: var(--lm-info); color: var(--lm-info); }
+.lk-case.proposal header .lk-tag { border-color: var(--lm-accent); color: var(--lm-accent); }
+.lk-case .lk-note { font-size: 14px; color: var(--page-dim); }
+.lk-errors { border: 1px solid var(--lm-warning); color: var(--lm-warning); padding: 8px 12px; font-size: 13px; white-space: pre-wrap; }
+
+/* The stage: GUI units at 1px each, scaled as a whole to the column. */
+.lk-stage-outer { position: relative; overflow: hidden; border: 1px solid var(--page-line); background: var(--lk-world, #2a3138); }
+.lk-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; font: 8px/8px var(--game-font); color: var(--lm-text); user-select: none; }
+.lk-stage * { position: absolute; }
+.lk-world { inset: 0; background:
+  linear-gradient(180deg, rgba(120,170,220,.55), rgba(120,170,220,.15) 45%, rgba(70,110,60,.6) 46%, rgba(60,90,50,.8)); }
+.lk-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: .5px .5px 0 rgba(0,0,0,.75); height: 9px; }
+.lk-t.flat { text-shadow: none; }
+.lk-t.r { text-align: right; } .lk-t.c { text-align: center; }
+.lk-hot { cursor: pointer; }
+.lk-hot:hover { outline: 1px solid rgba(255,255,255,.18); outline-offset: -1px; }

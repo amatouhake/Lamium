@@ -389,6 +389,20 @@ target("LamiumTests")
         set_toolchains("clang-cl")
     end
 
+-- Writes docs/demos/kit/lamium-data.js for the design mockups from the pure headers (docs/demos/README.md).
+target("LamiumDemoData")
+    set_kind("binary")
+    set_rundir(os.projectdir())
+    set_default(false)
+    set_languages("c++20")
+    add_includedirs("src")
+    add_files("tools/DemoData.cpp")
+    add_packages("nlohmann_json")
+    if is_plat("windows") then
+        add_cxflags("/utf-8", "/W4")
+        set_toolchains("clang-cl")
+    end
+
 -- SDK data-layout checks that do not launch Minecraft or call engine symbols.
 target("LamiumNativeTests")
     set_kind("binary")
