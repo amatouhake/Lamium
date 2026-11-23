@@ -47,9 +47,8 @@ after using the first build. What is still open is in the L-item.
 - The list can be narrowed, at least to what can be made now. The filters
   have their place from the start: the list's bar, "All" and "Can be made"
   (one switch where the panel is narrow).
-- In the item list a favorite's cell is framed in the accent color; in
-  both lists a wanted item carries how many are wanted where a stack has
-  its count.
+- A favorite carries no mark in the item list (L-369); in both lists a
+  wanted item carries how many are wanted where a stack has its count.
 - An item held on the pointer is drawn over the panels and the windows, as
   beside the anvil.
 - The game's tooltip for one of its slots is drawn over the panels: while

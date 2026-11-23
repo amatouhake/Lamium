@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Keys with data in the item list (L-363, 2026-11-24)
+
+`04f441ac` on branch `l363-data-keys` (DLL
+`5a0a4d79c70562b298dea30097b6374b72cef71a55a4875ef693a2fb8fb66415`),
+1.26.60.05 Dev, LeviLamina 26.60.5, a local world:
+- Logged: an item list of 1980 items, 143 keyed by their data, 0 not
+  rebuilt from their key.
+- Seen: the enchanted books by kind and level with their enchantment in
+  the tip, the colored rockets and the ominous banner listed; a tooltip
+  search for an enchantment ("$" and its name) finds only its books, the
+  search highlight as before; nothing else changed.
+- The listed books have no glint (list icons never ask for one).
+- Favorites from a carried stack: a book with one enchantment is saved as
+  itself; a book with two enchantments and a banner with patterns are
+  saved as the plain book and the plain banner (their key is not in the
+  list, so the hover falls back to the table's key; a banner's patterns
+  are not part of its key).
+- Not checked: a crafted rocket from the inventory; a server.
+
 ## What the item list folds of the creative list (L-363, 2026-11-24)
 
 Trace build of `ab8c319a` with the creative dump uncommitted
