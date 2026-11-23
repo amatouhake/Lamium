@@ -136,15 +136,14 @@ from the file); never restate them here.
    pose is low priority. What waits for more game symbols is collected in
    L-315.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10), in this order: the follow-ups of L-170 enchantment order
-   planner and L-319 item details; then
-   L-330 radar icons, L-166 trade helpers, L-167
+   2026-10-10), in this order: L-330 radar icons, L-166 trade helpers, L-167
    resource packs, L-168 trade finder, L-169 transfer extensions, L-173
    quick shapes, L-163 a Lamium inventory screen, L-249 simulation distance
    and L-265 placement assist.
    Agree open choices before building.
    L-359 material plan (with L-116 raw materials) runs beside this list,
-   neither ahead of it nor behind it; its next steps are in L-371's order.
+   neither ahead of it nor behind it; its next steps are L-370, L-362,
+   L-368, L-372, L-363 and L-360.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
    remaining L-117 schematic name tags.
@@ -157,14 +156,10 @@ from the file); never restate them here.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151 body in first person, L-152 held map preview, L-153 last pressed
    movement key and the previously parked work remain later.
-7. **Before the next release:** the release after 0.7.0 takes (maintainer
-   2026-11-21) the recipe screens' remainder (L-385: making a plan's
-   steps; L-386 tracing "any" past its kind and L-387 one way of writing
-   counts, 2026-11-22), L-372 hotkeys by context, and a
-   review of the changes since 0.7.0 with its fixes (findings: L-390); L-384 is not bound
-   to it. Then changed-feature smoke and the relevant
-   [pre-release checks](backlog/pre-release-checks.md). Latest release: 0.7.0, 2026-11-16 (`v0.7.0`). A full
-   regression is not a release gate.
+7. **Before the next release:** what the next release takes is not decided
+   yet. Then changed-feature smoke and the relevant
+   [pre-release checks](backlog/pre-release-checks.md). Latest release:
+   0.8.0, 2026-11-23 (`v0.8.0`). A full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
@@ -181,7 +176,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; every question and answer checked on a local BDS (2026-11-19); a Realm not seen
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; one part left): Fixed by commit, none seen in game; 1-7's refused take waits for the server check
+- [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; one part left): Fixed by commit, none seen in game; 1-7's refused take needs a real server
 - [L-393](backlog/L-393.md) Target card icon loses the item's data (glint, dye, modded icons) (Ready): Reported on GitHub (issue 83, 2026-11-23); not started
 - [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
@@ -199,10 +194,8 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Feature work and research
 
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
-- [L-388](backlog/L-388.md) One craft run for making a plan's steps and Mass Craft (Refactor): Open; waits for L-385's server check
+- [L-388](backlog/L-388.md) One craft run for making a plan's steps and Mass Craft (Refactor): Open, not started; L-385's server check it waited for was done on a local BDS (2026-11-23)
 - [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)
-- [L-386](backlog/L-386.md) Trace an "any" ingredient past its kind (planks to logs) (Ready): Built; planks from logs, make over two kinds and the group's gather seen in game (local); a picked log kind and a server not
-- [L-385](backlog/L-385.md) Make a plan's steps from its "to make" tab (Ready): Seen in game on a local world (2026-11-22); a server unchecked
 - [L-384](backlog/L-384.md) HUD: a wider scale range and placement past the screen edge (Design): Requested by a player (Discord, 2026-11-21, answers 2026-11-22); not started, no release target
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
@@ -210,9 +203,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Key names and the game's drop key seen in game 2026-11-23; the targets and Esc order open
-- [L-371](backlog/L-371.md) Recipe screens: groundwork before the next features (Design): Agreed (maintainer 2026-11-20); split into L-373 to L-379 and existing items
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
-- [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature): Built 2026-11-13 after 0.6.0 (not released) and checked in game; unchecked cases remain
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
@@ -221,12 +212,11 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
 - [L-173](backlog/L-173.md) Quick shapes: a beacon's range at a glance, shapes that are not saved (Design): Direction decided (2026-11-06); waiting for the in-game range check.
-- [L-170](backlog/L-170.md) Enchantment order planner (Feature): Built after 0.6.0 (not released) and checked in game step by step; runtime checks remain
 - [L-169](backlog/L-169.md) Item Transfer: remaining gesture and screen extensions (Design): Waiting for the maintainer to choose any extension; none approved
 - [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design): Waiting for the maintainer's choices below; not chosen for building, no release.
 - [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research): Partly done: Game language and Skip server resource packs shipped in 0.2.1; global pack stack work not chosen.
 - [L-166](backlog/L-166.md) Villager trade helpers: favorites and assisted trading (Design): Part 1 (Shift + right-click repeated trading) shipped in 0.2.1; part 2 is candidates waiting for the maintainer, not approved to build
-- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Open; ships in 0.8.0, experimental and off by default (maintainer 2026-11-23); seen in a local world and on a local BDS
+- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Released in 0.8.0, experimental and off by default; runs seen to the end in a local world and on a local BDS (2026-11-23); choices below open
 - [L-163](backlog/L-163.md) A Lamium-drawn inventory screen (Research): Open, not started; recorded for later.
 - [L-132](backlog/L-132.md) Move while the inventory screen is open (Research): Parked 2026-10-10 after eight trial rounds without smooth movement; resume from Next
 - [L-59](backlog/L-59.md) Held placement style: vanilla, Java-like or fast (Design done; Research first): Planned, nothing built; no step starts until the maintainer says so
@@ -277,10 +267,5 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
   seen); decide whether faces become the default once they hold up.
 - L-21 Shape color picker or more colors: only if the four colors prove
   insufficient.
-- External PR #10 (Spanish localization and map daylight tint, opened
-  2026-10-07): the maintainer asked on 2026-10-08 for one PR per feature,
-  translations updated to the latest main, Night Vision and unaffected
-  markers for the map tint, and the provenance statement. Nothing is
-  discussed further until it is split.
 - Mass Craft became L-165 (2026-10-12). (Schematic became L-93; Fast
   Attack/Use became L-34; Scroll Transfer became L-41.)

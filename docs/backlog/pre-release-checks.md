@@ -7,40 +7,28 @@ and a full regression and every server case are not release gates. [VALIDATION.m
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-## For 0.8.0 (decided 2026-11-23; released 2026-11-23)
+## For the next release
 
-Only these hold the release (maintainer 2026-11-23, following the
-Release policy). A local world already runs the game's own server inside
-the game, so item requests were seen accepted there; a local Bedrock
-Dedicated Server adds a join by address, which is what keys a server's
-data.
+Not decided yet (BACKLOG "Current execution order" 7).
 
-Before tagging (all done for 0.8.0, VALIDATION-LOG 2026-11-23):
-- The release build (the commit's CI package) loads, the settings open,
-  the log shows no error.
-- Done on `ad38e53f` (VALIDATION-LOG 2026-11-23): on a local BDS "Make
-  all" and Mass Craft ran to the end; on two local servers the stores did
-  not mix, each with its own file under `config/places/` (L-390 1-1).
-- README and FEATURES.md follow the seven settings categories (L-340,
-  L-392): done 2026-11-23.
-- The release notes say: Sort has no default key (L-359); the settings
-  categories changed (Schematics its own, Hands and equipment under
-  Player, no counts); stores are kept per server and the old shared
-  `config/wanted/places.json` is no longer read.
-
-After publishing: the LIP registry, Bedrinth and LeviLauncher offer the
-version (DISTRIBUTION.md).
-
-Accepted as not checkable here: a Realm and a friend's world (a second
-account), a key the game calls "ButtonNNN", add-on items, an unverified
-game build, a real server's latency or refusals (a refused take in
-"make", L-390 1-7). An unreadable `servers.json` can be brought about by
-breaking the file, but is rare and not required.
+Left from 0.8.0 (published 2026-11-23): the published ZIP itself, and the
+LIP registry, Bedrinth and LeviLauncher offering 0.8.0 (DISTRIBUTION.md).
 
 ## Follow-up coverage (not release gates)
 
 What follows lists cases not seen in earlier work; it does not hold a
 release. Look at an entry when its feature misbehaves or is changed.
+
+### Left from 0.8.0
+
+- Accepted for 0.8.0 as not checkable here: a Realm and a friend's world
+  (a second account), a key the game calls "ButtonNNN", add-on items, an
+  unverified game build, a real server's latency or refusals (a refused
+  take in "make" or Mass Craft, L-390 1-7); an unreadable `servers.json`
+  (can be brought about by breaking the file, rare).
+- Not seen when their items closed: tracing "any" with a picked log kind and
+  gather from a breakdown step (L-386); Enchantment order's heldUnknown
+  line (an item whose anvil cost is not 2^n - 1, L-170).
 
 ### Left from 0.7.0
 

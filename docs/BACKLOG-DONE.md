@@ -93,6 +93,10 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-385](backlog/done/L-385.md) Make a plan's steps from its "to make" tab
+- [L-386](backlog/done/L-386.md) Trace an "any" ingredient past its kind (planks to logs)
+- [L-319](backlog/done/L-319.md) Item details: Work Penalty first, then the unshown rest
+- [L-170](backlog/done/L-170.md) Enchantment order planner
 - [L-340](backlog/done/L-340.md) Settings grouping
 - [L-369](backlog/done/L-369.md) Recipe screens: open fixes of the look
 - [L-364](backlog/done/L-364.md) Draw "one of several" the agreed way on the other screens
@@ -237,6 +241,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-371](backlog/done/L-371.md) Recipe screens: groundwork before the next features
 - [L-378](backlog/done/L-378.md) Light up the game's slots that match the search
 - [L-379](backlog/done/L-379.md) A recipe's own controls and crafting onto the pointer
 - [L-383](backlog/done/L-383.md) Schematic Materials: drop the raw view, call it "材料"

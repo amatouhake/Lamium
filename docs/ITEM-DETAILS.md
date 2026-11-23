@@ -4,8 +4,9 @@ Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs
 
 Lines Lamium adds to an item's tooltip: what the client knows about an item
 and the game does not print. Direction (maintainer 2026-11-13): as much
-about an item as can be shown. Open work:
-[L-319 Item details: Work Penalty first, then the unshown rest](backlog/L-319.md).
+about an item as can be shown. Built under
+[L-319 Item details: Work Penalty first, then the unshown rest](backlog/done/L-319.md)
+(closed); a further detail gets an item of its own.
 Player-facing description: [FEATURES.md](FEATURES.md) ("Container previews
 and Item details").
 
