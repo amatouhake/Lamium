@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The recipe book's calls are not found by name (L-397, 2026-11-23)
+
+Trace build of `bc905d64` (`craft_trace`, DLL
+`3db0f3ea305f8a832bc23ba007306ac21268129ab5386bc388486cd435921b18`),
+1.26.60.05 Dev, LeviLamina 26.60.5, a local world, the maintainer at a
+crafting table with the game's recipe book open and logs carried:
+- `ll::memory::SymbolView` found none of `_handleRecipeSelect`,
+  `handleRecipeSelect`, `autoCraftItem` and the request's constructor, so
+  nothing was hooked and F6, Shift + F6 and F10 had no call to make.
+- A plain click on the book's oak planks laid all 49 logs into one cell,
+  answered as one request (two containers, two slots); no slot call
+  Lamium hooks (auto-place, take-place) ran.
+- A Shift click with the grid empty crafted 64 planks from 16 logs:
+  the server got action 13 (`CraftRecipeAuto`), 16 crafts, recipe net id
+  3587. So action 13 is the Shift click's craft, not the lay-in.
+- `mRecipes` holds 4140 recipes in an order of its own: the book cell
+  `recipe_search:0` (oak planks) is not `mRecipes[0]` (soul campfire).
+
 ## List counts under the held item (2026-11-23)
 
 `751cc363` (DLL
