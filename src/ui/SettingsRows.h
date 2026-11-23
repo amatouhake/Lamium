@@ -4,6 +4,7 @@
 #include "ui/SearchQuery.h"
 #include "ui/HudElement.h"
 #include <algorithm>
+#include <format>
 #include <optional>
 #include <set>
 #include <span>
@@ -554,6 +555,19 @@ inline LabelParts splitLabel(std::string_view pattern) {
         return {name, "{}"};
     }
     return {std::string(pattern.substr(0, split)), std::string(pattern.substr(split + 2))};
+}
+// An option's value as its stepper or slider shows it: a choice's name, or a number in its label's pattern.
+template<class Translate>
+std::string optionValueText(settings::Option const& option, settings::OptionValue const& value, Translate translate) {
+    auto pattern = splitLabel(std::string(translate(option.label))).value;
+    try {
+        if (auto choice = std::get_if<settings::ChoiceValue>(&value)) return std::string(translate(choice->label));
+        if (auto number = std::get_if<float>(&value)) {
+            float secondary = option.numeric ? *number * option.numeric->secondary : 0;
+            return std::vformat(pattern, std::make_format_args(*number, secondary));
+        }
+    } catch (std::exception const&) {}
+    return {};
 }
 // An action named alone (conflict tip, capture line, Hotkeys' footer) is composed from the tree like a
 // toggle toast (L-372): the feature alone for its toggle key, "Feature > option" for a keyed option,

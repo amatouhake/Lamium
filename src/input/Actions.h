@@ -19,7 +19,10 @@ std::string keyName(IClientInstance& client, int code);
 // Session features (Zoom, Freelook, FreeCamera, Permanent Sneak/Sprint)
 // have no saved switch: their settings switch shows and flips whether
 // they are wanted (BACKLOG L-47).
-bool isSessionFeature(std::string_view feature);
+inline bool isSessionFeature(std::string_view feature) {
+    return feature == "zoom" || feature == "freelook" || feature == "freecamera"
+        || feature == "permanentSneak" || feature == "permanentSprint";
+}
 bool sessionState(std::string_view feature);
 void toggleSession(IClientInstance& client, std::string_view feature);
 }

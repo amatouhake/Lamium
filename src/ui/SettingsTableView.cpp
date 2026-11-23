@@ -581,15 +581,7 @@ std::string captureText(input::Action action) {
         ? "captureInlineHold" : "captureInline");
 }
 std::string optionValueText(settings::Option const& option, settings::OptionValue const& value) {
-    auto pattern = splitLabel(translated(option.label)).value;
-    try {
-        if (auto choice = std::get_if<settings::ChoiceValue>(&value)) return translated(choice->label);
-        if (auto number = std::get_if<float>(&value)) {
-            float secondary = option.numeric ? *number * option.numeric->secondary : 0;
-            return std::vformat(pattern, std::make_format_args(*number, secondary));
-        }
-    } catch (std::exception const&) {}
-    return {};
+    return ui::optionValueText(option, value, [](std::string_view key) { return translated(key); });
 }
 std::vector<std::string> bindingKeys(IClientInstance& current, input::Action action) {
     // preferences() returns a copy: keep it alive while its bindings are read.

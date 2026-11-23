@@ -155,10 +155,6 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
     ui::showToggleToast(name, on);
 }
 }
-bool isSessionFeature(std::string_view feature) {
-    return feature == "zoom" || feature == "freelook" || feature == "freecamera"
-        || feature == "permanentSneak" || feature == "permanentSprint";
-}
 bool sessionState(std::string_view feature) {
     if (feature == "zoom") return CameraSessions::instance().wanted(CameraSessions::Session::Zoom);
     if (feature == "freelook") return CameraSessions::instance().wanted(CameraSessions::Session::Freelook);
