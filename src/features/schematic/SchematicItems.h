@@ -1,10 +1,12 @@
 #pragma once
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <vector>
 #include <string>
 class ContainerScreenController;
 class ItemStack;
+class ItemStackBase;
 class LocalPlayer;
 // Item helpers shared by the Schematics screen and HUD (BACKLOG L-93).
 // Client thread only.
@@ -25,6 +27,13 @@ struct Shown {
     int stack = 64;
 };
 Shown const& shown(std::string const& item);
+// L-363: the creative entries' stacks (`stackIcon`) by their keys, which `shown` draws a listed item from (a
+// firework star's color, a book's enchantment). Set by the item list each time it reads the list.
+void listEntries(std::map<std::string, std::string, std::less<>> icons);
+// A stack as an icon (binary NBT with its data); empty when it cannot be saved.
+std::string stackIcon(ItemStackBase const& stack);
+// The icon worked out from a key alone, its data included: what an item no entry stands for draws as.
+std::string iconOfKey(std::string const& item);
 // Items carried: the inventory and the contents of shulker boxes in it.
 std::map<std::string, std::uint64_t> carried(LocalPlayer& player);
 // The same stacks one by one, with the aux a recipe may tell them apart by (a bed's color).

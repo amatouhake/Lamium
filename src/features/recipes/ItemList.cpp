@@ -318,6 +318,7 @@ int creativeRank(std::string_view key) {
 }
 namespace {
 void readNames(LocalPlayer& player) {
+    auto const started = std::chrono::steady_clock::now();
     names.clear();
     listed.clear();
     lowNames.clear(), englishNames.clear(), tagTexts.clear(), tooltipTexts.clear(), nameIndex.clear();
@@ -332,6 +333,7 @@ void readNames(LocalPlayer& player) {
     if (!registry) return;
     auto const& entries = registry->mCreativeItems.get();
     if (entries.size() > 20000) return; // not a list of items
+    std::map<std::string, std::string, std::less<>> entryIcons;
     for (auto const& entry : entries) {
         auto const& item = entry.mItemInstance.get();
         if (item.isNull()) continue;
@@ -341,6 +343,9 @@ void readNames(LocalPlayer& player) {
         if (name.empty() || !listed.insert(name).second) continue;
         nameIndex.emplace(name, names.size());
         if (name.size() != baseKey(name).size()) nameIndex.emplace(std::string(baseKey(name)), names.size());
+        // The entry as it is drawn everywhere Lamium shows this key (a firework star's color and tip).
+        if (tags)
+            if (std::string icon = schematic::items::stackIcon(item); !icon.empty()) entryIcons.emplace(name, std::move(icon));
         names.push_back(std::move(name));
         englishNames.push_back(english ? search::folded(inspection::englishSearch::englishNameOf(item)) : std::string());
         std::string tagText;
@@ -348,18 +353,21 @@ void readNames(LocalPlayer& player) {
             for (auto const& tag : *type->mTags) tagText += tag.getString() + "\n";
         tagTexts.push_back(search::folded(tagText));
     }
-    // A key with data must come back from the stack rebuilt from it (SchematicItems.cpp `shown`), or its icon and
-    // tip are not the entry's.
+    schematic::items::listEntries(std::move(entryIcons));
+    // A key with data must come back from the stack rebuilt from the key alone, or a carried variant the list
+    // lacks (a book with two enchantments) draws without its data.
     int withData = 0, lost = 0;
     for (auto const& name : names) {
         if (name.size() == baseKey(name).size()) continue;
         ++withData;
-        auto const* stack = schematic::items::iconStack(schematic::items::shown(name).icon);
+        auto const* stack = schematic::items::iconStack(schematic::items::iconOfKey(name));
         if (!stack || stackKey(*stack) != name) {
             if (++lost <= 3) Runtime::instance().self().getLogger().warn("Recipes: {} does not come back from its stack", name);
         }
     }
-    Runtime::instance().self().getLogger().info("Recipes: item list of {} items, {} keyed by their data, {} not rebuilt", names.size(), withData, lost);
+    auto const took = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+    Runtime::instance().self().getLogger().info("Recipes: item list of {} items, {} keyed by their data, {} not rebuilt ({} ms)", names.size(), withData,
+                                                lost, took);
 }
 // The game's window on this screen: the chest's and anvil's panel, the inventory's and crafting table's
 // (recipe book and all), the furnace's. Seen in game on 1.26.60 (VALIDATION-LOG 2026-11-18).

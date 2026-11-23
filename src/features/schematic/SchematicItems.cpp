@@ -12,6 +12,7 @@
 #include "mc/deps/nbt/Tag.h"
 #include "mc/world/actor/player/Inventory.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/item/SaveContextFactory.h"
 #include <algorithm>
 #include <atomic>
 
@@ -23,6 +24,21 @@ std::atomic<unsigned> generation{0};
 unsigned seen = 0;
 std::map<std::string, Shown> shownItems;
 unsigned seenShown = 0;
+// The creative entries' stacks by their keys (L-363), set by the item list: a listed item draws as its entry.
+std::map<std::string, std::string, std::less<>> entryIcons;
+Shown shownOf(std::string const& item) {
+    Shown out{item, {}, 64};
+    auto const entry = entryIcons.find(item);
+    std::string icon = entry != entryIcons.end() ? entry->second : iconOfKey(item);
+    if (auto const* stack = iconStack(icon)) {
+        try {
+            out.name = stack->getName();
+            out.stack = std::max(1, static_cast<int>(stack->getMaxStackSize()));
+            out.icon = std::move(icon);
+        } catch (...) { out.name = item; }
+    }
+    return out;
+}
 }
 void forget() { ++generation; }
 ItemStack const* iconStack(std::string const& icon) {
@@ -49,16 +65,7 @@ ItemStack const* iconStack(std::string const& icon) {
     }
     return found->second.isNull() ? nullptr : &found->second;
 }
-Shown const& shown(std::string const& item) {
-    if (unsigned now = generation.load(); now != seenShown) {
-        shownItems.clear();
-        seenShown = now;
-    }
-    if (auto found = shownItems.find(item); found != shownItems.end()) return found->second;
-    // Full: worked out for this call only, never clearing what callers still hold (as `stacks` does).
-    static Shown spare;
-    bool const full = shownItems.size() > 16384;
-    Shown out{item, {}, 64};
+std::string iconOfKey(std::string const& item) {
     // A variant's key carries its aux ("minecraft:bed@14", recipes/ItemKey.h).
     auto const parts = recipes::splitItemKey(item);
     nbt::Root tag;
@@ -74,15 +81,32 @@ Shown const& shown(std::string const& item) {
                 stackTag->putCompound("tag", std::move(*data));
                 icon = stackTag->toBinaryNbt();
             }
-    if (auto const* stack = iconStack(icon)) {
-        try {
-            out.name = stack->getName();
-            out.stack = std::max(1, static_cast<int>(stack->getMaxStackSize()));
-            out.icon = std::move(icon);
-        } catch (...) { out.name = item; }
+    return icon;
+}
+std::string stackIcon(ItemStackBase const& stack) {
+    try {
+        auto context = SaveContextFactory::createCloneSaveContext();
+        auto tag = context ? stack.save(*context) : nullptr;
+        if (!tag) return {};
+        tag->putByte("Count", 1);
+        return tag->toBinaryNbt();
+    } catch (...) { return {}; }
+}
+void listEntries(std::map<std::string, std::string, std::less<>> icons) {
+    entryIcons = std::move(icons);
+    // In place: a caller may hold what `shown` returned for this frame.
+    for (auto& [item, shownItem] : shownItems) shownItem = shownOf(item);
+}
+Shown const& shown(std::string const& item) {
+    if (unsigned now = generation.load(); now != seenShown) {
+        shownItems.clear();
+        seenShown = now;
     }
-    if (full) return spare = std::move(out);
-    return shownItems.emplace(item, std::move(out)).first->second;
+    if (auto found = shownItems.find(item); found != shownItems.end()) return found->second;
+    // Full: worked out for this call only, never clearing what callers still hold (as `stacks` does).
+    static Shown spare;
+    if (shownItems.size() > 16384) return spare = shownOf(item);
+    return shownItems.emplace(item, shownOf(item)).first->second;
 }
 std::map<std::string, std::uint64_t> carried(LocalPlayer& player) {
     std::map<std::string, std::uint64_t> out;
