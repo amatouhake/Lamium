@@ -199,7 +199,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-384](backlog/L-384.md) HUD: a wider scale range and placement past the screen edge (Design): Requested by a player (Discord, 2026-11-21, answers 2026-11-22); not started, no release target
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
-- [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): Built 2026-11-19 with the stack's own hover text and seen in game; a listed stack still carries no data
+- [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): The tip is built and seen in game (2026-11-19); a listed stack still carries no data, a food's hunger icons missing
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Key names and the game's drop key seen in game 2026-11-23; the targets and Esc order open
