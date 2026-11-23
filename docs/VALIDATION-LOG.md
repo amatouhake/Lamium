@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card width, block entity data switch and row keys (L-395, 2026-11-23)
+
+`c4e20328` (DLL
+`26d6d4b17b035d27dd34f4a342a72109ec11b1df8d439d4290651acaf3234300`),
+1.26.60.05 Dev, the maintainer: a sign with long text on both sides and a
+banner with four or more patterns make a narrower card than the
+screenshots before, and the sign's front and back rows read apart; the
+keys of Other details, Block entity data, Show position and Show distance
+switch their row on each press with a toast; Other details off with Block
+entity data on shows the sign's rows and no states; the settings from
+before show the same rows as before.
+
 ## Target card banner icon with its patterns (L-394, 2026-11-23)
 
 `cf62ddae` (DLL
