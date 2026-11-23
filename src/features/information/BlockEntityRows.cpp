@@ -105,9 +105,11 @@ std::string notePitch(long long note) {
 bool blockEntityFieldHidden(std::string_view key) {
     // `id` names the actor type (the card shows the block), `x`/`y`/`z` its
     // position (the card shows it on request), and the two flags are written
-    // on every actor without saying anything about this block.
+    // on every actor without saying anything about this block, as is the
+    // version every block entity writes (L-395).
     for (auto hidden : {std::string_view{"id"}, std::string_view{"x"}, std::string_view{"y"},
-                        std::string_view{"z"}, std::string_view{"isMovable"}, std::string_view{"Findable"}})
+                        std::string_view{"z"}, std::string_view{"isMovable"}, std::string_view{"Findable"},
+                        std::string_view{"BlockEntityVersion"}})
         if (key == hidden) return true;
     return false;
 }
@@ -156,10 +158,16 @@ bool storesFields(Tag const& tag) {
 bool listed(std::string_view key, std::span<std::string_view const> stale) {
     return std::find(stale.begin(), stale.end(), key) != stale.end();
 }
+// A field inside a compound reads "Parent > Field" (DESIGN.md's child-name
+// sign), so a sign's front and back fields read apart (L-395).
 void appendField(std::vector<TargetInfo::DetailRow>& rows, std::string const& key, Tag const& tag,
                  BlockEntityNames const& names, std::span<std::string_view const> stale, std::optional<int> note,
-                 int depth = 0) {
+                 std::string const& parent = {}) {
     if (blockEntityFieldHidden(key) || listed(key, stale)) return;
+    // Plain text either way: the label is already translated, or the key itself.
+    std::string label = names.label ? names.label(key) : std::string{};
+    if (label.empty()) label = key;
+    if (!parent.empty()) label = parent + " > " + label;
     std::string value = blockEntityValue(key, tag, names);
     // L-301: the block only stores the note the world loaded with; a sound the
     // card has heard since is the current pitch.
@@ -167,9 +175,7 @@ void appendField(std::vector<TargetInfo::DetailRow>& rows, std::string const& ke
     // Nothing stored: an empty string, an empty compound, an empty list.
     if (!value.empty()) {
         TargetInfo::DetailRow row;
-        // Plain text either way: the label is already translated, or the key itself.
-        std::string label = names.label ? names.label(key) : std::string{};
-        row.label = label.empty() ? key : std::move(label);
+        row.label = label;
         row.labelIsKey = false;
         // The game stores a flag as a byte; a wider integer is a count or an id.
         std::int64_t flag = 0;
@@ -178,14 +184,14 @@ void appendField(std::vector<TargetInfo::DetailRow>& rows, std::string const& ke
             row.value = flag ? "target.yes" : "target.no";
             row.valueIsKey = true;
         } else row.value = std::move(value);
-        row.kind = DetailKind::Other;
+        row.kind = DetailKind::BlockEntity;
         rows.push_back(std::move(row));
     }
-    if (depth >= 1 || !storesFields(tag)) return;
+    if (!parent.empty() || !storesFields(tag)) return;
     for (auto const& child : tag.as<Compound>()->entries) {
         // `Text` is this field's own value, already shown by the row above.
         if (child.name == "Text") continue;
-        appendField(rows, child.name, child.tag, names, stale, note, depth + 1);
+        appendField(rows, child.name, child.tag, names, stale, note, label);
     }
 }
 }

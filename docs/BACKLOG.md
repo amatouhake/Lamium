@@ -192,6 +192,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
+- [L-395](backlog/L-395.md) Target card grows too large for signs and patterned banners (Ready): Built, not checked in game (2026-11-23)
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
 - [L-388](backlog/L-388.md) One craft run for making a plan's steps and Mass Craft (Refactor): Open, not started; L-385's server check it waited for was done on a local BDS (2026-11-23)
 - [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)

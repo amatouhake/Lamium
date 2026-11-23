@@ -245,6 +245,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "map.worldMap") return input::Action::ToggleWorldMap;
     if (option == "information.targetMeasure") return input::Action::TargetMeasure;
     if (option == "information.targetStates") return input::Action::TargetDetails;
+    if (option == "information.targetBlockData") return input::Action::TargetBlockData;
     if (option == "information.targetCoordinates") return input::Action::TargetPosition;
     if (option == "map.caveView") return input::Action::MinimapView;
     if (option == "map.netherView") return input::Action::MinimapNetherView;

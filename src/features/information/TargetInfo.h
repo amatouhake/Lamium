@@ -10,7 +10,7 @@ namespace lamium::information {
 // Schematic: the selected placement's block here when it differs (L-93),
 // shown whether or not other details are; Highlight likewise: the block is a
 // listed highlight type (L-320).
-enum class DetailKind { Other, Health, Armor, Growth, Schematic, Highlight };
+enum class DetailKind { Other, Health, Armor, Growth, Schematic, Highlight, BlockEntity };
 // Schematic rows take the verifier's colors: red for a wrong or extra block,
 // yellow for a wrong state, light blue for a missing one; an ignored place
 // (L-183) is dimmed.

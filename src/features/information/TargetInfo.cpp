@@ -406,7 +406,7 @@ std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument
 void appendInstrument(std::vector<TargetInfo::DetailRow>& rows,
                       std::optional<SharedTypes::v1_26_20::NoteBlockInstrument> instrument) {
     if (instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
-        rows.push_back({"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
+        rows.push_back({"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::BlockEntity});
 }
 // L-184: a ghost note block's instrument as the file decides it, from the
 // file's blocks below and above - never the world's, which the file does not
@@ -433,7 +433,7 @@ void appendGhostInstrument(std::vector<TargetInfo::DetailRow>& rows, schematic::
     if (auto instrument = noteInstrument(declaredBy(ghost.above, 0), declaredBy(ghost.below, 1), NoteBlockInstrument::Harp))
         appendInstrument(rows, instrument);
     else
-        rows.push_back({"blockEntity.instrument", "blockEntity.instrument.notInFile", true, {}, DetailKind::Other});
+        rows.push_back({"blockEntity.instrument", "blockEntity.instrument.notInFile", true, {}, DetailKind::BlockEntity});
 }
 // What a block keeps in its block entity, as card rows: every saved field, so
 // the card never decides that one is unimportant. The note block's instrument

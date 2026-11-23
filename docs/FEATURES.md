@@ -124,10 +124,11 @@ speed, real time and whether you stand in a slime chunk. Their order and positio
 
 A card for the block or mob you aim at: icon, name, hearts in real health
 units (one heart per 2 HP), armor and bars such as growth. "Other details" adds
-the block's own states and what its block entity stores: a sign's text, a note
-block's pitch and instrument, a lectern's book and page. "Show distance" adds
-how far the target is from your eye. Keys can flip the distance, the other
-details and the position while held. The card looks for a target up to its Range,
+the block's own states and a mob's further details; "Block entity data" adds
+what its block entity stores: a sign's text, a note block's pitch and
+instrument, a lectern's book and page, a banner's patterns. "Show distance"
+adds how far the target is from your eye. Each of these rows has a key that
+switches it. The card looks for a target up to its Range,
 or as far as the game draws with "Up to the render distance", which costs more
 while you look across open ground.
 

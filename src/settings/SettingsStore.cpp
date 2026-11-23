@@ -152,6 +152,7 @@ Json encode(Settings const& settings) {
                          {"targetDistance", settings.information.targetDistance},
                          {"targetFullRange", settings.information.targetFullRange},
                          {"targetStates", settings.information.targetStates},
+                         {"targetBlockData", settings.information.targetBlockData},
                          {"targetCoordinates", settings.information.targetCoordinates},
                          {"targetMeasure", settings.information.targetMeasure},
                          {"targetSchematic", settings.information.targetSchematic},
@@ -432,6 +433,9 @@ Settings decodeSettings(std::string_view text) {
         value.information.target = settingsValue(info, "target", value.information.target);
         value.information.targetIdentifier = settingsValue(info, "targetIdentifier", value.information.targetIdentifier);
         value.information.targetStates = settingsValue(info, "targetStates", value.information.targetStates);
+        // L-395: block entity rows were part of Other details; a file from before keeps showing them as it did.
+        value.information.targetBlockData = settingsValue(info, "targetBlockData",
+            info.contains("targetStates") ? value.information.targetStates : value.information.targetBlockData);
         value.information.targetIcon = settingsValue(info, "targetIcon", value.information.targetIcon);
         value.information.targetHealth = settingsValue(info, "targetHealth", value.information.targetHealth);
         value.information.targetArmor = settingsValue(info, "targetArmor", value.information.targetArmor);

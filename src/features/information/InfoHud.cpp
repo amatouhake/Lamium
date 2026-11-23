@@ -226,11 +226,6 @@ HotbarLookup hotbarBox(ScreenView const& view) {
 struct SeenHotbar { offhand::Box box; float screenW, screenH; };
 std::optional<SeenHotbar> seenHotbar;
 }
-namespace {
-std::array<std::atomic<bool>, 3> cardFlips{};
-bool cardShows(bool option, CardFlip row) { return option != cardFlips[static_cast<size_t>(row)].load(); }
-}
-void setCardFlip(CardFlip row, bool held) { cardFlips[static_cast<size_t>(row)] = held; }
 void noteHotbar(ScreenView const& view) {
     auto hotbar = hotbarBox(view);
     if (!hotbar.box) return;
@@ -764,9 +759,10 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     bool card = element.background == ui::ElementBackground::Card;
     float padX = card ? 5 * z : 0, padY = card ? 4 * z : 0;
     CardOptions options;
-    options.details = cardShows(settings.targetStates, CardFlip::Details);
-    options.coordinates = cardShows(settings.targetCoordinates, CardFlip::Position);
-    options.distance = cardShows(settings.targetMeasure, CardFlip::Distance);
+    options.details = settings.targetStates;
+    options.blockData = settings.targetBlockData;
+    options.coordinates = settings.targetCoordinates;
+    options.distance = settings.targetMeasure;
     options.health = settings.targetHealth == 1 ? Meter::Bar : settings.targetHealth == 2 ? Meter::Number : Meter::Hearts;
     options.armor = settings.targetArmor == 1 ? Meter::Bar : settings.targetArmor == 2 ? Meter::Number : Meter::Icons;
     options.growth = settings.targetGrowth == 1 ? Meter::Number : Meter::Bar;
@@ -794,6 +790,9 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     std::vector<std::string> labels, values;
     float labelW = 0, valuesW = 0;
     constexpr float barUnits = 48;
+    // L-395: a text value wraps past this width (text units), so a sign's or a
+    // banner's long value makes the card taller instead of most of the screen wide.
+    float const valueCap = 120 * tz;
     for (auto const& row : rows) {
         labels.push_back(row.labelIsKey ? ui::translated(row.label) : row.label);
         values.push_back(row.valueIsKey ? ui::translated(row.value) : row.value);
@@ -805,7 +804,8 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         if (rowStack(row)) valueW += rowIcon + 2 * z;
         if (!row.before.empty())
             valueW += ui::textWidthScaled(context, row.before, tz) + (ui::changeArrowWidth + 3) * tz + 3 * z;
-        valuesW = std::max(valuesW, valueW);
+        bool const plain = !row.progress && !rowStack(row) && row.before.empty();
+        valuesW = std::max(valuesW, plain ? std::min(valueW, valueCap) : valueW);
     }
     float nameW = ui::textWidthScaled(context, target.name, tz);
     float idW = settings.targetIdentifier ? ui::textWidthScaled(context, target.identifier, tz) : 0;
@@ -826,7 +826,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     for (size_t i = 0; i < rows.size(); ++i) {
         bool plain = !rows[i].progress && !rowStack(rows[i]) && rows[i].before.empty();
         if (plain && measureText(values[i]) > wrapWidth)
-            valueLines[i] = ui::wrapLabel(values[i], wrapWidth, 3, measureText);
+            valueLines[i] = ui::wrapLabel(values[i], wrapWidth, 8, measureText);
         // One line otherwise, also when a first glyph wider than the card wraps to nothing.
         if (valueLines[i].empty()) valueLines[i] = {values[i]};
     }
@@ -1749,7 +1749,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     // (L-303). Decided once a frame here: the target lookups run with other
     // options too, and ending the subscription in one of them forgot every
     // note each frame.
-    bool const cardDetails = cardShows(settings.targetStates, CardFlip::Details);
+    bool const cardDetails = settings.targetBlockData;
     auto* noteLevel = (cardWanted && cardDetails) || runtime.schematic.enabled ? context.mClient.getLevel() : nullptr;
     if (auto* player = context.mClient.getLocalPlayer(); noteLevel && player)
         beginNoteSounds(*noteLevel, static_cast<int>(player->getDimensionId()));

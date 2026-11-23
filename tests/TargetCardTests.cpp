@@ -1,4 +1,5 @@
 #include "features/information/TargetCard.h"
+#include "settings/SettingsStore.h"
 #include "features/information/SchematicTarget.h"
 void check(bool, char const*);
 void targetCardTests() {
@@ -305,5 +306,28 @@ void targetCardTests() {
         nbt::Compound ominous;
         ominous.set("Type", {std::int32_t{1}});
         check(!bannerItemData("minecraft:banner", 15, ominous).empty(), "an ominous banner carries its type");
+    }
+    // L-395: block entity rows have their own switch, apart from states and mob rows.
+    {
+        TargetInfo sign{"Sign", "minecraft:standing_sign"};
+        sign.states = {"ground_sign_direction: 9"};
+        sign.details.push_back({"Front text", "hello", false, {}, DetailKind::BlockEntity});
+        CardOptions data;
+        data.blockData = true;
+        auto rows = cardRows(sign, data, 20);
+        check(rows.size() == 1 && rows[0].label == "Front text", "block entity data alone shows no states");
+        CardOptions states;
+        states.details = true;
+        rows = cardRows(sign, states, 20);
+        check(rows.size() == 1 && rows[0].label == "ground_sign_direction", "other details alone hide the block entity rows");
+    }
+    // A settings file from before the split keeps its rows; a fresh one shows the data.
+    {
+        check(lamium::decodeSettings(R"({"information":{"targetStates":false}})").information.targetBlockData == false
+                  && lamium::decodeSettings(R"({"information":{"targetStates":true}})").information.targetBlockData,
+              "a file without the new key takes Other details' value");
+        check(lamium::decodeSettings(R"({"information":{"targetStates":true,"targetBlockData":false}})").information.targetBlockData == false
+                  && lamium::decodeSettings("{}").information.targetBlockData,
+              "a saved value is kept and a fresh install shows block entity data");
     }
 }

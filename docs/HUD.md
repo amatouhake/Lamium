@@ -82,7 +82,7 @@ is fixed to the screen edges and is not an element.
 - Contents (L-336): one shared popover, a row per thing the element shows,
   each with the settings row's own switch (same saved field; the settings
   rows stay). Info lines: every line, switch plus up/down, the only list
-  that reorders. Target: icon, ID, other details. Durability: main hand
+  that reorders. Target: icon, ID, other details, block entity data. Durability: main hand
   (on by default, L-349), offhand, armor, elytra, ammo. Inventory and Used slots HUD: the hotbar.
   Minimap: compass, coordinates, scaled coordinates, chunk coordinates, biome (#80). Look
   choices (Durability's look, Target's meters) and behavior settings stay
@@ -156,13 +156,21 @@ is fixed to the screen edges and is not an element.
   The HUD order changes only in the editor's Contents list.
 - **Target** (look-at card): icon, name, identifier line, then rows chosen
   by independent settings rows: icon, ID, health (hearts / bar / number),
-  armor (icons / bar / number), growth (bar / number), other details. The
+  armor (icons / bar / number), growth (bar / number), other details (states
+  and mob rows), block entity data (L-395), position, distance; each row's
+  key toggles its switch, as every switch row's key does. The
   element's background decides whether it has a card; there is no separate
   style. When the target changes, the card background eases to its new size
   and place in 0.1 s; the content is always drawn at once.
   - An item frame's contents and a dropped item are drawn from the stack's
     own data, as the detail rows and container previews are (L-393); a
-    banner with its saved patterns (L-394). Mobs use their spawn
+    banner with its saved patterns (L-394).
+  - Block entity data (L-300, L-395): every saved field is a row, a field
+    inside a compound labelled "Parent > Field"; `id`, the position, the
+    two per-actor flags and `BlockEntityVersion` are left out. A text value
+    wraps past 120 text units, up to 8 lines, so a long value makes the card
+    taller rather than wider; the card never takes more than 60 % of the
+    screen. Mobs use their spawn
     egg as icon. Armor uses the vanilla armor-bar
     sprites; the bar mode uses the `armor` palette color. Bedrock exposes no
     armor toughness, so points only.

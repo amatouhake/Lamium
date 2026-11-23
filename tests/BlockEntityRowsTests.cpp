@@ -98,12 +98,13 @@ void blockEntityRowTests() {
         auto rows = blockEntityRows(data, names);
         check(rows.size() == 4, "the text and its three fields make four rows");
         check(rows[0].label == "FrontText" && rows[0].value == "a / b", "the text keeps its own row");
-        check(rows[1].label == "IgnoreLighting" && rows[1].value == "target.yes" && rows[1].valueIsKey,
+        check(rows[1].label == "FrontText > IgnoreLighting" && rows[1].value == "target.yes" && rows[1].valueIsKey,
               "a nested flag reads as yes");
-        check(rows[2].label == "SignTextColor" && rows[2].value == "#000000",
+        check(rows[2].label == "FrontText > SignTextColor" && rows[2].value == "#000000",
               "a nested colour reads as #RRGGBB");
-        check(rows[3].label == "PersistFormatting" && rows[3].value == "1",
+        check(rows[3].label == "FrontText > PersistFormatting" && rows[3].value == "1",
               "a nested field without a label keeps its own key");
+        check(rows[1].kind == DetailKind::BlockEntity, "block entity rows have their own kind (L-395)");
     }
     // An item stack never spills its Name and Count into rows of their own.
     {
@@ -161,7 +162,7 @@ void blockEntityRowTests() {
         auto rows = blockEntityRows(data, names);
         check(rows.size() == 3, "three stored fields make three rows");
         check(rows[0].label == "note" && !rows[0].labelIsKey && rows[0].value == "12 / 24 (F#4)"
-              && rows[0].kind == DetailKind::Other, "the pitch keeps its label and value");
+              && rows[0].kind == DetailKind::BlockEntity, "the pitch keeps its label and value");
         check(rows[1].label == "IsWaxed" && rows[1].value == "target.yes" && rows[1].valueIsKey,
               "a stored flag reads as yes");
         check(rows[2].label == "SkullType" && !rows[2].labelIsKey && rows[2].value == "3",

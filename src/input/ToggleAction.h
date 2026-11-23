@@ -7,6 +7,10 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::BreakingRestriction: field = &value.interaction.breaking; break;
     case Action::DebugView: field = &value.information.debug; break;
     case Action::TargetInfo: field = &value.information.target; break;
+    case Action::TargetDetails: field = &value.information.targetStates; break;
+    case Action::TargetBlockData: field = &value.information.targetBlockData; break;
+    case Action::TargetPosition: field = &value.information.targetCoordinates; break;
+    case Action::TargetMeasure: field = &value.information.targetMeasure; break;
     case Action::InfoHud: field = &value.information.hud; break;
     case Action::NightVision: field = &value.lighting.nightVision; break;
     case Action::ChunkBorders: field = &value.overlays.chunkBorders; break;

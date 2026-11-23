@@ -16,6 +16,7 @@ namespace lamium::information {
 enum class Meter { Hearts, Icons, Bar, Number };
 struct CardOptions {
     bool details = false;   // Other block states and mob details
+    bool blockData = false; // What the block entity stores (L-395)
     bool coordinates = false;
     bool distance = false;
     Meter health = Meter::Hearts;
@@ -94,10 +95,15 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
         add({"target.position", std::to_string(p.x) + ", " + std::to_string(p.y) + ", " + std::to_string(p.z)});
     }
     if (options.distance && target.distance) add({"target.distance", std::format("{:.1f}", *target.distance)});
+    if (options.details)
+        for (auto const& detail : target.details)
+            if (detail.kind == DetailKind::Other)
+                add({detail.label, detail.value, detail.labelIsKey, detail.valueIsKey, detail.progress});
+    if (options.blockData)
+        for (auto const& detail : target.details)
+            if (detail.kind == DetailKind::BlockEntity)
+                add({detail.label, detail.value, detail.labelIsKey, detail.valueIsKey, detail.progress});
     if (!options.details) return rows;
-    for (auto const& detail : target.details)
-        if (detail.kind == DetailKind::Other)
-            add({detail.label, detail.value, detail.labelIsKey, detail.valueIsKey, detail.progress});
     for (auto const& state : target.states) {
         auto split = state.find(": ");
         if (split == std::string::npos) add({state, "", false});

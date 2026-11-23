@@ -69,7 +69,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     // Both are used by the card's rows and by the check itself, which reads a
     // note block's data whenever the schematic is on (L-303).
     case Id::NoteBlockSounds: case Id::NoteBlockInstrument:
-        return s.information.targetStates || s.schematic.enabled;
+        return (s.information.target && s.information.targetBlockData) || s.schematic.enabled;
     case Id::SchematicBlocks: case Id::SchematicPiston: case Id::SchematicShulker: case Id::SchematicEntities:
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick:
         return s.schematic.enabled;
