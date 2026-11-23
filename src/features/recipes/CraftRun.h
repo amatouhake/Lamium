@@ -4,7 +4,8 @@
 // L-388: the runs that drive the crafting screen over several frames, as one planner. The glue reads what the
 // screen shows into Seen, step() answers one action, the glue does it and, where the action says `next`, asks
 // again in the same frame. Each run keeps its own patience and counting (Rules): they were tuned in game on
-// timings the tests cannot reproduce. Pure: times are milliseconds on the caller's clock.
+// timings the tests cannot reproduce. Mass Craft keeps its own run (maintainer 2026-11-23). Pure: times are
+// milliseconds on the caller's clock.
 namespace lamium::recipes::craftRun {
 // Lay: a recipe waiting for the grid to empty before it is laid in (`place::run`). Make: a plan's steps, rounds
 // laid in and taken until made (L-385). Onto: one round crafted onto the pointer (L-379).

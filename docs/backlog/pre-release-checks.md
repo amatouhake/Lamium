@@ -26,6 +26,10 @@ release. Look at an entry when its feature misbehaves or is changed.
   unverified game build, a real server's latency or refusals (a refused
   take in "make" or Mass Craft, L-390 1-7); an unreadable `servers.json`
   (can be brought about by breaking the file, rare).
+- Craft runs on one planner (L-388, `f7fd1d78`): seen in a local world;
+  on a server not seen: a plan's step given back, crafting onto the pointer
+  showing a moment later and its Shift take fall-back. The list counts
+  drawn under the held item (`751cc363`) not seen.
 - Not seen when their items closed: tracing "any" with a picked log kind and
   gather from a breakdown step (L-386); Enchantment order's heldUnknown
   line (an item whose anvil cost is not 2^n - 1, L-170).
