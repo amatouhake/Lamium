@@ -198,7 +198,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-360](backlog/L-360.md) Take items out of the item list in creative (Design): Open, not started
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): The tip is built and seen in game (2026-11-19); variants that differ by data alone and a food's hunger icons are left, both read in code (2026-11-23)
-- [L-397](backlog/L-397.md) Lay recipes in with the game's own recipe-book request (Research): Waiting for the maintainer: the calls do not link, and a book cell exists only in the book's current view (2026-11-23)
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Key names and the game's drop key seen in game 2026-11-23; the targets and Esc order open
@@ -233,6 +232,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Later / parked
 
+- [L-397](backlog/L-397.md) Lay recipes in with the game's own recipe-book request (Research): Parked (maintainer 2026-11-23): no symbol request for it; the calls do not link and a book cell exists only in the book's view
 - [L-329](backlog/L-329.md) Health a food would give back, beside its food values (idea): Parked; not pursued unless the maintainer takes it up
 - [L-151](backlog/L-151.md) Show the player's body in first person (Research): Open, not started; no runtime evidence
 - [L-152](backlog/L-152.md) Preview held map items in inventory (Design): Open, no implementation commitment
