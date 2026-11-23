@@ -976,14 +976,15 @@ bool drawList(ll::event::UIRenderEvent& event) {
     });
     for (auto& icon : late.icons) icon.alpha *= shownOpacity;
     if (!late.icons.empty()) inspection::render::drawItemIcons(context, late.icons, 17);
+    // The icons' counts and marks before the held item, which goes over them too.
+    for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
+    for (auto const& mark : late.marks) anyMark(context, mark.x, mark.y, mark.scale);
+    if (!late.counts.empty() || !late.marks.empty()) context.flushText(0, std::nullopt);
     // In a call of its own: within one call the batched icons, which the lists' are, are drawn after a direct one.
     if (held.stack) {
         inspection::render::drawItemIcon(context, {held.stack, held.x, held.y, held.size / 16, 0, 1.f, true, true}, 17);
         inspection::render::drawHeldMarks(context, held);
     }
-    for (auto& text : late.counts) slotCount(context, text.x, text.y, std::move(text.text));
-    for (auto const& mark : late.marks) anyMark(context, mark.x, mark.y, mark.scale);
-    if (!late.counts.empty() || !late.marks.empty()) context.flushText(0, std::nullopt);
     cost.at("windows and icons");
     // At the stonecutter, after Lamium laid its input in: a tip over the result list asks for a result (L-380).
     if (bool const pressedGame = gamePress.exchange(false); place::stonecutterNotice(screenView, pressedGame) && !anyView() && !editing)
