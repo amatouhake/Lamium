@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card banner icon with its patterns (L-394, 2026-11-23)
+
+`cf62ddae` (DLL
+`552f4a07dc89e38a929e27f3fff554190e88f90844222486b8693d8d5848435a`),
+1.26.60.05 Dev, the maintainer, against Inventory HUD: a banner with complex
+patterns shows them on the card icon, standing and on a wall; an ominous
+banner looks ominous; a plain colored banner keeps its color.
+
 ## Target card icon with the item's data, fixed (L-393, 2026-11-23)
 
 `f3855f95` (DLL

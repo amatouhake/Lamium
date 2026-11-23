@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-394](backlog/done/L-394.md) Target card banner icon shows its color but not its patterns
 - [L-393](backlog/done/L-393.md) Target card icon loses the item's data (glint, dye, modded icons)
 - [L-339](backlog/done/L-339.md) Toasts and the settings screen
 - [L-324](backlog/done/L-324.md) Map: custom blocks are drawn in a dirt-like brown
