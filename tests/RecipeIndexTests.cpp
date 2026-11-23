@@ -825,7 +825,11 @@ void recipeIndexTests() {
         check(hoverLines("Shield\n\xC2\xA7" "7Durability: 336 / 336\n\n\xEE\x84\x80\xEE\x84\x80\n\xC2\xA7" "8minecraft:shield") == std::vector<HoverLine>{{"Durability: 336 / 336", '7'}, {"minecraft:shield", '8'}}
               && hoverLines("a\n\xC2\xA7" "9\xC2\xA7" "oStorage\n\xC2\xA7" "rplain").back() == HoverLine{"plain", 0}
               && hoverLines("a\n\xC2\xA7" "9\xC2\xA7" "oStorage").front() == HoverLine{"Storage", '9'}
-              && hoverLines("Name only").empty() && hoverLines("a\nb\nc\nd", 2).size() == 2,
+              && hoverLines("Name only").empty() && hoverLines("a\nb\nc\nd", 2).size() == 2
+              && hoverLines("Star\n\xC2\xA7" "9Small Ball\nPink") == std::vector<HoverLine>{{"Small Ball", '9'}, {"Pink", '9'}}
+              && hoverLines("x\n\xC2\xA7" "9a\xC2\xA7" "r\nb").back() == HoverLine{"b", 0}
+              && hoverLines("x\n\xC2\xA7" "9a \xC2\xA7" "6b\nc").back() == HoverLine{"c", '6'}
+              && hoverLines("\xC2\xA7" "eName\nplain").front() == HoverLine{"plain", 0},
               "an item's hover text gives its lines under the name with the color they start in, without empty lines and icon glyphs");
         check(steppedWanted(1, true, 64) == 64 && steppedWanted(64, true, 64) == 128 && steppedWanted(70, false, 64) == 64
               && steppedWanted(64, false, 64) == 1 && steppedWanted(20, false, 16) == 16 && steppedWanted(3, true, 1) == 4,

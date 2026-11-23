@@ -60,8 +60,9 @@ inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> co
 // The lines of an item's hover text as the game gives it, under its name: what the game says of the
 // item and what Lamium's item details add to it (L-363). The first line, the name, is left out; so are
 // empty lines and lines of icon glyphs (private-use characters), which a tooltip of plain text cannot
-// show. A line keeps the color code its text starts in (0 for none), not the codes themselves. At most
-// `most` lines, each cut to 120 bytes at a character's end.
+// show. A line keeps the color code its text starts in (0 for none), not the codes themselves; a color runs
+// on into the next lines until another or a reset, as the game draws it (a firework star's color line). At
+// most `most` lines, each cut to 120 bytes at a character's end.
 struct HoverLine {
     std::string text;
     char color = 0; // the game's color code letter: '0'-'9', 'a'-'u'
@@ -70,23 +71,27 @@ struct HoverLine {
 inline std::vector<HoverLine> hoverLines(std::string_view text, size_t most = 12) {
     std::vector<HoverLine> out;
     bool first = true;
+    char running = 0; // the color in effect where the last line ended
     while (!text.empty() && out.size() < most) {
         auto const end = text.find('\n');
         std::string_view line = text.substr(0, end);
         text = end == std::string_view::npos ? std::string_view() : text.substr(end + 1);
-        if (first) { first = false; continue; }
         std::string plain;
-        char color = 0;
+        char color = running;
         bool glyphs = false;
         for (size_t i = 0; i < line.size(); ++i) {
             auto const c = static_cast<unsigned char>(line[i]);
             // The section sign and the character after it are a color or style code.
             if (c == 0xC2 && i + 1 < line.size() && static_cast<unsigned char>(line[i + 1]) == 0xA7) {
                 i += 2;
-                if (i < line.size() && plain.find_first_not_of(' ') == std::string::npos) {
+                if (i < line.size()) {
                     char const code = line[i];
-                    if ((code >= '0' && code <= '9') || (code >= 'a' && code <= 'u' && code != 'k' && code != 'l' && code != 'o' && code != 'r')) color = code;
-                    else if (code == 'r') color = 0;
+                    bool const leading = plain.find_first_not_of(' ') == std::string::npos;
+                    bool const tint = (code >= '0' && code <= '9') || (code >= 'a' && code <= 'u' && code != 'k' && code != 'l' && code != 'o' && code != 'r');
+                    if (tint || code == 'r') {
+                        running = tint ? code : 0;
+                        if (leading) color = running;
+                    }
                 }
                 while (i + 1 < line.size() && (static_cast<unsigned char>(line[i + 1]) & 0xC0) == 0x80) ++i;
                 continue;
@@ -94,6 +99,8 @@ inline std::vector<HoverLine> hoverLines(std::string_view text, size_t most = 12
             if (c == 0xEE || (c == 0xEF && i + 1 < line.size() && static_cast<unsigned char>(line[i + 1]) < 0xA4)) glyphs = true;
             if (c != '\r') plain += line[i];
         }
+        // The name's color (a rarity's) is not seen running on, so it does not.
+        if (first) { first = false, running = 0; continue; }
         if (glyphs || plain.find_first_not_of(' ') == std::string::npos) continue;
         if (plain.size() > 120) {
             size_t cut = 120;
