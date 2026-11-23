@@ -160,7 +160,9 @@ is fixed to the screen edges and is not an element.
   element's background decides whether it has a card; there is no separate
   style. When the target changes, the card background eases to its new size
   and place in 0.1 s; the content is always drawn at once.
-  - Mobs use their spawn egg as icon. Armor uses the vanilla armor-bar
+  - A dropped item's icon is drawn from the stack's own data, as the
+    detail rows and container previews are (L-393). Mobs use their spawn
+    egg as icon. Armor uses the vanilla armor-bar
     sprites; the bar mode uses the `armor` palette color. Bedrock exposes no
     armor toughness, so points only.
   - Hearts (L-88, decided 2026-10-02): one full heart is 2 HP and the number

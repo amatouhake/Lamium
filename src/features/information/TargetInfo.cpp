@@ -27,6 +27,7 @@
 #include "mc/client/renderer/texture/TextureUVCoordinateSet.h"
 #include "mc/world/actor/Mob.h"
 #include "mc/world/actor/item/ItemActor.h"
+#include "mc/legacy/ActorRuntimeID.h"
 #include "mc/world/phys/HitResult.h"
 #include "mc/world/phys/AABB.h"
 #include "mc/world/phys/AABBHitResult.h"
@@ -250,6 +251,12 @@ TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& bloc
     if (!pick.empty()) return chooseBlockIcon(std::move(pick), aux, {});
     return textureIcon(block);
 }
+struct DroppedStackCache {
+    std::uint64_t id = 0;
+    std::chrono::steady_clock::time_point read{};
+    std::string stack;
+};
+DroppedStackCache droppedStackCache;
 // A dropped stack shows the item it holds; its own identifier is
 // "minecraft:item", which names no item of its own.
 TargetIcon droppedIcon(Actor& entity) {
@@ -257,7 +264,26 @@ TargetIcon droppedIcon(Actor& entity) {
         if (!entity.hasType(ActorType::ItemEntity)) return {};
         auto& stack = static_cast<ItemActor&>(entity).item();
         if (!stack.mItem) return {};
-        return {IconKind::Item, stack.mItem->mFullName->getString(), stack.getAuxValue()};
+        TargetIcon icon{IconKind::Item, stack.mItem->mFullName->getString(), stack.getAuxValue()};
+        // Several lookups a frame ask: a full shulker box would be saved
+        // whole each time, so the data is read at most every 250 ms.
+        auto& cached = droppedStackCache;
+        auto id = entity.getRuntimeID().rawID;
+        auto now = std::chrono::steady_clock::now();
+        if (cached.id != id || now - cached.read >= std::chrono::milliseconds(250)) {
+            cached = {id, now, {}};
+            try {
+                auto context = SaveContextFactory::createCloneSaveContext();
+                if (auto tag = context ? stack.save(*context) : nullptr) {
+                    // One item: a pile's size changes as piles merge, and each
+                    // new string would be another decoded stack to keep.
+                    tag->putByte("Count", 1);
+                    cached.stack = tag->toBinaryNbt();
+                }
+            } catch (...) { cached.stack.clear(); }
+        }
+        icon.stack = cached.stack;
+        return icon;
     } catch (...) { return {}; }
 }
 // A falling block carries no item. The client learns the carried block only
@@ -754,6 +780,7 @@ void startTargetIcons() {
             clearSpawnEggIndex();
             forgetNoteSounds();
             forgetBlockEntityRows();
+            droppedStackCache = {};
             playerList::forget();
         });
 }

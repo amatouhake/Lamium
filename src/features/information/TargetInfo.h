@@ -25,6 +25,9 @@ struct TargetIcon {
     short aux = 0;
     float u0 = 0, v0 = 0, u1 = 1, v1 = 1;
     bool tinted = false; // Texture drawn in the water color (L-294).
+    // Item from a real stack: its binary NBT, so the data it draws (glint,
+    // dye, a client mod's icon) is kept; empty otherwise (L-393).
+    std::string stack;
 };
 // Owned snapshot shared by target HUD and future detailed debug providers.
 struct TargetInfo {

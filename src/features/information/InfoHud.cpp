@@ -333,16 +333,18 @@ struct CardMorph {
     double start = 0;
 };
 CardMorph cardMorph;
-ItemStack iconStack(TargetInfo const& target) {
-    ItemStack stack;
-    if (target.icon.kind == IconKind::Item && !target.icon.name.empty()) {
-        try { stack.reinit(target.icon.name, 1, target.icon.aux); } catch (...) { stack = ItemStack(); }
-    }
+// The stack the card draws: decoded from the item's data when the icon has it
+// (L-393), else rebuilt from name and aux into `rebuilt`. Null when none.
+ItemStack const* iconStack(TargetInfo const& target, ItemStack& rebuilt) {
+    if (target.icon.kind != IconKind::Item) return nullptr;
+    if (auto const* decoded = schematic::items::iconStack(target.icon.stack)) return decoded;
+    if (target.icon.name.empty()) return nullptr;
+    try { rebuilt.reinit(target.icon.name, 1, target.icon.aux); } catch (...) { rebuilt = ItemStack(); }
     // A fresh stack counts as just picked up, and the renderer would keep
     // playing the pickup squash on it.
-    stack.mShowPickUp = false;
-    stack.mWasPickedUp = false;
-    return stack;
+    rebuilt.mShowPickUp = false;
+    rebuilt.mWasPickedUp = false;
+    return rebuilt.isNull() ? nullptr : &rebuilt;
 }
 // ---- Schematic HUD (L-93) ----
 // The selected placement in a fixed-width card: name and layers, the check
@@ -770,8 +772,9 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     options.growth = settings.targetGrowth == 1 ? Meter::Number : Meter::Bar;
     int capacity = std::max(0, static_cast<int>((height - 40) / rowH));
     auto rows = cardRows(target, options, static_cast<size_t>(capacity));
-    auto stack = settings.targetIcon ? iconStack(target) : ItemStack();
-    bool icon = !stack.isNull();
+    ItemStack rebuilt;
+    auto const* stack = settings.targetIcon ? iconStack(target, rebuilt) : nullptr;
+    bool icon = stack != nullptr;
     bool texture = settings.targetIcon && !icon && target.icon.kind == IconKind::Texture
         && !target.icon.name.empty();
     float iconSize = icon || texture ? 16 * z : 0, iconGap = icon || texture ? 5 * z : 0;
@@ -866,7 +869,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         return finalBox;
     float left = finalBox.x + padX, top = finalBox.y + padY;
     if (icon) {
-        inspection::render::drawItemIcon(context, {&stack, left, top + (headerH - iconSize) / 2, z}, 17);
+        inspection::render::drawItemIcon(context, {stack, left, top + (headerH - iconSize) / 2, z}, 17);
     } else if (texture) {
         auto const& water = schematic::waterColor;
         ui::imageUv(context, target.icon.name, {left, top + (headerH - iconSize) / 2, iconSize, iconSize},
