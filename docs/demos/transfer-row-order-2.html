@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>インベントリ転送: 並びの軸と名前</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="kit/kit.css">
+<script src="kit/lamium-data.js"></script>
+<script src="kit/kit.js"></script>
+</head>
+<body>
+<main class="lk-page">
+  <div>
+    <h1>インベントリ転送: 並びの軸と名前</h1>
+    <p class="lk-lede">左が今の設定画面（src/ から生成。前回決めた「種類ごと」の並び）、右が案です。案で変えた行には左端に水色の印が付きます。上の切り替えで「並び」と「名前」を別々に試せます。</p>
+    <p class="lk-meta">2026-11-24 · <a href="transfer-row-order.html">前回のモックアップ</a>の続き · 決めること: 並びを何でそろえるか、名前に操作の様子を入れるか</p>
+  </div>
+  <div class="lk-controls" id="controls"></div>
+  <div id="view"></div>
+  <section class="lk-box">
+    <h2>確認したいこと</h2>
+    <ul>
+      <li><b>並び: 操作で</b>: 使う入力でまとめます。ホイール 4 → クリック 4（Alt + クリック 2、持ったまま 2）→ ドラッグ 6（転送 3、捨てる 3。どちらもスタックごと → 1個ずつ → 1個残して）→ キー 1。「この入力で何ができるか」を探しやすい並びです。</li>
+      <li><b>並び: 動作で</b>: 転送 10 → 捨てる 5 に分け、それぞれ動く量の少ない順（1個 → 1個残して → スタック → 同種すべて → すべて）にします。「これをしたいときはどうするか」を探しやすい並びです。</li>
+      <li><b>名前: 操作の様子を入れる</b>: キー欄だけでは伝わらない様子だけを名前に入れます。ドラッグ 6 行を「なぞったスロット…」にします。「クリックした側から」「持ったまま」「カーソル下の」は今も入っています。ホイールのように、キー欄を見れば分かるものは入れません。</li>
+      <li>どの並びでも、転送と捨てるで同じ操作の行は同じ順にしています。</li>
+    </ul>
+  </section>
+</main>
+<script>
+const state = { order: 'input', names: 'manner' };
+const ORDER = [['today', '並び: 今（種類ごと）'], ['input', '並び: 操作で'], ['effect', '並び: 動作で']];
+const NAMES = [['today', '名前: 今のまま'], ['manner', '名前: 操作の様子を入れる']];
+const T = (s) => 'inventory.transfer' + s;
+const ORDERS = {
+  input: ['WheelOne', 'WheelStack', 'WheelMatching', 'WheelAll',
+    'ClickMatching', 'ClickAll', 'CursorMatching', 'DropMatching',
+    'DragStack', 'DragOne', 'DragKeepOne', 'DropAll', 'DropOne', 'DropKeepOne',
+    'DropHovered'].map(T),
+  effect: ['WheelOne', 'DragOne', 'DragKeepOne', 'WheelStack', 'DragStack',
+    'WheelMatching', 'ClickMatching', 'CursorMatching', 'WheelAll', 'ClickAll',
+    'DropOne', 'DropKeepOne', 'DropAll', 'DropHovered', 'DropMatching'].map(T),
+};
+const MANNER = {
+  DragStack: ['Move stacks from traced slots', 'なぞったスロットをスタックごと転送', '拖过的槽位整组转移', '拖曳經過的欄位整組轉移'],
+  DragOne: ['Move one from each traced slot', 'なぞったスロットから1個ずつ転送', '从拖过的每格转移一个', '從拖曳經過的每格轉移一個'],
+  DragKeepOne: ['Move all but one from traced slots', 'なぞったスロットを1個残して転送', '拖过的槽位保留一个转移', '拖曳經過的欄位保留一個轉移'],
+  DropAll: ['Drop stacks from traced slots', 'なぞったスロットをスタックごと捨てる', '拖过的槽位整组丢弃', '拖曳經過的欄位整組丟棄'],
+  DropOne: ['Drop one from each traced slot', 'なぞったスロットから1個ずつ捨てる', '从拖过的每格丢弃一个', '從拖曳經過的每格丟棄一個'],
+  DropKeepOne: ['Drop all but one from traced slots', 'なぞったスロットを1個残して捨てる', '拖过的槽位保留一个丢弃', '拖曳經過的欄位保留一個丟棄'],
+};
+
+function proposalRows() {
+  const rows = Lamium.rows('section.items');
+  const start = rows.findIndex((r) => r.id === 'transfer') + 1;
+  let children = [];
+  while (rows[start + children.length] && rows[start + children.length].child) children.push(rows[start + children.length]);
+  const original = children.map((r) => r.id);
+  if (ORDERS[state.order]) {
+    children = ORDERS[state.order].map((id) => children.find((r) => r.id === id));
+    children.forEach((r, i) => { if (original[i] !== r.id) r.changed = true; });
+  }
+  children.forEach((r, i) => { r.last = i === children.length - 1; });
+  rows.splice(start, children.length, ...children);
+  if (state.names === 'manner')
+    for (const [id, name] of Object.entries(MANNER)) Lamium.rows.change(rows, T(id), { name: Lamium.text(name) });
+  return rows;
+}
+// The transfer feature at the top of the table: count the shown rows before it (only it is open).
+function firstRow(rows) {
+  let n = 0;
+  for (const r of rows) { if (r.id === 'transfer') return n; if (!r.child) n++; }
+  return 0;
+}
+function controls() {
+  const c = document.getElementById('controls');
+  c.replaceChildren();
+  Lamium.page.choice(c, '並び', ORDER, state.order, (v) => { state.order = v; draw(); });
+  Lamium.page.choice(c, '名前', NAMES, state.names, (v) => { state.names = v; draw(); });
+  Lamium.page.languages(c, () => { controls(); draw(); });
+}
+function draw() {
+  const today = Lamium.rows('section.items');
+  const proposal = proposalRows();
+  Lamium.page.compare(document.getElementById('view'), [
+    { kind: 'today', title: Lamium.t('section.items'),
+      draw: (stage) => Lamium.settings(stage, { nav: 'section.items', open: ['transfer'], selected: 'inventory.transferDragOne', first: firstRow(today) }) },
+    { kind: 'proposal', title: '案（上の切り替えのとおり）',
+      note: state.order === 'input' ? '使う入力ごとにまとめ、同じ入力の中では転送 → 捨てるの順です。'
+        : state.order === 'effect' ? '転送と捨てるに分け、それぞれ動く量の少ない順です。' : '並びは今のまま、名前だけ変えています。',
+      draw: (stage) => Lamium.settings(stage, { nav: 'section.items', rows: proposal, open: ['transfer'], selected: 'inventory.transferDragOne', first: firstRow(proposal) }) },
+  ]);
+}
+Lamium.ready(() => { controls(); draw(); });
+</script>
+</body>
+</html>

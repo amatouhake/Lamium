@@ -29,6 +29,8 @@ an off gesture passes through to vanilla:
 | Ctrl + Shift + drop key: drop the hovered kind | `transferDropHovered` |
 | Held item, Shift + click outside: drop matching items | `transferDropMatching` |
 
+Ordering by input or by effect, and drag names saying "traced slots", are
+open: [transfer-row-order-2.html](demos/transfer-row-order-2.html).
 The settings and Hotkeys list them in this order, grouped by kind; each
 row's keys read Ctrl, Shift, Alt, the drop key, then the mouse (the order
 shown, not the order pressed); the Alt + click pair says "from the clicked
