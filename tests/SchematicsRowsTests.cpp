@@ -26,4 +26,19 @@ void schematicsRowsTests() {
     check(tabAt(l, tabX(l, 1, tabs) + 1, l.toolbarTop - 1, tabs) == -1
               && tabAt(l, tabX(l, 1, tabs) + 1, l.toolbarTop + ShapesLayout::toolbarHeight, tabs) == -1, "above and below the toolbar is no tab");
     check(tabAt(ShapesLayout{}, 10, 10, tabs) == -1, "a layout too small to use has no tabs");
+
+    // The lists' columns, as the view placed them before they moved here.
+    auto wide = listPlaces(100, 500);
+    check(wide.blocksX == 500 - ShapesLayout::pad - 40 && wide.sizeX == wide.blocksX - 4 - 54 && wide.showSize,
+          "a wide Files list shows the size left of the block count");
+    check(wide.carriedX == 500 - ShapesLayout::pad - 34 && wide.leftX == wide.carriedX - 36 && wide.showPlaced
+              && wide.placedX == wide.leftX - 36 && wide.neededX == wide.placedX - 36 && wide.distW == 28,
+          "a wide Materials list shows needed, placed, left and carried from the right");
+    auto middle = listPlaces(100, 300);
+    check(middle.showSize && !middle.showPlaced && middle.neededX == middle.leftX - 36,
+          "the placed count goes first; needed then stands next to left");
+    auto narrow = listPlaces(100, 260);
+    check(!narrow.showSize && !narrow.showPlaced, "a narrow list drops the size too");
+    auto edge = listPlaces(0, 80 + 4 + 54 + 40 + ShapesLayout::pad);
+    check(edge.showSize && !listPlaces(1, 80 + 4 + 54 + 40 + ShapesLayout::pad).showSize, "the size shows from 80 units of name room");
 }
