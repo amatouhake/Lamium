@@ -29,6 +29,10 @@ release. Look at an entry when its feature misbehaves or is changed.
 - Craft runs on one planner (L-388, `f7fd1d78`): seen in a local world;
   on a server not seen: a plan's step given back, crafting onto the pointer
   showing a moment later and its Shift take fall-back.
+- Taking items out in creative (L-360, `5c4d27b7`): seen in a local world;
+  not seen: a take that needed the creative search refreshed first (its
+  log line), the key hints in the recipe view's last line on a low
+  screen, a server.
 - Not seen when their items closed: tracing "any" with a picked log kind and
   gather from a breakdown step (L-386); Enchantment order's heldUnknown
   line (an item whose anvil cost is not 2^n - 1, L-170).

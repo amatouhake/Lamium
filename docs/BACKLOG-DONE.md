@@ -245,6 +245,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-360](backlog/done/L-360.md) Take items out of the item list in creative
 - [L-371](backlog/done/L-371.md) Recipe screens: groundwork before the next features
 - [L-378](backlog/done/L-378.md) Light up the game's slots that match the search
 - [L-379](backlog/done/L-379.md) A recipe's own controls and crafting onto the pointer
