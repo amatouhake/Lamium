@@ -286,6 +286,6 @@ screen.
   the emphasized target frame in the world ([VALIDATION](VALIDATION.md),
   Schematics row).
 - Shared controls with other features: [L-111 Integration between features: remaining shared controls](backlog/L-111.md).
-- Out of scope: item-based operation, a persistent edit mode, a layer peel
-  in the 3D previews' own controls (that is [L-114 3D previews in the schematic screen](backlog/L-114.md)).
+- Out of scope: item-based operation, a persistent edit mode, the 3D
+  previews' own slice (that is [L-114 3D previews in the schematic screen](backlog/L-114.md)).
 - In-game coverage: [VALIDATION.md](VALIDATION.md), Schematics row.

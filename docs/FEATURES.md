@@ -318,7 +318,8 @@ build them.
   the file loads. A file another program held open loads once it is released.
 - **Drawing:** ghosts draw doors, beds, honey, water and lava, block entities
   with their saved data and entities as their models. The Files and Check
-  tabs have a turnable 3D preview.
+  tabs have a turnable 3D preview, the Check tab's turned and mirrored as
+  placed; Shift + wheel slices it from the top, one level at a time.
 - **Map:** placements show on the minimap and world map, and can be selected,
   shown or hidden there.
 - **Several at once:** Ctrl + click and Shift + click select several rows in
