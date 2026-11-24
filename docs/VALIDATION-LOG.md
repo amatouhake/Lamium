@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The schematics view and settings table split by part; the preview's turn (L-399, L-114, 2026-11-24)
+
+`74cad706` (DLL
+`3b8b8404ce236e85b14b383d33ae74f7c3675c7a511993b33d3d1b586bc8d953`),
+1.26.60.05 Dev, the maintainer, from the checklist page. Refactors meant to
+change nothing (L-399 step 4):
+- Seen as before: the Schematics view's four tabs (lists, detail panes,
+  columns, preview, footer), its tips and the field rows' footer help.
+- Seen as before: the settings table's header, search, sidebar, headings,
+  rows, footer and tips, the Hotkeys view too.
+- Not as expected, older than this build: the Files tab's preview, left
+  alone, turned as if at a low frame rate; dragged, it moved smoothly.
+  Cause: its angle was steady_clock seconds cast to float, times 12; the
+  machine had been up 8.6 days, where a float second steps in 1/16 s, so
+  the turn moved 0.75 degrees 16 times a second. In since `bd7f7f64`, the
+  preview's first build; fixed in `bd7b8a48` with the shown cells' pulse
+  (same cast), not yet seen in game.
+- Also reported: after one drag the preview never turns by itself again,
+  for another file or after reopening. That is how it was built ("turns by
+  itself until the player first drags it"); whether it should start again
+  is open in L-114.
+
 ## The views' shared keys, rows and layer edits unchanged in play (L-399, 2026-11-24)
 
 `5306fb78` (DLL
