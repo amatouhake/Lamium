@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Transfer switches by input, drags named by traced slots (2026-11-24)
+
+`2983d616` (DLL
+`03202fc14c008d69db6e500a211ec5f3dd17fe533f837459733522dd7d924198`),
+1.26.60.05 Dev, the game in Japanese:
+- Seen: the transfer switches ordered wheel, clicks, drags, the drop key in
+  the settings and Hotkeys; the six drag names ("なぞったスロット…") whole;
+  nothing else changed.
+- Seen, not of this change: the footer breaks Japanese only at spaces, so
+  "Shift + ホイール1段で…" left "Shift +" alone on the first line.
+
 ## Fixed press footers joined per language (2026-11-24)
 
 `a5b1bca0` (DLL
