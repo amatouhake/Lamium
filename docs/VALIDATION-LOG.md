@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Japanese and Chinese lines broken between characters (2026-11-24)
+
+`63b8a660` (DLL
+`1c0c82b4a6cff125e18affa4223c6f274b2c4d72405419b086eb047dc13e0b10`),
+1.26.60.05 Dev, the game in Japanese and English:
+- Seen: the settings footer for "1スタック転送" fills its first line from
+  "Shift + ホイール1段で…" to the right edge; no Japanese line in several long
+  descriptions begins with "。", "、" or "）"; English still breaks between
+  words; toasts and other paragraphs read as before.
+- Not checked: Chinese.
+
 ## Transfer switches by input, drags named by traced slots (2026-11-24)
 
 `2983d616` (DLL
