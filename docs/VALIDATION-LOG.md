@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The creative search list filled by a model refresh (L-360, 2026-11-24)
+
+Trace build `creative_trace` of `a9cda0a8` before it was committed (DLL
+`59aa59dbc47605bbc5a369a8d71a44e12cbd9db8b63050ab0dd1668fc1d92481`, with
+`2302f919`), 1.26.60.05 Dev, a local world, the maintainer in creative:
+- `refreshContainer(true)` on `recipe_search`'s model, called from the
+  crafting screen's tick, filled it at once from 0 to 1980 cells, with any
+  tab open or the game's pane hidden, and the pane did not change. The
+  cells stayed for the visit; Lamium then took any listed item from them
+  (planks, stairs, spawn eggs, buckets, potions, rockets by their stars).
+- Each of the 1980 cells keys (StackKey) to an entry of its own: a
+  hovered enchanted book or firework star was taken as itself.
+- The refresh follows the game's search text: with "sss" typed it stayed
+  at 0. The model keeps all 1980 items (`mSavedItems`) meanwhile.
+- Writing the tab fields back (`mSelectedLeftTab`, `mTabFiltersDirty`)
+  worked no better and once moved the pane's tab: not needed.
+- Seen with the same build: item tips flip beside the pointer near the
+  screen's corners (L-360 run item 4, `2302f919`).
+- Remarks, not traced: a held firework star over the item list looks
+  drawn under the panel's dimming; a dark strip with nothing in it stands
+  right of the item list.
+
 ## How the creative list hands items out, and Lamium through it (L-360, 2026-11-24)
 
 Trace build `creative_trace` on `d987005c` with the trace uncommitted (DLL
