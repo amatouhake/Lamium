@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Inventory transfer switches by kind (2026-11-24)
+
+`3f196b9d` (DLL
+`20964e137226019c967df3a5daa29a006ef7d96053b2da80e6843cebeeda4200`),
+1.26.60.05 Dev, the game in Japanese:
+- Seen: the transfer switches in the settings and in Hotkeys ordered wheel,
+  Alt + click, drags, held stack, drops; caps read from the modifiers
+  (CTRL + Q + left drag, SHIFT + ALT + left click); the Alt + click pair
+  named "from the clicked side"; nothing else changed.
+- Maintainer's remarks: the order still has no single meaning (by input
+  or by effect is to be weighed); a drag's name does not say "trace over
+  slots"; a fixed press's footer in Japanese had an ASCII ". " after the
+  keys (fixed in the next commit).
+
 ## Crafting table sides, drop the hovered kind, drop by origin (2026-11-24)
 
 `6b90b7ea` (DLL
