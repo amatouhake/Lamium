@@ -68,22 +68,6 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     // A slot of the game's windows: its face, its dark upper-left and light lower-right edges, and the
     // red the recipe book gives what cannot be made.
     slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.851f,.302f,.302f};
-// The game's text color for a color code letter (the section sign's), white for none or an unknown one.
-// The game's table; blue (9, 2026-11-19) and redstone's red (m, 2026-11-22) as measured in its tooltip, the rest
-// not checked one by one.
-constexpr Rgb textCode(char code) {
-    constexpr auto c = [](int hex) { return Rgb{static_cast<float>((hex >> 16) & 255) / 255, static_cast<float>((hex >> 8) & 255) / 255,
-                                                static_cast<float>(hex & 255) / 255}; };
-    switch (code) {
-    case '0': return c(0x000000); case '1': return c(0x0000AA); case '2': return c(0x00AA00); case '3': return c(0x00AAAA);
-    case '4': return c(0xAA0000); case '5': return c(0xAA00AA); case '6': return c(0xFFAA00); case '7': return c(0xAAAAAA);
-    case '8': return c(0x555555); case '9': return c(0x447FFF); case 'a': return c(0x55FF55); case 'b': return c(0x55FFFF);
-    case 'c': return c(0xFF5555); case 'd': return c(0xFF55FF); case 'e': return c(0xFFFF55); case 'g': return c(0xDDD605);
-    case 'h': return c(0xE3D4D1); case 'i': return c(0xCECACA); case 'j': return c(0x443A3B); case 'm': return c(0xEE222C);
-    case 'n': return c(0xB4684D); case 'p': return c(0xDEB12D); case 'q': return c(0x47A036); case 's': return c(0x2CBAA8);
-    case 't': return c(0x21497B); case 'u': return c(0x9A5CC6); default: return c(0xFFFFFF);
-    }
-}
 }
 }
 // Two panel opacities (DESIGN "Colors"), by what is under the panel: the

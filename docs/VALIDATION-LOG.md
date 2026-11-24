@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The game's font coloring an item tip (L-363, 2026-11-24)
+
+`e34df5f6` on branch `l363-data-keys` (DLL
+`3302b229895bf175ca686ffae40da847aa850263880cf8c3f3dccfd40d7926a7`),
+1.26.60.05 Dev, a local world, the game in Japanese:
+- Seen: the ominous bottle's name yellow as in the game, no code shown as
+  text; a firework star's, enchanted books', potions' and tools' lines in
+  the game's colors, the box neither cut nor too wide; Latin and mixed
+  lines (the ID line) at the height they had; nothing else changed.
+- Logged: the font's widths with codes and without were the same for the
+  six tips logged (names and first lines).
+
 ## A tooltip color running on (L-363, 2026-11-24)
 
 `87a187d9` on branch `l363-data-keys` (DLL

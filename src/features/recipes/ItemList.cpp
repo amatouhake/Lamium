@@ -1046,12 +1046,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
                     details = hoverLines(text), detailsName = hoverName(text);
                 }
             } catch (...) { details.clear(), detailsName = {}; }
-            // L-363 probe: whether the game's font counts the codes in a width.
-            static int told = 0;
-            if (told < 6 && !details.empty())
-                ++told, Runtime::instance().self().getLogger().info("Recipes: tip of {}: name {} / {} wide with codes / without, first line {} / {}", tipItem,
-                    gameTextWidth(context, detailsName.raw), textWidth(context, detailsName.plain), gameTextWidth(context, details.front().raw),
-                    textWidth(context, details.front().text));
         }
         std::vector<HoverLine> const none;
         auto const& more = item ? details : none;
