@@ -613,7 +613,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     ListBox const windowBox = windowButtonAt(row), layoutBox = layoutButtonAt(row);
     // What the listeners keep from the game for the row: the field and a few units around it, and its buttons.
     ListBox const fieldArea = [&] {
-        auto const hit = searchFieldHit(field), end = searchHighlightAt(field);
+        auto const hit = searchFieldHit(field), end = keysButtonAt(field);
         float const from = windowButton ? row.x - 2 : hit.x;
         return ListBox{from, hit.y, end.x + end.w + 2 - from, hit.h};
     }();
@@ -884,6 +884,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
         drawPictureButton(context, box.x, box.y, box.w, Picture::Highlight, over, on);
         if (over) late.tip = translated("recipes.highlight", translated(on ? "on" : "off"));
     }
+    // The keys button (L-398): the key hints as its tip, filled in below where the keys' names are read.
+    bool keysOver = false;
+    if (recipesOn || planOn) {
+        auto const box = keysButtonAt(field);
+        keysOver = box.has(px, py);
+        drawPictureButton(context, box.x, box.y, box.w, Picture::Keys, keysOver, false);
+    }
     if (windowButton) {
         bool const over = windowBox.has(px, py);
         drawPictureButton(context, windowBox.x, windowBox.y, windowBox.w, Picture::Window, over, planView::isOpen() && !view::isOpen());
@@ -980,24 +987,30 @@ bool drawList(ll::event::UIRenderEvent& event) {
             wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
         }
     }
-    // The key hints right above the search row (L-360, maintainer 2026-11-24), small and faint: the presses, then
-    // the keys, wrapped onto as many lines as they need (ItemListLayout.h). A notice stands in their place while
-    // it lasts.
+    // The keys button's tip (L-398): a key, what it does, in this mode and with these features.
+    if (keysOver && late.tip.empty()) {
+        auto& rows = late.tipTable;
+        late.tip = translated("recipes.keys");
+        if (recipesOn) {
+            rows.push_back({translated("recipes.keys.click"), translated("recipes.keys.recipes")});
+            rows.push_back({translated("recipes.keys.rightClick"), translated("recipes.keys.uses")});
+            rows.push_back({translated("recipes.keys.shiftClick"),
+                            translated(take::shiftHint(taking) == take::ShiftHint::IntoInventory ? "recipes.keys.intoInventory" : "recipes.keys.placeMany")});
+        }
+        if (favoritesOn && !favoriteKey.empty()) rows.push_back({favoriteKey, translated("recipes.keys.favorite")});
+        if (planOn && !wantedKey.empty()) rows.push_back({wantedKey, translated("recipes.keys.wanted")});
+        if (view::isOpen() && !backKey.empty()) rows.push_back({backKey, translated("recipes.keys.back")});
+        if (recipesOn && taking && !takeOneKey.empty()) rows.push_back({takeOneKey, translated("recipes.keys.takeOne")});
+        if (recipesOn && taking && !takeStackKey.empty()) rows.push_back({takeStackKey, translated("recipes.keys.takeStack")});
+    }
+    // Right above the search row (L-360, maintainer 2026-11-24), small and faint: what the thing under the pointer
+    // does, wrapped onto as many lines as it needs (ItemListLayout.h). A notice stands in its place while it lasts.
     float const hintsX = std::floor((screen.x - RecipeViewLayout::width) / 2);
     bool const noticing = !noticeText.empty() && std::chrono::steady_clock::now() - noticeAt < std::chrono::duration<double>(noticeSeconds);
     if (noticing) drawNotice(context, screen.x / 2, screen.y - searchTop - 13, RecipeViewLayout::width, noticeText, true, true);
-    else if ((recipesOn || planOn) && !bandEditor::active()) {
-        std::vector<std::string> parts;
-        if (recipesOn) parts.push_back(translated("recipes.hint"));
-        auto add = [&](std::string part) { parts.push_back(std::move(part)); };
-        if (favoritesOn && !favoriteKey.empty()) add(translated("recipes.hint.favorite", favoriteKey));
-        if (planOn && !wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
-        if (view::isOpen() && !backKey.empty()) add(translated("recipes.hint.back", backKey));
-        // What Shift + press does in this game mode, and the take keys where taking works (L-360).
-        if (recipesOn) add(translated(take::shiftHint(taking) == take::ShiftHint::IntoInventory ? "recipes.hint.shiftTake" : "recipes.hint.shiftPlace"));
-        if (recipesOn && taking && !takeOneKey.empty()) add(translated("recipes.hint.takeOne", takeOneKey));
-        if (recipesOn && taking && !takeStackKey.empty()) add(translated("recipes.hint.takeStack", takeStackKey));
-        for (auto& part : late.hints) add(std::move(part)); // what the thing under the pointer does (L-369)
+    else if ((recipesOn || planOn) && !bandEditor::active() && !late.hints.empty()) {
+        // What the thing under the pointer does (L-369); the keys themselves are the keys button's tip (L-398).
+        std::vector<std::string> parts = std::move(late.hints);
         std::string const sep = " | ";
         auto join = [&](size_t from, size_t to) {
             std::string out;
@@ -1020,7 +1033,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 labelScaled(context, hintsX + 4, hintTop(screen.y, lines - i), room, std::move(text), scale, palette::dim, Align::Center, true);
             }
         else if (lines && open) {
-            std::string text = join(recipesOn && parts.size() > 1 ? 1 : 0, parts.size());
+            std::string text = join(0, parts.size());
             float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
             labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room, std::move(text), scale,
                         palette::vanilla::windowFaint, Align::Center, false);

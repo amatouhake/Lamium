@@ -37,7 +37,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
   make" (the Plan), "How to make" (Recipes), "stores" (the stores). It is
   always as wide as the game's inventory with its book open (the panels
   narrow while it is open). The bottom row reads "open the window,
-  arrange the panels | search field, highlight", as wide as the
+  arrange the panels | search field, highlight, keys" (L-398), as wide as the
   inventory, or up to a button more each side where the panels leave the
   room (the field takes it), never over them: the first button (a tabbed window)
   opens it on its last tab or closes it, green while open, its tip the

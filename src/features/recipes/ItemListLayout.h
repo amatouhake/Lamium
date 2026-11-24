@@ -31,7 +31,7 @@ struct ListBox {
     bool has(float px, float py) const { return w > 0 && px >= x && px < x + w && py >= y && py < y + h; }
 };
 // The row at the bottom centre, as wide as the game's inventory window and low enough that nothing above it ever
-// has to move (L-382): "open the window, arrange the panels | search field, highlight". It stays between the
+// has to move (L-382): "open the window, arrange the panels | search field, highlight, keys" (L-398). It stays between the
 // panels on every screen; the field is high enough for Japanese and letters that reach under the line.
 inline constexpr float searchTop = 18; // its top, from the screen's bottom
 // The key hints stand right above the row (maintainer 2026-11-24, L-360): small and faint (`hintScale`), wrapped
@@ -70,10 +70,12 @@ inline ListBox windowButtonAt(ListBox row) { return {row.x, row.y, row.h, row.h}
 inline ListBox layoutButtonAt(ListBox row) { return {row.x + row.h + 2, row.y, row.h, row.h}; }
 inline ListBox searchFieldAt(float screenWidth, float screenHeight, float width = 176) {
     auto const row = bottomRowAt(screenWidth, screenHeight, width);
-    return {row.x + 2 * row.h + 6, row.y, row.w - 3 * row.h - 8, row.h};
+    return {row.x + 2 * row.h + 6, row.y, row.w - 4 * row.h - 10, row.h};
 }
-// The highlight switch (L-378): a square of the field's height right of it, at the row's end.
+// The highlight switch (L-378): a square of the field's height right of it.
 inline ListBox searchHighlightAt(ListBox field) { return {field.x + field.w + 2, field.y, field.h, field.h}; }
+// The keys button (L-398) at the row's end, right of the highlight switch: the key hints as its tip.
+inline ListBox keysButtonAt(ListBox field) { return {field.x + field.w + field.h + 4, field.y, field.h, field.h}; }
 // Where a press takes the field: a few units around it too, the screen's edge being close (L-377).
 inline ListBox searchFieldHit(ListBox field) { return {field.x - 4, field.y - 4, field.w + 8, field.h + 6}; }
 

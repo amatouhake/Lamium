@@ -126,12 +126,15 @@ after using the first build. What is still open is in the L-item.
   button of their own: any item in a recipe can be opened, and the key is
   there.
 - Every tip over the view or the plan window is the game's tooltip box.
-- The key hints stand right above the search row, small and faint
-  (maintainer 2026-11-24, L-360): click for recipes, right click for
-  uses, the favorite and wanted keys, Backspace for back while a recipe
-  is open, what Shift does, the take keys in creative, wrapped onto as
-  many lines as they need. Nothing moves for them: closed, they show where
-  the game's window leaves room; under an open window too, and on a
+- The keys are the tip of a button at the bottom row's end, a question
+  mark right of the highlight switch (L-398, maintainer 2026-11-24): a
+  two-column table, as the search field's syntax, of click (recipes),
+  right click (uses), Shift + click (what it does in this mode), the
+  favorite and wanted keys, Backspace while a recipe is open, the take
+  keys in creative; by their bindings, unbound ones left out.
+- What the thing under the pointer does (L-369) stands right above the
+  search row, small and faint, wrapped; nothing moves for it: closed,
+  where the game's window leaves room; under an open window too, and on a
   screen too low for that in the window's last line, one line shrunk.
 - The game's inventory key closes the view like Esc and leaves the screen
   under it open; a second press closes that. Every key but the two recipe
@@ -189,7 +192,7 @@ after using the first build. What is still open is in the L-item.
   plan row then opens the list, as a press does: placing is the "to make"
   rows', maintainer 2026-11-24). One that cannot act
   shows the recipes, whose red slots tell why. Whatever the pointer holds
-  stays on it. The hints say what Shift does in this mode; the place
+  stays on it. The keys button says what Shift does in this mode; the place
   button's tip names Shift and Ctrl.
 - Taking in creative (L-360): the take keys, over Lamium's lists and the
   recipe view (not the game's slots, maintainer 2026-11-24), put one
@@ -197,9 +200,9 @@ after using the first build. What is still open is in the L-item.
   inventory and the crafting table only: the item is taken from the
   creative list's search cells, matched by its key and filled by a
   refresh where it has none (`CreativeTake.cpp`, its own capability).
-  Where nothing is taken a yellow notice over the hints says why: not at
+  Where nothing is taken a yellow notice over the search row says why: not at
   this screen, hidden by the game's own search, or not a creative entry.
-  Outside creative the keys do nothing and are not in the hints.
+  Outside creative the keys do nothing and are not in the keys' table.
 - "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): at the
   inventory and the crafting table a crafting recipe that fits the grid is
   laid in, one of each (one more onto the same recipe), with Shift as many

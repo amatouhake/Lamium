@@ -830,13 +830,13 @@ void recipeIndexTests() {
               "a narrow panel shows icons only, a narrower one nothing");
         auto field = searchFieldAt(640, 360);
         auto const row = bottomRowAt(640, 360);
-        check(row.x == 232 && row.w == 176 && field.x == 270 && field.y == 342 && field.w == 120 && field.h == 16 && field.has(300, 350)
-                  && !field.has(300, 340) && searchFieldHit(field).has(268, 340) && searchHighlightAt(field).x == 392
-                  && searchHighlightAt(field).x + searchHighlightAt(field).w == row.x + row.w && windowButtonAt(row).x == row.x
-                  && layoutButtonAt(row).x + layoutButtonAt(row).w + 4 == field.x,
-              "the bottom row: the window's and the layout's buttons, then the field and its highlight switch, as wide as the inventory");
+        check(row.x == 232 && row.w == 176 && field.x == 270 && field.y == 342 && field.w == 102 && field.h == 16 && field.has(300, 350)
+                  && !field.has(300, 340) && searchFieldHit(field).has(268, 340) && searchHighlightAt(field).x == 374
+                  && keysButtonAt(field).x == searchHighlightAt(field).x + 18 && keysButtonAt(field).x + keysButtonAt(field).w == row.x + row.w
+                  && windowButtonAt(row).x == row.x && layoutButtonAt(row).x + layoutButtonAt(row).w + 4 == field.x,
+              "the bottom row: the window's and the layout's buttons, the field, its highlight switch and the keys button, as wide as the inventory");
         check(rowWidth(640, 200, 440) == 212 && rowWidth(640, 225, 415) == 186 && rowWidth(640, 240, 400) == 176
-                  && searchFieldAt(640, 360, 212).w == 156 && bottomRowAt(640, 360, 212).x == 214,
+                  && searchFieldAt(640, 360, 212).w == 138 && bottomRowAt(640, 360, 212).x == 214,
               "the row widens by up to a button each side where the panels leave room, never below the inventory's width");
         check(steppedWanted(1, false, 1) == 0 && steppedWanted(1, false, 16) == 0 && steppedWanted(5, false, 1) == 4
               && steppedWanted(9, false, 16) == 1 && steppedWanted(0, true, 1) == 1 && steppedWanted(0, false, 1) == 0

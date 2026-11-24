@@ -28,7 +28,7 @@ void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, fl
 // on the plain face, the face green while the button is on.
 // Place and Make (L-385) are drawn on 11 units: "place" the recipe view's own (an arrow down onto a line), "make" a
 // grid turning into one thing. A disabled button is flat and darker, its picture faint.
-enum class Picture { Highlight, Window, Layout, Store, Place, Make };
+enum class Picture { Highlight, Window, Layout, Store, Place, Make, Keys };
 void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on,
                        bool enabled = true);
 // The stores' mark (L-385): a small chest, as a container's store button draws it, 7 by 6 units from (x, y).
