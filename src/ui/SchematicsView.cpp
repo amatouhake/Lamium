@@ -1,6 +1,7 @@
 #include "features/recipes/RecipeText.h"
 #include "ui/DataNotice.h"
 #include "ui/SchematicsView.h"
+#include "ui/SchematicsRows.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/RowSelection.h"
@@ -362,11 +363,8 @@ void refreshSchematics(bool files) {
         || (schematicPick == SchematicPick::File && schematicIndex >= fileCount)) schematicPick = SchematicPick::None;
     // One row follows the picked placement; several stay until a row is picked.
     placementRows.retain([](std::uint64_t id) { return indexOfId(schematicSet.placements, id) >= 0; });
-    if (placementRows.several()) {}
-    else if (schematicPick == SchematicPick::Placement && schematicIndex >= 0) {
-        auto id = schematicSet.placements[static_cast<size_t>(schematicIndex)].id;
-        if (placementRows.single() != id) placementRows.only(id);
-    } else placementRows.clear();
+    placementRows.follow(schematicPick == SchematicPick::Placement && schematicIndex >= 0
+        ? std::optional{schematicSet.placements[static_cast<size_t>(schematicIndex)].id} : std::nullopt);
     verification = schematic::ghosts::verification();
     refreshIgnoreList();
     verifyRows.clear();
@@ -376,15 +374,9 @@ void refreshSchematics(bool files) {
         for (auto const& line : materialsShownOnly ? verification->visibleMaterials : verification->materials) materialRows.push_back(&line);
         std::stable_partition(materialRows.begin(), materialRows.end(), [](auto const* line) { return !line->entity; });
     }
-    materialListRows.clear();
-    bool blocks = false, entities = false;
-    for (auto const* line : materialRows) (line->entity ? entities : blocks) = true;
-    for (int i = 0; i < static_cast<int>(materialRows.size()); ++i) {
-        bool entity = materialRows[static_cast<size_t>(i)]->entity;
-        if (blocks && entities && (i == 0 || entity != materialRows[static_cast<size_t>(i - 1)]->entity))
-            materialListRows.push_back(entity ? -2 : -1);
-        materialListRows.push_back(i);
-    }
+    std::vector<bool> entityLines;
+    for (auto const* line : materialRows) entityLines.push_back(line->entity);
+    materialListRows = schematics_rows::materialList(entityLines);
     if (materialSelected >= static_cast<int>(materialRows.size())) materialSelected = -1;
     // The selected rows follow their cells when the rows change (a new pass,
     // a filter): the same index would be another cell.
@@ -802,14 +794,9 @@ void openSchematicKeySettings() { screen::showFeatureKeys("schematic"); }
 // The tab strip sits in the list pane's toolbar.
 constexpr int schematicTabCount = 4;
 // Tabs stand side by side with no gap (DESIGN "Controls").
-float schematicTabWidth(ShapesLayout const& l) { return (l.listWidth - 2 * ShapesLayout::pad) / schematicTabCount; }
-float schematicTabX(ShapesLayout const& l, int tab) { return l.listLeft + ShapesLayout::pad + tab * schematicTabWidth(l); }
-int schematicTabAt(ShapesLayout const& l, float x, float y) {
-    if (!l.usable() || y < l.toolbarTop || y >= l.toolbarTop + ShapesLayout::toolbarHeight) return -1;
-    for (int i = 0; i < schematicTabCount; ++i)
-        if (x >= schematicTabX(l, i) && x < schematicTabX(l, i) + schematicTabWidth(l)) return i;
-    return -1;
-}
+float schematicTabWidth(ShapesLayout const& l) { return schematics_rows::tabWidth(l, schematicTabCount); }
+float schematicTabX(ShapesLayout const& l, int tab) { return schematics_rows::tabX(l, tab, schematicTabCount); }
+int schematicTabAt(ShapesLayout const& l, float x, float y) { return schematics_rows::tabAt(l, x, y, schematicTabCount); }
 // The Check tab's four filters, in the list's heading row (L-93 screen review):
 // sized to their text and drawn as outlined pills, so they read as part of the
 // list rather than more tabs. Their spans are kept from the last draw.

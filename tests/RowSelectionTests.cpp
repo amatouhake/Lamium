@@ -71,6 +71,21 @@ void rowSelectionTests() {
         "Ctrl + A selects all, A alone does not");
     check(selectionKey(0x1b, false, true) == SelectionKey::Clear && selectionKey(0x1b, false, false) == SelectionKey::None,
         "Esc clears several rows first, then is left to the screen");
+    {
+        Rows followed;
+        followed.follow(30);
+        check(followed.keys == std::vector<int>{30} && followed.anchor == 30, "a picked row becomes the selection");
+        followed.anchor = 10;
+        followed.follow(30);
+        check(followed.anchor == 10, "the row already selected is left as it is");
+        followed.follow(std::nullopt);
+        check(followed.keys.empty() && !followed.anchor, "no picked row selects nothing");
+        followed.only(20);
+        followed.toggle(40);
+        followed.follow(30);
+        followed.follow(std::nullopt);
+        check(followed.keys == std::vector<int>{20, 40}, "several selected rows stay whatever is picked");
+    }
     check(viewKey(0x1b) == ViewKey::Close && viewKey(0x09) == ViewKey::NextNav, "Esc closes a view and Tab goes on to the next");
     check(viewKey(0x26) == ViewKey::FieldUp && viewKey(0x28) == ViewKey::FieldDown && viewKey(0x25) == ViewKey::StepDown
               && viewKey(0x27) == ViewKey::StepUp, "the arrows move through the detail fields and step the selected one");

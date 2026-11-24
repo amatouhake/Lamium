@@ -205,6 +205,8 @@ int main() try {
     vanillaFrameTests();
     extern void screenModeTests();
     screenModeTests();
+    extern void schematicsRowsTests();
+    schematicsRowsTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

@@ -20,6 +20,14 @@ struct RowSelection {
     std::optional<Key> single() const { return keys.size() == 1 ? std::optional(keys.front()) : std::nullopt; }
     void clear() { keys.clear(); anchor.reset(); }
     void only(Key const& key) { keys = {key}; anchor = key; }
+    // After the list's picked row was set elsewhere (a key, the world map, a
+    // new item): several rows stay as they are; otherwise the picked row is
+    // the selection, or nothing is selected.
+    void follow(std::optional<Key> const& picked) {
+        if (several()) return;
+        if (!picked) clear();
+        else if (single() != *picked) only(*picked);
+    }
     void toggle(Key const& key) {
         anchor = key;
         if (auto found = std::find(keys.begin(), keys.end(), key); found != keys.end()) keys.erase(found);
