@@ -50,9 +50,8 @@ and drops 2026-10-15 (L-169, 0.2.3).
   drag then transfers from the next slot on. A drag begun elsewhere transfers
   worn items like any other (maintainer, 2026-10-07).
 - Unmodified clicks and drags stay vanilla, and so does Ctrl + right.
-- A side the screen registers only as a source (read from the code: the
-  crafting table's grid gives back to the inventory, nothing routes into
-  it) takes no gesture toward it: such a press or wheel step goes to
+- A side the screen registers only as a source (the crafting table's grid
+  gives back to the inventory, nothing routes into it; seen 2026-11-24) takes no gesture toward it: such a press or wheel step goes to
   vanilla instead of being taken with nothing moved (`routed`,
   `transferRoutes::routes`). Filling the hovered stack with the plain wheel
   still works, as it places explicitly. Where the crafting table should

@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Inventory transfer at a crafting table (2026-11-24)
+
+`03a01a21` (DLL
+`332187576ba71b46f869d134a8f35a73b0786d38eab9c60022a4447009d1e591`),
+1.26.60.05 Dev, a local world, Inventory transfer on:
+- Seen: at a crafting table a Shift + click on a carried item moves it
+  between the main inventory and the hotbar as vanilla does; a Shift +
+  click on an item in the grid returns it to the inventory; at a chest
+  Shift + left drag and the wheel transfer as before; nothing else changed.
+  This confirms the cause read from the code: the grid is registered only
+  as a source.
+- Not checked: other station screens.
+
 ## Latin text raised in the tip (L-363, 2026-11-24)
 
 `c7523c60` on branch `l363-data-keys` (DLL
