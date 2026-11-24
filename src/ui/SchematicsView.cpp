@@ -98,8 +98,9 @@ namespace lamium::ui::schematics_view {
 namespace {
 using ShapeZone = ShapesLayout::Zone;
 // The schematic preview (L-114): where it was drawn, how it is turned, and a
-// drag in progress. It turns by itself until the player drags it, and again
-// for a newly chosen file or once the screen is opened again (L-114).
+// drag in progress. The Files tab's turns by itself until the player drags it,
+// and again for a newly chosen file or once the screen is opened again
+// (L-114); the Check tab's stays where it is turned.
 struct PreviewTurn {
     float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
     float yaw = 35, pitch = 30, zoom = 1;
@@ -108,6 +109,7 @@ struct PreviewTurn {
     std::optional<schematic::preview::Cell> picked;
     std::string pickedFile;
     std::string file; // the structure shown; a new one starts whole and fitted
+    std::string filesFile; // the file the Files tab showed last; the Check tab's does not count
     bool manual = false, dragging = false, turning = false; // turning: this drag moved far enough to turn
     glm::vec2 from{};
     float fromYaw = 0, fromPitch = 0;
@@ -140,6 +142,11 @@ enum class SchematicPick { None, Placement, File };
 using SchematicTab = Tab;
 SchematicTab schematicTab = SchematicTab::Placements;
 SchematicPick schematicPick = SchematicPick::None;
+// The angle the preview is drawn at: the Files tab's adds its own turn until it is dragged.
+float shownYaw() {
+    auto const& t = previewTurn;
+    return t.yaw + (schematicTab == SchematicTab::Files && !t.manual ? schematics_rows::autoTurn(previewClock()) : 0.f);
+}
 int schematicIndex = -1; // into the placements or the files
 schematic::PlacementSet schematicSet;
 std::vector<schematic::session::FileEntry> schematicFiles;
@@ -1616,9 +1623,9 @@ void drawFileDetail(Body& b) {
                 frame(context,dx,top,dw,bottom-top,palette::white,.1f);
                 auto& t = previewTurn;
                 t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
-                float yaw = t.yaw;
-                if (!t.manual) yaw += schematics_rows::autoTurn(previewClock());
-                if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; t.picked.reset(); t.manual = false; }
+                if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; t.picked.reset(); }
+                if (t.filesFile != f.relative) { t.filesFile = f.relative; t.manual = false; }
+                float yaw = shownYaw();
                 auto structure = schematic::session::structure(f.relative);
                 // The clicked block stays lit, the rest dims.
                 std::optional<schematic::preview::Cell> pick = t.pickedFile == f.relative ? t.picked : std::nullopt;
@@ -2321,7 +2328,7 @@ void wheel(int step, glm::vec2 pointer, bool shift) {
             // The side is chosen from the view when peeling starts
             // and then kept, so the cut can be looked at from the side.
             if (t.peel == 0) {
-                schematic::preview::View now{t.yaw, t.pitch};
+                schematic::preview::View now{shownYaw(), t.pitch};
                 auto cut = schematic::preview::cutFor(now, 2, 2, 2, 1);
                 t.peelAxis = cut.axis;
                 t.peelSign = cut.sign;
@@ -2355,8 +2362,8 @@ void drag(glm::vec2 pointer) {
     if (auto& t = previewTurn; t.dragging && (t.turning || glm::length(pointer - t.from) >= 6)) {
         t.turning = true;
         if (!t.manual) {
-            // Pick up the turn the preview had while turning by itself.
-            t.fromYaw = t.yaw + schematics_rows::autoTurn(previewClock());
+            // Pick up the turn the Files preview had while turning by itself.
+            t.fromYaw = shownYaw();
             t.manual = true;
         }
         t.yaw = t.fromYaw - (pointer.x - t.from.x) * .7f;
