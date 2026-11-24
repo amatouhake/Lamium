@@ -209,10 +209,11 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
 void gameText(MinecraftUIRenderContext& context, float x, float y, float width, std::string_view text, Rgb value) {
     if (text.empty()) return;
     auto& font = defaultFont(context);
-    // Pieces drawn one after another: a zero-wide character (TextFit.h labelRuns) alone, given a full width and
-    // drawn one width right as label draws it; each piece led by the codes in effect, so its color holds.
-    struct Piece { std::string coded, plain; bool zero; };
-    std::vector<Piece> pieces(1, Piece{{}, {}, false});
+    // Pieces drawn one after another, as label's runs (TextFit.h labelRuns): Latin text apart from the rest so it
+    // is raised in Japanese, a zero-wide character alone, given a full width and drawn one width right; each piece
+    // led by the codes in effect, so its color holds.
+    struct Piece { std::string coded, plain; RunKind kind; };
+    std::vector<Piece> pieces(1, Piece{{}, {}, RunKind::Ascii});
     std::string codes; // the color code and the style codes after it, in effect here
     for (size_t at = 0; at < text.size();) {
         if (text.substr(at, 2) == "\xC2\xA7") {
@@ -229,22 +230,23 @@ void gameText(MinecraftUIRenderContext& context, float x, float y, float width, 
         size_t next = at + 1;
         while (next < text.size() && (static_cast<unsigned char>(text[next]) & 0xC0) == 0x80) ++next;
         std::string_view const glyph = text.substr(at, next - at);
-        if (static_cast<unsigned char>(text[at]) >= 0x80 && zeroGlyph(font, glyph)) {
-            pieces.push_back({codes + std::string(glyph), std::string(glyph), true});
-            pieces.push_back({codes, {}, false});
-        } else {
-            pieces.back().coded += glyph;
-            pieces.back().plain += glyph;
-        }
+        RunKind const kind = static_cast<unsigned char>(text[at]) < 0x80 ? RunKind::Ascii : zeroGlyph(font, glyph) ? RunKind::Zero : RunKind::Wide;
+        if (kind == RunKind::Zero || (kind != pieces.back().kind && !pieces.back().plain.empty())) pieces.push_back({codes, {}, kind});
+        pieces.back().kind = kind;
+        pieces.back().coded += glyph;
+        pieces.back().plain += glyph;
+        if (kind == RunKind::Zero) pieces.push_back({codes, {}, RunKind::Ascii});
         at = next;
     }
+    float const raise = latinRaise();
     auto paint = [&](float px, float py, Rgb ink, bool coded) {
         float cursor = px;
         for (auto const& piece : pieces) {
             if (piece.plain.empty()) continue;
-            float const w = piece.zero ? fullWidth(font, 1.f) : measured(font, piece.plain, 1.f);
-            drawRun(context, font, piece.zero ? cursor + w : cursor, py, piece.zero ? w + 2 : std::max(w + 2, px + width - cursor),
-                    coded ? piece.coded : piece.plain, ink, ::ui::TextAlignment::Left, 1.f);
+            bool const zero = piece.kind == RunKind::Zero;
+            float const w = zero ? fullWidth(font, 1.f) : measured(font, piece.plain, 1.f);
+            drawRun(context, font, zero ? cursor + w : cursor, piece.kind == RunKind::Ascii ? py - raise : py,
+                    zero ? w + 2 : std::max(w + 2, px + width - cursor), coded ? piece.coded : piece.plain, ink, ::ui::TextAlignment::Left, 1.f);
             cursor += w;
         }
     };
