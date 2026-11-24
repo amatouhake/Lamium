@@ -13,6 +13,7 @@
 #include "ui/ShapesView.h"
 #include "ui/WaypointsView.h"
 #include "ui/SchematicsView.h"
+#include "ui/ToolViews.h"
 #include "ui/SettingsTableView.h"
 #include "ui/HighlightView.h"
 #include "ui/EnchantView.h"
@@ -148,8 +149,7 @@ bool numberDirty = false;
 
 using ShapeZone = ShapesLayout::Zone; // the list-and-detail layout's zones (Schematics view)
 bool numericEditing() {
-    return table_view::editingNumber() || shapes_view::editingNumber() || waypoints_view::editingNumber() || schematics_view::editingNumber()
-        || hud_editor::editingNumber();
+    return table_view::editingNumber() || tool_views::editingNumber() || hud_editor::editingNumber();
 }
 // Waypoint add prompt (L-60 step 5): replaces the whole panel while open.
 struct WaypointPrompt { map::Waypoint draft; SearchQuery name; };
@@ -245,9 +245,7 @@ bool textKeyboardOwned = false;
 bool textKeyboardNumber = false;
 input::Chord uiHeld;
 
-bool shapesView() { return navigation.current == shapesNav; }
-bool waypointsView() { return navigation.current == waypointsNav; }
-bool schematicsView() { return navigation.current == schematicsNav; }
+tool_views::View const* toolView() { return tool_views::at(navigation.current); }
 bool hudEditorView() { return navigation.current == hudNav; }
 void selectNav(int index, bool temporary = false) {
     directTool = false;
@@ -488,9 +486,7 @@ void applyNumber() {
     if (!numericEditing() || !numberDirty) return;
     numberDirty = false;
     if (hud_editor::editingNumber()) { hud_editor::applyNumber(); return; }
-    if (waypoints_view::editingNumber()) { waypoints_view::applyNumber(); return; }
-    if (schematics_view::editingNumber()) { schematics_view::applyNumber(); return; }
-    if (shapes_view::editingNumber()) { shapes_view::applyNumber(); return; }
+    if (auto const* view = tool_views::editingNumber()) { view->applyNumber(); return; }
     table_view::applyNumber();
 }
 void finishNumber() {
@@ -502,9 +498,7 @@ void finishNumber() {
     releaseTextKeyboard();
     numberDirty = false;
     table_view::endEditing();
-    shapes_view::endEditing();
-    waypoints_view::endEditing();
-    schematics_view::endEditing();
+    tool_views::endEditing();
     hud_editor::endEditing();
 }
 void close() {
@@ -1272,18 +1266,10 @@ void render(ll::event::UIRenderEvent& event) {
         // Press before release, as on the map: a quick click delivers both
         // between two frames and must not leave a drag running.
         bool released = std::exchange(pendingRelease, false);
-        if (shapesView()) {
-            shapes_view::refresh();
-            if (auto click = std::exchange(pendingClick, std::nullopt)) shapes_view::click(click->x, click->y, click->right);
-            for (int key : std::exchange(pendingKeys, {})) shapes_view::key(key);
-        } else if (waypointsView()) {
-            waypoints_view::refresh();
-            if (auto click = std::exchange(pendingClick, std::nullopt)) waypoints_view::click(click->x, click->y, click->right);
-            for (int key : std::exchange(pendingKeys, {})) waypoints_view::key(key);
-        } else if (schematicsView()) {
-            schematics_view::refresh(false);
-            if (auto click = std::exchange(pendingClick, std::nullopt)) schematics_view::click(click->x, click->y, click->right);
-            for (int key : std::exchange(pendingKeys, {})) schematics_view::key(key);
+        if (auto const* view = toolView()) {
+            view->refresh();
+            if (auto click = std::exchange(pendingClick, std::nullopt)) view->click(click->x, click->y, click->right);
+            for (int key : std::exchange(pendingKeys, {})) view->key(key);
         } else {
             if (std::exchange(pendingSearch, false)) { finishNumber(); table_view::focusSearch(); }
             if (auto click = std::exchange(pendingClick, std::nullopt)) table_view::click(click->x, click->y, click->right);
@@ -1315,23 +1301,11 @@ void render(ll::event::UIRenderEvent& event) {
     DrawScale scale{screenScale};
     glm::vec2 pointer = lastPointer;
     size /= screenScale;
-    if (shapesView()) {
-        shapes_view::refresh();
-        auto caret = shapes_view::caret();
+    if (auto const* view = toolView()) {
+        view->refresh();
+        auto caret = view->caret();
         syncTextKeyboard(caret.x, caret.y);
-        if (shapes_view::docked()) shapes_view::renderDocked(context, size, pointer);
-        else table_view::render(context, current, size, pointer);
-    } else if (waypointsView()) {
-        waypoints_view::refresh();
-        auto caret = waypoints_view::caret();
-        syncTextKeyboard(caret.x, caret.y);
-        if (waypoints_view::docked()) waypoints_view::renderDocked(context, size, pointer);
-        else table_view::render(context, current, size, pointer);
-    } else if (schematicsView()) {
-        schematics_view::refresh(false);
-        auto caret = schematics_view::caret();
-        syncTextKeyboard(caret.x, caret.y);
-        if (schematics_view::docked()) schematics_view::renderDocked(context, size, pointer);
+        if (view->docked()) view->renderDocked(context, size, pointer);
         else table_view::render(context, current, size, pointer);
     } else {
         auto caret = table_view::caret();
@@ -1358,9 +1332,7 @@ void cancelEditing() {
     numberDirty = false;
     releaseTextKeyboard();
     table_view::endEditing();
-    shapes_view::endEditing();
-    waypoints_view::endEditing();
-    schematics_view::endEditing();
+    tool_views::endEditing();
     hud_editor::endEditing();
 }
 bool heldCtrl() { return ui::heldCtrl(); }
@@ -1752,7 +1724,7 @@ void start() {
         bool scaled = std::isfinite(displayedInverseScale) && displayedInverseScale > 0;
         bool repeat = down && std::find(uiHeld.begin(), uiHeld.end(), token) != uiHeld.end();
         observeHeld(token, down);
-        if (table_view::capturing() && !shapesView() && !waypointsView() && !schematicsView()) {
+        if (table_view::capturing() && !toolView()) {
             if (down) event.cancel();
             if (button == MouseAction::ActionLeft && down && scaled && table_view::onCaptureButton(x, y)) pendingClick = Click{x, y, false};
             else table_view::captureInput(token, down);
@@ -1790,17 +1762,9 @@ void start() {
             hud_editor::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer.x, lastPointer.y);
             return;
         }
-        if (schematicsView() && wheel) {
-            schematics_view::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer, heldShift());
-            return;
-        }
-        if (waypointsView() && wheel) {
-            waypoints_view::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer);
-            return;
-        }
-        if (shapesView() && wheel) {
+        if (auto const* view = wheel ? toolView() : nullptr) {
             // Scroll whichever pane is under the pointer; selection stays put.
-            shapes_view::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer);
+            view->wheel(event.buttonData() > 0 ? -3 : 3, lastPointer, heldShift());
             return;
         }
         if (wheel) {
@@ -1925,7 +1889,7 @@ void start() {
         }
         // Keep search reachable from anywhere in the table. Capture handles
         // keys above this point, so Ctrl+F remains bindable.
-        if (!worldMapOpen && !shapesView() && !waypointsView() && !schematicsView() && event.keyCode() == 0x46 && heldCtrl()) {
+        if (!worldMapOpen && !toolView() && event.keyCode() == 0x46 && heldCtrl()) {
             event.cancel();
             pendingSearch = true;
             return;
@@ -1946,18 +1910,14 @@ void start() {
         // with the next frame like the remaining navigation, never inside the
         // input event.
         auto key = event.keyCode();
-        bool tool = shapesView() || waypointsView() || schematicsView();
+        auto const* tool = toolView();
         bool editing = hudEditorView() ? hud_editor::editingNumber()
-            : shapesView() ? (shapes_view::editingName() || shapes_view::editingNumber())
-            : waypointsView() ? (waypoints_view::editingName() || waypoints_view::editingNumber())
-            : schematicsView() ? schematics_view::editingNumber()
+            : tool ? tool->editing()
             : (table_view::searchFocused() || table_view::editingNumber());
         bool finishes = (key == 0x1b || key == 0x0d || key == 0x09) && (tool || hudEditorView() || !table_view::searchFocused());
         if (editing && !finishes) {
             if (hudEditorView()) hud_editor::editKey(key);
-            else if (shapesView()) shapes_view::key(key);
-            else if (waypointsView()) waypoints_view::key(key);
-            else if (schematicsView()) schematics_view::key(key);
+            else if (tool) tool->key(key);
             else table_view::key(key);
             return;
         }

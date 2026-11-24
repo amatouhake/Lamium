@@ -24,6 +24,7 @@
 #include "ui/ShapesView.h"
 #include "ui/WaypointsView.h"
 #include "ui/SchematicsView.h"
+#include "ui/ToolViews.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/WaypointPromptLayout.h"
@@ -101,9 +102,7 @@ namespace {
 using Zone = SettingsTable::Zone;
 using Column = SettingsTable::Column;
 void copyVersion_();
-bool shapesView() { return screen::currentNav() == nav::shapes; }
 bool waypointsView() { return screen::currentNav() == nav::waypoints; }
-bool schematicsView() { return screen::currentNav() == nav::schematics; }
 settings::Option const* sliderDrag = nullptr; // Slider being dragged with the left button.
 // A scrollbar held with the left button follows the pointer until release.
 // The list's and the footer description's scroll bars (the shared drag).
@@ -1096,7 +1095,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (auto paused = pausedHeader(); !paused.empty())
             label(context,t.versionX+versionWidth,t.top+6,t.versionWidth-versionWidth+2,std::move(paused),palette::warning);
     }
-    if (!shapesView() && !waypointsView() && !schematicsView() && !row_pages::any()) {
+    if (!tool_views::at(screen::currentNav()) && !row_pages::any()) {
     drawFieldBox(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()));
     if (findingKey && hotkeysView())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("captureBox"),palette::accent);
@@ -1145,10 +1144,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         drawVersionTip(context, t, hover);
         return;
     }
-    if (shapesView() || waypointsView() || schematicsView()) {
-        if (shapesView()) shapes_view::renderContent(context, size, pointer, t);
-        else if (waypointsView()) waypoints_view::renderContent(context, size, pointer, t);
-        else schematics_view::renderContent(context, size, pointer, t);
+    if (auto const* view = tool_views::at(screen::currentNav())) {
+        view->renderContent(context, size, pointer, t);
         drawVersionTip(context, t, hover);
         return;
     }
