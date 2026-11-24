@@ -19,23 +19,25 @@ an off gesture passes through to vanilla:
 | Ctrl + Shift + wheel: everything | `transferWheelAll` |
 | Alt + left click: matching items from the clicked side | `transferClickMatching` |
 | Shift + Alt + left click: everything from the clicked side | `transferClickAll` |
-| Shift + left drag: stacks | `transferDragStack` |
-| Ctrl + left drag: one per slot | `transferDragOne` |
-| Shift + right drag: leave one | `transferDragKeepOne` |
 | Held item, Shift + click an empty slot: matching items | `transferCursorMatching` |
-| Shift + drop key + left drag: drop stacks | `transferDropAll` |
-| Ctrl + drop key + left drag: drop one per slot | `transferDropOne` |
-| Shift + drop key + right drag: drop all but one | `transferDropKeepOne` |
-| Ctrl + Shift + drop key: drop the hovered kind | `transferDropHovered` |
 | Held item, Shift + click outside: drop matching items | `transferDropMatching` |
+| Shift + left drag: stacks from traced slots | `transferDragStack` |
+| Ctrl + left drag: one from each traced slot | `transferDragOne` |
+| Shift + right drag: all but one from traced slots | `transferDragKeepOne` |
+| Shift + drop key + left drag: drop stacks from traced slots | `transferDropAll` |
+| Ctrl + drop key + left drag: drop one from each traced slot | `transferDropOne` |
+| Shift + drop key + right drag: drop all but one from traced slots | `transferDropKeepOne` |
+| Ctrl + Shift + drop key: drop the hovered kind | `transferDropHovered` |
 
-Ordering by input or by effect, and drag names saying "traced slots", are
-open: [transfer-row-order-2.html](demos/transfer-row-order-2.html).
-The settings and Hotkeys list them in this order, grouped by kind; each
-row's keys read Ctrl, Shift, Alt, the drop key, then the mouse (the order
-shown, not the order pressed); the Alt + click pair says "from the clicked
-side" to tell it from the wheel pair (maintainer 2026-11-24,
-[transfer-row-order.html](demos/transfer-row-order.html)).
+The settings and Hotkeys list them in this order, by input (wheel, clicks,
+drags, the drop key), moves before drops within one, the drags of both in
+the same order: one switch is usually looked for from an input that did
+something unexpected. Each row's keys read Ctrl, Shift, Alt, the drop key,
+then the mouse (the order shown, not the order pressed). A name says what a
+key cap cannot: "traced slots" for the drags, "from the clicked side",
+"held", "hovered" (maintainer 2026-11-24,
+[transfer-row-order.html](demos/transfer-row-order.html),
+[transfer-row-order-2.html](demos/transfer-row-order-2.html)).
 The gestures are fixed to these modifiers; rebinding is
 [L-233 Make inventory transfer gestures rebindable](backlog/L-233.md).
 
