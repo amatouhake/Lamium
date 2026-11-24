@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Small wrapped key hints, the windows in place (L-360, 2026-11-24)
+
+`5c4d27b7` (DLL
+`3a1aa99bc5c614e5fcded5e6898aa10143dc958e3e49a9ca9cc18c5f6ced2bce`),
+1.26.60.05 Dev, a local world, the maintainer:
+- Seen: the key hints over the search row, small and faint, wrapped so
+  all of them read; the recipe view and the plan window where and as
+  large as before the hints moved, the hints clear of them when open.
+- Not seen: the fallback into the window's last line on a low screen; a
+  take after a refresh (this build's log has none); a server.
+
 ## Key hints over the search row (L-360, 2026-11-24)
 
 `eed4376b` (DLL
