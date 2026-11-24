@@ -4,6 +4,7 @@
 #include "app/TraceLog.h"
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemList.h"
+#include "features/recipes/StackKey.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
@@ -12,6 +13,7 @@
 #include "mc/client/gui/screens/ScreenController.h"
 #include "mc/client/gui/screens/ScreenView.h"
 #include "mc/client/gui/screens/controllers/ContainerScreenController.h"
+#include "mc/client/gui/screens/controllers/CraftingScreenController.h"
 #include "mc/client/network/ClientNetworkHandler.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/network/packet/CommandRequestPacket.h"
@@ -25,7 +27,10 @@
 #include "mc/server/commands/CommandOriginType.h"
 #include "mc/server/commands/CommandPermissionLevel.h"
 #include "mc/server/commands/CurrentCmdVersion.h"
+#include "mc/world/containers/controllers/ContainerController.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
+#include "mc/world/containers/models/ContainerModel.h"
+#include "mc/world/containers/models/FilteredContainerModel.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/level/Level.h"
 #include "mc/world/level/storage/LevelData.h"
@@ -41,7 +46,7 @@
 namespace lamium::researchTrace::creative {
 namespace {
 using Clock = std::chrono::steady_clock;
-TraceBudget pressBudget, requestBudget, responseBudget, cellBudget, experimentBudget;
+TraceBudget pressBudget, responseBudget, cellBudget, experimentBudget, tickBudget;
 std::atomic<unsigned> sequence{0};
 ll::event::ListenerPtr renderListener;
 int64_t nowMs() { return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count(); }
@@ -151,7 +156,9 @@ std::string cellsSummary(ContainerScreenController& screen, ContainerManagerCont
     }
     return std::format("shown={} distinct={}{}", total, distinct.size(), out.empty() ? std::string(" (no creative collections)") : out);
 }
-std::vector<Cell> cellsFor(ContainerScreenController& screen, ContainerManagerController& manager, std::string const& name, int aux, bool exact) {
+// exact: the cell's stack keys as the list keys it (StackKey.cpp), data included; else by name alone.
+std::vector<Cell> cellsFor(ContainerScreenController& screen, ContainerManagerController& manager, std::string const& key, std::string const& name,
+                           bool exact) {
     std::vector<Cell> cells;
     for (auto const& [collection, container] : manager.mContainers.get()) {
         if (!creativeCollection(screen, collection)) continue;
@@ -159,7 +166,7 @@ std::vector<Cell> cellsFor(ContainerScreenController& screen, ContainerManagerCo
         for (int i = 0; i < size && i < 4000; ++i) {
             auto const& stack = screen._getVisualItemStack(collection, i);
             if (stack.isNull() || stack.getTypeName() != name) continue;
-            if (exact && stack.getAuxValue() != aux) continue;
+            if (exact && recipes::stackKey(stack) != key) continue;
             cells.push_back({collection, i});
         }
     }
@@ -199,9 +206,9 @@ void experiment(ContainerScreenController& screen, ContainerManagerController& m
     std::string const name(parts.name);
     int const aux = parts.aux == recipes::anyAux ? 0 : parts.aux;
     if (name.empty()) { log(experimentBudget, 200, "experiment: nothing hovered in Lamium's lists"); return; }
-    auto const cells = cellsFor(screen, manager, name, aux, true);
+    auto const cells = cellsFor(screen, manager, key, name, true);
     if (look) {
-        auto const loose = cellsFor(screen, manager, name, aux, false);
+        auto const loose = cellsFor(screen, manager, key, name, false);
         std::string text;
         for (size_t i = 0; i < cells.size() && i < 12; ++i) text += std::format(" {}:{}", cells[i].collection, cells[i].index);
         log(experimentBudget, 200, "cells for '{}' (data '{}'): exact={} by name={}{}", key, std::string(parts.data), cells.size(), loose.size(), text);
@@ -255,11 +262,126 @@ void seeScreen(ll::event::UIRenderEvent& event) {
     lastCells = cells;
     for (size_t at = 0; at < cells.size(); at += 1500) log(cellBudget, 300, "cells '{}': {}", name, cells.substr(at, 1500));
 }
+// Round 2 (L-360): can the pane be made to fill `recipe_search` with every entry? On the crafting screen's tick:
+// its tab and search fields, sampled before and after the game's tick, with `recipe_search`'s size and its
+// model's filter state, logged when they change. The before-sample of the tick in which `recipe_search` grows
+// past 1000 cells (the player opening the search tab) is kept. Not read-only, on this screen only, before the
+// game's tick: F10 calls the virtual `refreshContainer(true)` on `recipe_search`'s model; Shift + F10 writes the
+// kept sample's tab fields back (the field route), Ctrl + F10 the fields as they were before that. Ctrl + F6
+// keys every `recipe_search` cell as the list does and logs how many keys it holds once, twice or more.
+struct Fields {
+    int tab = -1, dirty = -1, layout = -1;
+    bool delayed = false, searchBar = false, firstTab = false;
+    std::string delayedText;
+    bool operator==(Fields const&) const = default;
+};
+Fields fieldsOf(CraftingScreenController& screen) {
+    Fields f;
+    f.tab = screen.mSelectedLeftTab, f.dirty = screen.mTabFiltersDirty, f.layout = screen.mLayout;
+    auto const& delayed = screen.mDelayedSearchString.get();
+    f.delayed = delayed.has_value(), f.delayedText = delayed.value_or("");
+    f.searchBar = screen.mSearchBarSelected, f.firstTab = screen.mNeedFirstTabSelection;
+    return f;
+}
+std::string fieldsText(Fields const& f) {
+    return std::format("tab={} dirty={} layout={} delayed={}'{}' searchBar={} firstTab={}", f.tab, f.dirty, f.layout, f.delayed, f.delayedText,
+        f.searchBar, f.firstTab);
+}
+void writeFields(CraftingScreenController& screen, Fields const& f) {
+    screen.mSelectedLeftTab = f.tab;
+    screen.mTabFiltersDirty = f.dirty;
+    if (f.delayed) screen.mDelayedSearchString = std::optional<std::string>(f.delayedText);
+}
+std::shared_ptr<ContainerModel> modelOf(ContainerManagerController& manager, std::string const& name) {
+    auto const& containers = manager.mContainers.get();
+    auto const it = containers.find(name);
+    if (it == containers.end() || !it->second) return nullptr;
+    std::weak_ptr<ContainerModel> const& weak = it->second->mContainerModel;
+    return weak.lock();
+}
+std::string searchText(ContainerManagerController& manager) {
+    std::string const name = "recipe_search";
+    if (!manager.hasContainerController(name)) return "search=none";
+    auto model = modelOf(manager, name);
+    auto* filtered = static_cast<FilteredContainerModel*>(model.get());
+    return std::format("search={} filtering={} filtered={} saved={}", manager.getContainerSize(name), filtered ? bool(filtered->mIsFiltering) : false,
+        filtered ? int(filtered->mFilteredItemCount) : -1, filtered ? filtered->mSavedItems->size() : size_t{0});
+}
+std::string lastTick;
+std::optional<Fields> userFill, beforeReplay;
+int lastSearchSize = 0;
+bool f10 = false, ctrlF6 = false;
+void census(ContainerScreenController& screen, ContainerManagerController& manager) {
+    std::string const name = "recipe_search";
+    int const size = manager.hasContainerController(name) ? manager.getContainerSize(name) : 0;
+    std::map<std::string, int> keys;
+    for (int i = 0; i < size && i < 4000; ++i)
+        if (auto const& stack = screen._getVisualItemStack(name, i); !stack.isNull()) ++keys[recipes::stackKey(stack)];
+    int once = 0, more = 0;
+    std::string sample;
+    for (auto const& [key, n] : keys) {
+        if (n == 1) ++once;
+        else if (++more <= 12) sample += std::format(" {}x{}", key, n);
+    }
+    log(experimentBudget, 200, "census recipe_search: cells={} keys={} once={} several={}{}", size, keys.size(), once, more, sample);
+}
+LL_TYPE_INSTANCE_HOOK(CreativeCraftTick, ll::memory::HookPriority::Normal, CraftingScreenController,
+    &CraftingScreenController::$tick, ::ui::DirtyFlag) {
+    Fields before;
+    std::string beforeSearch;
+    auto manager = mContainerManagerController.get();
+    bool const open = manager && !manager->mContainersClosed;
+    try {
+        if (open) {
+            before = fieldsOf(*this), beforeSearch = searchText(*manager);
+            bool const shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0, ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+            if (edge(VK_F10, f10)) {
+                pressedAt = nowMs();
+                if (!shift && !ctrl) {
+                    auto model = modelOf(*manager, "recipe_search");
+                    log(experimentBudget, 200, "refresh route: model={} before {}", model != nullptr, beforeSearch);
+                    if (model) model->refreshContainer(true);
+                    log(experimentBudget, 200, "refresh route: right after {}", searchText(*manager));
+                } else if (shift && !ctrl) {
+                    if (!userFill) log(experimentBudget, 200, "field route: no sample kept (open the search tab yourself once)");
+                    else {
+                        beforeReplay = before;
+                        log(experimentBudget, 200, "field route: writing {} over {}", fieldsText(*userFill), fieldsText(before));
+                        writeFields(*this, *userFill);
+                    }
+                } else if (ctrl && beforeReplay) {
+                    log(experimentBudget, 200, "field route: putting back {}", fieldsText(*beforeReplay));
+                    writeFields(*this, *beforeReplay);
+                }
+            }
+            if (edge(VK_F6, ctrlF6) && ctrl) census(*this, *manager);
+        }
+    } catch (...) { log(experimentBudget, 200, "tick experiment threw"); }
+    auto result = origin();
+    try {
+        if (open && !manager->mContainersClosed) {
+            Fields const after = fieldsOf(*this);
+            std::string const afterSearch = searchText(*manager);
+            int const size = manager->hasContainerController("recipe_search") ? manager->getContainerSize("recipe_search") : 0;
+            if (size >= 1000 && lastSearchSize < 1000 && !beforeReplay) {
+                userFill = before;
+                log(tickBudget, 800, "search filled: kept before-sample {}", fieldsText(before));
+            }
+            lastSearchSize = size;
+            std::string line = std::format("before[{} {}] after[{} {}]", fieldsText(before), beforeSearch, fieldsText(after), afterSearch);
+            if (line != lastTick) {
+                log(tickBudget, 800, "tick {}", line);
+                lastTick = std::move(line);
+            }
+        }
+    } catch (...) {}
+    return result;
+}
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {
     {CreativeAutoPlace::hook, CreativeAutoPlace::unhook}, {CreativeTakeAmount::hook, CreativeTakeAmount::unhook},
     {CreativeTakeHalf::hook, CreativeTakeHalf::unhook}, {CreativeTakePlace::hook, CreativeTakePlace::unhook},
-    {CreativeResponse::hook, CreativeResponse::unhook},
+    {CreativeResponse::hook, CreativeResponse::unhook}, {CreativeCraftTick::hook, CreativeCraftTick::unhook},
 };
 }
 void start() {

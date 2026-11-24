@@ -4,7 +4,9 @@
 // calls with the cell's item, the requests sent and their answers, and on
 // every item screen the creative collections (size, items shown) whenever
 // they change. Not read-only: F7, F8 and F9 take the item under the pointer
-// in Lamium's lists (see the .cpp). Only with `xmake f --creative_trace=y`.
+// in Lamium's lists; F10 tries to make the pane fill its search list,
+// writing the crafting screen's tab fields with Shift or Ctrl (see the
+// .cpp). Only with `xmake f --creative_trace=y`.
 namespace lamium::researchTrace::creative {
 void start();
 void stop();
