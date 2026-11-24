@@ -146,6 +146,29 @@ std::vector<std::string> collections(ContainerScreenController& controller) {
     std::ranges::sort(result);
     return result;
 }
+transfer::Routes routes(ContainerScreenController& controller) {
+    if (!supported(controller)) return {};
+    auto manager = controller.mContainerManagerController;
+    if (!manager || manager->mContainersClosed) return {};
+    auto storage = collections(controller);
+    auto registered = [&](std::string const& name) { return std::ranges::find(storage, name) != storage.end(); };
+    transfer::Routes result{false, false};
+    size_t visited = 0;
+    for (auto const& [source, order] : controller.mAutoPlaceOrderMap.get()) {
+        if (++visited > 32) break;
+        bool const fromPlayer = transfer::playerCollection(source);
+        if (!fromPlayer && !registered(source)) continue;
+        auto const destination = fromPlayer ? transfer::Side::Storage : transfer::Side::Player;
+        size_t targets = 0;
+        for (auto const& target : order) {
+            if (++targets > 32) break;
+            auto const& name = target.collection.get();
+            if (transfer::routeTarget(name, destination, registered(name)) && manager->hasContainerController(name))
+                (fromPlayer ? result.toStorage : result.toPlayer) = true;
+        }
+    }
+    return result;
+}
 bool autoPlace(ContainerScreenController& controller, std::string const& collection,
                int index, int amount, transfer::Side destination) {
     if (!supported(controller) || amount <= 0) return false;

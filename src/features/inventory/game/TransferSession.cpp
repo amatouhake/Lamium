@@ -56,6 +56,7 @@ struct Slot {
     bool vanillaShift = false; // Shift + left stays vanilla here (worn items, inventory screen).
     bool occupied = true, extensions = false;
     bool cursor = false; // Items were on the cursor.
+    transfer::Routes routes;
     bool operator==(Slot const& other) const {
         return std::tie(collection, index, side, generation) == std::tie(other.collection, other.index, other.side, other.generation);
     }
@@ -247,6 +248,8 @@ std::optional<Slot> slotAt(ContainerScreenController& controller, std::string co
                               stack.mItem->isHumanoidArmor() || stack.mItem->hasTag(VanillaItemTags::Armor()));
     Slot result{name, index, *side, generation.load(), worn, occupied, transferRoutes::supported(controller),
                 game::cursorHasItems(controller)};
+    // The inventory screen places explicitly between its two sides.
+    if (!inventoryScreen(*manager)) result.routes = transferRoutes::routes(controller);
     int const size = inventorySize(*manager);
     if (size == 0 && manager->hasContainerController("combined_hotbar_and_inventory_items")) {
         if (name == "hotbar_items") result.collection = "combined_hotbar_and_inventory_items";
@@ -669,7 +672,7 @@ bool TransferSession::mouseButton(int button, bool down, bool shift, bool contro
     }
     if (cancelled || !hover) return false;
     auto mode = transfer::mouseGesture(button, shift, control, alt, drop, hover->cursor);
-    if (!transfer::enabled(mode, gestureOptions())) return false;
+    if (!transfer::enabled(mode, gestureOptions()) || !transfer::routed(mode, hover->side, hover->routes)) return false;
     if (hover->cursor) {
         if (mode != Gesture::CursorMatchingClick || hover->occupied || !hover->extensions) return false;
         consumedButtons.consume(button);
@@ -696,7 +699,8 @@ bool TransferSession::wheel(int direction, bool shift, bool control, bool cancel
         direction, shift, cancelled, hover ? hover->collection : std::string("-"), hover ? hover->index : -1);
     if (cancelled || !hover || hover->cursor) return false;
     auto mode = transfer::wheelGesture(shift, control);
-    if (!transfer::enabled(mode, gestureOptions())) return false;
+    if (!transfer::enabled(mode, gestureOptions()) || !transfer::routed(mode, hover->side, hover->routes, direction))
+        return false;
     if ((!hover->occupied && !transfer::everything(mode)) || (transfer::extended(mode) && !hover->extensions)) return false;
     if (pulses.size() < 128) pulses.push_back({*hover, mode, direction});
     return true;

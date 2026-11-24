@@ -233,6 +233,23 @@ inline bool wornItem(std::string_view name, bool armor) {
         || name.ends_with("_head") || name.ends_with("_skull");
 }
 
+// Which directions the screen's own routes allow. A side can be registered
+// only as a source (a crafting grid gives back to the inventory, nothing is
+// sent into it); a gesture needing the missing direction stays vanilla rather
+// than taking the press and moving nothing.
+struct Routes { bool toStorage = true, toPlayer = true; };
+inline bool routed(Gesture gesture, Side hovered, Routes routes, int wheelDirection = 0) {
+    auto to = [&](Side destination) { return destination == Side::Storage ? routes.toStorage : routes.toPlayer; };
+    if (dropping(gesture)) return true;
+    if (gesture == Gesture::CursorMatchingClick) return to(hovered);
+    if (wheel(gesture)) {
+        Side const destination = wheelDestination(wheelDirection);
+        // One item into the hovered stack is placed explicitly, without a route.
+        return (gesture == Gesture::OneWheel && hovered == destination) || to(destination);
+    }
+    return to(otherSide(hovered));
+}
+
 inline int amount(Gesture gesture, int count) {
     if (gesture == Gesture::KeepOneDrag || gesture == Gesture::DropKeepOneDrag) return std::max(0, count - 1);
     return gesture == Gesture::OneDrag || gesture == Gesture::OneWheel || gesture == Gesture::DropOneDrag ? 1 : count;

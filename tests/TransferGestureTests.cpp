@@ -151,6 +151,17 @@ void transferGestureTests() {
     check(droppedMove(drop, 1) && !droppedMove(drop, 0), "a drop only shrinks its source");
     drop[1].after = 6;
     check(!droppedMove(drop, 1), "a drop that moves items elsewhere is not a drop");
+    Routes grid{false, true}; // a crafting grid: nothing is routed into it
+    check(!routed(Gesture::StackDrag, Side::Player, grid) && !routed(Gesture::MatchingClick, Side::Player, grid)
+        && routed(Gesture::StackDrag, Side::Storage, grid) && routed(Gesture::AllClick, Side::Storage, grid),
+        "a click moving into a side without routes stays vanilla, the other direction is taken");
+    check(!routed(Gesture::StackWheel, Side::Player, grid, 1) && !routed(Gesture::OneWheel, Side::Player, grid, 1)
+        && routed(Gesture::OneWheel, Side::Storage, grid, 1) && routed(Gesture::StackWheel, Side::Storage, grid, -1)
+        && !routed(Gesture::MatchingWheel, Side::Storage, grid, 1),
+        "the wheel needs a route toward its direction unless it fills the hovered stack");
+    check(routed(Gesture::DropAllDrag, Side::Player, Routes{false, false})
+        && !routed(Gesture::CursorMatchingClick, Side::Storage, grid) && routed(Gesture::StackDrag, Side::Player, Routes{}),
+        "drops need no route, the held stack needs one toward its slot, and routes default open");
     auto bytes = dropAmountBytes(true);
     check(bytes[0] == 1 && bytes[4] == 2 && dropAmountBytes(false)[4] == 0 && bytes[8] == 0,
         "drop amounts follow the traced take type and kind");
