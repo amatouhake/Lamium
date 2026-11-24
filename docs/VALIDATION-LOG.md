@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Schematic previews as placed, per tab and sliced; entities by spawn egg (L-114, 2026-11-25)
+
+`0398c56f` (DLL
+`71e869aa0d22a19a6b615a3b2c7205dd42b01dd2bd262816d678d8f9ef9d6bed`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the Check tab's preview of a mirrored and turned placement has the
+  shape and facing of the build in the world; a click selects that cell's
+  row and "show in world" points at it.
+- Seen: Materials tab entities drawn by their spawn eggs (rabbit and
+  chicken no longer raw meat), "-" carried for mobs, an armor stand by its
+  item with a carried count; "put what is left into the plan" adds no meat.
+- Seen: Shift+wheel slices the Files preview from the top, one level at a
+  time, and stops its own turn; the corner and the hint say "断面"; under
+  the pointer the footer shows how to work the preview.
+- Seen: working the Check tab's preview leaves the Files preview turning;
+  each tab keeps its own view, and another file starts at the default tilt.
+- Seen: nothing else changed, the target card's mob icons included.
+- Reported: slicing works as described but is hard to use; how it should
+  move is being discussed (L-114).
+
 ## Review fixes: the Check tab's preview no longer jumps, the Files tab's keeps its stop (L-114, 2026-11-24)
 
 `00bb1dc0` (DLL
