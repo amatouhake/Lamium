@@ -7,13 +7,33 @@
 
 namespace lamium::ui {
 namespace detail {
-// The end of the next line: the last fitting UTF-8 codepoint, moved back to a
-// word boundary when the line ran out of width (CJK and long unbroken words
-// keep the codepoint boundary). With `whole`, a glyph wider than the area
-// still takes one codepoint; otherwise such a line ends at 0.
+inline bool wide(std::string_view source, size_t at) { return at < source.size() && (static_cast<unsigned char>(source[at]) & 0x80); }
+inline size_t previous(std::string_view source, size_t at) {
+    while (at && (static_cast<unsigned char>(source[--at]) & 0xc0) == 0x80) {}
+    return at;
+}
+// Punctuation that does not begin a line (Japanese and Chinese rules, and the
+// ASCII ones that follow a word).
+inline bool noLineStart(std::string_view source, size_t at) {
+    constexpr std::string_view closing[] = {"。", "、", "，", "．", "・", "）", "」", "』", "】", "〉", "》", "！", "？", "：", "；",
+                                            ".", ",", ":", ";", "!", "?", ")"};
+    auto rest = source.substr(at);
+    return std::ranges::any_of(closing, [&](std::string_view mark) { return rest.starts_with(mark); });
+}
+// Whether a line may break before `at`: at a space, or between characters
+// where either side is Japanese or Chinese, which break without spaces.
+inline bool breakBefore(std::string_view source, size_t at) {
+    if (!at || at >= source.size() || noLineStart(source, at)) return false;
+    return source[at] == ' ' || (source[at] != ' ' && source[previous(source, at)] != ' '
+        && (wide(source, at) || wide(source, previous(source, at))));
+}
+// The end of the next line: the last fitting UTF-8 codepoint, moved back to
+// the last place a line may break when it ran out of width (a long unbroken
+// word keeps the codepoint boundary). With `whole`, a glyph wider than the
+// area still takes one codepoint; otherwise such a line ends at 0.
 template<class Measure>
 size_t lineEnd(std::string_view source, float width, Measure& measure, bool whole) {
-    size_t end = 0, space = std::string_view::npos;
+    size_t end = 0, chance = 0;
     while (end < source.size() && source[end] != '\n') {
         size_t next = end + 1;
         while (next < source.size() && (static_cast<unsigned char>(source[next]) & 0xc0) == 0x80) ++next;
@@ -21,11 +41,10 @@ size_t lineEnd(std::string_view source, float width, Measure& measure, bool whol
             if (!end && whole) end = next;
             break;
         }
-        if (source[end] == ' ') space = end;
+        if (breakBefore(source, end)) chance = end;
         end = next;
     }
-    if (end < source.size() && source[end] != '\n' && source[end] != ' '
-        && space != std::string_view::npos && space > 0) end = space;
+    if (end < source.size() && source[end] != '\n' && !breakBefore(source, end) && chance > 0) end = chance;
     return end;
 }
 inline void skipBreak(std::string_view& source) {
