@@ -18,7 +18,6 @@
 #include "features/interaction/PeriodicInput.h"
 #include "features/interaction/PermanentSneak.h"
 #include "features/map/Minimap.h"
-#include "features/map/WaypointSession.h"
 #include "features/map/WaypointMarkers.h"
 #include "app/Runtime.h"
 #include "ui/HudElement.h"
@@ -36,9 +35,6 @@
 #include "features/schematic/RayCells.h"
 #include "features/schematic/SchematicItems.h"
 #include "features/schematic/SchematicSession.h"
-#include "features/schematic/SchematicActions.h"
-#include "features/visuals/ServerPacks.h"
-#include "features/visuals/BlockHighlightHooks.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemInstance.h"
@@ -73,7 +69,6 @@
 #include "mc/deps/input/RectangleArea.h"
 #include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/ItemIcon.h"
-#include "ui/SavedDataView.h"
 #include "features/information/PlayerList.h"
 #include "features/information/InventoryHud.h"
 #include "mc/world/actor/player/Inventory.h"
@@ -95,51 +90,6 @@
 #include <ctime>
 #include <vector>
 
-namespace lamium::ui {
-namespace {
-Toast activeToast;
-unsigned toastGroups = 0, toastGroup = 0;
-std::mutex holdMutex;
-ToastHold toastHold;
-bool toastsHeld = false;
-thread_local int screenDepth = 0;
-// Holds a toast from outside while the settings screen is open; true when it was held.
-bool held(std::string& message, double seconds, bool warning) {
-    if (screenDepth > 0) return false;
-    std::lock_guard lock(holdMutex);
-    if (!toastsHeld) return false;
-    toastHold.hold({std::move(message), seconds, warning, toastNow()});
-    return true;
-}
-}
-void showToggleToast(std::string feature, bool on) { activeToast.showToggle(std::move(feature), on, toastNow(), toastGroup); }
-void beginToastGroup() { if (!++toastGroups) ++toastGroups; toastGroup = toastGroups; }
-void endToastGroup() { toastGroup = 0; }
-void showMessageToast(std::string message, double seconds) {
-    if (held(message, seconds, false)) return;
-    activeToast.show(std::move(message), false, toastNow(), true, seconds);
-}
-void showWarningToast(std::string message, double seconds) {
-    if (held(message, seconds, true)) return;
-    activeToast.show(std::move(message), false, toastNow(), true, seconds, true);
-}
-ScreenToasts::ScreenToasts() { ++screenDepth; }
-ScreenToasts::~ScreenToasts() { --screenDepth; }
-void holdToasts(bool on) {
-    std::lock_guard lock(holdMutex);
-    toastsHeld = on;
-}
-void releaseHeldToast(double now) {
-    std::optional<ToastHold::Held> next;
-    {
-        std::lock_guard lock(holdMutex);
-        if (toastsHeld || toastHold.empty() || activeToast.current(now)) return;
-        next = toastHold.next(now);
-    }
-    if (next) activeToast.show(std::move(next->text), false, now, true, next->seconds, next->warning);
-}
-std::optional<Toast::Visible> currentToggleToast(double now) { return activeToast.current(now); }
-}
 namespace lamium::information {
 namespace {
 // HUD background opacity for this frame (settings, L-98); set by drawHud.
@@ -1635,7 +1585,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         return targetReach(settings.targetDistance, settings.targetFullRange, context.mClient.getOptions().getViewDistanceChunks());
     };
     // Vanilla Hide HUD (F1) hides every element; recording and death
-    // tracking below keep running (L-107).
+    // tracking (playFrame) keep running (L-107).
     bool hidden = !preview && (context.mClient.getOptions().getHideHud() || camera::freeCameraHide::hudHidden());
     if (settings.debug && !hidden && !preview) {
         // No player, no panel: invented values would read as real ones.
@@ -1650,31 +1600,9 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
                              static_cast<float>(runtime.ui.hudRowHeight), settings.debugBackground == 1);
         }
     }
-    if (!preview) {
-        map::record(context.mClient, runtime.map);
-        // Waypoints off is all of it off: no death point, nothing reached (L-319).
-        map::waypoints::frame(runtime.map.waypoints && runtime.map.waypointsDeath, runtime.map.waypointsDeathTemporary,
-                              ui::translated("waypoint.deathName"));
-        // A map merge that ended while playing (L-343): the saved data page would have said it.
-        if (auto merged = map::waypoints::takeFinishedMerge()) ui::showMessageToast(ui::saved_data_view::mergeReport(*merged));
-        // The world differs from its saved data (L-365): the tool screens ask, this says where.
-        if (map::waypoints::takeWorldToast()) ui::showMessageToast(ui::translated("savedData.worldToast"), 6);
-        // The body arrives, not FreeCamera's view.
-        if (auto* player = context.mClient.getLocalPlayer(); player && player->isAlive()) {
-            auto feet = player->getFeetPos();
-            if (runtime.map.waypoints && std::isfinite(feet.x) && std::isfinite(feet.y) && std::isfinite(feet.z))
-                for (auto& name : map::waypoints::arrive(static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z,
-                                                         runtime.map.waypointArrival))
-                    ui::showMessageToast(ui::translated("waypoint.reached", name));
-        }
-        // Under every HUD element: they point into the world.
-        map::markers::draw(context, width, height, runtime.map);
-        if (auto message = schematic::ghosts::takeSaveMessage()) ui::showMessageToast(std::move(*message));
-        // Once the world shows: the server's look is missing on purpose.
-        if (int packs = visuals::serverPacks::takeSkipped()) ui::showMessageToast(ui::translated("skipServerPacks.notice", packs), 6);
-        if (auto shown = visuals::highlight::takeCapped()) ui::showMessageToast(ui::translated("highlight.capped", shown), 6);
-        if (runtime.schematic.enabled) schematic::actions::adjustFrame(context, width, height);
-    }
+    // Under every HUD element: they point into the world. What else runs each
+    // frame of play (recording, arrivals, notices) is playFrame's, before this.
+    if (!preview) map::markers::draw(context, width, height, runtime.map);
     if (hidden) {
         cardMorph = {};
         return boxes;

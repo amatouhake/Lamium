@@ -9,8 +9,8 @@
 namespace lamium::ui {
 // Toggle toast timing: "<feature>" shows for 1.5 s, dimming over the last
 // 0.3 s. A new toast replaces the current one, except that the toggles of one
-// key press share it, a row each. Timing only; InfoHud owns the shared
-// instance and the drawing.
+// key press share it, a row each. Timing only; Toast.cpp holds the shared
+// instance and InfoHud draws it.
 class Toast {
     double shownAt = std::numeric_limits<double>::quiet_NaN();
     std::string message;

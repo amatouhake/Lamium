@@ -38,7 +38,7 @@ void setAdjustHeld(bool held);
 std::optional<menu::Stepper> lastStepper();
 void startAdjust();
 void stopAdjust();
-// Applies wheel turns made while the adjust key is held and draws the hint
-// under the crosshair. Called from the HUD each frame.
-void adjustFrame(MinecraftUIRenderContext& context, float width, float height);
+// Applies wheel turns made while the adjust key is held and says the step in
+// a toast. Called each frame of play (app/PlayFrame).
+void adjustFrame(IClientInstance& client);
 }

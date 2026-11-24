@@ -58,6 +58,7 @@
 #include "overlay/ShapeSession.h"
 #include "ui/Localization.h"
 #include "app/Runtime.h"
+#include "app/PlayFrame.h"
 #include "app/Desktop.h"
 #include "app/Versions.h"
 #include "input/CustomInput.h"
@@ -1080,6 +1081,7 @@ void render(ll::event::UIRenderEvent& event) {
         // so draw once, on the HUD view itself.
         if (gameplayScreen(current.getScreenName()) && hudView(view)) {
             auto const& settings = Runtime::instance().preferences().information;
+            playFrame(context.mClient);
             auto drawn = information::drawHud(context,size.x,size.y,settings);
             information::noteHotbar(view);
             information::noteCoveredVanilla(view,drawn,settings);

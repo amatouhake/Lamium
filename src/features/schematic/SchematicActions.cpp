@@ -890,8 +890,7 @@ void stopAdjust() {
     remembered.reset();
     moveTarget = MoveTarget::Placement;
 }
-void adjustFrame(MinecraftUIRenderContext& context, float, float) {
-    IClientInstance& client = context.mClient;
+void adjustFrame(IClientInstance& client) {
     adjustClient = &client;
     syncLifecycle(client);
     std::vector<UnreadablePlacement> unreadable;
