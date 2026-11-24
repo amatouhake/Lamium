@@ -1116,7 +1116,7 @@ void render(ll::event::UIRenderEvent& event) {
     if (&current != client) return;
     if (!ownsTop()) { if (seen) clear(); return; }
     seen = true;
-    map::waypoints::stepMerge(); // A map merge (L-343) goes on under every view; the HUD that steps it is not drawn.
+    map::waypoints::stepMerge(); // A map merge (L-343) goes on under every view; the play frame that steps it does not run.
     screenScale = SettingsTable::scaleFor(size.x, size.y, navCount);
     lastPointer = glm::vec2(view.mPointerLocationPrevious) / layoutScale();
     applyNumber();

@@ -19,7 +19,7 @@ bool marks(int dimension, std::uint64_t& revision, std::vector<Mark>& out);
 void pruneMarks(int dimension, std::function<bool(Mark const&)> const& keep);
 void clearMarks();
 // Set by the overlay when the nearest-faces limit left marks out; taken
-// (and cleared) by the HUD to say so once.
+// (and cleared) by the play frame to say so once.
 void reportCapped(size_t shown);
 size_t takeCapped();
 }

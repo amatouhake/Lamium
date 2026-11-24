@@ -88,7 +88,7 @@ struct MergeProgress {
     int chunks = 0, skipped = 0; // Chunks changed; regions that could not be read or written.
     int waypoints = 0, waypointsFull = 0, placements = 0, placementsFull = 0, shapes = 0, shapesFull = 0; // From the start.
 };
-// While a map merge runs it goes on for about `budgetMs` per call, from the HUD's frame and from the settings
+// While a map merge runs it goes on for about `budgetMs` per call, from the play frame and from the settings
 // screen's (every view); recording meanwhile goes to the session's files, and the map in use comes back when it
 // ends.
 void stepMerge(double budgetMs = 6);

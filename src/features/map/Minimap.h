@@ -13,7 +13,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext&, float 
                                                float cardOpacity = .72f);
 // The world map's recording (BACKLOG L-60 world map): scans around the player
 // into the saved regions whether or not the minimap is shown. Called once per
-// frame on the client thread from the HUD draw and the world map screen.
+// frame on the client thread from the play frame and the world map screen.
 // `scan` false only keeps the saved map attached (the world map screen with
 // the feature off): nothing new is recorded.
 void record(IClientInstance&, Settings::Map const&, bool scan = true);
