@@ -1043,43 +1043,7 @@ void copyVersion_() {
     if (copyText(runningVersionLine())) screen::setInfo(translated("version.copied"));
     else screen::setMessage(translated("version.copyFailed"));
 }
-void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
-    auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
-    placeWidth = hotkeysView() ? placeColumnWidth(context, t) : 0;
-    auto row = valid(selected) ? std::optional{rows[selected]} : std::nullopt;
-    if (row != descriptionRow) {
-        descriptionRow = row;
-        helpFirst = 0;
-    }
-    // The same row's text can change (editing swaps its range line); keep
-    // the reader's place, clamped once the new text is wrapped.
-    auto fullDescription = description();
-    if (fullDescription != helpText) {
-        helpText = fullDescription;
-        wrapped.width = -1;
-    }
-    float descriptionWidth = t.width - 2 * SettingsTable::pad - SettingsTable::gap;
-    if (wrapped.width != descriptionWidth)
-        wrapped = {descriptionWidth, wrapFullText(helpText,descriptionWidth,[&](std::string_view text) { return textWidth(context,text); })};
-    helpLineCount = static_cast<int>(wrapped.lines.size());
-    helpFirst = SettingsTable::clampFirst(helpFirst,helpLineCount,SettingsTable::descriptionLines);
-    t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion() + pausedHeader()));
-    displayed = t;
-    if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
-    first = t.first;
-    fill(context,0,0,size.x,size.y,palette::shade,.2f);
-    if (!t.usable()) {
-        label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
-        context.flushText(0, std::nullopt);
-        return;
-    }
-    auto const preferences = Runtime::instance().preferences();
-    keyQueryName = keyQuery ? bindingChordName(current, *keyQuery) : std::string{};
-    auto hover = t.hit(pointer.x, pointer.y, nav::count);
-    if (pointer != tipPointer) { keyboardTip = false; tipPointer = pointer; }
-    panel(context,t.left,t.top,t.width,t.height,opacity::screen);
-    frame(context,t.left,t.top,t.width,t.height,palette::white,.14f);
-
+void drawTableHeader(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
     // Header: title, search field (table views), Close.
     // The sidebar or tabs show where you are; the header names only Lamium (L-101).
     label(context,t.left+SettingsTable::pad,t.top+6,80,"Lamium");
@@ -1108,7 +1072,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         translated(waypointsView() && waypoints_view::fromMap() ? "worldMap.back" : "closeButton"),
         closeHover ? palette::text : palette::dim,Align::Center);
     fill(context,t.left,t.top+SettingsTable::headerHeight-1,t.width,1,palette::white,.14f);
-
+}
+void drawTableSidebar(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
     // Categories in the sidebar.
     // A query searches every category, so the navigation shows "All" meanwhile.
     bool searching = query.value().find_first_not_of(' ') != std::string::npos;
@@ -1133,18 +1098,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,x+7,ty,w-12-countWidth,navLabel(i),unavailable ? palette::faint : active || over ? palette::text : palette::dim);
         if (!count.empty()) label(context,x+w-5-countWidth,ty,countWidth,count,palette::faint,Align::Right);
     }
-
-    if (auto const* page = row_pages::open()) {
-        page->render(context, t, pointer);
-        drawVersionTip(context, t, hover);
-        return;
-    }
-    if (auto const* view = tool_views::at(screen::currentNav())) {
-        view->renderContent(context, size, pointer, t);
-        drawVersionTip(context, t, hover);
-        return;
-    }
-
+}
+void drawTableHeadings(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
     // Column headings.
     float theadY = t.theadTop + 2;
     if (hotkeysView()) {
@@ -1166,7 +1121,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             resetArmed);
     }
     fill(context,t.tableLeft,t.rowsTop-1,t.tableWidth,1,palette::white,.14f);
-
+}
+void drawTableRows(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, glm::vec2 pointer,
+                   SettingsTable::Hit const& hover, Settings const& preferences) {
     // Rows.
     if (rows.empty())
         label(context,t.nameX,t.rowsTop+4,t.tableWidth-2*SettingsTable::pad,translated("noResultsFor",query.value()),palette::faint);
@@ -1362,7 +1319,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,
             screen::scrollHeld(&first) || t.onListScrollbar(pointer.x,pointer.y));
     }
-
+}
+void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer, SettingsTable::Hit const& hover,
+                     Settings const& preferences, std::string const& fullDescription, float descriptionWidth) {
     // Footer: description and hints, or the binding editor's buttons.
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
@@ -1397,6 +1356,60 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         }
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : screen::messageColor());
     }
+}
+void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
+    auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
+    placeWidth = hotkeysView() ? placeColumnWidth(context, t) : 0;
+    auto row = valid(selected) ? std::optional{rows[selected]} : std::nullopt;
+    if (row != descriptionRow) {
+        descriptionRow = row;
+        helpFirst = 0;
+    }
+    // The same row's text can change (editing swaps its range line); keep
+    // the reader's place, clamped once the new text is wrapped.
+    auto fullDescription = description();
+    if (fullDescription != helpText) {
+        helpText = fullDescription;
+        wrapped.width = -1;
+    }
+    float descriptionWidth = t.width - 2 * SettingsTable::pad - SettingsTable::gap;
+    if (wrapped.width != descriptionWidth)
+        wrapped = {descriptionWidth, wrapFullText(helpText,descriptionWidth,[&](std::string_view text) { return textWidth(context,text); })};
+    helpLineCount = static_cast<int>(wrapped.lines.size());
+    helpFirst = SettingsTable::clampFirst(helpFirst,helpLineCount,SettingsTable::descriptionLines);
+    t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion() + pausedHeader()));
+    displayed = t;
+    if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
+    first = t.first;
+    fill(context,0,0,size.x,size.y,palette::shade,.2f);
+    if (!t.usable()) {
+        label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
+        context.flushText(0, std::nullopt);
+        return;
+    }
+    auto const preferences = Runtime::instance().preferences();
+    keyQueryName = keyQuery ? bindingChordName(current, *keyQuery) : std::string{};
+    auto hover = t.hit(pointer.x, pointer.y, nav::count);
+    if (pointer != tipPointer) { keyboardTip = false; tipPointer = pointer; }
+    panel(context,t.left,t.top,t.width,t.height,opacity::screen);
+    frame(context,t.left,t.top,t.width,t.height,palette::white,.14f);
+    drawTableHeader(context, t, hover);
+    drawTableSidebar(context, t, hover);
+
+    if (auto const* page = row_pages::open()) {
+        page->render(context, t, pointer);
+        drawVersionTip(context, t, hover);
+        return;
+    }
+    if (auto const* view = tool_views::at(screen::currentNav())) {
+        view->renderContent(context, size, pointer, t);
+        drawVersionTip(context, t, hover);
+        return;
+    }
+
+    drawTableHeadings(context, t, hover);
+    drawTableRows(context, current, t, pointer, hover, preferences);
+    drawTableFooter(context, t, pointer, hover, preferences, fullDescription, descriptionWidth);
     int conflictRow = -1;
     if (!capturing_ && !findingKey)
         if (auto target = tipTarget(t, hover))
