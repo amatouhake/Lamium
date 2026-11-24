@@ -12,6 +12,7 @@
 #include "features/recipes/BandEditorDraw.h"
 #include "features/recipes/BandPages.h"
 #include "features/recipes/CountEdit.h"
+#include "features/recipes/CreativeTake.h"
 #include "features/recipes/ItemKey.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ItemSearch.h"
@@ -149,6 +150,19 @@ bool wantedLeaves = false;   // client thread: it goes out when the key is relea
 std::atomic<bool> leftHeld{false}; // the left button is down, as the mouse listener last saw it: a scrollbar's drag
 std::atomic<bool> shiftHeld{false}, dropFocus{false}, focusAsked{false}, stopRun{false}; // stopRun: a key went down, which ends a run of crafting
 std::atomic<bool> gamePress{false}; // the left button went down on the game's window (the stonecutter's notice, L-380)
+// The take keys (L-360): the item under the pointer when one was pressed, taken in the next frame on the same screen.
+struct TakeAsked { std::string key, screen; bool stack = false; };
+std::optional<TakeAsked> takeAsked; // client thread
+// Why a take did nothing, in the shared notice box over the key hints for noticeSeconds.
+std::string noticeText;
+std::chrono::steady_clock::time_point noticeAt{};
+void sayRefusal(take::Refusal why) {
+    char const* key = why == take::Refusal::NotHere ? "recipes.take.notHere" : why == take::Refusal::GameSearch ? "recipes.take.gameSearch"
+        : why == take::Refusal::NotListed ? "recipes.take.notListed" : nullptr;
+    if (!key) return;
+    noticeText = ui::translated(key);
+    noticeAt = std::chrono::steady_clock::now();
+}
 // The recipe view lies over the window of what is wanted; both go with the screen they were opened on.
 void closeViews() {
     bandEditor::stop();
@@ -721,15 +735,32 @@ bool drawList(ll::event::UIRenderEvent& event) {
         Count const n = wanted->second;
         late.counts.push_back({x, y, slotCountText(n)});
     };
-    // A press on an item shows its recipes, a right press what it is used in, also beside an open view. With Shift
-    // a press lays in as many as divide evenly, with Ctrl it crafts one round onto the pointer (L-379); where the
-    // item cannot be (its recipes show the reason), it shows them.
-    auto show = [&](std::string const& item) {
-        // Shift lays in as many as divide evenly, as under "can be made" (maintainer 2026-11-21).
-        if (leftPress && shiftHeld.load() && !ctrlHeld.load() && placeItem(screenView, item, true, *player)) {
-            pressed = false, view::close(), planView::close();
-            return;
+    // Taking in creative (L-360): the take keys queued last frame, on this screen.
+    bool const taking = player->isCreative() && creativeTake::available();
+    if (auto asked = std::exchange(takeAsked, std::nullopt); asked && taking && asked->screen == screenName && recipesOn)
+        sayRefusal(creativeTake::take(screenView, asked->key, asked->stack, true));
+    // A press on an item shows its recipes, a right press what it is used in, also beside an open view. Shift + a
+    // press does what its list says (TakePress.h): take a stack into the inventory, lay in as many as divide
+    // evenly, or show the recipes; with Ctrl it crafts one round onto the pointer (L-379); where the item cannot
+    // be (its recipes show the reason), it shows them. A plan row comes here only to be taken (BandPages.cpp).
+    auto show = [&](std::string const& item, take::List list) {
+        if (leftPress && shiftHeld.load() && !ctrlHeld.load()) {
+            switch (take::shiftPress(list, taking)) {
+            case take::ShiftPress::TakeStack:
+                pressed = false;
+                sayRefusal(creativeTake::take(screenView, item, true, false));
+                return;
+            case take::ShiftPress::PlaceMany:
+                if (placeItem(screenView, item, true, *player)) {
+                    pressed = false, view::close(), planView::close();
+                    return;
+                }
+                break;
+            case take::ShiftPress::Own: return;
+            case take::ShiftPress::Recipes: break;
+            }
         }
+        if (list == take::List::Plan) return;
         // Where nothing can be crafted (no grid, nothing that fits it, something missing) the press shows the recipes.
         if (leftPress && ctrlHeld.load())
             if (auto placer = gridPlacer(screenView, *player))
@@ -797,7 +828,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
             // where nothing can be laid (no grid, nothing that fits) it shows the recipes as elsewhere.
             if (filter == Filter::CanMake && leftPress && !ctrlHeld.load() && placeItem(screenView, nameAt(hovered), shiftHeld.load(), *player))
                 pressed = false, view::close(), planView::close();
-            else show(nameAt(hovered));
+            else show(nameAt(hovered), filter == Filter::CanMake ? take::List::CanMake : take::List::All);
         }
     }
     // The bands' other pages, each in its panel (L-374): the favorites, the plan, and the open container's
@@ -807,6 +838,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto bandPlacer = planOn ? gridPlacer(screenView, *player) : std::nullopt;
     frame.placer = bandPlacer ? &*bandPlacer : nullptr;
     frame.ctrl = ctrlHeld.load();
+    frame.taking = taking;
     ListBox favoritesBox;
     std::vector<ListBox> bandBoxes; // where a press stays from the game and the view
     for (auto const& panel : placed) {
@@ -925,7 +957,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView() || bandEditor::active();
     static std::vector<int> inventoryKeys;
-    static std::string backKey, favoriteKey, wantedKey; // the actions' keys as the keymap names them; empty without one
+    static std::string backKey, favoriteKey, wantedKey, takeOneKey, takeStackKey; // the actions' keys as the keymap names them; empty without one
     static std::chrono::steady_clock::time_point keysRead;
     if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
         keysRead = now;
@@ -940,12 +972,16 @@ bool drawList(ll::event::UIRenderEvent& event) {
         backKey = keyOf(input::Action::RecipeBack);
         favoriteKey = keyOf(input::Action::RecipeFavorite);
         wantedKey = keyOf(input::Action::RecipeWanted);
+        takeOneKey = keyOf(input::Action::TakeOne);
+        takeStackKey = keyOf(input::Action::TakeStack);
         {
             auto const chord = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::RecipeWanted);
             wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
         }
     }
-    if ((open || viewLayout.hintY() >= at.y + size.y + 2) && (recipesOn || planOn) && !bandEditor::active()) {
+    bool const noticing = !noticeText.empty() && std::chrono::steady_clock::now() - noticeAt < std::chrono::duration<double>(noticeSeconds);
+    if (noticing) drawNotice(context, viewLayout.left + RecipeViewLayout::width / 2, viewLayout.hintY() - 2, RecipeViewLayout::width, noticeText, true, !open);
+    else if ((open || viewLayout.hintY() >= at.y + size.y + 2) && (recipesOn || planOn) && !bandEditor::active()) {
         // One line whatever the language: the keys, with the presses before them where both fit; shrunk a
         // little to the window's width where it is still longer.
         std::string keys;
@@ -953,6 +989,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (favoritesOn && !favoriteKey.empty()) add(translated("recipes.hint.favorite", favoriteKey));
         if (planOn && !wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
         if (view::isOpen() && !backKey.empty()) add(translated("recipes.hint.back", backKey));
+        // What Shift + press does in this game mode, and the take keys where taking works (L-360).
+        if (recipesOn) add(translated(take::shiftHint(taking) == take::ShiftHint::IntoInventory ? "recipes.hint.shiftTake" : "recipes.hint.shiftPlace"));
+        if (recipesOn && taking && !takeOneKey.empty()) add(translated("recipes.hint.takeOne", takeOneKey));
+        if (recipesOn && taking && !takeStackKey.empty()) add(translated("recipes.hint.takeStack", takeStackKey));
         for (auto& part : late.hints) add(std::move(part)); // what the thing under the pointer does (L-369)
         std::string hint = recipesOn ? translated("recipes.hint") + (keys.empty() ? "" : " | " + keys) : keys;
         if (!keys.empty() && labelWidth(context, hint, 1) * .8f > RecipeViewLayout::width - 8) hint = std::move(keys);
@@ -1247,6 +1287,12 @@ void want() {
     if (!was) state::toggleWanted(item);
     wantedItem = std::move(item);
     wantedLeaves = was;
+}
+void take(bool stack) {
+    if (bandEditor::active() || !Runtime::instance().snapshot()->inventory.recipes) return;
+    std::scoped_lock lock(shownLock);
+    if (!fresh() || shown.hoverItem.empty()) return;
+    takeAsked = TakeAsked{shown.hoverItem, lastScreen, stack};
 }
 void show(bool uses) {
     if (bandEditor::active()) return;

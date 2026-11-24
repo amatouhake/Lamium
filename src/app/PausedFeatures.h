@@ -77,6 +77,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::RecipeTable: return s.inventory.recipes || s.inventory.plan || s.inventory.massCraft;
     case Id::CountedPlaces: return s.inventory.stores;
     case Id::SearchHighlight: return s.inventory.recipes && s.inventory.searchHighlight;
+    case Id::CreativeTake: return s.inventory.recipes;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
     case Id::BookPastePages: return s.ui.bookPaste;
     // The planner screen says so itself when opened; the anvil's list is the standing use.

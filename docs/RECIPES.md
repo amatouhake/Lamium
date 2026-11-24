@@ -2,16 +2,16 @@
 
 Looking recipes up in the game, inside Lamium: an item list beside the
 inventory and the game's other item screens, a search field, a recipe view,
-favorites, placing a recipe into the grid and Mass Craft. The design is
+favorites and placing a recipe into the grid. The design is
 agreed with mockups and built in steps ([L-359](backlog/L-359.md)); the
 plan of what to gather and the stores counted as held are in
 [PLAN.md](PLAN.md), features of their own that work with Recipes off
 (L-373). Built behind the Recipes switch (Inventory, experimental, off by
 default): the item list with its search field and filter, the recipe view
 and favorites. Keys, all rebindable, mouse buttons included: R (recipes of
-the item under the pointer), U (its uses), A (favorite) and Backspace
-(back, while the recipe view is open). What of this nobody has seen in game
-is under "Limits".
+the item under the pointer), U (its uses), A (favorite), Backspace (back,
+while the recipe view is open) and, in creative, the middle button and
+Shift + it (take one, a stack). What nobody has seen in game is in "Limits".
 
 ## Behavior
 
@@ -178,13 +178,23 @@ after using the first build. What is still open is in the L-item.
   output by the slot call (seen to craft), else, with an empty pointer,
   Shift-takes it and picks the round up; one log line says which.
 - Presses on a listed item: a press shows its recipes (under "can be
-  made" it places one round), Shift + press places as many as divide
-  evenly, Ctrl + press crafts onto the pointer, a right press shows its
-  uses. One that cannot act (no grid, nothing that fits, something
-  missing) shows the recipes, whose red slots tell why. Whatever the
-  pointer holds stays on it. An item's tip explains no press; the place
-  button's names Shift and Ctrl, and that Ctrl only places while the
-  pointer is taken.
+  made" it places one round), Ctrl + press crafts onto the pointer, a
+  right press shows its uses. Shift + press (L-360, `TakePress.h`): under
+  "can be made" as many as divide evenly; under "All" in creative a stack
+  into the inventory, elsewhere the recipes; the favorites and the plan's
+  rows by the game mode, in creative as "All", else as "can be made" (a
+  plan row then opens the list, as a press does). One that cannot act
+  shows the recipes, whose red slots tell why. Whatever the pointer holds
+  stays on it. The hints say what Shift does in this mode; the place
+  button's tip names Shift and Ctrl.
+- Taking in creative (L-360): the take keys, wherever R and U act, put one
+  or a stack onto an empty pointer, else into the inventory. At the
+  inventory and the crafting table only: the item is taken from the
+  creative list's search cells, matched by its key and filled by a
+  refresh where it has none (`CreativeTake.cpp`, its own capability).
+  Where nothing is taken a yellow notice over the hints says why: not at
+  this screen, hidden by the game's own search, or not a creative entry.
+  Outside creative the keys do nothing and are not in the hints.
 - "Place" (maintainer 2026-11-18, [L-165](backlog/L-165.md)): at the
   inventory and the crafting table a crafting recipe that fits the grid is
   laid in, one of each (one more onto the same recipe), with Shift as many
@@ -231,67 +241,7 @@ after using the first build. What is still open is in the L-item.
   recipes it goes into, none twice.
 
 ### Mass Craft
-A setting of its own, off by default, and it works with Recipes off
-([L-165](backlog/L-165.md), maintainer 2026-11-18).
-- It runs on the inventory and the crafting table while its key is held;
-  the key has no default, and a key of several inputs matches in any
-  order. It starts once the key was held for a time the
-  player sets, 0 to 1 s, 0.3 s unless changed, so a brush of the key
-  does nothing. Starting ends a plan's "make" and a recipe waiting to be
-  laid in, and waits for a round being crafted onto the pointer.
-- The recipe is that of the item under the pointer, as for the recipe
-  keys: in Lamium's lists or a slot of the game. Of its crafting recipes
-  that fit the grid, the one the player's choices name, else the first;
-  what lay in the grid goes back first, and the run goes on wherever the
-  pointer moves. Ingredients need not be carried when it starts, so an
-  inventory full of one ingredient can throw its surplus out.
-- Over the output slot the recipe is the one lying in the grid, found in
-  the table by the grid's items, and the run ends when the pointer leaves
-  the slot. A grid the table has no recipe for does nothing.
-- A round: all the grid makes is taken into the inventory, the product
-  is thrown out and the recipe is laid in again as many times as divide
-  evenly. What the inventory held of the product when the run began
-  stays, kept by its slot (an enchanted tool or a named stack is not
-  told apart by name, so it is never swapped for a new one); everything
-  beyond it goes, also what was thrown out and picked up again. A round goes out in one frame where the game shows each
-  part at once, the next 50 ms later; a take that found room for a part
-  only is followed by the next in the same frame.
-- A step makes at most 16 slot calls, all counted (a cell is one straight
-  from its slot, three by the pointer, L-381; a round with more cells is a
-  step of its own; what is past the limit waits; "make" lays and takes
-  once a tick, the same bound), so a run
-  stays under some 320 requests a second: a local world closed with a
-  network error during a run without that limit.
-- With no room in the inventory for the product, the smallest stack of
-  an ingredient that is carried in another stack too is thrown out, so
-  the take has a slot. Where there is none, the product is taken onto
-  the pointer craft by craft and thrown from there: by presses on the
-  output where the pointer is over it, else by the slot call that
-  takes an amount.
-- A round that cannot be laid in waits for more to arrive, and goes on
-  throwing out the product that is picked up again meanwhile, every
-  step while it keeps coming back, so the inventory keeps room for the
-  ingredients. Where much of the product lies around, it still wins
-  most of the slots, and ingredients on the ground come in slowly. With no slot
-  free, of the slots the recipe's ingredients fill each ingredient keeps
-  the share its cells are of the recipe, one slot at least and its
-  fullest stacks, and the other slots are thrown out whole. A recipe of
-  one ingredient throws nothing, and what does not stack (a filled
-  shulker box to dye) is never thrown.
-- Only what makes the run's product is taken: a round the server let
-  through in part lays out another recipe (three planks of a chest's
-  eight make slabs), and goes back to be laid in anew.
-- It ends when the key is released. What a step leaves on the pointer
-  (a cell the server did not let it place) goes back to a slot that
-  takes it, out of the inventory if none does, and the product is
-  thrown out. A step that shows nothing (the server refuses a
-  request when items were picked up meanwhile and its inventory is not
-  the client's) is tried again after 0.15 s, the grid's contents going
-  back first where the run started from an item; twenty such steps in a
-  row end the run. Each run writes
-  its recipe and, at its end, rounds, takes, stacks thrown, requests and
-  time to the log; a run that does nothing for a second writes once why
-  and what it sees.
+A feature of its own that works with Recipes off: [MASS-CRAFT.md](MASS-CRAFT.md).
 
 ### The look, reviewed with the maintainer (2026-11-19)
 What bothered is in VALIDATION-LOG of that day; what was agreed is built:
@@ -355,11 +305,12 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   in `ui/SettingsScreen.cpp` ask it; what they keep acts in the next
   frame). `RecipeViewDraw.cpp` and `PlanViewDraw.cpp` draw the two windows
   and do not know their host. `CountEdit.h`: the count being typed.
+- `TakePress.h` (pure; `tests/TakePressTests.cpp`): what Shift + press does
+  per list and mode, where a taken item goes, why nothing was.
+  `CreativeTake.cpp`: the take through the creative list's cells.
 - `PlacePlan.h` (pure): which carried stacks go into which grid cell.
   `RecipePlace.cpp` does it with the slot calls Item transfer uses, behind
-  its capability. `MassCraftPlan.h` (pure): the recipe a grid lays out,
-  what a take added, the stacks beyond an ingredient's share; the run is
-  `massCraft` in `RecipePlace.cpp`.
+  its capability; Mass Craft's run too ([MASS-CRAFT.md](MASS-CRAFT.md)).
 - `RecipeNotes.h` (pure; documents in `RecipeNotesStore.cpp`): favorites,
   chosen recipes, picked members and items marked as gathered, for all
   worlds in the config folder's `recipes.json`; the wanted items per world
@@ -382,13 +333,11 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
 
 ## Limits
 - The search field takes no pasted text.
-- Mass Craft: seen in a local world (VALIDATION-LOG 2026-11-18); the
-  throw from the pointer and the surplus are not, nor a server.
 - Crafting onto the pointer: a server is unchecked.
 - "Place": a server is unchecked. Shift + place with Item transfer on and
   an inventory slot under the pointer was not tried.
-- Not built: held members first in a group's turn. Their own items: taking
-  an item out of the list in creative ([L-360](backlog/L-360.md)), what a
+- Taking in creative: a server and a held item are unchecked.
+- Not built: held members first in a group's turn. Their own items: what a
   recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), a
   listed item's own data ([L-363](backlog/L-363.md): no potion effect).
 - A key with data has no recipes but a rocket's (`rocketData`: its stars);

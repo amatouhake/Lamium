@@ -4,6 +4,7 @@
 #include "features/recipes/RecipePlaces.h"
 #include "features/recipes/RecipeState.h"
 #include "features/recipes/RecipeViewDraw.h"
+#include "features/recipes/TakePress.h"
 #include <functional>
 #include <optional>
 #include <string>
@@ -24,13 +25,14 @@ struct Frame {
     view::Late& late;
     std::string& hoverItem; // the item under the pointer, for the keys
     std::function<void(std::string const&, float, float, bool)> mark; // a cell's favorite frame and wanted count
-    std::function<void(std::string const&)> show;                     // opens the recipe view on an item
+    std::function<void(std::string const&, take::List)> show;         // a press on an item of that list (TakePress.h)
     int sideTurns = 0;      // wheel notches over the plan's list
     bool shift = false;     // a stepper moves to the next stack
     bool held = false;      // the left button is down: a scrollbar is dragged
     int favoriteTurns = 0;  // wheel notches over the favorites
     view::Placer* placer = nullptr; // the screen as a place to lay in or make a plan's steps (L-385)
     bool ctrl = false;      // held: "lay in" makes one round onto the pointer
+    bool taking = false;    // creative with taking allowed: Shift + a press on a plan row takes a stack (L-360)
     bool took(ListBox const& box) {
         if (!pressed || !box.has(px, py)) return false;
         pressed = false;

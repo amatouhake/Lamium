@@ -68,7 +68,7 @@ void favorites(Frame& frame, SideLayout const& panel) {
         if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
         mark(key, x, y, false); // all here are favorites
     }
-    if (pressed && favoriteHover >= 0 && favoriteHover < shownCount) frame.show(favorites[static_cast<size_t>(first + favoriteHover)]);
+    if (pressed && favoriteHover >= 0 && favoriteHover < shownCount) frame.show(favorites[static_cast<size_t>(first + favoriteHover)], take::List::Favorites);
     (void)leftPress, (void)took;
 }
 void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vector<Handed> const& handed,
@@ -317,7 +317,10 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
             } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
             else if (!panel.wide()) late.tip = row.name;
         }
-        if (leftPress && took(whole)) openList();
+        // In creative Shift + a press takes a stack of the row's item (L-360); elsewhere a press opens the list.
+        if (leftPress && frame.shift && !frame.ctrl && take::shiftPress(take::List::Plan, frame.taking) == take::ShiftPress::TakeStack
+            && !row.key.empty() && took(whole)) frame.show(row.key, take::List::Plan);
+        else if (leftPress && took(whole)) openList();
     }
     if (!total)
         label(context, panel.left + 4, panel.rowY(0) + 2, panel.width - 8,
