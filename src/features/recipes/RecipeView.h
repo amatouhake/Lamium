@@ -150,7 +150,7 @@ inline ViewBlock viewBlock(Recipe const& recipe) {
 struct RecipeViewLayout {
     // Two columns of three rows a page, with room between them and inside the window's edge (L-367). Each
     // recipe stands on a raised face `pad` around its block, faces `gap` apart (L-379: 102 wide, 6 apart).
-    static constexpr float width = 236, margin = 10, column = (width - 2 * margin) / 2, block = viewBlockWidth, head = 35, foot = 6;
+    static constexpr float width = 236, margin = 10, column = (width - 2 * margin) / 2, block = viewBlockWidth, head = 35, foot = 12;
     static constexpr float pad = 5, gap = column - block - 2 * pad;
     static constexpr int mostRows = 3;
     // The game's tabs stand on the window's top edge, above it (windowTab's rise).
@@ -164,7 +164,7 @@ struct RecipeViewLayout {
     int rows(Station station) const {
         return std::clamp(static_cast<int>((height - head - foot) / rowRoom(station)), 1, mostRows);
     }
-    // The rows share the height between the heading and the window's foot (the key hints are below it).
+    // The rows share the height between the heading and the key hints.
     float rowStep(Station station) const { return (height - head - foot) / static_cast<float>(rows(station)); }
     int perPage(Station station) const { return rows(station) * 2; }
     int pages(Station station, int count) const { return std::max(1, (count + perPage(station) - 1) / perPage(station)); }
@@ -178,9 +178,12 @@ struct RecipeViewLayout {
         return top + head + static_cast<float>(columns(station, count) == 1 ? i : i / 2) * step + std::max(0.f, (step - blockHeight(station)) / 2);
     }
     bool has(float x, float y) const { return x >= left && x < left + width && y >= top && y < top + height; }
+    // The key hints' line: the window's last, and the same place while it is closed; clear of the
+    // window's three-unit edge below it (it reaches into the last row's spacing, which a block never fills).
+    float hintY() const { return top + height - 13; }
 };
-// Between a unit below the screen's top (the tabs) and 4 above the key hints' room over the search field: the
-// window keeps the height of three rows and stands in the middle of that room, or fills it where it is lower.
+// Between a unit below the screen's top (the tabs) and 4 above the search field: the window keeps the
+// height of three rows and stands in the middle of that room, or fills it where it is lower.
 // The Recipes window (L-370) holds more than a recipe: it always takes the width the game's inventory has with
 // its recipe book open, whether the book is open or not. `coverLeft`/`coverRight`: what the game's window (or
 // the recipe view, if wider) spans now. Far wider than the recipe view, the book is open: that span exactly.
@@ -195,7 +198,7 @@ inline WindowSpan planWindowAt(float screenWidth, float coverLeft, float coverRi
 inline RecipeViewLayout recipeViewAt(float screenWidth, float screenHeight) {
     RecipeViewLayout out;
     out.left = (screenWidth - RecipeViewLayout::width) / 2;
-    float const roomTop = 1 + RecipeViewLayout::tabsAbove, room = screenHeight - searchTop - hintRoom - 4 - roomTop;
+    float const roomTop = 1 + RecipeViewLayout::tabsAbove, room = screenHeight - searchTop - 4 - roomTop;
     out.height = std::min(room, RecipeViewLayout::mostHeight);
     out.top = std::floor(roomTop + (room - out.height) / 2);
     return out;

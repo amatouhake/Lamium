@@ -101,8 +101,8 @@ after using the first build. What is still open is in the L-item.
   it show through), with dark text; its buttons, tabs and cells are
   Lamium's shared ones. The arrangement follows the game.
 - The window keeps one size, two recipe columns wide and three rows high,
-  in the middle of the room above the key hints over the search field (all
-  of it where it is lower; L-367); where one column is enough it sits in the middle. The
+  in the middle of the room above the search field (all of it where it is
+  lower; L-367); where one column is enough it sits in the middle. The
   centre keeps that room free, so the side lists never move.
 - A page is two columns of three rows, six recipes, with room between
   them and inside the window's edge (L-367; ten without margins read as
@@ -126,14 +126,13 @@ after using the first build. What is still open is in the L-item.
   button of their own: any item in a recipe can be opened, and the key is
   there.
 - Every tip over the view or the plan window is the game's tooltip box.
-- The key hints stand right above the search row on every screen, a
-  window open or not, in light text over the world (maintainer
-  2026-11-24, L-360): click for recipes, right click for uses, the
-  favorite and wanted keys, Backspace for back while a recipe is open,
-  what Shift does, the take keys in creative. They wrap at their own size
-  and color onto as many lines as they need (up to four, the room for all
-  kept free; maintainer 2026-11-24); closed, they show only where the
-  game's window leaves them room.
+- The key hints stand right above the search row, small and faint
+  (maintainer 2026-11-24, L-360): click for recipes, right click for
+  uses, the favorite and wanted keys, Backspace for back while a recipe
+  is open, what Shift does, the take keys in creative, wrapped onto as
+  many lines as they need. Nothing moves for them: closed, they show where
+  the game's window leaves room; under an open window too, and on a
+  screen too low for that in the window's last line, one line shrunk.
 - The game's inventory key closes the view like Esc and leaves the screen
   under it open; a second press closes that. Every key but the two recipe
   keys is kept from the game while the view is open.

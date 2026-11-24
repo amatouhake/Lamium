@@ -560,7 +560,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
     }
     cost.walk = cost.lap();
-    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, hintTop(screen.y, hintMostLines) - 1);
+    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, viewLayout.hintY() - 1);
     // Asked for from the settings, the editor starts on the first item screen drawn.
     static std::string editScreen; // the editor belongs to the screen it started on
     // A screen the game closed (a death, the server) and opened again: arranging ended with it.
@@ -980,12 +980,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
             wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
         }
     }
-    // The key hints right above the search row (L-360, maintainer 2026-11-24), whatever lies above them: the
-    // presses, then the keys, wrapped onto as many lines as they need (ItemListLayout.h). Closed, they show only
-    // where the game's window leaves them free. A notice stands in their place while it lasts.
+    // The key hints right above the search row (L-360, maintainer 2026-11-24), small and faint: the presses, then
+    // the keys, wrapped onto as many lines as they need (ItemListLayout.h). A notice stands in their place while
+    // it lasts.
     float const hintsX = std::floor((screen.x - RecipeViewLayout::width) / 2);
     bool const noticing = !noticeText.empty() && std::chrono::steady_clock::now() - noticeAt < std::chrono::duration<double>(noticeSeconds);
-    if (noticing) drawNotice(context, screen.x / 2, hintTop(screen.y, 1), RecipeViewLayout::width, noticeText, true, true);
+    if (noticing) drawNotice(context, screen.x / 2, screen.y - searchTop - 13, RecipeViewLayout::width, noticeText, true, true);
     else if ((recipesOn || planOn) && !bandEditor::active()) {
         std::vector<std::string> parts;
         if (recipesOn) parts.push_back(translated("recipes.hint"));
@@ -1007,17 +1007,24 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float const room = RecipeViewLayout::width - 8;
         std::vector<float> widths;
         for (auto const& part : parts) widths.push_back(labelWidth(context, part, 1));
-        auto const starts = hintRows(widths, labelWidth(context, sep, 1), room);
+        auto const starts = hintRows(widths, labelWidth(context, sep, 1), room / hintScale);
         int const lines = static_cast<int>(starts.size());
-        // At their own size and color; only a last line holding what more lines would is shrunk to fit.
-        if (lines && (open || hintTop(screen.y, lines) >= at.y + size.y + 2))
+        // Below an open window where it leaves them room, else, on a low screen, in its last line as one line
+        // shrunk to fit (the window keeps its place, maintainer 2026-11-24); closed, where the game's window does.
+        float const above = open ? viewLayout.top + viewLayout.height + 1 : at.y + size.y + 2;
+        if (lines && hintTop(screen.y, lines) >= above)
             for (int i = 0; i < lines; ++i) {
                 size_t const to = i + 1 < lines ? starts[static_cast<size_t>(i) + 1] : parts.size();
                 std::string text = join(starts[static_cast<size_t>(i)], to);
-                float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
-                labelScaled(context, hintsX + 4, hintTop(screen.y, lines - i) + (1 - scale) * 4, room, std::move(text), scale, palette::dim,
-                            Align::Center, true);
+                float const wide = labelWidth(context, text, hintScale), scale = wide > room ? hintScale * room / wide : hintScale;
+                labelScaled(context, hintsX + 4, hintTop(screen.y, lines - i), room, std::move(text), scale, palette::dim, Align::Center, true);
             }
+        else if (lines && open) {
+            std::string text = join(recipesOn && parts.size() > 1 ? 1 : 0, parts.size());
+            float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
+            labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room, std::move(text), scale,
+                        palette::vanilla::windowFaint, Align::Center, false);
+        }
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
     bool const hoverOurs = !hoverItem.empty(); // the take keys act on Lamium's lists and windows only (L-360)
