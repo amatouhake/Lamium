@@ -562,24 +562,23 @@ void applyLayerStep(menu::Stepper stepper, int amount) {
     if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
     bool leftAll = false;
     changeSelected([&](SavedPlacement& p) {
-        if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
-        if (stepper == menu::Stepper::LayerAxis) {
-            // Changing the axis keeps the cut; only Cut here moves it.
-            p.layers.axis = static_cast<LayerAxis>(((static_cast<int>(p.layers.axis) + amount) % 3 + 3) % 3);
-        } else if (stepper == menu::Stepper::LayerMode) {
-            p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
-        } else if (stepper == menu::Stepper::LayerKeep) {
-            // A wheel can deliver several notches in one frame; keep the side
-            // for an even count, toggle for an odd one.
-            if (amount % 2 != 0)
-                p.layers.keep = p.layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
-        } else {
-            leftAll = leaveAll(p.layers);
-            if (!leftAll) p.layers.cut += amount;
-        }
-        p.layers.cut = std::clamp(p.layers.cut, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
-        if (stepper != menu::Stepper::LayerMode) noteLayerEdit(p.layers);
-        dualWrite(p.layers, structure->size, p.placement);
+        editLayers(p.layers, structure->size, p.placement, [&](Layers& layers) {
+            if (stepper == menu::Stepper::LayerAxis) {
+                // Changing the axis keeps the cut; only Cut here moves it.
+                layers.axis = static_cast<LayerAxis>(((static_cast<int>(layers.axis) + amount) % 3 + 3) % 3);
+            } else if (stepper == menu::Stepper::LayerMode) {
+                layers.mode = static_cast<LayerMode>(((static_cast<int>(layers.mode) + amount) % 3 + 3) % 3);
+            } else if (stepper == menu::Stepper::LayerKeep) {
+                // A wheel can deliver several notches in one frame; keep the side
+                // for an even count, toggle for an odd one.
+                if (amount % 2 != 0)
+                    layers.keep = layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
+            } else {
+                leftAll = leaveAll(layers);
+                if (!leftAll) layers.cut += amount;
+            }
+            layers.cut = std::clamp(layers.cut, 0, std::max(0, layerCount(structure->size, layers.axis) - 1));
+        }, stepper != menu::Stepper::LayerMode);
     }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, stepper, leftAll); });
 }
 }
@@ -662,13 +661,10 @@ void press(IClientInstance& client, Action action) {
         if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
         bool leftAll = false;
         changeSelected([&](SavedPlacement& p) {
-            if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
-            leftAll = leaveAll(p.layers);
-            if (!leftAll) {
-                p.layers.cut = std::clamp(p.layers.cut + direction, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
-            }
-            noteLayerEdit(p.layers);
-            dualWrite(p.layers, structure->size, p.placement);
+            editLayers(p.layers, structure->size, p.placement, [&](Layers& layers) {
+                leftAll = leaveAll(layers);
+                if (!leftAll) layers.cut = std::clamp(layers.cut + direction, 0, std::max(0, layerCount(structure->size, layers.axis) - 1));
+            });
         }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, menu::Stepper::Layer, leftAll); });
         return;
     }
@@ -679,11 +675,10 @@ void press(IClientInstance& client, Action action) {
         if (!at) return;
         bool leftAll = false;
         changeSelected([&](SavedPlacement& p) {
-            if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
-            p.layers.cut = cutAlong(structure->size, p.placement, p.layers.axis, *at);
-            leftAll = leaveAll(p.layers);
-            noteLayerEdit(p.layers);
-            dualWrite(p.layers, structure->size, p.placement);
+            editLayers(p.layers, structure->size, p.placement, [&](Layers& layers) {
+                layers.cut = cutAlong(structure->size, p.placement, layers.axis, *at);
+                leftAll = leaveAll(layers);
+            });
         }, [&](SavedPlacement const& p) { return cutHereText(structure.get(), p, leftAll); });
         return;
     }
