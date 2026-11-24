@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm>
+#include <cmath>
 #include <vector>
 // The game's window and item tooltip as rectangles in GUI units (L-366),
 // measured from the game at 3 pixels a unit (UI zoom 75%, 1920x1080,
@@ -58,4 +60,21 @@ inline std::vector<Rect> tooltip(float x, float y, float w, float h) {
 inline constexpr float tooltipTextLeft = 5, tooltipTextTop = 5, tooltipLine = 10;
 inline constexpr float tooltipWidth(float textWidth) { return textWidth + 2 * tooltipTextLeft; }
 inline constexpr float tooltipHeight(int lines) { return 2 * tooltipTextTop - 2 + tooltipLine * static_cast<float>(lines); }
+// Where a w x h tooltip goes beside the pointer: `gap` right of and below
+// it; on an axis where that would pass the screen's edge (less `margin`),
+// on the pointer's other side, left or above; pushed back onto the screen
+// only where neither side has room. Each axis on its own, so a box flipped
+// on one still keeps off the pointer and the item under it (pushing both
+// back laid it over them near the lower right corner, 2026-11-24). On whole
+// units: the pointer lies between them, and the box and the text, rounded
+// to pixels each their own way, moved a pixel apart now and then.
+struct TooltipAt { float x, y; };
+inline TooltipAt tooltipAt(float pointerX, float pointerY, float w, float h, float screenW, float screenH, float gap = 8, float margin = 2) {
+    auto axis = [&](float pointer, float size, float screen) {
+        float const after = pointer + gap, before = pointer - gap - size, last = screen - margin - size;
+        float const at = after <= last ? after : before >= margin ? before : std::min(after, last);
+        return std::round(std::max(margin, at));
+    };
+    return {axis(pointerX, w, screenW), axis(pointerY, h, screenH)};
+}
 }

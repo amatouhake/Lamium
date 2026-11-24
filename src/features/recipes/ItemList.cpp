@@ -1078,10 +1078,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float const inset = vf::tooltipTextLeft, top = vf::tooltipTextTop - 1;
         w = std::min(vf::tooltipWidth(w), screen.x - 4);
         float const h = vf::tooltipHeight(lines) + membersH;
-        // On whole units: the pointer lies between them, and the box and the text, rounded to pixels each their
-        // own way, moved a pixel apart now and then as it went.
+        // On whole units, beside the pointer and clear of it (vf::tooltipAt).
         w = std::ceil(w);
-        float const x = std::round(std::max(2.f, std::min(px + 8, screen.x - w - 2))), y = std::round(std::max(2.f, std::min(py + 8, screen.y - h - 2)));
+        auto const at = vf::tooltipAt(px, py, w, h, screen.x, screen.y);
+        float const x = at.x, y = at.y;
         context.flushText(0, std::nullopt);
         gameTooltipBox(context, x, y, w, h);
         if (gameName) gameText(context, x + inset, y + top, w - 2 * inset, detailsName.raw);
