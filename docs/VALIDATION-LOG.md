@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Latin text raised in the tip (L-363, 2026-11-24)
+
+`c7523c60` on branch `l363-data-keys` (DLL
+`cd06e3ec3f32ce904f44f486ebe75d107748cc0c8c7aa17f812b8500c15596a6`),
+1.26.60.05 Dev, a local world, the game in Japanese:
+- Seen: the coal block's "燃料: 80 個分" with its Latin part level with
+  the Japanese, as before the branch; the ID line not low; colors as
+  before; nothing else changed.
+- Not checked here: Shift-click at a crafting table on main (proposed as
+  a task of its own).
+
 ## The review's fixes on keys with data (L-363, 2026-11-24)
 
 `94762ccc` on branch `l363-data-keys` (DLL
