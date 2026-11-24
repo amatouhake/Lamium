@@ -130,9 +130,10 @@ after using the first build. What is still open is in the L-item.
   window open or not, in light text over the world (maintainer
   2026-11-24, L-360): click for recipes, right click for uses, the
   favorite and wanted keys, Backspace for back while a recipe is open,
-  what Shift does, the take keys in creative. Where one line does not hold
-  them they take two, the room for both kept free; closed, they show only
-  where the game's window leaves them room.
+  what Shift does, the take keys in creative. They wrap at their own size
+  and color onto as many lines as they need (up to four, the room for all
+  kept free; maintainer 2026-11-24); closed, they show only where the
+  game's window leaves them room.
 - The game's inventory key closes the view like Esc and leaves the screen
   under it open; a second press closes that. Every key but the two recipe
   keys is kept from the game while the view is open.

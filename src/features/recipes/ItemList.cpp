@@ -560,7 +560,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
     }
     cost.walk = cost.lap();
-    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, hintTop(screen.y, 2) - 1);
+    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, hintTop(screen.y, hintMostLines) - 1);
     // Asked for from the settings, the editor starts on the first item screen drawn.
     static std::string editScreen; // the editor belongs to the screen it started on
     // A screen the game closed (a death, the server) and opened again: arranging ended with it.
@@ -981,8 +981,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
     }
     // The key hints right above the search row (L-360, maintainer 2026-11-24), whatever lies above them: the
-    // presses, then the keys, on one line, or on two where one does not hold them. Closed, they show only where
-    // the game's window leaves them free. A notice stands in their place while it lasts.
+    // presses, then the keys, wrapped onto as many lines as they need (ItemListLayout.h). Closed, they show only
+    // where the game's window leaves them free. A notice stands in their place while it lasts.
     float const hintsX = std::floor((screen.x - RecipeViewLayout::width) / 2);
     bool const noticing = !noticeText.empty() && std::chrono::steady_clock::now() - noticeAt < std::chrono::duration<double>(noticeSeconds);
     if (noticing) drawNotice(context, screen.x / 2, hintTop(screen.y, 1), RecipeViewLayout::width, noticeText, true, true);
@@ -1007,19 +1007,17 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float const room = RecipeViewLayout::width - 8;
         std::vector<float> widths;
         for (auto const& part : parts) widths.push_back(labelWidth(context, part, 1));
-        size_t const cut = hintBreak(widths, labelWidth(context, sep, 1), room);
-        auto free = [&](int lines) { return open || hintTop(screen.y, lines) >= at.y + size.y + 2; };
-        auto line = [&](std::string text, float y) {
-            float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
-            labelScaled(context, hintsX + 4, y + (1 - scale) * 4, room, std::move(text), scale, palette::dim, Align::Center, true);
-        };
-        if (cut < parts.size() && free(2)) {
-            line(join(0, cut), hintTop(screen.y, 2));
-            line(join(cut, parts.size()), hintTop(screen.y, 1));
-        } else if (free(1)) {
-            // One line only: the keys without the presses where both do not fit, shrunk where still longer.
-            line(recipesOn && parts.size() > 1 && cut < parts.size() ? join(1, parts.size()) : join(0, parts.size()), hintTop(screen.y, 1));
-        }
+        auto const starts = hintRows(widths, labelWidth(context, sep, 1), room);
+        int const lines = static_cast<int>(starts.size());
+        // At their own size and color; only a last line holding what more lines would is shrunk to fit.
+        if (lines && (open || hintTop(screen.y, lines) >= at.y + size.y + 2))
+            for (int i = 0; i < lines; ++i) {
+                size_t const to = i + 1 < lines ? starts[static_cast<size_t>(i) + 1] : parts.size();
+                std::string text = join(starts[static_cast<size_t>(i)], to);
+                float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
+                labelScaled(context, hintsX + 4, hintTop(screen.y, lines - i) + (1 - scale) * 4, room, std::move(text), scale, palette::dim,
+                            Align::Center, true);
+            }
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
     bool const hoverOurs = !hoverItem.empty(); // the take keys act on Lamium's lists and windows only (L-360)

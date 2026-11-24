@@ -508,8 +508,8 @@ void recipeIndexTests() {
         check(cornersClear, "every station's block keeps place and the check box at its corner, off the product");
         check(RecipeViewLayout::gap == 6 && RecipeViewLayout::block + 2 * RecipeViewLayout::pad == 102,
               "faces are 102 wide and 6 apart (L-379)");
-        check(view.left == 202 && view.top == 43 && view.height == 251 && view.top + view.height + 4 <= hintTop(360, 2)
-              && recipeViewAt(640, 200).height == 200 - 18 - 22 - 4 - 22 && recipeViewAt(640, 200).top == 22,
+        check(view.left == 202 && view.top == 32 && view.height == 251 && view.top + view.height + 4 <= hintTop(360, hintMostLines)
+              && recipeViewAt(640, 200).height == 200 - 18 - 44 - 4 - 22 && recipeViewAt(640, 200).top == 22,
               "the view is centred, three rows high, under its tabs and over the key hints; on a low screen it fills the room");
         check(hintTop(360, 1) == 360 - 18 - 1 - 11 && hintTop(360, 2) + hintLine == hintTop(360, 1),
               "the hints end a unit above the search row, a second line above the first");
@@ -607,7 +607,7 @@ void recipeIndexTests() {
                   "of two recipes that fit, the one the game names is taken, else the first");
         }
         check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 328
-              && std::abs(view.blockY(Station::Crafting, 8, 3) - (43 + 35 + 70 + (70.f - 54) / 2)) < .01f,
+              && std::abs(view.blockY(Station::Crafting, 8, 3) - (32 + 35 + 70 + (70.f - 54) / 2)) < .01f,
               "one column sits in the middle; two fill left to right, then down");
     }
     {

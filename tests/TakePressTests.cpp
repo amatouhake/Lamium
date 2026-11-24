@@ -1,5 +1,6 @@
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/TakePress.h"
+#include <vector>
 void check(bool, char const*);
 void takePressTests() {
     using namespace lamium::recipes::take;
@@ -19,9 +20,12 @@ void takePressTests() {
     check(refusal(false, true, false) == Refusal::NotHere, "a screen without the creative list says so first");
     check(refusal(true, false, false) == Refusal::NotListed, "an item the creative inventory lacks");
     check(refusal(true, true, false) == Refusal::GameSearch, "a listed item without a cell: the game's search hides it");
-    using lamium::recipes::hintBreak;
-    check(hintBreak({50, 60, 40}, 10, 200) == 3, "hints that fit keep one line");
-    check(hintBreak({50, 60, 40}, 10, 120) == 2, "the second line starts at the first part that does not fit");
-    check(hintBreak({300, 20}, 10, 100) == 1, "a first part wider than the line still stands alone on the first");
-    check(hintBreak({}, 10, 100) == 0, "no hints, no lines");
+    using lamium::recipes::hintRows;
+    using Starts = std::vector<size_t>;
+    check(hintRows({50, 60, 40}, 10, 200) == Starts{0}, "hints that fit keep one line");
+    check(hintRows({50, 60, 40}, 10, 120) == Starts{0, 2}, "a line starts at the first part that does not fit");
+    check(hintRows({100, 100, 100, 100}, 10, 120) == Starts{0, 1, 2, 3}, "they wrap onto as many lines as they need");
+    check(hintRows({300, 20, 20}, 10, 100) == Starts{0, 1}, "a part wider than a line stands alone");
+    check(hintRows({100, 100, 100, 100, 100}, 10, 120, 3) == Starts{0, 1, 2}, "the last line takes what is left");
+    check(hintRows({}, 10, 100).empty(), "no hints, no lines");
 }

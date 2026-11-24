@@ -35,25 +35,31 @@ struct ListBox {
 // panels on every screen; the field is high enough for Japanese and letters that reach under the line.
 inline constexpr float searchTop = 18; // its top, from the screen's bottom
 // The key hints stand right above the row on every screen, the recipe view's open or not (maintainer 2026-11-24,
-// L-360): up to two lines, `hintLine` apart; the room for both is kept free above the row, so nothing moves when
-// a second line comes. The top of the first of `lines`.
-inline constexpr float hintLine = 11, hintRoom = 2 * hintLine;
+// L-360): wrapped at their own size onto as many lines as they need, up to `hintMostLines`, `hintLine` apart; the
+// room for all of them is kept free above the row, so nothing moves when a line comes. The top of the first of
+// `lines`.
+inline constexpr int hintMostLines = 4;
+inline constexpr float hintLine = 11, hintRoom = hintMostLines * hintLine;
 inline float hintTop(float screenHeight, int lines) { return screenHeight - searchTop - 1 - static_cast<float>(lines) * hintLine; }
 // `width`: 176, or up to a button more each side where the panels leave the room (rowWidth).
 inline ListBox bottomRowAt(float screenWidth, float screenHeight, float width = 176) {
     return {std::floor((screenWidth - width) / 2), screenHeight - searchTop, width, 16};
 }
-// The key hints (L-360): parts joined by a separator `sep` wide on one line of `room`, or, where they do not fit,
-// on two lines below each other, the first as full as whole parts make it (at least one part). The index of the
-// first part of the second line; the count of parts when one line holds them all.
-inline size_t hintBreak(std::vector<float> const& widths, float sep, float room) {
+// The key hints (L-360): parts joined by a separator `sep` wide, wrapped onto lines of `room`, each as full as
+// whole parts make it (a part wider than a line stands alone). The index of each line's first part; the last
+// line takes all that is left once `most` lines are used.
+inline std::vector<size_t> hintRows(std::vector<float> const& widths, float sep, float room, int most = hintMostLines) {
+    std::vector<size_t> starts;
     float line = 0;
     for (size_t i = 0; i < widths.size(); ++i) {
-        float const next = line + (i ? sep : 0) + widths[i];
-        if (next > room && i > 0) return i;
-        line = next;
+        bool const first = starts.empty() || starts.back() == i;
+        float const next = line + (first ? 0 : sep) + widths[i];
+        if (starts.empty() || (next > room && !first && static_cast<int>(starts.size()) < most)) {
+            starts.push_back(i);
+            line = widths[i];
+        } else line = next;
     }
-    return widths.size();
+    return starts;
 }
 // The row's width: as wide as the free span between the panels beside it allows, from the inventory's 176 to a
 // button (18) more each side. `leftEnd`/`rightStart`: where the panels next to the row end and begin.
