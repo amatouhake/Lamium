@@ -329,13 +329,21 @@ void readNames(LocalPlayer& player) {
     auto const& entries = registry->mCreativeItems.get();
     if (entries.size() > 20000) return; // not a list of items
     std::map<std::string, std::string, std::less<>> entryIcons;
+    // Entries left out behind an earlier one of the same key: none today, so a count says an update or an add-on
+    // brought items told apart by data that identityTags does not name.
+    int dropped = 0;
+    std::string droppedKeys;
     for (auto const& entry : entries) {
         auto const& item = entry.mItemInstance.get();
         if (item.isNull()) continue;
         // L-363: an enchanted book, a firework rocket, the ominous banner carry their data in the key, so each
         // creative entry is listed; the first under a key without data stands for its base (the recipe table's).
         std::string name = stackKey(item);
-        if (name.empty() || !listed.insert(name).second) continue;
+        if (name.empty()) continue;
+        if (!listed.insert(name).second) {
+            if (++dropped <= 5 && droppedKeys.find(name) == std::string::npos) droppedKeys += (droppedKeys.empty() ? "" : ", ") + name;
+            continue;
+        }
         nameIndex.emplace(name, names.size());
         if (name.size() != baseKey(name).size()) nameIndex.emplace(std::string(baseKey(name)), names.size());
         // The entry as it is drawn everywhere Lamium shows this key (a firework star's color and tip).
@@ -363,6 +371,7 @@ void readNames(LocalPlayer& player) {
     auto const took = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
     Runtime::instance().self().getLogger().info("Recipes: item list of {} items, {} keyed by their data, {} not rebuilt ({} ms)", names.size(), withData,
                                                 lost, took);
+    if (dropped) Runtime::instance().self().getLogger().info("Recipes: {} entries left out behind another of their key ({})", dropped, droppedKeys);
 }
 // The game's window on this screen: the chest's and anvil's panel, the inventory's and crafting table's
 // (recipe book and all), the furnace's. Seen in game on 1.26.60 (VALIDATION-LOG 2026-11-18).
