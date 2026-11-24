@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The keys button's smaller mark (L-398, 2026-11-24)
+
+`00f21b1e` (DLL
+`0de6e4d36fad324c4689dfffe69d5c341cee7e357549a90eb20ea723fcf70aad`),
+1.26.60.05 Dev, a local world, the maintainer:
+- Seen: the question mark in two-unit strokes, smaller, with a margin to
+  the button's edge like the other buttons' pictures.
+
 ## The keys button redrawn, R and U named (L-398, 2026-11-24)
 
 `e4b66be6` (DLL
