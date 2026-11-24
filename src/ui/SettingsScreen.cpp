@@ -1758,8 +1758,9 @@ void start() {
             // carry no position: lists use the pointer as last drawn, and the selection stays put.
             int const rows = event.buttonData() > 0 ? -3 : 3, notch = event.buttonData() > 0 ? 1 : -1;
             auto const* tool = toolView();
-            switch (screen_mode::wheel({row_pages::any(), calculatorOpen, schematicMenu.has_value(), worldMapOpen, prompt.has_value(),
-                                        hudEditorView(), tool != nullptr})) {
+            switch (screen_mode::wheel({.rowPage = row_pages::any(), .calculator = calculatorOpen, .schematicMenu = schematicMenu.has_value(),
+                                        .worldMap = worldMapOpen, .prompt = prompt.has_value(), .hudEditor = hudEditorView(),
+                                        .tool = tool != nullptr})) {
             case screen_mode::Wheel::RowPage: pendingWheels.push_back({x, y, rows}); break;
             case screen_mode::Wheel::Calculator: calculator_view::wheel(notch); break;
             case screen_mode::Wheel::SchematicMenu: pendingWheels.push_back({x, y, notch}); break;
