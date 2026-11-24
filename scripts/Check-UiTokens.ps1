@@ -4,6 +4,9 @@
 # ones are counted per file in UiTokenBaseline.txt (L-341 and L-347 removed them); a
 # file over its count fails, and so does one under it, so the baseline shrinks
 # with the code. -Update rewrites the baseline after a removal.
+# A color in another spelling counts too (L-400): `packColor(242, 204, 61)`, an opaque hex
+# `0xff5a64ffu`, the game's `mce::Color{.25f, ...}`. A palette color goes into a pixel buffer as
+# `ui::packed(palette::token)`; the map picture's own colors stay in the map's headers, counted.
 param(
     [switch]$Update,
     [string]$Baseline = (Join-Path $PSScriptRoot 'UiTokenBaseline.txt')
@@ -16,6 +19,8 @@ $patterns = [ordered]@{
     # A returned brace list of three numbers with a fraction is one too (whole numbers are a direction).
     color  = '\bRgb(\s+\w+)?\s*\{\s*[-.\d]|\breturn\s*\{(?=[^}]*\.)\s*[-.\df]+\s*,\s*[-.\df]+\s*,\s*[-.\df]+\s*\}'
     button = '\bpalette::keyFill\b'
+    # All ones is a mask or "unchanged" and ff000000 the alpha mask, not colors.
+    packed = '\bpackColor\(\s*\d|\bmce::Color\s*[{(]\s*[-.\d]|\b0x[fF]{2}(?![fF]{6}|0{6})[0-9a-fA-F]{6}u?\b'
 }
 $counts = [ordered]@{}
 foreach ($folder in 'src/ui', 'src/features', 'src/overlay') {
@@ -46,7 +51,9 @@ $problems = @()
 foreach ($key in $counts.Keys) {
     $limit = if ($allowed.ContainsKey($key)) { $allowed[$key] } else { 0 }
     if ($counts[$key] -gt $limit) {
-        $what = if ($key.StartsWith('color')) { 'color literal(s): add a palette token in Widgets.h' } else { 'hand-drawn button fill(s): use the shared button in Widgets.h' }
+        $what = if ($key.StartsWith('color')) { 'color literal(s): add a palette token in Widgets.h' }
+            elseif ($key.StartsWith('packed')) { 'packed color literal(s): use ui::packed(palette::token), or keep a map color in the map headers' }
+            else { 'hand-drawn button fill(s): use the shared button in Widgets.h' }
         $problems += "$key has $($counts[$key]) (allowed $limit) $what"
     }
 }

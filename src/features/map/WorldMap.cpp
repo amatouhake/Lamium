@@ -1336,7 +1336,7 @@ void shapeIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, 
     for (auto const& r : ellipseOutline(ix, iy, ix + 7, iy + 7))
         ui::fill(context, static_cast<float>(r.x), static_cast<float>(r.y), static_cast<float>(r.w), static_cast<float>(r.h), color, alpha);
 }
-constexpr std::uint32_t shapeSymbolColor = packColor(242, 204, 61);
+constexpr std::uint32_t shapeSymbolColor = ui::packed(ui::palette::shapeYellow);
 // A layer's symbol in the top bar and the list menu.
 // The radar, small: a player's dot and a hostile mob's.
 void radarSymbol(MinecraftUIRenderContext& context, float x, float cy, float alpha) {

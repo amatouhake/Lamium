@@ -5,16 +5,17 @@
 #include "overlay/ShapeSession.h"
 #include "app/Runtime.h"
 #include "app/SessionIds.h"
+#include "ui/Widgets.h"
 
 namespace lamium::map {
 namespace {
 std::uint32_t shapeMapColor(overlay::ShapeColor color) {
     // The colors shapes draw in the world (WorldOverlay shapeColor).
     switch (color) {
-    case overlay::ShapeColor::Yellow: return packColor(242, 204, 61);
-    case overlay::ShapeColor::Pink: return packColor(240, 128, 191);
-    case overlay::ShapeColor::White: return packColor(242, 242, 242);
-    default: return packColor(64, 209, 224);
+    case overlay::ShapeColor::Yellow: return ui::packed(ui::palette::shapeYellow);
+    case overlay::ShapeColor::Pink: return ui::packed(ui::palette::shapePink);
+    case overlay::ShapeColor::White: return ui::packed(ui::palette::shapeWhite);
+    default: return ui::packed(ui::palette::shapeCyan);
     }
 }
 }

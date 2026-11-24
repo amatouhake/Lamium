@@ -1,3 +1,16 @@
 # Check-UiTokens.ps1 baseline: kind, file, count. Only ever goes down.
 button src/ui/HudEditor.cpp 1
+packed src/ui/SchematicsView.cpp 4
 button src/ui/SettingsTableView.cpp 1
+packed src/features/information/InfoHud.cpp 2
+packed src/features/information/Saturation.h 2
+packed src/features/inspection/LockedTrades.cpp 4
+packed src/features/inspection/render/HeldItem.cpp 1
+packed src/features/map/MapCave.h 2
+packed src/features/map/MapFaces.h 1
+packed src/features/map/MapImage.h 1
+packed src/features/map/MapRadar.h 4
+packed src/features/map/MapRegion.h 1
+packed src/features/map/Minimap.cpp 2
+packed src/features/map/RadarFaces.cpp 2
+packed src/features/map/Waypoints.h 12

@@ -11,6 +11,7 @@
 // - A control that must look or behave unlike the one here is a design
 //   question for the maintainer, not a local variant.
 // Details: docs/DESIGN.md "Visual language".
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -69,6 +70,11 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     // red the recipe book gives what cannot be made.
     slot{.545f,.545f,.545f}, slotDark{.216f,.216f,.216f}, slotLight{1,1,1}, slotMissing{.851f,.302f,.302f};
 }
+}
+// A palette color as a pixel buffer or a vertex holds one: RGBA bytes, r lowest (map::packColor's order).
+constexpr std::uint32_t packed(Rgb color, float alpha = 1) {
+    auto byte = [](float v) { return static_cast<std::uint32_t>(v <= 0 ? 0 : v >= 1 ? 255 : v * 255 + .5f); };
+    return byte(color.r) | byte(color.g) << 8 | byte(color.b) << 16 | byte(alpha) << 24;
 }
 // Two panel opacities (DESIGN "Colors"), by what is under the panel: the
 // world (the screen, docked panels, prompts, the radial, the HUD editor's

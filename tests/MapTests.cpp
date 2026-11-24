@@ -7,6 +7,7 @@
 #include "features/map/MapView.h"
 #include "features/map/MinimapLayout.h"
 #include "features/map/Teleport.h"
+#include "ui/Widgets.h"
 #include <cmath>
 #include <array>
 #include <vector>
@@ -337,6 +338,11 @@ void image() {
     check(over(0, 10, 20, 30, 1) == packColor(10, 20, 30), "opaque over transparent is the color");
     check(over(packColor(0, 0, 0), 255, 255, 255, .5f) == packColor(128, 128, 128), "half white over black");
     check(over(packColor(1, 2, 3), 9, 9, 9, 0) == packColor(1, 2, 3), "zero alpha leaves the pixel");
+    // Shapes on the map are the palette's shape colors, in the bytes they were drawn in before (L-400).
+    check(lamium::ui::packed(lamium::ui::palette::shapeYellow) == packColor(242, 204, 61) && lamium::ui::packed(lamium::ui::palette::shapePink) == packColor(240, 128, 191)
+          && lamium::ui::packed(lamium::ui::palette::shapeWhite) == packColor(242, 242, 242) && lamium::ui::packed(lamium::ui::palette::shapeCyan) == packColor(64, 209, 224),
+          "a palette color packs to the map's bytes, rounded");
+    check(lamium::ui::packed(lamium::ui::palette::panel, 150 / 255.f) == packColor(16, 17, 19, 150), "opacity packs into the top byte");
 
     TileCache cache;
     auto& tile = cache.put({-1, -1});
