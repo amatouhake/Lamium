@@ -12,6 +12,38 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## How the creative list hands items out, and Lamium through it (L-360, 2026-11-24)
+
+Trace build `creative_trace` on `d987005c` with the trace uncommitted (DLL
+`0ef3e8be1811ce61d7c03d31acba5bd22fc6936982cb5fc323a4662cdc941350`),
+1.26.60.05 Dev, LeviLamina 26.60.5, a local world without cheats whose
+commands LeviLamina enables, the maintainer in creative, then survival:
+- The game's list: a right press is `_handleTakeAmount(1)` onto the
+  pointer, Shift + a press `_handleAutoPlace(INT_MAX)` into the inventory;
+  the left press (a stack onto the pointer) went through none of the
+  hooked calls. Every request was accepted.
+- The cells: each tab's collection (`recipe_nature`, `recipe_items`,
+  `recipe_equipment`, `recipe_construction`) is empty until that tab is
+  opened on this visit of the screen, and empty again when the screen
+  reopens; `recipe_search` follows the search text, and holds all 1980
+  entries (1839 keys) with the search tab open and no text. In the tabs a
+  group shows one cell (one enchanted book, one potion); in the search
+  view each entry has its own.
+- Lamium on a cell that shows the item (name and aux), inventory and
+  crafting table: `_handleTakeAmount(1)` and `(64)` put 1 and 64 on the
+  pointer, `_handleAutoPlace(64)` a stack into the inventory, for ingots,
+  swords, frames and splash potions. An item without a cell (planks,
+  stairs, nylium, spawn eggs before their tab was opened) cannot be taken.
+  An enchanted book took the tab's one book, not the hovered one.
+- The furnace's creative collections are `recipe_food`, `recipe_blocks`,
+  `recipe_items_furnace` and `recipe_search`; calls on its search cells
+  took nothing. A chest's screen has no creative collection.
+- `/give` (survival) gave the item on every screen, chests too; the
+  client read cheats and commands as off and permission 3 meanwhile.
+  `/give` counts items (64 signs are four stacks) and carries no data: an
+  enchanted book came out blank. A potion by aux was given.
+- Not seen: a server, a held item while taking.
+
 ## Japanese and Chinese lines broken between characters (2026-11-24)
 
 `63b8a660` (DLL
