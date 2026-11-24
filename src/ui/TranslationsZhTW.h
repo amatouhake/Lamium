@@ -1387,6 +1387,8 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"where.cond.plan", "計畫開啟時"},
     {"fixed.help", "固定操作，無法變更按鍵。"},
     {"fixed.helpSwitch", "可在設定的物品欄轉移中開關。"},
+    {"fixed.summary", "{}（{}）。{}"},
+    {"fixed.sentences", "{}{}"},
     {"fixed.cap.wheel", "滾輪"},
     {"fixed.cap.dropKey", "丟棄鍵"},
     {"fixed.recipesClick", "查看配方"},

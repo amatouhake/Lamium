@@ -2182,6 +2182,8 @@ window.LAMIUM_DATA = {
  "where.cond.plan": ["while the Plan is on","計画がオンのとき","计划开启时","計畫開啟時"],
  "fixed.help": ["A fixed press: its key cannot be changed.","固定の操作で、キーは変えられません。","固定操作，无法更改按键。","固定操作，無法變更按鍵。"],
  "fixed.helpSwitch": ["It is switched on or off in the settings, under Inventory transfer.","オン/オフは設定画面のインベントリ転送で切り替えます。","可在设置的物品栏转移中开关。","可在設定的物品欄轉移中開關。"],
+ "fixed.summary": ["{} ({}). {}","{}（{}）。{}","{}（{}）。{}","{}（{}）。{}"],
+ "fixed.sentences": ["{} {}","{}{}","{}{}","{}{}"],
  "fixed.cap.wheel": ["Wheel","ホイール","滚轮","滾輪"],
  "fixed.cap.dropKey": ["Drop key","捨てるキー","丢弃键","丟棄鍵"],
  "fixed.recipesClick": ["Show the recipes","レシピを見る","查看配方","查看配方"],

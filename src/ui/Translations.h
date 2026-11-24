@@ -1404,6 +1404,9 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"where.cond.plan", "while the Plan is on", "計画がオンのとき"},
     {"fixed.help", "A fixed press: its key cannot be changed.", "固定の操作で、キーは変えられません。"},
     {"fixed.helpSwitch", "It is switched on or off in the settings, under Inventory transfer.", "オン/オフは設定画面のインベントリ転送で切り替えます。"},
+    // A fixed press in Hotkeys' footer: its name, its keys, then the sentences after it.
+    {"fixed.summary", "{} ({}). {}", "{}（{}）。{}"},
+    {"fixed.sentences", "{} {}", "{}{}"},
     {"fixed.cap.wheel", "Wheel", "ホイール"},
     {"fixed.cap.dropKey", "Drop key", "捨てるキー"},
     {"fixed.recipesClick", "Show the recipes", "レシピを見る"},

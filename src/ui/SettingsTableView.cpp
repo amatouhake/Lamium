@@ -804,7 +804,8 @@ std::string baseDescription() {
             auto const where = input::whereActs(*linked);
             text += "\n" + placeLine(where.layers, where.condition, input::FixedTarget::None);
         } else if (auto press = fixedPressOf(entry.option->id)) {
-            text += "\n" + translated("fixed.help") + " " + placeLine(press->where, input::Condition::None, press->target);
+            text += "\n" + translated("fixed.sentences", translated("fixed.help"),
+                placeLine(press->where, input::Condition::None, press->target));
         }
         return text;
     }
@@ -826,8 +827,10 @@ std::string baseDescription() {
         std::string keys;
         if (auto client = ll::service::getClientInstance())
             for (auto const& key : fixedKeys(*client, press)) keys += (keys.empty() ? "" : " + ") + key;
-        auto text = featureName(*entry.feature) + ": " + fixedName(press) + " (" + keys + "). " + translated("fixed.help");
-        if (!press.option.empty()) text += " " + translated("fixed.helpSwitch");
+        // Sentences joined as the language does: Japanese and Chinese take no space after "。".
+        auto help = translated("fixed.help");
+        if (!press.option.empty()) help = translated("fixed.sentences", help, translated("fixed.helpSwitch"));
+        auto text = featureName(*entry.feature) + ": " + translated("fixed.summary", fixedName(press), keys, help);
         return text + "\n" + placeLine(press.where, input::Condition::None, press.target);
     }
     case RowKind::Layout: return translated("help.layoutLink");

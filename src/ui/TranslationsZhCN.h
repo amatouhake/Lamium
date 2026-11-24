@@ -1387,6 +1387,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"where.cond.plan", "计划开启时"},
     {"fixed.help", "固定操作，无法更改按键。"},
     {"fixed.helpSwitch", "可在设置的物品栏转移中开关。"},
+    {"fixed.summary", "{}（{}）。{}"},
+    {"fixed.sentences", "{}{}"},
     {"fixed.cap.wheel", "滚轮"},
     {"fixed.cap.dropKey", "丢弃键"},
     {"fixed.recipesClick", "查看配方"},
