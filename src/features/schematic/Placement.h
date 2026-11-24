@@ -369,5 +369,16 @@ void turnPlacement(Placement& placement, Layers& layers, Size const* structure, 
     turn(placement);
     if (structure && !layers.legacy) dualWrite(layers, *structure, placement);
 }
+// One edit of a placement's cut plane, as each control makes it (L-399): a
+// legacy view becomes a cut plane first, `edit` changes it, the mode shown is
+// remembered for leaving All (`note`; not when the edit is the mode itself)
+// and the old reader's fields follow.
+template <class Edit>
+void editLayers(Layers& layers, Size structure, Placement const& placement, Edit&& edit, bool note = true) {
+    if (layers.legacy) layers = fromLegacy(layers, structure, placement);
+    edit(layers);
+    if (note) noteLayerEdit(layers);
+    dualWrite(layers, structure, placement);
+}
 }
 

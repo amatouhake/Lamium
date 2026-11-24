@@ -35,6 +35,20 @@ inline int steppedPlacement(int selected, int count, int amount) {
     int from = selected < 0 && amount < 0 ? 0 : selected;
     return ((from + amount) % count + count) % count;
 }
+// Removes the placement at `index`; the selected one stays selected where it
+// moved to, or none when it went. False when there is no such placement.
+inline bool removePlacementAt(PlacementSet& set, int index) {
+    if (index < 0 || index >= static_cast<int>(set.placements.size())) return false;
+    set.placements.erase(set.placements.begin() + index);
+    if (set.selected == index) set.selected = -1;
+    else if (set.selected > index) --set.selected;
+    return true;
+}
+// Shows or hides the placements with these session ids at once (L-190).
+inline void showPlacements(PlacementSet& set, std::vector<std::uint64_t> const& ids, bool visible) {
+    for (auto& p : set.placements)
+        if (std::find(ids.begin(), ids.end(), p.id) != ids.end()) p.visible = visible;
+}
 // Removes the placements with these session ids at once (L-190); the selected
 // one stays selected where it moved to, or none when it went.
 inline void removePlacements(PlacementSet& set, std::vector<std::uint64_t> const& ids) {

@@ -745,6 +745,32 @@ void layerModeMemory() {
     old.lastShown = LayerMode::UpTo;
     check(fromLegacy(old, {4, 6, 3}, {}).lastShown == LayerMode::Only,
           "legacy conversion starts with the default mode memory");
+    // One edit of the cut plane is the same four steps from every control (L-399).
+    Size const size{4, 6, 3};
+    Placement turned{};
+    turned.rotation = 1;
+    for (bool legacy : {false, true})
+        for (bool note : {false, true}) {
+            Layers start;
+            start.legacy = legacy;
+            start.legacyMode = LayerMode::UpTo;
+            start.legacyIndex = 2;
+            start.mode = LayerMode::UpTo;
+            start.cut = 1;
+            start.lastShown = LayerMode::UpTo;
+            auto edit = [](Layers& l) { l.cut += 9; l.mode = LayerMode::Only; };
+            Layers byHand = start;
+            if (byHand.legacy) byHand = fromLegacy(byHand, size, turned);
+            edit(byHand);
+            if (note) noteLayerEdit(byHand);
+            dualWrite(byHand, size, turned);
+            Layers edited = start;
+            editLayers(edited, size, turned, edit, note);
+            check(edited == byHand && !edited.legacy && edited.cut < layerCount(size, edited.axis),
+                  "a layer edit converts a legacy view, edits, remembers the mode when asked and rewrites the old fields");
+            // A legacy view starts its memory afresh when it is converted.
+            check(legacy || (edited.lastShown == LayerMode::Only) == note, "the mode shown is remembered only when the edit notes it");
+        }
 }
 
 void layerRules() {
@@ -1679,6 +1705,21 @@ void placementSteps() {
     auto none = set(-1);
     removePlacements(none, {9});
     check(ids(none).size() == 4 && none.selected == -1, "an id that is gone removes nothing");
+    auto before = set(2);
+    check(removePlacementAt(before, 0) && ids(before) == std::vector<std::uint64_t>{2, 3, 4} && before.selected == 1,
+          "removing a placement before the selected one keeps it selected where it moved");
+    auto itself = set(2);
+    check(removePlacementAt(itself, 2) && ids(itself) == std::vector<std::uint64_t>{1, 2, 4} && itself.selected == -1,
+          "removing the selected placement leaves none selected");
+    auto after = set(1);
+    check(removePlacementAt(after, 3) && after.selected == 1 && !removePlacementAt(after, 3) && !removePlacementAt(after, -1)
+              && ids(after).size() == 3, "removing after the selected one leaves it; an index outside removes nothing");
+    auto shown = set(0);
+    showPlacements(shown, {2, 4, 9}, false);
+    check(shown.placements[0].visible && !shown.placements[1].visible && shown.placements[2].visible && !shown.placements[3].visible
+              && shown.selected == 0, "hiding several placements leaves the others and the selection");
+    showPlacements(shown, {2}, true);
+    check(shown.placements[1].visible && !shown.placements[3].visible, "showing brings back only the ones named");
 }
 void verificationReadiness() {
     using namespace lamium::schematic;
