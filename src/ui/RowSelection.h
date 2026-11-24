@@ -105,6 +105,26 @@ inline SelectionKey selectionKey(int key, bool ctrl, bool several) {
     if (key == 0x1b && several) return SelectionKey::Clear;
     return SelectionKey::None;
 }
+// The keys of a list-and-detail view when nothing is being typed and the
+// selection took none (virtual-key codes): Esc closes, Up and Down move
+// through the detail fields, Left and Right step the selected one, Enter and
+// Space press it, Page Up and Page Down go through the list, Tab goes to the
+// next view (Shift: the previous).
+enum class ViewKey { None, Close, FieldUp, FieldDown, StepDown, StepUp, Activate, RowUp, RowDown, NextNav };
+constexpr ViewKey viewKey(int key) {
+    switch (key) {
+    case 0x1b: return ViewKey::Close;
+    case 0x26: return ViewKey::FieldUp;
+    case 0x28: return ViewKey::FieldDown;
+    case 0x25: return ViewKey::StepDown;
+    case 0x27: return ViewKey::StepUp;
+    case 0x0d: case 0x20: return ViewKey::Activate;
+    case 0x21: return ViewKey::RowUp;
+    case 0x22: return ViewKey::RowDown;
+    case 0x09: return ViewKey::NextNav;
+    default: return ViewKey::None;
+    }
+}
 // How many selected names the pane lists in `room` of `lineHeight` lines:
 // all when they fit, else one line fewer and a last "N more" line. Nothing
 // when not even one line fits.

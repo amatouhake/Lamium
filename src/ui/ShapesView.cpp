@@ -378,12 +378,7 @@ void handleShapeClick(float x, float y, bool right) {
 }
 void handleShapeKey(int key) {
     if (editingShapeName) {
-        switch (key) {
-        case 0x08: if (shapeNameInput.backspace()) shapeNameDirty = true; break;
-        case 0x41: if (screen::heldCtrl()) shapeNameInput.selectAll(); break;
-        case 0x1b: screen::cancelEditing(); break;
-        case 0x0d: case 0x09: screen::finishEditing(); break;
-        }
+        if (screen::textKey(shapeNameInput, key)) shapeNameDirty = true;
         return;
     }
     if (editingShapeField >= 0) {
@@ -404,26 +399,27 @@ void handleShapeKey(int key) {
         case SelectionKey::Clear: selectShape(std::nullopt); return;
         case SelectionKey::None: break;
         }
-    switch (key) {
-    case 0x1b:
+    switch (auto const pressed = viewKey(key); pressed) {
+    case ViewKey::Close:
         if (shapePicking || shapeDraft) cancelDraft();
         else screen::close();
         break;
-    case 0x26: moveShapeField(-1); break;
-    case 0x28: moveShapeField(1); break;
-    case 0x25: activateShapeField(shapeFieldSelected, -1); break;
-    case 0x27: activateShapeField(shapeFieldSelected, 1); break;
-    case 0x0d: case 0x20: activateShapeField(shapeFieldSelected, 0); break;
-    case 0x21: case 0x22: {
+    case ViewKey::FieldUp: moveShapeField(-1); break;
+    case ViewKey::FieldDown: moveShapeField(1); break;
+    case ViewKey::StepDown: activateShapeField(shapeFieldSelected, -1); break;
+    case ViewKey::StepUp: activateShapeField(shapeFieldSelected, 1); break;
+    case ViewKey::Activate: activateShapeField(shapeFieldSelected, 0); break;
+    case ViewKey::RowUp: case ViewKey::RowDown: {
         // Previous / next shape in the list.
         if (shapeList.empty()) break;
         int index = 0;
         for (size_t i = 0; i < shapeList.size(); ++i) if (shapeSelected == shapeList[i].id) index = static_cast<int>(i);
-        index = std::clamp(index + (key == 0x22 ? 1 : -1), 0, static_cast<int>(shapeList.size()) - 1);
+        index = std::clamp(index + (pressed == ViewKey::RowDown ? 1 : -1), 0, static_cast<int>(shapeList.size()) - 1);
         selectShape(shapeList[index].id);
         break;
     }
-    case 0x09: screen::nextNav(screen::heldShift()); break;
+    case ViewKey::NextNav: screen::nextNav(screen::heldShift()); break;
+    case ViewKey::None: break;
     }
 }
 

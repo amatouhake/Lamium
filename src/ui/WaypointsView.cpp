@@ -300,12 +300,7 @@ void handleWaypointClick(float x, float y, bool right) {
 }
 void handleWaypointKey(int key) {
     if (editingWaypointName) {
-        switch (key) {
-        case 0x08: if (waypointNameInput.backspace()) waypointNameDirty = true; break;
-        case 0x41: if (screen::heldCtrl()) waypointNameInput.selectAll(); break;
-        case 0x1b: screen::cancelEditing(); break;
-        case 0x0d: case 0x09: screen::finishEditing(); break;
-        }
+        if (screen::textKey(waypointNameInput, key)) waypointNameDirty = true;
         return;
     }
     if (editingWaypointField >= 0) {
@@ -324,23 +319,24 @@ void handleWaypointKey(int key) {
     case SelectionKey::Clear: selectWaypoint(std::nullopt); return;
     case SelectionKey::None: break;
     }
-    switch (key) {
-    case 0x1b: if (fromMapFlag) screen::returnToMap(); else screen::close(); break;
-    case 0x26: moveWaypointField(-1); break;
-    case 0x28: moveWaypointField(1); break;
-    case 0x25: activateWaypointField(waypointFieldSelected, -1); break;
-    case 0x27: activateWaypointField(waypointFieldSelected, 1); break;
-    case 0x0d: case 0x20: activateWaypointField(waypointFieldSelected, 0); break;
-    case 0x21: case 0x22: {
+    switch (auto const pressed = viewKey(key); pressed) {
+    case ViewKey::Close: if (fromMapFlag) screen::returnToMap(); else screen::close(); break;
+    case ViewKey::FieldUp: moveWaypointField(-1); break;
+    case ViewKey::FieldDown: moveWaypointField(1); break;
+    case ViewKey::StepDown: activateWaypointField(waypointFieldSelected, -1); break;
+    case ViewKey::StepUp: activateWaypointField(waypointFieldSelected, 1); break;
+    case ViewKey::Activate: activateWaypointField(waypointFieldSelected, 0); break;
+    case ViewKey::RowUp: case ViewKey::RowDown: {
         int count = waypointRowCount();
         if (!count) break;
         int row = 0;
         for (int i = 0; i < count; ++i) if (waypointSelected && waypointAtRow(i) == waypointSelected) row = i;
-        row = std::clamp(row + (key == 0x22 ? 1 : -1), 0, count - 1);
+        row = std::clamp(row + (pressed == ViewKey::RowDown ? 1 : -1), 0, count - 1);
         selectWaypoint(waypointAtRow(row));
         break;
     }
-    case 0x09: screen::nextNav(screen::heldShift()); break;
+    case ViewKey::NextNav: screen::nextNav(screen::heldShift()); break;
+    case ViewKey::None: break;
     }
 }
 Rgb waypointRgb(int color) {

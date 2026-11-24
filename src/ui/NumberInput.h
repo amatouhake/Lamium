@@ -8,19 +8,6 @@
 #include "ui/TextEdit.h"
 
 namespace lamium::ui {
-// What a key does while a number is being typed (DESIGN "Controls"): Backspace
-// edits, Ctrl + A selects it all, Esc drops the edit, Enter and Tab keep it.
-// Digits come through the native keyboard, not here.
-enum class NumberKey { None, Backspace, SelectAll, Cancel, Finish };
-constexpr NumberKey numberKey(int key, bool ctrl) {
-    switch (key) {
-    case 0x08: return NumberKey::Backspace;
-    case 0x41: return ctrl ? NumberKey::SelectAll : NumberKey::None;
-    case 0x1b: return NumberKey::Cancel;
-    case 0x0d: case 0x09: return NumberKey::Finish;
-    default: return NumberKey::None;
-    }
-}
 // A small decimal editor shared by settings and future tool screens. Editing
 // text is separate from applied values: incomplete input never becomes zero.
 class NumberInput : public TextEdit {

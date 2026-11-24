@@ -45,4 +45,14 @@ inline int rowOf(std::vector<Row> const& rows, int file) {
     for (size_t r = 0; r < rows.size(); ++r) if (rows[r].file == file) return static_cast<int>(r);
     return -1;
 }
+// The file one step down (`step` 1) or up (-1) the rows from `file`, past
+// folder headings; from no file (-1), the first going down and the last going
+// up. -1 when there is none that way.
+inline int stepFile(std::vector<Row> const& rows, int file, int step) {
+    int count = static_cast<int>(rows.size());
+    int at = file >= 0 ? rowOf(rows, file) : (step > 0 ? -1 : count);
+    for (int r = at + step; r >= 0 && r < count; r += step)
+        if (rows[static_cast<size_t>(r)].file >= 0) return rows[static_cast<size_t>(r)].file;
+    return -1;
+}
 }

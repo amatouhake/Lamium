@@ -71,6 +71,12 @@ void rowSelectionTests() {
         "Ctrl + A selects all, A alone does not");
     check(selectionKey(0x1b, false, true) == SelectionKey::Clear && selectionKey(0x1b, false, false) == SelectionKey::None,
         "Esc clears several rows first, then is left to the screen");
+    check(viewKey(0x1b) == ViewKey::Close && viewKey(0x09) == ViewKey::NextNav, "Esc closes a view and Tab goes on to the next");
+    check(viewKey(0x26) == ViewKey::FieldUp && viewKey(0x28) == ViewKey::FieldDown && viewKey(0x25) == ViewKey::StepDown
+              && viewKey(0x27) == ViewKey::StepUp, "the arrows move through the detail fields and step the selected one");
+    check(viewKey(0x0d) == ViewKey::Activate && viewKey(0x20) == ViewKey::Activate, "Enter and Space press the selected field");
+    check(viewKey(0x21) == ViewKey::RowUp && viewKey(0x22) == ViewKey::RowDown, "Page Up and Page Down go through the list");
+    check(viewKey(0x41) == ViewKey::None && viewKey(0x08) == ViewKey::None, "other keys are not a view's");
 
     auto all = namesFit(4, 50, 12);
     check(all.names == 4 && all.more == 0, "names that fit are all listed");

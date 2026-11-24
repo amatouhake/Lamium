@@ -53,12 +53,4 @@ void numberInputTests() {
         preferences.normalize();
         check(std::get<float>(option.read(preferences)) == *parsed, "numeric editor writes survive settings normalization");
     }
-    using lamium::ui::NumberKey;
-    using lamium::ui::numberKey;
-    check(numberKey(0x08, false) == NumberKey::Backspace && numberKey(0x08, true) == NumberKey::Backspace, "Backspace edits the typed number");
-    check(numberKey(0x41, true) == NumberKey::SelectAll && numberKey(0x41, false) == NumberKey::None, "A selects all only with Ctrl");
-    check(numberKey(0x1b, false) == NumberKey::Cancel && numberKey(0x0d, false) == NumberKey::Finish && numberKey(0x09, true) == NumberKey::Finish,
-          "Esc drops the edit, Enter and Tab keep it");
-    check(numberKey(0x31, false) == NumberKey::None && numberKey(0x26, false) == NumberKey::None,
-          "digits and arrows are not the editor's keys: text comes through the native keyboard");
 }

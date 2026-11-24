@@ -5,6 +5,19 @@
 #include <utility>
 
 namespace lamium::ui {
+// What a key does while a name or a number is being typed in a view (DESIGN
+// "Controls"): Backspace edits, Ctrl + A selects it all, Esc drops the edit,
+// Enter and Tab keep it. The text itself comes through the native keyboard.
+enum class EditKey { None, Backspace, SelectAll, Cancel, Finish };
+constexpr EditKey editKey(int key, bool ctrl) {
+    switch (key) {
+    case 0x08: return EditKey::Backspace;
+    case 0x41: return ctrl ? EditKey::SelectAll : EditKey::None;
+    case 0x1b: return EditKey::Cancel;
+    case 0x0d: case 0x09: return EditKey::Finish;
+    default: return EditKey::None;
+    }
+}
 // The editing core of every Lamium text field (L-172): UTF-8 text with a caret
 // kept on codepoint boundaries, select-all as the only selection, and the
 // edits the fields share. Fields add their own character rules (`accepts`).

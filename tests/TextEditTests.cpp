@@ -83,4 +83,12 @@ void textEditTests() {
     check(number.append("-") && number.value() == "-127.5", "minus only at the start");
     check(!number.append("-"), "and only once");
     check(!number.paste("abc") && number.value() == "-127.5", "pasted letters are refused");
+    using lamium::ui::EditKey;
+    using lamium::ui::editKey;
+    check(editKey(0x08, false) == EditKey::Backspace && editKey(0x08, true) == EditKey::Backspace, "Backspace edits the typed name or number");
+    check(editKey(0x41, true) == EditKey::SelectAll && editKey(0x41, false) == EditKey::None, "A selects all only with Ctrl");
+    check(editKey(0x1b, false) == EditKey::Cancel && editKey(0x0d, false) == EditKey::Finish && editKey(0x09, true) == EditKey::Finish,
+          "Esc drops the edit, Enter and Tab keep it");
+    check(editKey(0x31, false) == EditKey::None && editKey(0x26, false) == EditKey::None,
+          "digits and arrows are not the editor's keys: text comes through the native keyboard");
 }

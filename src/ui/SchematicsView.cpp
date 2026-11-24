@@ -1059,38 +1059,36 @@ void handleSchematicKey(int key) {
         case SelectionKey::Clear: placementRows.clear(); followPlacementRows(); return;
         case SelectionKey::None: break;
         }
-    switch (key) {
-    case 0x1b: screen::close(); break;
-    case 0x26: moveSchematicField(-1); break;
-    case 0x28: moveSchematicField(1); break;
-    case 0x25: activateSchematicField(schematicFieldSelected, -1); break;
-    case 0x27: activateSchematicField(schematicFieldSelected, 1); break;
-    case 0x0d: case 0x20:
+    switch (auto const pressed = viewKey(key); pressed) {
+    case ViewKey::Close: screen::close(); break;
+    case ViewKey::FieldUp: moveSchematicField(-1); break;
+    case ViewKey::FieldDown: moveSchematicField(1); break;
+    case ViewKey::StepDown: activateSchematicField(schematicFieldSelected, -1); break;
+    case ViewKey::StepUp: activateSchematicField(schematicFieldSelected, 1); break;
+    case ViewKey::Activate:
         if (schematicTab == SchematicTab::Files) placeSelectedFile();
         else if (schematicTab == SchematicTab::Verify) showSelectedMismatch();
         else activateSchematicField(schematicFieldSelected, 0);
         break;
-    case 0x21: case 0x22: {
+    case ViewKey::RowUp: case ViewKey::RowDown: {
         int count = schematicRowCount();
         if (!count) break;
         int current = schematicTab == SchematicTab::Verify ? verifySelected
             : (schematicTab == SchematicTab::Placements && schematicPick == SchematicPick::Placement)
                 || (schematicTab == SchematicTab::Files && schematicPick == SchematicPick::File) ? schematicIndex : -1;
-        int step = key == 0x22 ? 1 : -1;
+        int step = pressed == ViewKey::RowDown ? 1 : -1;
         if (schematicTab == SchematicTab::Files) {
             // Rows and files differ: step over folder headings.
-            int at = current >= 0 ? schematic_files::rowOf(schematicFileRows, current) : (step > 0 ? -1 : count);
-            for (int r = at + step; r >= 0 && r < count; r += step)
-                if (int file = schematicFileRows[static_cast<size_t>(r)].file; file >= 0) { pickSchematic(SchematicPick::File, file); break; }
+            if (int file = schematic_files::stepFile(schematicFileRows, current, step); file >= 0) pickSchematic(SchematicPick::File, file);
             break;
         }
         int row = std::clamp(current + step, 0, count - 1);
         if (schematicTab == SchematicTab::Verify) selectCheckRow(row);
         else if (schematicTab == SchematicTab::Placements) pickSchematic(SchematicPick::Placement, row);
-        else if (schematicTab == SchematicTab::Files) pickSchematic(SchematicPick::File, row);
         break;
     }
-    case 0x09: screen::nextNav(screen::heldShift()); break;
+    case ViewKey::NextNav: screen::nextNav(screen::heldShift()); break;
+    case ViewKey::None: break;
     }
 }
 std::string fileTitle(std::string const& relative) {

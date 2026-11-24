@@ -443,6 +443,12 @@ void placementTransforms() {
         auto flat = rows({"b.mcstructure", "a.mcstructure"});
         check(flat.size() == 2 && flat[0].file == 1 && flat[1].file == 0, "without subfolders there are no headings");
         check(rowOf(list, 3) == 4 && rowOf(list, 9) == -1, "a file's row is found");
+        check(stepFile(list, 4, 1) == 3 && stepFile(list, 3, -1) == 4 && stepFile(list, 3, 1) == 2,
+              "Page Down and Up step from file to file over the folder headings");
+        check(stepFile(list, -1, 1) == 1 && stepFile(list, -1, -1) == 0, "from no file: the first going down, the last going up");
+        check(stepFile(list, 0, 1) == -1 && stepFile(list, 1, -1) == -1 && stepFile({}, -1, 1) == -1,
+              "past either end there is no file to step to");
+        check(stepFile(list, 9, 1) == 1 && stepFile(list, 9, -1) == -1, "a file that is not listed steps as from above the list");
     }
     check(amountOf(2000, 64) == Amount{1, 4, 16} && amountOf(52, 64) == Amount{0, 0, 52}
           && amountOf(1728, 64) == Amount{1, 0, 0} && amountOf(40, 16) == Amount{0, 2, 8},
