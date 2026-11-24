@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The review's fixes on keys with data (L-363, 2026-11-24)
+
+`94762ccc` on branch `l363-data-keys` (DLL
+`0470f6670e9efec799b5798f1e96f571f5a9718aad9188ecba1ab2253d3e8b99`),
+1.26.60.05 Dev, a local world, the game in Japanese:
+- Seen: red rockets in a bundle and in a store count toward wanted red
+  rockets, other colors not; a wanted ominous banner holds 0 with a white
+  banner, 1 with an ominous one; a two-star rocket favorited from the
+  inventory keeps both explosions; tips as before, English search
+  switched without a hitch; nothing else changed.
+- Seen, not of this change: in a line of Japanese, Latin and Japanese
+  ("燃料: 80 個分") the Latin part sits low in Lamium's tip (the game's
+  tip shows it a little too, in its own font): `gameText` drew without
+  label's Latin raise. With a crafting table open, Item transfer and the
+  game's own Shift-click do nothing (moving through the pointer, the
+  recipe book and Lamium's moves work); not yet told whether main does
+  the same.
+
 ## Rocket recipes by their stars (L-363, 2026-11-24)
 
 `11bd4329` on branch `l363-data-keys` (DLL
