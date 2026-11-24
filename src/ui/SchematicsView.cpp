@@ -98,7 +98,8 @@ namespace lamium::ui::schematics_view {
 namespace {
 using ShapeZone = ShapesLayout::Zone;
 // The schematic preview (L-114): where it was drawn, how it is turned, and a
-// drag in progress. It turns by itself until the player first drags it.
+// drag in progress. It turns by itself until the player drags it, and again
+// for a newly chosen file or once the screen is opened again (L-114).
 struct PreviewTurn {
     float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
     float yaw = 35, pitch = 30, zoom = 1;
@@ -1617,7 +1618,7 @@ void drawFileDetail(Body& b) {
                 t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
                 float yaw = t.yaw;
                 if (!t.manual) yaw += schematics_rows::autoTurn(previewClock());
-                if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; t.picked.reset(); }
+                if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; t.picked.reset(); t.manual = false; }
                 auto structure = schematic::session::structure(f.relative);
                 // The clicked block stays lit, the rest dims.
                 std::optional<schematic::preview::Cell> pick = t.pickedFile == f.relative ? t.picked : std::nullopt;
@@ -2414,5 +2415,6 @@ void reset() {
     placementRows.clearSeveral(); // a closed screen keeps one row, not several; the picked one stays
     if (checkRows.clearSeveral()) followCheckRows();
     placementBulk.disarm();
+    previewTurn.manual = false; // opened again, the preview turns by itself
 }
 }
