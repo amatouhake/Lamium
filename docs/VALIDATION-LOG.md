@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Key hints over the search row (L-360, 2026-11-24)
+
+`eed4376b` (DLL
+`e289b9c4322976ac8546b071e852b7ef9992a088d3f7479b7911a80916cdd055`),
+1.26.60.05 Dev, a local world, the maintainer:
+- Seen: the hints over the search row with the window open or closed;
+  the recipe view and the plan window clear of them, nothing cut inside;
+  the take keys doing nothing on the game's slots, working on the list
+  and the recipe view.
+- Not right: in creative the second line is still cut. The first line
+  held only the presses; the rest (favorite, wanted, Shift, both take
+  keys) went to the second, shrunk to 0.6 and cut, its "A:" overdrawn by
+  the next run (the shrunk label's runs). The maintainer: keep the color
+  and size, wrap so all of it shows.
+
 ## Taking items out in creative (L-360, 2026-11-24)
 
 `103dddb3` (DLL
