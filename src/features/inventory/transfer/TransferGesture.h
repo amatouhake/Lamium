@@ -11,7 +11,9 @@ enum class Gesture { None, StackDrag, OneDrag, OneWheel, StackWheel,
                      MatchingWheel, AllWheel, MatchingClick, AllClick, KeepOneDrag,
                      // L-169, 2026-10-15: a held stack into an empty slot with its
                      // matching items; drops with the drop key held; matching drops.
-                     CursorMatchingClick, DropOneDrag, DropKeepOneDrag, DropAllDrag, DropMatching };
+                     CursorMatchingClick, DropOneDrag, DropKeepOneDrag, DropAllDrag, DropMatching,
+                     // 2026-11-24: Ctrl + Shift + the drop key drops the hovered kind from its side.
+                     DropHovered };
 // Storage is the upper grid and Player the lower one. The inventory screen
 // has no storage: there the main inventory is the upper side and the hotbar
 // the lower, so the wheel keeps its direction (2026-10-07).
@@ -20,6 +22,7 @@ struct GestureOptions {
     bool wheelOne, wheelStack, dragStack, dragOne;
     bool wheelMatching = true, wheelAll = true, clickMatching = true, clickAll = true, dragKeepOne = true;
     bool cursorMatching = true, dropOne = true, dropKeepOne = true, dropAll = true, dropMatching = true;
+    bool dropHovered = true;
 };
 // Left and right gestures can overlap; each cancelled press owns its release.
 class ConsumedButtons {
@@ -48,6 +51,7 @@ inline bool enabled(Gesture gesture, GestureOptions options) {
     case Gesture::DropKeepOneDrag: return options.dropKeepOne;
     case Gesture::DropAllDrag: return options.dropAll;
     case Gesture::DropMatching: return options.dropMatching;
+    case Gesture::DropHovered: return options.dropHovered;
     default: return false;
     }
 }
@@ -87,7 +91,14 @@ inline bool wheel(Gesture gesture) {
 }
 inline bool dropping(Gesture gesture) {
     return gesture == Gesture::DropOneDrag || gesture == Gesture::DropKeepOneDrag || gesture == Gesture::DropAllDrag
-        || gesture == Gesture::DropMatching;
+        || gesture == Gesture::DropMatching || gesture == Gesture::DropHovered;
+}
+// The drop key's own press: with Ctrl + Shift (and not Alt) it drops the
+// hovered kind (maintainer 2026-11-24). Plain and Ctrl drops stay vanilla (one
+// item, the stack), and Shift alone is left to the drop drags begun with
+// Shift held first.
+inline Gesture keyGesture(bool shift, bool control, bool alt) {
+    return shift && control && !alt ? Gesture::DropHovered : Gesture::None;
 }
 inline bool dragging(Gesture gesture) {
     return gesture == Gesture::StackDrag || gesture == Gesture::OneDrag || gesture == Gesture::KeepOneDrag
@@ -248,6 +259,14 @@ inline bool routed(Gesture gesture, Side hovered, Routes routes, int wheelDirect
         return (gesture == Gesture::OneWheel && hovered == destination) || to(destination);
     }
     return to(otherSide(hovered));
+}
+
+// Where the cursor's items came from after a tick: the side of the press that
+// put them there, taken again when the cursor was empty or now holds another
+// kind (a swap with a slot); unchanged while the same kind stays held.
+inline std::optional<Side> heldOrigin(bool held, bool sameKind, std::optional<Side> previous, std::optional<Side> pressed) {
+    if (!held) return {};
+    return sameKind ? previous : pressed;
 }
 
 inline int amount(Gesture gesture, int count) {

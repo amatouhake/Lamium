@@ -294,6 +294,7 @@ Json encode(Settings const& settings) {
                        {"transferDropKeepOne", settings.inventory.transferDropKeepOne},
                        {"transferDropAll", settings.inventory.transferDropAll},
                        {"transferDropMatching", settings.inventory.transferDropMatching},
+                       {"transferDropHovered", settings.inventory.transferDropHovered},
                        {"toolSwitch", settings.inventory.toolSwitch}, {"handRestock", settings.inventory.handRestock},
                        {"restockFromHotbar", settings.inventory.restockFromHotbar},
                        {"restockOffhand", settings.inventory.restockOffhand},
@@ -766,6 +767,7 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.transferDropKeepOne = settingsValue(data.at("inventory"), "transferDropKeepOne", value.inventory.transferDropKeepOne);
         value.inventory.transferDropAll = settingsValue(data.at("inventory"), "transferDropAll", value.inventory.transferDropAll);
         value.inventory.transferDropMatching = settingsValue(data.at("inventory"), "transferDropMatching", value.inventory.transferDropMatching);
+        value.inventory.transferDropHovered = settingsValue(data.at("inventory"), "transferDropHovered", value.inventory.transferDropHovered);
         value.inventory.toolSwitch = settingsValue(data.at("inventory"), "toolSwitch", value.inventory.toolSwitch);
         value.inventory.handRestock = settingsValue(data.at("inventory"), "handRestock", value.inventory.handRestock);
         value.inventory.restockFromHotbar = settingsValue(data.at("inventory"), "restockFromHotbar", value.inventory.restockFromHotbar);

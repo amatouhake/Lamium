@@ -128,6 +128,7 @@ struct Settings {
         bool transferDropKeepOne = true;
         bool transferDropAll = true;
         bool transferDropMatching = true;
+        bool transferDropHovered = true;
         bool toolSwitch = false;
         bool handRestock = false;
         bool restockFromHotbar = true;

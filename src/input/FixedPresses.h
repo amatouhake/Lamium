@@ -55,6 +55,7 @@ inline constexpr auto fixedPresses = [] {
         {"transfer", "", "inventory.transferDropKeepOne", screen, slot, {dropKey, shift, rightDrag}},
         {"transfer", "", "inventory.transferDropAll", screen, slot, {dropKey, shift, leftDrag}},
         {"transfer", "", "inventory.transferDropMatching", screen, slot, {shift, click}},
+        {"transfer", "", "inventory.transferDropHovered", screen, slot, {ctrl, shift, dropKey}},
         {"recipes", "fixed.recipesClick", "", both, list, {leftClick}},
         {"recipes", "fixed.recipesRightClick", "", both, list, {rightClick}},
         {"recipes", "fixed.recipesShiftClick", "", both, list, {shift, leftClick}},

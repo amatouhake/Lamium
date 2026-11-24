@@ -27,6 +27,7 @@ an off gesture passes through to vanilla:
 | Drop key + Shift + right drag: drop all but one | `transferDropKeepOne` |
 | Drop key + Shift + left drag: drop stacks | `transferDropAll` |
 | Held item, Shift + click outside: drop matching items | `transferDropMatching` |
+| Ctrl + Shift + drop key: drop the hovered kind | `transferDropHovered` |
 
 The gestures are fixed to these modifiers; rebinding is
 [L-233 Make inventory transfer gestures rebindable](backlog/L-233.md).
@@ -44,8 +45,10 @@ and drops 2026-10-15 (L-169, 0.2.3).
   bottles, beacon payment) get only what the game accepts; outputs are only
   taken from. Lamium adds no fuel or recipe filter: the game's acceptance
   rules are authoritative, even when an accepted furnace input cannot smelt.
-- The inventory screen moves between the main inventory and the hotbar.
-  There a Shift + left press on something worn (armor, elytra, heads,
+- The inventory screen moves between the main inventory and the hotbar,
+  and so does the crafting table, as vanilla's quick move there; its grid
+  is no side and stays vanilla (maintainer 2026-11-24; under the version
+  gate, else the route rule below). In the inventory screen a Shift + left press on something worn (armor, elytra, heads,
   carved pumpkins) goes to vanilla, whose quick move equips it, and the held
   drag then transfers from the next slot on. A drag begun elsewhere transfers
   worn items like any other (maintainer, 2026-10-07).
@@ -54,8 +57,7 @@ and drops 2026-10-15 (L-169, 0.2.3).
   gives back to the inventory, nothing routes into it; seen 2026-11-24) takes no gesture toward it: such a press or wheel step goes to
   vanilla instead of being taken with nothing moved (`routed`,
   `transferRoutes::routes`). Filling the hovered stack with the plain wheel
-  still works, as it places explicitly. Where the crafting table should
-  transfer is open (asked 2026-11-24).
+  still works, as it places explicitly.
 
 ### Gestures
 
@@ -90,10 +92,19 @@ and drops 2026-10-15 (L-169, 0.2.3).
   drag the whole stack. The drop key press itself stays vanilla (one item,
   or the stack with Ctrl, from the slot under the pointer).
 - **Drop matching**: items on the cursor + Shift + left click outside the
-  window: vanilla drops the held stack, then every matching item in the
-  player inventory, hotbar included, is dropped too. On the panel the press
+  window: vanilla drops the held stack, then every matching item on the side
+  it was taken from is dropped too: storage, or the player inventory with
+  the hotbar (maintainer 2026-11-24). The side is the one of the press that
+  put items on the empty cursor; unknown (a crafting output) means the
+  player inventory. On the panel the press
   does nothing; a button under the pointer takes it as a plain click.
-- All five held-stack/drop switches default on (maintainer's choice; the
+- **Drop hovered**: Ctrl + Shift + the game's drop key over an item drops
+  every stack of its kind on that side, the hovered one included (both
+  sides in the inventory screen and the crafting table). The press is taken
+  from vanilla, its repeats too, one sweep per press. Plain and Ctrl drops
+  stay vanilla; Shift alone is not used, as the drop drags may begin with
+  Shift held before the drop key (maintainer 2026-11-24).
+- All six held-stack/drop switches default on (maintainer's choice; the
   agent had proposed matching drops off).
 
 ### Requests and confirmation
@@ -132,7 +143,8 @@ and drops 2026-10-15 (L-169, 0.2.3).
 
 - `src/features/inventory/transfer/TransferGesture.h` (pure, tested in
   `tests/TransferGestureTests.cpp`): gesture selection from button and
-  modifiers (`mouseGesture`, `dragGesture`, `wheelGesture`), sides and
+  modifiers (`mouseGesture`, `dragGesture`, `wheelGesture`, `keyGesture`),
+  route directions (`routed`), sides and
   collections (`collectionSide`, `playerCollection`, `excludedCollection`,
   `readOnlyCollection`, `routeTarget`, `hotbarSlot`), `sweepOrder`,
   `chooseSource`/`chooseDestination`, `conservedMove`, `droppedMove`,

@@ -377,8 +377,9 @@ missing responses or a changed screen stops the plan.
 ### Inventory transfer (experimental, off by default)
 
 Moves items between your inventory and every item screen: chests, furnaces,
-brewing stands, hoppers, beacons and more, also the inventory screen.
-Furnace, brewing and beacon slots get only what they accept.
+brewing stands, hoppers, beacons and more. The inventory screen and the
+crafting table move between the main inventory and the hotbar. Furnace,
+brewing and beacon slots get only what they accept.
 
 | Gesture | Moves |
 | --- | --- |
@@ -393,7 +394,7 @@ empty cursor):
 | Gesture | Does |
 | --- | --- |
 | Shift + click on an empty slot | Puts the stack there and gathers the matching items from the other side |
-| Shift + click outside the window | Drops the stack and the matching items in your inventory |
+| Shift + click outside the window | Drops the stack and the matching items on the side it came from |
 
 With an empty cursor and the drop key held, drags drop instead of moving:
 
@@ -402,6 +403,9 @@ With an empty cursor and the drop key held, drags drop instead of moving:
 | Ctrl + left drag | One item |
 | Shift + right drag | All but one |
 | Shift + left drag | The whole stack |
+
+Ctrl + Shift + the drop key over an item drops every item of its kind on
+that side (the storage's, or your inventory's with the hotbar).
 
 ### Trades
 

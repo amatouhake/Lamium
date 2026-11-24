@@ -104,6 +104,12 @@ bool cursorHeld = false;
 std::optional<std::chrono::steady_clock::time_point> outsideShift;
 bool outsideShiftUnsent = false;
 std::optional<ItemStack> pendingDrop;
+// Where the cursor's items came from: the side of the press that put them
+// there. Matching drops come from that side (maintainer 2026-11-24); unknown
+// means the player inventory.
+std::optional<Side> pressedSide, heldFrom, pendingDropSide;
+// The cursor's kind last tick (tick thread only), to see a swap.
+std::optional<ItemStack> heldItem;
 
 void releaseWaiting() {
     std::optional<TransferToken> token;
@@ -125,13 +131,16 @@ transfer::GestureOptions gestureOptions() {
             value.transferDragStack, value.transferDragOne, value.transferWheelMatching,
             value.transferWheelAll, value.transferClickMatching, value.transferClickAll, value.transferDragKeepOne,
             value.transferCursorMatching, value.transferDropOne, value.transferDropKeepOne, value.transferDropAll,
-            value.transferDropMatching};
+            value.transferDropMatching, value.transferDropHovered};
 }
 
 // The inventory screen moves between the main inventory and the hotbar in
-// every game mode; creative's item catalog is not a transfer side.
+// every game mode; creative's item catalog is not a transfer side. So does
+// the crafting table, as vanilla's quick move there (maintainer 2026-11-24);
+// its grid is no side.
 bool inventoryScreen(ContainerManagerController& manager) {
-    if (manager.getContainerType() != ContainerType::Inventory) return false;
+    auto const type = manager.getContainerType();
+    if (type != ContainerType::Inventory && !(type == ContainerType::Workbench && transferRoutes::allowed())) return false;
     // Collection sizes are not documented (survival: 27 + 9); record each
     // layout once so a creative difference shows in the log.
     static std::pair<int, int> logged{-2, -2};
@@ -243,7 +252,7 @@ std::optional<Slot> slotAt(ContainerScreenController& controller, std::string co
         || sideSlots(controller, Side::Storage, generation.load()).empty()) return {};
     auto const& stack = manager->getItemStack(name, index);
     bool const occupied = !stack.isNull() && stack.mCount > 0;
-    bool worn = inventoryScreen(*manager) && stack.mItem
+    bool worn = manager->getContainerType() == ContainerType::Inventory && stack.mItem
         && transfer::wornItem(stack.getTypeName(),
                               stack.mItem->isHumanoidArmor() || stack.mItem->hasTag(VanillaItemTags::Armor()));
     Slot result{name, index, *side, generation.load(), worn, occupied, transferRoutes::supported(controller),
@@ -263,7 +272,8 @@ std::optional<Slot> slotAt(ContainerScreenController& controller, std::string co
 
 std::optional<Slot> currentSlot(ContainerScreenController& controller) {
     auto manager = controller.mContainerManagerController;
-    bool const oldScreen = manager && (ordinary(manager->getContainerType()) || inventoryScreen(*manager));
+    bool const oldScreen = manager && (ordinary(manager->getContainerType())
+        || manager->getContainerType() == ContainerType::Inventory);
     if (!oldScreen && transferRoutes::supported(controller)) {
         auto const& native = controller.mHoveredSlotData.get();
         if (!native.mCollectionName->empty())
@@ -660,6 +670,7 @@ bool TransferSession::mouseButton(int button, bool down, bool shift, bool contro
     // swallows a later vanilla click.
     consumedButtons.press(button);
     if (button == dragButton) dragButton = -1;
+    pressedSide = hover ? std::optional<Side>(hover->side) : std::nullopt;
     TRANSFER_TRACE(inputBudget, "Transfer trace: press button={} shift={} control={} cancelled={} hover={}:{} drag={} stroke={}",
         button, shift, control, cancelled, hover ? hover->collection : std::string("-"), hover ? hover->index : -1,
         static_cast<int>(drag), stroke);
@@ -713,7 +724,19 @@ void TransferSession::cursorDropped(ContainerScreenController&, ItemStack const&
         if (!at || std::chrono::steady_clock::now() - *at > std::chrono::seconds(1)
             || !transfer::enabled(Gesture::DropMatching, gestureOptions())) return;
         pendingDrop = held;
+        pendingDropSide = heldFrom;
     } catch (...) {}
+}
+
+bool TransferSession::dropKeyPress(int key, bool repeat, bool shift, bool control, bool alt, bool cancelled) {
+    std::scoped_lock lock(inputLock);
+    auto const mode = transfer::keyGesture(shift, control, alt);
+    if (cancelled || mode == Gesture::None || std::ranges::find(dropKeys, key) == dropKeys.end()) return false;
+    if (!hover || hover->cursor || !hover->occupied || !hover->extensions || !transfer::enabled(mode, gestureOptions()))
+        return false;
+    // A held key repeats: one sweep per press, and vanilla gets none of them.
+    if (!repeat && pulses.size() < 128) pulses.push_back({*hover, mode});
+    return true;
 }
 
 bool TransferSession::dropKey(int key) {
@@ -740,6 +763,8 @@ void TransferSession::cancel() {
         outsideShift.reset();
         outsideShiftUnsent = false;
         pendingDrop.reset();
+        pendingDropSide.reset();
+        pressedSide.reset();
         ++generation;
         ++stroke;
     }
@@ -783,6 +808,9 @@ void TransferSession::tick(ContainerScreenController& controller) {
         }
     }
     auto slot = currentSlot(controller);
+    auto const& cursorSlot = ContainerScreenController::mCursorSlotData();
+    ItemStack const& cursor = controller._getItemStack(cursorSlot.mCollectionName, cursorSlot.mCollectionIndex);
+    bool const held = !cursor.isNull() && cursor.mCount > 0;
     std::deque<Request> incoming;
     std::optional<Slot> first;
     Gesture mode;
@@ -793,13 +821,17 @@ void TransferSession::tick(ContainerScreenController& controller) {
         if (slot && slot->generation != generation.load()) slot.reset();
         hover = slot;
         if (keys) dropKeys = std::move(*keys);
-        cursorHeld = game::cursorHasItems(controller);
+        bool const sameKind = held && heldItem && cursor.matchesItem(*heldItem);
+        heldFrom = transfer::heldOrigin(held, sameKind, heldFrom, pressedSide);
+        cursorHeld = held;
         incoming.swap(pulses);
         first = std::exchange(vanillaFirst, std::nullopt);
         mode = drag;
         revision = generation.load();
         currentStroke = stroke;
     }
+    if (!held) heldItem.reset();
+    else if (!heldItem || !cursor.matchesItem(*heldItem)) heldItem = cursor;
     if (observedGeneration != revision) {
         TRANSFER_TRACE(queueBudget, "Transfer trace: generation {} -> {} drops queued={}", observedGeneration, revision,
             queued.size());
@@ -841,22 +873,35 @@ void TransferSession::tick(ContainerScreenController& controller) {
     }
     if (mode != Gesture::None && !transfer::enabled(mode, options)) { modifierReleased(); mode = Gesture::None; }
     std::optional<ItemStack> dropped;
+    std::optional<Side> droppedFrom;
     {
         std::scoped_lock lock(inputLock);
         dropped = std::exchange(pendingDrop, std::nullopt);
+        droppedFrom = std::exchange(pendingDropSide, std::nullopt);
     }
-    // The held stack is gone: every matching item in the player's inventory
-    // follows it (in the inventory screen both sides are the player's).
+    // The held stack is gone: every matching item on the side it was taken
+    // from follows it (in the inventory screen both sides are the player's).
     if (dropped && transfer::enabled(Gesture::DropMatching, options) && transferRoutes::supported(controller)) {
-        enqueueMatching(controller, Side::Player, *dropped, Gesture::DropMatching, revision);
+        auto const side = droppedFrom.value_or(Side::Player);
+        enqueueMatching(controller, side, *dropped, Gesture::DropMatching, revision);
         if (inventoryScreen(*controller.mContainerManagerController))
-            enqueueMatching(controller, Side::Storage, *dropped, Gesture::DropMatching, revision);
+            enqueueMatching(controller, transfer::otherSide(side), *dropped, Gesture::DropMatching, revision);
     }
     for (auto const& request : incoming) {
         if (request.slot.index < 0) { lastDrag.reset(); continue; } // The pointer left a slot.
         if (request.slot.generation != revision) continue;
         if (!transfer::enabled(request.gesture, gestureOptions())) continue;
-        if (transfer::bulk(request.gesture)) {
+        if (request.gesture == Gesture::DropHovered) {
+            // Every stack of the hovered kind on its side, the hovered one included;
+            // where both sides are the player's (inventory screen), both.
+            if (!slot || request.slot != *slot) continue;
+            auto& manager = *controller.mContainerManagerController;
+            ItemStack const reference = manager.getItemStack(request.slot.collection, request.slot.index);
+            if (reference.isNull() || reference.mCount <= 0) continue;
+            enqueueMatching(controller, request.slot.side, reference, request.gesture, revision);
+            if (inventoryScreen(manager))
+                enqueueMatching(controller, transfer::otherSide(request.slot.side), reference, request.gesture, revision);
+        } else if (transfer::bulk(request.gesture)) {
             if (!slot || request.slot != *slot) continue;
             enqueueBulk(controller, request);
         } else if (transfer::wheel(request.gesture)) {

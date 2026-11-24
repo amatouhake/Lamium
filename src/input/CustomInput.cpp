@@ -150,6 +150,14 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false, b
                 && dispatch.isActive(static_cast<Action>(i)) && contains(allowed[i], token)) nativeUse = false;
     return result.consumed && !nativeUse && !gameKeeps;
 }
+bool transferDropPress(int key, bool repeat, bool cancelled) {
+    auto const& keys = held.value();
+    auto any = [&](std::initializer_list<int> codes) {
+        return std::ranges::any_of(codes, [&](int code) { return contains(keys, Token{Device::Key, code}); });
+    };
+    return inventory::game::TransferSession::dropKeyPress(key, repeat, any({0x10, 0xA0, 0xA1}), any({0x11, 0xA2, 0xA3}),
+        any({0x12, 0xA4, 0xA5}), cancelled);
+}
 }
 void resetCustomInput() { invalidate(); }
 void queuePress(int action) { post(static_cast<Action>(action), true); }
@@ -163,6 +171,7 @@ void startCustomInput() {
         if (researchTrace::itemScreen::key(event.keyCode(), event.isDown())) { event.cancel(); return; }
         // Auto-repeat of a held key (Shift for Shift + right click) is not new input.
         static std::vector<int> physical;
+        bool const repeat = event.isDown() && std::ranges::find(physical, event.keyCode()) != physical.end();
         if (!event.isDown()) std::erase(physical, event.keyCode());
         else if (std::ranges::find(physical, event.keyCode()) == physical.end()) {
             physical.push_back(event.keyCode());
@@ -171,15 +180,19 @@ void startCustomInput() {
             int const code = event.keyCode();
             if (!(code == 0x10 || code == 0x11 || code == 0x12 || (code >= 0xA0 && code <= 0xA5))) recipes::itemList::playerPressed(code);
         }
-        bool consumed = process({Device::Key, event.keyCode()}, event.isDown(), event.isCancelled(),
-            event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected || recipes::itemList::typing()
-                || inventory::enchantOrder::game::anvilTyping(),
+        bool const textEditing = event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected
+            || recipes::itemList::typing() || inventory::enchantOrder::game::anvilTyping();
+        bool consumed = process({Device::Key, event.keyCode()}, event.isDown(), event.isCancelled(), textEditing,
             recipes::itemList::viewOpen());
         if (!event.isDown() && (event.keyCode() == 0x10 || event.keyCode() == 0x11
             || event.keyCode() == 0xA0 || event.keyCode() == 0xA1
             || event.keyCode() == 0xA2 || event.keyCode() == 0xA3))
             inventory::game::TransferSession::modifierReleased();
         if (consumed && event.isDown()) event.cancel();
+        // Ctrl + Shift + the game's drop key over an item: Item transfer drops its kind.
+        // Not under Lamium's own screens and windows, which take the keys.
+        else if (event.isDown() && !textEditing && !ui::ownsInput() && !recipes::itemList::viewOpen()
+                 && transferDropPress(event.keyCode(), repeat, event.isCancelled())) event.cancel();
         // A level typed beside the anvil keeps the keys from the game.
         else if (!event.isCancelled() && inventory::enchantOrder::game::anvilKey(event.keyCode(), event.isDown())) event.cancel();
         // An open recipe view beside a game screen keeps the other keys from it (L-359).

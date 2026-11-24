@@ -141,7 +141,7 @@ void settingsRowsTests() {
             settingsFixed += row.kind == RowKind::Fixed;
             gestureKeys += row.option && ui::fixedPressOf(row.option->id) != nullptr;
         }
-        check(settingsFixed == 6 && gestureKeys == 14,
+        check(settingsFixed == 6 && gestureKeys == 15,
               "the settings screen shows the recipe lists' presses as rows and each gesture's keys on its switch's row");
         // One tree (L-372): Hotkeys shows every feature always open, its children in grey under it.
         bool open = true, children = true;
@@ -410,7 +410,8 @@ void settingsRowsTests() {
                     "inventory.transferDragStack", "inventory.transferDragOne", "inventory.transferWheelMatching",
                     "inventory.transferWheelAll", "inventory.transferClickMatching", "inventory.transferClickAll",
                     "inventory.transferDragKeepOne", "inventory.transferCursorMatching", "inventory.transferDropOne",
-                    "inventory.transferDropKeepOne", "inventory.transferDropAll", "inventory.transferDropMatching"})
+                    "inventory.transferDropKeepOne", "inventory.transferDropAll", "inventory.transferDropMatching",
+                    "inventory.transferDropHovered"})
         check(options.contains(id), "transfer gesture switches appear under Inventory Transfer");
     {
         Settings changed;

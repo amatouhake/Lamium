@@ -162,6 +162,20 @@ void transferGestureTests() {
     check(routed(Gesture::DropAllDrag, Side::Player, Routes{false, false})
         && !routed(Gesture::CursorMatchingClick, Side::Storage, grid) && routed(Gesture::StackDrag, Side::Player, Routes{}),
         "drops need no route, the held stack needs one toward its slot, and routes default open");
+    check(keyGesture(true, true, false) == Gesture::DropHovered && keyGesture(true, false, false) == Gesture::None
+        && keyGesture(false, true, false) == Gesture::None && keyGesture(true, true, true) == Gesture::None
+        && dropping(Gesture::DropHovered) && !dragging(Gesture::DropHovered)
+        && amount(Gesture::DropHovered, 12) == 12 && routed(Gesture::DropHovered, Side::Player, Routes{false, false}),
+        "only Ctrl + Shift with the drop key drops the hovered kind, whole stacks, without a route");
+    check(heldOrigin(true, false, std::nullopt, Side::Storage) == Side::Storage
+        && heldOrigin(true, true, Side::Storage, Side::Player) == Side::Storage
+        && heldOrigin(true, false, Side::Storage, Side::Player) == Side::Player
+        && !heldOrigin(false, false, Side::Storage, Side::Storage),
+        "a held stack keeps the side it was taken from until it is gone or swapped for another kind");
+    GestureOptions noHovered{true, true, true, true};
+    noHovered.dropHovered = false;
+    check(!enabled(Gesture::DropHovered, noHovered) && enabled(Gesture::DropMatching, noHovered),
+        "dropping the hovered kind has its own switch");
     auto bytes = dropAmountBytes(true);
     check(bytes[0] == 1 && bytes[4] == 2 && dropAmountBytes(false)[4] == 0 && bytes[8] == 0,
         "drop amounts follow the traced take type and kind");

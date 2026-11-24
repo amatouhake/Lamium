@@ -538,6 +538,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::transferDropKeepOne>("inventory.transferDropKeepOne", "transfer", "transferDropKeepOne"),
     toggle<&Settings::inventory, &Settings::Inventory::transferDropAll>("inventory.transferDropAll", "transfer", "transferDropAll"),
     toggle<&Settings::inventory, &Settings::Inventory::transferDropMatching>("inventory.transferDropMatching", "transfer", "transferDropMatching"),
+    toggle<&Settings::inventory, &Settings::Inventory::transferDropHovered>("inventory.transferDropHovered", "transfer", "transferDropHovered"),
     toggle<&Settings::ui, &Settings::Interface::toggleToasts>("interface.toggleToasts", "toasts", "toggleToasts"),
     choice<&Settings::ui, &Settings::Interface::animations, animationLabels>("interface.animations", "settings", "animations"),
     {"interface.hudRowHeight", "hudText", "hudRowHeight",
