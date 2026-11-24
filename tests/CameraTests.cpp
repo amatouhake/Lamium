@@ -203,6 +203,8 @@ int main() try {
     windowFadeTests();
     extern void vanillaFrameTests();
     vanillaFrameTests();
+    extern void screenModeTests();
+    screenModeTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

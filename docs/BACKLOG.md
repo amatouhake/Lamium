@@ -228,7 +228,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); the calculation feeds the plan (L-359); the schematic's raw list is gone (L-383)
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
-- [L-399](backlog/L-399.md) Screens: one view shape, a tested mode order, logic out of the screen files (Refactor): Open
+- [L-399](backlog/L-399.md) Screens: one view shape, a tested mode order, logic out of the screen files (Refactor): Steps 1 and 2 (the wheel only) built, not checked in game; the rest open
 - [L-400](backlog/L-400.md) The UI token check sees packed colors (Refactor): Built, not checked in game (nothing should look different); the Open choices remain
 - [L-401](backlog/L-401.md) Per-frame work apart from the HUD's drawing (Refactor): Built, not checked in game
 - [L-402](backlog/L-402.md) Check that every feature handles leaving the world, a dimension change and focus loss (Refactor): Open; the approach is not chosen

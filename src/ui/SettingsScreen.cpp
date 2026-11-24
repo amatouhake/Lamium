@@ -14,6 +14,7 @@
 #include "ui/WaypointsView.h"
 #include "ui/SchematicsView.h"
 #include "ui/ToolViews.h"
+#include "ui/ScreenMode.h"
 #include "ui/SettingsTableView.h"
 #include "ui/HighlightView.h"
 #include "ui/EnchantView.h"
@@ -1741,36 +1742,21 @@ void start() {
             pendingMapClose = true;
             return;
         }
-        if (row_pages::any() && wheel) {
-            pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
-            return;
-        }
-        if (calculatorOpen && wheel) {
-            calculator_view::wheel(event.buttonData() > 0 ? 1 : -1);
-            return;
-        }
-        if (schematicMenu && wheel) {
-            pendingWheels.push_back({x, y, event.buttonData() > 0 ? 1 : -1});
-            return;
-        }
-        if (worldMapOpen && !prompt && wheel) {
-            if (scaled) pendingWheels.push_back({x, y, event.buttonData() > 0 ? 1 : -1});
-            return;
-        }
-        if (hudEditorView() && wheel) {
-            // Wheel events carry no position: use the pointer as last drawn.
-            hud_editor::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer.x, lastPointer.y);
-            return;
-        }
-        if (auto const* view = wheel ? toolView() : nullptr) {
-            // Scroll whichever pane is under the pointer; selection stays put.
-            view->wheel(event.buttonData() > 0 ? -3 : 3, lastPointer, heldShift());
-            return;
-        }
         if (wheel) {
-            // The footer and list scroll independently; selection stays put.
-            // Wheel events carry no position; use the last drawn pointer.
-            table_view::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer.x, lastPointer.y);
+            // Lists scroll by rows, the map, the menu and the calculator by notches. Wheel events
+            // carry no position: lists use the pointer as last drawn, and the selection stays put.
+            int const rows = event.buttonData() > 0 ? -3 : 3, notch = event.buttonData() > 0 ? 1 : -1;
+            auto const* tool = toolView();
+            switch (screen_mode::wheel({row_pages::any(), calculatorOpen, schematicMenu.has_value(), worldMapOpen, prompt.has_value(),
+                                        hudEditorView(), tool != nullptr})) {
+            case screen_mode::Wheel::RowPage: pendingWheels.push_back({x, y, rows}); break;
+            case screen_mode::Wheel::Calculator: calculator_view::wheel(notch); break;
+            case screen_mode::Wheel::SchematicMenu: pendingWheels.push_back({x, y, notch}); break;
+            case screen_mode::Wheel::WorldMap: if (scaled) pendingWheels.push_back({x, y, notch}); break;
+            case screen_mode::Wheel::HudEditor: hud_editor::wheel(rows, lastPointer.x, lastPointer.y); break;
+            case screen_mode::Wheel::Tool: tool->wheel(rows, lastPointer, heldShift()); break;
+            case screen_mode::Wheel::Table: table_view::wheel(rows, lastPointer.x, lastPointer.y); break;
+            }
             return;
         }
         if (!scaled || !down) return;
