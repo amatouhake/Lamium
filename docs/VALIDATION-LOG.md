@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The schematic preview turns smoothly; shown cells pulse smoothly (L-114, 2026-11-24)
+
+`5c56c3c3` (DLL
+`3fdc1d1ef30595655c946dfcc8334ee331db02edd01d0ab1c8c697045b41501e`),
+1.26.60.05 Dev, the maintainer, after restarting Minecraft, the machine up
+about 8.6 days (where the old float clock stepped in 1/16 s):
+- Seen: the Files tab's preview, untouched, turns smoothly (fix
+  `bd7b8a48`).
+- Seen: a block shown in the world from the Check tab pulses smoothly.
+- Seen: nothing else changed.
+
 ## The schematics view and settings table split by part; the preview's turn (L-399, L-114, 2026-11-24)
 
 `74cad706` (DLL
