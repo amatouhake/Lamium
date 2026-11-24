@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A tooltip color running on (L-363, 2026-11-24)
+
+`87a187d9` on branch `l363-data-keys` (DLL
+`20fa893eaeb57fceb1e2849d24dfb5cc7852a84159150e6085197f3d6bc2eb27`),
+1.26.60.05 Dev, a local world:
+- Seen: a firework star's two lines in the game's blue; enchanted books,
+  potions, a tool's durability and ID lines in their own colors, none
+  taking the line above's; nothing else changed.
+- The ominous bottle's name is yellow in the game; Lamium's tip draws
+  every name white (the name line's color is not used).
+
 ## Listed items drawn as their creative entries (L-363, 2026-11-24)
 
 `86a3d68a` on branch `l363-data-keys` (DLL
