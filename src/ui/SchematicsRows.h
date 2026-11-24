@@ -2,6 +2,7 @@
 // Pure pieces of the Schematics view (L-399): what its lists hold and where
 // its tab strip stands. No game types; SchematicsView.cpp draws and acts.
 #include "ui/ShapesLayout.h"
+#include <cmath>
 #include <vector>
 namespace lamium::ui::schematics_rows {
 // The Materials list over its lines (blocks first, then entities; `entity`
@@ -47,6 +48,11 @@ constexpr ListPlaces listPlaces(float left, float right) {
     c.neededX = (c.showPlaced ? c.placedX : c.leftX) - c.numW - 2;
     return c;
 }
+// The preview's own turn in degrees, 12 a second, from a clock in seconds
+// (the time since the machine started). Worked in double: as a float that
+// count steps in 1/16 s once the machine has been up six days, and the turn
+// with it.
+inline float autoTurn(double seconds) { return static_cast<float>(std::fmod(seconds * 12.0, 360.0)); }
 // The tab strip in the list pane's toolbar: `count` tabs side by side with no
 // gap (DESIGN "Controls"), across the pane inside its padding.
 inline float tabWidth(ShapesLayout const& l, int count) { return (l.listWidth - 2 * ShapesLayout::pad) / static_cast<float>(count); }

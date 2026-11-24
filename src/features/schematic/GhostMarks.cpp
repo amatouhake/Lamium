@@ -404,7 +404,8 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
 }
 void drawPointAt(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided, Point const* at) {
     mce::MaterialPtr lineMaterial = overlay::lines::material();
-    float pulse = .5f + .5f * std::sin(std::chrono::duration<float>(Clock::now().time_since_epoch()).count() * 6.f);
+    // In double: seconds since the machine started step in 1/16 s as a float after six days up, and the pulse with them.
+    float pulse = .5f + .5f * static_cast<float>(std::sin(std::chrono::duration<double>(Clock::now().time_since_epoch()).count() * 6.0));
     glm::vec3 offset{static_cast<float>(at->x - camera.x), static_cast<float>(at->y - camera.y), static_cast<float>(at->z - camera.z)};
     constexpr float grow = .04f, beam = 64.f, half = .12f;
     if (faceMaterial.mRenderMaterialInfoPtr) {

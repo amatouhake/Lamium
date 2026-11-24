@@ -41,4 +41,12 @@ void schematicsRowsTests() {
     check(!narrow.showSize && !narrow.showPlaced, "a narrow list drops the size too");
     auto edge = listPlaces(0, 80 + 4 + 54 + 40 + ShapesLayout::pad);
     check(edge.showSize && !listPlaces(1, 80 + 4 + 54 + 40 + ShapesLayout::pad).showSize, "the size shows from 80 units of name room");
+
+    // The preview's own turn stays smooth however long the machine has been up.
+    check(autoTurn(0) == 0 && std::abs(autoTurn(1) - 12) < 1e-4f && std::abs(autoTurn(30.5) - 6) < 1e-3f, "12 degrees a second, once round in 30 s");
+    double const upNineDays = 9 * 86400.0 + .25;
+    float const step = autoTurn(upNineDays + 1.0 / 60) - autoTurn(upNineDays);
+    check(std::abs(step - .2f) < 1e-3f, "after nine days of uptime one 60 Hz frame still turns it a fifth of a degree");
+    float const asFloat = std::fmod(static_cast<float>(upNineDays + 1.0 / 60) * 12.f, 360.f) - std::fmod(static_cast<float>(upNineDays) * 12.f, 360.f);
+    check(asFloat == 0, "as a float second count the same frame does not turn it at all");
 }

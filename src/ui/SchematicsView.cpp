@@ -111,6 +111,8 @@ struct PreviewTurn {
     glm::vec2 from{};
     float fromYaw = 0, fromPitch = 0;
 } previewTurn;
+// The clock the preview turns by, in seconds.
+double previewClock() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 // The preview's corner line: the hint while it turns by itself, then the
 // peeled layers ("layer n/m"), which a click resets. Kept at the top edge:
 // the preview's depth hides text drawn over the model.
@@ -1614,8 +1616,7 @@ void drawFileDetail(Body& b) {
                 auto& t = previewTurn;
                 t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
                 float yaw = t.yaw;
-                if (!t.manual) yaw += std::fmod(static_cast<float>(std::chrono::duration<double>(
-                    std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
+                if (!t.manual) yaw += schematics_rows::autoTurn(previewClock());
                 if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; t.picked.reset(); }
                 auto structure = schematic::session::structure(f.relative);
                 // The clicked block stays lit, the rest dims.
@@ -2354,8 +2355,7 @@ void drag(glm::vec2 pointer) {
         t.turning = true;
         if (!t.manual) {
             // Pick up the turn the preview had while turning by itself.
-            t.fromYaw = t.yaw + std::fmod(static_cast<float>(std::chrono::duration<double>(
-                std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
+            t.fromYaw = t.yaw + schematics_rows::autoTurn(previewClock());
             t.manual = true;
         }
         t.yaw = t.fromYaw - (pointer.x - t.from.x) * .7f;
