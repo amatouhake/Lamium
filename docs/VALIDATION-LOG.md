@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Screen, per-frame and color refactors unchanged in play (L-399, L-400, L-401, 2026-11-24)
+
+`6f51abdd` (DLL
+`c873b29dbf0981ad76883d5fdb6fd2dc9bfbb29f9109279c45d8bec8d8609ac6`),
+1.26.60.05 Dev, the maintainer, from the checklist page (the world's kind
+was not recorded). Refactors meant to change nothing:
+- Seen as before: click, wheel and typing a number and a name with Esc,
+  Enter and Tab in the Shapes, Waypoints and Schematics views (L-399, the
+  views behind one table).
+- Seen as before: in the Placed tab, deleting one placement, hiding and
+  deleting several, and the layer controls (axis, show, the layer stepped
+  and typed, keep, match layer) (L-399, the feature's pure edits).
+- Seen: the map records with the HUD shown and hidden with F1; a waypoint
+  reached and a toggle raise their toasts; the schematic adjust key's wheel
+  steps (L-401). With the HUD hidden those toasts are not shown, as
+  expected.
+- Seen as before: the shapes' colors on the world map and the minimap
+  (L-400); the wheel on the calculator, the schematic menu, the world map
+  and the HUD layout (L-399, the wheel's routing).
+- Seen as before: the settings screen and the HUD otherwise.
+- Not covered: the wheel on a row page and under a prompt; a multiplayer
+  server.
+
 ## The keys button's smaller mark (L-398, 2026-11-24)
 
 `00f21b1e` (DLL

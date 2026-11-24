@@ -338,6 +338,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Refactor
 
+- [L-401](backlog/done/L-401.md) Per-frame work apart from the HUD's drawing
 - [L-388](backlog/done/L-388.md) One craft run for making a plan's steps and Mass Craft
 - [L-347](backlog/done/L-347.md) One place for passing notices, and the last UI leftovers
 - [L-346](backlog/done/L-346.md) One input behavior for steppers and buttons
