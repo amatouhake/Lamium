@@ -15,8 +15,7 @@ struct View {
     float yaw = 35;   // degrees around the vertical axis; 0 looks from the south (+z)
     float pitch = 30; // degrees above the horizon
     float zoom = 1;   // 1 fits the whole structure; draw order does not depend on it
-    int peel = 0;     // layers taken off from the viewer's side
-    int peelAxis = -1, peelSign = 1; // the side peeled, fixed when peeling starts; -1 follows the view
+    int peel = 0;     // levels taken off the top (the slice), whatever the view
 };
 struct Eye {
     float x = 0, y = 0, z = 0; // unit vector from the structure toward the viewer
@@ -74,9 +73,9 @@ inline Projected project(View view, float x, float y, float z) {
     float ux = e.y * rz, uy = e.z * rx - e.x * rz, uz = -e.y * rx; // eye x right
     return {x * rx + z * rz, -(x * ux + y * uy + z * uz), x * e.x + y * e.y + z * e.z};
 }
-// Layers peeled off from the side the view looks down on: from the top when
-// looking down more than 15 degrees (the default view does: builds are seen
-// floor by floor), else from the horizontal side nearest the viewer.
+// The slice: levels taken off the top, never the last one. Always along the
+// height, whatever the view, so the player knows what goes (L-114,
+// maintainer 2026-11-25: a side chosen from the view was hard to predict).
 // A cell stays when its coordinate on `axis` is <= limit (sign +1) or >=
 // limit (sign -1).
 struct Cut {
@@ -89,20 +88,12 @@ struct Cut {
         return sign > 0 ? c <= limit : c >= limit;
     }
 };
-inline Cut cutFor(View view, int sx, int sy, int sz, int peel) {
-    if (peel <= 0) return {};
-    auto e = eye(view);
-    constexpr float lookingDown = .2588f; // sin 15 degrees
-    int axis = e.y > lookingDown ? 1 : std::abs(e.x) >= std::abs(e.z) ? 0 : 2;
-    float toward = axis == 0 ? e.x : axis == 1 ? e.y : e.z;
-    // Fixed once peeling started, so turning to look at the cut keeps it.
-    if (view.peelAxis >= 0) { axis = view.peelAxis; toward = static_cast<float>(view.peelSign); }
-    int size = axis == 0 ? sx : axis == 1 ? sy : sz;
-    peel = std::min(peel, size - 1);
-    // The viewer is on the + side: keep the low end.
-    return toward >= 0 ? Cut{axis, 1, size - 1 - peel} : Cut{axis, -1, peel};
+inline Cut cutFor(int height, int peel) {
+    if (peel <= 0 || height <= 1) return {};
+    return Cut{1, 1, height - 1 - std::min(peel, height - 1)};
 }
-inline int layersAlong(Cut cut, int sx, int sy, int sz) { return cut.axis == 0 ? sx : cut.axis == 1 ? sy : cut.axis == 2 ? sz : 0; }
+// The slice's top level counted from 1 at the bottom, as the label shows it.
+inline int sliceTop(int height, int peel) { return std::max(1, height - std::clamp(peel, 0, std::max(0, height - 1))); }
 // The cell under a point of the preview: `right`/`down` are the point's
 // offset from the box center in blocks. Walks the line of sight from the
 // viewer's side and returns the first occupied cell.

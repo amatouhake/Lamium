@@ -25,10 +25,10 @@ struct Tint {
 bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> const& structure, float x, float y, float width, float height,
           View view, Tint const* tint = nullptr, Placement const* turn = nullptr);
 // What the last draw used: the zoom it allowed (the preview cannot be
-// clipped, so it stays inside its box) and the layers along the peel axis.
+// clipped, so it stays inside its box) and the structure's height in levels.
 struct Last {
     float maxZoom = 1;
-    int layers = 0, axis = -1;
+    int layers = 0;
 };
 Last last();
 // The structure cell under a point of the last drawn preview (GUI units),

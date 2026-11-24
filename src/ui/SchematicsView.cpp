@@ -107,7 +107,7 @@ using ShapeZone = ShapesLayout::Zone;
 struct PreviewTurn {
     float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
     float yaw = 35, pitch = 30, zoom = 1;
-    int peel = 0, peelAxis = -1, peelSign = 1;
+    int peel = 0; // levels sliced off the top
     // The block clicked in the preview (structure cell) and its file.
     std::optional<schematic::preview::Cell> picked;
     std::string pickedFile;
@@ -130,14 +130,15 @@ void startFile(PreviewTurn& t, std::string const& file) {
 // The clock the preview turns by, in seconds.
 double previewClock() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 // The preview's corner line: the hint while it turns by itself, then the
-// peeled layers ("layer n/m"), which a click resets. Kept at the top edge:
-// the preview's depth hides text drawn over the model.
-void drawPreviewLabel(MinecraftUIRenderContext& context, PreviewTurn const& t, float x, float y, float w) {
+// slice ("height 12 of 20", with the world's Y where it is placed: `worldY`
+// is the placement's lowest level), which a click resets. Kept at the top
+// edge: the preview's depth hides text drawn over the model.
+void drawPreviewLabel(MinecraftUIRenderContext& context, PreviewTurn const& t, float x, float y, float w,
+                      std::optional<int> worldY = std::nullopt) {
     if (t.peel > 0) {
-        auto last = schematic::preview::last();
-        static constexpr std::array<std::string_view, 3> axes{"schematic.previewAxis.x", "schematic.previewAxis.y", "schematic.previewAxis.z"};
-        std::string text = translated("schematic.previewLayers", last.layers - t.peel, last.layers,
-            last.axis >= 0 ? translated(axes[static_cast<size_t>(last.axis)]) : std::string());
+        int const height = schematic::preview::last().layers, top = schematic::preview::sliceTop(height, t.peel);
+        std::string text = worldY ? translated("schematic.previewLayersY", top, height, *worldY + top - 1)
+                                  : translated("schematic.previewLayers", top, height);
         label(context,x+4,y+3,w-8,text,palette::warning);
     } else if (!t.manual) label(context,x+4,y+3,w-8,translated("schematic.previewHint"),palette::faint);
 }
@@ -1667,7 +1668,7 @@ void drawFileDetail(Body& b) {
                     [pick](int x, int y, int z) -> std::uint32_t { return pick && !(*pick == schematic::preview::Cell{x, y, z}) ? 0xff737373u : 0xffffffffu; }};
                 float s = drawScale();
                 if (!schematic::preview::draw(context, structure, (dx + 1) * s, (top + 1) * s, (dw - 2) * s, (bottom - top - 2) * s,
-                        schematic::preview::View{yaw, t.pitch, t.zoom, t.peel, t.peelAxis, t.peelSign}, pick ? &tint : nullptr))
+                        schematic::preview::View{yaw, t.pitch, t.zoom, t.peel}, pick ? &tint : nullptr))
                     t.w = 0;
                 else drawPreviewLabel(context, t, dx, top, dw);
                 // What was clicked, beside the facts.
@@ -1853,10 +1854,10 @@ void drawCheckDetail(Body& b) {
             b.fieldHelp = translated("schematic.previewHint");
         float s = drawScale();
         if (!schematic::preview::draw(context, shown, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
-                schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint,
+                schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel}, &tint,
                 &checked->placement))
             turn.w = 0;
-        else drawPreviewLabel(context, turn, dx, pvTop, dw);
+        else drawPreviewLabel(context, turn, dx, pvTop, dw, checked->placement.origin.y);
     };
     if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
     else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
@@ -2367,21 +2368,15 @@ void wheel(int step, glm::vec2 pointer, bool shift) {
     float px = pointer.x, py = pointer.y;
     // Over the 3D preview the wheel zooms it.
     if (auto& t = previewTurn(); t.w > 0 && px >= t.x && px < t.x + t.w && py >= t.y && py < t.y + t.h) {
-        // Shift peels layers off the side the view looks down on.
+        // Shift moves the slice with the wheel: up raises it (a level comes back), down lowers it.
         if (shift) {
-            // Slicing stops the Files preview's own turn where it is, so the cut stays in view.
-            if (!t.manual) { t.yaw = shownYaw(t); t.manual = true; }
-            // The side is chosen from the view when slicing starts
-            // and then kept, so the cut can be looked at from the side.
-            if (t.peel == 0) {
-                schematic::preview::View now{t.yaw, t.pitch};
-                auto cut = schematic::preview::cutFor(now, 2, 2, 2, 1);
-                t.peelAxis = cut.axis;
-                t.peelSign = cut.sign;
+            int const height = std::max(1, schematic::preview::last().layers);
+            int const next = std::clamp(t.peel + (step < 0 ? -1 : 1), 0, height - 1);
+            if (next != t.peel) {
+                // Slicing stops the Files preview's own turn where it is, so the cut stays in view.
+                if (!t.manual) { t.yaw = shownYaw(t); t.manual = true; }
+                t.peel = next;
             }
-            auto last = schematic::preview::last();
-            int layers = std::max(1, last.layers ? last.layers : 256);
-            t.peel = std::clamp(t.peel + (step < 0 ? 1 : -1), 0, layers - 1);
         } else t.zoom = std::clamp(t.zoom * (step < 0 ? 1.2f : 1 / 1.2f), .5f, schematic::preview::last().maxZoom);
         return;
     }

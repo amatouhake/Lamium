@@ -79,7 +79,8 @@ void translationTests() {
             else if (entry.key == "savedData.merged") rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining));
             else if (entry.key == "savedData.mergeFull" || entry.key == "savedData.mergingMap")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
-            else if (entry.key == "schematic.previewLayers") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, key));
+            else if (entry.key == "schematic.previewLayers") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
+            else if (entry.key == "schematic.previewLayersY") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
             else if (entry.key == "schematic.toast.rotated" || entry.key == "schematic.toast.mirror" || entry.key == "schematic.toast.nearest")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining));
             else if (entry.key == "schematic.toast.corner" || entry.key == "schematic.save.size")

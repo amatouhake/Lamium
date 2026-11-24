@@ -572,17 +572,11 @@ void previewRules() {
         inside = inside && std::abs(p.right * s) <= 100 && std::abs(p.down * s) <= 60;
     }
     check(most >= 1 && inside, "the largest zoom keeps every corner inside the box");
-    auto top = cutFor(View{35, 60}, 5, 8, 5, 3), side = cutFor(View{90, 10}, 5, 8, 5, 2);
-    check(top == Cut{1, 1, 4} && top.keeps(0, 4, 0) && !top.keeps(0, 5, 0) && side.axis == 0 && side.keeps(2, 0, 0) && !side.keeps(3, 0, 0)
-          && cutFor(view, 5, 8, 5, 0).axis < 0 && cutFor(View{35, 60}, 5, 8, 5, 99).limit == 0,
-          "peeling takes layers off the side the view looks down on, never the last one");
-    View turned{90, 10};
-    turned.peelAxis = 1;
-    check(cutFor(turned, 5, 8, 5, 3) == Cut{1, 1, 4}, "a cut started from above stays a height cut when the view turns to the side");
-    check(cutFor(View{}, 5, 8, 5, 1).axis == 1 && cutFor(View{120, 16}, 5, 8, 5, 1).axis == 1,
-          "the default view, and any looking down more than 15 degrees, peels from the top");
-    check(cutFor(View{0, 14}, 5, 8, 5, 1).axis == 2 && cutFor(View{90, -40}, 5, 8, 5, 1).axis == 0,
-          "nearly level or from below it peels the side facing the viewer");
+    auto sliced = cutFor(8, 3);
+    check(sliced == Cut{1, 1, 4} && sliced.keeps(0, 4, 0) && !sliced.keeps(0, 5, 0) && cutFor(8, 0).axis < 0 && cutFor(8, 99).limit == 0
+              && cutFor(1, 1).axis < 0, "the slice takes levels off the top, never the last one");
+    check(sliceTop(8, 0) == 8 && sliceTop(8, 3) == 5 && sliceTop(8, 99) == 1 && sliceTop(1, 1) == 1,
+          "the slice's top level counts from 1 at the bottom and never goes under the first");
     auto above = pick(View{0, 89}, 3, 3, 3, 0, 0, full);
     auto front = pick(View{0, 0}, 3, 3, 3, 0, 0, full);
     auto left = pick(View{0, 0}, 3, 3, 3, -1, 0, full);

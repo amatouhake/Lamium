@@ -594,10 +594,9 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         baseX += static_cast<int>(std::floor(at.x));
         baseZ += static_cast<int>(std::floor(at.z));
     }
-    Cut cut = cutFor(view, size.x, size.y, size.z, view.peel);
+    Cut cut = cutFor(size.y, view.peel);
     lastDrawn.maxZoom = maxZoom(view, size.x, size.y, size.z, width, height);
-    lastDrawn.axis = cut.axis;
-    lastDrawn.layers = layersAlong(cut, size.x, size.y, size.z);
+    lastDrawn.layers = size.y;
     view.zoom = std::clamp(view.zoom, .1f, lastDrawn.maxZoom);
     try {
         std::uint64_t key = tint ? tint->key : 0;
