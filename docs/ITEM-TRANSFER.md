@@ -29,6 +29,8 @@ an off gesture passes through to vanilla:
 | Held item, Shift + click outside: drop matching items | `transferDropMatching` |
 | Ctrl + Shift + drop key: drop the hovered kind | `transferDropHovered` |
 
+The switches' order, their key order and the two shared names are open:
+[transfer-row-order.html](demos/transfer-row-order.html) (2026-11-24).
 The gestures are fixed to these modifiers; rebinding is
 [L-233 Make inventory transfer gestures rebindable](backlog/L-233.md).
 

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>インベントリ転送: 子の並びとキーの順</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="kit/kit.css">
+<script src="kit/lamium-data.js"></script>
+<script src="kit/kit.js"></script>
+</head>
+<body>
+<main class="lk-page">
+  <div>
+    <h1>インベントリ転送: 子の並びとキーの順</h1>
+    <p class="lk-lede">左が今の設定画面（src/ から生成した行そのまま）、右が案です。案で変えた行には左端に水色の印が付きます。上の切り替えで「並び」「キーの順」「名前」を別々に試せます。</p>
+    <p class="lk-meta">2026-11-24 · 決めること: 子 15 行の並び、各行のキー表記の順、同じ名前の 2 組を分けるか</p>
+  </div>
+  <div class="lk-controls" id="controls"></div>
+  <div id="view"></div>
+  <section class="lk-box">
+    <h2>確認したいこと</h2>
+    <ul>
+      <li><b>並び</b>: 案は操作の種類ごと（ホイール 4 → Alt + クリック 2 → ドラッグ 3 → 持ったまま 1 → 捨てる 5）。捨てるドラッグ 3 行は転送ドラッグと同じ順（スタックごと → 各スロットから1個 → 1個残して）です。この区切りと順でよいか。</li>
+      <li><b>キーの順</b>: 案は「Ctrl → Shift → Alt → その他のキー（捨てるキー）→ マウス・ホイール」。Lamium のキー割り当ての並べ方（修飾キー、ほかのキー、マウス、ホイールの順）に合わせたものです。表示の順で、押す順ではありません（捨てるドラッグは今どおり Q を押したままでも Shift が先でも動きます）。Alt + Shift + クリックは「SHIFT + ALT + 左クリック」になります。</li>
+      <li><b>名前</b>: 「同種をすべて転送」「すべて転送」はホイール版と Alt + クリック版で同じ名前です。案では Alt + クリック版を「クリックした側から…」にします（ホイールは上下の向きへ、Alt + クリックはクリックした側から反対側へ動かす違いがあるため）。分けるか、キー表記があるので今のままにするか。</li>
+      <li>キー欄の「捨てるキー」はモックアップの表記で、ゲームでは割り当て中のキー（Q）が出ます。</li>
+    </ul>
+  </section>
+</main>
+<script>
+const state = { order: 'grouped', caps: 'tidy', names: 'split' };
+const ORDER = [['today', '並び: 今のまま'], ['grouped', '並び: 種類ごと']];
+const CAPS = [['today', 'キー: 今のまま'], ['tidy', 'キー: 修飾キー → 捨てるキー → マウス']];
+const NAMES = [['today', '名前: 今のまま'], ['split', '名前: Alt + クリック版を分ける']];
+
+const GROUPED = [
+  'inventory.transferWheelOne', 'inventory.transferWheelStack', 'inventory.transferWheelMatching', 'inventory.transferWheelAll',
+  'inventory.transferClickMatching', 'inventory.transferClickAll',
+  'inventory.transferDragStack', 'inventory.transferDragOne', 'inventory.transferDragKeepOne',
+  'inventory.transferCursorMatching',
+  'inventory.transferDropAll', 'inventory.transferDropOne', 'inventory.transferDropKeepOne',
+  'inventory.transferDropHovered', 'inventory.transferDropMatching',
+];
+const NEW_NAMES = {
+  'inventory.transferClickMatching': Lamium.text(['Move matching items from the clicked side', 'クリックした側から同種をすべて転送',
+    '从点击的一侧转移所有同类物品', '從點擊的一側轉移所有同類物品']),
+  'inventory.transferClickAll': Lamium.text(['Move everything from the clicked side', 'クリックした側からすべて転送',
+    '从点击的一侧转移所有物品', '從點擊的一側轉移全部']),
+};
+// Ctrl, Shift, Alt, then other keys (the drop key), then mouse and wheel.
+const capRank = (k) => (k.device === 'key' ? ({ 17: 0, 16: 1, 18: 2 }[k.code] ?? 3)
+  : k.text ? (k.text[0] === 'Drop key' ? 3 : 4) : 4);
+const sameKeys = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+function proposalRows() {
+  const rows = Lamium.rows('section.items');
+  const start = rows.findIndex((r) => r.id === 'transfer') + 1;
+  let children = [];
+  while (rows[start + children.length] && rows[start + children.length].child) children.push(rows[start + children.length]);
+  const original = children.map((r) => r.id);
+  if (state.order === 'grouped') {
+    children = GROUPED.map((id) => children.find((r) => r.id === id));
+    children.forEach((r, i) => { if (original[i] !== r.id) r.changed = true; });
+  }
+  children.forEach((r, i) => { r.last = i === children.length - 1; });
+  rows.splice(start, children.length, ...children);
+  if (state.caps === 'tidy')
+    for (const r of children) {
+      const sorted = [...r.keys].sort((a, b) => capRank(a) - capRank(b));
+      if (!sameKeys(sorted, r.keys)) Lamium.rows.change(rows, r.id, { keys: sorted });
+    }
+  if (state.names === 'split')
+    for (const [id, name] of Object.entries(NEW_NAMES)) Lamium.rows.change(rows, id, { name });
+  return rows;
+}
+// The transfer feature at the top of the table: count the shown rows before it (only it is open).
+function firstRow(rows) {
+  let n = 0;
+  for (const r of rows) { if (r.id === 'transfer') return n; if (!r.child) n++; }
+  return 0;
+}
+function controls() {
+  const c = document.getElementById('controls');
+  c.replaceChildren();
+  Lamium.page.choice(c, '並び', ORDER, state.order, (v) => { state.order = v; draw(); });
+  Lamium.page.choice(c, 'キー', CAPS, state.caps, (v) => { state.caps = v; draw(); });
+  Lamium.page.choice(c, '名前', NAMES, state.names, (v) => { state.names = v; draw(); });
+  Lamium.page.languages(c, () => { controls(); draw(); });
+}
+function draw() {
+  const today = Lamium.rows('section.items');
+  const proposal = proposalRows();
+  Lamium.page.compare(document.getElementById('view'), [
+    { kind: 'today', title: Lamium.t('section.items'),
+      draw: (stage) => Lamium.settings(stage, { nav: 'section.items', open: ['transfer'], selected: 'inventory.transferDropHovered', first: firstRow(today) }) },
+    { kind: 'proposal', title: '案（上の切り替えのとおり）',
+      note: '同じ操作の仲間を続けて並べ、キーは修飾キーから読む順にそろえます。',
+      draw: (stage) => Lamium.settings(stage, { nav: 'section.items', rows: proposal, open: ['transfer'], selected: 'inventory.transferDropHovered', first: firstRow(proposal) }) },
+  ]);
+}
+Lamium.ready(() => { controls(); draw(); });
+</script>
+</body>
+</html>

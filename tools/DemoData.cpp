@@ -94,6 +94,16 @@ json navigation() {
         out.push_back({{"key", key}, {"pinned", true}});
     return out;
 }
+// A fixed press's caps: named inputs (wheel, drag, drop key) as text, keys by code.
+json fixedCaps(input::FixedPress const& press) {
+    json caps = json::array();
+    for (int i = 0; i < input::fixedCapCount(press); ++i) {
+        auto const& cap = press.caps[static_cast<size_t>(i)];
+        if (!cap.text.empty()) caps.push_back({{"text", each([&](auto tr) { return tr(cap.text); })}});
+        else caps.push_back(chord(input::Chord{cap.token})[0]);
+    }
+    return caps;
+}
 // One row as the settings table draws it with default settings and default keys.
 json row(ui::SettingsRow const& r, Settings const& value) {
     json out;
@@ -129,6 +139,8 @@ json row(ui::SettingsRow const& r, Settings const& value) {
             if (slider) out["control"]["position"] = ui::SettingsTable::sliderPosition(std::get<float>(v), o.numeric->minimum, o.numeric->maximum);
         }
         if (auto linked = ui::optionAction(o.id)) out["keys"] = chord(input::defaultChord(*linked));
+        // A fixed gesture's keys beside its switch, read-only (L-372, SettingsTableView).
+        else if (auto press = ui::fixedPressOf(o.id)) { out["keys"] = fixedCaps(*press); out["keyTone"] = "fixed"; }
         break;
     }
     case ui::RowKind::Action:
@@ -143,13 +155,7 @@ json row(ui::SettingsRow const& r, Settings const& value) {
             if (auto option = settings::find(press.option)) return ui::splitLabel(tr(option->label)).name;
             return tr(press.name);
         })}, {"keyTone", "fixed"}};
-        json caps = json::array();
-        for (int i = 0; i < input::fixedCapCount(press); ++i) {
-            auto const& cap = press.caps[static_cast<size_t>(i)];
-            if (!cap.text.empty()) caps.push_back({{"text", each([&](auto tr) { return tr(cap.text); })}});
-            else caps.push_back(chord(input::Chord{cap.token})[0]);
-        }
-        out["keys"] = caps;
+        out["keys"] = fixedCaps(press);
         break;
     }
     case ui::RowKind::Layout:

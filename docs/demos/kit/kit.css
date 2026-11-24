@@ -30,6 +30,10 @@ body { margin: 0; background: var(--page); color: var(--page-ink); font: 15px/1.
 .lk-case.today header .lk-tag { border-color: var(--lm-info); color: var(--lm-info); }
 .lk-case.proposal header .lk-tag { border-color: var(--lm-accent); color: var(--lm-accent); }
 .lk-case .lk-note { font-size: 14px; color: var(--page-dim); }
+/* The box at the bottom: open questions (確認したいこと) or decisions (決定事項). */
+.lk-box { border: 1px solid var(--page-line); background: var(--page-2); padding: 14px 18px; display: grid; gap: 8px; }
+.lk-box ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; color: var(--page-dim); }
+.lk-box b { color: var(--page-ink); }
 .lk-errors { border: 1px solid var(--lm-warning); color: var(--lm-warning); padding: 8px 12px; font-size: 13px; white-space: pre-wrap; }
 
 /* The stage: GUI units at 1px each, scaled as a whole to the column. */
