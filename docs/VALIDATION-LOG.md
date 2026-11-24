@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The schematic preview's slice along the height only (L-114, 2026-11-25)
+
+`f34bfdd6` (DLL
+`c5fa48ebd9328302448c1ee65b32f7a8082821bced30a15916222e1ab6949f1d`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: from any view Shift+wheel slices along the height only, wheel down
+  taking a level off the top and wheel up bringing one back; never from the
+  side, also from level or from below.
+- Seen: while sliced the corner says "断面: 高さ n / m まで", falling and
+  rising with the slice; in the Check tab with "(Y ...)", which matches the
+  level's Y in the world.
+- Seen: a click on the corner shows it whole again; slicing stops the
+  Files preview's own turn.
+- Seen: nothing else changed.
+
 ## Schematic previews as placed, per tab and sliced; entities by spawn egg (L-114, 2026-11-25)
 
 `0398c56f` (DLL
