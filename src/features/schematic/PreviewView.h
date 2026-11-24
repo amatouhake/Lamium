@@ -75,7 +75,8 @@ inline Projected project(View view, float x, float y, float z) {
     return {x * rx + z * rz, -(x * ux + y * uy + z * uz), x * e.x + y * e.y + z * e.z};
 }
 // Layers peeled off from the side the view looks down on: from the top when
-// looking down steeply, else from the horizontal side nearest the viewer.
+// looking down more than 15 degrees (the default view does: builds are seen
+// floor by floor), else from the horizontal side nearest the viewer.
 // A cell stays when its coordinate on `axis` is <= limit (sign +1) or >=
 // limit (sign -1).
 struct Cut {
@@ -91,7 +92,8 @@ struct Cut {
 inline Cut cutFor(View view, int sx, int sy, int sz, int peel) {
     if (peel <= 0) return {};
     auto e = eye(view);
-    int axis = std::abs(e.y) >= std::max(std::abs(e.x), std::abs(e.z)) * .9f ? 1 : std::abs(e.x) >= std::abs(e.z) ? 0 : 2;
+    constexpr float lookingDown = .2588f; // sin 15 degrees
+    int axis = e.y > lookingDown ? 1 : std::abs(e.x) >= std::abs(e.z) ? 0 : 2;
     float toward = axis == 0 ? e.x : axis == 1 ? e.y : e.z;
     // Fixed once peeling started, so turning to look at the cut keeps it.
     if (view.peelAxis >= 0) { axis = view.peelAxis; toward = static_cast<float>(view.peelSign); }

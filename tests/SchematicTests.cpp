@@ -578,6 +578,10 @@ void previewRules() {
     View turned{90, 10};
     turned.peelAxis = 1;
     check(cutFor(turned, 5, 8, 5, 3) == Cut{1, 1, 4}, "a cut started from above stays a height cut when the view turns to the side");
+    check(cutFor(View{}, 5, 8, 5, 1).axis == 1 && cutFor(View{120, 16}, 5, 8, 5, 1).axis == 1,
+          "the default view, and any looking down more than 15 degrees, peels from the top");
+    check(cutFor(View{0, 14}, 5, 8, 5, 1).axis == 2 && cutFor(View{90, -40}, 5, 8, 5, 1).axis == 0,
+          "nearly level or from below it peels the side facing the viewer");
     auto above = pick(View{0, 89}, 3, 3, 3, 0, 0, full);
     auto front = pick(View{0, 0}, 3, 3, 3, 0, 0, full);
     auto left = pick(View{0, 0}, 3, 3, 3, -1, 0, full);
