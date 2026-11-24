@@ -183,7 +183,8 @@ after using the first build. What is still open is in the L-item.
   "can be made" as many as divide evenly; under "All" in creative a stack
   into the inventory, elsewhere the recipes; the favorites and the plan's
   rows by the game mode, in creative as "All", else as "can be made" (a
-  plan row then opens the list, as a press does). One that cannot act
+  plan row then opens the list, as a press does: placing is the "to make"
+  rows', maintainer 2026-11-24). One that cannot act
   shows the recipes, whose red slots tell why. Whatever the pointer holds
   stays on it. The hints say what Shift does in this mode; the place
   button's tip names Shift and Ctrl.

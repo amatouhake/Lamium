@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Taking items out in creative (L-360, 2026-11-24)
+
+`103dddb3` (DLL
+`913088fe27bdb7447c53d4b15c954495b95a6178586fb44b19d7b3b16ecc048c`),
+1.26.60.05 Dev, a local world, the maintainer:
+- Seen: the middle button, Shift + it and Shift + a press under "All"
+  taking one, a stack and a stack into the inventory, planks and a chosen
+  enchanted book, with the game's pane closed and at the crafting table;
+  favorites taking with Shift in creative, placing in survival, "All"
+  showing the recipes there; the Shift hint changing with the mode; the
+  notices at a chest and with the game's search filtering; "can be made"
+  as before.
+- The middle button over the game's own slot puts one of its item on the
+  pointer, which the game itself does not do (the take keys act wherever
+  R and U do).
+- The key hints line is too long in creative: cut at its end, its start
+  overdrawn (screenshot: "A: お気に入り | W: 欲しい物 | Shift+クリック:
+  インベントリへ | ホイールクリック: 1個取…").
+- Logged: a take from a cell already shown; one after a refresh was not
+  logged, so the refresh path in this build is not confirmed.
+- Not seen: a server.
+
 ## The creative search list filled by a model refresh (L-360, 2026-11-24)
 
 Trace build `creative_trace` of `a9cda0a8` before it was committed (DLL
