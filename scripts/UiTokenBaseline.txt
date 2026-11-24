@@ -6,6 +6,8 @@ packed src/features/information/InfoHud.cpp 2
 packed src/features/information/Saturation.h 2
 packed src/features/inspection/LockedTrades.cpp 4
 packed src/features/inspection/render/HeldItem.cpp 1
+packed src/features/inspection/render/ItemIcon.cpp 1
+packed src/features/inspection/render/PreviewRenderer.cpp 5
 packed src/features/map/MapCave.h 2
 packed src/features/map/MapFaces.h 1
 packed src/features/map/MapImage.h 1
@@ -14,3 +16,4 @@ packed src/features/map/MapRegion.h 1
 packed src/features/map/Minimap.cpp 2
 packed src/features/map/RadarFaces.cpp 2
 packed src/features/map/Waypoints.h 12
+packed src/features/schematic/GhostMarks.cpp 1

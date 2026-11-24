@@ -19,8 +19,9 @@ $patterns = [ordered]@{
     # A returned brace list of three numbers with a fraction is one too (whole numbers are a direction).
     color  = '\bRgb(\s+\w+)?\s*\{\s*[-.\d]|\breturn\s*\{(?=[^}]*\.)\s*[-.\df]+\s*,\s*[-.\df]+\s*,\s*[-.\df]+\s*\}'
     button = '\bpalette::keyFill\b'
-    # All ones is a mask or "unchanged" and ff000000 the alpha mask, not colors.
-    packed = '\bpackColor\(\s*\d|\bmce::Color\s*[{(]\s*[-.\d]|\b0x[fF]{2}(?![fF]{6}|0{6})[0-9a-fA-F]{6}u?\b'
+    # All ones and ff000000 are skipped: mostly masks and "unchanged" (MapImage.h's
+    # opaque white arrow default is the one color among them, left uncounted).
+    packed = '\bpackColor\(\s*\d|\bmce::Color(\s+\w+)?\s*[{(]\s*[-.\d]|\b0x[fF]{2}(?![fF]{6}|0{6})[0-9a-fA-F]{6}u?\b'
 }
 $counts = [ordered]@{}
 foreach ($folder in 'src/ui', 'src/features', 'src/overlay') {
