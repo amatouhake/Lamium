@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The views' shared keys, rows and layer edits unchanged in play (L-399, 2026-11-24)
+
+`5306fb78` (DLL
+`0fc4610d2dfbadcc577d59e638f03b4ddd37cbab6111bfe537b759fdcf76bb55`),
+1.26.60.05 Dev, the maintainer, from the checklist page (the world's kind
+was not recorded). Refactors meant to change nothing:
+- Seen as before: in the Shapes, Waypoints and Schematics views the
+  arrows, Enter, Space, Page Up and Down (over the Files tab's folder
+  headings too), Tab and Esc.
+- Seen as before: Backspace, Ctrl + A, Esc and Enter or Tab while typing a
+  name or a number, the settings table's numbers included.
+- Seen as before: the Materials tab's Blocks and Entities headings, the
+  four tabs' click and hover, the Placed tab's selected row.
+- Seen as before: the schematic layer keys (layer up and down, match
+  layer, axis, show, keep) and the radial menu's layer steppers, with their
+  toasts.
+- Not covered: a multiplayer server. The intermediate build `fbec73d8`
+  was deployed but not checked; this one contains it.
+
 ## Screen, per-frame and color refactors unchanged in play (L-399, L-400, L-401, 2026-11-24)
 
 `6f51abdd` (DLL
