@@ -1,4 +1,5 @@
 #include "features/schematic/Preview.h"
+#include "features/schematic/ResolvedPlacement.h"
 #include "features/schematic/GhostCommon.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostFaces.h"
@@ -105,6 +106,7 @@ struct Kept {
     std::vector<std::shared_ptr<BlockActor>> actors;
     std::vector<Block const*> palette; // the file's game blocks, for the actors' view
     int baseX = 0, baseY = 0, baseZ = 0; // where cell (0, 0, 0) was tessellated
+    Placement turn; // the turn and mirror the blocks were drawn with (block entities follow it)
 };
 Kept kept;
 bool Ready::drawable() const {
@@ -139,6 +141,7 @@ struct Job {
     std::vector<bool> quadLiquid;
     std::vector<std::pair<std::uint32_t, Block const*>> actorCells;
     Cut cut;
+    Placement turn;
 };
 std::optional<Job> job;
 Last lastDrawn;
@@ -165,9 +168,10 @@ bool covers(Job const& j, int x, int y, int z) {
 }
 
 void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure const> const& structure, Order order, Cut cut,
-           int baseX, int baseZ) {
+           int baseX, int baseZ, Placement turn) {
     job.emplace();
     job->cut = cut;
+    job->turn = turn;
     job->structure = structure;
     job->order = order;
     auto const& s = *structure;
@@ -176,9 +180,9 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     job->halfSteps.assign(s.palette.size(), 0);
     for (size_t i = 0; i < s.palette.size(); ++i) {
         if (s.palette[i].isAir()) continue;
-        job->palette[i] = ghosts::gameBlock(s.palette[i]);
+        job->palette[i] = ghosts::turnedBlock(ghosts::gameBlock(s.palette[i]), turn.rotation, turn.mirror);
         if (auto half = otherHalf(s.palette[i]); half && job->palette[i])
-            if ((job->halves[i] = ghosts::gameBlock(half->block))) job->halfSteps[i] = half->step;
+            if ((job->halves[i] = ghosts::turnedBlock(ghosts::gameBlock(half->block), turn.rotation, turn.mirror))) job->halfSteps[i] = half->step;
     }
     {
         int top = region.getMaxHeight(), bottom = region.getMinHeight();
@@ -449,6 +453,7 @@ bool step() {
     kept.baseY = j.baseY;
     kept.baseZ = j.baseZ;
     kept.cut = j.cut;
+    kept.turn = j.turn;
     return true;
 }
 
@@ -526,7 +531,7 @@ void drawActors(MinecraftUIRenderContext& context, BlockSource& region, Structur
             if (!kept.actors[i]) {
                 auto found = s.blockEntities.find(static_cast<std::int32_t>(cell));
                 kept.actors[i] = ghosts::makeBlockActor(*block, worldPos, found != s.blockEntities.end() ? &found->second : nullptr,
-                                                        Placement{}, region);
+                                                        kept.turn, region);
                 if (!kept.actors[i]) continue;
             }
             Vec3 renderPos{x - center.x, y - center.y, z - center.z};
@@ -573,7 +578,8 @@ void clear() {
 } // namespace
 
 bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> const& structure, float x, float y, float width, float height,
-          View view, Tint const* tint) {
+          View view, Tint const* tint, Placement const* turn) {
+    Placement const blocksTurn = turn ? Placement{{}, turn->rotation, turn->mirror} : Placement{};
     if (!structure || width < 8 || height < 8) return false;
     if (!versionSensitiveAllowed(capabilities::Id::SchematicBlocks)) { clear(); return false; }
     IClientInstance& client = context.mClient;
@@ -599,11 +605,11 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         // A new cut needs new quads (faces inside the build become visible);
         // the last mesh stays up while they build.
         if (kept.structure == structure && !(kept.cut == cut) && (!job || job->structure != structure || !(job->cut == cut)))
-            start(screen, *region, structure, order, cut, baseX, baseZ);
+            start(screen, *region, structure, order, cut, baseX, baseZ, blocksTurn);
         else if (!current && kept.structure == structure && kept.cut == cut) {
             upload(screen, order, tint);
         } else if (!current && kept.structure != structure && (!job || job->structure != structure || !(job->cut == cut))) {
-            start(screen, *region, structure, order, cut, baseX, baseZ);
+            start(screen, *region, structure, order, cut, baseX, baseZ, blocksTurn);
         }
         if (job && !job->failed && step()) {
             job.reset();

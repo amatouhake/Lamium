@@ -23,6 +23,7 @@
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/PlacementOverlap.h"
+#include "features/schematic/PlacedStructure.h"
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -1845,7 +1846,44 @@ void ghostBlockEntityTests() {
     check(!overlap::fileCellAt(file, Point{200, 63, 200}), "below the file says nothing");
 }
 
+// The Check tab's preview draws the structure as placed (L-114): turned and mirrored like the world's ghosts.
+void placedStructures() {
+    Structure s;
+    s.size = {2, 1, 3};
+    s.palette.resize(6);
+    s.blocks = {0, 1, 2, 3, 4, 5}; // cell (x, 0, z) holds x * 3 + z
+    s.liquids = {-1, -1, 5, -1, -1, -1};
+    s.blockEntities[s.cell(1, 0, 2)] = nbt::Compound{};
+    EntityRecord stand{"minecraft:armor_stand", 0.5, 0, 2.5, {}};
+    nbt::List turn{nbt::Type::Float, {nbt::Tag{0.f}, nbt::Tag{0.f}}};
+    stand.data.set("Rotation", {turn});
+    s.entities.push_back(stand);
+    for (auto mirror : {Mirror::None, Mirror::X, Mirror::Z})
+        for (int rotation = 0; rotation < 4; ++rotation) {
+            Placement p{{10, 20, 30}, rotation, mirror};
+            auto placed = placedStructure(s, p);
+            bool same = placed.size == placedSize(s.size, rotation) && placed.blocks.size() == s.blocks.size();
+            for (int x = 0; x < s.size.x && same; ++x)
+                for (int z = 0; z < s.size.z && same; ++z) {
+                    auto w = toWorld(s.size, p, {x, 0, z});
+                    auto at = placed.cell(w.x - 10, 0, w.z - 30);
+                    same = placed.blocks[static_cast<size_t>(at)] == s.blocks[static_cast<size_t>(s.cell(x, 0, z))]
+                        && placed.liquids[static_cast<size_t>(at)] == s.liquids[static_cast<size_t>(s.cell(x, 0, z))];
+                }
+            check(same, "a placed cell holds the file cell the world's ghost there shows, liquids too");
+            auto be = toWorld(s.size, p, {1, 0, 2});
+            check(placed.blockEntities.size() == 1 && placed.blockEntities.contains(placed.cell(be.x - 10, 0, be.z - 30)),
+                  "a block entity moves with its cell");
+            auto at = toWorldPosition(s.size, p, {0.5, 0, 2.5});
+            auto const& e = placed.entities.front();
+            auto const* yaw = e.data.find("Rotation")->as<nbt::List>()->items.front().as<float>();
+            check(e.x == at.x - 10 && e.z == at.z - 30 && yaw && *yaw == toWorldYaw(0, p), "an entity moves and faces as the world's ghost");
+        }
+    auto none = placedStructure(s, Placement{});
+    check(none.blocks == s.blocks && none.size == s.size, "without a turn or mirror the structure stays as it is");
+}
 void schematicTests() {
+    placedStructures();
     checkRelaxations();
     placementSteps();
     verificationReadiness();

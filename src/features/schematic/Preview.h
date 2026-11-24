@@ -1,6 +1,7 @@
 #pragma once
 // The schematic screen's 3D preview (BACKLOG L-114): a structure's blocks,
 // tessellated by the game's block tessellator and drawn into a UI box.
+#include "features/schematic/Placement.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/Structure.h"
 #include <cstdint>
@@ -16,11 +17,13 @@ struct Tint {
     std::uint64_t key = 0;
     std::function<std::uint32_t(int x, int y, int z)> color;
 };
-// Draws `structure` into the box seen from `view`. False when nothing could
-// be drawn (no world to tessellate with, too many blocks, render path
+// Draws `structure` into the box seen from `view`. With `turn`, the structure
+// is one placedStructure made for that turn and mirror, and its blocks and
+// block entities are turned to match (the Check tab). False when nothing
+// could be drawn (no world to tessellate with, too many blocks, render path
 // unavailable); the caller keeps its text.
 bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> const& structure, float x, float y, float width, float height,
-          View view, Tint const* tint = nullptr);
+          View view, Tint const* tint = nullptr, Placement const* turn = nullptr);
 // What the last draw used: the zoom it allowed (the preview cannot be
 // clipped, so it stays inside its box) and the layers along the peel axis.
 struct Last {

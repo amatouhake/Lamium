@@ -44,16 +44,17 @@ ItemInfo itemFor(PaletteBlock const& entry, Block const* block) {
 }
 }
 
+Block const* turnedBlock(Block const* block, int rotation, Mirror mirror) {
+    if (block && (quarterTurns(rotation) || mirror != Mirror::None))
+        if (auto const* turned = VanillaBlockStateTransformUtils::transformBlock(*block, gameRotation(quarterTurns(rotation)), gameMirror(mirror)))
+            return turned;
+    return block;
+}
 Resolved resolve(Structure const& structure, SavedPlacement const& placement) {
     Resolved out{nullptr, &structure, placement.placement.rotation, placement.placement.mirror, {}};
     out.blocks.reserve(structure.palette.size());
     unsigned missing = 0;
-    auto turn = [&](Block const* block) {
-        if (block && (out.rotation || out.mirror != Mirror::None))
-            if (auto const* turned = VanillaBlockStateTransformUtils::transformBlock(*block, gameRotation(out.rotation), gameMirror(out.mirror)))
-                return turned;
-        return block;
-    };
+    auto turn = [&](Block const* block) { return turnedBlock(block, out.rotation, out.mirror); };
     for (auto const& entry : structure.palette) {
         Block const* block = entry.isAir() ? nullptr : lookup(entry);
         if (!block && !entry.isAir()) ++missing;

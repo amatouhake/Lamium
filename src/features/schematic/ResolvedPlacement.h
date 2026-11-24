@@ -11,6 +11,9 @@
 #include <vector>
 class Block;
 namespace lamium::schematic::ghosts {
+// A block turned and mirrored as a placement puts it (the game's state
+// transform); the block itself when unchanged or not turnable.
+Block const* turnedBlock(Block const* block, int rotation, Mirror mirror);
 // An entity of the schematic where the placement puts it.
 struct EntityGhost {
     std::string identifier, name;

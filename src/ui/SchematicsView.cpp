@@ -2,6 +2,7 @@
 #include "ui/DataNotice.h"
 #include "ui/SchematicsView.h"
 #include "ui/SchematicsRows.h"
+#include "features/schematic/PlacedStructure.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/RowSelection.h"
@@ -111,6 +112,7 @@ struct PreviewTurn {
     std::optional<schematic::preview::Cell> picked;
     std::string pickedFile;
     std::string file; // the structure shown
+    int placedTurn = 0; // the Check tab's placement turn and mirror shown: a picked cell belongs to it
     bool manual = false, dragging = false, turning = false; // turning: this drag moved far enough to turn
     glm::vec2 from{};
     float fromYaw = 0, fromPitch = 0;
@@ -153,6 +155,29 @@ using SchematicTab = Tab;
 SchematicTab schematicTab = SchematicTab::Placements;
 SchematicPick schematicPick = SchematicPick::None;
 PreviewTurn& previewTurn() { return schematicTab == SchematicTab::Verify ? checkTurn : filesTurn; }
+// The Check tab's preview draws the checked placement as placed (L-114): its structure turned and mirrored like
+// the world's ghosts, made again only when the file, the turn or the mirror changes. Unturned, the file's own.
+std::shared_ptr<schematic::Structure const> placedView(std::shared_ptr<schematic::Structure const> const& structure,
+                                                       schematic::Placement const& placement) {
+    int const turns = schematic::quarterTurns(placement.rotation);
+    if (!structure || (turns == 0 && placement.mirror == schematic::Mirror::None)) return structure;
+    static std::weak_ptr<schematic::Structure const> from;
+    static int fromTurns = 0;
+    static schematic::Mirror fromMirror = schematic::Mirror::None;
+    static std::shared_ptr<schematic::Structure const> placed;
+    if (from.lock() != structure || fromTurns != turns || fromMirror != placement.mirror || !placed) {
+        from = structure;
+        fromTurns = turns;
+        fromMirror = placement.mirror;
+        placed = std::make_shared<schematic::Structure const>(schematic::placedStructure(*structure, placement));
+    }
+    return placed;
+}
+// A cell of the Check tab's preview in the world: the preview is drawn as placed, from the placement's corner.
+schematic::Point checkCellWorld(schematic::SavedPlacement const& checked, schematic::preview::Cell const& cell) {
+    auto const& o = checked.placement.origin;
+    return {o.x + cell.x, o.y + cell.y, o.z + cell.z};
+}
 // The angle a preview is drawn at: the Files tab's adds its own turn until it is stopped.
 float shownYaw(PreviewTurn const& t) {
     return t.yaw + (&t == &filesTurn && !t.manual ? schematics_rows::autoTurn(previewClock()) : 0.f);
@@ -669,9 +694,7 @@ void showSelectedMismatch() {
     auto const& t = checkTurn;
     auto const* checked = checkedPlacement();
     if (!t.picked || !checked || t.pickedFile != checked->file) return;
-    auto structure = schematic::session::structure(checked->file);
-    if (!structure) return;
-    schematic::ghosts::point(schematic::toWorld(structure->size, checked->placement, {t.picked->x, t.picked->y, t.picked->z}));
+    schematic::ghosts::point(checkCellWorld(*checked, *t.picked));
     screen::close();
 }
 int schematicFieldCount() {
@@ -851,9 +874,8 @@ void pickInPreview(glm::vec2 at) {
     t.pickedFile = t.file;
     if (schematicTab != SchematicTab::Verify || ignoreView || checkRows.several() || !t.picked) return;
     auto const* checked = checkedPlacement();
-    auto structure = checked ? schematic::session::structure(checked->file) : nullptr;
-    if (!structure) return;
-    auto world = schematic::toWorld(structure->size, checked->placement, {t.picked->x, t.picked->y, t.picked->z});
+    if (!checked) return;
+    auto world = checkCellWorld(*checked, *t.picked);
     int row = -1;
     for (size_t i = 0; i < verifyRows.size(); ++i)
         if (!verifyRows[i]->entity && verifyRows[i]->position == world) { row = static_cast<int>(i); break; }
@@ -1771,7 +1793,7 @@ void drawCheckDetail(Body& b) {
         }
         if (!cells.empty() || !block.empty()) {}
         else if (!ignoreView && checkTurn.picked && checkTurn.pickedFile == checked->file) {
-            auto w = schematic::toWorld(structure->size, checked->placement, {checkTurn.picked->x, checkTurn.picked->y, checkTurn.picked->z});
+            auto w = checkCellWorld(*checked, *checkTurn.picked);
             marked->insert({w.x, w.y, w.z});
             mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(w.x)) << 32 ^ static_cast<std::uint32_t>(w.z));
             mix(static_cast<std::uint32_t>(w.y));
@@ -1794,12 +1816,14 @@ void drawCheckDetail(Body& b) {
                         states[{m.position.x, m.position.y, m.position.z}] = m.state;
         }
         bool const any = !marked->empty() || std::find(blockCells.begin(), blockCells.end(), true) != blockCells.end();
-        auto placement = checked->placement;
-        schematic::preview::Tint tint{key, [placement, structure, marked, blockCells, any](int x, int y, int z) -> std::uint32_t {
-            auto world = schematic::toWorld(structure->size, placement, {x, y, z});
+        // Drawn as placed: a preview cell is the placement's corner plus the cell.
+        auto const shown = placedView(structure, checked->placement);
+        auto const origin = checked->placement.origin;
+        schematic::preview::Tint tint{key, [origin, shown, marked, blockCells, any](int x, int y, int z) -> std::uint32_t {
+            schematic::Point world{origin.x + x, origin.y + y, origin.z + z};
             bool hit = marked->contains({world.x, world.y, world.z});
             if (!hit && !blockCells.empty()) {
-                auto index = structure->blocks[static_cast<size_t>(structure->cell(x, y, z))];
+                auto index = shown->blocks[static_cast<size_t>(shown->cell(x, y, z))];
                 hit = index != schematic::voidCell && static_cast<size_t>(index) < blockCells.size() && blockCells[static_cast<size_t>(index)];
             }
             if (any && hit) return 0xffffffffu;
@@ -1819,11 +1843,18 @@ void drawCheckDetail(Body& b) {
         auto& turn = checkTurn;
         turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
         if (turn.file != checked->file) startFile(turn, checked->file);
+        // Turned or mirrored since: the picked cell and the slice were the old shape's.
+        if (int key = schematic::quarterTurns(checked->placement.rotation) * 3 + static_cast<int>(checked->placement.mirror); key != turn.placedTurn) {
+            turn.placedTurn = key;
+            turn.picked.reset();
+            turn.peel = 0;
+        }
         if (b.pointer.x >= turn.x && b.pointer.x < turn.x + turn.w && b.pointer.y >= turn.y && b.pointer.y < turn.y + turn.h)
             b.fieldHelp = translated("schematic.previewHint");
         float s = drawScale();
-        if (!schematic::preview::draw(context, structure, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
-                schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint))
+        if (!schematic::preview::draw(context, shown, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
+                schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint,
+                &checked->placement))
             turn.w = 0;
         else drawPreviewLabel(context, turn, dx, pvTop, dw);
     };
@@ -2091,8 +2122,7 @@ void drawCheckDetail(Body& b) {
              structure && checkTurn.picked && checkTurn.pickedFile == checked->file) {
         // A clicked block without a row (correct, filtered out, or past
         // the list's limit): checked again right now.
-        auto const& c = *checkTurn.picked;
-        auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
+        auto world = checkCellWorld(*checked, *checkTurn.picked);
         auto* region = context.mClient.getRegion();
         auto now = region ? schematic::ghosts::mismatchAt(*region, world) : std::nullopt;
         fill(context,rx-5,y,1,52,palette::white,.1f);
