@@ -508,9 +508,11 @@ void recipeIndexTests() {
         check(cornersClear, "every station's block keeps place and the check box at its corner, off the product");
         check(RecipeViewLayout::gap == 6 && RecipeViewLayout::block + 2 * RecipeViewLayout::pad == 102,
               "faces are 102 wide and 6 apart (L-379)");
-        check(view.left == 202 && view.top == 51 && view.height == 257 && view.hintY() == 295
-              && recipeViewAt(640, 200).height == 200 - 18 - 4 - 22 && recipeViewAt(640, 200).top == 22,
-              "the view is centred, three rows high, under its tabs; on a low screen it fills the room");
+        check(view.left == 202 && view.top == 43 && view.height == 251 && view.top + view.height + 4 <= hintTop(360, 2)
+              && recipeViewAt(640, 200).height == 200 - 18 - 22 - 4 - 22 && recipeViewAt(640, 200).top == 22,
+              "the view is centred, three rows high, under its tabs and over the key hints; on a low screen it fills the room");
+        check(hintTop(360, 1) == 360 - 18 - 1 - 11 && hintTop(360, 2) + hintLine == hintTop(360, 1),
+              "the hints end a unit above the search row, a second line above the first");
         check(view.rows(Station::Crafting) == 3 && view.perPage(Station::Crafting) == 6 && view.columns(Station::Crafting, 3) == 1
               && view.columns(Station::Crafting, 4) == 2 && view.pages(Station::Crafting, 13) == 3
               && std::abs(view.blockY(Station::Crafting, 6, 2) - view.blockY(Station::Crafting, 6, 0) - view.rowStep(Station::Crafting)) < .01f
@@ -605,7 +607,7 @@ void recipeIndexTests() {
                   "of two recipes that fit, the one the game names is taken, else the first");
         }
         check(view.blockX(Station::Crafting, 3, 1) == 274 && view.blockX(Station::Crafting, 8, 1) == 328
-              && std::abs(view.blockY(Station::Crafting, 8, 3) - (51 + 35 + 70 + (70.f - 54) / 2)) < .01f,
+              && std::abs(view.blockY(Station::Crafting, 8, 3) - (43 + 35 + 70 + (70.f - 54) / 2)) < .01f,
               "one column sits in the middle; two fill left to right, then down");
     }
     {

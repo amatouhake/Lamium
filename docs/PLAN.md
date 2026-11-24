@@ -125,7 +125,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
   members stand in the item list's creative order on every screen.
 - Tips describe the item alone; what a press or the wheel does there
   ("Wheel: look through the kinds", "Change it in How to make") is
-  added to the window's hint line while the pointer is on it.
+  added to the key hints over the search row while the pointer is on it.
 - A group "any" is traced past its kind where most of its members are,
   by their usual recipe, made from one input in one amount (L-386):
   planks from logs (every log, wood, stripped one, stem and hyphae: the

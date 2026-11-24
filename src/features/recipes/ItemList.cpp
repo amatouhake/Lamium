@@ -560,7 +560,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
     }
     cost.walk = cost.lap();
-    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, viewLayout.hintY() - 1);
+    auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, hintTop(screen.y, 2) - 1);
     // Asked for from the settings, the editor starts on the first item screen drawn.
     static std::string editScreen; // the editor belongs to the screen it started on
     // A screen the game closed (a death, the server) and opened again: arranging ended with it.
@@ -980,12 +980,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
             wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
         }
     }
+    // The key hints right above the search row (L-360, maintainer 2026-11-24), whatever lies above them: the
+    // presses, then the keys, on one line, or on two where one does not hold them. Closed, they show only where
+    // the game's window leaves them free. A notice stands in their place while it lasts.
+    float const hintsX = std::floor((screen.x - RecipeViewLayout::width) / 2);
     bool const noticing = !noticeText.empty() && std::chrono::steady_clock::now() - noticeAt < std::chrono::duration<double>(noticeSeconds);
-    if (noticing) drawNotice(context, viewLayout.left + RecipeViewLayout::width / 2, viewLayout.hintY() - 2, RecipeViewLayout::width, noticeText, true, !open);
-    else if ((open || viewLayout.hintY() >= at.y + size.y + 2) && (recipesOn || planOn) && !bandEditor::active()) {
-        // The presses, then the keys, on one line, or on two where they do not fit (L-360): the second under
-        // the first, below the window's edge while it is open, where the room above the search field allows;
-        // else one line shrunk to the window's width.
+    if (noticing) drawNotice(context, screen.x / 2, hintTop(screen.y, 1), RecipeViewLayout::width, noticeText, true, true);
+    else if ((recipesOn || planOn) && !bandEditor::active()) {
         std::vector<std::string> parts;
         if (recipesOn) parts.push_back(translated("recipes.hint"));
         auto add = [&](std::string part) { parts.push_back(std::move(part)); };
@@ -1007,18 +1008,18 @@ bool drawList(ll::event::UIRenderEvent& event) {
         std::vector<float> widths;
         for (auto const& part : parts) widths.push_back(labelWidth(context, part, 1));
         size_t const cut = hintBreak(widths, labelWidth(context, sep, 1), room);
-        float const firstY = viewLayout.hintY(), secondY = open ? viewLayout.top + viewLayout.height + 2 : firstY + 11;
-        bool const twoLines = cut < parts.size() && secondY + 10 <= field.y - 1;
-        // On the open window it is the window's text: dark, without a shadow; below it, over the world.
-        auto line = [&](std::string text, float y, bool onWindow) {
+        auto free = [&](int lines) { return open || hintTop(screen.y, lines) >= at.y + size.y + 2; };
+        auto line = [&](std::string text, float y) {
             float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
-            labelScaled(context, viewLayout.left + 4, y + (1 - scale) * 4, room, std::move(text), scale,
-                        onWindow ? palette::vanilla::windowFaint : palette::dim, Align::Center, !onWindow);
+            labelScaled(context, hintsX + 4, y + (1 - scale) * 4, room, std::move(text), scale, palette::dim, Align::Center, true);
         };
-        if (twoLines) line(join(0, cut), firstY, open), line(join(cut, parts.size()), secondY, false);
-        // One line only: the keys without the presses where both do not fit, as before.
-        else if (recipesOn && parts.size() > 1 && cut < parts.size()) line(join(1, parts.size()), firstY, open);
-        else line(join(0, parts.size()), firstY, open);
+        if (cut < parts.size() && free(2)) {
+            line(join(0, cut), hintTop(screen.y, 2));
+            line(join(cut, parts.size()), hintTop(screen.y, 1));
+        } else if (free(1)) {
+            // One line only: the keys without the presses where both do not fit, shrunk where still longer.
+            line(recipesOn && parts.size() > 1 && cut < parts.size() ? join(1, parts.size()) : join(0, parts.size()), hintTop(screen.y, 1));
+        }
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
     bool const hoverOurs = !hoverItem.empty(); // the take keys act on Lamium's lists and windows only (L-360)

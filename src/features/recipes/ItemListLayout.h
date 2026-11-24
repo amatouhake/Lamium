@@ -34,6 +34,11 @@ struct ListBox {
 // has to move (L-382): "open the window, arrange the panels | search field, highlight". It stays between the
 // panels on every screen; the field is high enough for Japanese and letters that reach under the line.
 inline constexpr float searchTop = 18; // its top, from the screen's bottom
+// The key hints stand right above the row on every screen, the recipe view's open or not (maintainer 2026-11-24,
+// L-360): up to two lines, `hintLine` apart; the room for both is kept free above the row, so nothing moves when
+// a second line comes. The top of the first of `lines`.
+inline constexpr float hintLine = 11, hintRoom = 2 * hintLine;
+inline float hintTop(float screenHeight, int lines) { return screenHeight - searchTop - 1 - static_cast<float>(lines) * hintLine; }
 // `width`: 176, or up to a button more each side where the panels leave the room (rowWidth).
 inline ListBox bottomRowAt(float screenWidth, float screenHeight, float width = 176) {
     return {std::floor((screenWidth - width) / 2), screenHeight - searchTop, width, 16};
