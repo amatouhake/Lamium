@@ -87,9 +87,8 @@ void drawPictureButton(MinecraftUIRenderContext& context, float x, float y, floa
         p(3, 5, 10, 1, lit); p(3, 5, 1, 8, lit); p(12, 5, 1, 8, lit); p(3, 12, 10, 1, lit); p(3, 7, 10, 1, dim);
         p(5, 9, 1, 1, lit); p(6, 10, 1, 1, lit); p(7, 9, 1, 1, lit); p(8, 8, 1, 1, lit); p(9, 7, 1, 1, lit); p(10, 6, 1, 1, lit);
         break;
-    case Picture::Keys: // the game font's question mark at twice its size: what the keys do (L-398)
-        p(5, 1, 6, 2, lit); p(3, 3, 2, 2, lit); p(11, 3, 2, 2, lit); p(11, 5, 2, 2, lit); p(9, 7, 2, 2, lit); p(7, 9, 2, 2, lit);
-        p(7, 13, 2, 2, lit);
+    case Picture::Keys: // a question mark in the game font's two-unit strokes, inside the button's margin (L-398)
+        p(6, 3, 4, 2, lit); p(4, 5, 2, 2, lit); p(10, 5, 2, 3, lit); p(8, 8, 3, 1, lit); p(7, 9, 2, 2, lit); p(7, 12, 2, 2, lit);
         break;
     default: break;
     }

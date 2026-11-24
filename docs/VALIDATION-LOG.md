@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The keys button redrawn, R and U named (L-398, 2026-11-24)
+
+`e4b66be6` (DLL
+`4a0e5f9f547f085c149369c0c5c99a41b51917279102f0b91a5a2cdc0ab42b6c`),
+1.26.60.05 Dev, a local world, the maintainer:
+- Seen: the question mark at twice the font's size; the table's first
+  rows "クリック / R" and "右クリック / U".
+- The mark fills the button with no margin around it, which looks off:
+  redrawn smaller, 8 by 11 units in two-unit strokes.
+
 ## The keys as a question-mark button's tip (L-398, 2026-11-24)
 
 `a48e674c` (DLL
