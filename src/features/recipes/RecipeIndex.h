@@ -92,6 +92,8 @@ struct SourceRecipe {
 struct Source {
     std::vector<SourceRecipe> recipes;
     std::map<std::string, std::vector<std::string>> tags; // tag -> member item names
+    // L-363: each firework star's explosion (its FireworksItem as SNBT) by its key, from the creative list.
+    std::map<std::string, std::string, std::less<>> fireworkStars;
 };
 
 struct Part {
@@ -153,9 +155,11 @@ struct Index {
         return variantNames.contains(name) ? find(itemKey(name, aux)) : find(name);
     }
     // An item by a key from anywhere (the item list keys every aux, the table only where it tells variants apart).
+    // A key with data (L-363) is that item or none: the ominous banner is not the white one.
     Item findKey(std::string_view key) const {
         auto const parts = splitItemKey(key);
-        return find(parts.name, parts.aux);
+        if (parts.data.empty()) return find(parts.name, parts.aux);
+        return find(keyOf(parts.name, parts.aux) + std::string(parts.data));
     }
     // The key of a game item as this table names it, known to it or not.
     std::string keyOf(std::string_view name, int aux) const {
@@ -236,6 +240,26 @@ inline bool before(Index const& index, Recipe const& a, Recipe const& b) {
     return a.id < b.id;
 }
 
+// L-363: the data of the firework rocket a crafting recipe makes, as the game makes it: the explosions of the
+// stars it uses (from `stars`) and a flight of one per gunpowder; the table names every one bare. Empty where a
+// star is unknown or the recipe is not one.
+inline std::string rocketData(SourceRecipe const& recipe, std::map<std::string, std::string, std::less<>> const& stars) {
+    if (recipe.makes.size() != 1 || splitItemKey(recipe.makes[0].first).name != "minecraft:firework_rocket") return {};
+    std::string explosions;
+    int flight = 0;
+    for (auto const& part : recipe.uses) {
+        auto const parts = splitItemKey(part.name);
+        if (parts.name == "minecraft:gunpowder") ++flight;
+        else if (parts.name == "minecraft:firework_star") {
+            auto found = stars.find(part.name);
+            if (part.tag || found == stars.end()) return {};
+            explosions += (explosions.empty() ? "" : ",") + found->second;
+        }
+    }
+    if (flight < 1 || flight > 3) return {};
+    return "{Fireworks:{Explosions:[" + explosions + "],Flight:" + std::to_string(flight) + "b}}";
+}
+
 // The table with every name settled into its key. An aux value tells items
 // apart only where the table shows several for one name, as products or as
 // named ingredients (bed colors; not a chest's facing, which is its one aux).
@@ -258,12 +282,14 @@ inline Source settled(Source const& given, std::set<std::string, std::less<>>* v
     };
     auto key = [&](std::string const& from) {
         auto const parts = splitItemKey(from);
-        return variant(parts.name) ? itemKey(parts.name, parts.aux) : std::string(parts.name);
+        return (variant(parts.name) ? itemKey(parts.name, parts.aux) : std::string(parts.name)) + std::string(parts.data);
     };
     Source out;
     out.tags = given.tags;
     out.recipes = given.recipes;
+    out.fireworkStars = given.fireworkStars;
     for (auto& recipe : out.recipes) {
+        if (std::string const data = rocketData(recipe, given.fireworkStars); !data.empty()) recipe.makes[0].first += data;
         for (auto& made : recipe.makes) made.first = key(made.first);
         for (auto& part : recipe.uses) {
             if (part.tag || part.name.empty()) continue;

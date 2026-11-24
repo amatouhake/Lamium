@@ -391,8 +391,8 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
   an item out of the list in creative ([L-360](backlog/L-360.md)), what a
   recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), a
   listed item's own data ([L-363](backlog/L-363.md): no potion effect).
-- Data parts items (`identityTags` kinds) only in the list, favorites, tip,
-  lit slots; recipes, plan, "can be made", wanted counts: the base item.
+- A key with data has no recipes but a rocket's (`rocketData`: its stars);
+  stores and the Materials tab count by name and aux, not data.
 - Trades and drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated
   Server; other servers and Realms are not.

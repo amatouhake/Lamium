@@ -298,7 +298,7 @@ Plan const* plan(LocalPlayer& player) {
     plan.held.clear();
     if (placed.carried)
         for (auto const& stack : schematic::items::carriedStacks(player))
-            if (Item const id = table->index.find(stack.name, stack.aux); id >= 0) plan.held[id] += stack.count;
+            if (Item const id = table->index.findKey(itemKey(stack.name, stack.aux, stack.data)); id >= 0) plan.held[id] += stack.count;
     plan.request = {};
     apply(table->index, list, given, plan.request);
     apply(table->index, held, plan.request);

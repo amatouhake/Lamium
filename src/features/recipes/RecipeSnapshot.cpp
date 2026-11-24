@@ -1,4 +1,11 @@
 #include "features/recipes/RecipeSnapshot.h"
+#include "app/Capabilities.h"
+#include "app/Versions.h"
+#include "features/recipes/StackKey.h"
+#include "mc/deps/nbt/CompoundTag.h"
+#include "mc/deps/nbt/CompoundTagVariant.h"
+#include "mc/world/item/registry/CreativeItemEntry.h"
+#include "mc/world/item/registry/CreativeItemRegistry.h"
 #include "mc/deps/core/string/HashedString.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemDescriptor.h"
@@ -78,6 +85,7 @@ void add(HashedString const& tag, std::string const& id, ::Recipe const& recipe,
 }
 void Snapshot::reset() {
     read = {};
+    starsRead = false;
     size = -1;
     done = 0;
     broken = false;
@@ -134,6 +142,23 @@ bool Snapshot::brew(Level& level, int budget) {
     }
     return true;
 }
+// Where reading item data is confirmed for this version; without it the rockets stay one item, as before.
+void Snapshot::readStars(Level& level) {
+    if (!versionSensitiveAllowed(capabilities::Id::ItemDetails)) return;
+    auto const* registry = level.getItemRegistry().getCreativeItemRegistry().get();
+    if (!registry) return;
+    auto const& entries = registry->mCreativeItems.get();
+    guard(entries.size(), 20000);
+    for (auto const& entry : entries) {
+        auto const& item = entry.mItemInstance.get();
+        if (item.isNull() || item.getTypeName() != "minecraft:firework_star") continue;
+        auto const* user = item.mUserData.get();
+        if (!user) continue;
+        auto found = user->mTags.find("FireworksItem");
+        if (found == user->mTags.end()) continue;
+        if (std::string key = stackKey(item); !key.empty()) read.fireworkStars.emplace(std::move(key), found->second.toSnbt(SnbtFormat::Minimize));
+    }
+}
 bool Snapshot::step(Level& level, int budget) noexcept {
     if (broken) return true;
     try {
@@ -157,6 +182,11 @@ bool Snapshot::step(Level& level, int budget) noexcept {
                 ++done;
             }
             skip = 0;
+        }
+        // The firework stars' explosions, which the rockets made of them carry (L-363), once the recipes are read.
+        if (!starsRead) {
+            try { readStars(level); } catch (...) { read.fireworkStars.clear(); } // the recipes stand without them
+            starsRead = true;
         }
         // The recipes are read; then the potion mixes, a twelfth of the budget a call (each asks the game to brew:
         // a few thousand in all, so a few seconds of ticks).

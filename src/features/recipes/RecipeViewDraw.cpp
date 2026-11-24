@@ -183,8 +183,7 @@ void draw(MinecraftUIRenderContext& context, Input const& input, Late& late) {
         return;
     }
     auto const& index = table->index;
-    auto const key = splitItemKey(at.item);
-    Item const id = index.find(key.name, key.aux);
+    Item const id = index.findKey(at.item);
     auto const choice = state::choice(table);
     // The order (the recipe in use first, its tab first) is taken when the item is shown and kept while it stays
     // shown: choosing a recipe here must not move it or change the tab (L-379).

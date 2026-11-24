@@ -195,8 +195,7 @@ bool placeItem(ScreenView& screen, std::string const& key, bool many, LocalPlaye
     auto table = service::table();
     if (!benchAny(bench) || !table) return false;
     auto const& index = table->index;
-    auto const split = splitItemKey(key);
-    Item const id = index.find(split.name, split.aux);
+    Item const id = index.findKey(key);
     if (id < 0 || id >= static_cast<Item>(index.makers.size())) return false;
     auto const* plan = state::plan(player);
     GridPlacer placer(screen, table, plan ? plan->request.picks : std::map<int, Item>{}, bench);
@@ -232,10 +231,7 @@ std::optional<GridPlacer> gridPlacer(ScreenView& screen, LocalPlayer& player) {
     auto const* plan = state::plan(player);
     return std::optional<GridPlacer>(std::in_place, screen, std::move(table), plan ? plan->request.picks : std::map<int, Item>{}, bench);
 }
-Item itemOf(service::Table const& table, std::string const& key) {
-    auto const split = splitItemKey(key);
-    return table.index.find(split.name, split.aux);
-}
+Item itemOf(service::Table const& table, std::string const& key) { return table.index.findKey(key); }
 KeptPresses keptButtons, keptKeys; // under shownLock
 // Nothing is kept from the game once the list has not been drawn for a moment: a stale "open" must not swallow input.
 bool fresh() { return std::chrono::steady_clock::now() - shown.at <= std::chrono::milliseconds(300); }
@@ -290,7 +286,7 @@ void narrow(LocalPlayer& player, Bench const& bench) {
         for (int slot = 0; slot < inventory.getContainerSize(); ++slot) {
             auto const& stack = inventory.getItem(slot);
             if (stack.isNull() || stack.mCount <= 0) continue;
-            if (Item const id = table->index.find(stack.getTypeName(), stack.getAuxValue()); id >= 0) held[id] += stack.mCount;
+            if (Item const id = recipes::itemOf(table->index, stack); id >= 0) held[id] += stack.mCount;
         }
         can = canMakeNow(table->index, held, bench);
     }
@@ -302,8 +298,7 @@ void narrow(LocalPlayer& player, Bench const& bench) {
             continue;
         if (filter == Filter::CanMake) {
             if (!table) continue; // not read yet
-            auto const key = splitItemKey(names[i]);
-            Item const id = table->index.find(key.name, key.aux);
+            Item const id = table->index.findKey(names[i]);
             if (id < 0 || !can[static_cast<size_t>(id)]) continue;
         }
         visible.push_back(static_cast<int>(i));

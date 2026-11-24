@@ -1,4 +1,5 @@
 #include "features/recipes/ItemKey.h"
+#include "features/recipes/StackKey.h"
 #include "features/schematic/SchematicItems.h"
 #include "app/Versions.h"
 #include "features/inspection/preview/BundleContents.h"
@@ -139,7 +140,8 @@ void addBundle(ItemStack const& stack, std::vector<Carried>& out, ContainerScree
 void addStack(ItemStack const& stack, std::vector<Carried>& out, ContainerScreenController const* screen) {
     if (stack.isNull()) return;
     std::string const name = stack.getTypeName();
-    out.push_back({name, stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount)});
+    std::string const key = recipes::stackKey(stack);
+    out.push_back({name, stack.getAuxValue(), static_cast<std::uint64_t>(stack.mCount), std::string(recipes::splitItemKey(key).data)});
     if (inspection::preview::isBundleTypeName(name)) {
         try { addBundle(stack, out, screen); } catch (...) {}
         return;

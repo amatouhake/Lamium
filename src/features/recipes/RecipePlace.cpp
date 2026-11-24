@@ -6,6 +6,7 @@
 #include "features/inventory/game/TransferRoutes.h"
 #include "features/recipes/CraftRun.h"
 #include "features/recipes/ItemKey.h"
+#include "features/recipes/StackKey.h"
 #include "features/recipes/ItemList.h"
 #include "features/recipes/MassCraftPlan.h"
 #include "features/recipes/RecipeState.h"
@@ -77,7 +78,7 @@ std::vector<PlaceSource> carriedOf(ContainerManagerController& manager, Index co
         for (int i = 0; i < size; ++i) {
             auto const& stack = manager.getItemStack(collection, i);
             if (stack.isNull() || stack.mCount <= 0) continue;
-            Item const item = index.find(stack.getTypeName(), stack.getAuxValue());
+            Item const item = itemOf(index, stack);
             if (item >= 0) out.push_back({first + i, item, static_cast<int>(stack.mCount), std::max(1, static_cast<int>(stack.getMaxStackSize()))});
         }
     };
@@ -208,7 +209,7 @@ bool layAtStation(ContainerScreenController& controller, Station at, Index const
     for (auto const& move : plan.moves) {
         auto const& slot = slots[static_cast<size_t>(move.cell)];
         auto const& stack = manager.getItemStack(slot, 0);
-        if (stack.isNull() || index.find(stack.getTypeName(), stack.getAuxValue()) == itemAt(carried, move.slot)) continue;
+        if (stack.isNull() || itemOf(index, stack) == itemAt(carried, move.slot)) continue;
         controller._handleAutoPlace(INT_MAX, slot, 0);
         if (!manager.getItemStack(slot, 0).isNull()) return false;
         emptied = true;
@@ -238,7 +239,7 @@ bool layAtStation(ContainerScreenController& controller, Station at, Index const
         Item const bottle = itemAt(carried, plan.moves.back().slot);
         for (int i = 1; i < 3 && i < manager.getContainerSize(slots[1]); ++i) {
             auto const& held = manager.getItemStack(slots[1], i);
-            if (!held.isNull() && index.find(held.getTypeName(), held.getAuxValue()) == bottle) continue;
+            if (!held.isNull() && itemOf(index, held) == bottle) continue;
             if (!held.isNull()) {
                 controller._handleAutoPlace(INT_MAX, slots[1], i);
                 if (!manager.getItemStack(slots[1], i).isNull()) break;
@@ -304,7 +305,7 @@ std::vector<PlaceSource> carried(ScreenView& screen, Index const& index) {
         for (int i = 0, size = manager.getContainerSize(grid); i < size; ++i) {
             auto const& stack = manager.getItemStack(grid, i);
             if (stack.isNull() || stack.mCount <= 0) continue;
-            if (Item const item = index.find(stack.getTypeName(), stack.getAuxValue()); item >= 0)
+            if (Item const item = itemOf(index, stack); item >= 0)
                 out.push_back({100 + i, item, static_cast<int>(stack.mCount), std::max(1, static_cast<int>(stack.getMaxStackSize()))});
         }
         return out;
@@ -340,7 +341,7 @@ bool run(ScreenView& screen, std::shared_ptr<service::Table const> const& table,
             for (int i = 0, size = manager.getContainerSize(grid); i < size && i < side * side; ++i) {
                 auto const& stack = manager.getItemStack(grid, i);
                 bool const empty = stack.isNull() || stack.mCount <= 0;
-                cells.push_back(empty ? -1 : table->index.find(stack.getTypeName(), stack.getAuxValue()));
+                cells.push_back(empty ? -1 : itemOf(table->index, stack));
                 counts.push_back(empty ? 0 : static_cast<int>(stack.mCount));
             }
             if (alreadyLaid(table->index, shape, side, cells)) {
@@ -577,7 +578,7 @@ std::vector<std::pair<Item, int>> slotsOf(ContainerManagerController& manager, I
     for (int slot = 0; slot < slots; ++slot) {
         auto const& stack = manager.getItemStack(collectionOf(slot), indexOf(slot));
         if (stack.isNull() || stack.mCount <= 0) { anyFree = true; continue; }
-        out[static_cast<size_t>(slot)] = {index.find(stack.getTypeName(), stack.getAuxValue()), static_cast<int>(stack.mCount)};
+        out[static_cast<size_t>(slot)] = {itemOf(index, stack), static_cast<int>(stack.mCount)};
     }
     return out;
 }
@@ -587,7 +588,7 @@ bool roomFor(ContainerManagerController& manager, Index const& index, Item produ
     for (int slot = 0; slot < slots; ++slot) {
         auto const& stack = manager.getItemStack(collectionOf(slot), indexOf(slot));
         if (stack.isNull() || stack.mCount <= 0) return true;
-        if (stack.mCount < stack.getMaxStackSize() && index.find(stack.getTypeName(), stack.getAuxValue()) == product) return true;
+        if (stack.mCount < stack.getMaxStackSize() && itemOf(index, stack) == product) return true;
     }
     return false;
 }
@@ -597,7 +598,7 @@ std::vector<Item> cellsOf(ContainerManagerController& manager, Index const& inde
     std::vector<Item> cells;
     for (int i = 0, size = manager.getContainerSize(grid); i < size; ++i) {
         auto const& stack = manager.getItemStack(grid, i);
-        cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : index.find(stack.getTypeName(), stack.getAuxValue()));
+        cells.push_back(stack.isNull() || stack.mCount <= 0 ? -1 : itemOf(index, stack));
     }
     named.clear();
     if (::Recipe const* made = static_cast<CraftingContainerManagerController&>(manager).mCraftingRecipe) named = *made->mRecipeId;
@@ -647,7 +648,7 @@ void begin(CraftingScreenController& controller) {
         Item item = -1;
         if (auto const key = itemList::hoveredItem(); !key.empty()) item = table->index.findKey(key);
         else if (auto const* stack = inspection::hover::HoverTracker::getInstance().resolveItem(controller); stack && !stack->isNull())
-            item = table->index.find(stack->getTypeName(), stack->getAuxValue());
+            item = itemOf(table->index, *stack);
         if (item < 0) return;
         recipe = recipeFor(table, item, side);
     }
@@ -698,7 +699,7 @@ bool clearPointer(CraftingScreenController& controller, Index const& index, Item
     auto const& stack = manager.getItemStack(pointer, 0);
     std::string const name = stack.getTypeName();
     int const aux = stack.getAuxValue();
-    if (index.find(name, aux) != product) {
+    if (itemOf(index, stack) != product) {
         for (int pass = 0; pass < 2 && held(manager); ++pass)
             for (int slot = 0; slot < slots && held(manager); ++slot) {
                 auto const& there = manager.getItemStack(collectionOf(slot), indexOf(slot));
@@ -829,7 +830,7 @@ void advance(CraftingScreenController& controller) {
         };
         auto product = [&] {
             auto const& stack = manager.getItemStack(pointer, 0);
-            return index.find(stack.getTypeName(), stack.getAuxValue()) == recipe.makes;
+            return itemOf(index, stack) == recipe.makes;
         };
         // Another item on the pointer is put away first, and the step tried again.
         auto foreign = [&] {
@@ -973,7 +974,7 @@ struct Onto {
 } onto;
 Item heldItem(ContainerManagerController& manager, Index const& index) {
     auto const& stack = manager.getItemStack(pointer, 0);
-    return stack.isNull() || stack.mCount <= 0 ? -1 : index.find(stack.getTypeName(), stack.getAuxValue());
+    return stack.isNull() || stack.mCount <= 0 ? -1 : itemOf(index, stack);
 }
 int heldMost(ContainerManagerController& manager) {
     auto const& stack = manager.getItemStack(pointer, 0);
@@ -983,7 +984,7 @@ std::vector<int> productCounts(ContainerManagerController& manager, Index const&
     std::vector<int> out(36, 0);
     for (int i = 0; i < 36; ++i) {
         auto const& stack = manager.getItemStack(i < 9 ? hotbar : inventory, i < 9 ? i : i - 9);
-        if (!stack.isNull() && stack.mCount > 0 && index.find(stack.getTypeName(), stack.getAuxValue()) == product)
+        if (!stack.isNull() && stack.mCount > 0 && itemOf(index, stack) == product)
             out[static_cast<size_t>(i)] = static_cast<int>(stack.mCount);
     }
     return out;

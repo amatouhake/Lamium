@@ -20,7 +20,9 @@ public:
 
 private:
     bool brew(Level& level, int budget);
+    void readStars(Level& level);
     Source read;
+    bool starsRead = false;
     long long size = -1;
     size_t done = 0;
     bool broken = false;

@@ -41,6 +41,7 @@ struct Carried {
     std::string name;
     int aux = 0;
     std::uint64_t count = 0;
+    std::string data; // what makes it what it is, as its key carries it (recipes/ItemKey.h): a rocket's explosions
 };
 // `screen`: the item screen that is open, if one is. A bundle keeps only an id; what it holds is in a
 // container of the client's that the game reads through an open item screen. With `screen` it is read

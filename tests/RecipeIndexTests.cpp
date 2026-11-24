@@ -668,6 +668,27 @@ void recipeIndexTests() {
         check(identityData("minecraft:enchanted_book", values({{"ench", std::string(300, 'x')}})).empty(), "data too long to save is left out");
     }
     {
+        // L-363: a rocket a recipe makes carries its stars' explosions; a key with data is that item or none.
+        Source source;
+        source.fireworkStars["minecraft:firework_star@8"] = "{FireworkColor:[B;8b]}";
+        source.recipes.push_back({"crafting_table", "plain", 0, {{"minecraft:firework_rocket", 3}}, {{"minecraft:paper@*", false}, {"minecraft:gunpowder@*", false}}, 0, 0, true});
+        source.recipes.push_back({"crafting_table", "gray", 0, {{"minecraft:firework_rocket", 3}},
+                                  {{"minecraft:paper@*", false}, {"minecraft:gunpowder@*", false}, {"minecraft:firework_star@8", false}}, 0, 0, true});
+        source.recipes.push_back({"crafting_table", "unknown", 0, {{"minecraft:firework_rocket", 3}},
+                                  {{"minecraft:paper@*", false}, {"minecraft:gunpowder@*", false}, {"minecraft:firework_star@5", false}}, 0, 0, true});
+        source.recipes.push_back({"crafting_table", "white", 0, {{"minecraft:banner@15", 1}}, {{"minecraft:white_wool", false}, {"minecraft:stick", false}}, 0, 0, true});
+        source.recipes.push_back({"crafting_table", "black", 0, {{"minecraft:banner", 1}}, {{"minecraft:black_wool", false}, {"minecraft:stick", false}}, 0, 0, true});
+        auto const index = build(source);
+        Item const gray = index.findKey("minecraft:firework_rocket{Fireworks:{Explosions:[{FireworkColor:[B;8b]}],Flight:1b}}");
+        Item const plain = index.findKey("minecraft:firework_rocket{Fireworks:{Explosions:[],Flight:1b}}");
+        check(gray >= 0 && plain >= 0 && gray != plain && index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(gray)].front())].id == "gray"
+                  && index.recipes[static_cast<size_t>(index.makers[static_cast<size_t>(plain)].front())].id == "plain",
+              "a rocket recipe makes the rocket of its stars, the plain one none");
+        check(index.findKey("minecraft:firework_rocket") >= 0 && index.makers[static_cast<size_t>(index.findKey("minecraft:firework_rocket"))].size() == 1,
+              "a recipe with a star the creative list lacks makes the bare rocket");
+        check(index.findKey("minecraft:banner@15") >= 0 && index.findKey("minecraft:banner@15{Type:1}") < 0, "the ominous banner is not the white one");
+    }
+    {
         // Narrowing the list to what the held items make at once (the words: ItemSearch.h, L-377).
         Source source;
         source.tags["planks"] = {"oak_planks", "birch_planks"};
