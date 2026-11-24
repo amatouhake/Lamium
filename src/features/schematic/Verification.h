@@ -66,7 +66,7 @@ struct MaterialLine {
     std::string name;      // display name
     std::string icon;      // the item as binary NBT, for drawing its icon
     std::uint64_t needed = 0, placed = 0;
-    bool entity = false; // an entity line; `item` is the item that places it, if one exists
+    bool entity = false; // an entity line; `item` is the item that places it (Verify.h entityPlacer), empty for a mob
     std::uint64_t remaining() const { return needed - std::min(needed, placed); }
 };
 struct Verification {

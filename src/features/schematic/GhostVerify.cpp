@@ -228,7 +228,7 @@ void addEntityResults(Verification& result, session::Shown const& shown, Resolve
         for (auto* lines : {&all, &visible}) {
             if (lines == &visible && !inLayer) continue;
             auto& line = (*lines)[ghost.identifier];
-            if (line.name.empty()) { line.item = ghost.identifier; line.name = ghost.name; line.icon = ghost.icon; line.entity = true; }
+            if (line.name.empty()) { line.item = ghost.placer; line.name = ghost.name; line.icon = ghost.icon; line.entity = true; }
             ++line.needed;
             if (here) ++line.placed;
         }

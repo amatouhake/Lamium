@@ -1,5 +1,8 @@
 #include "features/schematic/ResolvedPlacement.h"
 #include "features/schematic/Verification.h"
+#include "features/information/EntityIcon.h"
+#include "ll/api/service/Bedrock.h"
+#include "mc/client/game/ClientInstance.h"
 #include "mc/locale/I18n.h"
 #include "mc/util/Mirror.h"
 #include "mc/util/Rotation.h"
@@ -67,9 +70,12 @@ Resolved resolve(Structure const& structure, SavedPlacement const& placement) {
     }
     if (missing) log(std::format("{}: {} palette entries are not known blocks", placement.file, missing));
     Size placed = placedSize(structure.size, placement.placement.rotation);
+    // Each kind's icon is looked up once: a farm holds many of one mob.
+    std::map<std::string, std::string> entityIcons;
+    auto client = ll::service::getClientInstance();
     for (auto const& entity : structure.entities) {
         if (entity.identifier.empty() || out.entities.size() >= maxEntities) continue;
-        EntityGhost ghost{entity.identifier, {}, {}, toWorldPosition(structure.size, placement.placement, {entity.x, entity.y, entity.z}), {}};
+        EntityGhost ghost{entity.identifier, {}, {}, {}, toWorldPosition(structure.size, placement.placement, {entity.x, entity.y, entity.z}), {}};
         auto const& o = placement.placement.origin;
         ghost.offset = {std::clamp(static_cast<int>(std::floor(ghost.at.x)) - o.x, 0, placed.x - 1),
                         std::clamp(static_cast<int>(std::floor(ghost.at.y)) - o.y, 0, placed.y - 1),
@@ -79,11 +85,19 @@ Resolved resolve(Structure const& structure, SavedPlacement const& placement) {
         auto key = entityNameKey(entity.identifier);
         ghost.name = getI18n().get(key, getI18n().getCurrentLanguage());
         if (ghost.name.empty() || ghost.name == key) ghost.name = entity.identifier;
-        nbt::Root tag;
-        tag.compound.set("Name", {entity.identifier});
-        tag.compound.set("Count", {std::int8_t{1}});
-        tag.compound.set("Damage", {std::int16_t{0}});
-        ghost.icon = nbt::write(tag);
+        ghost.placer = entityPlacer(entity.identifier);
+        auto [icon, fresh] = entityIcons.try_emplace(entity.identifier);
+        if (fresh && client) {
+            // The item named like the entity is often another thing (a rabbit's raw meat): the target card's rule.
+            if (auto item = information::entityIconItem(*client, entity.identifier); !item.empty()) {
+                nbt::Root tag;
+                tag.compound.set("Name", {std::move(item)});
+                tag.compound.set("Count", {std::int8_t{1}});
+                tag.compound.set("Damage", {std::int16_t{0}});
+                icon->second = nbt::write(tag);
+            }
+        }
+        ghost.icon = icon->second;
         out.entities.push_back(std::move(ghost));
     }
     out.entityPlaced.assign(out.entities.size(), std::nullopt);

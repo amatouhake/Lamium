@@ -184,6 +184,17 @@ inline std::vector<bool> matchEntities(std::span<EntitySpot const> expected, std
     }
     return placed;
 }
+// The item a player places this entity with, if a survival player can hold
+// one (armor stand, painting, minecarts, end crystal); empty for mobs and the
+// rest: a spawn egg stands for a mob in icons only, and a boat's item depends
+// on its wood. What the Materials tab counts as carried and hands to the plan.
+inline std::string entityPlacer(std::string_view identifier) {
+    if (identifier == "minecraft:ender_crystal") return "minecraft:end_crystal";
+    for (std::string_view same : {"minecraft:armor_stand", "minecraft:painting", "minecraft:minecart", "minecraft:chest_minecart",
+                                  "minecraft:hopper_minecart", "minecraft:tnt_minecart", "minecraft:command_block_minecart"})
+        if (identifier == same) return std::string(same);
+    return {};
+}
 // The language key of an entity's name: vanilla keys leave out "minecraft:".
 inline std::string entityNameKey(std::string_view identifier) {
     if (identifier.starts_with("minecraft:")) identifier.remove_prefix(10);

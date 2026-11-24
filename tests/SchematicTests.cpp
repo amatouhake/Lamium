@@ -668,6 +668,12 @@ void entityRules() {
     std::vector<EntitySpot> beside{{"minecraft:armor_stand", 2.5, 64, 1.5}};
     check(matchEntities(std::span(expected).first(1), beside) == std::vector<bool>{false},
           "an entity of the same type on the next block does not fill the spot");
+    check(entityPlacer("minecraft:armor_stand") == "minecraft:armor_stand" && entityPlacer("minecraft:chest_minecart") == "minecraft:chest_minecart"
+              && entityPlacer("minecraft:ender_crystal") == "minecraft:end_crystal",
+          "an armor stand, a minecart or an end crystal is placed with its item");
+    check(entityPlacer("minecraft:rabbit").empty() && entityPlacer("minecraft:chicken").empty() && entityPlacer("minecraft:zombie").empty()
+              && entityPlacer("minecraft:boat").empty() && entityPlacer("").empty(),
+          "a mob is placed with no item a player carries: not raw rabbit for a rabbit; a boat's wood is unknown");
     check(entityNameKey("minecraft:armor_stand") == "entity.armor_stand.name" && entityNameKey("mod:thing") == "entity.mod:thing.name",
           "entity name keys drop the vanilla namespace only");
 

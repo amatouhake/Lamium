@@ -13,7 +13,9 @@ class Block;
 namespace lamium::schematic::ghosts {
 // An entity of the schematic where the placement puts it.
 struct EntityGhost {
-    std::string identifier, name, icon; // icon: an item of the same name, if the game has one
+    std::string identifier, name;
+    std::string icon;   // the item standing for it (EntityIcon.h: a mob's spawn egg), empty when none
+    std::string placer; // the item that places it, empty when none (Verify.h entityPlacer)
     Position at;   // world position of its feet
     Point offset;  // its cell inside the placed box, for layers
     float yaw = 0; // world facing, degrees (0 = south)
