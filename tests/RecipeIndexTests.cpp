@@ -829,7 +829,12 @@ void recipeIndexTests() {
               && hoverLines("Star\n\xC2\xA7" "9Small Ball\nPink") == std::vector<HoverLine>{{"Small Ball", '9'}, {"Pink", '9'}}
               && hoverLines("x\n\xC2\xA7" "9a\xC2\xA7" "r\nb").back() == HoverLine{"b", 0}
               && hoverLines("x\n\xC2\xA7" "9a \xC2\xA7" "6b\nc").back() == HoverLine{"c", '6'}
-              && hoverLines("\xC2\xA7" "eName\nplain").front() == HoverLine{"plain", 0},
+              && hoverLines("\xC2\xA7" "eName\nplain").front() == HoverLine{"plain", 0}
+              && hoverLines("Star\n\xC2\xA7" "9Small\nPink\r").back().raw == "\xC2\xA7" "9Pink"
+              && hoverLines("x\na \xC2\xA7" "cred").front().raw == "a \xC2\xA7" "cred"
+              && hoverName("\xC2\xA7" "eOminous Bottle\r\nmore").raw == "\xC2\xA7" "eOminous Bottle"
+              && hoverName("\xC2\xA7" "eOminous Bottle\nmore").plain == "Ominous Bottle"
+              && cutLine("ab\xC2\xA7" "c", 4) == "ab" && cutLine("ab", 4) == "ab",
               "an item's hover text gives its lines under the name with the color they start in, without empty lines and icon glyphs");
         check(steppedWanted(1, true, 64) == 64 && steppedWanted(64, true, 64) == 128 && steppedWanted(70, false, 64) == 64
               && steppedWanted(64, false, 64) == 1 && steppedWanted(20, false, 16) == 16 && steppedWanted(3, true, 1) == 4,

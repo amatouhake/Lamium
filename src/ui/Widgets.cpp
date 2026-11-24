@@ -206,6 +206,21 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
     }
     paint(x, y, value);
 }
+void gameText(MinecraftUIRenderContext& context, float x, float y, float width, std::string_view text, Rgb value) {
+    if (text.empty()) return;
+    auto& font = defaultFont(context);
+    std::string uncoded;
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (text.substr(i, 2) == "\xC2\xA7") { i += 2; continue; } // the sign's two bytes and its code
+        uncoded += text[i];
+    }
+    float const offset = labelShadowOffset;
+    drawRun(context, font, x + offset, y + offset, width, uncoded, Rgb{value.r * .25f, value.g * .25f, value.b * .25f}, ::ui::TextAlignment::Left, 1.f);
+    drawRun(context, font, x, y, width, std::string(text), value, ::ui::TextAlignment::Left, 1.f);
+}
+float gameTextWidth(MinecraftUIRenderContext& context, std::string_view text) {
+    return static_cast<float>(defaultFont(context).getLineLength(text, 1.f, false));
+}
 void paragraph(MinecraftUIRenderContext& context, float x, float y, float width, std::string_view text, size_t maxLines,
                Rgb value) {
     auto& font = defaultFont(context);

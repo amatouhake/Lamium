@@ -1036,19 +1036,31 @@ bool drawList(ll::event::UIRenderEvent& event) {
         bool const item = !tipItem.empty() && !late.tipGroup && late.tip == schematic::items::shown(tipItem).name;
         static std::string detailsOf;
         static std::vector<HoverLine> details;
+        static HoverName detailsName;
         if (item && tipItem != detailsOf) {
             detailsOf = tipItem;
-            details.clear();
+            details.clear(), detailsName = {};
             try {
-                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(tipItem).icon))
-                    details = hoverLines(stack->getFormattedHovertext(player->getLevel(), false).mUnredactedString);
-            } catch (...) { details.clear(); }
+                if (auto const* stack = schematic::items::iconStack(schematic::items::shown(tipItem).icon)) {
+                    std::string const text = stack->getFormattedHovertext(player->getLevel(), false).mUnredactedString;
+                    details = hoverLines(text), detailsName = hoverName(text);
+                }
+            } catch (...) { details.clear(), detailsName = {}; }
+            // L-363 probe: whether the game's font counts the codes in a width.
+            static int told = 0;
+            if (told < 6 && !details.empty())
+                ++told, Runtime::instance().self().getLogger().info("Recipes: tip of {}: name {} / {} wide with codes / without, first line {} / {}", tipItem,
+                    gameTextWidth(context, detailsName.raw), textWidth(context, detailsName.plain), gameTextWidth(context, details.front().raw),
+                    textWidth(context, details.front().text));
         }
         std::vector<HoverLine> const none;
         auto const& more = item ? details : none;
-        float w = textWidth(context, late.tip);
+        // The name as the game gives it, with its color (a rarity's), where it is the tip's title.
+        bool const gameName = item && !detailsName.raw.empty() && detailsName.plain == late.tip;
+        auto gameWidth = [&](std::string const& raw, std::string const& plain) { return std::max(gameTextWidth(context, raw), textWidth(context, plain)); };
+        float w = gameName ? gameWidth(detailsName.raw, detailsName.plain) : textWidth(context, late.tip);
         for (auto const& line : late.tipLines) w = std::max(w, textWidth(context, line));
-        for (auto const& line : more) w = std::max(w, textWidth(context, line.text));
+        for (auto const& line : more) w = std::max(w, gameWidth(line.raw, line.text));
         // A table's first column as wide as its widest entry, the second after a gap.
         float tableLeft = 0;
         for (auto const& [left, right] : late.tipTable) tableLeft = std::max(tableLeft, textWidth(context, left));
@@ -1074,7 +1086,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         float const x = std::round(std::max(2.f, std::min(px + 8, screen.x - w - 2))), y = std::round(std::max(2.f, std::min(py + 8, screen.y - h - 2)));
         context.flushText(0, std::nullopt);
         gameTooltipBox(context, x, y, w, h);
-        label(context, x + inset, y + top, w - 2 * inset, late.tip);
+        if (gameName) gameText(context, x + inset, y + top, w - 2 * inset, detailsName.raw);
+        else label(context, x + inset, y + top, w - 2 * inset, late.tip);
         float line = y + top + 10;
         for (auto const& text : late.tipLines) label(context, x + inset, line, w - 2 * inset, text, palette::dim), line += 10;
         for (auto const& [left, right] : late.tipTable) {
@@ -1082,8 +1095,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
             label(context, x + inset + tableLeft, line, w - 2 * inset - tableLeft, right, palette::dim);
             line += 10;
         }
-        // The game's lines in the game's colors; a line without a color is white, as in the game's tooltip.
-        for (auto const& text : more) label(context, x + inset, line, w - 2 * inset, text.text, item ? palette::vanilla::textCode(text.color) : palette::faint), line += 10;
+        // The game's lines with their codes, colored by the game's font; a line without a color is white.
+        for (auto const& text : more) gameText(context, x + inset, line, w - 2 * inset, text.raw), line += 10;
         context.flushText(0, std::nullopt);
         if (members) {
             std::vector<inspection::render::IconAt> icons;

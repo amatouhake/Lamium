@@ -62,12 +62,43 @@ inline std::vector<bool> canMakeNow(Index const& index, std::map<Item, Count> co
 // empty lines and lines of icon glyphs (private-use characters), which a tooltip of plain text cannot
 // show. A line keeps the color code its text starts in (0 for none), not the codes themselves; a color runs
 // on into the next lines until another or a reset, as the game draws it (a firework star's color line). At
-// most `most` lines, each cut to 120 bytes at a character's end.
+// most `most` lines, each cut to 120 bytes at a character's end. `raw` is the line with its codes for the game's
+// font to draw (ui::gameText), led by the color running on from above.
 struct HoverLine {
     std::string text;
     char color = 0; // the game's color code letter: '0'-'9', 'a'-'u'
-    bool operator==(HoverLine const&) const = default;
+    std::string raw;
+    bool operator==(HoverLine const& other) const { return text == other.text && color == other.color; }
 };
+// A line cut to `most` bytes at a character's end, never leaving half a code.
+inline std::string cutLine(std::string_view line, size_t most) {
+    if (line.size() <= most) return std::string(line);
+    size_t cut = most;
+    while (cut > 0 && (static_cast<unsigned char>(line[cut]) & 0xC0) == 0x80) --cut;
+    std::string out(line.substr(0, cut));
+    if (out.size() >= 2 && out.compare(out.size() - 2, 2, "\xC2\xA7") == 0) out.resize(out.size() - 2);
+    return out;
+}
+// The hover text's first line, the item's name, with its codes and without.
+struct HoverName {
+    std::string raw, plain;
+};
+inline HoverName hoverName(std::string_view text) {
+    std::string_view line = text.substr(0, text.find('\n'));
+    HoverName out;
+    for (size_t i = 0; i < line.size(); ++i) {
+        if (line[i] == '\r') continue;
+        out.raw += line[i];
+        if (static_cast<unsigned char>(line[i]) == 0xC2 && i + 2 < line.size() && static_cast<unsigned char>(line[i + 1]) == 0xA7) {
+            out.raw += line.substr(i + 1, 2);
+            i += 2;
+            continue;
+        }
+        out.plain += line[i];
+    }
+    out.raw = cutLine(out.raw, 240);
+    return out;
+}
 inline std::vector<HoverLine> hoverLines(std::string_view text, size_t most = 12) {
     std::vector<HoverLine> out;
     bool first = true;
@@ -77,6 +108,7 @@ inline std::vector<HoverLine> hoverLines(std::string_view text, size_t most = 12
         std::string_view line = text.substr(0, end);
         text = end == std::string_view::npos ? std::string_view() : text.substr(end + 1);
         std::string plain;
+        char const above = running;
         char color = running;
         bool glyphs = false;
         for (size_t i = 0; i < line.size(); ++i) {
@@ -107,7 +139,9 @@ inline std::vector<HoverLine> hoverLines(std::string_view text, size_t most = 12
             while (cut > 0 && (static_cast<unsigned char>(plain[cut]) & 0xC0) == 0x80) --cut;
             plain.resize(cut);
         }
-        out.push_back({std::move(plain), color});
+        std::string raw = above ? std::string("\xC2\xA7") + above : std::string();
+        for (char c : line) if (c != '\r') raw += c;
+        out.push_back({std::move(plain), color, cutLine(raw, 240)});
     }
     return out;
 }
