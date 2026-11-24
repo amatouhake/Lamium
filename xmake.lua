@@ -123,6 +123,12 @@ option("craft_trace")
     set_description("L-359/L-165 read-only diagnostics: recipe book picks, craft requests and answers, item screens' controls")
 option_end()
 
+option("creative_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-360 diagnostics: creative list presses, cells and requests; F6-F9 take Lamium's hovered item")
+option_end()
+
 option("repeat_trade_trace")
     set_default(false)
     set_showmenu(true)
@@ -314,6 +320,7 @@ target("Lamium")
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end
     if has_config("craft_trace") then add_defines("LAMIUM_CRAFT_TRACE") end
+    if has_config("creative_trace") then add_defines("LAMIUM_CREATIVE_TRACE") end
     if has_config("slot_trace") then add_defines("LAMIUM_SLOT_TRACE") end
     if has_config("language_trace") then add_defines("LAMIUM_LANGUAGE_TRACE") end
     if has_config("server_pack_skip") then add_defines("LAMIUM_SERVER_PACK_SKIP") end
