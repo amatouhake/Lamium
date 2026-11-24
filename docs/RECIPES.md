@@ -128,8 +128,8 @@ after using the first build. What is still open is in the L-item.
 - Every tip over the view or the plan window is the game's tooltip box.
 - The keys are the tip of a button at the bottom row's end, a question
   mark right of the highlight switch (L-398, maintainer 2026-11-24): a
-  two-column table, as the search field's syntax, of click (recipes),
-  right click (uses), Shift + click (what it does in this mode), the
+  two-column table, as the search field's syntax, of click and the recipe
+  key (recipes), right click and the uses key (uses), Shift + click (what it does in this mode), the
   favorite and wanted keys, Backspace while a recipe is open, the take
   keys in creative; by their bindings, unbound ones left out.
 - What the thing under the pointer does (L-369) stands right above the

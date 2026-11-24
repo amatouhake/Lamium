@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The keys as a question-mark button's tip (L-398, 2026-11-24)
+
+`a48e674c` (DLL
+`5cfe6f7b388fbf7809951caf1aa679fa21d8c34c774bc35d9bc8b3cc1272a0c8`),
+1.26.60.05 Dev, a local world, the maintainer:
+- Seen: the button right of the highlight switch, its two-column table
+  (English: Click, Right click, Shift+click, A, W, Middle click, SHIFT +
+  Middle click), a favorite key rebound to H shown as H; no standing
+  hints line, the field a little narrower, typing and its syntax table as
+  before.
+- Asked for: the question mark looked poor (redrawn as the game font's
+  at twice its size); click and right click should name the recipe and
+  uses keys (R, U) too.
+
 ## Small wrapped key hints, the windows in place (L-360, 2026-11-24)
 
 `5c4d27b7` (DLL

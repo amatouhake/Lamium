@@ -965,7 +965,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
     bool const open = anyView() || bandEditor::active();
     static std::vector<int> inventoryKeys;
-    static std::string backKey, favoriteKey, wantedKey, takeOneKey, takeStackKey; // the actions' keys as the keymap names them; empty without one
+    static std::string backKey, favoriteKey, wantedKey, takeOneKey, takeStackKey, recipesKey, usesKey; // the actions' keys as the keymap names them; empty without one
     static std::chrono::steady_clock::time_point keysRead;
     if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
         keysRead = now;
@@ -981,6 +981,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         favoriteKey = keyOf(input::Action::RecipeFavorite);
         wantedKey = keyOf(input::Action::RecipeWanted);
         takeOneKey = keyOf(input::Action::TakeOne);
+        recipesKey = keyOf(input::Action::ShowRecipes);
+        usesKey = keyOf(input::Action::ShowUses);
         takeStackKey = keyOf(input::Action::TakeStack);
         {
             auto const chord = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::RecipeWanted);
@@ -992,8 +994,10 @@ bool drawList(ll::event::UIRenderEvent& event) {
         auto& rows = late.tipTable;
         late.tip = translated("recipes.keys");
         if (recipesOn) {
-            rows.push_back({translated("recipes.keys.click"), translated("recipes.keys.recipes")});
-            rows.push_back({translated("recipes.keys.rightClick"), translated("recipes.keys.uses")});
+            // The press, and the key that does the same over any item (ShowRecipes, ShowUses), where bound.
+            auto both = [&](char const* press, std::string const& key) { return translated(press) + (key.empty() ? "" : " / " + key); };
+            rows.push_back({both("recipes.keys.click", recipesKey), translated("recipes.keys.recipes")});
+            rows.push_back({both("recipes.keys.rightClick", usesKey), translated("recipes.keys.uses")});
             rows.push_back({translated("recipes.keys.shiftClick"),
                             translated(take::shiftHint(taking) == take::ShiftHint::IntoInventory ? "recipes.keys.intoInventory" : "recipes.keys.placeMany")});
         }
