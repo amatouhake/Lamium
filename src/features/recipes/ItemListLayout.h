@@ -38,6 +38,18 @@ inline constexpr float searchTop = 18; // its top, from the screen's bottom
 inline ListBox bottomRowAt(float screenWidth, float screenHeight, float width = 176) {
     return {std::floor((screenWidth - width) / 2), screenHeight - searchTop, width, 16};
 }
+// The key hints (L-360): parts joined by a separator `sep` wide on one line of `room`, or, where they do not fit,
+// on two lines below each other, the first as full as whole parts make it (at least one part). The index of the
+// first part of the second line; the count of parts when one line holds them all.
+inline size_t hintBreak(std::vector<float> const& widths, float sep, float room) {
+    float line = 0;
+    for (size_t i = 0; i < widths.size(); ++i) {
+        float const next = line + (i ? sep : 0) + widths[i];
+        if (next > room && i > 0) return i;
+        line = next;
+    }
+    return widths.size();
+}
 // The row's width: as wide as the free span between the panels beside it allows, from the inventory's 176 to a
 // button (18) more each side. `leftEnd`/`rightStart`: where the panels next to the row end and begin.
 inline float rowWidth(float screenWidth, float leftEnd, float rightStart) {

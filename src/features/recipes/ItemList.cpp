@@ -127,6 +127,7 @@ struct Shown {
     // An open Notes window's span, wider than the recipe view's: the wheel over any of it is the window's, also
     // at its left end where a group's picture stands (L-369).
     ListBox window;
+    bool hoverOurs = false; // the item under the pointer is in Lamium's lists or windows, not a slot of the game's
 } shown;
 struct Queued {
     std::vector<bool> clicks; // true: the left button
@@ -982,10 +983,12 @@ bool drawList(ll::event::UIRenderEvent& event) {
     bool const noticing = !noticeText.empty() && std::chrono::steady_clock::now() - noticeAt < std::chrono::duration<double>(noticeSeconds);
     if (noticing) drawNotice(context, viewLayout.left + RecipeViewLayout::width / 2, viewLayout.hintY() - 2, RecipeViewLayout::width, noticeText, true, !open);
     else if ((open || viewLayout.hintY() >= at.y + size.y + 2) && (recipesOn || planOn) && !bandEditor::active()) {
-        // One line whatever the language: the keys, with the presses before them where both fit; shrunk a
-        // little to the window's width where it is still longer.
-        std::string keys;
-        auto add = [&](std::string part) { keys += (keys.empty() ? "" : " | ") + part; };
+        // The presses, then the keys, on one line, or on two where they do not fit (L-360): the second under
+        // the first, below the window's edge while it is open, where the room above the search field allows;
+        // else one line shrunk to the window's width.
+        std::vector<std::string> parts;
+        if (recipesOn) parts.push_back(translated("recipes.hint"));
+        auto add = [&](std::string part) { parts.push_back(std::move(part)); };
         if (favoritesOn && !favoriteKey.empty()) add(translated("recipes.hint.favorite", favoriteKey));
         if (planOn && !wantedKey.empty()) add(translated("recipes.hint.wanted", wantedKey));
         if (view::isOpen() && !backKey.empty()) add(translated("recipes.hint.back", backKey));
@@ -994,14 +997,31 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (recipesOn && taking && !takeOneKey.empty()) add(translated("recipes.hint.takeOne", takeOneKey));
         if (recipesOn && taking && !takeStackKey.empty()) add(translated("recipes.hint.takeStack", takeStackKey));
         for (auto& part : late.hints) add(std::move(part)); // what the thing under the pointer does (L-369)
-        std::string hint = recipesOn ? translated("recipes.hint") + (keys.empty() ? "" : " | " + keys) : keys;
-        if (!keys.empty() && labelWidth(context, hint, 1) * .8f > RecipeViewLayout::width - 8) hint = std::move(keys);
-        // On the open window it is the window's text: dark, without a shadow.
-        float const room = RecipeViewLayout::width - 8, wide = labelWidth(context, hint, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
-        labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room, std::move(hint), scale,
-                    open ? palette::vanilla::windowFaint : palette::dim, Align::Center, !open);
+        std::string const sep = " | ";
+        auto join = [&](size_t from, size_t to) {
+            std::string out;
+            for (size_t i = from; i < to; ++i) out += (i > from ? sep : "") + parts[i];
+            return out;
+        };
+        float const room = RecipeViewLayout::width - 8;
+        std::vector<float> widths;
+        for (auto const& part : parts) widths.push_back(labelWidth(context, part, 1));
+        size_t const cut = hintBreak(widths, labelWidth(context, sep, 1), room);
+        float const firstY = viewLayout.hintY(), secondY = open ? viewLayout.top + viewLayout.height + 2 : firstY + 11;
+        bool const twoLines = cut < parts.size() && secondY + 10 <= field.y - 1;
+        // On the open window it is the window's text: dark, without a shadow; below it, over the world.
+        auto line = [&](std::string text, float y, bool onWindow) {
+            float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
+            labelScaled(context, viewLayout.left + 4, y + (1 - scale) * 4, room, std::move(text), scale,
+                        onWindow ? palette::vanilla::windowFaint : palette::dim, Align::Center, !onWindow);
+        };
+        if (twoLines) line(join(0, cut), firstY, open), line(join(cut, parts.size()), secondY, false);
+        // One line only: the keys without the presses where both do not fit, as before.
+        else if (recipesOn && parts.size() > 1 && cut < parts.size()) line(join(1, parts.size()), firstY, open);
+        else line(join(0, parts.size()), firstY, open);
     }
     if (hoverItem.empty()) hoverItem = late.hovered;
+    bool const hoverOurs = !hoverItem.empty(); // the take keys act on Lamium's lists and windows only (L-360)
     // An item the wheel took to 0 goes out once the pointer has left it (or the wanted key is up).
     state::settleWanted(wantedHeld.load() ? std::string_view(wantedItem) : !late.wantedRow.empty() ? std::string_view(late.wantedRow) : std::string_view(hoverItem));
     std::string tipItem;
@@ -1028,6 +1048,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         tipItem = hoverItem; // kept for the tooltip: what is shown takes the string
         shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, (recipesOn || windowButton || layoutButton) ? fieldArea : ListBox{}, side, searchFocus,
                  countEdit::active(), bandBoxes, favoritesBox};
+        shown.hoverOurs = hoverOurs;
         if (planView::isOpen() && !view::isOpen()) {
             float const from = std::min(coverLeft, viewLayout.left), to = std::max(right, viewLayout.left + RecipeViewLayout::width);
             shown.window = {from, viewLayout.top, to - from, viewLayout.height};
@@ -1291,7 +1312,7 @@ void want() {
 void take(bool stack) {
     if (bandEditor::active() || !Runtime::instance().snapshot()->inventory.recipes) return;
     std::scoped_lock lock(shownLock);
-    if (!fresh() || shown.hoverItem.empty()) return;
+    if (!fresh() || shown.hoverItem.empty() || !shown.hoverOurs) return;
     takeAsked = TakeAsked{shown.hoverItem, lastScreen, stack};
 }
 void show(bool uses) {

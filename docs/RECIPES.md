@@ -126,10 +126,13 @@ after using the first build. What is still open is in the L-item.
   button of their own: any item in a recipe can be opened, and the key is
   there.
 - Every tip over the view or the plan window is the game's tooltip box.
-- One line of key hints sits just above the search field, in the same
-  place whether a recipe is open (the window's last line) or not: click
-  for recipes, right click for uses, the favorite key, and Backspace for
-  back while a recipe is open.
+- The key hints sit just above the search field, in the same place
+  whether a recipe is open (the window's last line) or not: click for
+  recipes, right click for uses, the favorite and wanted keys, Backspace
+  for back while a recipe is open, what Shift does, the take keys in
+  creative. Where one line does not hold them a second goes under it
+  (below the window's edge while it is open, L-360, maintainer
+  2026-11-24), if the room above the field allows; else one line shrinks.
 - The game's inventory key closes the view like Esc and leaves the screen
   under it open; a second press closes that. Every key but the two recipe
   keys is kept from the game while the view is open.
@@ -188,7 +191,8 @@ after using the first build. What is still open is in the L-item.
   shows the recipes, whose red slots tell why. Whatever the pointer holds
   stays on it. The hints say what Shift does in this mode; the place
   button's tip names Shift and Ctrl.
-- Taking in creative (L-360): the take keys, wherever R and U act, put one
+- Taking in creative (L-360): the take keys, over Lamium's lists and the
+  recipe view (not the game's slots, maintainer 2026-11-24), put one
   or a stack onto an empty pointer, else into the inventory. At the
   inventory and the crafting table only: the item is taken from the
   creative list's search cells, matched by its key and filled by a
