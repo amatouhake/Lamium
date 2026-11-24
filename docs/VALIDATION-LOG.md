@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The schematic preview turns by itself again for a new file or a reopened screen (L-114, 2026-11-24)
+
+`1cd46dcc` (DLL
+`51102d4e92a5f02517f58d0550e6f32657e7ab4c9d8609df53b42aac03069631`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: in the Files tab a drag stops the preview's own turn; choosing
+  another file starts it again.
+- Seen: after a drag, closing and opening the settings screen starts it
+  again for the same file.
+- Seen: after a drag, another tab and back to the same file keeps the
+  angle it was left at.
+- Seen: nothing else changed.
+
 ## The schematic preview turns smoothly; shown cells pulse smoothly (L-114, 2026-11-24)
 
 `5c56c3c3` (DLL
