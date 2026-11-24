@@ -40,22 +40,25 @@ inline constexpr auto fixedPresses = [] {
     using namespace fixed_caps;
     constexpr unsigned screen = layer::itemScreen, both = layer::itemScreen | layer::window;
     constexpr auto slot = FixedTarget::GameSlot, list = FixedTarget::LamiumList;
+    // Item transfer's gestures by kind (wheel, Alt + click, drags, held stack,
+    // drops), the settings rows' order; caps read Ctrl, Shift, Alt, the drop
+    // key, then mouse (maintainer 2026-11-24).
     return std::to_array<FixedPress>({
         {"transfer", "", "inventory.transferWheelOne", screen, slot, {wheel}},
         {"transfer", "", "inventory.transferWheelStack", screen, slot, {shift, wheel}},
-        {"transfer", "", "inventory.transferDragStack", screen, slot, {shift, leftDrag}},
-        {"transfer", "", "inventory.transferDragOne", screen, slot, {ctrl, leftDrag}},
         {"transfer", "", "inventory.transferWheelMatching", screen, slot, {ctrl, wheel}},
         {"transfer", "", "inventory.transferWheelAll", screen, slot, {ctrl, shift, wheel}},
         {"transfer", "", "inventory.transferClickMatching", screen, slot, {alt, leftClick}},
-        {"transfer", "", "inventory.transferClickAll", screen, slot, {alt, shift, leftClick}},
+        {"transfer", "", "inventory.transferClickAll", screen, slot, {shift, alt, leftClick}},
+        {"transfer", "", "inventory.transferDragStack", screen, slot, {shift, leftDrag}},
+        {"transfer", "", "inventory.transferDragOne", screen, slot, {ctrl, leftDrag}},
         {"transfer", "", "inventory.transferDragKeepOne", screen, slot, {shift, rightDrag}},
         {"transfer", "", "inventory.transferCursorMatching", screen, slot, {shift, click}},
-        {"transfer", "", "inventory.transferDropOne", screen, slot, {dropKey, ctrl, leftDrag}},
-        {"transfer", "", "inventory.transferDropKeepOne", screen, slot, {dropKey, shift, rightDrag}},
-        {"transfer", "", "inventory.transferDropAll", screen, slot, {dropKey, shift, leftDrag}},
-        {"transfer", "", "inventory.transferDropMatching", screen, slot, {shift, click}},
+        {"transfer", "", "inventory.transferDropAll", screen, slot, {shift, dropKey, leftDrag}},
+        {"transfer", "", "inventory.transferDropOne", screen, slot, {ctrl, dropKey, leftDrag}},
+        {"transfer", "", "inventory.transferDropKeepOne", screen, slot, {shift, dropKey, rightDrag}},
         {"transfer", "", "inventory.transferDropHovered", screen, slot, {ctrl, shift, dropKey}},
+        {"transfer", "", "inventory.transferDropMatching", screen, slot, {shift, click}},
         {"recipes", "fixed.recipesClick", "", both, list, {leftClick}},
         {"recipes", "fixed.recipesRightClick", "", both, list, {rightClick}},
         {"recipes", "fixed.recipesShiftClick", "", both, list, {shift, leftClick}},

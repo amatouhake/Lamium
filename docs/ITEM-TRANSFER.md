@@ -15,22 +15,25 @@ an off gesture passes through to vanilla:
 |---|---|
 | Wheel: one item | `transferWheelOne` |
 | Shift + wheel: one stack | `transferWheelStack` |
-| Shift + left drag: stacks | `transferDragStack` |
-| Ctrl + left drag: one per slot | `transferDragOne` |
 | Ctrl + wheel: matching items | `transferWheelMatching` |
 | Ctrl + Shift + wheel: everything | `transferWheelAll` |
-| Alt + left click: matching items | `transferClickMatching` |
-| Alt + Shift + left click: everything | `transferClickAll` |
+| Alt + left click: matching items from the clicked side | `transferClickMatching` |
+| Shift + Alt + left click: everything from the clicked side | `transferClickAll` |
+| Shift + left drag: stacks | `transferDragStack` |
+| Ctrl + left drag: one per slot | `transferDragOne` |
 | Shift + right drag: leave one | `transferDragKeepOne` |
 | Held item, Shift + click an empty slot: matching items | `transferCursorMatching` |
-| Drop key + Ctrl + left drag: drop one per slot | `transferDropOne` |
-| Drop key + Shift + right drag: drop all but one | `transferDropKeepOne` |
-| Drop key + Shift + left drag: drop stacks | `transferDropAll` |
-| Held item, Shift + click outside: drop matching items | `transferDropMatching` |
+| Shift + drop key + left drag: drop stacks | `transferDropAll` |
+| Ctrl + drop key + left drag: drop one per slot | `transferDropOne` |
+| Shift + drop key + right drag: drop all but one | `transferDropKeepOne` |
 | Ctrl + Shift + drop key: drop the hovered kind | `transferDropHovered` |
+| Held item, Shift + click outside: drop matching items | `transferDropMatching` |
 
-The switches' order, their key order and the two shared names are open:
-[transfer-row-order.html](demos/transfer-row-order.html) (2026-11-24).
+The settings and Hotkeys list them in this order, grouped by kind; each
+row's keys read Ctrl, Shift, Alt, the drop key, then the mouse (the order
+shown, not the order pressed); the Alt + click pair says "from the clicked
+side" to tell it from the wheel pair (maintainer 2026-11-24,
+[transfer-row-order.html](demos/transfer-row-order.html)).
 The gestures are fixed to these modifiers; rebinding is
 [L-233 Make inventory transfer gestures rebindable](backlog/L-233.md).
 

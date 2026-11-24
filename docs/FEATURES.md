@@ -385,7 +385,7 @@ brewing and beacon slots get only what they accept.
 | --- | --- |
 | Wheel, Shift + wheel, drags | One item or a stack |
 | Ctrl + wheel, Alt + click | Every item of a kind |
-| Ctrl + Shift + wheel, Alt + Shift + click | Everything (the hotbar only when you start over it) |
+| Ctrl + Shift + wheel, Shift + Alt + click | Everything (the hotbar only when you start over it) |
 | Shift + right drag | Leaves one in each slot |
 
 With a stack on the cursor (only these two; every other gesture needs an
