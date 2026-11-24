@@ -97,10 +97,12 @@
 namespace lamium::ui::schematics_view {
 namespace {
 using ShapeZone = ShapesLayout::Zone;
-// The schematic preview (L-114): where it was drawn, how it is turned, and a
-// drag in progress. The Files tab's turns by itself until the player drags it,
-// and again for a newly chosen file or once the screen is opened again
-// (L-114); the Check tab's stays where it is turned.
+// A schematic preview (L-114): where it was drawn, how it is turned, and a
+// drag in progress. The Files tab and the Check tab each have their own. The
+// Files tab's turns by itself until the player drags or slices it, and again
+// for a newly chosen file or once the screen is opened again; the Check
+// tab's stays where it is turned. A new file starts whole, fitted and at the
+// default tilt.
 struct PreviewTurn {
     float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
     float yaw = 35, pitch = 30, zoom = 1;
@@ -108,19 +110,27 @@ struct PreviewTurn {
     // The block clicked in the preview (structure cell) and its file.
     std::optional<schematic::preview::Cell> picked;
     std::string pickedFile;
-    std::string file; // the structure shown; a new one starts whole and fitted
-    std::string filesFile; // the file the Files tab showed last; the Check tab's does not count
+    std::string file; // the structure shown
     bool manual = false, dragging = false, turning = false; // turning: this drag moved far enough to turn
     glm::vec2 from{};
     float fromYaw = 0, fromPitch = 0;
-} previewTurn;
+} filesTurn, checkTurn;
+// The preview of the tab shown, which input goes to.
+PreviewTurn& previewTurn();
+// What a newly shown file starts with.
+void startFile(PreviewTurn& t, std::string const& file) {
+    t.file = file;
+    t.peel = 0;
+    t.zoom = 1;
+    t.pitch = PreviewTurn{}.pitch;
+    t.picked.reset();
+}
 // The clock the preview turns by, in seconds.
 double previewClock() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 // The preview's corner line: the hint while it turns by itself, then the
 // peeled layers ("layer n/m"), which a click resets. Kept at the top edge:
 // the preview's depth hides text drawn over the model.
-void drawPreviewLabel(MinecraftUIRenderContext& context, float x, float y, float w) {
-    auto const& t = previewTurn;
+void drawPreviewLabel(MinecraftUIRenderContext& context, PreviewTurn const& t, float x, float y, float w) {
     if (t.peel > 0) {
         auto last = schematic::preview::last();
         static constexpr std::array<std::string_view, 3> axes{"schematic.previewAxis.x", "schematic.previewAxis.y", "schematic.previewAxis.z"};
@@ -142,10 +152,10 @@ enum class SchematicPick { None, Placement, File };
 using SchematicTab = Tab;
 SchematicTab schematicTab = SchematicTab::Placements;
 SchematicPick schematicPick = SchematicPick::None;
-// The angle the preview is drawn at: the Files tab's adds its own turn until it is dragged.
-float shownYaw() {
-    auto const& t = previewTurn;
-    return t.yaw + (schematicTab == SchematicTab::Files && !t.manual ? schematics_rows::autoTurn(previewClock()) : 0.f);
+PreviewTurn& previewTurn() { return schematicTab == SchematicTab::Verify ? checkTurn : filesTurn; }
+// The angle a preview is drawn at: the Files tab's adds its own turn until it is stopped.
+float shownYaw(PreviewTurn const& t) {
+    return t.yaw + (&t == &filesTurn && !t.manual ? schematics_rows::autoTurn(previewClock()) : 0.f);
 }
 int schematicIndex = -1; // into the placements or the files
 schematic::PlacementSet schematicSet;
@@ -656,7 +666,7 @@ void showSelectedMismatch() {
         return;
     }
     // A block clicked in the preview that has no row (past the list's limit).
-    auto const& t = previewTurn;
+    auto const& t = checkTurn;
     auto const* checked = checkedPlacement();
     if (!t.picked || !checked || t.pickedFile != checked->file) return;
     auto structure = schematic::session::structure(checked->file);
@@ -836,7 +846,7 @@ std::vector<Missing> missingMaterials() {
     return out;
 }
 void pickInPreview(glm::vec2 at) {
-    auto& t = previewTurn;
+    auto& t = previewTurn();
     t.picked = schematic::preview::pickAt(at.x * screen::scale(), at.y * screen::scale());
     t.pickedFile = t.file;
     if (schematicTab != SchematicTab::Verify || ignoreView || checkRows.several() || !t.picked) return;
@@ -918,8 +928,8 @@ void handleSchematicClick(float x, float y, bool right) {
     if (!right && itemScroll.w > 0 && screen::pressScrollbar(itemScroll.bar, x, y,
             [](float pos) { itemScroll.first = static_cast<int>(std::lround(pos)); }, &itemScroll.first))
         return;
-    auto& t = previewTurn;
-    // The peel line across the top of the preview resets the cut.
+    auto& t = previewTurn();
+    // The slice line across the top of the preview shows it whole again.
     if (!right && t.w > 0 && t.peel > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + 16) { t.peel = 0; return; }
     if (!right && t.w > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) {
         t.dragging = true;
@@ -1621,11 +1631,13 @@ void drawFileDetail(Body& b) {
             if (bottom - top >= 24) {
                 fill(context,dx,top,dw,bottom-top,palette::shade,.25f);
                 frame(context,dx,top,dw,bottom-top,palette::white,.1f);
-                auto& t = previewTurn;
+                auto& t = filesTurn;
                 t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
-                if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; t.picked.reset(); }
-                if (t.filesFile != f.relative) { t.filesFile = f.relative; t.manual = false; }
-                float yaw = shownYaw();
+                if (t.file != f.relative) { startFile(t, f.relative); t.manual = false; }
+                float yaw = shownYaw(t);
+                // Under the pointer the footer says how to work it (its corner says so only while it turns).
+                if (b.pointer.x >= t.x && b.pointer.x < t.x + t.w && b.pointer.y >= t.y && b.pointer.y < t.y + t.h)
+                    b.fieldHelp = translated("schematic.previewHint");
                 auto structure = schematic::session::structure(f.relative);
                 // The clicked block stays lit, the rest dims.
                 std::optional<schematic::preview::Cell> pick = t.pickedFile == f.relative ? t.picked : std::nullopt;
@@ -1635,7 +1647,7 @@ void drawFileDetail(Body& b) {
                 if (!schematic::preview::draw(context, structure, (dx + 1) * s, (top + 1) * s, (dw - 2) * s, (bottom - top - 2) * s,
                         schematic::preview::View{yaw, t.pitch, t.zoom, t.peel, t.peelAxis, t.peelSign}, pick ? &tint : nullptr))
                     t.w = 0;
-                else drawPreviewLabel(context, dx, top, dw);
+                else drawPreviewLabel(context, t, dx, top, dw);
                 // What was clicked, beside the facts.
                 if (pick && structure) {
                     auto index = structure->blocks[static_cast<size_t>(structure->cell(pick->x, pick->y, pick->z))];
@@ -1758,8 +1770,8 @@ void drawCheckDetail(Body& b) {
             mix(static_cast<std::uint32_t>(c.y));
         }
         if (!cells.empty() || !block.empty()) {}
-        else if (!ignoreView && previewTurn.picked && previewTurn.pickedFile == checked->file) {
-            auto w = schematic::toWorld(structure->size, checked->placement, {previewTurn.picked->x, previewTurn.picked->y, previewTurn.picked->z});
+        else if (!ignoreView && checkTurn.picked && checkTurn.pickedFile == checked->file) {
+            auto w = schematic::toWorld(structure->size, checked->placement, {checkTurn.picked->x, checkTurn.picked->y, checkTurn.picked->z});
             marked->insert({w.x, w.y, w.z});
             mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(w.x)) << 32 ^ static_cast<std::uint32_t>(w.z));
             mix(static_cast<std::uint32_t>(w.y));
@@ -1804,14 +1816,16 @@ void drawCheckDetail(Body& b) {
             auto dim = [&](int shift) { return ((((color >> shift) & 255) * 115 / 255) << shift); };
             return dim(0) | dim(8) | dim(16) | 0xff000000u;
         }};
-        auto& turn = previewTurn;
+        auto& turn = checkTurn;
         turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
-        if (turn.file != checked->file) { turn.file = checked->file; turn.peel = 0; turn.zoom = 1; turn.picked.reset(); }
+        if (turn.file != checked->file) startFile(turn, checked->file);
+        if (b.pointer.x >= turn.x && b.pointer.x < turn.x + turn.w && b.pointer.y >= turn.y && b.pointer.y < turn.y + turn.h)
+            b.fieldHelp = translated("schematic.previewHint");
         float s = drawScale();
         if (!schematic::preview::draw(context, structure, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
                 schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint))
             turn.w = 0;
-        else drawPreviewLabel(context, dx, pvTop, dw);
+        else drawPreviewLabel(context, turn, dx, pvTop, dw);
     };
     if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
     else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
@@ -2074,10 +2088,10 @@ void drawCheckDetail(Body& b) {
         if (placeIgnored && fits(sy)) paragraph(context,dx,sy,dw,translated("schematic.ignore.placeNotCounted"),2,palette::faint);
     }
     else if (auto structure = schematic::session::structure(checked->file);
-             structure && previewTurn.picked && previewTurn.pickedFile == checked->file) {
+             structure && checkTurn.picked && checkTurn.pickedFile == checked->file) {
         // A clicked block without a row (correct, filtered out, or past
         // the list's limit): checked again right now.
-        auto const& c = *previewTurn.picked;
+        auto const& c = *checkTurn.picked;
         auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
         auto* region = context.mClient.getRegion();
         auto now = region ? schematic::ghosts::mismatchAt(*region, world) : std::nullopt;
@@ -2102,7 +2116,7 @@ void drawCheckDetail(Body& b) {
     // place ignored or given back (extras too).
     fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     float const ay = l.actionsY + 2;
-    bool canShow = selected || (previewTurn.picked && previewTurn.pickedFile == checked->file);
+    bool canShow = selected || (checkTurn.picked && checkTurn.pickedFile == checked->file);
     bool const placeButton = selected && schematic::takesIgnores(*selected);
     bool const placeOn = placeButton && ignored.place(selected->local, selected->fileBlock);
     std::string const showText = translated("schematic.showInWorld"),
@@ -2254,7 +2268,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     // Detail.
     b.dx = l.detailLeft + ShapesLayout::pad;
     b.dw = l.detailWidth - 2 * ShapesLayout::pad;
-    previewTurn.w = 0; // set again where the preview is drawn this frame
+    filesTurn.w = checkTurn.w = 0; // set again where a preview is drawn this frame
     switch (schematicTab) {
     case SchematicTab::Placements: drawPlacementDetail(b); break;
     case SchematicTab::Files: drawFileDetail(b); break;
@@ -2290,7 +2304,7 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
 void renderSchematicsContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer, SettingsTable const& t) {
     auto l = fitSchematics(t, size, false);
     if (l.usable()) drawSchematicsBody(context, l, pointer);
-    else previewTurn.w = 0; // no preview drawn, so none to turn
+    else filesTurn.w = checkTurn.w = 0; // no preview drawn, so none to turn
     context.flushText(0,std::nullopt);
 }
 void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
@@ -2303,7 +2317,7 @@ void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, g
     drawDockedFrame(context,l,translated("nav.schematics"),translated("closeButton"),l.hit(pointer.x, pointer.y).zone == ShapeZone::Close);
     if (l.usable()) drawSchematicsBody(context, l, pointer);
     else {
-        previewTurn.w = 0;
+        filesTurn.w = checkTurn.w = 0;
         drawDockedTooShort(context, l, pointer.x, pointer.y);
     }
     context.flushText(0,std::nullopt);
@@ -2322,13 +2336,15 @@ void wheel(int step, glm::vec2 pointer, bool shift) {
     auto const& l = schematicsDisplayed;
     float px = pointer.x, py = pointer.y;
     // Over the 3D preview the wheel zooms it.
-    if (auto& t = previewTurn; t.w > 0 && px >= t.x && px < t.x + t.w && py >= t.y && py < t.y + t.h) {
+    if (auto& t = previewTurn(); t.w > 0 && px >= t.x && px < t.x + t.w && py >= t.y && py < t.y + t.h) {
         // Shift peels layers off the side the view looks down on.
         if (shift) {
-            // The side is chosen from the view when peeling starts
+            // Slicing stops the Files preview's own turn where it is, so the cut stays in view.
+            if (!t.manual) { t.yaw = shownYaw(t); t.manual = true; }
+            // The side is chosen from the view when slicing starts
             // and then kept, so the cut can be looked at from the side.
             if (t.peel == 0) {
-                schematic::preview::View now{shownYaw(), t.pitch};
+                schematic::preview::View now{t.yaw, t.pitch};
                 auto cut = schematic::preview::cutFor(now, 2, 2, 2, 1);
                 t.peelAxis = cut.axis;
                 t.peelSign = cut.sign;
@@ -2350,20 +2366,20 @@ void wheel(int step, glm::vec2 pointer, bool shift) {
 }
 void release() {
     // A press that did not move is a click on a block (inspect).
-    if (std::exchange(previewTurn.dragging, false) && !previewTurn.turning) {
-        previewTurn.yaw = previewTurn.fromYaw;
-        previewTurn.pitch = previewTurn.fromPitch;
-        pickInPreview(previewTurn.from);
+    if (auto& t = previewTurn(); std::exchange(t.dragging, false) && !t.turning) {
+        t.yaw = t.fromYaw;
+        t.pitch = t.fromPitch;
+        pickInPreview(t.from);
     }
 }
 void drag(glm::vec2 pointer) {
     // A drag turns only after the pointer moved a little, so a click on
     // a block does not nudge the view.
-    if (auto& t = previewTurn; t.dragging && (t.turning || glm::length(pointer - t.from) >= 6)) {
+    if (auto& t = previewTurn(); t.dragging && (t.turning || glm::length(pointer - t.from) >= 6)) {
         t.turning = true;
         if (!t.manual) {
             // Pick up the turn the Files preview had while turning by itself.
-            t.fromYaw = shownYaw();
+            t.fromYaw = shownYaw(t);
             t.manual = true;
         }
         t.yaw = t.fromYaw - (pointer.x - t.from.x) * .7f;
@@ -2422,6 +2438,7 @@ void reset() {
     placementRows.clearSeveral(); // a closed screen keeps one row, not several; the picked one stays
     if (checkRows.clearSeveral()) followCheckRows();
     placementBulk.disarm();
-    previewTurn.manual = false; // opened again, the preview turns by itself
+    // Opened again, the Files preview turns by itself and both show their hint.
+    filesTurn.manual = checkTurn.manual = false;
 }
 }
