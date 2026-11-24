@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Fixed press footers joined per language (2026-11-24)
+
+`a5b1bca0` (DLL
+`11863ed6b7cde5e8bc7e46055b863b41ba9a8095a420d7256a9d44ce43b13d9b`),
+1.26.60.05 Dev, the game in Japanese:
+- Seen: a transfer gesture's footer in Hotkeys reads "…（SHIFT + 左クリック）。固定の
+  操作で、…" with full-width brackets and stop; a transfer switch's footer in the
+  settings goes on to where it works with no stray space; nothing else changed.
+- Not checked: Chinese.
+
 ## Inventory transfer switches by kind (2026-11-24)
 
 `3f196b9d` (DLL
