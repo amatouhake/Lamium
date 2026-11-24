@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Crafting table sides, drop the hovered kind, drop by origin (2026-11-24)
+
+`6b90b7ea` (DLL
+`64441eb0c84cab3de084be89ea51bfb109d72b3dd8b3ae336fa316c67984ec7f`),
+1.26.60.05 Dev, a local world, Inventory transfer on:
+- Seen: at a crafting table the wheel and Shift + click move carried
+  items between the main inventory and the hotbar; Ctrl + Shift + Q over a
+  chest item drops only the chest's matching stacks, over the inventory
+  the inventory's (hotbar included); a stack taken from a chest and
+  dropped with Shift + click outside takes the chest's matching items
+  along and leaves the inventory's; the new switch shows under Inventory
+  transfer with Ctrl + Shift + Q beside it and, off, leaves the key to
+  vanilla; nothing else changed.
+- Maintainer's remark: the order of the transfer switches and of each
+  one's keys may read unnaturally (not a fault).
+- Not checked: a swapped held stack, other station screens, servers.
+
 ## Inventory transfer at a crafting table (2026-11-24)
 
 `03a01a21` (DLL
