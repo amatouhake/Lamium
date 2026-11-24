@@ -79,7 +79,11 @@ std::string encodePlaces(Places const& places) {
     Json list = Json::array();
     for (auto const& place : places.list) {
         Json items = Json::array();
-        for (auto const& item : place.items) items.push_back({{"item", item.name}, {"aux", item.aux}, {"count", item.count}});
+        for (auto const& item : place.items) {
+            Json one{{"item", item.name}, {"aux", item.aux}, {"count", item.count}};
+            if (!item.data.empty()) one["data"] = item.data;
+            items.push_back(std::move(one));
+        }
         Json entry{{"block", place.block}, {"counted", place.counted}, {"seen", place.seen}, {"items", std::move(items)}};
         if (place.ender) entry["ender"] = true;
         else {
@@ -119,7 +123,7 @@ Places decodePlaces(std::string_view document) {
                 auto name = text(item.value("item", Json()));
                 auto const aux = item.value("aux", Json()), count = item.value("count", Json());
                 if (name.empty() || !count.is_number_unsigned() || !count.get<Count>()) continue;
-                addStored(place.items, name, aux.is_number_integer() ? aux.get<int>() : 0, count.get<Count>());
+                addStored(place.items, name, aux.is_number_integer() ? aux.get<int>() : 0, count.get<Count>(), text(item.value("data", Json())));
             }
         if (place.ender) out.list.insert(out.list.begin(), std::move(place)); else out.list.push_back(std::move(place));
     }

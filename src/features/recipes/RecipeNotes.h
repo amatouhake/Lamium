@@ -173,7 +173,8 @@ inline std::vector<LooseLine> looseLines(Index const& index, Wanted const& wante
     for (auto const& [key, amount] : wanted.targets) add(key, amount);
     for (auto const& target : handed) add(target.key, target.count);
     for (auto& line : out) {
-        auto const have = heldByName.find(std::string(splitItemKey(line.key).name));
+        auto const parts = splitItemKey(line.key);
+        auto const have = heldByName.find(parts.data.empty() ? std::string(parts.name) : line.key);
         line.held = std::min(line.need, have == heldByName.end() ? Count{0} : have->second);
         line.left = line.need - line.held;
     }

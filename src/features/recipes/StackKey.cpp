@@ -21,6 +21,7 @@ std::string stackKey(ItemStackBase const& stack) {
                 if (found == user->mTags.end()) return std::nullopt;
                 return found->second.toSnbt(SnbtFormat::Minimize);
             });
+    if (name.size() + data.size() > 390) data.clear(); // a saved key holds 400 bytes
     return itemKey(name, aux == anyAux ? 0 : aux, data);
 }
 }

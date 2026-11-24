@@ -23,12 +23,13 @@ struct Stored {
     std::string name;
     int aux = 0;
     Count count = 0;
+    std::string data; // what makes it what it is, as its key carries it (ItemKey.h, L-363): a rocket's explosions
     bool operator==(Stored const&) const = default;
 };
-inline void addStored(std::vector<Stored>& items, std::string_view name, int aux, Count count) {
+inline void addStored(std::vector<Stored>& items, std::string_view name, int aux, Count count, std::string_view data = {}) {
     if (name.empty() || !count) return;
-    auto found = std::find_if(items.begin(), items.end(), [&](Stored const& item) { return item.name == name && item.aux == aux; });
-    if (found == items.end()) items.push_back({std::string(name), aux, count}); else found->count += count;
+    auto found = std::find_if(items.begin(), items.end(), [&](Stored const& item) { return item.name == name && item.aux == aux && item.data == data; });
+    if (found == items.end()) items.push_back({std::string(name), aux, count, std::string(data)}); else found->count += count;
 }
 struct Place {
     bool ender = false;       // the ender chest: one for the world, wherever it is opened
@@ -108,7 +109,7 @@ inline std::vector<StoreBox> storeBoxes(Places const& places) {
 inline std::vector<Stored> placeTotals(Places const& places) {
     std::vector<Stored> out;
     for (auto const& place : places.list)
-        if (place.counted) for (auto const& item : place.items) addStored(out, item.name, item.aux, item.count);
+        if (place.counted) for (auto const& item : place.items) addStored(out, item.name, item.aux, item.count, item.data);
     return out;
 }
 // The documents: tolerant like the notes' (RecipeNotes.h).

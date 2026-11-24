@@ -146,6 +146,9 @@ struct Index {
     std::vector<std::vector<int>> copies; // per item: the recipes that make it from itself
     std::vector<Trace> traces;            // per group: how it is traced past its kind, kind -1 where it is not
     std::set<std::string, std::less<>> variantNames; // names whose aux tells items apart
+    // L-363: per key without data whose items all carry data (a rocket), the one with the least: what a bare key
+    // saved before (a wanted rocket) or read without data stands for.
+    std::map<std::string, Item, std::less<>> plainVariants;
     Item find(std::string_view key) const {
         auto found = ids.find(key);
         return found == ids.end() ? -1 : found->second;
@@ -158,7 +161,11 @@ struct Index {
     // A key with data (L-363) is that item or none: the ominous banner is not the white one.
     Item findKey(std::string_view key) const {
         auto const parts = splitItemKey(key);
-        if (parts.data.empty()) return find(parts.name, parts.aux);
+        if (parts.data.empty()) {
+            if (Item const found = find(parts.name, parts.aux); found >= 0) return found;
+            auto const plain = plainVariants.find(keyOf(parts.name, parts.aux));
+            return plain == plainVariants.end() ? -1 : plain->second;
+        }
         return find(keyOf(parts.name, parts.aux) + std::string(parts.data));
     }
     // The key of a game item as this table names it, known to it or not.
@@ -445,6 +452,14 @@ inline Index build(Source const& given) {
     for (size_t i = 0; i < index.recipes.size(); ++i)
         (index.recipes[i].own ? index.copies : index.makers)[index.recipes[i].makes].push_back(static_cast<int>(i));
     traceGroups(index);
+    // L-363: a bare key stands for its least variant where the table holds the name only with data.
+    for (size_t i = 0; i < index.items.size(); ++i) {
+        std::string_view const key = index.items[i];
+        std::string_view const base = baseKey(key);
+        if (base.size() == key.size() || index.ids.contains(base)) continue;
+        auto [slot, fresh] = index.plainVariants.emplace(std::string(base), static_cast<Item>(i));
+        if (!fresh && key.size() < index.items[static_cast<size_t>(slot->second)].size()) slot->second = static_cast<Item>(i);
+    }
     return index;
 }
 

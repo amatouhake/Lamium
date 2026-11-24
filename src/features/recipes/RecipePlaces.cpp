@@ -75,7 +75,7 @@ std::optional<Open> read(ScreenView& screen) {
     std::vector<schematic::items::Carried> stacks;
     for (int i = 0; i < size; ++i) schematic::items::addStack(manager->getItemStack(items, i), stacks, &controller);
     for (auto const& stack : stacks)
-        if (stack.name.size() <= 200) addStored(out.items, stack.name, stack.aux, stack.count);
+        if (stack.name.size() <= 200) addStored(out.items, stack.name, stack.aux, stack.count, stack.data);
     return out;
 }
 }

@@ -17,8 +17,9 @@
 // entry meet; the recipe table's keys never carry data.
 namespace lamium::recipes {
 inline constexpr int anyAux = 32767;
-// Longest data a key carries (keys are saved, up to 400 bytes, RecipeNotesStore.cpp); longer data is left out.
-inline constexpr size_t maxKeyData = 190;
+// Longest data a key carries (keys are saved, up to 400 bytes, RecipeNotesStore.cpp): a rocket of three explosions
+// fits; longer data is left out and the item keys as its name (a rocket of more stars as the bare rocket).
+inline constexpr size_t maxKeyData = 340;
 inline std::string itemKey(std::string_view name, int aux, std::string_view data = {}) {
     std::string out(name);
     if (aux == anyAux) out += "@*";

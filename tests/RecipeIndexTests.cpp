@@ -665,7 +665,7 @@ void recipeIndexTests() {
               "a banner's patterns are part of its key; no patterns are none");
         check(identityData("minecraft:firework_star", values({{"FireworksItem", "{}"}})).empty() && identityData("minecraft:stone", values({{"x", "1"}})).empty(),
               "an item outside the table carries no data");
-        check(identityData("minecraft:enchanted_book", values({{"ench", std::string(300, 'x')}})).empty(), "data too long to save is left out");
+        check(identityData("minecraft:enchanted_book", values({{"ench", std::string(400, 'x')}})).empty(), "data too long to save is left out");
     }
     {
         // L-363: a rocket a recipe makes carries its stars' explosions; a key with data is that item or none.
@@ -687,6 +687,16 @@ void recipeIndexTests() {
         check(index.findKey("minecraft:firework_rocket") >= 0 && index.makers[static_cast<size_t>(index.findKey("minecraft:firework_rocket"))].size() == 1,
               "a recipe with a star the creative list lacks makes the bare rocket");
         check(index.findKey("minecraft:banner@15") >= 0 && index.findKey("minecraft:banner@15{Type:1}") < 0, "the ominous banner is not the white one");
+        source.recipes.erase(source.recipes.begin() + 2);
+        auto const known = build(source);
+        check(known.findKey("minecraft:firework_rocket") == known.findKey("minecraft:firework_rocket{Fireworks:{Explosions:[],Flight:1b}}")
+                  && known.findKey("minecraft:firework_rocket") >= 0,
+              "a bare key saved before stands for the plain variant where every one has data");
+        Wanted wanted;
+        wanted.targets.push_back({"minecraft:banner@15{Type:1}", 1});
+        auto const loose = looseLines(known, wanted, {}, {{"minecraft:banner", 2}});
+        auto const looseHeld = looseLines(known, wanted, {}, {{"minecraft:banner", 2}, {"minecraft:banner@15{Type:1}", 1}});
+        check(loose.size() == 1 && loose[0].held == 0 && looseHeld[0].held == 1, "a loose item with data counts only what holds that data");
     }
     {
         // Narrowing the list to what the held items make at once (the words: ItemSearch.h, L-377).
@@ -855,7 +865,8 @@ void recipeIndexTests() {
               && hoverLines("x\na \xC2\xA7" "cred").front().raw == "a \xC2\xA7" "cred"
               && hoverName("\xC2\xA7" "eOminous Bottle\r\nmore").raw == "\xC2\xA7" "eOminous Bottle"
               && hoverName("\xC2\xA7" "eOminous Bottle\nmore").plain == "Ominous Bottle"
-              && cutLine("ab\xC2\xA7" "c", 4) == "ab" && cutLine("ab", 4) == "ab",
+              && cutVisible("\xC2\xA7" "9ab\xC2\xA7" "ccd", 3) == "\xC2\xA7" "9ab\xC2\xA7" "cc" && cutVisible("ab\xC2\xA7", 4) == "ab"
+              && hoverLines("x\n\xC2\xA7" "9" + std::string(130, 'a')).front().raw == "\xC2\xA7" "9" + std::string(120, 'a'),
               "an item's hover text gives its lines under the name with the color they start in, without empty lines and icon glyphs");
         check(steppedWanted(1, true, 64) == 64 && steppedWanted(64, true, 64) == 128 && steppedWanted(70, false, 64) == 64
               && steppedWanted(64, false, 64) == 1 && steppedWanted(20, false, 16) == 16 && steppedWanted(3, true, 1) == 4,

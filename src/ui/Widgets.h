@@ -123,7 +123,8 @@ void label(MinecraftUIRenderContext&, float x, float y, float width, std::string
 void labelScaled(MinecraftUIRenderContext&, float x, float y, float width, std::string text, float scale,
                  Rgb color = palette::text, Align align = Align::Left, bool shadow = true);
 // Text as the game formats it (L-363: an item's hover text): its section-sign codes are left in for the game's
-// font to color and style, in one run from the left (no Latin raise), `color` where no code says otherwise.
+// font to color and style, from the left (no Latin raise; zero-wide characters placed as label places them),
+// `color` where no code says otherwise.
 // Lamium's shadow is the text without its codes, dark. Not fitted: the caller sizes the box by gameTextWidth.
 void gameText(MinecraftUIRenderContext&, float x, float y, float width, std::string_view text, Rgb color = palette::text);
 // The width the game's font gives such text.

@@ -70,13 +70,25 @@ struct HoverLine {
     std::string raw;
     bool operator==(HoverLine const& other) const { return text == other.text && color == other.color; }
 };
-// A line cut to `most` bytes at a character's end, never leaving half a code.
-inline std::string cutLine(std::string_view line, size_t most) {
-    if (line.size() <= most) return std::string(line);
-    size_t cut = most;
-    while (cut > 0 && (static_cast<unsigned char>(line[cut]) & 0xC0) == 0x80) --cut;
-    std::string out(line.substr(0, cut));
-    if (out.size() >= 2 && out.compare(out.size() - 2, 2, "\xC2\xA7") == 0) out.resize(out.size() - 2);
+// A line with codes cut after `most` bytes of what it shows, at a character's end: the codes are kept and not
+// counted, so it ends where the same line without them is cut.
+inline std::string cutVisible(std::string_view line, size_t most) {
+    std::string out;
+    size_t shown = 0;
+    for (size_t at = 0; at < line.size();) {
+        if (line.substr(at, 2) == "\xC2\xA7") {
+            size_t const end = std::min(line.size(), at + 3);
+            if (end == at + 3) out += line.substr(at, 3);
+            at = end;
+            continue;
+        }
+        size_t next = at + 1;
+        while (next < line.size() && (static_cast<unsigned char>(line[next]) & 0xC0) == 0x80) ++next;
+        if (shown + (next - at) > most) break;
+        out += line.substr(at, next - at);
+        shown += next - at;
+        at = next;
+    }
     return out;
 }
 // The hover text's first line, the item's name, with its codes and without.
@@ -96,7 +108,7 @@ inline HoverName hoverName(std::string_view text) {
         }
         out.plain += line[i];
     }
-    out.raw = cutLine(out.raw, 240);
+    out.raw = cutVisible(out.raw, 240);
     return out;
 }
 inline std::vector<HoverLine> hoverLines(std::string_view text, size_t most = 12) {
@@ -141,7 +153,7 @@ inline std::vector<HoverLine> hoverLines(std::string_view text, size_t most = 12
         }
         std::string raw = above ? std::string("\xC2\xA7") + above : std::string();
         for (char c : line) if (c != '\r') raw += c;
-        out.push_back({std::move(plain), color, cutLine(raw, 240)});
+        out.push_back({std::move(plain), color, cutVisible(raw, 120)});
     }
     return out;
 }

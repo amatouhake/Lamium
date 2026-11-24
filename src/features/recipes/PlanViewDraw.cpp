@@ -59,7 +59,7 @@ void storedLines(view::Late& late, state::Plan const& plan, Item item) {
     for (auto const& place : state::places().list) {
         if (!place.counted) continue;
         Count here = 0;
-        for (auto const& entry : place.items) if (index.find(entry.name, entry.aux) == item) here += entry.count;
+        for (auto const& entry : place.items) if (index.findKey(itemKey(entry.name, entry.aux, entry.data)) == item) here += entry.count;
         if (!here) continue;
         std::string name = schematic::items::shown(place.block).name;
         if (!place.ender) name = translated("recipes.place.at", name, place.at.x, place.at.y, place.at.z);

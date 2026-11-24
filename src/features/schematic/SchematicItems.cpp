@@ -94,9 +94,15 @@ std::string stackIcon(ItemStackBase const& stack) {
     } catch (...) { return {}; }
 }
 void listEntries(std::map<std::string, std::string, std::less<>> icons) {
+    // Only keys whose entry changed, came or went are worked out again, in place: a caller may hold what `shown`
+    // returned for this frame, and rereading the list (a language) must not decode every cached stack at once.
+    std::vector<std::string> changed;
+    for (auto const& [item, icon] : icons)
+        if (auto was = entryIcons.find(item); was == entryIcons.end() || was->second != icon) changed.push_back(item);
+    for (auto const& [item, icon] : entryIcons) if (!icons.contains(item)) changed.push_back(item);
     entryIcons = std::move(icons);
-    // In place: a caller may hold what `shown` returned for this frame.
-    for (auto& [item, shownItem] : shownItems) shownItem = shownOf(item);
+    for (auto const& item : changed)
+        if (auto found = shownItems.find(item); found != shownItems.end()) found->second = shownOf(item);
 }
 Shown const& shown(std::string const& item) {
     if (unsigned now = generation.load(); now != seenShown) {
@@ -128,7 +134,9 @@ void addBundle(ItemStack const& stack, std::vector<Carried>& out, ContainerScree
         std::vector<Carried> held;
         for (int index = 0; index < inspection::preview::BundleGrid::kMaxSlots; ++index) {
             ItemStack const& inner = BundleHelper::getItemStackFromBundle(*screen, stack, index);
-            if (!inner.isNull()) held.push_back({inner.getTypeName(), inner.getAuxValue(), static_cast<std::uint64_t>(inner.mCount)});
+            if (!inner.isNull())
+                held.push_back({inner.getTypeName(), inner.getAuxValue(), static_cast<std::uint64_t>(inner.mCount),
+                                std::string(recipes::splitItemKey(recipes::stackKey(inner)).data)});
         }
         out.insert(out.end(), held.begin(), held.end());
         if (id && (bundles.size() < 1024 || bundles.contains(*id))) bundles[*id] = std::move(held);

@@ -392,7 +392,7 @@ What the client's table holds and how it reads: [L-116](backlog/L-116.md)
   recipe gives back, a cake's buckets ([L-362](backlog/L-362.md)), a
   listed item's own data ([L-363](backlog/L-363.md): no potion effect).
 - A key with data has no recipes but a rocket's (`rocketData`: its stars);
-  stores and the Materials tab count by name and aux, not data.
+  a bare one stands for its least variant. Materials counts without data.
 - Trades and drops are not recipes.
 - Checked on a local world and one server built on Bedrock Dedicated
   Server; other servers and Realms are not.
