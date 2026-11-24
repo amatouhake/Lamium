@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Rocket recipes by their stars (L-363, 2026-11-24)
+
+`11bd4329` on branch `l363-data-keys` (DLL
+`e25d20e2e7d3587f1b4b154404f893fa8e4bee5a7f5e1005a0a23a9e6ae45221`),
+1.26.60.05 Dev, a local world:
+- Seen: a red rocket's recipes are paper, gunpowder and the red star
+  only, the plain rocket's paper and gunpowder; "can be made" with those
+  held shows the red and the plain rocket only, and placing the red one
+  makes a red rocket; the ominous banner has no recipe, the white banner
+  keeps its own; three red rockets wanted gather their materials (traced
+  down to sugar cane, gunpowder and beetroot) and count carried red
+  rockets only; other recipes and plans as before.
+
 ## The game's font coloring an item tip (L-363, 2026-11-24)
 
 `e34df5f6` on branch `l363-data-keys` (DLL
