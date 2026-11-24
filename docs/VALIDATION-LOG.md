@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Review fixes: the Check tab's preview no longer jumps, the Files tab's keeps its stop (L-114, 2026-11-24)
+
+`00bb1dc0` (DLL
+`7b1902d31a5623e729d72283e53f201ed2fdacc52076fd997b9f58a0b8aa2fc9`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: a drag of the Check tab's preview turns it from where it is, also
+  right after reopening the screen (fix `3d1d2df1`).
+- Seen: the Files tab's preview stopped by a drag stays stopped after a
+  visit to the Check tab and back to the same file.
+- Marked not seen, because the checklist's wording ("peels from the top of
+  the view") did not match what it does: while the Files preview turns by
+  itself, Shift+wheel up peels layers from the near side towards the back
+  and Shift+wheel down puts them back. That is the side facing the viewer,
+  which is what the code chooses (the top only when looking down steeply).
+- Seen: nothing else changed, the settings screen's wheel included.
+
 ## The schematic preview turns by itself again for a new file or a reopened screen (L-114, 2026-11-24)
 
 `1cd46dcc` (DLL
