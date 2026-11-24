@@ -22,6 +22,14 @@ inline LineScroll lineScroll(int count, int first, float top, float bottom, floa
     s.first = std::clamp(first, 0, std::max(0, s.count - s.visible));
     return s;
 }
+// The first row shown of a pane showing `visible` rows, moved only as far as
+// brings the selected one into view (the detail fields under the arrow keys).
+constexpr int firstShowing(int selected, int first, int visible) {
+    if (visible <= 0) return first;
+    if (selected < first) return selected;
+    if (selected >= first + visible) return selected - visible + 1;
+    return first;
+}
 // The Check pane's preview (L-183): its usual share of the room above the
 // buttons, given back so up to `maxLines` item lines fit under it (`below`
 // is what stands between the preview and the first line); never under

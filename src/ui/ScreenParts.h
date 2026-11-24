@@ -43,6 +43,8 @@ void numberReset();
 void finishEditing();
 // Esc while typing: drop the edit, keep the stored value (DESIGN "Controls").
 void cancelEditing();
+// A key while a view's stepper is being typed into (NumberInput.h numberKey).
+void numberKey(int key);
 
 bool heldCtrl();
 bool heldShift();

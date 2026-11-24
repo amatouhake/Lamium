@@ -1325,6 +1325,15 @@ void clearMessage() { error.clear(); }
 void warnRange(std::string text) { ui::warnRange(std::move(text)); }
 NumberInput& number() { return numberInput; }
 void numberTyped() { numberDirty = true; }
+void numberKey(int key) {
+    switch (ui::numberKey(key, ui::heldCtrl())) {
+    case NumberKey::Backspace: if (numberInput.backspace()) numberDirty = true; break;
+    case NumberKey::SelectAll: numberInput.selectAll(); break;
+    case NumberKey::Cancel: cancelEditing(); break;
+    case NumberKey::Finish: finishEditing(); break;
+    case NumberKey::None: break;
+    }
+}
 void finishEditing() { finishNumber(); }
 void cancelEditing() {
     // Numbers and shape names apply as they are typed (each frame): put the starting value back through the same path.

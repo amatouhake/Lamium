@@ -796,11 +796,7 @@ void moveSchematicField(int step) {
     int count = schematicFieldCount();
     if (!count) return;
     schematicFieldSelected = std::clamp(schematicFieldSelected + step, 0, count - 1);
-    int visible = schematicsDisplayed.fieldVisible;
-    if (visible > 0) {
-        if (schematicFieldSelected < schematicFieldFirst) schematicFieldFirst = schematicFieldSelected;
-        if (schematicFieldSelected >= schematicFieldFirst + visible) schematicFieldFirst = schematicFieldSelected - visible + 1;
-    }
+    schematicFieldFirst = firstShowing(schematicFieldSelected, schematicFieldFirst, schematicsDisplayed.fieldVisible);
 }
 void openSchematicKeySettings() { screen::showFeatureKeys("schematic"); }
 // The tab strip sits in the list pane's toolbar.
@@ -1041,12 +1037,7 @@ void handleSchematicClick(float x, float y, bool right) {
 }
 void handleSchematicKey(int key) {
     if (editingSchematicField >= 0) {
-        switch (key) {
-        case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
-        case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: screen::cancelEditing(); break;
-        case 0x0d: case 0x09: screen::finishEditing(); break;
-        }
+        screen::numberKey(key);
         return;
     }
     if (schematicTab == SchematicTab::Verify && ignoreView)

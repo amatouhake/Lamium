@@ -1,4 +1,5 @@
 #include "ui/ShapesView.h"
+#include "ui/PaneScroll.h"
 #include "ui/DataNotice.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
@@ -258,11 +259,7 @@ void moveShapeField(int step) {
         if (index == 0 || index == static_cast<int>(fields.size()) - 1) step = -step;
     }
     shapeFieldSelected = index;
-    int visible = shapesDisplayed.fieldVisible;
-    if (visible > 0) {
-        if (index < shapeFieldFirst) shapeFieldFirst = index;
-        if (index >= shapeFieldFirst + visible) shapeFieldFirst = index - visible + 1;
-    }
+    shapeFieldFirst = firstShowing(index, shapeFieldFirst, shapesDisplayed.fieldVisible);
 }
 void openShapeKeySettings() {
     // Show the Shape rendering row, expanded, in its category.
@@ -390,12 +387,7 @@ void handleShapeKey(int key) {
         return;
     }
     if (editingShapeField >= 0) {
-        switch (key) {
-        case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
-        case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: screen::cancelEditing(); break;
-        case 0x0d: case 0x09: screen::finishEditing(); break;
-        }
+        screen::numberKey(key);
         return;
     }
     // Esc ends a draft or type choice first, then several rows, then closes;

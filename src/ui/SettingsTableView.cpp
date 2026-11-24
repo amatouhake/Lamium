@@ -517,12 +517,7 @@ void handleKey(int key) {
         return;
     }
     if (editingNumber_) {
-        switch (key) {
-        case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
-        case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: screen::cancelEditing(); break;
-        case 0x0d: case 0x09: screen::finishEditing(); break;
-        }
+        screen::numberKey(key);
         return;
     }
     auto* entry = valid(selected) ? &rows[selected] : nullptr;

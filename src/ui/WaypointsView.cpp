@@ -1,5 +1,6 @@
 #include "ui/DataNotice.h"
 #include "ui/WaypointsView.h"
+#include "ui/PaneScroll.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/RowSelection.h"
@@ -166,11 +167,7 @@ void moveWaypointField(int step) {
     if (!selectedWaypoint()) return;
     int count = static_cast<int>(map::waypointFields.size());
     waypointFieldSelected = std::clamp(waypointFieldSelected + step, 0, count - 1);
-    int visible = waypointsDisplayed.fieldVisible;
-    if (visible > 0) {
-        if (waypointFieldSelected < waypointFieldFirst) waypointFieldFirst = waypointFieldSelected;
-        if (waypointFieldSelected >= waypointFieldFirst + visible) waypointFieldFirst = waypointFieldSelected - visible + 1;
-    }
+    waypointFieldFirst = firstShowing(waypointFieldSelected, waypointFieldFirst, waypointsDisplayed.fieldVisible);
 }
 void openWaypointKeySettings() { screen::showFeatureKeys("waypoints"); }
 void deleteSelectedWaypoint() {
@@ -312,12 +309,7 @@ void handleWaypointKey(int key) {
         return;
     }
     if (editingWaypointField >= 0) {
-        switch (key) {
-        case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
-        case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: screen::cancelEditing(); break;
-        case 0x0d: case 0x09: screen::finishEditing(); break;
-        }
+        screen::numberKey(key);
         return;
     }
     switch (selectionKey(key, screen::heldCtrl(), severalSelected())) {

@@ -95,4 +95,9 @@ void barGutterTests() {
     check(l.listCount > l.listVisible && c.shownX + c.shownWidth < listRowEnd - 2 && listRowEnd < l.scrollBar().x
           && !l.onScrollbar(listRowEnd - .5f, l.rowsTop + 1) && !l.scrollBar().hit(listRowEnd - .5f, l.rowsTop + 1),
           "a scrolling list's switch stays inside its row, the row short of the bar");
+    // The detail fields under the arrow keys: the pane moves only as far as shows the selected one.
+    check(firstShowing(3, 0, 5) == 0 && firstShowing(0, 0, 5) == 0 && firstShowing(4, 0, 5) == 0, "a selected row in view moves nothing");
+    check(firstShowing(5, 0, 5) == 1 && firstShowing(9, 2, 3) == 7, "a row below the view becomes its last row");
+    check(firstShowing(1, 4, 5) == 1 && firstShowing(0, 7, 1) == 0, "a row above the view becomes its first row");
+    check(firstShowing(9, 4, 0) == 4 && firstShowing(-1, 4, -2) == 4, "a pane not laid out yet keeps its place");
 }
