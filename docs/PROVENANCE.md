@@ -188,7 +188,7 @@ Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION-LOG.md).
   snippet was not copied; Lamium's function computes the first MT19937 output
   from the standard's seeding and tempering, and the tests compare it with
   `std::mt19937`. Checked against the game's own
-  `SlimeSpawnRules::checkSpawnRulesCallback` by the `slime_trace` build (see
+  `SlimeSpawnRules::checkSpawnRulesCallback` by the removed `slime_trace` build (see
   VALIDATION-LOG).
 
 If reference-only source later becomes incorporated source, move it to group 2

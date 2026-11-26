@@ -86,8 +86,7 @@ part on 2026-10-13.
   ItemStackResponse slots, inventory packets and received offer uses. Fixed
   line budget per stage, owned strings and scalars only; network
   observation continues ten seconds after closing the screen. Restart for a
-  fresh budget. It sends nothing and changes no button. The older
-  `trade_trace` is separate; leave it off.
+  fresh budget. It sends nothing and changes no button.
 
 ## Known
 

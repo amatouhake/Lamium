@@ -80,8 +80,6 @@ features/schematic overlay
 features/schematic settings
 features/schematic ui
 features/visuals app
-features/visuals features/inventory
-features/visuals input
 features/visuals overlay
 features/visuals ui
 input app

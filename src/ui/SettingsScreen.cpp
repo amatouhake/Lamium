@@ -67,7 +67,6 @@
 #include "features/camera/CameraSessions.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "features/information/InfoHud.h"
-#include "features/information/HungerTrace.h"
 #include "features/information/SaturationHud.h"
 #include "features/information/InfoLines.h"
 #include "ui/HudEditor.h"
@@ -1086,9 +1085,6 @@ void render(ll::event::UIRenderEvent& event) {
                 information::drawOffhandSlot(context,view,settings);
                 information::drawSaturation(context,view,settings);
             }
-#ifdef LAMIUM_HUNGER_TRACE
-            information::traceHunger(context,view);
-#endif
         } else if (current.getScreenName() == "start_screen" && !current.getLocalPlayer()) {
             // The title screen renders several views per frame; drawing on each
             // stacked the band nearly opaque. Keep to one view while it lasts.

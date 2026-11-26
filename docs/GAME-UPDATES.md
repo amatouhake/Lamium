@@ -142,8 +142,8 @@ the package/SDK loader-policy alignment in CI.
 | World map colors of add-on blocks (block material instances) | `Minimap.cpp` `topMaterial`: the read of the row above, named for the world map's recording | as the row above | as the row above |
 | Recipes and the plan (the client's recipe table) | `recipes/RecipeSnapshot.cpp` (`Level::getRecipes`, `Recipes::mRecipes`, each `Recipe`'s `mMyIngredients`, `mResults`, `mPriority`, `mWidth`, `mHeight`, `isShapeless` and `isMultiRecipe`, an ingredient through `ItemDescriptor::mImpl`'s `getType`, `getItem`, `getFullName` and `forEachItemUntil`), asked for by `recipes/RecipeService.cpp` when the item list, a recipe view or Mass Craft wants the table | the item list, recipe view, plan and stores do not open beside item screens, and Mass Craft does not start | the schematic Materials tab and its hand-over to the plan, every other feature |
 | Counted places (an open container's position and its paired chest) | `recipes/RecipePlaces.cpp` (the screens named `small_chest_screen`, `large_chest_screen`, `barrel_screen`, `shulker_box_screen` and `ender_chest_screen`; `ContainerScreenController::mBlockPos` and `mEntityUniqueID`, class-layout reads; the collection `container_items`; for a double chest `ChestBlockActor::mLargeChestPaired` and `mLargeChestPairedPosition`, else the one neighbour of the same block; to drop a store whose block is gone, `LevelChunk::mLoadState` and the block's type name). What a bundle holds is read outside this capability, as the bundle preview reads it (`BundleHelper::getItemStackFromBundle` in `schematic/SchematicItems.cpp`) | no container is noted or offered as a store, and none is dropped; what was noted before still counts | the plan, the lists and the recipe view |
-| Search highlight (the screen's slot controls) | `recipes/SlotHighlight.cpp` (the visual tree's controls from `VisualTree::mRootControl`, for a small square control `UIControl::findAllCollectionIndices` for its collection's name and `findCollectionIndex` for its cell (the index the first passes its callback is not the cell's, slot_trace 2026-11-21); the stack through `ContainerManagerController::getItemStack`) | no slot is darkened | the search, the list and the button |
-| Taking items out in creative (the creative list's cells) | `recipes/CreativeTake.cpp` (the crafting screens' `creative_output_items` and `recipe_search` collections, a cell's stack through `ContainerScreenController::_getVisualItemStack`, the virtual `ContainerModel::refreshContainer(true)` on `recipe_search`'s model (`ContainerController::mContainerModel`), which fills it with every creative entry the game's own search lets through, and `_handleTakeAmount` / `_handleAutoPlace` on that cell, which the server sees as `CraftCreative`; creative_trace 2026-11-24) | Shift + a press in "All" and the favorites shows the recipes or places, and the take keys do nothing | everything else of the item list |
+| Search highlight (the screen's slot controls) | `recipes/SlotHighlight.cpp` (the visual tree's controls from `VisualTree::mRootControl`, for a small square control `UIControl::findAllCollectionIndices` for its collection's name and `findCollectionIndex` for its cell (the index the first passes its callback is not the cell's, the removed `slot_trace` build 2026-11-21); the stack through `ContainerManagerController::getItemStack`) | no slot is darkened | the search, the list and the button |
+| Taking items out in creative (the creative list's cells) | `recipes/CreativeTake.cpp` (the crafting screens' `creative_output_items` and `recipe_search` collections, a cell's stack through `ContainerScreenController::_getVisualItemStack`, the virtual `ContainerModel::refreshContainer(true)` on `recipe_search`'s model (`ContainerController::mContainerModel`), which fills it with every creative entry the game's own search lets through, and `_handleTakeAmount` / `_handleAutoPlace` on that cell, which the server sees as `CraftCreative`; the removed `creative_trace` build 2026-11-24) | Shift + a press in "All" and the favorites shows the recipes or places, and the take keys do nothing | everything else of the item list |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -184,8 +184,14 @@ asks for them, with the mangled names from the linker. A granted function turns
 linking. `LAMIUM_MCAPI_PENDING` in `xmake.lua` holds back what still waits for
 one (L-305).
 
-Trace options are not built in CI. Of the existing ones only `transfer_trace`
-was built on 26.60 (L-305); build the one you need before relying on it.
+Trace options are not built in CI, and some do not link: with the kept
+`research_trace`, `restock_trace` and `edge_trace` on, 16 game symbols the
+SDK does not export are unresolved (2026-11-26). Build the one you need
+before relying on it. A trace leaves with its item (decided 2026-11-26,
+L-403): when an L-item closes, its build option, its Trace or Probe files,
+its `#if` guards and its inventory entries below are deleted in the same
+commit; git keeps them, and a later item that needs one restores it from
+there. `unverified_game` and `feature_skip` are standing tools, not traces.
 `spawn_area_trace` (issue #32, built on 26.60 2026-11-13) has no hook and so
 no inventory entry: it reads `LevelChunk::mSpawningAreas` and the storages of
 `LevelChunkVolumeData::mDataRegistry` for the chunks around the player, on the
@@ -316,9 +322,7 @@ doll position on (gated, L-309) the same hook draws the doll where the HUD
 layout puts it: `HudPlayerRenderer` centers the doll in `hud_player` and
 sizes it by the control, so the control's cached position and, for a scale
 other than 100 %, its size are set for the one call and restored at once; a dirty cached position, a
-renamed control or bad geometry leaves the doll vanilla. The
-`doll_trace` option draws the doll three more times in that hook (moved,
-resized, through the world matrix; L-309).
+renamed control or bad geometry leaves the doll vanilla.
 
 ### `src/features/information/StatusEffectsVanilla.cpp`
 Hooks: `VanillaEffectIcons`
@@ -375,11 +379,6 @@ and its draw is skipped instead of moved.
 Basic scope and the
 message-expiry/long-message regression passed on `b28a40d` (L-174);
 broader coverage remains in VALIDATION.
-
-### `src/features/information/SlimeTrace.cpp`
-Hooks: `SlimeRuleHook`
-Trace (`slime_trace`). Reads the answer of `SlimeSpawnRules::checkSpawnRulesCallback`
-and calls it for probes; changes nothing.
 
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`
@@ -497,10 +496,6 @@ against a correction that already moves the feet off support: a fall while
 slab bridging is recorded despite preserved input; L-162 closed on 2026-10-13
 with that limit.
 
-### `src/features/visuals/PortalTrace.cpp`
-Hooks: `PortalPackets`, `PortalInsideCheck`, `PortalScreenValid`, `PortalCraftingScreenValid`, `PortalModelValid`, `PortalCraftingValid`, `PortalSchedulePop`, `PortalInventoryKey`, `PortalOpenInventory`, `PortalCanOpen`, `PortalInside`, `PortalTick`
-Trace.
-
 ### `src/features/interaction/InventoryMoveTrace.cpp`
 Hooks: `InventoryMoveExtract`, `InventoryMoveClear`, `InventoryMoveLocks`, `InventoryMoveCalc`, `InventoryMoveUpdate`, `InventoryMoveSend`, `InventoryMoveCorrection`, `InventoryMoveAbsorb`, `InventoryMoveMapping`
 Trace.
@@ -530,10 +525,6 @@ hotbar echoes after a slot change, and their packet fields.
 
 ### `src/features/inventory/FakeOffhandTrace.cpp`
 Hooks: `TickBuild`, `HandleBuild`, `PressButton`, `ResetBai`, `ClearBai`
-Trace.
-
-### `src/features/inventory/game/ConsumptionTrace.cpp`
-Hooks: `UseItem`, `UseItemOn`, `PlayerUseItem`, `CompleteUse`, `StartUse`, `StopUse`, `UseSelected`, `HurtAndBreak`
 Trace.
 
 ### `src/features/inventory/game/InventoryMove.cpp`
@@ -607,10 +598,6 @@ model's factory left the SDK in 26.60), the order of use, consume and the
 server's slot updates, and the entity event for a totem pop. Restocks are
 confirmed from the inventory, not from these events alone.
 
-### `src/features/inventory/OffhandUseTrace.cpp`
-Hooks: `Build`, `HandleBuild`, `StartUse`, `Use`, `UseOn`, `Interact`, `ReleaseUse`, `StopUse`, `CompleteUse`, `SurvivalUse`, `SurvivalUseOn`, `SurvivalInteract`
-Trace (one macro makes the hooks after `StartUse`).
-
 ### `src/features/interaction/SneakPlacement.cpp`
 Hooks: `SneakPlacementInput`, `SneakPlacementSend`, `SneakPlacementGameModeBuild`, `SneakPlacementGameModeStartBuild`, `SneakPlacementGameModeUseOn`, `SneakPlacementSurvivalModeBuild`, `SneakPlacementSurvivalModeStartBuild`, `SneakPlacementSurvivalModeUseOn`
 Meaning (L-293): `SneakPlacementSend` (`LoopbackPacketSender::$send`) reads
@@ -624,13 +611,6 @@ into a transient copy of the move input meanwhile. The experimental send-only
 method edits the auth input's sneak bits instead. `SneakPlacement` is the macro that makes
 the six build hooks. Protected by the
 `SneakPlacement` capability; a use is never held without it.
-
-### `src/features/interaction/SneakUseTrace.cpp`
-Hooks: `SneakTraceSend`, `SneakTraceUseOn`, `SneakTraceSurvivalUseOn`
-Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent
-`PlayerAuthInputPacket`, sent item-use transactions, and the sneak flag of the
-player whose `useItemOn` runs (the local player, and in a local world the
-server's copy). One macro makes the two `useItemOn` hooks.
 
 ### Saved data per world (`WaypointSession.cpp`, no hooks)
 L-343. At a join, reads `Social::GameConnectionInfo` (`mUnresolvedUrl`, `mHostIpAddress`, `mPort`), `Level::getLevelId`,
@@ -675,7 +655,7 @@ label from `selected_stack_size_text` (12x10 units, read from the log 2026-11-12
 Gated (Enchantment order). After a game update: read a few costs from the anvil again and open the planner beside it.
 
 ### `src/features/inventory/BookPaste.cpp`
-Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
+Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`
 Meaning (L-259): `ContextText` is `TextEditContext::feedText`, where a paste
 arrives after `feedAction(Paste)`. A paste into the page box of an editable book
 and quill that does not fit is split; the detour inserts only the part that fits
@@ -733,24 +713,6 @@ a later spread with the mouse over the left half, a page holding more than 256 b
 after reopening the book, Japanese text (whole characters, no split sequences), a
 selection replaced by a paste, and a paste one frame after typing. Type into a full
 page too: nothing happens and no page is added.
-Trace (`book_paste_trace`): read-only observations of the paste path, plus the
-new path's gate verdict, split plan, kept plan and deferred write. The text box's
-character event and text-fit test, the text edit context's actions, caret,
-selection and limit, the book controller's page parse, set and add, the screen
-manager's page edit and add, and BookEdit packets on both send routes (`$send`,
-`$sendToServer`). This path's own lines are `paste gate=<reason>` for a paste left
-to the game or refused (`empty`, `option`, `unverified-game`, `limit`, `screen`,
-`box`, `not-editable`, `busy`, `view`, `no-caret`, `photo`, `caret`, `split`),
-`paste where` (the page readings), `paste decision=<vanilla|refused|split>`,
-`paste defer index= frame= extra= head= trim=` (what was kept for the next
-frame), and `paste apply index= added= pages=-> current=` or
-`paste apply skipped=<reason>` (`screen`, `not-editable`, `page`, `no-room`,
-`empty`). `BookScreenOpen` is `$addStaticScreenVars`: the vanilla
-JSON's `$max_page_length` is not readable through the SDK (`Json::Value` is
-forward declared only), so the page limit is logged from the text box and the
-text edit context instead. Re-trace after a game update by pasting short, long
-and Japanese text into a book and quill page, pasting once right after typing,
-and closing the book.
 
 ### `src/features/inventory/WeaponSwitch.cpp`
 Hooks: `WeaponAttack`, `WeaponSurvivalAttack`
@@ -797,21 +759,13 @@ boxes (L-30, a class-layout read); once per run the `Enchant::mEnchants()` regis
 `EnchantUtils::canEnchant` on the held item (L-170); on the anvil screen its control boxes,
 slot contents and `AnvilContainerManagerController::mCost` (L-170, a class-layout read).
 
-### `src/features/research/TradeTrace.cpp`
-Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`
-Trace.
-
 ### `src/features/research/CraftTrace.cpp`
 Hooks: `CraftSlotHovered`, `CraftAutoPlace`, `CraftTakePlace`, `CraftPlaceOne`, `CraftEvacuate`, `CraftServerAction`, `CraftTick`, `CraftResponse`, `BookScreenSelect`, `BookManagerSelect`, `BookAutoCraft`, `StoneHovered`, `StoneTakeAmount`
 Trace (L-359 and L-165; `craft_trace`). Its F7, F8 and F9 move items on a crafting screen through `_handleTakeAmount`, `_handlePlaceAll`, `_handleAutoPlace` and `_evacuateCraftingGrid`; The `Book` hooks (L-397) sit on the recipe book's `CraftingScreenController::_handleRecipeSelect` and the manager's `handleRecipeSelect` and `autoCraftItem`, which the SDK declares `MCNAPI`: each is looked up by its mangled name with `ll::memory::SymbolView` at start, logged as found or not, and hooked only when found. It logs the book's cells (each `recipe_` collection's size and shown items through `_getVisualItemStack`) whenever they change; F6 also logs the cells showing the item under the pointer in Lamium's lists, then calls the last screen select again (Ctrl: at the `mRecipes` index of the recipe in use for the item under the pointer in Lamium's lists), Shift + F6 the last auto craft, F10 the last manager select. It also logs an opened container's `mBlockPos`, `mEntityUniqueID`, type and `container_items` (L-359 step 8). On a stonecutter screen (L-380) it logs `ContainerScreenController::$_onContainerSlotHovered` and `_handleTakeAmount` and, every frame, the screen's collections when they change; F6 and F9 call the virtual `_onContainerSlotPressed` on the result list `stones` (the cell hovered last, or the next), to find how the result is chosen.
 
-### `src/features/research/CreativeTrace.cpp`
-Hooks: `CreativeAutoPlace`, `CreativeTakeAmount`, `CreativeTakeHalf`, `CreativeTakePlace`, `CreativeResponse`, `CreativeCraftTick`
-Trace (L-360; `creative_trace`). Logs `ContainerScreenController::_handleAutoPlace`, `_handleTakeAmount`, `$_handleTakeHalf` and `$_handleTakePlace` with the cell's item (`_getVisualItemStack`) and the pointer before and after, the server's answers to item stack requests, and on every item screen its creative collections (`recipe_` and `creative` names and the virtual `_isInCreativeContainer`) whenever what they show changes. Its F7 and F8 call `_handleTakeAmount`, `_handleAutoPlace` and `_handleTakePlace` on the cell that shows the item under the pointer in Lamium's lists (creative, empty pointer only); F9 sends `/give` as a `CommandRequestPacket`. `CreativeCraftTick` (`CraftingScreenController::$tick`) logs the screen's `mSelectedLeftTab`, `mTabFiltersDirty`, `mLayout`, `mDelayedSearchString`, `mSearchBarSelected` and `mNeedFirstTabSelection` before and after the game's tick with `recipe_search`'s size and its `FilteredContainerModel` state; F10 calls the virtual `ContainerModel::refreshContainer(true)` on that model, and Shift + F10 and Ctrl + F10 write the tab fields of the screen (memory writes, this screen only, before its tick).
-
 ### `src/features/research/RepeatTradeTrace.cpp`
 Hooks: `RepeatOffer`, `RepeatButton`, `RepeatSlotPressed`, `RepeatTick`, `RepeatLeave`, `RepeatRequestBatch`, `RepeatResponse`, `RepeatInventorySlot`, `RepeatInventoryContent`, `RepeatNotify`, `RepeatActorEvent`, `RepeatAutoPlace`, `RepeatViewButton`, `RepeatComponentButton`, `RepeatPressedMapping`
-Trace (L-166, read-only; `repeat_trade_trace`, independent of `trade_trace`).
+Trace (L-166, read-only; `repeat_trade_trace`).
 
 ### `src/features/schematic/GhostActors.cpp`
 Hooks: `GhostActorShader`, `GhostActorLightPair`
@@ -878,10 +832,6 @@ Meaning: the chunk mesh's vertex positions and UVs for glass and panes,
 Textures). The six face hooks come from one macro and are on
 `BlockTessellator::tessellateFaceDown`, `tessellateFaceUp`, `tessellateNorth`,
 `tessellateSouth`, `tessellateWest` and `tessellateEast`.
-
-### `src/features/visuals/EffectTrace.cpp`
-Hooks: `EffectSpriteTrace`, `EffectTextTrace`, `EffectCustomTrace`, `EffectFogTrace`, `EffectDensityTrace`, `EffectResolvedFogTrace`, `EffectMeshTrace`, `EffectMetadataMeshTrace`, `EffectSpanMeshTrace`, `EffectTextureBlitTrace`, `EffectVariantBlitTrace`, `EffectRectBlitTrace`, `EffectScreenStageTrace`, `EffectPostStageTrace`, `EffectVignetteTrace`, `UiTextureTrace`, `UiImageTrace`, `UiFlushTrace`, `ChunkItemTrace`, `EffectTessellatorTrace`
-Trace.
 
 ### `src/features/visuals/HideEffects.cpp`
 Hooks: `EffectLocalScreen`, `NauseaMeshVisibility`, `NauseaMetadataVisibility`, `BossBarSpriteVisibility`, `BossBarTextVisibility`, `LegacyParticleVisibility`, `DataParticleVisibility`, `RainParticleVisibility`, `RainEffectMapping`, `RainEmitterVisibility`, `MediumFogVisibility`, `WeatherVisibility`, `PortalScreenVisibility`

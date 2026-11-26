@@ -291,7 +291,7 @@ Under `src/features/schematic/` unless stated.
   `SectionLayersTests.cpp`. `LAMIUM_SAMPLE_STRUCTURES` (a folder or
   `;`-separated files) reads real exports, writes them back and checks layers,
   version and layer count. Traces: `schematic_perf_trace`,
-  `schematic_quad_trace`, `ghost_probe` (`GhostProbe.cpp`).
+  `ghost_probe` (`GhostProbe.cpp`).
 
 ## Known
 

@@ -15,7 +15,6 @@
 #include "features/research/WorldProbe.h"
 #include "features/research/RecipeTrace.h"
 #include "features/research/CraftTrace.h"
-#include "features/research/CreativeTrace.h"
 #include "features/research/ItemScreenProbe.h"
 #include "features/recipes/RecipeService.h"
 #include "features/schematic/PlanHandOver.h"
@@ -28,17 +27,14 @@
 #include "features/schematic/GhostPick.h"
 #include "features/schematic/SchematicActions.h"
 #include "features/map/PlayerLocationTrace.h"
-#include "features/information/SlimeTrace.h"
 #include "features/information/SpawnAreaTrace.h"
 #include "features/inspection/render/IconTrace.h"
-#include "features/research/TradeTrace.h"
 #include "features/research/RepeatTradeTrace.h"
 #include "features/research/LanguageTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesHooks.h"
 #include "features/visuals/BlockHighlightHooks.h"
 #include "features/inventory/EnchantOrderGame.h"
-#include "features/visuals/PortalTrace.h"
 #include "features/visuals/ServerPacks.h"
 #include "features/inspection/LockedTrades.h"
 #include "features/inspection/EnglishSearch.h"
@@ -57,15 +53,12 @@
 #include "features/inspection/Inspection.h"
 #include "features/inventory/Inventory.h"
 #include "features/inventory/RepeatTrades.h"
-#include "features/inventory/game/ConsumptionTrace.h"
 #include "features/inventory/game/LegacyFlowTrace.h"
 #include "features/inventory/ToolSwitch.h"
 #include "features/inventory/WeaponSwitch.h"
 #include "features/inventory/BookPaste.h"
 #include "features/inventory/FakeOffhand.h"
 #include "features/inventory/FakeOffhandTrace.h"
-#include "features/inventory/OffhandUseTrace.h"
-#include "features/interaction/SneakUseTrace.h"
 #include "features/information/FrameTiming.h"
 #include "features/information/TargetInfo.h"
 #include "features/map/Minimap.h"
@@ -78,7 +71,6 @@
 #include "features/visuals/HideEffects.h"
 #include "features/information/DebugVanillaHud.h"
 #include "features/information/StatusEffectsVanilla.h"
-#include "features/visuals/EffectTrace.h"
 #include "input/CustomInput.h"
 #include "overlay/WorldOverlay.h"
 #include "ui/SettingsScreen.h"
@@ -172,8 +164,6 @@ Feature const features[] = {
     {"Death layout", started<inventory::death::start>, inventory::death::stop},
     {"Fake offhand", started<inventory::fakeOffhand::start>, inventory::fakeOffhand::stop},
     {"Fake offhand diagnostics", started<inventory::fakeOffhand::startTrace>, inventory::fakeOffhand::stopTrace},
-    {"Offhand use diagnostics", started<inventory::offhandUseTrace::start>, inventory::offhandUseTrace::stop},
-    {"Sneak use diagnostics", started<interaction::sneakUseTrace::start>, interaction::sneakUseTrace::stop},
     {"Frame timing", started<information::startFrameTiming>, information::stopFrameTiming},
     {"Target icons", started<information::startTargetIcons>, information::stopTargetIcons},
     {"Minimap", started<map::start>, map::stop},
@@ -202,16 +192,12 @@ Feature const features[] = {
     {"Item screen probe", started<researchTrace::itemScreen::start>, researchTrace::itemScreen::stop},
     {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},
     {"Craft diagnostics", started<researchTrace::craft::start>, researchTrace::craft::stop},
-    {"Creative diagnostics", started<researchTrace::creative::start>, researchTrace::creative::stop},
     {"Ghost probe", started<schematic::ghostProbe::start>, schematic::ghostProbe::stop},
     {"Player location diagnostics", started<map::locationTrace::start>, map::locationTrace::stop},
-    {"Slime chunk diagnostics", started<information::slimeTrace::start>, information::slimeTrace::stop},
     {"Spawn area diagnostics", started<information::spawnAreaTrace::start>, information::spawnAreaTrace::stop},
     {"Icon diagnostics", started<inspection::iconTrace::start>, inspection::iconTrace::stop},
-    {"Trade diagnostics", started<researchTrace::trade::start>, researchTrace::trade::stop},
     {"Inventory move diagnostics", started<interaction::inventoryMoveTrace::start>, interaction::inventoryMoveTrace::stop},
     {"Legacy flow diagnostics", started<inventory::game::legacyFlowTrace::start>, inventory::game::legacyFlowTrace::stop},
-    {"Consumption diagnostics", started<inventory::game::consumptionTrace::start>, inventory::game::consumptionTrace::stop},
     {"Sneak", started<interaction::sneak::start>, interaction::sneak::stop},
     {"Effect visibility", started<visuals::effects::start>, visuals::effects::stop},
     {"Debug View vanilla HUD", started<information::debugVanilla::start>, information::debugVanilla::stop},
@@ -219,8 +205,6 @@ Feature const features[] = {
     {"Scoreboard position", started<information::scoreboardPosition::start>, information::scoreboardPosition::stop},
     {"Boss bar position", started<information::bossBarPosition::start>, information::bossBarPosition::stop},
     {"Status effects vanilla icons", started<information::statusEffects::start>, information::statusEffects::stop},
-    {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
-    {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},
     {"Language diagnostics", started<researchTrace::language::start>, researchTrace::language::stop},
     {"Book paste", inventory::bookPaste::start, inventory::bookPaste::stop},
 };

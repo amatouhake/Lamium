@@ -173,13 +173,6 @@ uses stay available.
   `targetUseOf`, `plants`, `plantsOn`, the tool lists, `undoesRestore`,
   queued-press and hold-edge decisions, slot choices), tested in
   `tests/FakeOffhandTests.cpp`.
-- `xmake f --offhand_trace=y`: read-only hooks for build ticks, base and
-  survival air/block/entity use, and player start/complete/stop/release;
-  logs selected and last reported slot, item identities and counts, use
-  slot, callback results, durations, build-action intentions, each item's
-  properties as letters, and an adapter budget for press choices and replay
-  outcomes. Slots are zero-based; each stage group has a fixed line budget.
-  Never deploy or commit with it on.
 
 ## Known
 
