@@ -346,6 +346,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 - [L-405](backlog/done/L-405.md) Client pointers kept across frames: change the rule or the code
 - [L-407](backlog/done/L-407.md) Two small leftovers from the 2026-11-24 architecture review
 - [L-401](backlog/done/L-401.md) Per-frame work apart from the HUD's drawing
+- [L-399](backlog/done/L-399.md) Screens: one view shape, a tested mode order, logic out of the screen files
 - [L-388](backlog/done/L-388.md) One craft run for making a plan's steps and Mass Craft
 - [L-347](backlog/done/L-347.md) One place for passing notices, and the last UI leftovers
 - [L-346](backlog/done/L-346.md) One input behavior for steppers and buttons

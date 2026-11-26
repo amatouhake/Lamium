@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The Check pane, its clicks and the item list split by part (L-399, 2026-11-26)
+
+`a0831fa4` (DLL
+`15cb1e5346b08312c11f7018636ae5cbd56f59cd1752b6057804a7ca9f54af2d`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the schematic Check tab's ignore list, several rows and one row
+  draw as before; its filter chips, Ignore settings, ignore add, remove and
+  the two-press reset, and the preview slice's top click and drag work.
+- Seen: the item list beside the inventory: the wheel (list, plan,
+  favorites, also with the recipe screen open), Tab, Enter and Esc in the
+  search and count fields, the highlight switch and the layout button while
+  arranging.
+- Seen: nothing else changed.
+- Remarked, not from this build: the recipe screen's switch and button
+  borders look darker than before; the Wanted rows' X looks centered on the
+  screen (shadowed button) but not in the side panel (no shadow); Make's
+  "Make all" has no shadow while the small layout and make buttons do.
+
 ## Sneak placement reset on world exit (L-402, 2026-11-26)
 
 `e82ea651` (DLL
