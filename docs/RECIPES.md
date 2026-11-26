@@ -37,6 +37,8 @@ after using the first build. What is still open is in the L-item.
   lines carry item icons; what else it shows is decided with the plan).
 - Both side lists lie on a dimmed panel that runs to the screen's edge, with
   no frame and no margin: the game dims the world too little for bare icons.
+  Their cells stand against that edge, on the right as on the left, so the
+  width that holds no whole cell is beside the game's window (L-409).
 - The favorite key puts the hovered item in or takes it out, wherever it
   is pressed.
 - One search field at the bottom centre of the screen, low enough that it

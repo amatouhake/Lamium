@@ -43,7 +43,10 @@ void favorites(Frame& frame, SideLayout const& panel) {
     SideLayout grid = panel;
     int const total = static_cast<int>(favorites.size());
     bool const scrolls = total > grid.favorites();
-    if (scrolls) grid.columns = std::max(1, static_cast<int>((grid.width - 2 * SideLayout::pad - rowBarGutter) / SideLayout::cell));
+    if (scrolls) {
+        grid.columns = std::max(1, static_cast<int>((grid.width - 2 * SideLayout::pad - rowBarGutter) / SideLayout::cell));
+        grid.gutter = rowBarGutter;
+    }
     int const columns = std::max(1, grid.columns), rows = grid.favoriteRows(), totalRows = (total + columns - 1) / columns;
     static int firstRow = 0;
     firstRow += frame.favoriteTurns;
