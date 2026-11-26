@@ -11,6 +11,14 @@ Do not infer game success from a build or unit-test result.
 
 Not decided yet (BACKLOG "Current execution order" 7).
 
+Only what the release needs and can be brought about locally is checked in
+game before a release (maintainer 2026-11-27); servers, Realms, a second
+account and unverified game builds stay follow-up coverage below. The cases
+left open since 0.8.0 that qualified (the creative take's three cases, line
+breaks in Russian and both Chinese, Item Transfer at the stonecutter and
+furnace, a rocket crafted in the inventory) passed on `6632e781`
+(VALIDATION-LOG 2026-11-27). Left: the release build's smoke.
+
 Left from 0.8.0 (published 2026-11-23): the published ZIP itself, and the
 LIP registry, Bedrinth and LeviLauncher offering 0.8.0 (DISTRIBUTION.md).
 
@@ -29,10 +37,8 @@ release. Look at an entry when its feature misbehaves or is changed.
 - Craft runs on one planner (L-388, `f7fd1d78`): seen in a local world;
   on a server not seen: a plan's step given back, crafting onto the pointer
   showing a moment later and its Shift take fall-back.
-- Taking items out in creative (L-360, `5c4d27b7`): seen in a local world;
-  not seen: a take that needed the creative search refreshed first (its
-  log line), the key hints in the recipe view's last line on a low
-  screen, a server.
+- Taking items out in creative (L-360): seen in a local world, the refresh
+  path and the low window's key hints on `6632e781`; not seen: a server.
 - Not seen when their items closed: tracing "any" with a picked log kind and
   gather from a breakdown step (L-386); Enchantment order's heldUnknown
   line (an item whose anvil cost is not 2^n - 1, L-170).

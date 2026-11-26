@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Pre-release checks: creative take, line breaks, transfer at stations, rockets (2026-11-27)
+
+`6632e781` (DLL
+`66b5237c0e1832c500300c7bfb63b0283a063527633fc6c312939278899e979d`),
+1.26.60.05 Dev, a local world, the maintainer in creative; the cases left
+open since 0.8.0 that can be brought about here (pre-release-checks.md):
+- Seen: a take pressed right before the screen closed does nothing; an item
+  the game's search hides is taken once that search is cleared; the log has
+  "an item taken in creative, after a refresh of the creative search" and
+  "from a cell shown" (read by the agent); with a low window the key hints
+  go into the recipe view's last line (L-360).
+- Seen: with the game language Russian no word is cut in the middle (Lamium
+  has no Russian strings and falls back to English; the game's names are
+  Russian); Simplified and Traditional Chinese break between characters.
+- Seen: Item Transfer's gestures at the stonecutter and the furnace.
+- Seen: a rocket crafted in the inventory is listed as the rocket of its
+  stars (L-363).
+- Not seen: servers (not available here).
+
 ## An over-wide HUD element kept off the edge; input conditions from the snapshot (L-384, 2026-11-27)
 
 `6632e781` (DLL
