@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## An over-wide HUD element kept off the edge; input conditions from the snapshot (L-384, 2026-11-27)
+
+`6632e781` (DLL
+`66b5237c0e1832c500300c7bfb63b0283a063527633fc6c312939278899e979d`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the chat at 400 %, wider than the screen, Alt-dragged half out on
+  both sides and let go stays there instead of snapping to the left edge.
+- Not checkable as listed: the Info HUD at 400 % drops the rows that do not
+  fit the screen (its line capacity, as before), so it never grew wider than
+  the screen; the item was marked failed for that reason only.
+- Seen: R and U on the inventory's item list as before; nothing else changed.
+
 ## Radar sheep faces with their wool and color (2026-11-27)
 
 `642f9d3a` with the uncommitted sheep change (DLL
