@@ -411,6 +411,10 @@ void dumpModels(IClientInstance& client, std::vector<std::pair<std::string, Data
             firstRenderer = false;
         } catch (...) {}
     }
+    // Layers the game draws over a kind's skin, where its face may be (L-411).
+    for (auto const* worn : {"textures/entity/skeleton/bogged_clothes", "textures/entity/sulfur_cube/sulfur_cube_outer",
+                             "textures/entity/sulfur_cube/sulfur_cube_outer_small"})
+        texture(worn);
     out << "],\"textures\":{";
     bool firstTexture = true;
     for (auto const& [path, entry] : textures) {
