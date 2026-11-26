@@ -34,4 +34,26 @@ inline bool ownsPress(Boxes const& b, float x, float y) {
     return b.viewOpen || b.list.has(x, y) || b.field.has(x, y)
         || std::any_of(b.bands.begin(), b.bands.end(), [&](ListBox const& box) { return box.has(x, y); });
 }
+// The bottom row's controls (L-382, L-398) as this frame shows them.
+struct RowShown {
+    bool recipesOn = false;    // the search field and its highlight switch
+    bool windowButton = false; // open the Recipes window
+    bool layoutButton = false; // arrange the panels
+    bool editing = false;      // the panels are being arranged
+};
+enum class RowControl { None, Highlight, Window, Layout, Field };
+// Which of the row's controls takes a press (either button), the first that has the point: the highlight switch,
+// the window and layout buttons (not while arranging, where every press is the editor's), then the field with a
+// few units around it.
+inline RowControl rowControl(RowShown const& s, ListBox field, ListBox row, float x, float y) {
+    if (s.recipesOn && searchHighlightAt(field).has(x, y)) return RowControl::Highlight;
+    if (s.windowButton && !s.editing && windowButtonAt(row).has(x, y)) return RowControl::Window;
+    if (s.layoutButton && !s.editing && layoutButtonAt(row).has(x, y)) return RowControl::Layout;
+    if (s.recipesOn && searchFieldHit(field).has(x, y)) return RowControl::Field;
+    return RowControl::None;
+}
+// While arranging, a left press on the layout button ends it, as Done does (L-382).
+inline bool endsArranging(RowShown const& s, bool leftPress, ListBox row, float x, float y) {
+    return s.editing && leftPress && s.layoutButton && layoutButtonAt(row).has(x, y);
+}
 }

@@ -670,7 +670,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
     bool const leftPress = pressed && input.clicks.front();
     // While the panels are arranged every press is the editor's, and nothing under it acts; but the layout's own
     // button ends arranging again, as Done does (L-382).
-    bool const layoutAgain = editing && leftPress && layoutButton && layoutBox.has(px, py);
+    item_input::RowShown const rowShown{recipesOn, windowButton, layoutButton, editing};
+    bool const layoutAgain = item_input::endsArranging(rowShown, leftPress, row, px, py);
     if (layoutAgain) bandEditor::stop();
     bool const editPress = editing && leftPress && !layoutAgain;
     if (editing) pressed = false;
@@ -681,20 +682,22 @@ bool drawList(ll::event::UIRenderEvent& event) {
     };
     bool caretPress = false;
     if (pressed || input.outside) searchFocus = false, countEdit::commit();
+    auto const rowTook = pressed ? item_input::rowControl(rowShown, field, row, px, py) : item_input::RowControl::None;
+    if (rowTook != item_input::RowControl::None) pressed = false;
     // The highlight switch beside the field (L-378): saved at once, as a setting row would.
-    if (recipesOn && took(searchHighlightAt(field))) {
+    if (rowTook == item_input::RowControl::Highlight) {
         auto preferences = Runtime::instance().preferences();
         preferences.inventory.searchHighlight = !preferences.inventory.searchHighlight;
         Runtime::instance().save(preferences);
-    } else if (windowButton && !editing && took(windowBox)) {
+    } else if (rowTook == item_input::RowControl::Window) {
         // Open on the last tab, or closed again; over the recipe view it comes to the front.
         if (planView::isOpen() && !view::isOpen()) planView::close();
         else view::close(), planView::openLast(), viewScreen = screenName;
-    } else if (layoutButton && !editing && took(layoutBox)) {
+    } else if (rowTook == item_input::RowControl::Layout) {
         closeViews();
         bandEditor::start(planOn ? band::Page::Plan : band::Page::Items);
         editScreen = screenName;
-    } else if (recipesOn && took(searchFieldHit(field))) searchFocus = caretPress = true;
+    } else if (rowTook == item_input::RowControl::Field) searchFocus = caretPress = true;
     std::string hoverItem;
     auto& context = event.uiRenderContext();
     // The game's slots that do not match the search darkened (L-378), under everything of Lamium's.
