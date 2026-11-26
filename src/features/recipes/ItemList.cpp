@@ -618,31 +618,35 @@ bool drawList(ll::event::UIRenderEvent& event) {
         for (int pressed : input.fieldKeys) {
             int const code = pressed & 0xFFFF;
             auto& typed = countEdit::typed;
-            if (code == 0x1B) { countEdit::cancel(); break; }
-            if (code == 0x0D || code == 0x09) { countEdit::commit(); break; }
-            if (code == 0x2E) typed.erase();
-            else if (code == 0x25) typed.left();
-            else if (code == 0x27) typed.right();
-            else if (code == 0x24) typed.home();
-            else if (code == 0x23) typed.end();
-            else if ((pressed & 0x10000) && code == 0x41) typed.selectAll();
+            using item_input::CountKey;
+            auto const key = item_input::countKey(code, (pressed & 0x10000) != 0);
+            if (key == CountKey::Cancel) { countEdit::cancel(); break; }
+            if (key == CountKey::Keep) { countEdit::commit(); break; }
+            if (key == CountKey::Erase) typed.erase();
+            else if (key == CountKey::Left) typed.left();
+            else if (key == CountKey::Right) typed.right();
+            else if (key == CountKey::Home) typed.home();
+            else if (key == CountKey::End) typed.end();
+            else if (key == CountKey::SelectAll) typed.selectAll();
             else typed.digitKey(code);
         }
     } else if (searchFocus) {
         for (int pressed : input.fieldKeys) {
             int const code = pressed & 0xFFFF;
             bool const ctrl = (pressed & 0x10000) != 0;
-            if (code == 0x1B || code == 0x0D) searchFocus = false;
-            else if (code == 0x08) search.backspace();
-            else if (code == 0x2E) search.erase();
-            else if (code == 0x25) search.left(ctrl);
-            else if (code == 0x27) search.right(ctrl);
-            else if (code == 0x24) search.home();
-            else if (code == 0x23) search.end();
-            else if (ctrl && (code == 0x41 || code == 0x46)) search.selectAll();
-            else if ((code == 0x26 || code == 0x28) && !searchHistory.entries.empty()) {
+            using item_input::SearchKey;
+            auto const key = item_input::searchKey(code, ctrl, !searchHistory.entries.empty());
+            if (key == SearchKey::Leave) searchFocus = false;
+            else if (key == SearchKey::Backspace) search.backspace();
+            else if (key == SearchKey::Erase) search.erase();
+            else if (key == SearchKey::Left) search.left(ctrl);
+            else if (key == SearchKey::Right) search.right(ctrl);
+            else if (key == SearchKey::Home) search.home();
+            else if (key == SearchKey::End) search.end();
+            else if (key == SearchKey::SelectAll) search.selectAll();
+            else if (key == SearchKey::Earlier || key == SearchKey::Later) {
                 // Up and Down step through earlier searches; Down past the newest empties the field.
-                std::string const earlier = searchHistory.step(code == 0x26);
+                std::string const earlier = searchHistory.step(key == SearchKey::Earlier);
                 search.clear();
                 search.append(earlier);
             }

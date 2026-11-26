@@ -56,4 +56,33 @@ inline RowControl rowControl(RowShown const& s, ListBox field, ListBox row, floa
 inline bool endsArranging(RowShown const& s, bool leftPress, ListBox row, float x, float y) {
     return s.editing && leftPress && s.layoutButton && layoutButtonAt(row).has(x, y);
 }
+// A key while a wanted item's count is typed (L-370), with the search field's keys: Esc leaves the count as it
+// was, Enter and Tab keep it (both end the frame's keys); any other key goes to the digits (CountEdit.h).
+enum class CountKey { Cancel, Keep, Erase, Left, Right, Home, End, SelectAll, Digits };
+constexpr CountKey countKey(int code, bool ctrl) {
+    if (code == 0x1B) return CountKey::Cancel;
+    if (code == 0x0D || code == 0x09) return CountKey::Keep;
+    if (code == 0x2E) return CountKey::Erase;
+    if (code == 0x25) return CountKey::Left;
+    if (code == 0x27) return CountKey::Right;
+    if (code == 0x24) return CountKey::Home;
+    if (code == 0x23) return CountKey::End;
+    if (ctrl && code == 0x41) return CountKey::SelectAll;
+    return CountKey::Digits;
+}
+// A key while the search field has the focus (L-377): Esc and Enter leave it, Ctrl + A or F selects it all, Up
+// and Down step through earlier searches where there are any (`history`). Letters come as text, not keys.
+enum class SearchKey { None, Leave, Backspace, Erase, Left, Right, Home, End, SelectAll, Earlier, Later };
+constexpr SearchKey searchKey(int code, bool ctrl, bool history) {
+    if (code == 0x1B || code == 0x0D) return SearchKey::Leave;
+    if (code == 0x08) return SearchKey::Backspace;
+    if (code == 0x2E) return SearchKey::Erase;
+    if (code == 0x25) return SearchKey::Left;
+    if (code == 0x27) return SearchKey::Right;
+    if (code == 0x24) return SearchKey::Home;
+    if (code == 0x23) return SearchKey::End;
+    if (ctrl && (code == 0x41 || code == 0x46)) return SearchKey::SelectAll;
+    if ((code == 0x26 || code == 0x28) && history) return code == 0x26 ? SearchKey::Earlier : SearchKey::Later;
+    return SearchKey::None;
+}
 }

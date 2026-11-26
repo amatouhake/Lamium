@@ -53,4 +53,25 @@ void itemListInputTests() {
     check(endsArranging(arranging, true, row, lx, ly), "a left press on the layout button ends arranging");
     check(!endsArranging(arranging, false, row, lx, ly) && !endsArranging(all, true, row, lx, ly) && !endsArranging(arranging, true, row, wx, wy),
           "only a left press, only while arranging, only on the layout button");
+
+    check(countKey(0x1B, false) == CountKey::Cancel, "Esc leaves a count as it was");
+    check(countKey(0x0D, false) == CountKey::Keep && countKey(0x09, false) == CountKey::Keep, "Enter and Tab keep a count");
+    check(countKey(0x41, true) == CountKey::SelectAll && countKey(0x41, false) == CountKey::Digits, "Ctrl + A selects a count, A alone is no edit");
+    check(countKey(0x46, true) == CountKey::Digits, "Ctrl + F selects only the search field");
+    check(countKey(0x35, false) == CountKey::Digits && countKey(0x08, false) == CountKey::Digits, "digits and Backspace go to the digits");
+    check(countKey(0x25, false) == CountKey::Left && countKey(0x27, false) == CountKey::Right && countKey(0x24, false) == CountKey::Home
+              && countKey(0x23, false) == CountKey::End && countKey(0x2E, false) == CountKey::Erase,
+          "the caret's keys and Delete");
+    check(searchKey(0x1B, false, false) == SearchKey::Leave && searchKey(0x0D, false, false) == SearchKey::Leave,
+          "Esc and Enter leave the search field");
+    check(searchKey(0x09, false, true) == SearchKey::None, "Tab does nothing in the search field");
+    check(searchKey(0x41, true, false) == SearchKey::SelectAll && searchKey(0x46, true, false) == SearchKey::SelectAll
+              && searchKey(0x46, false, false) == SearchKey::None, "Ctrl + A and Ctrl + F select the search");
+    check(searchKey(0x26, false, true) == SearchKey::Earlier && searchKey(0x28, false, true) == SearchKey::Later,
+          "Up steps to an earlier search, Down back");
+    check(searchKey(0x26, false, false) == SearchKey::None && searchKey(0x28, false, false) == SearchKey::None,
+          "without earlier searches Up and Down do nothing");
+    check(searchKey(0x08, false, false) == SearchKey::Backspace && searchKey(0x2E, true, false) == SearchKey::Erase
+              && searchKey(0x25, true, false) == SearchKey::Left && searchKey(0x27, true, false) == SearchKey::Right,
+          "Backspace, Delete and the caret's keys, with Ctrl too");
 }
