@@ -590,16 +590,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (focusAsked.exchange(false) && prefs->inventory.recipes && !bandEditor::active()) searchFocus = true, search.selectAll(), countEdit::commit();
     // The search field: what was typed since the last frame, then where this frame's press went.
     // The row widens where the panels leave room beside it (L-382).
-    float const rowW = [&] {
-        float leftEnd = 0, rightStart = screen.x, top = screen.y - searchTop, bottom = top + 16, middle = screen.x / 2;
-        for (auto const& panel : placed) {
-            auto const& b = panel.box;
-            if (b.y + b.h <= top || b.y >= bottom) continue;
-            if (b.x + b.w <= middle) leftEnd = std::max(leftEnd, b.x + b.w);
-            else if (b.x >= middle) rightStart = std::min(rightStart, b.x);
-        }
-        return rowWidth(screen.x, leftEnd, rightStart);
-    }();
+    float const rowW = rowWidthBeside(screen.x, screen.y, placed);
     auto const field = searchFieldAt(screen.x, screen.y, rowW);
     // The bottom row's buttons (L-382): the Recipes window, while a feature with a tab is on; arranging the
     // panels, while one is shown.
@@ -607,11 +598,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     bool const windowButton = recipesOn || planOn || storesOn, layoutButton = recipesOn || planOn;
     ListBox const windowBox = windowButtonAt(row), layoutBox = layoutButtonAt(row);
     // What the listeners keep from the game for the row: the field and a few units around it, and its buttons.
-    ListBox const fieldArea = [&] {
-        auto const hit = searchFieldHit(field), end = keysButtonAt(field);
-        float const from = windowButton ? row.x - 2 : hit.x;
-        return ListBox{from, hit.y, end.x + end.w + 2 - from, hit.h};
-    }();
+    ListBox const fieldArea = rowKeptArea(field, row, windowButton);
     if (countEdit::active()) {
         // A count being typed, with the search field's keys (L-370): digits, the caret's, Enter keeps it, Esc leaves
         // it as it was.
@@ -1031,17 +1018,18 @@ bool drawList(ll::event::UIRenderEvent& event) {
         int const lines = static_cast<int>(starts.size());
         // Below an open window where it leaves them room, else, on a low screen, in its last line as one line
         // shrunk to fit (the window keeps its place, maintainer 2026-11-24); closed, where the game's window does.
-        float const above = open ? viewLayout.top + viewLayout.height + 1 : at.y + size.y + 2;
-        if (lines && hintTop(screen.y, lines) >= above)
+        float const above = hintsAbove(open, viewLayout.top + viewLayout.height, at.y + size.y);
+        auto const hintsGo = hintPlace(lines, screen.y, above, open);
+        if (hintsGo == HintPlace::Lines)
             for (int i = 0; i < lines; ++i) {
                 size_t const to = i + 1 < lines ? starts[static_cast<size_t>(i) + 1] : parts.size();
                 std::string text = join(starts[static_cast<size_t>(i)], to);
-                float const wide = labelWidth(context, text, hintScale), scale = wide > room ? hintScale * room / wide : hintScale;
+                float const wide = labelWidth(context, text, hintScale), scale = hintLineScale(wide, room);
                 labelScaled(context, hintsX + 4, hintTop(screen.y, lines - i), room, std::move(text), scale, palette::dim, Align::Center, true);
             }
-        else if (lines && open) {
+        else if (hintsGo == HintPlace::OneLine) {
             std::string text = join(0, parts.size());
-            float const wide = labelWidth(context, text, 1), scale = wide > room ? std::max(.6f, room / wide) : 1.f;
+            float const wide = labelWidth(context, text, 1), scale = hintOneLineScale(wide, room);
             labelScaled(context, viewLayout.left + 4, viewLayout.hintY() + (1 - scale) * 4, room, std::move(text), scale,
                         palette::vanilla::windowFaint, Align::Center, false);
         }
@@ -1052,8 +1040,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     state::settleWanted(wantedHeld.load() ? std::string_view(wantedItem) : !late.wantedRow.empty() ? std::string_view(late.wantedRow) : std::string_view(hoverItem));
     std::string tipItem;
     // Under an open window, as wide as it is drawn, the game's slots are covered: they name no item.
-    bool const covered = open && px >= coverLeft && px < right && py >= viewLayout.top - RecipeViewLayout::tabsAbove
-        && py < viewLayout.top + viewLayout.height;
+    bool const covered = open && item_input::covered(viewLayout, coverLeft, right, px, py);
     if (covered) inspection::dropDeferredTooltip();
     if (hoverItem.empty() && !covered) {
         // A slot of the game's own window, as its hover callbacks last said.
@@ -1076,10 +1063,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
                  {layout, viewLayout, open, side, (recipesOn || windowButton || layoutButton) ? fieldArea : ListBox{}, bandBoxes, favoritesBox},
                  px, py, std::move(hoverItem), inventoryKeys, searchFocus, countEdit::active()};
         shown.hoverOurs = hoverOurs;
-        if (planView::isOpen() && !view::isOpen()) {
-            float const from = std::min(coverLeft, viewLayout.left), to = std::max(right, viewLayout.left + RecipeViewLayout::width);
-            shown.boxes.window = {from, viewLayout.top, to - from, viewLayout.height};
-        }
+        if (planView::isOpen() && !view::isOpen()) shown.boxes.window = item_input::windowSpan(viewLayout, coverLeft, right);
     }
     context.flushText(0, std::nullopt);
     // Painted after the screen, the bands and the windows cover the item held on the pointer: where it

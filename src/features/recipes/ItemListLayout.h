@@ -66,6 +66,18 @@ inline float rowWidth(float screenWidth, float leftEnd, float rightStart) {
     float const half = std::min(screenWidth / 2 - leftEnd, rightStart - screenWidth / 2) - 2;
     return std::clamp(std::floor(half) * 2, 176.f, 212.f);
 }
+// The row's width beside the panels placed now: those that reach into the row's height, ending left of the
+// screen's middle or starting right of it.
+inline float rowWidthBeside(float screenWidth, float screenHeight, std::vector<band::Placed> const& placed) {
+    float leftEnd = 0, rightStart = screenWidth, top = screenHeight - searchTop, bottom = top + 16, middle = screenWidth / 2;
+    for (auto const& panel : placed) {
+        auto const& b = panel.box;
+        if (b.y + b.h <= top || b.y >= bottom) continue;
+        if (b.x + b.w <= middle) leftEnd = std::max(leftEnd, b.x + b.w);
+        else if (b.x >= middle) rightStart = std::min(rightStart, b.x);
+    }
+    return rowWidth(screenWidth, leftEnd, rightStart);
+}
 inline ListBox windowButtonAt(ListBox row) { return {row.x, row.y, row.h, row.h}; }
 inline ListBox layoutButtonAt(ListBox row) { return {row.x + row.h + 2, row.y, row.h, row.h}; }
 inline ListBox searchFieldAt(float screenWidth, float screenHeight, float width = 176) {
@@ -78,6 +90,27 @@ inline ListBox searchHighlightAt(ListBox field) { return {field.x + field.w + 2,
 inline ListBox keysButtonAt(ListBox field) { return {field.x + field.w + field.h + 4, field.y, field.h, field.h}; }
 // Where a press takes the field: a few units around it too, the screen's edge being close (L-377).
 inline ListBox searchFieldHit(ListBox field) { return {field.x - 4, field.y - 4, field.w + 8, field.h + 6}; }
+// What the listeners keep from the game for the row: the field and a few units around it, its two switches, and
+// from the row's start where the window button shows (the layout button never shows without it).
+inline ListBox rowKeptArea(ListBox field, ListBox row, bool windowButton) {
+    auto const hit = searchFieldHit(field), end = keysButtonAt(field);
+    float const from = windowButton ? row.x - 2 : hit.x;
+    return ListBox{from, hit.y, end.x + end.w + 2 - from, hit.h};
+}
+// Where the key hints go: wrapped right above the row while their `lines` stay below `above` (what stands over
+// them ends there); else, with a window open, in its last line as one line; else not at all.
+enum class HintPlace { None, Lines, OneLine };
+inline HintPlace hintPlace(int lines, float screenHeight, float above, bool open) {
+    if (lines && hintTop(screenHeight, lines) >= above) return HintPlace::Lines;
+    if (lines && open) return HintPlace::OneLine;
+    return HintPlace::None;
+}
+// What stands over the hints: an open window (its bottom), else the game's.
+inline float hintsAbove(bool open, float viewBottom, float windowBottom) { return open ? viewBottom + 1 : windowBottom + 2; }
+// A wrapped line `wide` at hintScale, shrunk to fit `room`; the one line in a window's last line, shrunk from full
+// size, no smaller than .6.
+inline float hintLineScale(float wide, float room) { return wide > room ? hintScale * room / wide : hintScale; }
+inline float hintOneLineScale(float wide, float room) { return wide > room ? std::max(.6f, room / wide) : 1.f; }
 
 // A panel of the bands as the favorites (cells under a heading) or as the plan (its tabs, then rows); one
 // alone has the whole panel (sidePanelIn).

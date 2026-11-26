@@ -1,5 +1,7 @@
 #include "features/recipes/ItemListInput.h"
+#include <cmath>
 #include <utility>
+#include <vector>
 void check(bool, char const*);
 void itemListInputTests() {
     using namespace lamium::recipes;
@@ -74,4 +76,40 @@ void itemListInputTests() {
     check(searchKey(0x08, false, false) == SearchKey::Backspace && searchKey(0x2E, true, false) == SearchKey::Erase
               && searchKey(0x25, true, false) == SearchKey::Left && searchKey(0x27, true, false) == SearchKey::Right,
           "Backspace, Delete and the caret's keys, with Ctrl too");
+
+    auto const view = recipeViewAt(500, 300);
+    float const viewIn = view.top + 5;
+    check(covered(view, 100, 400, 101, viewIn) && !covered(view, 100, 400, 99, viewIn) && !covered(view, 100, 400, 400, viewIn),
+          "an open window covers the game's slots across its drawn width");
+    check(covered(view, 100, 400, 200, view.top - RecipeViewLayout::tabsAbove) && !covered(view, 100, 400, 200, view.top - RecipeViewLayout::tabsAbove - 1)
+              && !covered(view, 100, 400, 200, view.top + view.height),
+          "its tabs above it count, the line under it does not");
+    auto const span = windowSpan(view, 100, 400);
+    check(span.x == 100 && span.w == 300 && span.y == view.top && span.h == view.height, "the Notes window's span as drawn");
+    auto const narrow = windowSpan(view, view.left + 20, view.left + 40);
+    check(narrow.x == view.left && narrow.w == RecipeViewLayout::width, "never narrower than the recipe view");
+}
+void itemListLayoutTests() {
+    using namespace lamium::recipes;
+    using lamium::recipes::band::Placed;
+    float const rowTop = 300 - searchTop;
+    check(rowWidthBeside(500, 300, {}) == 212, "with no panels beside it the row takes a button more each side");
+    std::vector<Placed> beside{{band::Page::Favorites, {0, rowTop - 50, 160, 60}}, {band::Page::Items, {330, 0, 170, 300}}};
+    check(rowWidthBeside(500, 300, beside) == 176, "panels close beside the row keep it at the inventory's width");
+    std::vector<Placed> above{{band::Page::Favorites, {0, 0, 240, rowTop}}, {band::Page::Items, {260, rowTop + 16, 240, 10}}};
+    check(rowWidthBeside(500, 300, above) == 212, "panels that end above the row or start below it leave it room");
+    std::vector<Placed> mid{{band::Page::Favorites, {245, rowTop, 20, 16}}};
+    check(rowWidthBeside(500, 300, mid) == 212, "a panel across the middle is neither side");
+    auto const row = bottomRowAt(500, 300), field = searchFieldAt(500, 300);
+    auto const kept = rowKeptArea(field, row, true), bare = rowKeptArea(field, row, false), keys = keysButtonAt(field);
+    check(kept.x == row.x - 2 && kept.x + kept.w == keys.x + keys.w + 2, "with the window button the row is kept from its start to past the keys button");
+    check(bare.x == searchFieldHit(field).x && bare.x + bare.w == kept.x + kept.w, "without it from the field's hit box");
+    check(hintPlace(2, 300, hintTop(300, 2), false) == HintPlace::Lines, "hints that end at what stands over them wrap above the row");
+    check(hintPlace(2, 300, hintTop(300, 2) + 1, true) == HintPlace::OneLine, "too low with a window open: one line in its last line");
+    check(hintPlace(2, 300, hintTop(300, 2) + 1, false) == HintPlace::None, "too low with none open: no hints");
+    check(hintPlace(0, 300, 0, true) == HintPlace::None, "no hints, no place");
+    check(hintsAbove(true, 200, 250) == 201 && hintsAbove(false, 200, 250) == 252, "under an open window, else under the game's");
+    check(hintLineScale(50, 100) == hintScale && std::abs(hintLineScale(200, 100) - hintScale / 2) < 1e-5f, "a wrapped line too wide shrinks to its room");
+    check(hintOneLineScale(50, 100) == 1 && hintOneLineScale(125, 100) == .8f && hintOneLineScale(500, 100) == .6f,
+          "the one line shrinks to fit, no smaller than .6");
 }

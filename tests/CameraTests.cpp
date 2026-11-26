@@ -53,6 +53,8 @@ int main() try {
     takePressTests();
     extern void itemListInputTests();
     itemListInputTests();
+    extern void itemListLayoutTests();
+    itemListLayoutTests();
     extern void sectionLayersTests();
     sectionLayersTests();
     extern void checkIgnoresTests();

@@ -18,6 +18,16 @@ struct Boxes {
     ListBox favorites;
     ListBox window;             // an open Notes window's span, wider than the recipe view's (L-369)
 };
+// An open window's span as drawn, from `left` to `right` (wider than the recipe view where the Recipes window is).
+inline ListBox windowSpan(RecipeViewLayout const& view, float left, float right) {
+    float const from = std::min(left, view.left), to = std::max(right, view.left + RecipeViewLayout::width);
+    return {from, view.top, to - from, view.height};
+}
+// The pointer over an open window drawn from `left` to `right`, its tabs included: the game's slots under it are
+// covered and name no item.
+inline bool covered(RecipeViewLayout const& view, float left, float right, float x, float y) {
+    return x >= left && x < right && y >= view.top - RecipeViewLayout::tabsAbove && y < view.top + view.height;
+}
 enum class Wheel { Wanted, View, List, Side, Favorites, Kept, Game };
 // Who a wheel turn goes to. The wanted key held takes it wherever the pointer is; an open view over the game's
 // window keeps it from the game's slots also where nothing of Lamium's takes it.
