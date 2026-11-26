@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Radar faces after the release sheet's look: goat, armadillo, wolf, salmon, squids (2026-11-27)
+
+`5561c1ee` with uncommitted radar face changes (DLL
+`8fe306561bb9ea6a30a1b545d6381487413428f6d36ca31e2e01ec6a535d7be8`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: on the minimap radar the goat's face from the front tipped up (ears
+  spread, mouth showing) and the armadillo's from the front; the wolf's
+  snout on the right; salmon, squid, glow squid and snow golem faces sharp
+  (picked) instead of averaged; other faces as before.
+- The snow golem's picked pumpkin was set back to the mean afterwards
+  (maintainer); the commit holds the other five.
+
 ## Sneak Placement "Send only" at doors and switches, default build (2026-11-27)
 
 `dfd807ab` (DLL

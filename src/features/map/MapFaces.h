@@ -58,8 +58,10 @@ inline bool faceLayer(std::string_view part) {
 // How a kind's face is seen (L-330, maintainer 2026-11-26): from the front of its "head" with the parts
 // hanging from it by default; a kind without a head shows the part where its face is; long necks are cut
 // below the face; kinds whose eyes are on their sides (fish, parrots, horses, turtles, camels) are seen from
-// the side, horses, armadillos and goats from an angle (a turtle's eye, squeezed at an angle, showed only its
-// white). The kinds changed after the faces were looked at one by one are L-411's (maintainer 2026-11-26).
+// the side, horses from an angle (a turtle's eye, squeezed at an angle, showed only its white). The kinds
+// changed after the faces were looked at one by one are L-411's (maintainer 2026-11-26) and the second look
+// at the release's sheet (maintainer 2026-11-27): goats and armadillos from the front, a wolf's snout to the
+// right, salmon and squids halved by picking.
 struct FaceRecipe {
     std::vector<std::string_view> parts{"head"}; // none: the kind stays a dot
     bool children = true;  // the parts hanging from those, as a head's nose and ears
@@ -88,8 +90,10 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bo
     // The head without the neck under it: smaller, and nothing of it halved.
     else if (kind == "camel" || kind == "camel_husk") side(), r.rows = 8, r.columns = 10;
     else if (kind == "turtle" || kind == "parrot") side();
-    // At 45° a goat shows a horn, an eye and its beard at once.
-    else if (kind == "armadillo" || kind == "goat") r.yaw = 45;
+    // From 45° neither was easy to tell (2026-11-27). Tipped 20° toward the viewer a goat's ears stand out to
+    // its sides and its mouth shows; an armadillo shows both ears from the front.
+    else if (kind == "goat") r.pitch = 20, r.aligned = true;
+    else if (kind == "armadillo") r.aligned = true;
     // At 60° a dolphin's eye has its white and its pupil; a sniffer shows its red coat behind its yellow beak.
     else if (kind == "dolphin") r.yaw = 60;
     else if (kind == "sniffer") r.yaw = 30, r.picked = true;
@@ -112,7 +116,9 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bo
     else if (kind == "cat" || kind == "ocelot" || kind == "allay" || kind == "vex" || kind == "polar_bear") r.aligned = true;
     else if (kind == "warden") r.leftOutContaining = {"tendril"}, r.side = wholeFaceSide;
     else if (kind == "frog") r.parts = {"body"}; // the whole frog: its face is its eyes over its mouth and feet
-    else if (kind == "squid" || kind == "glow_squid" || kind == "bee" || kind == "strider") only({"body"});
+    // Halved by picking: the mean greys a squid's eyes into its body (as a guardian's).
+    else if (kind == "squid" || kind == "glow_squid") only({"body"}), r.picked = true;
+    else if (kind == "bee" || kind == "strider") only({"body"});
     else if (kind == "slime") only({"cube", "eye0", "eye1", "mouth"}), r.onTop = {"eye0", "eye1", "mouth"};
     else if (kind == "magma_cube") r.parts = {"insidecube"};
     else if (kind == "shulker") only({"lid", "base", "head"});
@@ -126,7 +132,7 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bo
     else if (kind == "pufferfish") r.parts = {"body"};
     else if (kind == "tadpole") r.parts = {"body", "tail"}, side();
     else if (kind == "cod" || kind == "tropicalfish") r.parts = {"body"}, side();
-    else if (kind == "salmon") r.parts = {"body_front"}, side();
+    else if (kind == "salmon") r.parts = {"body_front"}, side(), r.picked = true; // keeps its eye and its pale belly
     else if (kind == "snow_golem" && !sheared) r.image = "textures/blocks/pumpkin_face_off";
     else if (kind == "armor_stand") r.parts.clear();
     return r;
@@ -317,7 +323,7 @@ inline void faceCorners(FaceSide side, Vec3d a, Vec3d b, Vec3d out[3]) {
 // over one row or column more (a wolf's head stands from 7.5 to 13.5: six rows of texels over seven, its
 // snout's top on its eyes): `aligned` starts it where the largest face seen does. A pixel whose centre is on
 // a face's edge takes it on both sides of the picture, so a part three wide on a head six wide is drawn four
-// wide; `oneSided` gives it to one side only. Reduced to fit `side`, by picking when `picked` (reduceFace);
+// wide; `oneSided` gives it to the right (and lower) one only: a wolf's snout to the right, as horses face. Reduced to fit `side`, by picking when `picked` (reduceFace);
 // `centered`, a picture of odd width gets a clear column before it, so halving pairs its columns about its middle.
 struct FaceShot {
     double yaw = 0, pitch = 0;
@@ -391,11 +397,12 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
     // Each pixel is sampled at its centre moved a hair toward the picture's middle, so an edge on a half unit
     // falls the same way on both sides (a frog's body was a pixel wider on its right).
     double const midX = (x0 + x1) / 2, midY = (y0 + y1) / 2;
-    auto toward = [&](double at, double mid) { return shot.oneSided ? at + 1e-7 : at < mid ? at + 1e-4 : at - 1e-4; };
+    auto toward = [&](double at, double mid, double oneSide) { return shot.oneSided ? at + oneSide : at < mid ? at + 1e-4 : at - 1e-4; };
     for (auto const& q : quads)
         for (int gy = 0; gy < gridH; ++gy)
             for (int gx = 0; gx < gridW; ++gx) {
-                double const dx = toward(x0 + (gx + .5) / texelsPerUnit, midX) - q.ax, dy = toward(y0 + (gy + .5) / texelsPerUnit, midY) - q.ay;
+                double const dx = toward(x0 + (gx + .5) / texelsPerUnit, midX, -1e-7) - q.ax,
+                             dy = toward(y0 + (gy + .5) / texelsPerUnit, midY, 1e-7) - q.ay;
                 double const s = (dx * q.e2y - dy * q.e2x) / q.det, t = (q.e1x * dy - q.e1y * dx) / q.det;
                 if (s < 0 || s >= 1 || t < 0 || t >= 1) continue;
                 double const z = q.az + s * q.e1z + t * q.e2z - (q.onTop ? 1e6 : 0);

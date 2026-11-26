@@ -404,6 +404,8 @@ void modelFaces() {
           "aligned to its largest face it keeps its six rows; a snout three wide still covers four columns");
     check(oneSided && oneSided->height == 6 && black(*oneSided, 3) == 3 && black(*oneSided, 5) == 3,
           "one-sided, a pixel centred on an edge is taken once: the snout is three wide (a wolf's one-texel nose)");
+    check(oneSided && oneSided->width == 6 && oneSided->pixels[3 * 6 + 4] == packColor(0, 0, 0) && oneSided->pixels[3 * 6 + 1] != packColor(0, 0, 0),
+          "one-sided, the snout's spare column is on the right, the way horses face (2026-11-27)");
     auto wolf = faceRecipe("minecraft:wolf"), warden = faceRecipe("minecraft:warden"), nautilus = faceRecipe("minecraft:zombie_nautilus");
     check(wolf.aligned && wolf.oneSided && faceRecipe("minecraft:cat").aligned && !faceRecipe("minecraft:cat").oneSided
               && faceRecipe("minecraft:polar_bear").aligned && !faceRecipe("minecraft:pig").aligned && !faceRecipe("minecraft:fox").aligned,
@@ -411,10 +413,12 @@ void modelFaces() {
     check(warden.side == wholeFaceSide && !drawnPart(warden, "left_tendril") && faceRecipe("minecraft:elder_guardian").side == wholeFaceSide
               && faceRecipe("minecraft:guardian").side == maxFaceSide && faceRecipe("minecraft:guardian", false, true).side == wholeFaceSide,
           "a warden without its tendrils and an elder guardian, by either renderer, are drawn whole; a guardian halved");
-    check(faceRecipe("minecraft:camel").rows == 8 && faceRecipe("minecraft:camel_husk").columns == 10 && faceRecipe("minecraft:goat").yaw == 45
+    check(faceRecipe("minecraft:camel").rows == 8 && faceRecipe("minecraft:camel_husk").columns == 10 && faceRecipe("minecraft:goat").yaw == 0 && faceRecipe("minecraft:goat").pitch == 20
+              && faceRecipe("minecraft:armadillo").yaw == 0 && faceRecipe("minecraft:salmon").picked && faceRecipe("minecraft:squid").picked
+              && faceRecipe("minecraft:glow_squid").picked && !faceRecipe("minecraft:bee").picked
               && nautilus.parts == std::vector<std::string_view>{"nautilus"} && nautilus.yaw == 90 && nautilus.children
               && faceRecipe("minecraft:creaking").cubes == 2 && faceRecipe("minecraft:pig").cubes == 0,
-          "a camel's head without its neck, a goat from 45°, a nautilus whole from its side, a creaking's trunk without its branches");
+          "a camel's head without its neck, a goat tipped 20° and an armadillo from the front, salmon and squids picked, a nautilus whole from its side, a creaking's trunk without its branches");
     std::vector<std::uint32_t> pair(4 * 2, packColor(250, 250, 250));
     pair[1] = pair[5] = packColor(0, 0, 0);
     auto meanOf = reduceFace(pair, 4, 2, 1, 2), pickOf = reduceFace(pair, 4, 2, 1, 2, true);
@@ -440,9 +444,8 @@ void modelFaces() {
               && baseTexture("minecraft:sulfur_cube") == "textures/entity/sulfur_cube/sulfur_cube_outer" && sulfur.cubes == 1 && !sulfur.picked,
           "a bogged and a sulfur cube take their faces from the layer drawn over their skin");
     check(faceRecipe("minecraft:dolphin").yaw == 60 && faceRecipe("minecraft:sniffer").yaw == 30 && faceRecipe("minecraft:sniffer").picked
-              && faceRecipe("minecraft:panda").centered && faceRecipe("minecraft:guardian").picked && !faceRecipe("minecraft:squid").picked
-              && !faceRecipe("minecraft:strider").picked,
-          "the second round's picks; squids and striders stay as they were");
+              && faceRecipe("minecraft:panda").centered && faceRecipe("minecraft:guardian").picked && !faceRecipe("minecraft:strider").picked,
+          "the second round's picks; striders stay as they were (squids are picked since 2026-11-27)");
     check(faceRecipe("minecraft:squid").parts == std::vector<std::string_view>{"body"} && !faceRecipe("minecraft:squid").children,
           "a squid's face is its body alone");
     check(faceRecipe("minecraft:parrot").yaw == 90 && faceRecipe("minecraft:cod").yaw == 90 && faceRecipe("minecraft:turtle").yaw == 90
