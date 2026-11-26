@@ -49,8 +49,8 @@ xmake build LamiumNativeTests && xmake run LamiumNativeTests   # SDK-type tests
 ```
 
 - Run `LamiumTests` after every change; it must print no failures. CI also
-  runs `scripts/Check-UiTokens.ps1`, `Check-Backlog.ps1`, `Check-Docs.ps1`
-  and `Check-Demos.ps1`; run the one for what you changed. A change to a
+  runs `scripts/Check-UiTokens.ps1`, `Check-Includes.ps1`, `Check-Backlog.ps1`,
+  `Check-Docs.ps1` and `Check-Demos.ps1`; run the one for what you changed. A change to a
   color, size, settings row or string also regenerates the mockup data:
   `xmake build LamiumDemoData && xmake run LamiumDemoData`.
 - Deploy only when the user wants to test, with Minecraft closed: copy

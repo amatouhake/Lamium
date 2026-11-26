@@ -232,7 +232,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-400](backlog/L-400.md) The UI token check sees packed colors (Refactor): Every choice made (maintainer 2026-11-26) and built; the world map's framed rows not checked in game
 - [L-402](backlog/L-402.md) Check that every feature handles leaving the world, a dimension change and focus loss (Refactor): Open; the approach is not chosen
 - [L-403](backlog/L-403.md) Diagnostic build options: remove with their item, or keep them compiling (Refactor): Open; the policy is not chosen
-- [L-404](backlog/L-404.md) Keep the includes between source areas from growing (Refactor): Open; the check is not agreed
 - [L-406](backlog/L-406.md) Edge Guard reads the client's player while guarding the local server's copy (Research): Open; read in the code only, never seen to go wrong
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)
 

@@ -49,6 +49,8 @@ jobs:
         run: ./scripts/Check-Docs.ps1
       - name: Check UI tokens
         run: ./scripts/Check-UiTokens.ps1
+      - name: Check includes between source areas
+        run: ./scripts/Check-Includes.ps1
       - name: Build mockup data
         run: xmake build LamiumDemoData
       - name: Check mockup data is current
