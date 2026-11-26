@@ -1,8 +1,11 @@
 #pragma once
-// Pure pieces of the Schematics view (L-399): what its lists hold and where
-// its tab strip stands. No game types; SchematicsView.cpp draws and acts.
+// Pure pieces of the Schematics view (L-399): what its lists hold, where its
+// tab strip stands and what a click on the last frame's boxes hits. No game
+// types; SchematicsView.cpp draws and acts.
 #include "ui/ShapesLayout.h"
+#include <array>
 #include <cmath>
+#include <utility>
 #include <vector>
 namespace lamium::ui::schematics_rows {
 // The Materials list over its lines (blocks first, then entities; `entity`
@@ -63,5 +66,56 @@ inline int tabAt(ShapesLayout const& l, float x, float y, int count) {
     for (int i = 0; i < count; ++i)
         if (x >= tabX(l, i, count) && x < tabX(l, i, count) + tabWidth(l, count)) return i;
     return -1;
+}
+// A box as the last draw left it; 0 wide when it was not drawn.
+struct Box {
+    float x = 0, y = 0, w = 0, h = 0;
+    bool contains(float px, float py) const { return px >= x && px < x + w && py >= y && py < y + h; }
+};
+// A press on the preview: its slice line (the top 16 units while it is
+// sliced, even past a shorter preview) shows it whole again; anywhere else
+// on it starts a drag.
+enum class PreviewPress { None, Slice, Drag };
+inline PreviewPress previewPress(Box const& preview, bool sliced, float x, float y) {
+    if (preview.w > 0 && sliced && x >= preview.x && x < preview.x + preview.w && y >= preview.y && y < preview.y + 16)
+        return PreviewPress::Slice;
+    if (preview.w > 0 && preview.contains(x, y)) return PreviewPress::Drag;
+    return PreviewPress::None;
+}
+// The Check list's four filter chips as last drawn: their spans across the
+// list's heading row, {0, 0} for one not drawn. The chip under a point, or -1.
+using ChipSpans = std::array<std::pair<float, float>, 4>;
+inline int chipAt(ChipSpans const& spans, float headTop, float rowsTop, float x, float y) {
+    if (y < headTop || y >= rowsTop) return -1;
+    for (int i = 0; i < 4; ++i)
+        if (x >= spans[static_cast<size_t>(i)].first && x < spans[static_cast<size_t>(i)].second) return i;
+    return -1;
+}
+// The Check tab's own boxes from the last frame: "Ignore settings" (taken
+// only while a placement is checked), the filter chips (not in the ignore
+// view) and the pane's ignore controls, in the order they were drawn.
+struct CheckBoxes {
+    bool shown = false; // the Check tab is the one shown
+    bool checked = false, ignoreView = false;
+    Box ignoreSettings;
+    ChipSpans chips{};
+    float headTop = 0, rowsTop = 0;
+    std::vector<Box> controls;
+};
+enum class CheckTarget { None, IgnoreSettings, Chip, Control };
+struct CheckPress {
+    CheckTarget target = CheckTarget::None;
+    int index = -1; // the chip, or the control in drawing order
+};
+// What a click on them presses: "Ignore settings" first, then a chip, then
+// the first control under the point.
+inline CheckPress checkPress(CheckBoxes const& c, float x, float y) {
+    if (!c.shown) return {};
+    if (c.checked && c.ignoreSettings.w > 0 && c.ignoreSettings.contains(x, y)) return {CheckTarget::IgnoreSettings};
+    if (!c.ignoreView)
+        if (int chip = chipAt(c.chips, c.headTop, c.rowsTop, x, y); chip >= 0) return {CheckTarget::Chip, chip};
+    for (int i = 0; i < static_cast<int>(c.controls.size()); ++i)
+        if (c.controls[static_cast<size_t>(i)].contains(x, y)) return {CheckTarget::Control, i};
+    return {};
 }
 }

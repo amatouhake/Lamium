@@ -49,4 +49,54 @@ void schematicsRowsTests() {
     check(std::abs(step - .2f) < 1e-3f, "after nine days of uptime one 60 Hz frame still turns it a fifth of a degree");
     float const asFloat = std::fmod(static_cast<float>(upNineDays + 1.0 / 60) * 12.f, 360.f) - std::fmod(static_cast<float>(upNineDays) * 12.f, 360.f);
     check(asFloat == 0, "as a float second count the same frame does not turn it at all");
+
+    // A click on the preview, as the view tested its last drawn box.
+    Box const preview{100, 50, 120, 80};
+    check(previewPress(preview, true, 100, 50) == PreviewPress::Slice && previewPress(preview, true, 219.5f, 65.5f) == PreviewPress::Slice,
+          "while sliced the top 16 units across the preview show it whole");
+    check(previewPress(preview, true, 150, 66) == PreviewPress::Drag && previewPress(preview, false, 150, 55) == PreviewPress::Drag,
+          "below the slice line, or anywhere while whole, a press drags");
+    check(previewPress(preview, true, 220, 60) == PreviewPress::None && previewPress(preview, false, 150, 130) == PreviewPress::None
+              && previewPress(preview, false, 99.5f, 60) == PreviewPress::None && previewPress(preview, false, 150, 49.5f) == PreviewPress::None,
+          "the right and bottom edges and what is above or left of it are outside");
+    check(previewPress({100, 50, 120, 10}, true, 150, 62) == PreviewPress::Slice, "the slice line reaches 16 units down even past a shorter preview");
+    check(previewPress({100, 50, 0, 80}, true, 100, 50) == PreviewPress::None, "a preview not drawn takes no press");
+
+    // A click on the Check tab's own boxes: "Ignore settings", the chips, the controls.
+    CheckBoxes c;
+    c.shown = c.checked = true;
+    c.ignoreSettings = {300, 20, 60, 12};
+    c.headTop = 30;
+    c.rowsTop = 42;
+    c.chips = {{{10, 40}, {44, 80}, {0, 0}, {84, 120}}};
+    c.controls = {{10, 200, 50, 12}, {30, 200, 50, 12}, {300, 25, 60, 12}};
+    auto at = [&](float x, float y) { return checkPress(c, x, y); };
+    check(at(300, 20).target == CheckTarget::IgnoreSettings && at(359.5f, 31.5f).target == CheckTarget::IgnoreSettings,
+          "a point on Ignore settings presses it");
+    check(at(310, 30).target == CheckTarget::IgnoreSettings, "Ignore settings wins over a control under it");
+    check(at(10, 30).target == CheckTarget::Chip && at(10, 30).index == 0 && at(79.5f, 41.5f).index == 1 && at(84, 35).index == 3,
+          "a point on a chip names it");
+    check(at(42, 35).target == CheckTarget::None && at(0, 35).target == CheckTarget::None, "between chips and on a chip not drawn is nothing");
+    check(at(10, 29.5f).target == CheckTarget::None && at(10, 42).target == CheckTarget::None, "a chip counts only inside the heading row");
+    check(at(35, 205).target == CheckTarget::Control && at(35, 205).index == 0 && at(70, 205).index == 1,
+          "overlapping controls go to the first drawn");
+    check(at(80, 205).target == CheckTarget::None && at(10, 212).target == CheckTarget::None, "a control's right and bottom edges are outside");
+    check(at(320, 36).target == CheckTarget::Control && at(320, 36).index == 2, "a control below Ignore settings is still pressed");
+
+    auto view = c;
+    view.ignoreView = true;
+    view.controls.push_back({10, 30, 30, 10});
+    check(checkPress(view, 10, 30).target == CheckTarget::Control && checkPress(view, 10, 30).index == 3,
+          "in the ignore view the chips are gone and a control under them is pressed");
+    auto unchecked = c;
+    unchecked.checked = false;
+    check(checkPress(unchecked, 310, 30).target == CheckTarget::Control && checkPress(unchecked, 310, 30).index == 2,
+          "without a checked placement Ignore settings takes no press");
+    auto undrawn = c;
+    undrawn.ignoreSettings = {};
+    check(checkPress(undrawn, 0, 0).target == CheckTarget::None, "Ignore settings not drawn takes no press");
+    auto hidden = c;
+    hidden.shown = false;
+    check(checkPress(hidden, 300, 20).target == CheckTarget::None && checkPress(hidden, 10, 30).target == CheckTarget::None
+              && checkPress(hidden, 35, 205).target == CheckTarget::None, "another tab shown takes none of the Check boxes");
 }

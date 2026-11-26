@@ -302,7 +302,7 @@ struct IgnorePick {
 std::optional<IgnorePick> ignorePick;
 // "Ignore settings" as last drawn, at the end of the Check pane's top line;
 // 0 wide when not drawn.
-struct { float x = 0, y = 0, w = 0, h = 0; } ignoreSettingsBox;
+schematics_rows::Box ignoreSettingsBox;
 // The Check pane's item lines (a row's differing items, a block's compared
 // items) scroll under the wheel when they do not fit; the offset starts
 // over when what they list changes. The area is as last drawn, 0 wide
@@ -428,41 +428,38 @@ void changeIgnores(std::function<bool(schematic::IgnoreList&)> const& apply) {
         return;
     refreshSchematics(false);
 }
-bool pressIgnoreControl(float x, float y) {
-    for (auto const& c : ignoreControls) {
-        if (x < c.x || x >= c.x + c.w || y < c.y || y >= c.y + c.h) continue;
-        auto const entries = c.entries;
-        auto const kind = c.kind;
-        if (kind != IgnoreControlKind::UndoAll) verifyUndoAllArmed = false;
-        switch (kind) {
-        case IgnoreControlKind::Add: {
-            // All or nothing (L-183): over the cap nothing changes.
-            bool full = false;
-            changeIgnores([&](schematic::IgnoreList& list) {
-                auto added = list.addAll(entries);
-                full = added == schematic::IgnoreList::Added::Full;
-                return added == schematic::IgnoreList::Added::Added;
-            });
-            if (full) screen::setMessage(translated("schematic.ignore.full", schematic::maxIgnored));
-            else screen::clearMessage();
-            break;
-        }
-        case IgnoreControlKind::Remove:
-            changeIgnores([&](schematic::IgnoreList& list) {
-                return list.removeIf([&](auto const& e) { return std::find(entries.begin(), entries.end(), e) != entries.end(); }) > 0;
-            });
-            screen::clearMessage();
-            break;
-        case IgnoreControlKind::UndoAll:
-            if (!std::exchange(verifyUndoAllArmed, true)) return true;
-            verifyUndoAllArmed = false;
-            changeIgnores([](schematic::IgnoreList& list) { if (list.empty()) return false; list.clear(); return true; });
-            break;
-        case IgnoreControlKind::Show: showSelectedMismatch(); break;
-        }
-        return true;
+// The control `at` in ignoreControls, which a click hit (schematics_rows::checkPress).
+void pressIgnoreControl(int at) {
+    auto const& c = ignoreControls[static_cast<size_t>(at)];
+    auto const entries = c.entries;
+    auto const kind = c.kind;
+    if (kind != IgnoreControlKind::UndoAll) verifyUndoAllArmed = false;
+    switch (kind) {
+    case IgnoreControlKind::Add: {
+        // All or nothing (L-183): over the cap nothing changes.
+        bool full = false;
+        changeIgnores([&](schematic::IgnoreList& list) {
+            auto added = list.addAll(entries);
+            full = added == schematic::IgnoreList::Added::Full;
+            return added == schematic::IgnoreList::Added::Added;
+        });
+        if (full) screen::setMessage(translated("schematic.ignore.full", schematic::maxIgnored));
+        else screen::clearMessage();
+        break;
     }
-    return false;
+    case IgnoreControlKind::Remove:
+        changeIgnores([&](schematic::IgnoreList& list) {
+            return list.removeIf([&](auto const& e) { return std::find(entries.begin(), entries.end(), e) != entries.end(); }) > 0;
+        });
+        screen::clearMessage();
+        break;
+    case IgnoreControlKind::UndoAll:
+        if (!std::exchange(verifyUndoAllArmed, true)) return;
+        verifyUndoAllArmed = false;
+        changeIgnores([](schematic::IgnoreList& list) { if (list.empty()) return false; list.clear(); return true; });
+        break;
+    case IgnoreControlKind::Show: showSelectedMismatch(); break;
+    }
 }
 // The ignore view's rows, built every refresh while it is open: the ignored
 // places nearest first, then the file's block types with items in the
@@ -830,12 +827,17 @@ int schematicTabAt(ShapesLayout const& l, float x, float y) { return schematics_
 // The Check tab's four filters, in the list's heading row (L-93 screen review):
 // sized to their text and drawn as outlined pills, so they read as part of the
 // list rather than more tabs. Their spans are kept from the last draw.
-std::array<std::pair<float, float>, 4> verifyChipSpans{};
+schematics_rows::ChipSpans verifyChipSpans{};
 int verifyChipAt(ShapesLayout const& l, float x, float y) {
-    if (schematicTab != SchematicTab::Verify || ignoreView || y < l.theadTop || y >= l.rowsTop) return -1;
-    for (int i = 0; i < 4; ++i)
-        if (x >= verifyChipSpans[static_cast<size_t>(i)].first && x < verifyChipSpans[static_cast<size_t>(i)].second) return i;
-    return -1;
+    if (schematicTab != SchematicTab::Verify || ignoreView) return -1;
+    return schematics_rows::chipAt(verifyChipSpans, l.theadTop, l.rowsTop, x, y);
+}
+// The Check tab's boxes as the last frame drew them, for a click.
+schematics_rows::CheckBoxes checkBoxes() {
+    schematics_rows::CheckBoxes c{schematicTab == SchematicTab::Verify, checkedPlacement() != nullptr, ignoreView,
+        ignoreSettingsBox, verifyChipSpans, schematicsDisplayed.theadTop, schematicsDisplayed.rowsTop, {}};
+    for (auto const& control : ignoreControls) c.controls.push_back({control.x, control.y, control.w, control.h});
+    return c;
 }
 int stackSizeOf(schematic::MaterialLine const& line) {
     auto const* stack = schematic::items::iconStack(line.icon);
@@ -938,9 +940,10 @@ void handleSchematicClick(float x, float y, bool right) {
             [](float pos) { itemScroll.first = static_cast<int>(std::lround(pos)); }, &itemScroll.first))
         return;
     auto& t = previewTurn();
+    auto const onPreview = schematics_rows::previewPress({t.x, t.y, t.w, t.h}, t.peel > 0, x, y);
     // The slice line across the top of the preview shows it whole again.
-    if (!right && t.w > 0 && t.peel > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + 16) { t.peel = 0; return; }
-    if (!right && t.w > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) {
+    if (!right && onPreview == schematics_rows::PreviewPress::Slice) { t.peel = 0; return; }
+    if (!right && onPreview == schematics_rows::PreviewPress::Drag) {
         t.dragging = true;
         t.turning = false;
         t.from = {x, y};
@@ -950,20 +953,18 @@ void handleSchematicClick(float x, float y, bool right) {
     }
     if (!schematicsDocked && screen::navClick(x, y)) return;
     if (int tab = schematicTabAt(schematicsDisplayed, x, y); tab >= 0) { selectSchematicTab(static_cast<SchematicTab>(tab)); return; }
-    if (auto const& b = ignoreSettingsBox; schematicTab == SchematicTab::Verify && checkedPlacement() && b.w > 0
-        && x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) {
-        toggleIgnoreView();
-        return;
-    }
-    if (int chip = verifyChipAt(schematicsDisplayed, x, y); chip >= 0) {
-        checkFilter = static_cast<schematic::CheckFilter>(chip);
+    switch (auto const press = schematics_rows::checkPress(checkBoxes(), x, y); press.target) {
+    case schematics_rows::CheckTarget::IgnoreSettings: toggleIgnoreView(); return;
+    case schematics_rows::CheckTarget::Chip:
+        checkFilter = static_cast<schematic::CheckFilter>(press.index);
         checkRows.clear();
         followCheckRows();
         schematicListFirst = 0;
         refreshSchematics(false);
         return;
+    case schematics_rows::CheckTarget::Control: pressIgnoreControl(press.index); return;
+    case schematics_rows::CheckTarget::None: break;
     }
-    if (schematicTab == SchematicTab::Verify && pressIgnoreControl(x, y)) return;
     verifyUndoAllArmed = false;
     auto hit = schematicsDisplayed.hit(x, y);
     if (!(hit.zone == ShapeZone::Action && hit.index == 1)) schematicDeleteArmed = false;
