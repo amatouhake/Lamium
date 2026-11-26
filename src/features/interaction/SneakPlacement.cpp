@@ -17,6 +17,7 @@
 #include "mc/world/actor/ActorFlags.h"
 #include "mc/entity/components/MoveInputComponent.h"
 #include "mc/entity/components/RawMoveInputComponent.h"
+#include "mc/entity/components/SneakingComponent.h"
 #include "mc/input/MoveInputState.h"
 #include "mc/network/LoopbackPacketSender.h"
 #include "mc/network/MinecraftPacketIds.h"
@@ -32,6 +33,7 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 #include "mc/world/phys/HitResult.h"
+#include <format>
 #include <stdexcept>
 
 namespace lamium::interaction::sneakPlacement {
@@ -121,9 +123,61 @@ public:
     ~AsSent() {
         if (flags) flags->mValue.set(bit, was);
     }
+    bool applied() const { return flags != nullptr; }
     AsSent(AsSent const&) = delete;
     AsSent& operator=(AsSent const&) = delete;
 };
+#ifdef LAMIUM_SNEAK_TRACE
+// Research builds (L-410): what a use call saw of sneaking, and whether it changed the block it aimed at.
+int traced = 0;
+std::string sneakSeen(Player& actor) {
+    std::string out = std::format("flag {} sent {} edited {} method {} wanted {}", actor.isSneaking(), serverSneak, edited,
+                                  packetMode() ? "send" : "crouch", pulse.wanted ? (*pulse.wanted ? "1" : "0") : "-");
+    try {
+        out += std::format(" component {}", static_cast<bool>(actor.getEntityContext().tryGetComponent<SneakingComponent>()));
+        auto client = ll::service::getClientInstance();
+        if (auto const* input = client ? ClientMoveInputHandler::getMoveInput(*client) : nullptr)
+            out += std::format(" input sneaking {} down {} raw {}", input->mFlagValues->test(static_cast<size_t>(MoveInputComponent::Flag::Sneaking)),
+                               input->mInputState->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown)),
+                               input->mRawInputState->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown)));
+    } catch (...) { out += " (read failed)"; }
+    return out;
+}
+void trace(std::string const& text) {
+    if (++traced > 80) return;
+    try { Runtime::instance().self().getLogger().info("Sneak placement trace: {}", text); } catch (...) {}
+}
+#endif
+// One use call of the client: held back, or run with the sneak state sent.
+template <class Call> InteractionResult useOn(char const* mode, Player& actor, ItemStack& item, BlockPos const& pos, uchar face, Call&& call) {
+    if (holds(actor, item, pos, face)) {
+#ifdef LAMIUM_SNEAK_TRACE
+        trace(std::format("{} useItemOn ({},{},{}) held; {}", mode, pos.x, pos.y, pos.z, sneakSeen(actor)));
+#endif
+        return InteractionResult{false, false};
+    }
+    AsSent const sneak(actor);
+#ifdef LAMIUM_SNEAK_TRACE
+    Block const* before = nullptr;
+    std::string seen;
+    try {
+        before = &actor.getDimensionBlockSource().getBlock(pos);
+        seen = sneakSeen(actor);
+    } catch (...) {}
+    InteractionResult const result = call();
+    try {
+        Block const* after = &actor.getDimensionBlockSource().getBlock(pos);
+        trace(std::format("{} useItemOn ({},{},{}) {} item {} flag written {}; {}; result success {} swing {}; block {}", mode, pos.x, pos.y, pos.z,
+                          before ? before->getBlockType().mNameInfo->mFullName->getString() : "?", item.isNull() ? "none" : "held",
+                          sneak.applied(), seen, static_cast<bool>(result.mSuccess), static_cast<bool>(result.mSwing),
+                          after == before ? "unchanged" : "CHANGED"));
+    } catch (...) {}
+    return result;
+#else
+    (void)mode;
+    return call();
+#endif
+}
 void set(PlayerAuthInputPacket& auth, Auth flag, bool value) {
     auth.mInputData->mContainer.set(static_cast<size_t>(flag), value);
 }
@@ -222,9 +276,7 @@ LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##StartBuild, ll::memory::HookPriority
 LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##UseOn, ll::memory::HookPriority::Normal, Mode, \
     &Mode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face, \
     Vec3 const& hit, HandSlot hand, Block const* target, bool first) { \
-    if (holds(mPlayer, item, pos, face)) return InteractionResult{false, false}; \
-    AsSent const sneak(mPlayer); \
-    return origin(item, pos, face, hit, hand, target, first); \
+    return useOn(#Mode, mPlayer, item, pos, face, [&] { return origin(item, pos, face, hit, hand, target, first); }); \
 }
 GATE_HOOKS(GameMode)
 GATE_HOOKS(SurvivalMode)

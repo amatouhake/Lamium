@@ -159,6 +159,12 @@ option("camera_probe")
     set_description("Experimental render-only rotation while Zoom is held (enables camera trace)")
 option_end()
 
+option("sneak_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-410 research: log what each client use call saw of sneaking and whether it changed its block")
+option_end()
+
 option("radar_icon_probe")
     set_default(false)
     set_showmenu(true)
@@ -212,6 +218,7 @@ target("Lamium")
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end
     if has_config("radar_icon_probe") then add_defines("LAMIUM_RADAR_ICON_PROBE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
+    if has_config("sneak_trace") then add_defines("LAMIUM_SNEAK_TRACE") end
     if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
     if has_config("world_probe") then add_defines("LAMIUM_WORLD_PROBE") end
     if has_config("ghost_probe") then add_defines("LAMIUM_GHOST_PROBE") end

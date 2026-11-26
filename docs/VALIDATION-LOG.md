@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak Placement "Send only" at a door with the client's flag set (2026-11-27)
+
+`43930ea5` (DLL
+`2663b97f39f25789ef0a7faf148b0385817856c0d286c5e469bb5832bccb2004`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Failed: with a spawn egg and with a block, the door still opens on the
+  client and walking through pulls the player back.
+- Seen: placing on a chest and opening doors and chests with an empty hand
+  as before; no crouch pose or slowing.
+- From the log: six lines "the client's use runs with sneak true as sent",
+  so the flag was written and read back inside `useItemOn` and the door
+  opened all the same.
+
 ## A rider's radar face over its mount's; the sulfur cube averaged (2026-11-27)
 
 `86e3a892` (DLL
