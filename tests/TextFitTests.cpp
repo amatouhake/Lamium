@@ -42,6 +42,9 @@ void textFitTests() {
     check(wrapFullText("あいう。えお",6,measure) == std::vector<std::string>{"あい", "う。え", "お"}
         && wrapFullText("転送: 1個",4,measure) == std::vector<std::string>{"転", "送:", "1個"},
         "a line never begins with closing punctuation");
+    check(wrapFullText("Каменная кирпичная стена",20,measure) == std::vector<std::string>{"Каменная", "кирпичная", "стена"}
+        && wrapFullText("Würfel größer",12,measure) == std::vector<std::string>{"Würfel", "größer"},
+        "Cyrillic and accented Latin words move whole: only Japanese and Chinese break between characters");
     using lamium::ui::RunKind;
     auto zero = [](std::string_view glyph) { return glyph == "件"; };
     auto runs = lamium::ui::labelRuns("10 件あり", zero);

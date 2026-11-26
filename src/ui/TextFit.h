@@ -7,7 +7,16 @@
 
 namespace lamium::ui {
 namespace detail {
-inline bool wide(std::string_view source, size_t at) { return at < source.size() && (static_cast<unsigned char>(source[at]) & 0x80); }
+// A Japanese or Chinese character (kana, ideographs, their punctuation, full-width forms). Other scripts beyond
+// ASCII (Cyrillic, accented Latin) are words between spaces, as English.
+inline bool wide(std::string_view source, size_t at) {
+    auto byte = [&](size_t i) { return i < source.size() ? static_cast<unsigned char>(source[i]) : 0u; };
+    unsigned const lead = byte(at);
+    unsigned c = 0;
+    if (lead >= 0xf0) c = (lead & 0x07) << 18 | (byte(at + 1) & 0x3f) << 12 | (byte(at + 2) & 0x3f) << 6 | (byte(at + 3) & 0x3f);
+    else if (lead >= 0xe0) c = (lead & 0x0f) << 12 | (byte(at + 1) & 0x3f) << 6 | (byte(at + 2) & 0x3f);
+    return (c >= 0x2e80 && c <= 0x9fff) || (c >= 0xf900 && c <= 0xfaff) || (c >= 0xff00 && c <= 0xffef) || (c >= 0x20000 && c <= 0x3ffff);
+}
 inline size_t previous(std::string_view source, size_t at) {
     while (at && (static_cast<unsigned char>(source[--at]) & 0xc0) == 0x80) {}
     return at;
