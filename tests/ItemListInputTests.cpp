@@ -128,19 +128,12 @@ void itemListLayoutTests() {
     check(hintLineScale(50, 100) == hintScale && std::abs(hintLineScale(200, 100) - hintScale / 2) < 1e-5f, "a wrapped line too wide shrinks to its room");
     check(hintOneLineScale(50, 100) == 1 && hintOneLineScale(125, 100) == .8f && hintOneLineScale(500, 100) == .6f,
           "the one line shrinks to fit, no smaller than .6");
-    // L-409: 228 wide holds 12 columns and leaves 8; at the screen's right edge that is beside the game's window.
-    auto const edge = itemListIn({412, 0, 228, 360}, 640), inner = itemListIn({412, 0, 228, 360}, 700), unasked = itemListIn({412, 0, 228, 360});
-    check(edge.columns == 12 && edge.cellX(11) + ItemListLayout::cell == 640 - ItemListLayout::pad && edge.cellX(0) == 412 + ItemListLayout::pad + 8,
-          "a list that ends at the screen's edge stands its cells against it");
-    check(edge.hit(edge.cellX(0) + 1, edge.cellY(0) + 1) == 0 && edge.hit(edge.cellX(11) + 17, edge.cellY(0) + 1) == 11
-              && edge.hit(412 + ItemListLayout::pad + 1, edge.cellY(0) + 1) == -1,
-          "its cells are hit where they stand, the width left beside the window is none of them");
-    check(inner.cellX(0) == 412 + ItemListLayout::pad && unasked.cellX(0) == inner.cellX(0) && inner.hit(inner.cellX(0) + 1, inner.cellY(0) + 1) == 0,
-          "a list that ends short of the edge keeps its cells at its left");
-    auto favoritesEdge = sidePanelIn({412, 0, 228, 180}, true, 640), planEdge = sidePanelIn({412, 180, 228, 180}, false, 640);
-    check(favoritesEdge.cellX(11) + SideLayout::cell == 640 - SideLayout::pad && planEdge.shift() == 0
-              && favoritesEdge.hitFavorite(favoritesEdge.cellX(0) + 1, favoritesEdge.cellY(0) + 1) == 0,
-          "the favorites' cells stand against the edge too; the plan's rows have none to move");
-    favoritesEdge.columns = 11, favoritesEdge.gutter = 8;
-    check(favoritesEdge.cellX(10) + SideLayout::cell == 640 - SideLayout::pad - 8, "their scroll bar keeps its place at the edge");
+    // L-409: 228 wide holds 12 columns and leaves 8, 4 each side; 233 leaves 13, 6 and 7.
+    auto const list = itemListIn({412, 0, 228, 360}), odd = itemListIn({412, 0, 233, 360});
+    check(list.columns == 12 && list.cellX(0) == 412 + ItemListLayout::pad + 4 && list.cellX(11) + ItemListLayout::cell == 640 - ItemListLayout::pad - 4,
+          "the list's cells stand in the middle of its panel");
+    check(list.hit(list.cellX(0) + 1, list.cellY(0) + 1) == 0 && list.hit(list.cellX(11) + 17, list.cellY(0) + 1) == 11
+              && list.hit(412 + ItemListLayout::pad + 1, list.cellY(0) + 1) == -1 && list.hit(640 - ItemListLayout::pad - 1, list.cellY(0) + 1) == -1,
+          "its cells are hit where they stand, the width left on either side is none of them");
+    check(odd.columns == 12 && odd.cellX(0) == 412 + ItemListLayout::pad + 6, "an odd width left keeps the cells on whole units");
 }

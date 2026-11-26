@@ -11,10 +11,9 @@ struct ItemListLayout {
     static constexpr float cell = 18, bar = 14, pad = 2;
     float left = 0, top = 0, width = 0, height = 0;
     int columns = 0, rows = 0;
-    // The panel ends at the screen's right edge: the cells stand against that edge and the width left over is
-    // beside the game's window, as a panel on the left has it (L-409).
-    bool atEdge = false;
-    float shift() const { return atEdge ? std::max(0.f, width - 2 * pad - static_cast<float>(columns) * cell) : 0.f; }
+    // The cells stand in the panel's middle: the width that holds no whole cell is half on each side, in whole
+    // units so the cells keep to the pixels they had (L-409).
+    float shift() const { return std::floor(std::max(0.f, width - 2 * pad - static_cast<float>(columns) * cell) / 2); }
     bool usable() const { return columns > 0 && rows > 0; }
     int perPage() const { return columns * rows; }
     int pages(int count) const { return usable() ? std::max(1, (count + perPage() - 1) / perPage()) : 1; }
@@ -122,11 +121,6 @@ struct SideLayout {
     static constexpr float cell = 18, head = 14, row = 12, pad = 2;
     float left = 0, top = 0, width = 0, height = 0;
     int columns = 0;
-    // As ItemListLayout's: the favorites' cells against the screen's right edge; `gutter` is kept free at that
-    // edge for their scroll bar.
-    bool atEdge = false;
-    float gutter = 0;
-    float shift() const { return atEdge ? std::max(0.f, width - 2 * pad - gutter - static_cast<float>(columns) * cell) : 0.f; }
     // Which halves are in use; one alone has the whole band.
     bool favoritesOn = true, planOn = true;
     bool usable() const { return columns > 0 && height >= band::minLength(band::Left); } // one row under its heading
@@ -134,11 +128,11 @@ struct SideLayout {
     float split() const { return !favoritesOn ? 0 : !planOn ? height : std::floor(height * .5f); }
     int favoriteRows() const { return std::max(0, static_cast<int>((split() - head - pad) / cell)); }
     int favorites() const { return columns * favoriteRows(); }
-    float cellX(int index) const { return left + pad + shift() + static_cast<float>(index % columns) * cell; }
+    float cellX(int index) const { return left + pad + static_cast<float>(index % columns) * cell; }
     float cellY(int index) const { return top + head + static_cast<float>(index / columns) * cell; }
     int hitFavorite(float x, float y) const {
-        if (!usable() || x < left + pad + shift() || y < top + head) return -1;
-        int const column = static_cast<int>((x - left - pad - shift()) / cell), line = static_cast<int>((y - top - head) / cell);
+        if (!usable() || x < left + pad || y < top + head) return -1;
+        int const column = static_cast<int>((x - left - pad) / cell), line = static_cast<int>((y - top - head) / cell);
         return column < columns && line < favoriteRows() ? line * columns + column : -1;
     }
     // The lists' tabs: 14 high, room for an item's picture at 14 units where the names do not fit (L-367).
@@ -156,22 +150,18 @@ struct SideLayout {
     bool wide() const { return width >= 75; }
 };
 // A panel of the bands (BandLayout.h) as the item list: a bar for the pager, then as many whole cells as fit.
-// `screenWidth`: the screen's, to tell a panel that ends at its right edge (0: not asked).
-inline bool endsAtScreen(band::Box box, float screenWidth) { return screenWidth > 0 && box.x + box.w >= screenWidth - .5f; }
-inline ItemListLayout itemListIn(band::Box box, float screenWidth = 0) {
+inline ItemListLayout itemListIn(band::Box box) {
     ItemListLayout out;
     out.left = box.x, out.top = box.y, out.width = box.w, out.height = box.h;
-    out.atEdge = endsAtScreen(box, screenWidth);
     out.columns = std::max(0, static_cast<int>((out.width - 2 * ItemListLayout::pad) / ItemListLayout::cell));
     out.rows = std::max(0, static_cast<int>((out.height - ItemListLayout::bar - ItemListLayout::pad) / ItemListLayout::cell));
     return out;
 }
 // A panel as the favorites (cells under a heading) or as the plan (its tabs and rows): a SideLayout with
 // that part alone.
-inline SideLayout sidePanelIn(band::Box box, bool favorites, float screenWidth = 0) {
+inline SideLayout sidePanelIn(band::Box box, bool favorites) {
     SideLayout out;
     out.left = box.x, out.top = box.y, out.width = box.w, out.height = box.h;
-    out.atEdge = favorites && endsAtScreen(box, screenWidth);
     out.columns = std::max(0, static_cast<int>((out.width - 2 * SideLayout::pad) / SideLayout::cell));
     out.favoritesOn = favorites, out.planOn = !favorites;
     return out;

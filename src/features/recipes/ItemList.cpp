@@ -668,7 +668,7 @@ void placeParts(Frame& f) {
     auto placed = band::place(shownBands, regions, pagesOn);
     auto const* itemsPanel = band::find(placed, band::Page::Items);
     auto const* planPanel = band::find(placed, band::Page::Plan);
-    auto const layout = itemsPanel ? itemListIn(itemsPanel->box, screen.x) : ItemListLayout{};
+    auto const layout = itemsPanel ? itemListIn(itemsPanel->box) : ItemListLayout{};
     // The plan's list, for the wheel over it (the listeners' side).
     auto const side = planPanel ? planSide(planPanel->box) : SideLayout{};
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
@@ -953,7 +953,7 @@ void drawBands(Frame& f) {
         bandBoxes.push_back({panel.box.x, panel.box.y, panel.box.w, panel.box.h});
         if (panel.page == band::Page::Favorites) {
             favoritesBox = {panel.box.x, panel.box.y, panel.box.w, panel.box.h};
-            bandPages::favorites(frame, sidePanelIn(panel.box, true, f.screen.x));
+            bandPages::favorites(frame, sidePanelIn(panel.box, true));
         }
         else {
             cost.lap();
