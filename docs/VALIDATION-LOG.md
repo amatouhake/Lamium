@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Radar sheep faces with their wool and color (2026-11-27)
+
+`642f9d3a` with the uncommitted sheep change (DLL
+`06741c4d8db749a2cbd84a6352026c0bad50fc75c5a0de87be75b8f559ec439b`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: on the minimap radar a sheep's face has one texel of wool around
+  it; a dyed sheep's wool and the white fleece on its face take its color,
+  its eyes, nose and ears do not; a sheared sheep has no wool around its
+  face and the face changes when it is sheared; the snow golem averaged
+  again; other faces as before.
+- First use of the entity data's color index (`getInt8`); it read in game.
+
 ## Radar faces after the release sheet's look: goat, armadillo, wolf, salmon, squids (2026-11-27)
 
 `5561c1ee` with uncommitted radar face changes (DLL

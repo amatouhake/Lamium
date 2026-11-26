@@ -24,7 +24,9 @@
 #include "mc/deps/core_graphics/enums/TextureFormat.h"
 #include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
 #include "mc/world/actor/Actor.h"
+#include "mc/world/actor/ActorDataIDs.h"
 #include "mc/world/actor/ActorFlags.h"
+#include "mc/world/actor/SynchedActorDataEntityWrapper.h"
 #include "mc/world/actor/player/Player.h"
 #include "mc/world/actor/player/SerializedSkinImpl.h"
 #include "mc/world/actor/player/SerializedSkinRef.h"
@@ -138,16 +140,22 @@ std::vector<Turn> partTurns(Model const& model, ModelPart const& part) {
     }
     return turns;
 }
-void addPart(Model const& model, ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelBox>& out, int depth) {
+// `tint`: the color multiplied in by each texel's alpha (ModelBox::tint, a sheep's wool).
+void addPart(Model const& model, ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelBox>& out, int depth,
+             std::uint32_t tint = 0) {
     if (depth > 4 || !drawnPart(recipe, part.mName->getString())) return;
     std::vector<Turn> const turns = partTurns(model, part);
     int taken = 0;
     for (auto const& cube : *part.mCubes) {
-        if (depth == 0 && recipe.cubes > 0 && taken++ >= recipe.cubes) break;
+        int const index = taken++;
+        if (depth == 0 && recipe.cubes > 0 && index >= recipe.cubes) break;
         double const k = recipe.scale;
-        Vec3d const from{cube.mOrigin->x * k, cube.mOrigin->y * k, cube.mOrigin->z * k};
-        ModelBox box{from, {from.x + cube.mSize->x * k, from.y + cube.mSize->y * k, from.z + cube.mSize->z * k}, cube.mMirrored, {}, {},
-                     drawnOnTop(recipe, part.mName->getString())};
+        bool const grown = depth == 0 && recipe.grow > 0 && index >= recipe.grownFrom;
+        double const g = grown ? recipe.grow : 0;
+        Vec3d const from{cube.mOrigin->x * k - g, cube.mOrigin->y * k - g, cube.mOrigin->z * k - g};
+        ModelBox box{from, {cube.mOrigin->x * k + cube.mSize->x * k + g, cube.mOrigin->y * k + cube.mSize->y * k + g,
+                            cube.mOrigin->z * k + cube.mSize->z * k + g},
+                     cube.mMirrored, {}, {}, drawnOnTop(recipe, part.mName->getString()), tint};
         for (int side = 0; side < 6; ++side) {
             auto const& face = (*cube.mFaceData)[static_cast<size_t>(side)];
             box.faces[side] = {face.mUV->x, face.mUV->y, face.mUVSize->x, face.mUVSize->y, face.mFaceValid};
@@ -159,7 +167,7 @@ void addPart(Model const& model, ModelPart const& part, FaceRecipe const& recipe
     }
     if (recipe.children)
         for (auto const* child : *part.mChildren)
-            if (child) addPart(model, *child, recipe, out, depth + 1);
+            if (child) addPart(model, *child, recipe, out, depth + 1, tint);
 }
 double partVolume(ModelPart const& part, int depth = 0) {
     double volume = 0;
@@ -175,7 +183,7 @@ struct ModelBoxes {
 };
 // A renderer holds its adult's and its baby's geometry, or its variants' (a cow's per climate): of the parts
 // with a wanted name, the first near the largest, so the adult's, and of variants the default skin's.
-std::optional<ModelBoxes> modelBoxes(Model const& model, FaceRecipe const& recipe) {
+std::optional<ModelBoxes> modelBoxes(Model const& model, FaceRecipe const& recipe, std::uint32_t tint) {
     ModelBoxes out;
     for (auto name : recipe.parts) {
         double largest = 0;
@@ -186,7 +194,7 @@ std::optional<ModelBoxes> modelBoxes(Model const& model, FaceRecipe const& recip
             if (part && part->mName->getString() == name && partVolume(*part) >= largest * .75) { best = part; break; }
         if (!best) continue;
         if (out.textureWidth <= 0) out.textureWidth = best->mTexSize->x;
-        addPart(model, *best, recipe, out.boxes, 0);
+        addPart(model, *best, recipe, out.boxes, 0, tint);
     }
     if (out.boxes.empty()) return std::nullopt;
     return out;
@@ -205,14 +213,14 @@ std::optional<Face> pictureFace(IClientInstance& client, std::string_view path) 
     if (image->rgba.size() < static_cast<size_t>(image->width) * image->height * 4) return std::nullopt;
     return reduceFace(packedPicture(image->rgba.data(), image->width, image->height), image->width, image->height, image->width / 8.0);
 }
-// `variant`: the texture the mob's look picks (lookTexture), or empty for the kind's own.
+// `variant`: the texture the mob's look picks (lookTexture), or empty for the kind's own; `tint` as addPart's.
 std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven, std::string const& renderer,
-                         std::string const& variant = {}, bool sheared = false, bool elder = false) {
+                         std::string const& variant = {}, bool sheared = false, bool elder = false, std::uint32_t tint = 0) {
     FaceRecipe const recipe = faceRecipe(renderer, sheared, elder);
     if (!recipe.image.empty()) return pictureFace(client, recipe.image);
     auto model = dataDriven.mModel.get();
     if (!model) return std::nullopt;
-    auto boxes = modelBoxes(*model, recipe);
+    auto boxes = modelBoxes(*model, recipe, tint);
     if (!boxes) return std::nullopt;
     std::string texture = variant.empty() ? faceTexture(dataDriven, renderer) : variant;
     if (texture.empty()) return std::nullopt;
@@ -226,12 +234,12 @@ std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven
                         recipe.centered});
 }
 std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer, std::string const& variant, bool sheared,
-                         bool elder) {
+                         bool elder, std::uint32_t tint) {
     auto dispatcher = client.getEntityRenderDispatcher();
     if (!dispatcher) return std::nullopt;
     auto dataDriven = dispatcher->getDataDrivenRenderer(actor.getActorRendererId());
     if (!dataDriven) return std::nullopt;
-    return load(client, *dataDriven, renderer, variant, sheared, elder);
+    return load(client, *dataDriven, renderer, variant, sheared, elder, tint);
 }
 #ifdef LAMIUM_RADAR_ICON_PROBE
 // The research pictures' background, behind clear pixels.
@@ -510,19 +518,24 @@ int add(std::optional<Face> face, std::string const& name) {
 int faceOf(IClientInstance& client, Actor& actor) {
     std::string renderer = actor.getActorRendererId().getString();
     if (renderer.empty()) return -1;
-    // A kind whose look follows the mob (a horse's coat, an elder guardian, a sheared snow golem) has a face
-    // per look.
+    // A kind whose look follows the mob (a horse's coat, an elder guardian, a sheared snow golem, a sheep's
+    // wool and its color) has a face per look.
     bool const guardian = renderer == "minecraft:guardian" || renderer == "minecraft:elder_guardian";
     bool const elder = guardian && actor.getStatusFlag(ActorFlags::Elder);
     std::string variant = lookTexture(renderer, variantTexture(renderer, 0).empty() ? -1 : actor.getVariant(), elder);
-    bool const sheared = renderer == "minecraft:snow_golem" && actor.getStatusFlag(ActorFlags::Sheared);
+    bool const sheep = renderer == "minecraft:sheep";
+    bool const sheared = (renderer == "minecraft:snow_golem" || sheep) && actor.getStatusFlag(ActorFlags::Sheared);
+    // The color index the game tints a sheep's wool and fleece by (ActorDataIDs::ColorIndex, 0 white).
+    int const color = sheep ? actor.mEntityData->getInt8(static_cast<ushort>(ActorDataIDs::ColorIndex)) : -1;
+    std::uint32_t const tint = woolTint(color);
     std::string key = variant.empty() ? renderer : renderer + "#" + variant;
     if (sheared) key += "#sheared";
+    if (tint) key += std::format("#color{}", color);
     if (auto at = byRenderer.find(key); at != byRenderer.end()) return at->second;
     if (loadsLeft <= 0) return -1;
     --loadsLeft;
     int index = -1;
-    try { index = add(load(client, actor, renderer, variant, sheared, elder), key); } catch (...) {}
+    try { index = add(load(client, actor, renderer, variant, sheared, elder, tint), key); } catch (...) {}
     if (index < 0) log(std::format("no face for {}; it stays a dot", key));
     byRenderer.emplace(std::move(key), index);
     return index;

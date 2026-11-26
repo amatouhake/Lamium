@@ -406,6 +406,23 @@ void modelFaces() {
           "one-sided, a pixel centred on an edge is taken once: the snout is three wide (a wolf's one-texel nose)");
     check(oneSided && oneSided->width == 6 && oneSided->pixels[3 * 6 + 4] == packColor(0, 0, 0) && oneSided->pixels[3 * 6 + 1] != packColor(0, 0, 0),
           "one-sided, the snout's spare column is on the right, the way horses face (2026-11-27)");
+    // A sheep's head under its tinted wool: the wool grown around the face, opaque texels tinted, a nearly
+    // clear one (an eye) not.
+    std::vector<std::uint8_t> fleece(16 * 8 * 4, 255);
+    fleece[3] = 3; // the head's top-left texel is an eye
+    ModelBox sheepHead{{-3, 16, -14}, {3, 22, -6}}, wool{{-3.6, 15.4, -12.6}, {3.6, 22.6, -5.4}};
+    sheepHead.faces[sideNorth] = {0, 0, 6, 6, true};
+    wool.faces[sideNorth] = {8, 0, 6, 6, true};
+    std::uint32_t const woolRed = packColor(176, 46, 38);
+    sheepHead.tint = wool.tint = woolRed;
+    auto sheep = projectFace(fleece.data(), 16, 8, 1, {sheepHead, wool});
+    check(sheep && sheep->width == 8 && sheep->height == 8 && sheep->pixels[0] == woolRed && channel(sheep->pixels[1 * 8 + 1], 1) > 250 && channel(sheep->pixels[1 * 8 + 1], 2) > 250
+              && sheep->pixels[1 * 8 + 2] == woolRed,
+          "a sheep's wool shows one texel around its face in its color, the fleece tinted, its eye not");
+    check(woolTint(0) == packColor(249, 255, 254) && woolTint(14) == woolRed && woolTint(16) == 0 && woolTint(-1) == 0
+              && faceRecipe("minecraft:sheep").grow > .5 && faceRecipe("minecraft:sheep").grownFrom == 1
+              && faceRecipe("minecraft:sheep", true).grow == 0 && faceRecipe("minecraft:sheep", true).cubes == 1,
+          "a sheep's wool tint by its color index; a sheared sheep without its wool box");
     auto wolf = faceRecipe("minecraft:wolf"), warden = faceRecipe("minecraft:warden"), nautilus = faceRecipe("minecraft:zombie_nautilus");
     check(wolf.aligned && wolf.oneSided && faceRecipe("minecraft:cat").aligned && !faceRecipe("minecraft:cat").oneSided
               && faceRecipe("minecraft:polar_bear").aligned && !faceRecipe("minecraft:pig").aligned && !faceRecipe("minecraft:fox").aligned,

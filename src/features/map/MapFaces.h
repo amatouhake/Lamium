@@ -76,8 +76,12 @@ struct FaceRecipe {
     bool aligned = false, oneSided = false, picked = false, centered = false; // FaceShot's
     int side = maxFaceSide; // the longer side the face is reduced to fit
     double scale = 1;       // the boxes' units scaled: a box stretched over its texture is seen at the texture's size
+    // Of the named part's boxes from the `grownFrom`th on, each grown by `grow` units on every side: a layer the
+    // game inflates over the head (a sheep's wool), which the model's boxes do not keep.
+    double grow = 0;
+    int grownFrom = 0;
 };
-// `sheared`: a snow golem without its pumpkin shows the head under it. `elder`: a guardian with the elder's look.
+// `sheared`: a snow golem without its pumpkin shows the head under it, a sheep without its wool its skin. `elder`: a guardian with the elder's look.
 inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bool elder = false) {
     std::string_view const kind = renderer.substr(renderer.starts_with("minecraft:") ? 10 : 0);
     FaceRecipe r;
@@ -132,6 +136,9 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bo
     else if (kind == "pufferfish") r.parts = {"body"};
     else if (kind == "tadpole") r.parts = {"body", "tail"}, side();
     else if (kind == "cod" || kind == "tropicalfish") r.parts = {"body"}, side();
+    // Its wool around the face (2026-11-27): the wool box over the head, inflated 0.6 in the game's model.
+    else if (kind == "sheep" && !sheared) r.grow = .6, r.grownFrom = 1;
+    else if (kind == "sheep") r.cubes = 1;
     else if (kind == "salmon") r.parts = {"body_front"}, side(), r.picked = true; // keeps its eye and its pale belly
     else if (kind == "snow_golem" && !sheared) r.image = "textures/blocks/pumpkin_face_off";
     else if (kind == "armor_stand") r.parts.clear();
@@ -180,6 +187,16 @@ inline std::string variantTexture(std::string_view renderer, int variant) {
 inline std::string lookTexture(std::string_view renderer, int variant, bool elder) {
     if (elder && (renderer == "minecraft:guardian" || renderer == "minecraft:elder_guardian")) return "textures/entity/guardian_elder";
     return variantTexture(renderer, variant);
+}
+// A sheep's wool color by the mob's color index (the game's 16 dye colors, white first): the tint its texture
+// is multiplied by. 0 (no tint) out of range.
+inline std::uint32_t woolTint(int color) {
+    static constexpr std::uint32_t dyes[16] = {
+        packColor(249, 255, 254), packColor(249, 128, 29), packColor(199, 78, 189), packColor(58, 179, 218),
+        packColor(254, 216, 61),  packColor(128, 199, 31), packColor(243, 139, 170), packColor(71, 79, 82),
+        packColor(157, 157, 151), packColor(22, 156, 156), packColor(137, 50, 184), packColor(60, 68, 170),
+        packColor(131, 84, 50),   packColor(94, 124, 22),  packColor(176, 46, 38),   packColor(29, 29, 33)};
+    return color >= 0 && color < 16 ? dyes[color] : 0;
 }
 
 // A face picture at its image's resolution, reduced to fit `side` (larger ones halved, maintainer
@@ -293,6 +310,9 @@ struct ModelBox {
     FaceRect faces[6]{};
     std::vector<Turn> turns; // applied in order: the box's own first
     bool onTop = false;      // drawn over every other box (FaceRecipe::onTop)
+    // A color the game multiplies in (a sheep's wool color), as much as each texel's alpha: the entity textures
+    // keep it as the mask of what is tinted (a sheep's fleece opaque, its eyes and nose nearly clear). 0: none.
+    std::uint32_t tint = 0;
 };
 // The models' order and signs: x, then y, then z, with x and z turned the
 // other way (checked against the game's models: a hoglin's head pitched
@@ -337,7 +357,7 @@ struct FaceShot {
 inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int height, double texelsPerUnit,
                                        std::vector<ModelBox> const& boxes, FaceShot const& shot = {}) {
     if (!rgba || width <= 0 || height <= 0 || !(texelsPerUnit > 0) || boxes.empty()) return std::nullopt;
-    struct Quad { double ax, ay, az, e1x, e1y, e1z, e2x, e2y, e2z, det; FaceRect uv; bool onTop; };
+    struct Quad { double ax, ay, az, e1x, e1y, e1z, e2x, e2y, e2z, det; FaceRect uv; bool onTop; std::uint32_t tint; };
     double const yaw = shot.yaw * std::numbers::pi / 180, pitch = shot.pitch * std::numbers::pi / 180;
     double const cy = std::cos(yaw), sy = std::sin(yaw), cp = std::cos(pitch), sp = std::sin(pitch);
     std::vector<Quad> quads;
@@ -363,7 +383,7 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
                 p[k][0] = -x, p[k][1] = -y, p[k][2] = z2;
             }
             Quad q{p[0][0], p[0][1], p[0][2], p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2],
-                   p[2][0] - p[0][0], p[2][1] - p[0][1], p[2][2] - p[0][2], 0, faces[side], box.onTop};
+                   p[2][0] - p[0][0], p[2][1] - p[0][1], p[2][2] - p[0][2], 0, faces[side], box.onTop, box.tint};
             q.det = q.e1x * q.e2y - q.e1y * q.e2x;
             if (!(q.det > 1e-9)) continue; // facing away, or seen edge on
             for (double s : {0., 1.})
@@ -414,7 +434,10 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
                 if (sx < 0 || sy < 0 || sx >= width || sy >= height) continue;
                 auto const* px = rgba + (static_cast<size_t>(sy) * width + sx) * 4;
                 if (!px[3]) continue; // only 0 is clear (composeFace)
-                grid[at] = packColor(px[0], px[1], px[2]);
+                if (q.tint) {
+                    auto mix = [&](int c, int i) { return c + (c * channel(q.tint, i) / 255 - c) * px[3] / 255; };
+                    grid[at] = packColor(mix(px[0], 0), mix(px[1], 1), mix(px[2], 2));
+                } else grid[at] = packColor(px[0], px[1], px[2]);
                 depth[at] = z;
             }
     int left = gridW, right = -1, top = gridH, bottom = -1;
