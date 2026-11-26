@@ -150,7 +150,7 @@ option_end()
 option("radar_icon_probe")
     set_default(false)
     set_showmenu(true)
-    set_description("L-85 research: log each radar face built and write them all to logs/radar-faces.bmp")
+    set_description("L-85, L-330 research: log each radar face built to logs/radar-faces.bmp, and once per world every mob kind's face to logs/radar-sweep.*")
 option_end()
 
 option("schematic_perf_trace")

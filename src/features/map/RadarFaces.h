@@ -18,6 +18,8 @@ int headOf(Actor& player);
 int headOf(SerializedSkinRef const& skin);
 // Each frame before looking faces up: a few new kinds load per frame.
 void frame();
+// Research builds only (radar_icon_probe, L-330): once per world, every mob kind's face to logs/radar-sweep.*.
+void sweep(IClientInstance&);
 // Draws a face centered on (x, y) in GUI units, its longer side about
 // `size` units, each texel a whole number of screen pixels, inside a black
 // ring. False when it could not be drawn (the caller draws a dot).

@@ -915,6 +915,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             auto cameraOnMap = transform.toMap(cameraFacing.x, cameraFacing.z);
             overlay.cameraAngle = std::atan2(cameraOnMap.x, -cameraOnMap.z);
         }
+        faces::sweep(client);
         if (settings.radar && onMinimap(settings.radarShownOn)) {
             RadarSwitches switches{settings.radarPlayers, settings.radarHostile, settings.radarPassive, settings.radarItems};
             faces::frame();

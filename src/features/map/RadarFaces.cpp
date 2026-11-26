@@ -29,6 +29,7 @@
 #include "mc/deps/json/Value.h"
 #include "mc/world/actor/player/AnimatedImageData.h"
 #include "mc/world/actor/player/persona/AnimatedTextureType.h"
+#include <algorithm>
 #include <format>
 #include <fstream>
 #include <string>
@@ -100,19 +101,19 @@ std::optional<HeadBoxes> headBoxes(Model const& model) {
     }
     return std::nullopt;
 }
-std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer) {
-    auto dispatcher = client.getEntityRenderDispatcher();
-    if (!dispatcher) return std::nullopt;
-    auto dataDriven = dispatcher->getDataDrivenRenderer(actor.getActorRendererId());
-    if (!dataDriven) return std::nullopt;
-    auto model = dataDriven->mModel.get();
+std::string faceTexture(DataDrivenRenderer& dataDriven, std::string const& renderer) {
+    std::string texture(baseTexture(renderer));
+    if (texture.empty())
+        if (auto const& location = dataDriven.mDefaultSkin->mResourceLocationPtr.get(); location)
+            texture = location->mPath->value;
+    return texture;
+}
+std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven, std::string const& renderer) {
+    auto model = dataDriven.mModel.get();
     if (!model) return std::nullopt;
     auto head = headBoxes(*model);
     if (!head) return std::nullopt;
-    std::string texture(baseTexture(renderer));
-    if (texture.empty())
-        if (auto const& location = dataDriven->mDefaultSkin->mResourceLocationPtr.get(); location)
-            texture = location->mPath->value;
+    std::string texture = faceTexture(dataDriven, renderer);
     if (texture.empty()) return std::nullopt;
     auto image = visuals::readPackImage(client.getResourcePackManager(), texture);
     if (!image || image->width <= 0 || image->height <= 0) return std::nullopt;
@@ -120,6 +121,13 @@ std::optional<Face> load(IClientInstance& client, Actor& actor, std::string cons
     // Textures may be finer than the model's texture units.
     double texels = head->textureWidth > 0 ? width / head->textureWidth : 1;
     return composeFace(image->rgba.data(), width, height, texels, std::move(head->boxes));
+}
+std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer) {
+    auto dispatcher = client.getEntityRenderDispatcher();
+    if (!dispatcher) return std::nullopt;
+    auto dataDriven = dispatcher->getDataDrivenRenderer(actor.getActorRendererId());
+    if (!dataDriven) return std::nullopt;
+    return load(client, *dataDriven, renderer);
 }
 #ifdef LAMIUM_RADAR_ICON_PROBE
 void writeBmp(std::string const& name, std::uint32_t const* px, int width, int height) {
@@ -169,6 +177,85 @@ void dumpSkin(int n, std::uint8_t const* rgba, int width, int height, std::initi
         try {
             std::ofstream(Runtime::instance().self().getModDir() / "logs" / std::format("skin-{}-{}.json", n, part++)) << text;
         } catch (...) {}
+}
+// Research builds only (L-330): once per world, every data-driven renderer's face built apart from the radar's
+// own atlas, to logs/radar-sweep.bmp (cells in reading order, eight a row), and what each was built from to
+// logs/radar-sweep.txt: the head part or every part's name, each head cube's rotation, pivot and mirror, the
+// front face's UV and its rotation, the texture and its size against the model's.
+bool swept = false;
+std::string vec(Vec3 const& v) { return std::format("({:g},{:g},{:g})", v.x, v.y, v.z); }
+void describePart(ModelPart const& part, std::string& out, int depth) {
+    if (depth > 4) return;
+    out += std::format("    part {}{} pos {} rot {} mirror {} cubes {} meshes {}\n", std::string(static_cast<size_t>(depth) * 2, ' '),
+                       part.mName->getString(), vec(*part.mPos), vec(*part.mRot), static_cast<bool>(part.mMirror), part.mCubes->size(),
+                       part.mTextureMeshes->size());
+    for (auto const& cube : *part.mCubes) {
+        auto const& face = (*cube.mFaceData)[2];
+        out += std::format("      cube origin {} size {} rot {} pivot {} mirrored {} front uv ({:g},{:g}) size ({:g},{:g}) uvrot {} valid {}\n",
+                           vec(*cube.mOrigin), vec(*cube.mSize), vec(*cube.mRotation), vec(*cube.mCubePivot),
+                           static_cast<bool>(cube.mMirrored), face.mUV->x, face.mUV->y, face.mUVSize->x, face.mUVSize->y,
+                           static_cast<int>(face.mUvRotation), static_cast<bool>(face.mFaceValid));
+    }
+    for (auto const* child : *part.mChildren)
+        if (child) describePart(*child, out, depth + 1);
+}
+void sweepAll(IClientInstance& client) {
+    auto dispatcher = client.getEntityRenderDispatcher();
+    if (!dispatcher) return;
+    std::vector<std::pair<std::string, DataDrivenRenderer*>> renderers;
+    for (auto const& [name, renderer] : *dispatcher->mDataDrivenRenderers)
+        if (renderer) renderers.emplace_back(name.getString(), renderer.get());
+    std::sort(renderers.begin(), renderers.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    std::string text = std::format("{} data-driven renderers, {} others\n", renderers.size(), dispatcher->mNonDataDrivenRenderers->size());
+    for (auto const& entry : *dispatcher->mNonDataDrivenRenderers) text += "  not data-driven: " + entry.first.getString() + "\n";
+    std::vector<Face> faces;
+    for (size_t i = 0; i < renderers.size(); ++i) {
+        auto const& [name, renderer] = renderers[i];
+        text += std::format("#{} {}\n", i, name);
+        try {
+            std::string texture = faceTexture(*renderer, name);
+            text += std::format("  texture {} ({})", texture.empty() ? "none" : texture, baseTexture(name).empty() ? "default skin" : "baseTexture");
+            if (!texture.empty())
+                if (auto image = visuals::readPackImage(client.getResourcePackManager(), texture))
+                    text += std::format(" {}x{}", image->width, image->height);
+            text += "\n";
+            auto model = renderer->mModel.get();
+            if (!model) { text += "  no model\n"; continue; }
+            int heads = 0;
+            std::string names;
+            for (auto const* part : *model->mAllParts) {
+                if (!part) continue;
+                names += " " + part->mName->getString();
+                if (part->mName->getString() != "head") continue;
+                if (heads++ == 0) text += std::format("  head texSize ({:g},{:g})\n", part->mTexSize->x, part->mTexSize->y);
+                describePart(*part, text, 0);
+            }
+            if (heads != 1) text += std::format("  {} head parts; all parts:{}\n", heads, names);
+            if (auto face = load(client, *renderer, name)) {
+                text += std::format("  face {}x{} in cell {}\n", face->width, face->height, faces.size());
+                faces.push_back(std::move(*face));
+            } else text += "  no face\n";
+        } catch (...) { text += "  failed\n"; }
+    }
+    try { std::ofstream(Runtime::instance().self().getModDir() / "logs" / "radar-sweep.txt") << text; } catch (...) {}
+    int const count = std::min(static_cast<int>(faces.size()), faceAtlasCapacity);
+    std::vector<std::uint32_t> sheet;
+    for (int i = 0; i < count; ++i) writeFace(sheet, i, faces[static_cast<size_t>(i)]);
+    if (sheet.empty()) return;
+    constexpr int zoom = 4, cell = faceCellSide * zoom + 4, perRow = 8;
+    int const rows = (count + perRow - 1) / perRow, width = perRow * cell, height = std::max(1, rows) * cell;
+    std::vector<std::uint32_t> px(static_cast<size_t>(width) * height, packColor(96, 96, 96));
+    for (int i = 0; i < count; ++i) {
+        auto at = faceAtlasCell(i);
+        int ox = (i % perRow) * cell + 2, oy = (i / perRow) * cell + 2;
+        for (int y = 0; y < faceCellSide * zoom; ++y)
+            for (int x = 0; x < faceCellSide * zoom; ++x) {
+                auto c = sheet[static_cast<size_t>(at.y + y / zoom) * faceAtlasSide + at.x + x / zoom];
+                if (c >> 24) px[static_cast<size_t>(oy + y) * width + ox + x] = c;
+            }
+    }
+    writeBmp("radar-sweep.bmp", px.data(), width, height);
+    Runtime::instance().self().getLogger().info("Radar faces: swept {} renderers, {} faces, to logs/radar-sweep.*", renderers.size(), count);
 }
 #endif
 int add(std::optional<Face> face, std::string const& name) {
@@ -264,6 +351,15 @@ int headOf(SerializedSkinRef const& ref) {
     return index;
 }
 void frame() { loadsLeft = loadsPerFrame; }
+void sweep(IClientInstance& client) {
+#ifdef LAMIUM_RADAR_ICON_PROBE
+    if (swept) return;
+    swept = true;
+    try { sweepAll(client); } catch (...) {}
+#else
+    (void)client;
+#endif
+}
 bool draw(MinecraftUIRenderContext& context, int index, float x, float y, float size, float alpha) {
     if (index < 0 || index >= static_cast<int>(found.size())) return false;
     auto& client = context.mClient;
@@ -302,5 +398,8 @@ void forget(IClientInstance* client) {
         } catch (...) {}
     atlasUploaded = false;
     atlasDirty = false;
+#ifdef LAMIUM_RADAR_ICON_PROBE
+    swept = false;
+#endif
 }
 }
