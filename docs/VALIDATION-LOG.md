@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Radar faces from the turned model, per kind, at one texel size (L-330, 2026-11-26)
+
+`1caa29ca` with `radar_icon_probe` (DLL
+`a5cdb9256ff6bf141cb033b25925a5b2713b837b2b101a272ac3f195dc87d6bd`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the sweep wrote 111 faces, matching the offline renders from the
+  game's model files; on the radar the hoglin looks right, the squid shows
+  its face; every face's texels and outline are the same size, small mobs
+  small.
+- Remarked: a brown horse shows the white horse's face (faces are per
+  kind); the squid is large beside the other mobs.
+
 ## Every mob kind's radar face, swept (L-330, 2026-11-26)
 
 `aefddfb0` with `radar_icon_probe` (DLL

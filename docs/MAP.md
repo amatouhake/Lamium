@@ -107,7 +107,7 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   notes servers may treat radar as unfair.
 - Dots 8+ blocks above or below are fainter, except players, for whom faint
   means out of range; distant players use vanilla locator state (L-89).
-  Optional mob faces and player heads (L-85, L-87).
+  Optional mob faces (seen as in L-330) and player heads (L-85, L-87).
 - Mockup dot size up to 128 blocks across, then shrinking with the square
   root of the range to half at 512. Nearest first, at most 256.
 

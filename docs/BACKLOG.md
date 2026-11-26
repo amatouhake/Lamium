@@ -199,7 +199,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Key names and the game's drop key seen in game 2026-11-23; the targets and Esc order open
-- [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Causes found from a sweep of every mob kind (2026-11-26); fixes and the open looks wait for the maintainer
+- [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Design): Faces rebuilt from the turned model and seen in game (2026-11-26, `1caa29ca`); horse colors, large mobs and the default wait for the maintainer
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
