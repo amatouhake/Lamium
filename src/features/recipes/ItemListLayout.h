@@ -121,6 +121,10 @@ struct SideLayout {
     static constexpr float cell = 18, head = 14, row = 12, pad = 2;
     float left = 0, top = 0, width = 0, height = 0;
     int columns = 0;
+    // The favorites' cells stand in the panel's middle as the item list's do (L-409); `gutter` is kept free at
+    // the right for their scroll bar.
+    float gutter = 0;
+    float shift() const { return std::floor(std::max(0.f, width - 2 * pad - gutter - static_cast<float>(columns) * cell) / 2); }
     // Which halves are in use; one alone has the whole band.
     bool favoritesOn = true, planOn = true;
     bool usable() const { return columns > 0 && height >= band::minLength(band::Left); } // one row under its heading
@@ -128,11 +132,11 @@ struct SideLayout {
     float split() const { return !favoritesOn ? 0 : !planOn ? height : std::floor(height * .5f); }
     int favoriteRows() const { return std::max(0, static_cast<int>((split() - head - pad) / cell)); }
     int favorites() const { return columns * favoriteRows(); }
-    float cellX(int index) const { return left + pad + static_cast<float>(index % columns) * cell; }
+    float cellX(int index) const { return left + pad + shift() + static_cast<float>(index % columns) * cell; }
     float cellY(int index) const { return top + head + static_cast<float>(index / columns) * cell; }
     int hitFavorite(float x, float y) const {
-        if (!usable() || x < left + pad || y < top + head) return -1;
-        int const column = static_cast<int>((x - left - pad) / cell), line = static_cast<int>((y - top - head) / cell);
+        if (!usable() || x < left + pad + shift() || y < top + head) return -1;
+        int const column = static_cast<int>((x - left - pad - shift()) / cell), line = static_cast<int>((y - top - head) / cell);
         return column < columns && line < favoriteRows() ? line * columns + column : -1;
     }
     // The lists' tabs: 14 high, room for an item's picture at 14 units where the names do not fit (L-367).

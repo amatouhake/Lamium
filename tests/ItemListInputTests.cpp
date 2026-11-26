@@ -136,4 +136,11 @@ void itemListLayoutTests() {
               && list.hit(412 + ItemListLayout::pad + 1, list.cellY(0) + 1) == -1 && list.hit(640 - ItemListLayout::pad - 1, list.cellY(0) + 1) == -1,
           "its cells are hit where they stand, the width left on either side is none of them");
     check(odd.columns == 12 && odd.cellX(0) == 412 + ItemListLayout::pad + 6, "an odd width left keeps the cells on whole units");
+    auto favorites = sidePanelIn({0, 0, 228, 180}, true);
+    check(favorites.columns == 12 && favorites.cellX(0) == SideLayout::pad + 4
+              && favorites.hitFavorite(favorites.cellX(0) + 1, favorites.cellY(0) + 1) == 0 && favorites.hitFavorite(SideLayout::pad + 1, favorites.cellY(0) + 1) == -1,
+          "the favorites' cells stand in the middle of their panel too");
+    favorites.columns = 11, favorites.gutter = 8;
+    check(favorites.cellX(0) == SideLayout::pad + 9 && favorites.cellX(10) + SideLayout::cell == 228 - SideLayout::pad - 8 - 9,
+          "with a scroll bar they stand in the middle of what it leaves");
 }
