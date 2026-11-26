@@ -1,7 +1,7 @@
 #pragma once
 #include "features/inspection/render/ItemIcon.h"
 #include "features/inventory/EnchantOrderGame.h"
-#include "ui/EnchantLayout.h"
+#include "features/inventory/EnchantLayout.h"
 #include <string>
 #include <vector>
 class MinecraftUIRenderContext;

@@ -1,6 +1,6 @@
 #include "features/inventory/EnchantPlan.h"
 #include "features/inventory/EnchantOrder.h"
-#include "ui/EnchantLayout.h"
+#include "features/inventory/EnchantLayout.h"
 #include <cstdint>
 #include <vector>
 void check(bool, char const*);

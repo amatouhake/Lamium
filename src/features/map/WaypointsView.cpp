@@ -1,5 +1,5 @@
 #include "ui/DataNotice.h"
-#include "ui/WaypointsView.h"
+#include "features/map/WaypointsView.h"
 #include "ui/PaneScroll.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"

@@ -73,9 +73,9 @@ xmake build LamiumNativeTests && xmake run LamiumNativeTests   # SDK-type tests
 src/app        Runtime (feature lifecycle, logging, settings access)
 src/settings   Settings struct, option catalog (Options.h), JSON store
 src/input      Actions and default keys (Binding.h), dispatch (Actions.cpp)
-src/ui         Settings screen, views, shared widgets, layout math, translations
+src/ui         Settings screen and its own parts, shared widgets, layout math, translations
 src/overlay    World-space geometry (pure) and rendering (WorldOverlay.cpp)
-src/features   One folder per area; hooks live here
+src/features   One folder per area; hooks and the area's screens live here
 tests          Pure unit tests (no game types). tests-native: SDK-type tests
 ```
 

@@ -4,10 +4,10 @@
 // for the pages that replace the settings rows. Input, the wheel, editing
 // keys and drawing go to the view shown; a typed number looks for the view
 // editing one; ending an edit reaches every view.
-#include "ui/SchematicsView.h"
+#include "features/schematic/SchematicsView.h"
 #include "ui/SettingsNavigation.h"
 #include "ui/ShapesView.h"
-#include "ui/WaypointsView.h"
+#include "features/map/WaypointsView.h"
 #include <array>
 namespace lamium::ui::tool_views {
 struct View {

@@ -39,9 +39,8 @@ stop and ask the maintainer (AGENTS.md "When to stop").
   and dimension change. A feature that holds input or changes game state
   also does on focus loss, so no key or state stays stuck. Draw-only changes
   (HUD placement and hiding) are decided per draw and are kept while the
-  window is unfocused. A lock the player switched on and off themselves
-  (Permanent Sneak and Sprint) is what they asked for, not a stuck key: it
-  stays on through menus and focus loss (maintainer 2026-11-26).
+  window is unfocused, as is a lock the player switched on (Permanent Sneak
+  and Sprint: what they asked for, not a stuck key; 2026-11-26).
 - The map draws only what the client has seen; nothing predicted from the
   seed (it would need a generator per game version and look as real as
   recorded terrain).

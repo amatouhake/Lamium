@@ -11,7 +11,7 @@
 #include "ui/SavePromptLayout.h"
 #include "ui/RadialLayout.h"
 #include "ui/Translations.h"
-#include "ui/SchematicFiles.h"
+#include "features/schematic/SchematicFiles.h"
 #include "features/schematic/MaterialAmount.h"
 #include "features/schematic/MenuModel.h"
 #include "features/schematic/MoveDirection.h"

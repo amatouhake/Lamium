@@ -326,7 +326,7 @@ Under `src/features/map/` unless stated; pure parts tested in
   `MapMarks.h` (`layerShown`, `listKind`, hit order), `MapLayers.cpp`
   (footprints), `MapSlime.h`, `SeedLink.h`, `Teleport.h`.
 - `WaypointStore.cpp`, `WaypointSession.cpp` (`resolve`), `ServerIdentity.h`,
-  `WaypointMarkers.cpp`, `Waypoints.h`, `src/ui/WaypointsView.cpp`.
+  `WaypointMarkers.cpp`, `Waypoints.h`, `src/features/map/WaypointsView.cpp`.
 - zstd is an xmake package (THIRD_PARTY_NOTICES.md, PROVENANCE), linked into
   `LamiumTests`. `scripts/Lmr2Fixture.py` independently writes the golden
   file in `tests/fixtures/lmr2` and reads C++ output: after `xmake run

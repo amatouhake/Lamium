@@ -275,7 +275,7 @@ Under `src/features/schematic/` unless stated.
   `Verification.h` (`maxMismatches`), `GhostFaces.h`, `LiquidShape.h`,
   `PlacementOverlap.h`, `RayCells.h`, `PickRay.h`, `SectionLayers.h`,
   `PreviewView.h`, `MaterialAmount.h`,
-  `src/ui/SchematicFiles.h`, `src/features/information/SchematicTarget.h`.
+  `src/features/schematic/SchematicFiles.h`, `src/features/information/SchematicTarget.h`.
 - Ghost pass: `GhostRenderer.cpp` (sections to build and draw, the blended
   mesh, lifecycle); `GhostMesh.*` (8-block sections, `cullAgainstGhosts`,
   `dropBackFaces`, `dropDuplicateQuads`, liquid shells); `GhostBlocks.cpp`,
@@ -284,7 +284,7 @@ Under `src/features/schematic/` unless stated.
   (`classifyCell`, progress, entity spots); `GhostMarks.*` (frames, save area,
   name tags); `EntityModels.*`, `RestPose.h`; `GhostPick.*`.
 - Area save: `AreaSave.*`, `SaveArea.h`, `Selection.*`. Previews:
-  `Preview.cpp`. Screen: `src/ui/SchematicsView.cpp`. Lines:
+  `Preview.cpp`. Screen: `src/features/schematic/SchematicsView.cpp`. Lines:
   `src/overlay/LineColor.h`.
 - Tests: `tests/SchematicTests.cpp` (`structureWrittenShape` and the rest),
   `BlockEntityCheckTests.cpp`, `CheckIgnoresTests.cpp`,

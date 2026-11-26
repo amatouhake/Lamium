@@ -1,5 +1,5 @@
-#include "ui/EnchantSteps.h"
-#include "ui/EnchantChooser.h"
+#include "features/inventory/EnchantSteps.h"
+#include "features/inventory/EnchantChooser.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"

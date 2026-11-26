@@ -282,9 +282,9 @@ detail; these are not to be undone without asking.
 | Order search, cost rules, matching a stack to the plan (pure): `plan`, `Rules` (`goal`, `refuseAt = 40`), `levelCost`, `carried`, `stepFor`, `Input::onItem` | `src/features/inventory/EnchantPlan.h` |
 | Chooser edits, progress, slot marks (pure): `allHighest`, `grouped`, `release`, `progress`, `follow`, `anvilSay`, `gridSlot` | `src/features/inventory/EnchantOrder.h` |
 | Game reads, the session's plan, the panels beside the anvil, press/wheel handling (`anvilPress`, `anvilWheel`) | `src/features/inventory/EnchantOrderGame.cpp` |
-| Planner page | `src/ui/EnchantView.cpp` |
-| Choosing column (both places) and layouts (`layColumn`, `fitPanel`, `EnchantStepsLayout`) | `src/ui/EnchantChooser.cpp`, `src/ui/EnchantLayout.h` |
-| Steps' side (both places) | `src/ui/EnchantSteps.cpp` |
+| Planner page | `src/features/inventory/EnchantView.cpp` |
+| Choosing column (both places) and layouts (`layColumn`, `fitPanel`, `EnchantStepsLayout`) | `src/features/inventory/EnchantChooser.cpp`, `src/features/inventory/EnchantLayout.h` |
+| Steps' side (both places) | `src/features/inventory/EnchantSteps.cpp` |
 | Mouse events kept from the anvil screen; opening over the anvil (`ui::openEnchantOrder(client, true)`) | `src/input/CustomInput.cpp`, `src/ui/SettingsScreen.cpp` |
 
 Tests: `tests/EnchantPlanTests.cpp` (the planner against exhaustive search

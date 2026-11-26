@@ -1,4 +1,4 @@
-#include "ui/SchematicsRows.h"
+#include "features/schematic/SchematicsRows.h"
 #include "ui/SettingsTable.h"
 #include <cmath>
 void check(bool, char const*);
