@@ -172,7 +172,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Bugs
 
-- [L-410](backlog/L-410.md) Sneak Placement "Send only" lets the client open a door the server keeps shut (Research): Traced (`394ad031`): the methods differ in the move input's sneak flags; a research build sets them too
+- [L-410](backlog/L-410.md) Sneak Placement "Send only" lets the client open a door the server keeps shut (Research): A works in the research build (`cf793f85`); the same in the default build, not checked
 - [L-358](backlog/L-358.md) Realms joined through a friend share one data set (Research): Built with L-365; a server join reads the cookie without a crash (2026-11-19); no Realm checked, the released log line is the check
 - [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; every question and answer checked on a local BDS (2026-11-19); a Realm not seen
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen

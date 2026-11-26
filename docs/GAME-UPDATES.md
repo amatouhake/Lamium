@@ -610,8 +610,10 @@ has been sent; `SneakPlacementInput` (`extractRawHIDInput`) feeds `SneakDown`
 into a transient copy of the move input meanwhile. The experimental send-only
 method edits the auth input's sneak bits instead, and for the length of the
 client's own `useItemOn` writes the local player's `ActorFlags::Sneaking` bit
-in its `ActorDataFlagComponent` to the state sent, then puts it back (L-410;
-only when `isSneaking()` reads that bit back). `SneakPlacement` is the macro that makes
+in its `ActorDataFlagComponent` and the move input's `Sneaking` and
+`SneakDown` flags to the state sent, then puts them back (L-410; only when
+`isSneaking()` reads that bit back). The move input's are what the client's
+use follows (seen 2026-11-27). `SneakPlacement` is the macro that makes
 the six build hooks. Protected by the
 `SneakPlacement` capability; a use is never held without it.
 

@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak Placement "Send only" at a door with the move input's flags set (2026-11-27)
+
+`cf793f85` with `sneak_trace` (DLL
+`fb7100cf784e036cf3a999c43874bd01299f5a28d45d87f0bb718461919a8b85`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: in "Send only" a door clicked with a spawn egg stays shut; with a
+  block the door stays shut and the block is placed; no crouch pose,
+  slowing or dip of the view at the click; nothing else changed.
+- This build set the move input's `Sneaking` and `SneakDown` for the
+  client's use call besides the flag; the build before it, with the flag
+  alone, left the door opening.
+
 ## Sneak Placement at a door, traced in both methods (2026-11-27)
 
 `394ad031` with `sneak_trace` (DLL

@@ -93,8 +93,8 @@ bool holds(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face
 }
 // Send only (L-410): the server decides the use with the sneak state it was sent, the client's own use call
 // with the local player's flag, which that method leaves alone. A block the client toggles itself (a door)
-// then opened here and stayed shut there. For the length of that one call the flag reads as the state sent;
-// nothing else of sneaking (pose, speed, input) is touched. Left alone unless the bit is the one the game
+// then opened here and stayed shut there. For the length of that one call the flag reads as the state sent
+// (and the move input's, InputAsSent); pose and speed are not touched. Left alone unless the bit is the one the game
 // reads back.
 class AsSent {
     ActorDataFlagComponent* flags = nullptr;
@@ -128,6 +128,33 @@ public:
     AsSent(AsSent const&) = delete;
     AsSent& operator=(AsSent const&) = delete;
 };
+// With AsSent: the move input's sneak flags read as the state sent for the call too. The flag alone left the door
+// opening (43930ea5); with these the client's use leaves it shut as the server does (cf793f85, 2026-11-27).
+// Written and put back inside the call, between the ticks that read them for movement.
+class InputAsSent {
+    MoveInputComponent* input = nullptr;
+    bool sneaking = false, down = false;
+
+public:
+    explicit InputAsSent(bool apply) noexcept {
+        try {
+            auto client = ll::service::getClientInstance();
+            if (!apply || !client) return;
+            auto* found = ClientMoveInputHandler::getMoveInput(*client);
+            if (!found) return;
+            sneaking = found->mFlagValues->test(static_cast<size_t>(MoveInputComponent::Flag::Sneaking));
+            down = found->mInputState->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown));
+            found->mFlagValues->set(static_cast<size_t>(MoveInputComponent::Flag::Sneaking), serverSneak);
+            found->mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown), serverSneak);
+            input = found;
+        } catch (...) {}
+    }
+    ~InputAsSent() {
+        if (!input) return;
+        input->mFlagValues->set(static_cast<size_t>(MoveInputComponent::Flag::Sneaking), sneaking);
+        input->mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown), down);
+    }
+};
 #ifdef LAMIUM_SNEAK_TRACE
 // Research builds (L-410): what a use call saw of sneaking, and whether it changed the block it aimed at.
 int traced = 0;
@@ -149,28 +176,6 @@ std::array<Block const*, 3> column(Player& actor, BlockPos const& pos) {
     auto& region = actor.getDimensionBlockSource();
     return {&region.getBlock({pos.x, pos.y - 1, pos.z}), &region.getBlock(pos), &region.getBlock({pos.x, pos.y + 1, pos.z})};
 }
-// The second try: the move input's sneak flags read as the state sent for the call too, where AsSent wrote the flag.
-class InputAsSent {
-    MoveInputComponent* input = nullptr;
-    bool sneaking = false, down = false;
-
-public:
-    explicit InputAsSent(bool apply) {
-        auto client = ll::service::getClientInstance();
-        if (!apply || !client) return;
-        input = ClientMoveInputHandler::getMoveInput(*client);
-        if (!input) return;
-        sneaking = input->mFlagValues->test(static_cast<size_t>(MoveInputComponent::Flag::Sneaking));
-        down = input->mInputState->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown));
-        input->mFlagValues->set(static_cast<size_t>(MoveInputComponent::Flag::Sneaking), serverSneak);
-        input->mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown), serverSneak);
-    }
-    ~InputAsSent() {
-        if (!input) return;
-        input->mFlagValues->set(static_cast<size_t>(MoveInputComponent::Flag::Sneaking), sneaking);
-        input->mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown), down);
-    }
-};
 void trace(std::string const& text) {
     if (++traced > 120) return;
     try { Runtime::instance().self().getLogger().info("Sneak placement trace: {}", text); } catch (...) {}
@@ -185,8 +190,8 @@ template <class Call> InteractionResult useOn(char const* mode, Player& actor, I
         return InteractionResult{false, false};
     }
     AsSent const sneak(actor);
-#ifdef LAMIUM_SNEAK_TRACE
     InputAsSent const input(sneak.applied());
+#ifdef LAMIUM_SNEAK_TRACE
     std::array<Block const*, 3> before{};
     std::string seen;
     try {
