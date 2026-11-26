@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak Placement at a door, traced in both methods (2026-11-27)
+
+`394ad031` with `sneak_trace` (DLL
+`e5456f6cffa5268ae4f47a94cf2451de0f949e56975b312ef384b1c88e85454b`),
+1.26.60.05 Dev, the maintainer clicked a door with a spawn egg three times
+in each method; from the checklist page and the log:
+- "Send only": the door opens on the client as before. "Crouch briefly":
+  it stays shut.
+- The client's `GameMode::useItemOn` in "Send only": flag written and read
+  true, sneaking component present, the move input's `Sneaking` and
+  `SneakDown` false; result success and swing; the block at the position
+  the same before and after. In "Crouch briefly" the same but for the move
+  input, both true.
+- The two lines after each (`GameMode` inside `SurvivalMode`) are the
+  local server's player, whose flag is true.
+- Not told by this trace: the block compared was the one aimed at only,
+  and a door keeps its open state in one half.
+
 ## Sneak Placement "Send only" at a door with the client's flag set (2026-11-27)
 
 `43930ea5` (DLL

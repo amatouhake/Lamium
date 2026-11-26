@@ -33,6 +33,7 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 #include "mc/world/phys/HitResult.h"
+#include <array>
 #include <format>
 #include <stdexcept>
 
@@ -143,8 +144,35 @@ std::string sneakSeen(Player& actor) {
     } catch (...) { out += " (read failed)"; }
     return out;
 }
+// The block aimed at with the ones under and over it: a door keeps its open state in one half.
+std::array<Block const*, 3> column(Player& actor, BlockPos const& pos) {
+    auto& region = actor.getDimensionBlockSource();
+    return {&region.getBlock({pos.x, pos.y - 1, pos.z}), &region.getBlock(pos), &region.getBlock({pos.x, pos.y + 1, pos.z})};
+}
+// The second try: the move input's sneak flags read as the state sent for the call too, where AsSent wrote the flag.
+class InputAsSent {
+    MoveInputComponent* input = nullptr;
+    bool sneaking = false, down = false;
+
+public:
+    explicit InputAsSent(bool apply) {
+        auto client = ll::service::getClientInstance();
+        if (!apply || !client) return;
+        input = ClientMoveInputHandler::getMoveInput(*client);
+        if (!input) return;
+        sneaking = input->mFlagValues->test(static_cast<size_t>(MoveInputComponent::Flag::Sneaking));
+        down = input->mInputState->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown));
+        input->mFlagValues->set(static_cast<size_t>(MoveInputComponent::Flag::Sneaking), serverSneak);
+        input->mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown), serverSneak);
+    }
+    ~InputAsSent() {
+        if (!input) return;
+        input->mFlagValues->set(static_cast<size_t>(MoveInputComponent::Flag::Sneaking), sneaking);
+        input->mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown), down);
+    }
+};
 void trace(std::string const& text) {
-    if (++traced > 80) return;
+    if (++traced > 120) return;
     try { Runtime::instance().self().getLogger().info("Sneak placement trace: {}", text); } catch (...) {}
 }
 #endif
@@ -158,23 +186,45 @@ template <class Call> InteractionResult useOn(char const* mode, Player& actor, I
     }
     AsSent const sneak(actor);
 #ifdef LAMIUM_SNEAK_TRACE
-    Block const* before = nullptr;
+    InputAsSent const input(sneak.applied());
+    std::array<Block const*, 3> before{};
     std::string seen;
     try {
-        before = &actor.getDimensionBlockSource().getBlock(pos);
+        before = column(actor, pos);
         seen = sneakSeen(actor);
     } catch (...) {}
     InteractionResult const result = call();
     try {
-        Block const* after = &actor.getDimensionBlockSource().getBlock(pos);
-        trace(std::format("{} useItemOn ({},{},{}) {} item {} flag written {}; {}; result success {} swing {}; block {}", mode, pos.x, pos.y, pos.z,
-                          before ? before->getBlockType().mNameInfo->mFullName->getString() : "?", item.isNull() ? "none" : "held",
-                          sneak.applied(), seen, static_cast<bool>(result.mSuccess), static_cast<bool>(result.mSwing),
-                          after == before ? "unchanged" : "CHANGED"));
+        trace(std::format("{} useItemOn ({},{},{}) {} {} item {} flag written {}; {}; result success {} swing {}; column {}", mode, pos.x, pos.y, pos.z,
+                          before[1] ? before[1]->getBlockType().mNameInfo->mFullName->getString() : "?",
+                          static_cast<Player*>(localPlayer()) == &actor ? "client" : "server", item.isNull() ? "none" : "held", sneak.applied(), seen,
+                          static_cast<bool>(result.mSuccess), static_cast<bool>(result.mSwing), column(actor, pos) == before ? "unchanged" : "CHANGED"));
     } catch (...) {}
     return result;
 #else
     (void)mode;
+    return call();
+#endif
+}
+// Research builds: a build call let through, and whether the column changed during it.
+template <class Call> bool buildTraced(char const* mode, Player& actor, BlockPos const& pos, Call&& call) {
+#ifdef LAMIUM_SNEAK_TRACE
+    std::array<Block const*, 3> before{};
+    bool interactive = false;
+    try {
+        before = column(actor, pos);
+        interactive = before[1]->getBlockType().isInteractiveBlock();
+    } catch (...) {}
+    bool const result = call();
+    try {
+        if (interactive)
+            trace(std::format("{} buildBlock ({},{},{}) {} result {}; column {}", mode, pos.x, pos.y, pos.z,
+                              static_cast<Player*>(localPlayer()) == &actor ? "client" : "server", result,
+                              column(actor, pos) == before ? "unchanged" : "CHANGED"));
+    } catch (...) {}
+    return result;
+#else
+    (void)mode, (void)actor, (void)pos;
     return call();
 #endif
 }
@@ -267,7 +317,7 @@ LL_TYPE_INSTANCE_HOOK(SneakPlacementSend, ll::memory::HookPriority::Normal, Loop
 LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##Build, ll::memory::HookPriority::Normal, Mode, \
     &Mode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) { \
     if (holds(mPlayer, heldIn(mPlayer, hand), pos, face)) return false; \
-    return origin(pos, face, hand, simTick); \
+    return buildTraced(#Mode, mPlayer, pos, [&] { return origin(pos, face, hand, simTick); }); \
 } \
 LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##StartBuild, ll::memory::HookPriority::Normal, Mode, \
     &Mode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) { \
