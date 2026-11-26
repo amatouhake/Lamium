@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item list cells in the middle; the radar models dumped (2026-11-26)
+
+`ec8e62c7` with `radar_icon_probe` (DLL
+`257ad3afe9cf22e5135e6892bb8f9c50ec2d9cc6f0f79748a03c34c6338cf928`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the item list's cells in the middle of its panel, the width left
+  half on each side; a press opens the pressed cell's item; nothing else
+  changed.
+- Remarked: the favorites' cells were still at the left, which reads wrong
+  once the panels are stacked; they should stand in the middle too.
+- From the files: entering the world wrote 214 models and 229 textures to
+  logs/radar-dump (5.3 MB). A port of the face building outside the game
+  gives the same pixels as the game's sweep of that run for all 178 faces
+  built from a model (the snow golem's picture is not in the dump).
+
 ## Item list cells at the screen's edge; rabbit and mooshroom faces (2026-11-26)
 
 `4935f074` (DLL

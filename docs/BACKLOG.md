@@ -172,7 +172,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Bugs
 
-- [L-409](backlog/L-409.md) The item list leaves an empty dark strip at the screen's edge (Ready): Built, not checked in game
+- [L-409](backlog/L-409.md) The item list leaves an empty dark strip at the screen's edge (Ready): The item list's cells checked in game (`ec8e62c7`); the favorites' built, not checked
 - [L-410](backlog/L-410.md) Sneak Placement "Send only" lets the client open a door the server keeps shut (Research): Cause confirmed in game; A to be researched first (maintainer 2026-11-26)
 - [L-358](backlog/L-358.md) Realms joined through a friend share one data set (Research): Built with L-365; a server join reads the cookie without a crash (2026-11-19); no Realm checked, the released log line is the check
 - [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; every question and answer checked on a local BDS (2026-11-19); a Realm not seen
@@ -193,7 +193,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-411](backlog/L-411.md) Radar faces that are hard to read (Design): Open; proposals to be drawn outside the game from a dump of the models (`radar_icon_probe`)
+- [L-411](backlog/L-411.md) Radar faces that are hard to read (Design): Proposals drawn and shown (2026-11-26); waiting for the maintainer's picks
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
 - [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
