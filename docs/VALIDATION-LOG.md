@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Every mob kind's radar face, swept (L-330, 2026-11-26)
+
+`aefddfb0` with `radar_icon_probe` (DLL
+`abb2099728a92d9f4252a7a98e726ea1ed3674982949020fc202e439c9497daa`),
+1.26.60.05 Dev, the maintainer: entering a world wrote logs/radar-sweep.*
+(214 renderers, 96 faces); the causes are in L-330 Known.
+- Remarked: squid and silverfish stay dots though they have faces; horses
+  look wrong on the radar, as in the sheet; icon sizes and outline widths
+  differ between mobs.
+
 ## Lighter control edges, the drawn remove cross, raised row buttons (2026-11-26)
 
 `ed3fc14b` (DLL
