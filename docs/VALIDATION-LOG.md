@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The doll and a wide chat at any scale, Alt held per drag (L-384, 2026-11-26)
+
+`2bbe661d` (DLL
+`44259b2d33c0073eaa57623050da8002ffa5e28a5a8798279e1d6476912c61a3`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the paper doll at 25 % and 400 % drawn in play where and as large as
+  the editor's frame; the chat at 250 % or more running off the screen in
+  the editor and drawn there in play; a 400 % chat pushed far past the edge
+  stays after Done; letting go of Alt before the button keeps the element
+  out; nothing else changed.
+- Remark: moving an element in HUD layout lags the cursor a little and moves
+  in small jerks (maybe older than this build).
+
 ## HUD scale 25-400 % and Alt past the edge (L-384, 2026-11-26)
 
 `1026a641` (DLL
