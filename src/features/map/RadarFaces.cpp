@@ -34,8 +34,10 @@
 #include "mc/world/actor/player/persona/AnimatedTextureType.h"
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <format>
 #include <fstream>
+#include <map>
 #include <functional>
 #include <numbers>
 #include <string>
@@ -297,6 +299,123 @@ void describePart(ModelPart const& part, std::string& out, int depth) {
     for (auto const* child : *part.mChildren)
         if (child) describePart(*child, out, depth + 1);
 }
+// Research builds only (L-411): every renderer's model (each geometry's parts with their rest and last drawn
+// pose, their cubes and all six faces' texture rectangles) to logs/radar-dump/models.json, and the textures its
+// faces are built from as raw RGBA files beside it, so a face can be worked out again outside the game.
+std::string quoted(std::string_view text) {
+    std::string out = "\"";
+    for (char c : text) {
+        if (c == '"' || c == '\\') out += '\\';
+        if (static_cast<unsigned char>(c) >= 0x20) out += c;
+    }
+    return out + "\"";
+}
+std::string triple(Vec3 const& v) { return std::format("[{:g},{:g},{:g}]", v.x, v.y, v.z); }
+void dumpModels(IClientInstance& client, std::vector<std::pair<std::string, DataDrivenRenderer*>> const& renderers) {
+    auto const dir = Runtime::instance().self().getModDir() / "logs" / "radar-dump";
+    std::error_code failed;
+    std::filesystem::create_directories(dir, failed);
+    std::map<std::string, std::string> textures; // a path's entry in the file
+    auto texture = [&](std::string const& path) {
+        if (path.empty() || textures.contains(path)) return;
+        std::string entry = "null";
+        try {
+            auto image = visuals::readPackImage(client.getResourcePackManager(), path);
+            if (image && image->width > 0 && image->height > 0
+                && image->rgba.size() >= static_cast<size_t>(image->width) * static_cast<size_t>(image->height) * 4) {
+                std::string const file = std::format("{}.rgba", textures.size());
+                std::ofstream(dir / file, std::ios::binary)
+                    .write(reinterpret_cast<char const*>(image->rgba.data()), static_cast<std::streamsize>(image->width) * image->height * 4);
+                entry = std::format("{{\"file\":{},\"width\":{},\"height\":{}}}", quoted(file), image->width, image->height);
+            }
+        } catch (...) {}
+        textures.emplace(path, std::move(entry));
+    };
+    std::ofstream out(dir / "models.json", std::ios::binary);
+    out << "{\"renderers\":[";
+    bool firstRenderer = true;
+    std::less<ModelPart const*> const before;
+    for (auto const& [name, renderer] : renderers) {
+        try {
+            std::string const skin = faceTexture(*renderer, name);
+            texture(skin);
+            std::string variants;
+            for (int v = 0; v < 64; ++v) {
+                std::string const path = variantTexture(name, v);
+                if (path.empty()) break;
+                texture(path);
+                variants += (v ? "," : "") + quoted(path);
+            }
+            texture(lookTexture(name, -1, true));
+            std::string entry = std::format("{{\"name\":{},\"texture\":{},\"variants\":[{}],\"geometries\":[", quoted(name), quoted(skin), variants);
+            auto model = renderer->mModel.get();
+            std::string order;
+            if (model) {
+                auto const& geometries = *model->mGeometries;
+                for (size_t g = 0; g < geometries.size(); ++g) {
+                    if (g) entry += ",";
+                    auto const& geometry = geometries[g];
+                    if (!geometry) { entry += "null"; continue; }
+                    auto const& parts = *geometry->mModelParts;
+                    auto const& bones = *geometry->mDefaultBoneOrientations;
+                    entry += std::format("{{\"name\":{},\"parts\":[", quoted(geometry->mGeoName->getString()));
+                    for (size_t i = 0; i < parts.size(); ++i) {
+                        auto const& part = parts[i];
+                        long long parent = -1;
+                        if (ModelPart const* p = part.mParent; p && !before(p, parts.data()) && before(p, parts.data() + parts.size()))
+                            parent = p - parts.data();
+                        int const index = part.mBoneOrientationIndex;
+                        BoneOrientation const* bone = index >= 0 && index < static_cast<int>(bones.size()) ? &bones[static_cast<size_t>(index)] : nullptr;
+                        Vec3 const rest = bone ? reinterpret_cast<Vec3 const*>(&bone->mDefaultTransform->mData)[1] : Vec3{};
+                        Vec3 const pivot = bone ? Vec3{*bone->mPivot} : Vec3{};
+                        entry += std::format("{}{{\"name\":{},\"parent\":{},\"texSize\":[{:g},{:g}],\"neverRender\":{},\"hasBone\":{},\"restRot\":{},"
+                                             "\"restPivot\":{},\"liveRot\":{},\"livePos\":{},\"cubes\":[",
+                                             i ? "," : "", quoted(part.mName->getString()), parent, part.mTexSize->x, part.mTexSize->y,
+                                             static_cast<bool>(part.mNeverRender), bone != nullptr, triple(rest), triple(pivot), triple(*part.mRot),
+                                             triple(*part.mPos));
+                        bool firstCube = true;
+                        for (auto const& cube : *part.mCubes) {
+                            entry += std::format("{}{{\"origin\":{},\"size\":{},\"rot\":{},\"pivot\":{},\"mirrored\":{},\"faces\":[", firstCube ? "" : ",",
+                                                 triple(*cube.mOrigin), triple(*cube.mSize), triple(*cube.mRotation), triple(*cube.mCubePivot),
+                                                 static_cast<bool>(cube.mMirrored));
+                            firstCube = false;
+                            for (int side = 0; side < 6; ++side) {
+                                auto const& face = (*cube.mFaceData)[static_cast<size_t>(side)];
+                                entry += std::format("{}[{:g},{:g},{:g},{:g},{},{}]", side ? "," : "", face.mUV->x, face.mUV->y, face.mUVSize->x,
+                                                     face.mUVSize->y, static_cast<bool>(face.mFaceValid) ? 1 : 0, static_cast<int>(face.mUvRotation));
+                            }
+                            entry += "]}";
+                        }
+                        entry += "]}";
+                    }
+                    entry += "]}";
+                }
+                // The order the model lists its parts in, which picks one of several of a name (modelBoxes).
+                for (auto const* part : *model->mAllParts) {
+                    long long in = -1, at = -1;
+                    for (size_t g = 0; part && g < geometries.size() && in < 0; ++g) {
+                        if (!geometries[g]) continue;
+                        auto const& parts = *geometries[g]->mModelParts;
+                        if (!parts.empty() && !before(part, parts.data()) && before(part, parts.data() + parts.size()))
+                            in = static_cast<long long>(g), at = part - parts.data();
+                    }
+                    order += std::format("{}[{},{}]", order.empty() ? "" : ",", in, at);
+                }
+            }
+            entry += std::format("],\"allParts\":[{}]}}", order);
+            out << (firstRenderer ? "" : ",") << entry;
+            firstRenderer = false;
+        } catch (...) {}
+    }
+    out << "],\"textures\":{";
+    bool firstTexture = true;
+    for (auto const& [path, entry] : textures) {
+        out << (firstTexture ? "" : ",") << quoted(path) << ":" << entry;
+        firstTexture = false;
+    }
+    out << "}}";
+    Runtime::instance().self().getLogger().info("Radar faces: {} models and {} textures to logs/radar-dump", renderers.size(), textures.size());
+}
 void sweepAll(IClientInstance& client) {
     auto dispatcher = client.getEntityRenderDispatcher();
     if (!dispatcher) return;
@@ -359,6 +478,7 @@ void sweepAll(IClientInstance& client) {
     }
     writeBmp("radar-sweep.bmp", px.data(), width, height);
     Runtime::instance().self().getLogger().info("Radar faces: swept {} renderers, {} faces, to logs/radar-sweep.*", renderers.size(), count);
+    try { dumpModels(client, renderers); } catch (...) {}
 }
 #endif
 int add(std::optional<Face> face, std::string const& name) {
