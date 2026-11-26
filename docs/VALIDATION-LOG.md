@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Radar faces per coat, side views, halved large faces (L-330, 2026-11-26)
+
+`44931426` with `radar_icon_probe` (DLL
+`d8a96e55137bc71ab2cefe652b2ca62d43788163867e725c9fa8baaa09b5f878`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: brown horses brown and white ones white, seen from the side; the
+  squid as large as other mobs; slime, cow, camel and turtle easy to tell.
+- Remarked: elder guardians looked like guardians with an orange eye;
+  sheared snow golems kept the pumpkin; shulkers were always red (all three
+  fixed in `ab28fd79`); the armadillo is just readable; the dragon's face
+  looks like a profile; horses are a little hard to tell from the front or
+  the side, donkeys easier.
+
 ## Radar faces from the turned model, per kind, at one texel size (L-330, 2026-11-26)
 
 `1caa29ca` with `radar_icon_probe` (DLL
