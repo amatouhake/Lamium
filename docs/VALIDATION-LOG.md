@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Radar faces by default; elder guardians, shulker colors, sheared golems (L-330, 2026-11-26)
+
+`ab28fd79` with `radar_icon_probe` (DLL
+`be7a178c968956a68d72072f19de7f5bb335c0da4b663a668596ecfcb113e13c`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: elder guardians in their own pale look; shulkers in their colors;
+  a sheared snow golem with its snow head; nothing else changed.
+- Remarked: the frog, seen from above at an angle, looks unlike the frog;
+  whether horses and other side-eyed mobs read better from the front at an
+  angle, as the armadillo does.
+
 ## Radar faces per coat, side views, halved large faces (L-330, 2026-11-26)
 
 `44931426` with `radar_icon_probe` (DLL
