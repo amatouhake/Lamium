@@ -25,6 +25,12 @@ std::shared_ptr<Table const> built;
 std::atomic<State> state{State::Idle};
 std::atomic<int> generation{0}; // a world's: a table built for one left is not published (DESIGN, stale async results)
 std::atomic<bool> building{false};
+// Joined by stop(), as the map store joins its worker, so a disable leaves nothing running. At process exit
+// nothing calls stop(): a joinable std::thread destroyed then would terminate, so it is let go instead.
+struct Worker {
+    std::thread thread;
+    ~Worker() { if (thread.joinable()) thread.detach(); }
+} worker;
 game::Snapshot snapshot; // the client thread's alone
 void reset() {
     ++generation;
@@ -52,8 +58,9 @@ void advance() noexcept {
             // of a world stutter (L-378). The source is plain data; nothing of the game's goes with it.
             auto source = std::make_shared<Source>(snapshot.source());
             int const forWorld = generation.load();
+            if (worker.thread.joinable()) worker.thread.join(); // ended: `building` is its last write
             building = true;
-            std::thread([source, forWorld] {
+            worker.thread = std::thread([source, forWorld] {
                 try {
                     auto table = std::make_shared<Table>();
                     table->index = build(*source);
@@ -94,7 +101,7 @@ void advance() noexcept {
                     if (forWorld == generation.load()) state = State::Unreadable;
                 }
                 building = false;
-            }).detach();
+            });
         }
         snapshot.reset();
     } catch (...) { state = State::Unreadable; }
@@ -118,5 +125,6 @@ void stop() {
     for (auto* listener : {&joinListener, &exitListener})
         if (*listener) { ll::event::EventBus::getInstance().removeListener(*listener); listener->reset(); }
     reset();
+    if (worker.thread.joinable()) worker.thread.join();
 }
 }
