@@ -97,7 +97,7 @@ ll::event::ListenerPtr tickListener, exitListener;
 void trace(char const* stage, int value = 0) noexcept {
 #ifdef LAMIUM_RESTOCK_TRACE
     static TraceBudget budget;
-    try { if (!Runtime::instance().preferences().inventory.handRestock) return; } catch (...) { return; }
+    try { if (!Runtime::instance().snapshot()->inventory.handRestock) return; } catch (...) { return; }
     traceLog(budget, 8192, "Restock: {} value={}", stage, value);
 #else
     (void)stage; (void)value;
@@ -129,7 +129,8 @@ void failure() noexcept {
     }
 }
 RestockSwitches restockSwitches() {
-    auto const& prefs = Runtime::instance().preferences().inventory;
+    auto const published = Runtime::instance().snapshot();
+    auto const& prefs = published->inventory;
     return {prefs.handRestock,prefs.restockShulkerBoxes,prefs.restockBuckets};
 }
 LocalPlayer* eligible() {
@@ -185,7 +186,7 @@ bool current(Operation const& op, LocalPlayer& player, HudContainerManagerContro
     return op.before.context == generation && op.playerId == player.getRuntimeID().rawID
         && op.dimension == static_cast<int>(player.getDimensionId())
         && op.before.selected == player.mInventory->mSelected
-        && op.hotbarSources == Runtime::instance().preferences().inventory.restockFromHotbar
+        && op.hotbarSources == Runtime::instance().snapshot()->inventory.restockFromHotbar
         && hud.lock() == op.controller.lock() && owned(controller,player);
 }
 bool settling(std::shared_ptr<Operation> const& op) {
@@ -259,7 +260,7 @@ std::shared_ptr<Operation> beginUse(Player& actor, HandSlot hand, bool placement
         op->maxStack = held.getMaxStackSize();
         op->remainder = restockRemainder(held.getTypeName());
         op->family = family;
-        op->hotbarSources = Runtime::instance().preferences().inventory.restockFromHotbar;
+        op->hotbarSources = Runtime::instance().snapshot()->inventory.restockFromHotbar;
         op->evidence.tick = tickSerial;
         op->evidence.placement = placement;
         op->token = game::beginTransfer(*controller);
@@ -340,13 +341,14 @@ struct Watch {
 Watch watch;
 std::uint64_t totemTick = 0;
 constexpr std::uint64_t watchWindow = 40; // Two seconds of client ticks.
-bool offhandEnabled() { return Runtime::instance().preferences().inventory.restockOffhand; }
+bool offhandEnabled() { return Runtime::instance().snapshot()->inventory.restockOffhand; }
 bool recent(std::uint64_t tick) { return tick && tickSerial - tick <= watchWindow; }
 void watchTick(LocalPlayer& player, HudContainerManagerController& controller) {
     auto now = snapshot(watch.op,controller,player);
     auto move = [&](RestockSnapshot const& before, int target, char const* what) {
         int maxStack = watch.op.kinds[before.slots[target].kind].getMaxStackSize();
-        auto const& prefs = Runtime::instance().preferences().inventory;
+        auto const published = Runtime::instance().snapshot();
+        auto const& prefs = published->inventory;
         auto plan = planRestock(before,now,true,maxStack,prefs.restockFromHotbar,
             -1,prefs.restockThreshold,1,target,prefs.restockOrder == 1);
         watch.last.reset();
@@ -462,7 +464,8 @@ void tick() noexcept {
         auto const& left = now.slots[now.selected];
         if (!left.empty() && !op->remainder.empty()
             && op->kinds[left.kind].getTypeName() == op->remainder) remainderKind = left.kind;
-        auto const& prefs = Runtime::instance().preferences().inventory;
+        auto const published = Runtime::instance().snapshot();
+        auto const& prefs = published->inventory;
         auto switches = restockSwitches(); // A switch turned off cancels this operation.
         auto plan = planRestock(op->before,now,true,op->maxStack,op->hotbarSources,remainderKind,
             prefs.restockThreshold,op->uses,-1,prefs.restockOrder == 1,op->family,switches);

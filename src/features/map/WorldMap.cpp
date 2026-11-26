@@ -442,15 +442,18 @@ void act(Target target) {
 // The mark switches as set (the top bar shows them), and the marks the world
 // map draws after the Map marks heading and its map choice (L-297).
 LayerSwitches markSwitches() {
-    auto const& map = Runtime::instance().preferences().map;
+    auto const published = Runtime::instance().snapshot();
+    auto const& map = published->map;
     return {map.worldMapWaypoints, map.worldMapSchematics, map.worldMapShapes};
 }
 LayerSwitches layers() {
-    auto const& map = Runtime::instance().preferences().map;
+    auto const published = Runtime::instance().snapshot();
+    auto const& map = published->map;
     return shownMarks(markSwitches(), map.mapMarks, map.marksShownOn, false);
 }
 Blocked marksBlocked() {
-    auto const& map = Runtime::instance().preferences().map;
+    auto const published = Runtime::instance().snapshot();
+    auto const& map = published->map;
     return worldMapBlocked(map.mapMarks, map.marksShownOn);
 }
 void toggleLayer(Target target) {
@@ -464,7 +467,8 @@ void toggleLayer(Target target) {
 // Information (L-297): why the panel cannot switch slime chunks or the radar
 // on this map, if it cannot.
 std::optional<std::string_view> infoBlocked(Target target) {
-    auto const& map = Runtime::instance().preferences().map;
+    auto const published = Runtime::instance().snapshot();
+    auto const& map = published->map;
     bool slime = target == Target::InfoSlime;
     if (slime && state.dimension != 0) return "worldMap.blockedOverworld";
     if (!onWorldMap(slime ? map.slimeShownOn : map.radarShownOn)) return "worldMap.blockedMinimap";
@@ -484,8 +488,8 @@ void toggleRecording() {
     value.map.worldMap = !value.map.worldMap;
     if (!Runtime::instance().save(value)) log("could not save the recording switch");
 }
-bool panelOpen() { return Runtime::instance().preferences().map.worldMapPanel; }
-int shownList() { return clampListKind(Runtime::instance().preferences().map.worldMapList); }
+bool panelOpen() { return Runtime::instance().snapshot()->map.worldMapPanel; }
+int shownList() { return clampListKind(Runtime::instance().snapshot()->map.worldMapList); }
 void setShownList(int kind) {
     auto value = Runtime::instance().preferences();
     if (value.map.worldMapList == kind) return;
@@ -685,7 +689,7 @@ std::optional<std::uint64_t> worldSeed() {
     if (!seed) return std::nullopt;
     return seed;
 }
-bool seedLinks() { return Runtime::instance().preferences().map.seedLink; }
+bool seedLinks() { return Runtime::instance().snapshot()->map.seedLink; }
 void openSeedMap(int x, int z) {
     auto seed = worldSeed();
     if (!seed) { say(ui::translated("worldMap.noSeed")); return; }
@@ -1046,7 +1050,8 @@ struct SlimeSlot {
 };
 std::array<SlimeSlot, slimeSlotCount> slimeSlots;
 bool slimeShown() {
-    auto const& map = Runtime::instance().preferences().map;
+    auto const published = Runtime::instance().snapshot();
+    auto const& map = published->map;
     return state.dimension == 0 && map.worldMapSlime && onWorldMap(map.slimeShownOn);
 }
 double slimeUnitsPerChunk() { return state.view.scale() * 16; }
@@ -1362,7 +1367,8 @@ std::optional<Target> infoRowAt(float x, float y) {
     return std::nullopt;
 }
 std::string infoRowText(Target target) {
-    auto const& map = Runtime::instance().preferences().map;
+    auto const published = Runtime::instance().snapshot();
+    auto const& map = published->map;
     bool slime = target == Target::InfoSlime;
     auto name = ui::translated(slime ? "feature.slimeChunks" : "feature.radar");
     if (auto why = infoBlocked(target)) return ui::translated(*why, name);
@@ -1577,7 +1583,8 @@ void drawInfoPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     ui::fill(context, left, top, w, h, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, left, top, w, h, ui::palette::white, .14f);
     state.hits.push_back({left, top, w, h, Target::InfoPanel});
-    auto const& map = Runtime::instance().preferences().map;
+    auto const published = Runtime::instance().snapshot();
+    auto const& map = published->map;
     float inset = ui::boxTextInset();
     for (size_t i = 0; i < rows.size(); ++i) {
         auto target = rows[i];

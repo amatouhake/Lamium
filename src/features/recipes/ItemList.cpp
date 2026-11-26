@@ -880,7 +880,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (caretPress) placeCaret(context, search, px, py);
     if (recipesOn) {
         auto const box = searchHighlightAt(field);
-        bool const on = Runtime::instance().preferences().inventory.searchHighlight, over = box.has(px, py);
+        bool const on = Runtime::instance().snapshot()->inventory.searchHighlight, over = box.has(px, py);
         drawPictureButton(context, box.x, box.y, box.w, Picture::Highlight, over, on);
         if (over) late.tip = translated("recipes.highlight", translated(on ? "on" : "off"));
     }
@@ -973,7 +973,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
             auto const& mapped = keyboard->getKeymappingByAction("key.inventory").mKeys.get();
             if (mapped.size() <= 4) inventoryKeys = mapped;
         }
-        auto const bindings = Runtime::instance().preferences().bindings;
+        auto const published = Runtime::instance().snapshot();
+        auto const& bindings = published->bindings;
         auto keyOf = [&](input::Action action) {
             return input::effectiveChord(bindings, action).empty() ? std::string() : actionBindingName(*client, action);
         };
@@ -985,7 +986,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         usesKey = keyOf(input::Action::ShowUses);
         takeStackKey = keyOf(input::Action::TakeStack);
         {
-            auto const chord = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::RecipeWanted);
+            auto const chord = input::effectiveChord(Runtime::instance().snapshot()->bindings, input::Action::RecipeWanted);
             wantedCode = chord.size() == 1 && chord.front().device == input::Device::Key ? chord.front().code : 0;
         }
     }

@@ -429,14 +429,14 @@ bool start() {
             bool const pointerFree = replayHeldTooltips(event.uiRenderContext());
             ++uiFrame;
             if (!pointerFree) return;
-            auto settings = Runtime::instance().preferences();
+            auto const settings = Runtime::instance().snapshot();
             auto* controller = event.screenView().mController.get();
             if (!controller || !controller->_isContainerScreen()) return;
-            if (!settings.inspection.containerPreviews) { cache.clear(); return; }
+            if (!settings->inspection.containerPreviews) { cache.clear(); return; }
             auto const* contents = cache.resolve(*controller);
             if (!contents) return;
             bool const shulker = contents->family == preview::ContainerPreview::Family::Shulker;
-            auto const& preferences = settings.inspection;
+            auto const& preferences = settings->inspection;
             if (!(shulker ? preferences.shulkerPreviews : preferences.bundlePreviews)) return;
             if (contents->filledSlotCount() == 0 && contents->skippedSlotCount == 0
                 && !(shulker ? preferences.emptyShulkerPreviews : preferences.emptyBundlePreviews)) return;

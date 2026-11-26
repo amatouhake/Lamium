@@ -168,9 +168,8 @@ Hook hooks[] = {{RegisterDown::hook, RegisterDown::unhook}, {RegisterUp::hook, R
 // Follow the settings once per client tick, then advance timing.
 void followSettings() {
     settleInterrupt();
-    auto preferences = Runtime::instance().preferences();
-    preferences.normalize();
-    auto const& value = preferences.interaction;
+    auto const preferences = Runtime::instance().snapshot(); // published normalized
+    auto const& value = preferences->interaction;
     auto current = ll::service::getClientInstance();
     IClientInstance* client = current ? &current.get() : nullptr;
     for (auto const& [_, owner] : owners)

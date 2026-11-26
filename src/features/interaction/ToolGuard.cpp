@@ -167,7 +167,7 @@ GuardMining decide(LocalPlayer& player, bool newPress) {
     auto id = identity(held,selected);
     bool about = breaking(held);
     if (!about) return GuardMining::Continue;
-    if (newPress && stopped == id && !Runtime::instance().preferences().interaction.toolGuardStrict) overridden = id;
+    if (newPress && stopped == id && !Runtime::instance().snapshot()->interaction.toolGuardStrict) overridden = id;
     auto action = guardMining(true,replacement(player,held).has_value(),overridden == id);
     if (action == GuardMining::Stop) stopped = id;
     return action;

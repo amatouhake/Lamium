@@ -1075,12 +1075,13 @@ void render(ll::event::UIRenderEvent& event) {
         // debug, toast). Drawing on each stacked translucent fills four times,
         // so draw once, on the HUD view itself.
         if (gameplayScreen(current.getScreenName()) && hudView(view)) {
-            auto const& settings = Runtime::instance().preferences().information;
+            auto const published = Runtime::instance().snapshot();
+            auto const& settings = published->information;
             playFrame(context.mClient);
             auto drawn = information::drawHud(context,size.x,size.y,settings);
             information::noteHotbar(view);
             information::noteCoveredVanilla(view,drawn,settings);
-            paused_notice::frame(Runtime::instance().preferences());
+            paused_notice::frame(*published);
             if (!current.getOptions().getHideHud() && !camera::freeCameraHide::hudHidden()) {
                 information::drawOffhandSlot(context,view,settings);
                 information::drawSaturation(context,view,settings);
@@ -1196,7 +1197,7 @@ void render(ll::event::UIRenderEvent& event) {
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         auto at = map::world::namePosition();
         syncTextKeyboard(at.x, at.y);
-        map::world::render(context, size, view.mPointerLocationPrevious, Runtime::instance().preferences().map);
+        map::world::render(context, size, view.mPointerLocationPrevious, Runtime::instance().snapshot()->map);
         return;
     }
     if (prompt) {
@@ -1210,7 +1211,7 @@ void render(ll::event::UIRenderEvent& event) {
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         auto l = WaypointPromptLayout::at(size.x, size.y);
         syncTextKeyboard(l.left + WaypointPromptLayout::pad, l.fieldY());
-        if (worldMapOpen) map::world::render(context, size, {-1, -1}, Runtime::instance().preferences().map);
+        if (worldMapOpen) map::world::render(context, size, {-1, -1}, Runtime::instance().snapshot()->map);
         renderPrompt(context, size, view.mPointerLocationPrevious);
         return;
     }

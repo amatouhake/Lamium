@@ -90,7 +90,8 @@ LL_TYPE_INSTANCE_HOOK(CustomInputFocusLost, ll::memory::HookPriority::Normal, Mi
 }
 void sync(IClientInstance& client) {
     auto name = client.getScreenName();
-    auto overrides = Runtime::instance().preferences().bindings;
+    auto const published = Runtime::instance().snapshot();
+    auto const& overrides = published->bindings;
     ChordSet chords;
     for (size_t i = 0; i < actions.size(); ++i) chords[i] = effectiveChord(overrides, static_cast<Action>(i));
     if (screen != name || previous != chords) {

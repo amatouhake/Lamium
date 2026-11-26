@@ -464,10 +464,10 @@ struct Lists : Window {
         auto const* shares = state::shares(player);
         if (!shares) { note(translated("schematic.raw.reading")); return; }
         auto const& entries = shares->entries;
-        bool const schematicSwitch = Runtime::instance().preferences().schematic.enabled;
+        bool const schematicSwitch = Runtime::instance().snapshot()->schematic.enabled;
         // The schematic's switch, while Schematics is on: the list's first line, scrolling away with it (L-370).
         auto drawSwitch = [&](float y) {
-            bool const on = Runtime::instance().preferences().schematic.planMaterials;
+            bool const on = Runtime::instance().snapshot()->schematic.planMaterials;
             if (over(left, y, right - left, switchLine)) fill(context, left - 2, y, right - left + 4, switchLine, palette::shade, .08f);
             // The switch right after its words (L-370, 2026-11-22), not at the window's far edge.
             std::string const words = translated("recipes.plan.schematic");

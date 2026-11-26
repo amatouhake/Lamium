@@ -890,7 +890,7 @@ void adjustFrame(IClientInstance& client) {
     syncLifecycle(client);
     std::vector<UnreadablePlacement> unreadable;
     for (auto const& p : session::unreadable()) unreadable.push_back({p.id, p.name});
-    auto names = unreadableNotice.update(session::generation(), Runtime::instance().preferences().schematic.enabled, unreadable);
+    auto names = unreadableNotice.update(session::generation(), Runtime::instance().snapshot()->schematic.enabled, unreadable);
     if (!names.empty()) {
         std::string shown = names.front();
         if (names.size() > 1) shown += ", " + names[1];
