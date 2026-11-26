@@ -126,7 +126,8 @@ bool ordinary(ContainerType type) {
 }
 
 transfer::GestureOptions gestureOptions() {
-    auto const& value = Runtime::instance().preferences().inventory;
+    auto const published = Runtime::instance().snapshot();
+    auto const& value = published->inventory;
     return {value.transferWheelOne, value.transferWheelStack,
             value.transferDragStack, value.transferDragOne, value.transferWheelMatching,
             value.transferWheelAll, value.transferClickMatching, value.transferClickAll, value.transferDragKeepOne,
@@ -233,7 +234,7 @@ std::optional<Slot> matchingSource(ContainerScreenController& controller, Slot c
 bool available(ContainerScreenController& controller, bool cursor = false) {
     auto& runtime = Runtime::instance();
     auto manager = controller.mContainerManagerController;
-    return runtime.enabled() && runtime.preferences().inventory.transfer
+    return runtime.enabled() && runtime.snapshot()->inventory.transfer
         && ScreenTracker::getInstance().current().get() == &controller
         && manager && !manager->mContainersClosed
         && (ordinary(manager->getContainerType()) || inventoryScreen(*manager)
