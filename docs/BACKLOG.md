@@ -177,7 +177,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; one part left): Fixed by commit, none seen in game; 1-7's refused take needs a real server
-- [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): Open, not started; nothing here is known to misbehave
+- [L-353](backlog/L-353.md) Input events and the client thread: what is still touched outside the tick (Research): The thread_trace build is ready; waiting for one session's log
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
 - [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
@@ -233,7 +233,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-402](backlog/L-402.md) Check that every feature handles leaving the world, a dimension change and focus loss (Refactor): Open; the approach is not chosen
 - [L-403](backlog/L-403.md) Diagnostic build options: remove with their item, or keep them compiling (Refactor): Open; the policy is not chosen
 - [L-404](backlog/L-404.md) Keep the includes between source areas from growing (Refactor): Open; the check is not agreed
-- [L-405](backlog/L-405.md) Client pointers kept across frames: change the rule or the code (Refactor): Open; the choice is not made
 - [L-406](backlog/L-406.md) Edge Guard reads the client's player while guarding the local server's copy (Research): Open; read in the code only, never seen to go wrong
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)
 

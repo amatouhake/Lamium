@@ -273,6 +273,12 @@ option("camera_position_probe")
     set_description("Experimental render-only camera translation while Zoom is held")
 option_end()
 
+option("thread_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-353: log which thread the client tick, UI render, key and mouse events, focus loss, world exit and disable run on")
+option_end()
+
 includes("packages/levilamina-client-sdk.lua")
 -- A new SDK (game or LeviLamina version): follow the playbook in
 -- docs/GAME-UPDATES.md; the verified game in src/app/Versions.cpp changes last.
@@ -330,6 +336,7 @@ target("Lamium")
     if has_config("portal_trace") then add_defines("LAMIUM_PORTAL_TRACE") end
     if has_config("feature_skip") then add_defines("LAMIUM_FEATURE_SKIP") end
     if has_config("unverified_game") then add_defines("LAMIUM_UNVERIFIED_GAME") end
+    if has_config("thread_trace") then add_defines("LAMIUM_THREAD_TRACE") end
     -- L-305: remove once the SDK links what it still holds back.
     add_defines("LAMIUM_MCAPI_PENDING")
     add_rules("@levibuildscript/linkrule")

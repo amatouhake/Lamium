@@ -23,6 +23,10 @@
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "app/ClientTasks.h"
+#include "app/ThreadTrace.h"
+#ifdef LAMIUM_THREAD_TRACE
+#include "ll/api/event/world/ClientLevelTickEvent.h"
+#endif
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/game/MinecraftGame.h"
 #include "mc/deps/input/HIDController.h"
@@ -67,6 +71,9 @@ HeldInputs held;
 ChordSet previous;
 ChordDispatch dispatch;
 std::array<ll::event::ListenerPtr, 4> listeners;
+#ifdef LAMIUM_THREAD_TRACE
+ll::event::ListenerPtr tickTrace;
+#endif
 std::string screen;
 bool installed = false;
 void releaseStates() {
@@ -82,6 +89,7 @@ void invalidate() {
 }
 LL_TYPE_INSTANCE_HOOK(CustomInputFocusLost, ll::memory::HookPriority::Normal, MinecraftGame,
     &MinecraftGame::$onAppFocusLost, void) {
+    LAMIUM_NOTE_THREAD("focus lost");
     invalidate();
     ui::cancelInputCapture();
     recipes::itemList::focusLost();
@@ -168,6 +176,7 @@ void startCustomInput() {
     installed = true;
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
+        LAMIUM_NOTE_THREAD("key event");
         // L-359 probe: a focused field under a game screen keeps the keys from it.
         if (researchTrace::itemScreen::key(event.keyCode(), event.isDown())) { event.cancel(); return; }
         // Auto-repeat of a held key (Shift for Shift + right click) is not new input.
@@ -200,6 +209,7 @@ void startCustomInput() {
         else if (!event.isCancelled() && recipes::itemList::key(event.keyCode(), event.isDown())) event.cancel();
     });
     listeners[1] = bus.emplaceListener<ll::event::input::MouseInputEvent>([](auto& event) {
+        LAMIUM_NOTE_THREAD("mouse event");
         int button = event.actionButtonId();
         if (button == MouseAction::ActionMove || button == MouseAction::ActionMoveRelative) return;
         bool wheel = button == MouseAction::ActionWheel;
@@ -252,8 +262,15 @@ void startCustomInput() {
                 }), event.isCancelled() || consumed);
         if ((consumed && down) || transfer) event.cancel();
     });
-    listeners[2] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { sync(event.uiRenderContext().mClient); });
+    listeners[2] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) {
+        LAMIUM_NOTE_THREAD("UI render");
+        sync(event.uiRenderContext().mClient);
+    });
+#ifdef LAMIUM_THREAD_TRACE
+    tickTrace = bus.emplaceListener<ll::event::ClientLevelTickEvent>([](auto&) { LAMIUM_NOTE_THREAD("client tick"); });
+#endif
     listeners[3] = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
+        LAMIUM_NOTE_THREAD("world exit");
         invalidate();
         inventory::fakeOffhand::release();
         interaction::sneak::cancel();
@@ -270,6 +287,10 @@ void stopCustomInput() {
         if (listener) ll::event::EventBus::getInstance().removeListener(listener);
         listener.reset();
     }
+#ifdef LAMIUM_THREAD_TRACE
+    if (tickTrace) ll::event::EventBus::getInstance().removeListener(tickTrace);
+    tickTrace.reset();
+#endif
     if (installed) { CustomInputFocusLost::unhook(true); installed = false; }
     held.clear(); screen.clear();
 }
