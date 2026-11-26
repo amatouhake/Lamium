@@ -150,6 +150,93 @@
     L.frame(p, x, y, w, h, look[1]);
     L.label(p, x, y + (h - 9) / 2 + 1, w, text, { color: look[2], align: 'center' });
   };
+  // ---- On the game's grey window (the onWindow branches of Widgets.cpp / ListViewWidgets.cpp, DESIGN "Controls") ----
+  // `edge` stands in for vanilla.controlEdge only where a mockup compares edge colors.
+  L.gameWindow = (p, x, y, w, h) => { // VanillaFrame.h window()
+    const r = (rx, ry, rw, rh, c) => L.fill(p, x + rx, y + ry, rw, rh, c);
+    const F = 'vanilla.window', Li = 'vanilla.windowLight', Dk = 'vanilla.windowShadow', E = 'vanilla.windowEdge';
+    r(3, 3, w - 6, h - 6, F); r(w - 3, 2, 1, 1, F);
+    r(3, 1, w - 6, 1, Li); r(2, 2, w - 5, 1, Li); r(1, 3, 2, h - 6, Li); r(3, 3, 1, 1, Li);
+    r(w - 3, 3, 2, h - 5, Dk); r(2, h - 3, w - 5, 1, Dk); r(3, h - 2, w - 5, 1, Dk); r(w - 4, h - 4, 1, 1, Dk);
+    r(3, 0, w - 6, 1, E); r(3, h - 1, w - 5, 1, E); r(0, 3, 1, h - 6, E); r(w - 1, 3, 1, h - 5, E);
+    r(2, 1, 1, 1, E); r(1, 2, 1, 1, E); r(w - 3, 1, 1, 1, E); r(w - 2, 2, 1, 1, E);
+    r(1, h - 3, 1, 1, E); r(2, h - 2, 1, 1, E); r(w - 2, h - 2, 1, 1, E);
+  };
+  L.raisedBox = (p, x, y, w, h, face, light, shadow, edge = 'vanilla.controlEdge') => { // Widgets.cpp raisedBox
+    const e = .5;
+    L.fill(p, x, y, w, h, face);
+    L.fill(p, x + 1, y + 1, w - 2, e, light);
+    L.fill(p, x + 1, y + 1 + e, e, h - 2 - e, light);
+    L.fill(p, x + 1, y + h - 1 - e, w - 2, e, shadow);
+    L.fill(p, x + w - 1 - e, y + 1, e, h - 2 - e, shadow);
+    L.frame(p, x, y, w, h, edge);
+  };
+  L.sunkFace = (p, x, y, w, h) => { // Widgets.cpp sunkFace, top and bottom
+    L.fill(p, x, y, w, h, 'vanilla.windowSunk');
+    L.fill(p, x, y, 1, h, 'vanilla.buttonShadow');
+    L.fill(p, x + w - 1, y, 1, h, 'vanilla.windowLight');
+    L.fill(p, x, y, w, 1, 'vanilla.buttonShadow');
+    L.fill(p, x + 1, y + h - 1, w - 1, 1, 'vanilla.windowLight');
+  };
+  // A label centred in a box as L.button places it (ListViewWidgets.cpp centered()).
+  const centeredTop = (y, h) => y + (h - 9) / 2 + 1;
+  L.windowButton = (p, x, y, w, h, text, { hovered = false, edge } = {}) => { // drawButton, plain, enabled
+    L.raisedBox(p, x, y, w, h, 'vanilla.window', 'vanilla.windowLight', 'vanilla.buttonShadow', edge);
+    if (hovered) L.fill(p, x + 1, y + 1, w - 2, h - 2, 'white', .3);
+    L.label(p, x, centeredTop(y, h), w, text, { color: 'vanilla.windowInk', align: 'center', shadow: false });
+  };
+  // `shadow: false` only where a mockup compares the text's shadow.
+  L.panelButton = (p, x, y, w, h, text, { hovered = false, shadow = true } = {}) => { // drawButton off the window: box() + centered()
+    L.fill(p, x, y, w, h, 'keyFill');
+    if (hovered) L.fill(p, x, y, w, h, 'white', .1);
+    L.frame(p, x, y, w, h, 'keyEdge');
+    L.label(p, x, centeredTop(y, h), w, text, { color: 'text', align: 'center', shadow });
+  };
+  L.rowButtonWidth = (text) => L.textWidth(text) + 8;
+  L.windowRowButton = (p, x, y, w, text, { hovered = false, edge = 'vanilla.controlEdge' } = {}) => { // drawRowButton on the window
+    const h = 11;
+    L.fill(p, x, y, w, h, 'vanilla.windowSunk');
+    if (hovered) L.fill(p, x, y, w, h, 'white', .3);
+    L.frame(p, x, y, w, h, edge);
+    L.label(p, x, centeredTop(y, h), w, text, { color: edge, align: 'center', shadow: false });
+  };
+  L.windowSwitch = (p, x, y, on, { edge = 'vanilla.controlEdge' } = {}) => { // toggleSwitch on the window
+    const w = W.switchWidth, h = W.switchHeight, knob = h - 2, kx = on ? x + w - 1 - knob : x + 1;
+    L.fill(p, x, y, w, h, on ? 'accentDeep' : 'vanilla.switchTrack');
+    L.frame(p, x, y, w, h, edge);
+    L.fill(p, kx, y + 1, knob, knob, on ? 'knobOn' : 'knobOff');
+    L.fill(p, kx, y + 1 + knob - 2, knob, 2, on ? 'gripOn' : 'gripOff');
+  };
+  L.windowField = (p, x, y, w, h, text) => { // drawWindowFieldBox, its count right-aligned as a field's text
+    L.sunkFace(p, x, y, w, h);
+    L.label(p, x + 2, centeredTop(y, h), w - 5, text, { color: 'vanilla.windowInk', align: 'right', shadow: false });
+  };
+  L.panelField = (p, x, y, w, h, text) => { // drawFieldBox, not editing
+    L.fill(p, x, y, w, h, 'shade', .45);
+    L.frame(p, x, y, w, h, 'keyEdge');
+    L.label(p, x + 2, centeredTop(y, h), w - 5, text, { align: 'right' });
+  };
+  // drawPictureButton on the window, 11 units: Place (an arrow onto a line) or Make (a grid turning into one thing).
+  L.windowPictureButton = (p, x, y, picture, { hovered = false, edge } = {}) => {
+    const size = 11;
+    L.raisedBox(p, x, y, size, size, 'vanilla.window', 'vanilla.windowLight', 'vanilla.buttonShadow', edge);
+    if (hovered) L.fill(p, x + 1, y + 1, size - 2, size - 2, 'white', .3);
+    const q = (px, py, w, h) => L.fill(p, x + px, y + py, w, h, 'vanilla.windowInk');
+    if (picture === 'place') { q(5, 2, 1, 4); q(3, 5, 5, 1); q(4, 6, 3, 1); q(5, 7, 1, 1); q(2, 8, 7, 1); }
+    else { q(1, 3, 2, 2); q(4, 3, 2, 2); q(1, 6, 2, 2); q(4, 6, 2, 2); q(7, 4, 1, 1); q(8, 5, 1, 1); q(7, 6, 1, 1); q(9, 3, 1, 5); }
+  };
+  L.windowProgress = (p, x, y, w, h, fraction) => { // progressBar on the window
+    L.fill(p, x, y, w, h, 'vanilla.slot');
+    if (fraction > 0) L.fill(p, x, y, w * fraction, h, 'accentDeep');
+    L.fill(p, x, y, w, .5, 'vanilla.slotDark');
+  };
+  // Proposals not in src yet: a drawn remove cross, 5 by 5 units centred in whole units, in `ink`.
+  L.proposed = {
+    cross: (p, x, y, w, h, ink) => {
+      const ox = x + Math.floor((w - 5) / 2), oy = y + Math.floor((h - 5) / 2);
+      for (let i = 0; i < 5; i++) { L.fill(p, ox + i, oy + i, 1, 1, ink); L.fill(p, ox + 4 - i, oy + i, 1, 1, ink); }
+    },
+  };
   L.badge = (p, x, y, text, color = 'experimental') => {
     const w = L.textWidth(text) + 5;
     L.frame(p, x, y + 1, w, T.rowHeight - 3, color);
