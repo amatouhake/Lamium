@@ -430,6 +430,11 @@ struct DragTrace {
     // renderFrame by stretch: setup, shade/anchors/hotbar, pass 1 + flush,
     // pass 2 + flush, tags, handles, flush/toolbar/panel.
     std::array<double, 7> stretch{};
+    // The tags stretch by kind: switched off (veil, hatch, frame), dashed
+    // frame, plain frame, tags drawn; with the rectangles each drew.
+    std::array<double, 4> kindMs{};
+    std::array<long, 4> kindRects{};
+    int offElements = 0;
     Clock::time_point markAt{};
     void mark(int i) {
         auto now = Clock::now();
@@ -481,6 +486,11 @@ struct DragTrace {
             "tags {:.2f}, handles {:.2f}, flush/toolbar {:.2f}",
             stretch[0] / calls, stretch[1] / calls, stretch[2] / calls, stretch[3] / calls, stretch[4] / calls, stretch[5] / calls,
             stretch[6] / calls));
+        Runtime::instance().self().getLogger().info(std::format(
+            "HUD editor drag, tags stretch avg per frame: off {:.2f} ms {} rects ({} elements), dashed {:.2f} ms {} rects, "
+            "plain frame {:.2f} ms {} rects, tags {:.2f} ms {} rects",
+            kindMs[0] / calls, kindRects[0] / calls, offElements / calls, kindMs[1] / calls, kindRects[1] / calls,
+            kindMs[2] / calls, kindRects[2] / calls, kindMs[3] / calls, kindRects[3] / calls));
     }
 };
 DragTrace dragTrace;
@@ -492,7 +502,19 @@ struct TraceTimer {
 #define HUD_EDITOR_TIME(field) TraceTimer traceTimer##field{dragTrace.field}
 #define HUD_EDITOR_MARK_START() (dragTrace.markAt = DragTrace::Clock::now())
 #define HUD_EDITOR_MARK(i) dragTrace.mark(i)
+struct KindTimer {
+    int kind; long rects;
+    DragTrace::Clock::time_point start = DragTrace::Clock::now();
+    ~KindTimer() {
+        dragTrace.kindMs[static_cast<size_t>(kind)] += std::chrono::duration<double, std::milli>(DragTrace::Clock::now() - start).count();
+        dragTrace.kindRects[static_cast<size_t>(kind)] += rects;
+    }
+};
+#define HUD_EDITOR_KIND(k, n) KindTimer kindTimer{k, static_cast<long>(n)}
+#define HUD_EDITOR_OFF() (++dragTrace.offElements)
 #else
+#define HUD_EDITOR_KIND(k, n)
+#define HUD_EDITOR_OFF()
 #define HUD_EDITOR_TIME(field)
 #define HUD_EDITOR_MARK_START()
 #define HUD_EDITOR_MARK(i)
@@ -674,9 +696,11 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
         if (isOff(id)) {
             // Switched off: a dark veil like a disabled settings row, gray
             // hatching, and a quieter frame than a shown element's.
-            fill(context, box->x, box->y, box->w, box->h, palette::shade, .35f);
             std::vector<ImageRect> lines;
             for (auto const& square : hatch(*box)) lines.push_back({square.x, square.y, square.w, square.h});
+            HUD_EDITOR_KIND(0, lines.size() + 5);
+            HUD_EDITOR_OFF();
+            fill(context, box->x, box->y, box->w, box->h, palette::shade, .35f);
             fills(context, lines, palette::faint, .6f);
             // The hatching is the state, the frame's color who draws it.
             frame(context, outer.x, outer.y, outer.w, outer.h,
@@ -686,6 +710,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
         }
         // The game's own elements stand apart from Lamium's by their frame color.
         if (!framed(id)) {
+            HUD_EDITOR_KIND(2, 4);
             frame(context, outer.x, outer.y, outer.w, outer.h,
                   isFocus ? palette::accent : hudGameDrawn(id) ? palette::info : palette::white, hudGameDrawn(id) && !isFocus ? opacity + .25f : opacity);
             continue;
@@ -694,6 +719,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
         std::vector<ImageRect> dashRects;
         for (auto const& dash : dashedFrame(outer))
             dashRects.push_back({dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length});
+        HUD_EDITOR_KIND(1, dashRects.size());
         fills(context, dashRects, hudGameDrawn(id) ? palette::info : palette::white, hudGameDrawn(id) ? opacity + .4f : opacity + .15f);
         // Its faint contents say what it is: named only when pointed at or
         // selected, as a shown element is. Only a hidden one keeps its name.
@@ -709,10 +735,13 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
     // After every frame, so a tag is never crossed by another frame's dashes:
     // the same tag for every named element, in the accent color when focused
     // and a darker gray when switched off.
-    for (auto const& tag : tags) {
-        fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h,
-             tag.focus ? palette::accent : tag.off ? palette::faint : palette::dim, tag.focus || tag.off ? 1.f : .75f);
-        labelScaled(context, tag.box.x + 3, tag.box.y + boxTextInset(), tag.box.w - 4, tag.name, 1.f, palette::panel, Align::Left, false);
+    {
+        HUD_EDITOR_KIND(3, tags.size());
+        for (auto const& tag : tags) {
+            fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h,
+                 tag.focus ? palette::accent : tag.off ? palette::faint : palette::dim, tag.focus || tag.off ? 1.f : .75f);
+            labelScaled(context, tag.box.x + 3, tag.box.y + boxTextInset(), tag.box.w - 4, tag.name, 1.f, palette::panel, Align::Left, false);
+        }
     }
     if (focusSwitch && focus) {
         auto const& [box, shown] = *focusSwitch;
