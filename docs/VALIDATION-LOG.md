@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Favorites' cells in the middle (2026-11-26)
+
+`0f10b0e0` (DLL
+`fcbdeaa01ec9dfc0cbc641affa5071a41c64750041696177e33655dc4e59816b`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the favorites' cells in the middle of their panel, in line with the
+  item list's when the panels are stacked; with many favorites and their
+  scroll bar, a press opens the pressed cell's item; nothing else changed.
+- Remarked: on the radar the faces of a skeleton and (probably) a spider
+  near each other changed places often, as if the order they are drawn in
+  were not fixed. Which map, and whether one rode the other, was not said.
+
 ## Item list cells in the middle; the radar models dumped (2026-11-26)
 
 `ec8e62c7` with `radar_icon_probe` (DLL
