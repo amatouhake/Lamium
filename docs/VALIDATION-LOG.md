@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Radar faces from the model's rest pose (2026-11-26)
+
+`2eeca87b` with `radar_icon_probe` (DLL
+`03d5da74350a8aceeb6183a00f0e386522db6ca1f779fe0916f72273c8e6f4dd`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: elder guardians with the guardian's square face in their pale
+  look; guardians, hoglins, goats, horses and the other mobs as before;
+  nothing else changed.
+- From the log: when the guardians' faces were built their shared model's
+  head held a turn (0.09, -0.32, 0 radians; rest 0) and its tail and eye
+  other pivots than at rest, so the uneven face of `03b23488`'s check was
+  the pose of the guardian drawn last. Parts of models not posed then held
+  their rest turns (a hoglin's and a goat's head had no line).
+- From the sweep (logs/radar-sweep.*): against `ab28fd79`'s, only the
+  pandas differ, 9 by 7 from the front where that sweep had caught a head
+  turned 0.83 radians (15 by 14).
+
 ## Review fixes after 0.8.0; an elder guardian's radar face uneven (2026-11-26)
 
 `03b23488` (DLL
