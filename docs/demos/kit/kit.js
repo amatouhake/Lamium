@@ -193,13 +193,7 @@
     L.label(p, x, centeredTop(y, h), w, text, { color: 'text', align: 'center', shadow });
   };
   L.rowButtonWidth = (text) => L.textWidth(text) + 8;
-  L.windowRowButton = (p, x, y, w, text, { hovered = false, edge = 'vanilla.controlEdge' } = {}) => { // drawRowButton on the window
-    const h = 11;
-    L.fill(p, x, y, w, h, 'vanilla.windowSunk');
-    if (hovered) L.fill(p, x, y, w, h, 'white', .3);
-    L.frame(p, x, y, w, h, edge);
-    L.label(p, x, centeredTop(y, h), w, text, { color: edge, align: 'center', shadow: false });
-  };
+  L.windowRowButton = (p, x, y, w, text, opts = {}) => L.windowButton(p, x, y, w, 11, text, opts); // drawRowButton on the window
   L.windowSwitch = (p, x, y, on, { edge = 'vanilla.controlEdge' } = {}) => { // toggleSwitch on the window
     const w = W.switchWidth, h = W.switchHeight, knob = h - 2, kx = on ? x + w - 1 - knob : x + 1;
     L.fill(p, x, y, w, h, on ? 'accentDeep' : 'vanilla.switchTrack');
@@ -230,11 +224,20 @@
     if (fraction > 0) L.fill(p, x, y, w * fraction, h, 'accentDeep');
     L.fill(p, x, y, w, .5, 'vanilla.slotDark');
   };
-  // Proposals not in src yet: a drawn remove cross, 5 by 5 units centred in whole units, in `ink`.
-  L.proposed = {
-    cross: (p, x, y, w, h, ink) => {
-      const ox = x + Math.floor((w - 5) / 2), oy = y + Math.floor((h - 5) / 2);
-      for (let i = 0; i < 5; i++) { L.fill(p, ox + i, oy + i, 1, 1, ink); L.fill(p, ox + 4 - i, oy + i, 1, 1, ink); }
+  // drawRemoveButton: the plain button with a 5 by 5 cross on whole units, on the window or off it.
+  L.removeButton = (p, x, y, w, h, { window = true, hovered = false, edge } = {}) => {
+    if (window) L.windowButton(p, x, y, w, h, '', { hovered, edge });
+    else L.panelButton(p, x, y, w, h, '', { hovered });
+    const ink = window ? 'vanilla.windowInk' : 'text', ox = x + Math.floor((w - 5) / 2), oy = y + Math.floor((h - 5) / 2);
+    for (let i = 0; i < 5; i++) { L.fill(p, ox + i, oy + i, 1, 1, ink); if (i !== 2) L.fill(p, ox + 4 - i, oy + i, 1, 1, ink); }
+  };
+  // Looks src no longer draws, for decided mockups that show what was there before.
+  L.retired = {
+    // drawRowButton on the window until 2026-11-26: flat, sunk, edged and lettered in the edge's color.
+    flatRowButton: (p, x, y, w, text, { edge = 'vanilla.slotDark' } = {}) => {
+      L.fill(p, x, y, w, 11, 'vanilla.windowSunk');
+      L.frame(p, x, y, w, 11, edge);
+      L.label(p, x, centeredTop(y, 11), w, text, { color: edge, align: 'center', shadow: false });
     },
   };
   L.badge = (p, x, y, text, color = 'experimental') => {

@@ -285,7 +285,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                     else if (frame.sideTurns && box.has(px, py)) state::stepWanted(row.key, frame.sideTurns < 0, frame.shift, false);
                 }
                 ListBox const x{controlsX, y + 1, 11, 10};
-                drawButton(context, x.x, x.y, x.w, x.h, "x", x.has(px, py));
+                drawRemoveButton(context, x.x, x.y, x.w, x.h, x.has(px, py));
                 if (leftPress && took(x)) state::removeWanted(row.key);
             } else number(needX, y, sideList == SideList::Wanted ? row.count : row.need, ink);
             // Taken out of the stores first (L-385): their chest before the counts; the panel has no headings to say so.

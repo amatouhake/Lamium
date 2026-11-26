@@ -14,7 +14,7 @@
   <div>
     <h1>ノートの窓のボタン 3 点</h1>
     <p class="lk-lede">2026-11-26 の確認メモの 3 点です。それぞれ左が今の画面（src/ の描き方をそのまま写したもの）、右が案です。アイテムのアイコンは省いています。</p>
-    <p class="lk-meta">2026-11-26 · 決めること: 縁の色、欲しい物の x、「すべて作る」の形</p>
+    <p class="lk-meta">2026-11-26 · 決定済み（下の決定事項）。「今」は決める前の画面です。</p>
   </div>
   <div class="lk-controls" id="controls"></div>
   <h2>1. スイッチとボタンの縁の色</h2>
@@ -24,11 +24,11 @@
   <h2>3. 「すべて作る」と小さい配置・作るボタン（下の行は保管場所タブの「外す」）</h2>
   <div id="makeAll"></div>
   <section class="lk-box">
-    <h2>確認したいこと（推奨つき）</h2>
+    <h2>決定事項（2026-11-26）</h2>
     <ol>
-      <li>縁の色: <b>今のまま（推奨）</b>。11-21 に黒が浮くので明るいグレーにし、同じ日にいまの暗いグレーへ一段戻して、ゲームで OK をもらった色です。それ以降は変わっていません。もっと軽く見せたいなら案 B です。</li>
-      <li>x: <b>案 B 描いた ×（推奨）</b>。文字の x は、フォント・文字の影・日本語のときの位置のずれで、窓とパネルで見え方が変わります。5×5 の点で描けば、どちらの面でも、どの言語でも真ん中に来ます。</li>
-      <li>「すべて作る」: <b>案 C 窓の上の押すボタンはすべて立体（推奨）</b>。DESIGN の「窓の上の操作ボタンは立体」に揃い、形が 1 種類になります。保管場所の「外す」も立体になります。「すべて作る」だけを変えるなら案 B です。</li>
+      <li>縁の色: 今の暗いグレーと案 B の明るいグレーの間（controlEdge、RGB 70）。</li>
+      <li>x: 案 B。5×5 の点で描いた ×（drawRemoveButton）を、窓とパネルの欲しい物の行で使う。</li>
+      <li>「すべて作る」: 案 C。窓の上の押すボタンはすべて立体にし、表の行のボタン（「すべて作る」「外す」）も立体にする。</li>
     </ol>
   </section>
 </main>
@@ -45,14 +45,14 @@ function windowWanted(stage, y, { edge, x = 'letter' } = {}) {
   Lamium.windowField(stage, 112, y + 3, 28, 12, '32');
   Lamium.windowProgress(stage, 144, y + 9, 24, 3, 0);
   if (x === 'letter') Lamium.windowButton(stage, 172, y + 4, 11, 10, 'x', { edge });
-  else { Lamium.windowButton(stage, 172, y + 4, 11, 10, '', { edge }); Lamium.proposed.cross(stage, 172, y + 4, 11, 10, v('windowInk')); }
+  else Lamium.removeButton(stage, 172, y + 4, 11, 10, { edge });
 }
 // The same row on the side panel (BandPages.cpp): the field box and drawButton off the window.
 function panelWanted(stage, y, { x = 'letter' } = {}) {
   Lamium.label(stage, 8, y + 2, 90, Lamium.pick(ITEM));
   Lamium.label(stage, 96, y + 2, 12, '0', { align: 'right' });
   Lamium.panelField(stage, 112, y, 40, 12, '32');
-  if (x === 'cross') { Lamium.panelButton(stage, 156, y + 1, 11, 10, ''); Lamium.proposed.cross(stage, 156, y + 1, 11, 10, 'text'); }
+  if (x === 'cross') Lamium.removeButton(stage, 156, y + 1, 11, 10, { window: false });
   else Lamium.panelButton(stage, 156, y + 1, 11, 10, 'x', { shadow: x !== 'flat' });
 }
 function edgeScene(edge) {
@@ -65,7 +65,7 @@ function edgeScene(edge) {
     Lamium.windowPictureButton(stage, 21, 46, 'make', { edge });
     Lamium.windowSwitch(stage, 40, 47, true, { edge });
     const text = Lamium.t('recipes.makeAll'), w = Lamium.rowButtonWidth(text);
-    Lamium.windowRowButton(stage, 182 - w, 46, w, text, { edge });
+    Lamium.retired.flatRowButton(stage, 182 - w, 46, w, text, { edge });
   };
 }
 function crossScene(x) {
@@ -81,7 +81,7 @@ function makeScene(kind) {
     Lamium.gameWindow(stage, 0, 0, 190, 66);
     Lamium.label(stage, 8, 8, 80, Lamium.t('recipes.ready'), { color: v('windowFaint'), shadow: false });
     const text = Lamium.t('recipes.makeAll'), w = Lamium.rowButtonWidth(text);
-    if (kind === 'today') Lamium.windowRowButton(stage, 182 - w, 6, w, text);
+    if (kind === 'today') Lamium.retired.flatRowButton(stage, 182 - w, 6, w, text);
     else Lamium.windowButton(stage, 182 - w, 6, w, 11, text);
     // A recipe line: its slots, then place and make (PlanViewDraw.cpp stepButtons).
     Lamium.sunkFace(stage, 8, 21, 16, 16); Lamium.sunkFace(stage, 25, 21, 16, 16);
@@ -93,7 +93,7 @@ function makeScene(kind) {
     Lamium.label(stage, 8, 48, 110, Lamium.pick(STORE), { color: v('windowInk'), shadow: false });
     const remove = Lamium.t('recipes.remove'), rw = Lamium.rowButtonWidth(remove), sy = 47;
     if (kind === 'all') Lamium.windowButton(stage, 182 - rw, sy - 1, rw, 11, remove);
-    else Lamium.windowRowButton(stage, 182 - rw, sy - 1, rw, remove);
+    else Lamium.retired.flatRowButton(stage, 182 - rw, sy - 1, rw, remove);
     Lamium.windowSwitch(stage, 182 - rw - 4 - Lamium.sizes.widgets.switchWidth, sy, true);
   };
 }
@@ -105,8 +105,10 @@ function controls() {
 function draw() {
   const size = { width: 190, height: 64, world: false };
   Lamium.page.compare(document.getElementById('edge'), [
-    { kind: 'today', title: '暗いグレー（11-21 から）', ...size, draw: edgeScene(v('controlEdge')),
-      note: 'スイッチ、x、絵のボタン、「すべて作る」の縁。' },
+    { kind: 'today', title: '暗いグレー（11-21 から）', ...size, draw: edgeScene(v('slotDark')),
+      note: 'スイッチ、x、絵のボタン、「すべて作る」の縁。当時の色に近い slotDark で描いています。' },
+    { kind: 'proposal', title: '決定: 今と案 B の間', ...size, draw: edgeScene(v('controlEdge')),
+      note: '2026-11-26 に決めた色（今の controlEdge）。' },
     { kind: 'proposal', title: '案 B: 明るいグレー', ...size, draw: edgeScene(v('windowShadow')),
       note: '11-21 に一度だけ入れた明るいグレーに近い色。軽く見えるが、窓の影の線と同じ色になる。' },
     { kind: 'proposal', title: '参考: ゲームの黒（11-21 まで）', ...size, draw: edgeScene(v('windowEdge')),

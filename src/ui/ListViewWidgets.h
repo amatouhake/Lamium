@@ -38,12 +38,15 @@ void drawCheckMark(MinecraftUIRenderContext& context, float x, float y, Rgb ink)
 // The same picture on the game's window beside its own close button, drawn as that is (L-382): no face, the
 // window's ink, lit under the pointer; on adds a green check.
 void drawWindowPictureButton(MinecraftUIRenderContext& context, float x, float y, float size, Picture picture, bool hovered, bool on);
-// A small button inside a table row (L-369): flat and edged as a switch, its words at full size (a smaller scale
-// blurred them grey, as if disabled), so two units higher than a switch, centred on the same line. Off the
-// game's window it is the plain button.
+// A small button inside a table row (L-369): the plain button with its words at full size (a smaller scale
+// blurred them grey, as if disabled), so two units higher than a switch, centred on the same line. On the game's
+// window it is raised as every button there (maintainer 2026-11-26: flat beside raised ones read as two kinds).
 inline constexpr float rowButtonHeight = 11;
 float rowButtonWidth(MinecraftUIRenderContext& context, std::string_view text);
 void drawRowButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered);
+// A remove button: the plain button with a drawn cross centred on whole units, the same on the window and off it
+// (maintainer 2026-11-26: a letter x sat low on the dark panels).
+void drawRemoveButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool hovered);
 // A pager (L-367): a previous button, "page / pages" and a next button, ending at `right`, `y` the
 // buttons' top. The page is right-aligned before the slash and the count left-aligned after it, each as
 // wide as two digits, so the buttons and the slash keep their place. A button at the first or last page is disabled. The caller turns the page on a press

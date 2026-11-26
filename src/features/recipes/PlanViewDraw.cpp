@@ -625,7 +625,7 @@ struct Lists : Window {
                 progressBar(context, barX, y + 9, barW, 3, fraction);
                 if (manual) {
                     float const xW = 11, xX = controlsX + controlsW - xW;
-                    drawButton(context, xX, y + 4, xW, 10, "x", over(xX, y + 4, xW, 10));
+                    drawRemoveButton(context, xX, y + 4, xW, 10, over(xX, y + 4, xW, 10));
                     if (over(xX, y + 4, xW, 10)) onControl = true;
                     if (took(xX, y + 4, xW, 10)) state::removeWanted(entry.key);
                 } else labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);

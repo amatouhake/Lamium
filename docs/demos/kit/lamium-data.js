@@ -67,7 +67,7 @@ window.LAMIUM_DATA = {
   "switchTrack": "#7f7f7f",
   "tabBack": "#626262",
   "tabRim": "#c4c4c4",
-  "controlEdge": "#363636",
+  "controlEdge": "#464646",
   "brewingFuel": "#f0991a",
   "brewingFuelLight": "#ffd94d",
   "windowSunk": "#b4b4b4",

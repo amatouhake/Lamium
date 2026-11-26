@@ -61,9 +61,10 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     // not chosen and the light along its top.
     buttonShadow{.392f,.392f,.392f}, switchTrack{.498f,.498f,.498f}, tabBack{.384f,.384f,.384f}, tabRim{.769f,.769f,.769f},
     // Lamium's own, not sampled: the edge of a control on the game's window (a button, a switch, a recipe's face),
-    // lighter than the game's black, which stood out against the window (maintainer 2026-11-21, L-379). The
-    // window's frame and its tabs keep the black.
-    controlEdge{.212f,.212f,.212f},
+    // lighter than the game's black, which stood out against the window (maintainer 2026-11-21, L-379), and
+    // since 2026-11-26 halfway to the window's shadow line, which read heavy (maintainer). The window's frame and
+    // its tabs keep the black.
+    controlEdge{70 / 255.f,70 / 255.f,70 / 255.f},
     // The brewing stand's fuel in the recipe view's brewing faces (L-361), drawn after the game's gauge, not sampled:
     // its body and the light along its top.
     brewingFuel{.94f,.6f,.1f}, brewingFuelLight{1.f,.85f,.3f},
