@@ -291,6 +291,9 @@ void radarFaces() {
     std::vector<std::uint8_t> fine(64 * 64 * 4, 255);
     auto hd = composeFace(fine.data(), 64, 64, 4, {{0, 0, 8, 10, 0, 0, 0, 8, 10}});
     check(hd && hd->width == 8 && hd->height == 10, "a high-resolution face shrinks by a whole factor to fit 16");
+    auto thin = reduceFace(std::vector<std::uint32_t>(16, packColor(10, 20, 30)), 16, 1, 4);
+    check(thin && thin->width == 4 && thin->height == 1 && thin->pixels == std::vector<std::uint32_t>(4, packColor(10, 20, 30)),
+          "a face thinner than its shrink step is read within its picture and keeps its pixels");
     check(baseTexture("minecraft:villager_v2") == "textures/entity/villager2/villager" && baseTexture("minecraft:zombie").empty(),
           "only renderers whose default skin is an overlay use another texture");
     check(!faceLayer("hat") && !faceLayer("helmet") && faceLayer("nose") && faceLayer("head"), "worn layers are left out");

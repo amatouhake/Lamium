@@ -149,14 +149,16 @@ inline std::optional<Face> reduceFace(std::vector<std::uint32_t> const& full, in
     bool any = false;
     for (int y = 0; y < face.height; ++y)
         for (int x = 0; x < face.width; ++x) {
-            int seen = 0, r = 0, g = 0, b = 0;
-            for (int dy = 0; dy < step; ++dy)
-                for (int dx = 0; dx < step; ++dx) {
+            // A picture thinner than the step has fewer texels to cover than step x step.
+            int covered = 0, seen = 0, r = 0, g = 0, b = 0;
+            for (int dy = 0; dy < step && y * step + dy < fullH; ++dy)
+                for (int dx = 0; dx < step && x * step + dx < fullW; ++dx) {
                     auto c = full[static_cast<size_t>(y * step + dy) * fullW + x * step + dx];
+                    ++covered;
                     if (!(c >> 24)) continue;
                     ++seen, r += channel(c, 0), g += channel(c, 1), b += channel(c, 2);
                 }
-            if (!seen || seen * 2 < step * step) continue;
+            if (!seen || seen * 2 < covered) continue;
             face.pixels[static_cast<size_t>(y * face.width + x)] = packColor(r / seen, g / seen, b / seen);
             any = true;
         }
