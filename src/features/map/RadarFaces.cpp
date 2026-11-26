@@ -302,7 +302,7 @@ void describePart(ModelPart const& part, std::string& out, int depth) {
 // Research builds only (L-411): every renderer's model (each geometry's parts with their rest and last drawn
 // pose, their cubes and all six faces' texture rectangles) to logs/radar-dump/models.json, and the textures its
 // faces are built from as raw RGBA files beside it, so a face can be worked out again outside the game.
-std::string quoted(std::string_view text) {
+std::string jsonText(std::string_view text) {
     std::string out = "\"";
     for (char c : text) {
         if (c == '"' || c == '\\') out += '\\';
@@ -326,7 +326,7 @@ void dumpModels(IClientInstance& client, std::vector<std::pair<std::string, Data
                 std::string const file = std::format("{}.rgba", textures.size());
                 std::ofstream(dir / file, std::ios::binary)
                     .write(reinterpret_cast<char const*>(image->rgba.data()), static_cast<std::streamsize>(image->width) * image->height * 4);
-                entry = std::format("{{\"file\":{},\"width\":{},\"height\":{}}}", quoted(file), image->width, image->height);
+                entry = std::format("{{\"file\":{},\"width\":{},\"height\":{}}}", jsonText(file), image->width, image->height);
             }
         } catch (...) {}
         textures.emplace(path, std::move(entry));
@@ -344,10 +344,10 @@ void dumpModels(IClientInstance& client, std::vector<std::pair<std::string, Data
                 std::string const path = variantTexture(name, v);
                 if (path.empty()) break;
                 texture(path);
-                variants += (v ? "," : "") + quoted(path);
+                variants += (v ? "," : "") + jsonText(path);
             }
             texture(lookTexture(name, -1, true));
-            std::string entry = std::format("{{\"name\":{},\"texture\":{},\"variants\":[{}],\"geometries\":[", quoted(name), quoted(skin), variants);
+            std::string entry = std::format("{{\"name\":{},\"texture\":{},\"variants\":[{}],\"geometries\":[", jsonText(name), jsonText(skin), variants);
             auto model = renderer->mModel.get();
             std::string order;
             if (model) {
@@ -358,7 +358,7 @@ void dumpModels(IClientInstance& client, std::vector<std::pair<std::string, Data
                     if (!geometry) { entry += "null"; continue; }
                     auto const& parts = *geometry->mModelParts;
                     auto const& bones = *geometry->mDefaultBoneOrientations;
-                    entry += std::format("{{\"name\":{},\"parts\":[", quoted(geometry->mGeoName->getString()));
+                    entry += std::format("{{\"name\":{},\"parts\":[", jsonText(geometry->mGeoName->getString()));
                     for (size_t i = 0; i < parts.size(); ++i) {
                         auto const& part = parts[i];
                         long long parent = -1;
@@ -370,7 +370,7 @@ void dumpModels(IClientInstance& client, std::vector<std::pair<std::string, Data
                         Vec3 const pivot = bone ? Vec3{*bone->mPivot} : Vec3{};
                         entry += std::format("{}{{\"name\":{},\"parent\":{},\"texSize\":[{:g},{:g}],\"neverRender\":{},\"hasBone\":{},\"restRot\":{},"
                                              "\"restPivot\":{},\"liveRot\":{},\"livePos\":{},\"cubes\":[",
-                                             i ? "," : "", quoted(part.mName->getString()), parent, part.mTexSize->x, part.mTexSize->y,
+                                             i ? "," : "", jsonText(part.mName->getString()), parent, part.mTexSize->x, part.mTexSize->y,
                                              static_cast<bool>(part.mNeverRender), bone != nullptr, triple(rest), triple(pivot), triple(*part.mRot),
                                              triple(*part.mPos));
                         bool firstCube = true;
@@ -410,7 +410,7 @@ void dumpModels(IClientInstance& client, std::vector<std::pair<std::string, Data
     out << "],\"textures\":{";
     bool firstTexture = true;
     for (auto const& [path, entry] : textures) {
-        out << (firstTexture ? "" : ",") << quoted(path) << ":" << entry;
+        out << (firstTexture ? "" : ",") << jsonText(path) << ":" << entry;
         firstTexture = false;
     }
     out << "}}";
