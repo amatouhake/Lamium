@@ -50,7 +50,7 @@ inline bool faceLayer(std::string_view part) {
 // How a kind's face is seen (L-330, maintainer 2026-11-26): from the front of its "head" with the parts
 // hanging from it by default; a kind without a head shows the part where its face is; long necks are cut
 // below the face; kinds whose eyes are on their sides (fish, parrots, horses, turtles, camels) are seen from
-// the side, a few from an angle.
+// the side, horses and armadillos from an angle (a turtle's eye, squeezed at an angle, showed only its white).
 struct FaceRecipe {
     std::vector<std::string_view> parts{"head"}; // none: the kind stays a dot
     bool children = true;  // the parts hanging from those, as a head's nose and ears
@@ -68,13 +68,14 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false) {
     FaceRecipe r;
     auto only = [&](std::initializer_list<std::string_view> parts) { r.parts = parts; r.children = false; };
     auto side = [&] { r.yaw = 90; };
-    if (kind == "horse" || kind == "skeleton_horse" || kind == "zombie_horse") r.leftOut = {"muleearl", "muleearr"}, side();
-    else if (kind == "donkey" || kind == "mule") r.leftOut = {"earl", "earr"}, side();
+    // From 30° off the front a horse shows an eye, its muzzle and both ears (maintainer 2026-11-26).
+    if (kind == "horse" || kind == "skeleton_horse" || kind == "zombie_horse") r.leftOut = {"muleearl", "muleearr"}, r.yaw = 30;
+    else if (kind == "donkey" || kind == "mule") r.leftOut = {"earl", "earr"}, r.yaw = 30;
     else if (kind == "llama" || kind == "trader_llama") r.rows = 10;
     else if (kind == "camel" || kind == "camel_husk") side(), r.rows = 11, r.columns = 13;
     else if (kind == "turtle" || kind == "parrot") side();
     else if (kind == "armadillo") r.yaw = 45;
-    else if (kind == "frog") r.yaw = 45, r.pitch = 25;
+    else if (kind == "frog") r.parts = {"body"}; // the whole frog: its face is its eyes over its mouth and feet
     else if (kind == "squid" || kind == "glow_squid" || kind == "ghast" || kind == "happy_ghast" || kind == "bee" || kind == "strider")
         only({"body"});
     else if (kind == "slime") only({"cube", "eye0", "eye1", "mouth"}), r.onTop = {"eye0", "eye1", "mouth"};
@@ -313,10 +314,14 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
     std::vector<std::uint32_t> grid(static_cast<size_t>(gridW) * gridH, 0);
     std::vector<double> depth(grid.size(), 1e18);
     auto texel = [&](double at) { return static_cast<int>(std::floor(at * texelsPerUnit - 1e-6)); };
+    // Each pixel is sampled at its centre moved a hair toward the picture's middle, so an edge on a half unit
+    // falls the same way on both sides (a frog's body was a pixel wider on its right).
+    double const midX = (std::floor(minX) + std::ceil(maxX)) / 2, midY = (std::floor(minY) + std::ceil(maxY)) / 2;
+    auto toward = [](double at, double mid) { return at < mid ? at + 1e-4 : at - 1e-4; };
     for (auto const& q : quads)
         for (int gy = 0; gy < gridH; ++gy)
             for (int gx = 0; gx < gridW; ++gx) {
-                double const dx = x0 + (gx + .5) / texelsPerUnit - q.ax, dy = y0 + (gy + .5) / texelsPerUnit - q.ay;
+                double const dx = toward(x0 + (gx + .5) / texelsPerUnit, midX) - q.ax, dy = toward(y0 + (gy + .5) / texelsPerUnit, midY) - q.ay;
                 double const s = (dx * q.e2y - dy * q.e2x) / q.det, t = (q.e1x * dy - q.e1y * dx) / q.det;
                 if (s < 0 || s >= 1 || t < 0 || t >= 1) continue;
                 double const z = q.az + s * q.e1z + t * q.e2z - (q.onTop ? 1e6 : 0);

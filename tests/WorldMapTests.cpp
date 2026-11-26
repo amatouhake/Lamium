@@ -352,6 +352,12 @@ void modelFaces() {
     longHead.faces[sideEast] = {0, 0, 6, 2, true};
     auto snout = projectFace(image.data(), 8, 8, 1, {longHead}, {90, 0, 0, 2});
     check(snout && snout->width == 2 && channel(snout->pixels[0], 2) == 255, "a side view keeps its front columns, on the right (camel)");
+    // A box on half units between whole ones covers the same pixels on both sides (a frog's body).
+    ModelBox base{{-5, 0, 0}, {5, 1, 1}, false, {}, {}}, body{{-3.5, 1, 0}, {3.5, 2, 1}, false, {}, {}};
+    base.faces[sideNorth] = body.faces[sideNorth] = {0, 0, 1, 1, true};
+    auto even = projectFace(image.data(), 8, 8, 1, {base, body});
+    check(even && even->width == 10 && !(even->pixels[0] >> 24) && (even->pixels[1] >> 24) && (even->pixels[8] >> 24) && !(even->pixels[9] >> 24),
+          "an edge on a half unit falls the same way on the left and the right");
     // An eye set inside the head is drawn over its front.
     ModelBox head = box(sideNorth, green), eye{{.5, .5, 1}, {1.5, 1.5, 1.5}, false, {}, {}, true};
     eye.faces[sideNorth] = {0, 0, 1, 1, true};
@@ -368,7 +374,8 @@ void modelFaces() {
           "a face wider than 15 is halved by averaging, so thin features stay");
     check(faceRecipe("minecraft:squid").parts == std::vector<std::string_view>{"body"} && !faceRecipe("minecraft:squid").children,
           "a squid's face is its body alone");
-    check(faceRecipe("minecraft:parrot").yaw == 90 && faceRecipe("minecraft:cod").yaw == 90 && faceRecipe("minecraft:horse").yaw == 90
+    check(faceRecipe("minecraft:parrot").yaw == 90 && faceRecipe("minecraft:cod").yaw == 90 && faceRecipe("minecraft:turtle").yaw == 90
+              && faceRecipe("minecraft:horse").yaw == 30
               && faceRecipe("minecraft:pig").yaw == 0 && faceRecipe("minecraft:llama").rows == 10,
           "kinds with eyes on their sides are seen from the side, long necks cut");
     check(faceRecipe("minecraft:armor_stand").parts.empty() && !faceRecipe("minecraft:snow_golem").image.empty()
