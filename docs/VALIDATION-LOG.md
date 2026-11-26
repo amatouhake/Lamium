@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## World map drag cost (2026-11-26)
+
+`f9ce19c5` with `ui_draw_trace`, 1.26.60.05 Dev, the maintainer dragging the
+world map at three zoom levels, numbers from the log:
+- Seen: 80-130 fps, render 2-6 ms, of it 270-870 fill() calls taking
+  0.8-3.9 ms (about 4.4 us each); no change made, the map keeps up with play.
+
 ## HUD layout drag lag: the editor's hatching (2026-11-26)
 
 `fa0c66d7` through `c056bca2` with `hud_editor_trace`, 1.26.60.05 Dev, the
