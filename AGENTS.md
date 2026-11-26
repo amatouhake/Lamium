@@ -49,8 +49,9 @@ xmake build LamiumNativeTests && xmake run LamiumNativeTests   # SDK-type tests
 ```
 
 - Run `LamiumTests` after every change; it must print no failures. CI also
-  runs `scripts/Check-UiTokens.ps1`, `Check-Includes.ps1`, `Check-Backlog.ps1`,
-  `Check-Docs.ps1` and `Check-Demos.ps1`; run the one for what you changed. A change to a
+  runs `scripts/Check-UiTokens.ps1`, `Check-Includes.ps1`, `Check-Lifecycle.ps1`,
+  `Check-Backlog.ps1`, `Check-Docs.ps1` and `Check-Demos.ps1`; run the one for
+  what you changed. A change to a
   color, size, settings row or string also regenerates the mockup data:
   `xmake build LamiumDemoData && xmake run LamiumDemoData`.
 - Deploy only when the user wants to test, with Minecraft closed: copy
@@ -90,7 +91,7 @@ tests          Pure unit tests (no game types). tests-native: SDK-type tests
    focus loss, so nothing stays stuck. Draw-only changes (HUD placement and
    hiding) are decided per draw and kept while the window is unfocused. A
    lock the player switched on (Permanent Sneak and Sprint) stays on through
-   focus loss.
+   focus loss. Each feature's answer is a line in docs/LIFECYCLE.md.
 4. **Settings**: field in `Settings.h`, entry in `Options.h`, load/save in
    `SettingsStore.cpp` (tolerate missing keys), row in `SettingsRows.h`,
    strings in all four languages. The tests catch most omissions.
