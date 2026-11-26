@@ -246,6 +246,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-411](backlog/done/L-411.md) Radar faces that are hard to read
 - [L-384](backlog/done/L-384.md) HUD: a wider scale range and placement past the screen edge
 - [L-330](backlog/done/L-330.md) Radar: mob icons that draw wrongly, then icons by default
 - [L-398](backlog/done/L-398.md) The recipe key hints as a tooltip of their own
