@@ -9,24 +9,26 @@ Do not infer game success from a build or unit-test result.
 
 ## For the next release
 
-0.9.0: main as of the version bump (maintainer 2026-11-27).
+Not decided yet (BACKLOG "Current execution order" 7).
 
 Only what the release needs and can be brought about locally is checked in
 game before a release (maintainer 2026-11-27); servers, Realms, a second
-account and unverified game builds stay follow-up coverage below. The cases
-left open since 0.8.0 that qualified (the creative take's three cases, line
-breaks in Russian and both Chinese, Item Transfer at the stonecutter and
-furnace, a rocket crafted in the inventory) passed on `6632e781`
-(VALIDATION-LOG 2026-11-27), and so did the smoke of `c8db65b2`'s CI
-package. Left: tagging `v0.9.0` and publishing its draft.
+account and unverified game builds stay follow-up coverage below.
 
-Left from 0.8.0 (published 2026-11-23): the published ZIP itself, and the
-LIP registry, Bedrinth and LeviLauncher offering 0.8.0 (DISTRIBUTION.md).
+Left from 0.9.0 (published 2026-11-27): the published ZIP itself, and the
+LIP registry, Bedrinth and LeviLauncher offering 0.9.0 (DISTRIBUTION.md).
+Left from 0.8.0 (published 2026-11-23): the same for 0.8.0.
 
 ## Follow-up coverage (not release gates)
 
 What follows lists cases not seen in earlier work; it does not hold a
 release. Look at an entry when its feature misbehaves or is changed.
+
+### Left from 0.9.0
+
+- Not seen on a server: taking items out in creative (L-360), radar faces
+  (L-330), Target Info's row keys and Sneak placement's "Send only" door
+  fix (L-410).
 
 ### Left from 0.8.0
 

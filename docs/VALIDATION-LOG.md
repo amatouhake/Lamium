@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.9.0 tagged and published (2026-11-27)
+
+Tagged `v0.9.0` on `c8db65b2`, the commit whose CI package passed the
+smoke below. The tag's run 45877861720 attached
+`Lamium-0.9.0-client-windows-x64.zip` (SHA-256
+`660f59853caaec4839cd6506dafa33fcdd2b5a36e140b032c8875e27898838c7`) and
+the symbols ZIP (SHA-256
+`981ebd9c03c15c2734fb505e37c86988b355c0279e8f12f9019958d223fbb7a3`); the
+release was published the same day. The published ZIP itself and the
+listings are not checked yet.
+
 ## 0.9.0 release smoke (2026-11-27)
 
 The commit's CI package of `c8db65b2` (run 45874915732, DLL

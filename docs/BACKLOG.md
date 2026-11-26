@@ -156,10 +156,10 @@ from the file); never restate them here.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151 body in first person, L-152 held map preview, L-153 last pressed
    movement key and the previously parked work remain later.
-7. **Before the next release:** 0.9.0 takes main as of its version bump
-   (maintainer 2026-11-27). Then changed-feature smoke and the relevant
+7. **Before the next release:** what the next release takes is not decided
+   yet. Then changed-feature smoke and the relevant
    [pre-release checks](backlog/pre-release-checks.md). Latest release:
-   0.8.0, 2026-11-23 (`v0.8.0`). A full regression is not a release gate.
+   0.9.0, 2026-11-27 (`v0.9.0`). A full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
