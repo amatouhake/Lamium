@@ -811,7 +811,8 @@ std::vector<Dot> collectDots(IClientInstance& client, double centerX, double cen
         int face = -1;
         if (withFaces && *kind == DotKind::Player) face = faces::headOf(*actor);
         else if (withFaces && *kind != DotKind::Item) face = faces::faceOf(client, *actor);
-        dots.push_back({*kind, p.x, p.z, p.y - playerY, *kind == DotKind::Player ? actor->getNameTag() : std::string{}, face});
+        dots.push_back({*kind, p.x, p.z, p.y - playerY, *kind == DotKind::Player ? actor->getNameTag() : std::string{}, face, false,
+                        actor->getVehicle() != nullptr});
     }
     distantPlayers(*player, loadedPlayers, dots, centerX, centerZ, reach, playerY, withFaces);
     return dots;

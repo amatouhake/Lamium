@@ -1245,7 +1245,8 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
         faces::frame();
         RadarSwitches kinds{settings.radarPlayers, settings.radarHostile, settings.radarPassive, settings.radarItems};
         auto dots = collectDots(context.mClient, spot->x, spot->z, 3.0e7, spot->y, settings.radarInvisible, settings.radarFaces);
-        std::stable_sort(dots.begin(), dots.end(), [](Dot const& a, Dot const& b) { return a.kind < b.kind; });
+        // Riders over their mounts, as on the minimap (placeDots).
+        std::stable_sort(dots.begin(), dots.end(), [](Dot const& a, Dot const& b) { return std::pair(a.kind, a.riding) < std::pair(b.kind, b.riding); });
         for (auto const& dot : dots) {
             bool player = dot.kind == DotKind::Player;
             if (!shown(dot.kind, kinds) || !radarDotShown(player, view.scale())) continue;

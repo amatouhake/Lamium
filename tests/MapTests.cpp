@@ -555,12 +555,12 @@ void radar() {
     check(high.size() == 2 && high[1].alpha == 1 && high[0].alpha < 1, "a loaded player far above stays opaque; a mob fades");
     // A rider and its mount, the nearer changing from frame to frame, a pixel apart at times.
     auto jockey = [&](double rider, double mount) {
-        return placeDots({{DotKind::Hostile, rider, 0, 1.2, "", 7}, {DotKind::Hostile, mount, 0, 0, "", 3}}, defaults,
+        return placeDots({{DotKind::Hostile, rider, 0, -.1, "", 7, false, true}, {DotKind::Hostile, mount, 0, 0, "", 3}}, defaults,
                          ViewTransform::northUp(), 0, 0, 128, 256, false, 4);
     };
     check(jockey(5.01, 5.02) == jockey(5.02, 5.01) && jockey(5.01, 5.02).back().face == 7 && jockey(4.6, 5.4).back().face == 7
               && jockey(5.4, 4.6).back().face == 7,
-          "of two dots of a kind the higher one is drawn on top, whichever is nearer");
+          "a rider is drawn over its mount, whichever is nearer or higher");
     std::vector<std::uint32_t> image(32 * 32, 0);
     drawDot(image, 32, 16, 16, 3, 2, dotColor(DotKind::Hostile), 1);
     check(image[16 * 32 + 16] == dotColor(DotKind::Hostile) && channel(image[16 * 32 + 20], 0) < 60

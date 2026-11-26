@@ -59,6 +59,7 @@ struct Dot {
     std::string name; // Players only.
     int face = -1;    // A mob face (RadarFaces) drawn instead of the dot.
     bool distant = false; // Players only: not loaded, from the locator state.
+    bool riding = false;  // On another actor: drawn over its mount.
 };
 // A dot placed on the map, in texture pixels.
 struct PlacedDot {
@@ -72,10 +73,10 @@ struct PlacedDot {
 };
 // Dots inside the map (square or round, `margin` pixels in), lowest kind
 // first so players end on top. At most `limit`, nearest kept. Within a kind
-// the higher is drawn over the lower, as seen from above, in quarter blocks,
-// then by their pixel: by their distance in the world, and then by their
-// pixel alone, a rider and its mount changed places (a skeleton on a
-// spider, seen 2026-11-26).
+// riders are drawn over the rest, then by their pixel. A skeleton on a
+// spider changed places with it by their distance in the world, by their
+// pixel (a pixel apart at times) and by their height, where the rider's
+// feet are not above its mount's (seen 2026-11-26 and 27).
 inline std::vector<PlacedDot> placeDots(std::vector<Dot> dots, RadarSwitches const& switches, ViewTransform const& view,
                                         double centerX, double centerZ, double blocks, int pixels, bool round,
                                         double margin, size_t limit = 256) {
@@ -83,7 +84,7 @@ inline std::vector<PlacedDot> placeDots(std::vector<Dot> dots, RadarSwitches con
     std::sort(dots.begin(), dots.end(), [&](Dot const& a, Dot const& b) {
         return std::hypot(a.x - centerX, a.z - centerZ) < std::hypot(b.x - centerX, b.z - centerZ);
     });
-    struct Kept { PlacedDot dot; double from, dy; };
+    struct Kept { PlacedDot dot; double from; bool riding; };
     std::vector<Kept> kept;
     for (auto const& d : dots) {
         if (kept.size() >= limit) break;
@@ -95,10 +96,10 @@ inline std::vector<PlacedDot> placeDots(std::vector<Dot> dots, RadarSwitches con
         float alpha = d.kind != DotKind::Player ? dotAlpha(d.dy) : d.distant ? distantAlpha : 1.f;
         double const px = std::round(p.x), py = std::round(p.y);
         kept.push_back({{d.kind, px, py, alpha, d.kind == DotKind::Player ? d.name : "", d.face, d.distant},
-                        std::hypot(px - pixels / 2.0, py - pixels / 2.0), std::floor(d.dy * 4)});
+                        std::hypot(px - pixels / 2.0, py - pixels / 2.0), d.riding});
     }
     std::stable_sort(kept.begin(), kept.end(), [](Kept const& a, Kept const& b) {
-        return std::tuple(a.dot.kind, a.dy, a.from) < std::tuple(b.dot.kind, b.dy, b.from);
+        return std::tuple(a.dot.kind, a.riding, a.from) < std::tuple(b.dot.kind, b.riding, b.from);
     });
     std::vector<PlacedDot> placed;
     for (auto& k : kept) placed.push_back(std::move(k.dot));
