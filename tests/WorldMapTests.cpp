@@ -375,6 +375,46 @@ void modelFaces() {
     auto halved = reduceFace(stripes, 16, 2, 1);
     check(halved && halved->width == 8 && channel(halved->pixels[0], 0) == 100 && channel(halved->pixels[0], 2) == 100,
           "a face wider than 15 is halved by averaging, so thin features stay");
+    std::vector<std::uint32_t> const large(16 * 16, packColor(40, 50, 60));
+    auto whole16 = reduceFace(large, 16, 16, 1, wholeFaceSide), half16 = reduceFace(large, 16, 16, 1);
+    check(whole16 && whole16->width == 16 && whole16->height == 16 && half16 && half16->width == 8,
+          "a face 16 a side stays whole for a kind drawn whole, and is halved for the others");
+    std::vector<std::uint32_t> cells;
+    writeFace(cells, 0, *whole16);
+    check(cells[static_cast<size_t>(17) * faceAtlasSide + 17] == faceOutline && !cells[static_cast<size_t>(faceCellSide)]
+              && !cells[static_cast<size_t>(faceCellSide) * faceAtlasSide] && faceAtlasCells * faceCellSide <= faceAtlasSide,
+          "a whole face and its outline stay inside their atlas cell");
+    // A head on half units upward with a snout three wide on its six (a wolf's). White head, black snout.
+    std::vector<std::uint8_t> fur(16 * 8 * 4, 255);
+    for (int y = 0; y < 8; ++y)
+        for (int x = 8; x < 16; ++x) fur[static_cast<size_t>((y * 16 + x) * 4)] = fur[static_cast<size_t>((y * 16 + x) * 4 + 1)] = fur[static_cast<size_t>((y * 16 + x) * 4 + 2)] = 0;
+    ModelBox skull{{-3, 7.5, 0}, {3, 13.5, 4}, false, {}, {}}, muzzle{{-1.5, 7.5, -3}, {1.5, 10.5, 0}, false, {}, {}};
+    skull.faces[sideNorth] = {0, 0, 6, 6, true};
+    muzzle.faces[sideNorth] = {8, 0, 3, 3, true};
+    auto black = [](Face const& f, int row) {
+        int n = 0;
+        for (int x = 0; x < f.width; ++x) n += f.pixels[static_cast<size_t>(row * f.width + x)] == packColor(0, 0, 0);
+        return n;
+    };
+    auto spread = projectFace(fur.data(), 16, 8, 1, {skull, muzzle});
+    auto aligned = projectFace(fur.data(), 16, 8, 1, {skull, muzzle}, {0, 0, 0, 0, true});
+    auto oneSided = projectFace(fur.data(), 16, 8, 1, {skull, muzzle}, {0, 0, 0, 0, true, true});
+    check(spread && spread->width == 6 && spread->height == 7, "on the whole-unit grid a head on half units takes a row more");
+    check(aligned && aligned->width == 6 && aligned->height == 6 && black(*aligned, 2) == 0 && black(*aligned, 3) == 4 && black(*aligned, 5) == 4,
+          "aligned to its largest face it keeps its six rows; a snout three wide still covers four columns");
+    check(oneSided && oneSided->height == 6 && black(*oneSided, 3) == 3 && black(*oneSided, 5) == 3,
+          "one-sided, a pixel centred on an edge is taken once: the snout is three wide (a wolf's one-texel nose)");
+    auto wolf = faceRecipe("minecraft:wolf"), warden = faceRecipe("minecraft:warden"), nautilus = faceRecipe("minecraft:zombie_nautilus");
+    check(wolf.aligned && wolf.oneSided && faceRecipe("minecraft:cat").aligned && !faceRecipe("minecraft:cat").oneSided
+              && faceRecipe("minecraft:polar_bear").aligned && !faceRecipe("minecraft:pig").aligned && !faceRecipe("minecraft:fox").aligned,
+          "only the kinds looked at take the aligned grid (L-411)");
+    check(warden.side == wholeFaceSide && !drawnPart(warden, "left_tendril") && faceRecipe("minecraft:elder_guardian").side == wholeFaceSide
+              && faceRecipe("minecraft:guardian").side == maxFaceSide && faceRecipe("minecraft:guardian", false, true).side == wholeFaceSide,
+          "a warden without its tendrils and an elder guardian, by either renderer, are drawn whole; a guardian halved");
+    check(faceRecipe("minecraft:camel").rows == 8 && faceRecipe("minecraft:camel_husk").columns == 10 && faceRecipe("minecraft:goat").yaw == 45
+              && nautilus.parts == std::vector<std::string_view>{"nautilus"} && nautilus.yaw == 90 && nautilus.children
+              && faceRecipe("minecraft:creaking").cubes == 2 && faceRecipe("minecraft:pig").cubes == 0,
+          "a camel's head without its neck, a goat from 45°, a nautilus whole from its side, a creaking's trunk without its branches");
     check(faceRecipe("minecraft:squid").parts == std::vector<std::string_view>{"body"} && !faceRecipe("minecraft:squid").children,
           "a squid's face is its body alone");
     check(faceRecipe("minecraft:parrot").yaw == 90 && faceRecipe("minecraft:cod").yaw == 90 && faceRecipe("minecraft:turtle").yaw == 90

@@ -141,7 +141,9 @@ std::vector<Turn> partTurns(Model const& model, ModelPart const& part) {
 void addPart(Model const& model, ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelBox>& out, int depth) {
     if (depth > 4 || !drawnPart(recipe, part.mName->getString())) return;
     std::vector<Turn> const turns = partTurns(model, part);
+    int taken = 0;
     for (auto const& cube : *part.mCubes) {
+        if (depth == 0 && recipe.cubes > 0 && taken++ >= recipe.cubes) break;
         auto const origin = *cube.mOrigin, size = *cube.mSize;
         ModelBox box{{origin.x, origin.y, origin.z}, {origin.x + size.x, origin.y + size.y, origin.z + size.z}, cube.mMirrored, {}, {},
                      drawnOnTop(recipe, part.mName->getString())};
@@ -202,10 +204,10 @@ std::optional<Face> pictureFace(IClientInstance& client, std::string_view path) 
     if (image->rgba.size() < static_cast<size_t>(image->width) * image->height * 4) return std::nullopt;
     return reduceFace(packedPicture(image->rgba.data(), image->width, image->height), image->width, image->height, image->width / 8.0);
 }
-// `variant`: the texture the mob's variant picks (variantTexture), or empty for the kind's own.
+// `variant`: the texture the mob's look picks (lookTexture), or empty for the kind's own.
 std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven, std::string const& renderer,
-                         std::string const& variant = {}, bool sheared = false) {
-    FaceRecipe const recipe = faceRecipe(renderer, sheared);
+                         std::string const& variant = {}, bool sheared = false, bool elder = false) {
+    FaceRecipe const recipe = faceRecipe(renderer, sheared, elder);
     if (!recipe.image.empty()) return pictureFace(client, recipe.image);
     auto model = dataDriven.mModel.get();
     if (!model) return std::nullopt;
@@ -218,14 +220,16 @@ std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven
     int width = image->width, height = image->height;
     // Textures may be finer than the model's texture units.
     double texels = boxes->textureWidth > 0 ? width / boxes->textureWidth : 1;
-    return projectFace(image->rgba.data(), width, height, texels, boxes->boxes, {recipe.yaw, recipe.pitch, recipe.rows, recipe.columns});
+    return projectFace(image->rgba.data(), width, height, texels, boxes->boxes,
+                       {recipe.yaw, recipe.pitch, recipe.rows, recipe.columns, recipe.aligned, recipe.oneSided, recipe.side});
 }
-std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer, std::string const& variant, bool sheared) {
+std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer, std::string const& variant, bool sheared,
+                         bool elder) {
     auto dispatcher = client.getEntityRenderDispatcher();
     if (!dispatcher) return std::nullopt;
     auto dataDriven = dispatcher->getDataDrivenRenderer(actor.getActorRendererId());
     if (!dataDriven) return std::nullopt;
-    return load(client, *dataDriven, renderer, variant, sheared);
+    return load(client, *dataDriven, renderer, variant, sheared, elder);
 }
 #ifdef LAMIUM_RADAR_ICON_PROBE
 // The research pictures' background, behind clear pixels.
@@ -503,8 +507,8 @@ int faceOf(IClientInstance& client, Actor& actor) {
     // A kind whose look follows the mob (a horse's coat, an elder guardian, a sheared snow golem) has a face
     // per look.
     bool const guardian = renderer == "minecraft:guardian" || renderer == "minecraft:elder_guardian";
-    std::string variant = lookTexture(renderer, variantTexture(renderer, 0).empty() ? -1 : actor.getVariant(),
-                                      guardian && actor.getStatusFlag(ActorFlags::Elder));
+    bool const elder = guardian && actor.getStatusFlag(ActorFlags::Elder);
+    std::string variant = lookTexture(renderer, variantTexture(renderer, 0).empty() ? -1 : actor.getVariant(), elder);
     bool const sheared = renderer == "minecraft:snow_golem" && actor.getStatusFlag(ActorFlags::Sheared);
     std::string key = variant.empty() ? renderer : renderer + "#" + variant;
     if (sheared) key += "#sheared";
@@ -512,7 +516,7 @@ int faceOf(IClientInstance& client, Actor& actor) {
     if (loadsLeft <= 0) return -1;
     --loadsLeft;
     int index = -1;
-    try { index = add(load(client, actor, renderer, variant, sheared), key); } catch (...) {}
+    try { index = add(load(client, actor, renderer, variant, sheared, elder), key); } catch (...) {}
     if (index < 0) log(std::format("no face for {}; it stays a dot", key));
     byRenderer.emplace(std::move(key), index);
     return index;
