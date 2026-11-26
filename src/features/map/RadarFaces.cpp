@@ -144,8 +144,9 @@ void addPart(Model const& model, ModelPart const& part, FaceRecipe const& recipe
     int taken = 0;
     for (auto const& cube : *part.mCubes) {
         if (depth == 0 && recipe.cubes > 0 && taken++ >= recipe.cubes) break;
-        auto const origin = *cube.mOrigin, size = *cube.mSize;
-        ModelBox box{{origin.x, origin.y, origin.z}, {origin.x + size.x, origin.y + size.y, origin.z + size.z}, cube.mMirrored, {}, {},
+        double const k = recipe.scale;
+        Vec3d const from{cube.mOrigin->x * k, cube.mOrigin->y * k, cube.mOrigin->z * k};
+        ModelBox box{from, {from.x + cube.mSize->x * k, from.y + cube.mSize->y * k, from.z + cube.mSize->z * k}, cube.mMirrored, {}, {},
                      drawnOnTop(recipe, part.mName->getString())};
         for (int side = 0; side < 6; ++side) {
             auto const& face = (*cube.mFaceData)[static_cast<size_t>(side)];
@@ -221,7 +222,8 @@ std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven
     // Textures may be finer than the model's texture units.
     double texels = boxes->textureWidth > 0 ? width / boxes->textureWidth : 1;
     return projectFace(image->rgba.data(), width, height, texels, boxes->boxes,
-                       {recipe.yaw, recipe.pitch, recipe.rows, recipe.columns, recipe.aligned, recipe.oneSided, recipe.side});
+                       {recipe.yaw, recipe.pitch, recipe.rows, recipe.columns, recipe.aligned, recipe.oneSided, recipe.side, recipe.picked,
+                        recipe.centered});
 }
 std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer, std::string const& variant, bool sheared,
                          bool elder) {

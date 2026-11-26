@@ -23,6 +23,8 @@ inline constexpr int maxFaceSide = 15;
 // A warden's and an elder guardian's are 16 a side and stay whole, twice a
 // guardian's as they are in the world (FaceRecipe::side, L-411).
 inline constexpr int wholeFaceSide = 16;
+// The widest face: a phantom with the roots of its wings.
+inline constexpr int widestFaceSide = 17;
 struct Face {
     int width = 0, height = 0;
     std::vector<std::uint32_t> pixels; // RGBA, row-major; alpha 0 is see-through.
@@ -41,6 +43,9 @@ inline std::string_view baseTexture(std::string_view renderer) {
     if (renderer == "minecraft:fox") return "textures/entity/fox/fox";
     if (renderer == "minecraft:happy_ghast") return "textures/entity/happy_ghast/happy_ghast";
     if (renderer == "minecraft:elder_guardian") return "textures/entity/guardian_elder";
+    // Layers the game draws over the skin, where these kinds' eyes are (L-411).
+    if (renderer == "minecraft:bogged") return "textures/entity/skeleton/bogged_clothes";
+    if (renderer == "minecraft:sulfur_cube") return "textures/entity/sulfur_cube/sulfur_cube_outer";
     return {};
 }
 // Parts drawn over a head that are not the face itself (worn layers and tack).
@@ -66,8 +71,9 @@ struct FaceRecipe {
     std::vector<std::string_view> onTop;             // drawn over the rest: an eye set inside the head
     std::string_view image; // a picture used whole instead of the model (the snow golem's carved pumpkin)
     int cubes = 0;          // of each named part, only its first this many boxes (0: all)
-    bool aligned = false, oneSided = false; // FaceShot's
+    bool aligned = false, oneSided = false, picked = false, centered = false; // FaceShot's
     int side = maxFaceSide; // the longer side the face is reduced to fit
+    double scale = 1;       // the boxes' units scaled: a box stretched over its texture is seen at the texture's size
 };
 // `sheared`: a snow golem without its pumpkin shows the head under it. `elder`: a guardian with the elder's look.
 inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bool elder = false) {
@@ -84,6 +90,19 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bo
     else if (kind == "turtle" || kind == "parrot") side();
     // At 45° a goat shows a horn, an eye and its beard at once.
     else if (kind == "armadillo" || kind == "goat") r.yaw = 45;
+    // At 60° a dolphin's eye has its white and its pupil; a sniffer shows its red coat behind its yellow beak.
+    else if (kind == "dolphin") r.yaw = 60;
+    else if (kind == "sniffer") r.yaw = 30, r.picked = true;
+    // The head with its ears is 17 wide on half units: halved about its middle it stays even left and right.
+    else if (kind == "panda") r.aligned = r.centered = r.picked = true;
+    // From the front with the roots of its wings: its eyes show, and its shape.
+    else if (kind == "phantom") r.parts = {"body"}, r.leftOutContaining = {"wingtip", "tail"}, r.side = widestFaceSide;
+    else if (kind == "bogged") r.leftOut = {"mushrooms"};
+    // The outer box, whose skin (baseTexture) has the eyes and the mouth.
+    else if (kind == "sulfur_cube") only({"sulfur_cube"}), r.cubes = 1, r.picked = true;
+    // Boxes of 72 and 64 units under a face 16 texture units wide: seen at that size, even left and right.
+    else if (kind == "ghast") only({"body"}), r.scale = 16.0 / 72, r.side = wholeFaceSide;
+    else if (kind == "happy_ghast") only({"body"}), r.cubes = 1, r.scale = 16.0 / 64, r.side = wholeFaceSide;
     // Whole from the side: the shell's spiral, the eye and the tentacles.
     else if (kind == "nautilus" || kind == "zombie_nautilus") r.parts = {"nautilus"}, side();
     // Its head is the trunk's two boxes, then flat boards of branches to both sides.
@@ -93,13 +112,12 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bo
     else if (kind == "cat" || kind == "ocelot" || kind == "allay" || kind == "vex" || kind == "polar_bear") r.aligned = true;
     else if (kind == "warden") r.leftOutContaining = {"tendril"}, r.side = wholeFaceSide;
     else if (kind == "frog") r.parts = {"body"}; // the whole frog: its face is its eyes over its mouth and feet
-    else if (kind == "squid" || kind == "glow_squid" || kind == "ghast" || kind == "happy_ghast" || kind == "bee" || kind == "strider")
-        only({"body"});
+    else if (kind == "squid" || kind == "glow_squid" || kind == "bee" || kind == "strider") only({"body"});
     else if (kind == "slime") only({"cube", "eye0", "eye1", "mouth"}), r.onTop = {"eye0", "eye1", "mouth"};
     else if (kind == "magma_cube") r.parts = {"insidecube"};
     else if (kind == "shulker") only({"lid", "base", "head"});
     else if (kind == "guardian" || kind == "elder_guardian") {
-        r.leftOutContaining = {"spikepart"}, r.onTop = {"eye"};
+        r.leftOutContaining = {"spikepart"}, r.onTop = {"eye"}, r.picked = true;
         if (elder || kind == "elder_guardian") r.side = wholeFaceSide;
     }
     else if (kind == "silverfish") only({"bodypart_0", "bodypart_1"});
@@ -161,9 +179,10 @@ inline std::string lookTexture(std::string_view renderer, int variant, bool elde
 // A face picture at its image's resolution, reduced to fit `side` (larger ones halved, maintainer
 // 2026-11-26): a high-resolution face drops to one texel per model unit when that fits, else to the
 // smallest whole factor that does. Each texel is the mean of the visible ones it covers, visible when at
-// least half are, so eyes are not dropped. None when nothing shows.
+// least half are, so eyes are not dropped; `picked`, it is the one at the middle of those instead, which keeps
+// a dark eye dark where the mean greys it (guardian, panda, L-411). None when nothing shows.
 inline std::optional<Face> reduceFace(std::vector<std::uint32_t> const& full, int fullW, int fullH, double texelsPerUnit,
-                                      int side = maxFaceSide) {
+                                      int side = maxFaceSide, bool picked = false) {
     if (fullW <= 0 || fullH <= 0 || side <= 0 || full.size() < static_cast<size_t>(fullW) * fullH) return std::nullopt;
     int step = std::max(1, (std::max(fullW, fullH) + side - 1) / side);
     if (int unit = static_cast<int>(std::lround(texelsPerUnit)); unit > step && std::max(fullW, fullH) / unit <= side) step = unit;
@@ -172,6 +191,13 @@ inline std::optional<Face> reduceFace(std::vector<std::uint32_t> const& full, in
     bool any = false;
     for (int y = 0; y < face.height; ++y)
         for (int x = 0; x < face.width; ++x) {
+            if (picked) {
+                auto const c = full[static_cast<size_t>(std::min(fullH - 1, y * step + step / 2)) * fullW + std::min(fullW - 1, x * step + step / 2)];
+                if (!(c >> 24)) continue;
+                face.pixels[static_cast<size_t>(y * face.width + x)] = c;
+                any = true;
+                continue;
+            }
             // A picture thinner than the step has fewer texels to cover than step x step.
             int covered = 0, seen = 0, r = 0, g = 0, b = 0;
             for (int dy = 0; dy < step && y * step + dy < fullH; ++dy)
@@ -291,12 +317,14 @@ inline void faceCorners(FaceSide side, Vec3d a, Vec3d b, Vec3d out[3]) {
 // over one row or column more (a wolf's head stands from 7.5 to 13.5: six rows of texels over seven, its
 // snout's top on its eyes): `aligned` starts it where the largest face seen does. A pixel whose centre is on
 // a face's edge takes it on both sides of the picture, so a part three wide on a head six wide is drawn four
-// wide; `oneSided` gives it to one side only. Reduced to fit `side`.
+// wide; `oneSided` gives it to one side only. Reduced to fit `side`, by picking when `picked` (reduceFace);
+// `centered`, a picture of odd width gets a clear column before it, so halving pairs its columns about its middle.
 struct FaceShot {
     double yaw = 0, pitch = 0;
     int rows = 0, columns = 0;
     bool aligned = false, oneSided = false;
     int side = maxFaceSide;
+    bool picked = false, centered = false;
 };
 // The picture of `boxes` at `texelsPerUnit` image pixels per model unit, cropped to what is drawn and to the
 // shot's cut. Reduced as composeFace's to fit the shot's side.
@@ -391,11 +419,11 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
     if (shot.rows > 0) h = std::min(h, static_cast<int>(std::lround(shot.rows * texelsPerUnit)));
     // From the front: on the right when its side is seen (yaw > 0), else the whole width.
     if (shot.columns > 0 && shot.yaw > 0) left = std::max(left, right + 1 - static_cast<int>(std::lround(shot.columns * texelsPerUnit)));
-    int const w = right - left + 1;
-    std::vector<std::uint32_t> cut(static_cast<size_t>(w) * h);
+    int const drawn = right - left + 1, pad = shot.centered && drawn % 2 ? 1 : 0, w = drawn + pad;
+    std::vector<std::uint32_t> cut(static_cast<size_t>(w) * h, 0);
     for (int y = 0; y < h; ++y)
-        for (int x = 0; x < w; ++x) cut[static_cast<size_t>(y) * w + x] = grid[static_cast<size_t>(top + y) * gridW + left + x];
-    return reduceFace(cut, w, h, texelsPerUnit, shot.side);
+        for (int x = 0; x < drawn; ++x) cut[static_cast<size_t>(y) * w + pad + x] = grid[static_cast<size_t>(top + y) * gridW + left + x];
+    return reduceFace(cut, w, h, texelsPerUnit, shot.side, shot.picked);
 }
 
 // A player's head from their skin image (L-87): the front of the head in
@@ -426,8 +454,8 @@ inline std::optional<Face> playerHead(std::uint8_t const* rgba, int width, int h
 // Faces share one runtime texture: a grid of cells, each a face with a
 // one-texel black outline around its visible pixels (look B). The outline
 // is part of the image, so it moves with the face exactly.
-inline constexpr int faceCellSide = wholeFaceSide + 2;
-inline constexpr int faceAtlasSide = 256, faceAtlasCells = faceAtlasSide / faceCellSide;
+inline constexpr int faceCellSide = widestFaceSide + 2;
+inline constexpr int faceAtlasSide = 512, faceAtlasCells = faceAtlasSide / faceCellSide;
 inline constexpr int faceAtlasCapacity = faceAtlasCells * faceAtlasCells;
 inline constexpr std::uint32_t faceOutline = packColor(0, 0, 0, 230);
 struct AtlasCell { int x, y; };

@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Fourteen radar faces from the proposals; a rider's face under its mount's (2026-11-27)
+
+`cfa8ee0f` with `radar_icon_probe` (DLL
+`2559866af506a8588a9b578652fd225e7f4a375363e5b7b1c22d80dc3c27c84e`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the fourteen picked faces as proposed (camel and camel husk,
+  creaking, goat, nautilus and zombie nautilus, wolf, cat, ocelot, allay,
+  vex, polar bear); the elder guardian and the warden twice a guardian's
+  size without running into the next icon; the other faces unchanged.
+- Failed: a skeleton riding a spider, on the minimap: mostly the
+  skeleton's face on top, at times the spider's. `1b363efc` ordered dots
+  by their pixel, and the two are a pixel apart at times.
+- From the files: the sweep's 178 faces built from a model are the port's
+  to the pixel; the dump holds the bogged's worn layer and the sulfur
+  cube's outer one.
+
 ## Favorites' cells in the middle (2026-11-26)
 
 `0f10b0e0` (DLL

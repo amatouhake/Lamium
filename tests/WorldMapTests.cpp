@@ -415,6 +415,34 @@ void modelFaces() {
               && nautilus.parts == std::vector<std::string_view>{"nautilus"} && nautilus.yaw == 90 && nautilus.children
               && faceRecipe("minecraft:creaking").cubes == 2 && faceRecipe("minecraft:pig").cubes == 0,
           "a camel's head without its neck, a goat from 45°, a nautilus whole from its side, a creaking's trunk without its branches");
+    std::vector<std::uint32_t> pair(4 * 2, packColor(250, 250, 250));
+    pair[1] = pair[5] = packColor(0, 0, 0);
+    auto meanOf = reduceFace(pair, 4, 2, 1, 2), pickOf = reduceFace(pair, 4, 2, 1, 2, true);
+    check(meanOf && pickOf && pickOf->width == 2 && pickOf->pixels[0] == packColor(0, 0, 0) && channel(meanOf->pixels[0], 0) == 125,
+          "halving by picking keeps a dark texel dark where the mean greys it");
+    // Three columns halved: the last is dropped; centred, a clear column pairs with the first and all three stay.
+    ModelBox bar{{0, 0, 0}, {3, 2, 1}, false, {}, {}};
+    bar.faces[sideNorth] = {0, 0, 3, 2, true};
+    FaceShot plainHalf, centred;
+    plainHalf.side = centred.side = 2, plainHalf.picked = centred.picked = centred.centered = true;
+    auto dropped = projectFace(fur.data(), 16, 8, 1, {bar}, plainHalf), even3 = projectFace(fur.data(), 16, 8, 1, {bar}, centred);
+    check(dropped && dropped->width == 1 && even3 && even3->width == 2 && (even3->pixels[0] >> 24) && (even3->pixels[1] >> 24),
+          "an odd width halved about its middle keeps both of its sides");
+    auto ghast = faceRecipe("minecraft:ghast"), phantom = faceRecipe("minecraft:phantom"), sulfur = faceRecipe("minecraft:sulfur_cube");
+    check(ghast.scale == 16.0 / 72 && ghast.side == wholeFaceSide && !ghast.children && faceRecipe("minecraft:happy_ghast").cubes == 1
+              && faceRecipe("minecraft:happy_ghast").scale == .25,
+          "a ghast's stretched box is seen at its texture's size");
+    check(phantom.parts == std::vector<std::string_view>{"body"} && !drawnPart(phantom, "wingtip0") && !drawnPart(phantom, "tail")
+              && drawnPart(phantom, "wing0") && phantom.side == widestFaceSide && faceCellSide == widestFaceSide + 2
+              && faceAtlasCapacity >= 512,
+          "a phantom shows the roots of its wings, and the atlas has cells for it");
+    check(baseTexture("minecraft:bogged") == "textures/entity/skeleton/bogged_clothes" && !drawnPart(faceRecipe("minecraft:bogged"), "mushrooms")
+              && baseTexture("minecraft:sulfur_cube") == "textures/entity/sulfur_cube/sulfur_cube_outer" && sulfur.cubes == 1 && sulfur.picked,
+          "a bogged and a sulfur cube take their faces from the layer drawn over their skin");
+    check(faceRecipe("minecraft:dolphin").yaw == 60 && faceRecipe("minecraft:sniffer").yaw == 30 && faceRecipe("minecraft:sniffer").picked
+              && faceRecipe("minecraft:panda").centered && faceRecipe("minecraft:guardian").picked && !faceRecipe("minecraft:squid").picked
+              && !faceRecipe("minecraft:strider").picked,
+          "the second round's picks; squids and striders stay as they were");
     check(faceRecipe("minecraft:squid").parts == std::vector<std::string_view>{"body"} && !faceRecipe("minecraft:squid").children,
           "a squid's face is its body alone");
     check(faceRecipe("minecraft:parrot").yaw == 90 && faceRecipe("minecraft:cod").yaw == 90 && faceRecipe("minecraft:turtle").yaw == 90
