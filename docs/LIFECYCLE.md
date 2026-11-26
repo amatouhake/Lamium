@@ -15,7 +15,7 @@ Words: **own** (the feature's listener or hook), **CustomInput** (handled
 by name in `input/CustomInput.cpp`: its exit listener, `invalidate()` on
 focus loss, held keys released through `releaseStates()`), **polled** (the
 feature notices the change itself each tick), **n/a** (nothing to restore,
-with why), **open** (a finding in L-402, not settled).
+with why), **open** (a finding not settled, named in its backlog item).
 
 | Feature | Exit | Dimension | Focus |
 |---|---|---|---|
@@ -25,7 +25,7 @@ with why), **open** (a finding in L-402, not settled).
 | Inspection | own | n/a: per frame, screen-bound | n/a: draw-only |
 | Locked trades | own | n/a: the trade screen closes | n/a: draw-only |
 | English search | own | n/a: filters per call | n/a: filters per call |
-| Inventory | own (Sort, Transfer, Hand restock) | polled (Transfer, Hand restock); Sort ends with its screen | own (Hand restock), CustomInput (Transfer); Sort: open |
+| Inventory | own (Sort, Transfer, Hand restock) | polled (Transfer, Hand restock); Sort ends with its screen | own (Hand restock), CustomInput (Transfer); Sort: n/a, an item move that ends itself |
 | Repeated trading | own | polled | CustomInput |
 | Enchantment order | own | n/a: the anvil closes | CustomInput |
 | Settings screen | own | n/a: UI only | CustomInput |
@@ -38,7 +38,7 @@ with why), **open** (a finding in L-402, not settled).
 | Server resource packs | n/a: decided per join | n/a: join only | n/a: join only |
 | Tool Switch | own | polled | n/a: per mining call |
 | Weapon Switch | n/a: per attack, no state | n/a: per attack | n/a: per attack |
-| Death layout | polled (world change) | polled | open: keeps moving items unfocused |
+| Death layout | polled (world change) | polled | n/a: an item move that ends itself |
 | Fake offhand | CustomInput | own | CustomInput |
 | Frame timing | n/a: measures only | n/a: measures only | n/a: measures only |
 | Target icons | own | polled | n/a: draw-only |
@@ -52,10 +52,10 @@ with why), **open** (a finding in L-402, not settled).
 | Schematic plan targets | n/a: no state | n/a: no state | n/a: no state |
 | Breaking Restriction | own | own | CustomInput (the attack press it follows) |
 | Edge guard | n/a: decided per call | n/a: decided per call | n/a: decided per call |
-| Sneak placement | open: the old world's sneak state is kept | n/a: the pulse ends itself | n/a: the pulse ends itself |
-| Tool Protection | own | n/a: per call | open: keeps moving items unfocused |
+| Sneak placement | own | n/a: the pulse ends itself | n/a: the pulse ends itself |
+| Tool Protection | own | n/a: per call | n/a: an item move that ends itself |
 | Mining session | n/a: reset on the next start | n/a: reset on the next start | n/a: reset on the next start |
-| Auto Elytra | own | polled | open: keeps moving items unfocused |
+| Auto Elytra | own | polled | n/a: an item move that ends itself |
 | Recipe table | own | n/a: per world | n/a: data only |
 | Recipe notes | own | n/a: per world | n/a: data only |
 | Item list | own | n/a: closes with its screen | CustomInput |
@@ -69,6 +69,6 @@ with why), **open** (a finding in L-402, not settled).
 | Boss bar position | n/a: draw-only | n/a: draw-only | n/a: draw-only |
 | Status effects vanilla icons | own | n/a: draw-only | n/a: draw-only |
 | Book paste | n/a: ends with the book screen | n/a: ends with the book screen | n/a: one paste |
-| Periodic input | CustomInput | own | CustomInput; open: clicking goes on unfocused |
+| Periodic input | CustomInput | own | CustomInput (presses); the switch stays on, a lock the player set (rule 3) |
 
 Periodic input is started in `Runtime::load()`, outside the table.

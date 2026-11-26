@@ -93,8 +93,10 @@ tests          Pure unit tests (no game types). tests-native: SDK-type tests
    and dimension change; one that holds input or changes game state also on
    focus loss, so nothing stays stuck. Draw-only changes (HUD placement and
    hiding) are decided per draw and kept while the window is unfocused. A
-   lock the player switched on (Permanent Sneak and Sprint) stays on through
-   focus loss. Each feature's answer is a line in docs/LIFECYCLE.md.
+   lock the player switched on (Permanent Sneak and Sprint, Auto Attack/Use)
+   stays on through focus loss, and an automatic item move that holds no
+   input and ends by itself may finish. Each feature's answer is a line in
+   docs/LIFECYCLE.md.
 4. **Settings**: field in `Settings.h`, entry in `Options.h`, load/save in
    `SettingsStore.cpp` (tolerate missing keys), row in `SettingsRows.h`,
    strings in all four languages. The tests catch most omissions.

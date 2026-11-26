@@ -40,7 +40,8 @@ stop and ask the maintainer (AGENTS.md "When to stop").
   also does on focus loss, so no key or state stays stuck. Draw-only changes
   (HUD placement and hiding) are decided per draw and are kept while the
   window is unfocused, as is a lock the player switched on (Permanent Sneak
-  and Sprint: what they asked for, not a stuck key; 2026-11-26).
+  and Sprint, Auto Attack/Use: what they asked for, not a stuck key), and an
+  automatic item move that holds no input ends by itself (2026-11-26).
 - The map draws only what the client has seen; nothing predicted from the
   seed (it would need a generator per game version and look as real as
   recorded terrain).

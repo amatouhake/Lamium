@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The thread trace removed; the adjust key's client cleared (L-353, 2026-11-26)
+
+`d293c739` (DLL
+`0739f44cd500d6afff20a99a38d2475ff1c591a5f1da31e6879df12e19c896d8`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the schematic adjust key's wheel moves the placement as before.
+- Seen: nothing else changed; no "Thread trace" lines in the log.
+
 ## Framed map rows, the wheel under a prompt, moved screens; input on the client thread (L-400, L-399, L-353, 2026-11-26)
 
 `52babf18` with `thread_trace` (DLL

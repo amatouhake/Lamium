@@ -3,6 +3,8 @@
 #include "features/interaction/PeriodicInput.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "ll/api/thread/ClientThreadExecutor.h"
@@ -43,6 +45,13 @@ bool installed = false;
 // selected then; Fake Offhand's slot is selected only during its own calls.
 struct HeldUse { BlockPos pos; uchar face; int slot; };
 std::optional<HeldUse> heldAt;
+ll::event::ListenerPtr exitListener;
+// A new world starts from vanilla's sneak, not from the last packet of the old one.
+void reset() {
+    pulse = {};
+    serverSneak = edited = false;
+    heldAt.reset();
+}
 using Auth = PlayerAuthInputPacketPayload::InputData;
 
 bool on() {
@@ -207,12 +216,15 @@ void start() {
             hook.installed = true;
         }
         installed = true;
+        exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { reset(); });
         capabilities::ready(capabilities::Id::SneakPlacement);
     } catch (...) { capabilities::hooks(capabilities::Id::SneakPlacement, false); stop(); throw; }
 }
 void stop() {
     capabilities::stop(capabilities::Id::SneakPlacement);
-    pulse = {};
+    if (exitListener) ll::event::EventBus::getInstance().removeListener(exitListener);
+    exitListener.reset();
+    reset();
     for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it)
         if (it->installed && it->remove(true)) it->installed = false;
     installed = false;
