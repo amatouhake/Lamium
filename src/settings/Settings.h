@@ -458,8 +458,8 @@ struct Settings {
         auto normalizeElement = [](ui::HudElement& element, ui::HudElement defaultValue, bool lines = false) {
             if (!std::isfinite(element.dx)) element.dx = defaultValue.dx;
             if (!std::isfinite(element.dy)) element.dy = defaultValue.dy;
-            element.dx = std::clamp(element.dx, -512.f, 512.f);
-            element.dy = std::clamp(element.dy, -512.f, 512.f);
+            element.dx = std::clamp(element.dx, -ui::hudOffsetLimit, ui::hudOffsetLimit);
+            element.dy = std::clamp(element.dy, -ui::hudOffsetLimit, ui::hudOffsetLimit);
             if (!std::isfinite(element.scale)) element.scale = defaultValue.scale;
             element.scale = std::clamp(element.scale, ui::hudScaleMin, ui::hudScaleMax);
             if (static_cast<unsigned>(element.anchor) > 8) element.anchor = defaultValue.anchor;

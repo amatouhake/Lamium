@@ -41,6 +41,15 @@ void chatPositionTests() {
     next = placed(640, 360, 256, 27, right);
     check(next && next->x == 640 - hudKeepVisible && next->y == 0,
           "an offset out past the held edge keeps the chat out but for 8 units (L-384); an inward one stays inside");
+    {
+        lamium::Settings wide;
+        wide.hud.chat.scale = 400;
+        wide.hud.chat.dx = -1016;
+        wide.hud.chat.dy = 1e9f;
+        wide.normalize();
+        check(wide.hud.chat.dx == -1016 && wide.hud.chat.dy == hudOffsetLimit,
+              "a 400 % chat pushed past the edge keeps its offset when saved; only nonsense is bounded (L-384)");
+    }
     check(!placed(640, 360, 641, 20, defaults) && !placed(640, 360, 20, 361, defaults)
           && !placed(640, 360, 20, 0, defaults) && !placed(0, 360, 20, 20, defaults)
           && !placed(640, 360, std::numeric_limits<float>::quiet_NaN(), 20, defaults),

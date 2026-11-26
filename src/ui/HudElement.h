@@ -54,6 +54,9 @@ inline constexpr float hudScaleMin = 25, hudScaleMax = 400, hudScaleStep = 5;
 // An element pushed past the screen edge (Alt while moving it, L-384) keeps
 // at least this much of each side on the screen, so it can always be grabbed.
 inline constexpr float hudKeepVisible = 8;
+// Saved offsets are kept within this: wide enough for a 400 % element pushed
+// past the edge and for inward offsets on any screen, only bounding nonsense.
+inline constexpr float hudOffsetLimit = 4096;
 // The range an element's left (or top) may take along one axis when it may
 // leave the screen: all but hudKeepVisible of it outside either edge.
 inline float keepOnScreen(float start, float size, float screen) {
