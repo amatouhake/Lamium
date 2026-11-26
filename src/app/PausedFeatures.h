@@ -86,7 +86,9 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::WorkPenalty: return s.inspection.itemTooltip && s.inspection.workPenalty;
     case Id::ItemDetails: {
         auto const& i = s.inspection;
-        return i.itemTooltip && (i.itemDetailsStew || i.itemDetails || i.itemDetailsId || i.itemDetailsTags || i.itemDetailsNbt);
+        // The item lists tell items apart by their data too (recipes/StackKey.h): books, rockets, the ominous banner.
+        return (i.itemTooltip && (i.itemDetailsStew || i.itemDetails || i.itemDetailsId || i.itemDetailsTags || i.itemDetailsNbt))
+            || s.inventory.recipes || s.inventory.plan || s.inventory.stores;
     }
     // Asked whenever map colors are read: each map is named for itself.
     case Id::MapMaterialInstances: return s.map.minimap;
