@@ -81,6 +81,12 @@ option("edge_trace")
     set_description("Log Edge Guard's move vectors, sent auth input, server corrections and replay (L-160/L-162)")
 option_end()
 
+option("hud_editor_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Log the HUD layout editor's frame rate, pointer updates and lag behind the OS cursor while dragging")
+option_end()
+
 option("inventorymove_trace")
     set_default(false)
     set_showmenu(true)
@@ -216,6 +222,7 @@ target("Lamium")
     if has_config("server_pack_skip") then add_defines("LAMIUM_SERVER_PACK_SKIP") end
     if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
     if has_config("edge_trace") then add_defines("LAMIUM_EDGE_TRACE") end
+    if has_config("hud_editor_trace") then add_defines("LAMIUM_HUD_EDITOR_TRACE") end
     if has_config("feature_skip") then add_defines("LAMIUM_FEATURE_SKIP") end
     if has_config("unverified_game") then add_defines("LAMIUM_UNVERIFIED_GAME") end
     -- L-305: remove once the SDK links what it still holds back.

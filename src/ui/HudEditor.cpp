@@ -19,6 +19,13 @@
 #include <string>
 #include <utility>
 #include <vector>
+#ifdef LAMIUM_HUD_EDITOR_TRACE
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#include <chrono>
+#endif
 
 namespace lamium::ui::hud_editor {
 namespace {
@@ -405,7 +412,65 @@ void select(std::optional<HudElementId> id) {
     if (selected != id) { spot.reset(); popover = Popover::None; popoverBox.reset(); contentsShown.reset(); contentsFirst = 0; resetArmed = false; editingScale = false; }
     selected = id;
 }
+#ifdef LAMIUM_HUD_EDITOR_TRACE
+// While a drag runs: one line a second with the editor's frames, how many saw
+// the pointer move, time in render and between renders, and how far the
+// game's pointer trails the OS cursor (in GUI units).
+struct DragTrace {
+    using Clock = std::chrono::steady_clock;
+    Clock::time_point windowStart{}, lastCall{};
+    int calls = 0, moved = 0;
+    double renderSum = 0, renderMax = 0, gapSum = 0, gapMax = 0, lagSum = 0, lagMax = 0;
+    int lagCount = 0;
+    float lastX = -1, lastY = -1;
+    void reset() { *this = DragTrace{}; }
+    void frame(bool dragging, float px, float py, float w, float h, double renderMs) {
+        auto now = Clock::now();
+        if (!dragging) { if (calls) flush(now); reset(); return; }
+        if (!calls) windowStart = now;
+        else {
+            double gap = std::chrono::duration<double, std::milli>(now - lastCall).count();
+            gapSum += gap; gapMax = std::max(gapMax, gap);
+        }
+        lastCall = now;
+        ++calls;
+        if (px != lastX || py != lastY) ++moved;
+        lastX = px; lastY = py;
+        renderSum += renderMs; renderMax = std::max(renderMax, renderMs);
+        if (HWND window = GetForegroundWindow()) {
+            POINT cursor;
+            RECT client;
+            if (GetCursorPos(&cursor) && ScreenToClient(window, &cursor) && GetClientRect(window, &client) && client.right > 0 && client.bottom > 0) {
+                double ox = cursor.x * double(w) / client.right, oy = cursor.y * double(h) / client.bottom;
+                double lag = std::hypot(ox - px, oy - py);
+                lagSum += lag; lagMax = std::max(lagMax, lag); ++lagCount;
+            }
+        }
+        if (now - windowStart >= std::chrono::seconds(1)) { flush(now); reset(); }
+    }
+    void flush(Clock::time_point now) {
+        double seconds = std::chrono::duration<double>(now - windowStart).count();
+        Runtime::instance().self().getLogger().info(std::format(
+            "HUD editor drag: {} frames in {:.2f} s, pointer moved in {}; render avg {:.2f} max {:.2f} ms; between renders avg {:.2f} max {:.2f} ms; "
+            "game pointer behind OS cursor avg {:.2f} max {:.2f} units",
+            calls, seconds, moved, renderSum / calls, renderMax, calls > 1 ? gapSum / (calls - 1) : 0., gapMax,
+            lagCount ? lagSum / lagCount : 0., lagMax));
+    }
+};
+DragTrace dragTrace;
+#endif
+void renderFrame(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY);
 void render(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
+#ifdef LAMIUM_HUD_EDITOR_TRACE
+    auto start = DragTrace::Clock::now();
+    renderFrame(context, width, height, pointerX, pointerY);
+    dragTrace.frame(drag && drag->moved, pointerX, pointerY, width, height,
+                    std::chrono::duration<double, std::milli>(DragTrace::Clock::now() - start).count());
+#else
+    renderFrame(context, width, height, pointerX, pointerY);
+#endif
+}
+void renderFrame(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
     screenW = width;
     screenH = height;
     controls.clear();
