@@ -39,7 +39,8 @@ void chatPositionTests() {
           "chat edge anchors follow a resized screen and the game's new measured width");
     right.dx = 999; right.dy = -999;
     next = placed(640, 360, 256, 27, right);
-    check(next && next->x == 384 && next->y == 0, "chat stays inside the screen after a stale offset");
+    check(next && next->x == 640 - hudKeepVisible && next->y == 0,
+          "an offset out past the held edge keeps the chat out but for 8 units (L-384); an inward one stays inside");
     check(!placed(640, 360, 641, 20, defaults) && !placed(640, 360, 20, 361, defaults)
           && !placed(640, 360, 20, 0, defaults) && !placed(0, 360, 20, 20, defaults)
           && !placed(640, 360, std::numeric_limits<float>::quiet_NaN(), 20, defaults),

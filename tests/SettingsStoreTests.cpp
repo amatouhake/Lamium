@@ -697,17 +697,17 @@ void settingsStoreTests() {
         check(Map::scaleFromLegacySize(100, 30) == 150 && Map::scaleFromLegacySize(150, 10) == 75,
               "the new scale is the old one times size / 20");
         check(Map::scaleFromLegacySize(110, 23) == 125, "the result rounds to the 5 % step");
-        check(Map::scaleFromLegacySize(100, 80) == 200 && Map::scaleFromLegacySize(100, 4) == 50,
+        check(Map::scaleFromLegacySize(100, 80) == 250 && Map::scaleFromLegacySize(100, 4) == 50,
               "a size outside the old 10-50 % reads as its nearest end");
-        check(Map::scaleFromLegacySize(200, 50) == 200 && Map::scaleFromLegacySize(50, 10) == 50,
-              "the result stays within 50-200 %");
+        check(Map::scaleFromLegacySize(200, 50) == 400 && Map::scaleFromLegacySize(50, 10) == 25,
+              "the result stays within 25-400 %");
         // The inventory grid's slot went from 18 to 20 units (L-357): an older scale keeps the grid's size.
         auto oldGrid = decodeSettings(R"({"hud":{"inventory":{"scale":100}}})");
         check(oldGrid.hud.inventory.scale == 90, "an inventory scale saved for the 18-unit slot becomes 90 %");
         auto newGrid = decodeSettings(R"({"hud":{"inventory":{"scale":100,"cell":20}}})");
         check(newGrid.hud.inventory.scale == 100, "a scale saved for the 20-unit slot is kept");
-        check(decodeSettings(R"({"hud":{"inventory":{"scale":50}}})").hud.inventory.scale == 50,
-              "the converted scale stays within 50-200 %");
+        check(decodeSettings(R"({"hud":{"inventory":{"scale":50}}})").hud.inventory.scale == 45,
+              "the converted scale keeps its proportion inside 25-400 %");
         check(decodeSettings(R"({"hud":{"inventory":{"scale":110}}})").hud.inventory.scale == 100
               && decodeSettings(R"({"hud":{"inventory":{"scale":150}}})").hud.inventory.scale == 135,
               "the converted scale rounds to the 5 % step");

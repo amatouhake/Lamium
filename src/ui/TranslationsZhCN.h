@@ -1203,6 +1203,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"hudEditor.look", "外观"},
     {"hudEditor.snap", "吸附到"},
     {"hudEditor.hint", "点击选择，拖动移动"},
+    {"hudEditor.hintFree", "Alt+拖动：可移出屏幕边缘，不吸附"},
     {"hudEditor.resetAll", "重置布局"},
     {"hudEditor.anchorReadout", "锚点: {}（{}）"},
     {"grow.topLeft", "向右下扩展"},

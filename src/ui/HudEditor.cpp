@@ -257,7 +257,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
 // "Reset layout" and "Done" in a small titled panel, shown only while nothing
 // is selected: every corner may hold an element (L-321).
 void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
-    std::string title = translated("nav.hudLayout"), hint = translated("hudEditor.hint");
+    std::string title = translated("nav.hudLayout"), hint = translated("hudEditor.hint"), freeHint = translated("hudEditor.hintFree");
     std::string const resetLabel = translated("hudEditor.resetAll"), resetConfirm = translated("confirm.resetLayout");
     std::string done = translated("hudEditor.done");
     // Reset holds both its labels, so arming moves nothing.
@@ -272,15 +272,16 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     constexpr float swatchW = 12, swatchH = 7, swatchGap = 4, pairGap = 16, legendTop = 4, legendBottom = 6;
     float legend = 2 * (swatchW + swatchGap) + textWidth(context, situational) + pairGap + textWidth(context, hidden);
     float gameLegend = swatchW + swatchGap + textWidth(context, game);
-    float w = std::max({buttons, textWidth(context, title), textWidth(context, hint), legend, gameLegend}) + 2 * edge;
-    float h = edge + 4 * rowH + legendTop + legendBottom + itemHeight + edge;
+    float w = std::max({buttons, textWidth(context, title), textWidth(context, hint), textWidth(context, freeHint), legend, gameLegend}) + 2 * edge;
+    float h = edge + 5 * rowH + legendTop + legendBottom + itemHeight + edge;
     Box box = idlePanel(w, h, screenW, screenH);
     panel(context, box.x, box.y, box.w, box.h, opacity::screen);
     frame(context, box.x, box.y, box.w, box.h, palette::white, .14f);
     label(context, box.x, box.y + edge, box.w, title, palette::text, Align::Center);
     label(context, box.x, box.y + edge + rowH, box.w, hint, palette::faint, Align::Center);
+    label(context, box.x, box.y + edge + 2 * rowH, box.w, freeHint, palette::faint, Align::Center);
     {
-        float lx = box.x + (box.w - legend) / 2, ly = box.y + edge + 2 * rowH + legendTop;
+        float lx = box.x + (box.w - legend) / 2, ly = box.y + edge + 3 * rowH + legendTop;
         float sy = ly + (rowH - swatchH) / 2;
         for (auto const& dash : dashedFrame({lx, sy, swatchW, swatchH}, 2, 1))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, .6f);
@@ -299,7 +300,7 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
         lx += swatchW + swatchGap;
         label(context, lx, ly, textWidth(context, game) + 2, game, palette::dim, Align::Left);
     }
-    float y = box.y + edge + 4 * rowH + legendTop + legendBottom, x = box.x + (box.w - buttons) / 2;
+    float y = box.y + edge + 5 * rowH + legendTop + legendBottom, x = box.x + (box.w - buttons) / 2;
     Box resetBox{x, y, resetW, itemHeight}, doneBox{x + resetW + gap, y, doneW, itemHeight};
     drawDangerButton(context, resetBox.x, resetBox.y, resetBox.w, resetBox.h, reset, hovering(resetBox, px, py), resetArmed);
     drawButton(context, doneBox.x, doneBox.y, doneBox.w, doneBox.h, done, hovering(doneBox, px, py), ButtonKind::Primary);
@@ -420,7 +421,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         layoutElement(preview.layout, resize->id).scale = resize->scale;
     }
     if (drag) {
-        auto next = dragBox(pointerX, pointerY, drag->grabX, drag->grabY, drag->w, drag->h, width, height);
+        auto next = dragBox(pointerX, pointerY, drag->grabX, drag->grabY, drag->w, drag->h, width, height, screen::heldAlt());
         if (std::abs(next.box.x - drag->startX) >= 1 || std::abs(next.box.y - drag->startY) >= 1) drag->moved = true;
         if (drag->moved) {
             drag->drop = next;
@@ -739,8 +740,10 @@ Result key(int key, bool shift) {
     if (!selected) return Result::Stay;
     auto const& box = lastBoxes[static_cast<size_t>(*selected)];
     if (!box) return Result::Stay;
-    float x = std::clamp(box->x + dx, 0.f, std::max(0.f, screenW - box->w));
-    float y = std::clamp(box->y + dy, 0.f, std::max(0.f, screenH - box->h));
+    // With Alt the arrows go past the edge as a drag does (L-384).
+    bool const free = screen::heldAlt();
+    float x = free ? keepOnScreen(box->x + dx, box->w, screenW) : std::clamp(box->x + dx, 0.f, std::max(0.f, screenW - box->w));
+    float y = free ? keepOnScreen(box->y + dy, box->h, screenH) : std::clamp(box->y + dy, 0.f, std::max(0.f, screenH - box->h));
     moveTo(*selected, x, y, *box);
     return Result::Stay;
 }

@@ -2006,6 +2006,7 @@ window.LAMIUM_DATA = {
  "hudEditor.look": ["Look","見た目","外观","外觀"],
  "hudEditor.snap": ["Snap to","寄せる","吸附到","貼齊"],
  "hudEditor.hint": ["Click to select, drag to move","クリックで選択、ドラッグで移動","点击选择，拖动移动","點擊選取，拖曳移動"],
+ "hudEditor.hintFree": ["Alt + drag: past the edge, no snapping","Alt＋ドラッグ：画面の外へ、吸い付きなし","Alt+拖动：可移出屏幕边缘，不吸附","Alt+拖曳：可移出畫面邊緣，不吸附"],
  "hudEditor.resetAll": ["Reset layout","すべて既定に戻す","重置布局","重設版面配置"],
  "hudEditor.anchorReadout": ["Anchor: {} ({})","基準: {}（{}）","锚点: {}（{}）","錨點: {}（{}）"],
  "grow.topLeft": ["grows right and down","右下へ伸びる","向右下扩展","向右下延伸"],

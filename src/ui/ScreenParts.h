@@ -51,6 +51,7 @@ void numberKey(int key);
 
 bool heldCtrl();
 bool heldShift();
+bool heldAlt();
 // The keys and buttons held now (a binding being captured starts from them).
 input::Chord const& heldKeys();
 void close();

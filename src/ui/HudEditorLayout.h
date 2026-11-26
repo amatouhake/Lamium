@@ -46,9 +46,11 @@ inline std::vector<Point> dashes(Point from, Point to, float step = 4) {
     return points;
 }
 // Element box while dragging: the grab point follows the pointer, clamped,
-// then pulled onto the edge, the inset or the center lines.
+// then pulled onto the edge, the inset or the center lines. `free` (Alt
+// held, L-384): past the edge but for hudKeepVisible, and nothing pulls it.
 struct Drop { Box box; std::optional<float> lineX, lineY; };
-inline Drop dragBox(float px, float py, float grabX, float grabY, float w, float h, float screenW, float screenH) {
+inline Drop dragBox(float px, float py, float grabX, float grabY, float w, float h, float screenW, float screenH, bool free = false) {
+    if (free) return {{keepOnScreen(px - grabX, w, screenW), keepOnScreen(py - grabY, h, screenH), w, h}, std::nullopt, std::nullopt};
     float x = std::clamp(px - grabX, 0.f, std::max(0.f, screenW - w));
     float y = std::clamp(py - grabY, 0.f, std::max(0.f, screenH - h));
     auto mx = magnet(x, w, screenW), my = magnet(y, h, screenH);

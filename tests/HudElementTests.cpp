@@ -38,7 +38,22 @@ void hudElementTests() {
     pushed.dx = 10000;
     pushed.dy = -10000;
     auto clamped = placeElement(800, 600, 100, 50, pushed);
-    check(clamped.x == 700 && clamped.y == 0, "offsets clamp to the screen");
+    check(clamped.x == 700 && clamped.y == 8 - 50, "an inward offset clamps to the screen; one out past the held edge keeps 8 units on it (L-384)");
+    HudElement right;
+    right.anchor = Anchor::BottomRight;
+    right.dx = 70;
+    right.dy = -30;
+    auto out = placeElement(800, 600, 100, 50, right);
+    check(out.x == 770 && out.y == 520, "past the right edge it stays out; an inward offset stays in");
+    right.dx = 500;
+    check(placeElement(800, 600, 100, 50, right).x == 800 - 8, "however far out, 8 units stay on the screen");
+    check(keepOnScreen(-200, 100, 800) == -92 && keepOnScreen(900, 100, 800) == 792 && keepOnScreen(10, 100, 800) == 10
+              && keepOnScreen(-10, 4, 800) == 0,
+          "past either edge all but 8 units may leave; an element smaller than that stays whole");
+    HudElement centered;
+    centered.anchor = Anchor::Center;
+    centered.dx = -10000;
+    check(placeElement(800, 600, 100, 50, centered).x == 0, "a centered element stays on the screen");
     check(placeElement(800, 600, 900, 700, plain).x == 0
           && placeElement(800, 600, 900, 700, plain).y == 0, "oversized elements pin to the origin");
     check(placeElement(0, 600, 100, 50, plain).x == 0 && placeElement(800, 600, -1, 50, plain).x == 0,
@@ -73,11 +88,12 @@ void hudElementTests() {
     check(magnet(697, 100, 800).position == 700 - hudInset, "the far inset snaps too");
     check(magnet(351, 100, 800).position == 350 && magnet(351, 100, 800).line == 400.f, "the center line snaps");
     check(!magnet(200, 100, 800).line && magnet(200, 100, 800).position == 200, "free space does not snap");
-    check(scaledExtent(100, 100) == 100 && scaledExtent(100, 20) == 50 && scaledExtent(100, 400) == 200,
+    check(scaledExtent(100, 100) == 100 && scaledExtent(100, 10) == 25 && scaledExtent(100, 800) == 400,
           "scale clamps to its bounds");
     check(stepHudScale(100, 1) == 105 && stepHudScale(100, -1) == 95, "a scale step is five percent");
     check(stepHudScale(123, 1) == 125 && stepHudScale(123, -1) == 120, "a typed scale steps to the next multiple");
-    check(stepHudScale(200, 1) == 200 && stepHudScale(50, -1) == 50, "scale steps stop at the bounds");
+    check(stepHudScale(400, 1) == 400 && stepHudScale(25, -1) == 25 && hudScaleMin == 25 && hudScaleMax == 400,
+          "scale steps stop at the bounds, 25-400 % (L-384)");
     check(hudConditional(HudElementId::Target) && hudConditional(HudElementId::PlayerList)
           && !hudConditional(HudElementId::Info) && !hudConditional(HudElementId::Chat),
           "only elements that appear by situation are shown as frames");

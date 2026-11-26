@@ -1212,6 +1212,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"hudEditor.look", "Look", "見た目"},
     {"hudEditor.snap", "Snap to", "寄せる"},
     {"hudEditor.hint", "Click to select, drag to move", "クリックで選択、ドラッグで移動"},
+    {"hudEditor.hintFree", "Alt + drag: past the edge, no snapping", "Alt＋ドラッグ：画面の外へ、吸い付きなし"},
     {"hudEditor.resetAll", "Reset layout", "すべて既定に戻す"},
     {"hudEditor.anchorReadout", "Anchor: {} ({})", "基準: {}（{}）"},
     {"grow.topLeft", "grows right and down", "右下へ伸びる"},

@@ -1203,6 +1203,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"hudEditor.look", "外觀"},
     {"hudEditor.snap", "貼齊"},
     {"hudEditor.hint", "點擊選取，拖曳移動"},
+    {"hudEditor.hintFree", "Alt+拖曳：可移出畫面邊緣，不吸附"},
     {"hudEditor.resetAll", "重設版面配置"},
     {"hudEditor.anchorReadout", "錨點: {}（{}）"},
     {"grow.topLeft", "向右下延伸"},

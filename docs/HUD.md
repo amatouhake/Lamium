@@ -31,7 +31,13 @@ is fixed to the screen edges and is not an element.
   edge, at a 4-unit inset from it and to the center lines, never to other
   elements. Defaults and the 3x3 "snap to" buttons use the inset. Why: flush
   must be possible, but a small gap reads better and aligns layouts easily.
-- Look: scale 50-200 %, background none / card (per line where offered),
+- With Alt held, a drag or an arrow takes an element past the screen edge
+  and nothing snaps; 8 units of it stay on the screen, so it can be grabbed
+  back (L-384). An offset pointing out past the held edge is kept on any
+  screen; an inward one is clamped inside as before, so a smaller window
+  still brings elements in. Why: placing past the edge is rare, and flush
+  edges must stay easy without a key.
+- Look: scale 25-400 % (below 50 % text needs "standard size"), background none / card (per line where offered),
   text shadow. Text color is not a per-element option. The game's own
   elements take position and scale only.
 - Card look: Bedrock popup style, a dark translucent fill with corners
@@ -47,7 +53,8 @@ is fixed to the screen edges and is not an element.
 - The editor shows the live HUD (sample content for empty elements). The
   HUD is hidden while the settings screen is open; the editor shows it on
   purpose.
-- Click selects, drag moves, arrows nudge (Shift: 10), Esc deselects then
+- Click selects, drag moves, arrows nudge (Shift: 10; Alt: past the edge,
+  shown on the idle panel), Esc deselects then
   leaves. A click on the selected element's place selects the element below
   it; the selected element can be dragged even under another. A dashed guide
   joins the anchor point and the selected element.

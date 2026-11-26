@@ -48,8 +48,18 @@ struct HudElement {
     bool standardText = false;
 };
 // Scale bounds and the step of the editor's buttons and handles (L-321);
-// a typed value may be any whole percent.
-inline constexpr float hudScaleMin = 50, hudScaleMax = 200, hudScaleStep = 5;
+// a typed value may be any whole percent. 25-400 % since L-384: below 50 %
+// text needs "standard size" to stay readable.
+inline constexpr float hudScaleMin = 25, hudScaleMax = 400, hudScaleStep = 5;
+// An element pushed past the screen edge (Alt while moving it, L-384) keeps
+// at least this much of each side on the screen, so it can always be grabbed.
+inline constexpr float hudKeepVisible = 8;
+// The range an element's left (or top) may take along one axis when it may
+// leave the screen: all but hudKeepVisible of it outside either edge.
+inline float keepOnScreen(float start, float size, float screen) {
+    float const keep = std::min(hudKeepVisible, std::max(0.f, size));
+    return std::clamp(start, keep - size, std::max(keep - size, screen - keep));
+}
 inline float clampHudScale(float scale) {
     return std::clamp(std::isfinite(scale) ? scale : 100.f, hudScaleMin, hudScaleMax);
 }
@@ -156,6 +166,15 @@ inline float scaledExtent(float size, float scale) {
 struct ElementPlacement { float x, y; };
 // Top-left of an element whose anchor point sits `factor` across the screen.
 inline float anchorOrigin(float screen, float size, float factor) { return (screen - size) * factor; }
+// One axis of placeElement: inside the screen, unless the offset points out
+// past the edge the element is held by; then it may stay out (L-384), all
+// but hudKeepVisible of it. So an element moved in by a smaller window still
+// comes back in, and one put past the edge stays there.
+inline float placeAxis(float origin, float offset, float size, float screen, float factor) {
+    float const at = origin + offset;
+    if ((factor == 0 && offset < 0) || (factor == 1 && offset > 0)) return keepOnScreen(at, size, screen);
+    return std::clamp(at, 0.f, std::max(0.f, screen - size));
+}
 // The anchor point stays put when the element grows; clamp to the screen.
 inline ElementPlacement placeElement(float screenW, float screenH, float elemW, float elemH,
                                      HudElement const& element) {
@@ -164,10 +183,8 @@ inline ElementPlacement placeElement(float screenW, float screenH, float elemW, 
     auto factors = anchorFactors(element.anchor);
     float dx = std::isfinite(element.dx) ? element.dx : 0;
     float dy = std::isfinite(element.dy) ? element.dy : 0;
-    float x = anchorOrigin(screenW, elemW, factors.x) + dx;
-    float y = anchorOrigin(screenH, elemH, factors.y) + dy;
-    return {std::clamp(x, 0.f, std::max(0.f, screenW - elemW)),
-            std::clamp(y, 0.f, std::max(0.f, screenH - elemH))};
+    return {placeAxis(anchorOrigin(screenW, elemW, factors.x), dx, elemW, screenW, factors.x),
+            placeAxis(anchorOrigin(screenH, elemH, factors.y), dy, elemH, screenH, factors.y)};
 }
 // 0 start, 1 middle, 2 end along one axis. The nearer screen edge holds the
 // element, so it grows away from that edge; only an element whose gaps to

@@ -21,6 +21,10 @@ void hudEditorLayoutTests() {
           "the grab point follows the pointer in free space");
     dragged = dragBox(15, 100, 10, 5, 40, 20, 640, 360);
     check(dragged.box.x == hudInset && dragged.lineX == hudInset, "drags snap to the inset");
+    dragged = dragBox(15, 100, 10, 5, 40, 20, 640, 360, true);
+    check(dragged.box.x == 5 && !dragged.lineX && !dragged.lineY, "with Alt nothing snaps (L-384)");
+    dragged = dragBox(-100, 400, 10, 5, 40, 20, 640, 360, true);
+    check(dragged.box.x == 8 - 40 && dragged.box.y == 360 - 8, "with Alt an element goes past the edge but for 8 units");
 
     Boxes boxes;
     boxes[static_cast<size_t>(HudElementId::Status)] = Box{0, 0, 100, 100};

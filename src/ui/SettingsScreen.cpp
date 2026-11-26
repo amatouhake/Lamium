@@ -275,6 +275,11 @@ bool heldShift() {
         if (std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, key}) != uiHeld.end()) return true;
     return false;
 }
+bool heldAlt() {
+    for (int key : {0x12, 0xa4, 0xa5})
+        if (std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, key}) != uiHeld.end()) return true;
+    return false;
+}
 void observeHeld(input::Token token, bool down) {
     if (token.device == input::Device::Wheel) return;
     if (!down) std::erase(uiHeld, token);
