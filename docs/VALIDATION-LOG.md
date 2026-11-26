@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The second round's radar faces; the mount's face over its rider's (2026-11-27)
+
+`af3e9f53` (DLL
+`0520aaa303790dab8b10d762b04731165f80fd09d2217c64f5f2837506b9b116`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: bogged, ghast, happy ghast, dolphin, guardian, panda, phantom and
+  sniffer as picked; the sulfur cube's face with eyes and mouth from its
+  outer layer; the other faces unchanged.
+- Remarked: the sulfur cube's face should be halved by averaging, not by
+  picking a texel.
+- Failed: a skeleton riding a spider, on the minimap: now mostly the
+  spider's face on top, often changing to the skeleton's. Ordering by
+  height (`b6fdb9ba`) made it worse: the rider's feet are not above its
+  mount's.
+
 ## Fourteen radar faces from the proposals; a rider's face under its mount's (2026-11-27)
 
 `cfa8ee0f` with `radar_icon_probe` (DLL

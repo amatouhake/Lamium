@@ -99,7 +99,7 @@ inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false, bo
     else if (kind == "phantom") r.parts = {"body"}, r.leftOutContaining = {"wingtip", "tail"}, r.side = widestFaceSide;
     else if (kind == "bogged") r.leftOut = {"mushrooms"};
     // The outer box, whose skin (baseTexture) has the eyes and the mouth.
-    else if (kind == "sulfur_cube") only({"sulfur_cube"}), r.cubes = 1, r.picked = true;
+    else if (kind == "sulfur_cube") only({"sulfur_cube"}), r.cubes = 1;
     // Boxes of 72 and 64 units under a face 16 texture units wide: seen at that size, even left and right.
     else if (kind == "ghast") only({"body"}), r.scale = 16.0 / 72, r.side = wholeFaceSide;
     else if (kind == "happy_ghast") only({"body"}), r.cubes = 1, r.scale = 16.0 / 64, r.side = wholeFaceSide;

@@ -437,7 +437,7 @@ void modelFaces() {
               && faceAtlasCapacity >= 512,
           "a phantom shows the roots of its wings, and the atlas has cells for it");
     check(baseTexture("minecraft:bogged") == "textures/entity/skeleton/bogged_clothes" && !drawnPart(faceRecipe("minecraft:bogged"), "mushrooms")
-              && baseTexture("minecraft:sulfur_cube") == "textures/entity/sulfur_cube/sulfur_cube_outer" && sulfur.cubes == 1 && sulfur.picked,
+              && baseTexture("minecraft:sulfur_cube") == "textures/entity/sulfur_cube/sulfur_cube_outer" && sulfur.cubes == 1 && !sulfur.picked,
           "a bogged and a sulfur cube take their faces from the layer drawn over their skin");
     check(faceRecipe("minecraft:dolphin").yaw == 60 && faceRecipe("minecraft:sniffer").yaw == 30 && faceRecipe("minecraft:sniffer").picked
               && faceRecipe("minecraft:panda").centered && faceRecipe("minecraft:guardian").picked && !faceRecipe("minecraft:squid").picked
