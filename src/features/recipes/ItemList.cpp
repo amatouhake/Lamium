@@ -439,7 +439,6 @@ void openInventoryForEdit(ScreenView& screenView) {
     if (auto client = ll::service::getClientInstance())
         if (auto* player = client->getLocalPlayer()) player->openInventory();
 }
-// False when nothing was drawn. The listeners then keep nothing once `fresh` runs out.
 // A slow frame of the item screens' parts, told in the log with where its time went (at most a few times a
 // session), so what makes a screen heavy is known.
 struct FrameCost {
@@ -464,10 +463,102 @@ struct FrameCost {
                                                     total, walk, highlight, list, plan, rest);
     }
 };
-bool drawList(ll::event::UIRenderEvent& event) {
-    using namespace lamium::ui;
-    FrameCost cost;
-    auto& screenView = event.screenView();
+// The plan's list in a panel.
+SideLayout planSide(band::Box box) { return sidePanelIn(box, false); }
+// Kept from frame to frame for more than one part of it.
+std::string editScreen;         // the bands' editor belongs to the screen it started on
+std::vector<int> inventoryKeys; // the game's inventory key, read with the keys' names
+// One frame of the item list, shared by drawList's parts in its order. What the game and the settings say and
+// where the parts stand are read once (readScreen, placeParts, routeInput); the press is passed on from part to
+// part as each control takes it; what a drawn part leaves for those after it comes last.
+struct Frame {
+    ll::event::UIRenderEvent& event;
+    FrameCost& cost;
+    ScreenView& screenView;
+    std::string screenName;
+    decltype(ll::service::getClientInstance()) client;
+    LocalPlayer* player = nullptr;
+    glm::vec2 at{}, size{}, screen{};
+    float windowLeft = 0, shownOpacity = 1;
+    decltype(Runtime::instance().snapshot()) prefs;
+    bool recipesOn = false, planOn = false, storesOn = false, favoritesOn = false;
+    std::optional<placesGame::Open> openPlace;
+    RecipeViewLayout viewLayout;
+    float right = 0, coverLeft = 0;
+    band::Regions regions;
+    bool editing = false;
+    std::array<bool, band::pageCount> pagesOn{};
+    std::vector<band::Placed> placed;
+    band::Placed const* itemsPanel = nullptr;
+    ItemListLayout layout;
+    SideLayout side;
+    float px = 0, py = 0;
+    ListBox field, row, windowBox, layoutBox, fieldArea;
+    bool windowButton = false, layoutButton = false;
+    // The input queued since the last frame, and this frame's one press until a control takes it.
+    Queued input;
+    bool pressed = false, leftPress = false, editPress = false, caretPress = false;
+    // Left by the drawn parts.
+    view::Late late;
+    std::string hoverItem, tipItem;
+    std::map<std::string, Count, std::less<>> wantedCounts;
+    std::vector<Handed> handed;
+    bool taking = false, keysOver = false, open = false;
+    ListBox favoritesBox;
+    std::vector<ListBox> bandBoxes; // where a press stays from the game and the view
+    bool took(ListBox const& box) {
+        if (!pressed || !box.has(px, py)) return false;
+        pressed = false;
+        return true;
+    }
+    void mark(std::string const& key, float x, float y, bool framed) {
+        // A favorite carries no mark (L-369): it stands in the favorites' panel; green means chosen.
+        (void)framed;
+        auto wanted = wantedCounts.find(key);
+        if (wanted == wantedCounts.end()) return;
+        // As a slot's count: thousands and millions above three digits (slotCountText).
+        Count const n = wanted->second;
+        late.counts.push_back({x, y, slotCountText(n)});
+    }
+    // A press on an item shows its recipes, a right press what it is used in, also beside an open view. Shift + a
+    // press does what its list says (TakePress.h): take a stack into the inventory, lay in as many as divide
+    // evenly, or show the recipes; with Ctrl it crafts one round onto the pointer (L-379); where the item cannot
+    // be (its recipes show the reason), it shows them. A plan row comes here only to be taken (BandPages.cpp).
+    void show(std::string const& item, take::List list) {
+        if (leftPress && shiftHeld.load() && !ctrlHeld.load()) {
+            switch (take::shiftPress(list, taking)) {
+            case take::ShiftPress::TakeStack:
+                pressed = false;
+                sayRefusal(creativeTake::take(screenView, item, true, false));
+                return;
+            case take::ShiftPress::PlaceMany:
+                if (placeItem(screenView, item, true, *player)) {
+                    pressed = false, view::close(), planView::close();
+                    return;
+                }
+                break;
+            case take::ShiftPress::Own: return;
+            case take::ShiftPress::Recipes: break;
+            }
+        }
+        if (list == take::List::Plan) return;
+        // Where nothing can be crafted (no grid, nothing that fits it, something missing) the press shows the recipes.
+        if (leftPress && ctrlHeld.load())
+            if (auto placer = gridPlacer(screenView, *player))
+                if (auto const ask = craftAsk(*placer, itemOf(*placer->table, item)); ask.recipe >= 0 && ask.check != CraftOnto::Missing) {
+                    pressed = false;
+                    placer->craft(ask.recipe);
+                    return;
+                }
+        view::open(item, !leftPress);
+        viewScreen = screenName;
+        pressed = false;
+    }
+};
+// The game's screen, the settings and the game's window: false where nothing of the list shows.
+bool readScreen(Frame& f) {
+    auto& screenView = f.screenView;
+    auto& cost = f.cost;
     if (pendingEdit) openInventoryForEdit(screenView);
     // Several screens are drawn a frame (the HUD under a container); any but a focused item screen is not
     // this list's business and changes nothing here.
@@ -511,7 +602,17 @@ bool drawList(ll::event::UIRenderEvent& event) {
     windowFade.see(screenName, at.y, size.y, screen.y,
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     float const shownOpacity = windowFade.opacity(at.y, screen.y);
-    DrawOpacity const fade{shownOpacity};
+    f.screenName = screenName, f.client = client, f.player = player;
+    f.at = at, f.size = size, f.screen = screen, f.windowLeft = windowLeft, f.shownOpacity = shownOpacity;
+    return true;
+}
+// Where the list, the bands' panels and the windows stand on this screen, and the pointer.
+void placeParts(Frame& f) {
+    auto& screenView = f.screenView;
+    auto& cost = f.cost;
+    auto const& screenName = f.screenName;
+    auto const at = f.at, size = f.size, screen = f.screen;
+    float const windowLeft = f.windowLeft, shownOpacity = f.shownOpacity;
     // The centre keeps the recipe view's two columns free, so the list never moves when it opens. The Recipes
     // window is wider (planWindowAt): while it is open the bands give it room from their inner sides.
     auto const viewLayout = recipeViewAt(screen.x, screen.y);
@@ -557,7 +658,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
     cost.walk = cost.lap();
     auto const regions = band::regionsAround(screen.x, screen.y, coverLeft, right, at.y - tabs.above, at.y + size.y, viewLayout.hintY() - 1);
     // Asked for from the settings, the editor starts on the first item screen drawn.
-    static std::string editScreen; // the editor belongs to the screen it started on
     // A screen the game closed (a death, the server) and opened again: arranging ended with it.
     if (bandEditor::active() && !fresh()) bandEditor::stop();
     if (pendingEdit) closeViews(), bandEditor::start(*pendingEdit), pendingEdit.reset(), editScreen = screenName;
@@ -569,11 +669,27 @@ bool drawList(ll::event::UIRenderEvent& event) {
     auto const* itemsPanel = band::find(placed, band::Page::Items);
     auto const* planPanel = band::find(placed, band::Page::Plan);
     auto const layout = itemsPanel ? itemListIn(itemsPanel->box) : ItemListLayout{};
-    auto planSide = [&](band::Box box) { return sidePanelIn(box, false); };
     // The plan's list, for the wheel over it (the listeners' side).
     auto const side = planPanel ? planSide(planPanel->box) : SideLayout{};
     float const px = screenView.mPointerLocationPrevious->x, py = screenView.mPointerLocationPrevious->y;
-    Queued input;
+    f.viewLayout = viewLayout, f.right = right, f.coverLeft = coverLeft, f.prefs = prefs;
+    f.recipesOn = recipesOn, f.planOn = planOn, f.storesOn = storesOn, f.favoritesOn = favoritesOn, f.openPlace = openPlace;
+    f.regions = regions, f.editing = editing, f.pagesOn = pagesOn, f.placed = std::move(placed), f.itemsPanel = itemsPanel;
+    f.layout = layout, f.side = side, f.px = px, f.py = py;
+}
+// The input queued since the last frame: the fields' keys, the wanted key's wheel, a run of crafting, and the
+// press on the bottom row.
+void routeInput(Frame& f) {
+    using namespace lamium::ui;
+    auto& screenView = f.screenView;
+    auto& cost = f.cost;
+    auto const& screenName = f.screenName;
+    auto const screen = f.screen;
+    auto const& prefs = f.prefs;
+    auto const& placed = f.placed;
+    bool const recipesOn = f.recipesOn, planOn = f.planOn, storesOn = f.storesOn, editing = f.editing;
+    float const px = f.px, py = f.py;
+    auto& input = f.input;
     {
         std::scoped_lock lock(shownLock);
         // What was queued before a pause belongs to a screen that is gone.
@@ -652,7 +768,8 @@ bool drawList(ll::event::UIRenderEvent& event) {
         wantedLeaves = false;
     }
     // One press a frame. Each control asks whether it was on it; what none takes goes to the recipe view.
-    bool pressed = !input.clicks.empty();
+    auto& pressed = f.pressed;
+    pressed = !input.clicks.empty();
     // A run of crafting goes on by itself a round every few frames; any press of the player's, or leaving, ends it.
     // Read every frame: the press that starts a run set it too, and left set it would end that run the next frame.
     bool const keyStop = stopRun.exchange(false);
@@ -666,12 +783,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (layoutAgain) bandEditor::stop();
     bool const editPress = editing && leftPress && !layoutAgain;
     if (editing) pressed = false;
-    auto took = [&](ListBox const& box) {
-        if (!pressed || !box.has(px, py)) return false;
-        pressed = false;
-        return true;
-    };
-    bool caretPress = false;
+    auto& caretPress = f.caretPress;
     if (pressed || input.outside) searchFocus = false, countEdit::commit();
     auto const rowTook = pressed ? item_input::rowControl(rowShown, field, row, px, py) : item_input::RowControl::None;
     if (rowTook != item_input::RowControl::None) pressed = false;
@@ -689,8 +801,31 @@ bool drawList(ll::event::UIRenderEvent& event) {
         bandEditor::start(planOn ? band::Page::Plan : band::Page::Items);
         editScreen = screenName;
     } else if (rowTook == item_input::RowControl::Field) searchFocus = caretPress = true;
-    std::string hoverItem;
-    auto& context = event.uiRenderContext();
+    f.field = field, f.row = row, f.windowBox = windowBox, f.layoutBox = layoutBox, f.fieldArea = fieldArea;
+    f.windowButton = windowButton, f.layoutButton = layoutButton, f.leftPress = leftPress, f.editPress = editPress;
+}
+// The game's slots that do not match the search, the wanted counts and a take asked for, then the item list
+// on the right with its pager and filters.
+void drawItemList(Frame& f) {
+    using namespace lamium::ui;
+    auto& screenView = f.screenView;
+    auto& cost = f.cost;
+    auto const& screenName = f.screenName;
+    auto* player = f.player;
+    auto const at = f.at;
+    float const shownOpacity = f.shownOpacity;
+    auto const& prefs = f.prefs;
+    bool const recipesOn = f.recipesOn, planOn = f.planOn, editing = f.editing, leftPress = f.leftPress;
+    auto const* itemsPanel = f.itemsPanel;
+    auto const& layout = f.layout;
+    float const px = f.px, py = f.py;
+    auto& input = f.input;
+    auto& pressed = f.pressed;
+    auto& late = f.late;
+    auto& hoverItem = f.hoverItem;
+    auto& wantedCounts = f.wantedCounts;
+    auto took = [&f](ListBox const& box) { return f.took(box); };
+    auto& context = f.event.uiRenderContext();
     // The game's slots that do not match the search darkened (L-378), under everything of Lamium's.
     if (recipesOn && prefs->inventory.searchHighlight && !anyView() && !editing && search.value().find_first_not_of(' ') != std::string::npos) {
         auto const query = search::parse(search.value());
@@ -708,61 +843,18 @@ bool drawList(ll::event::UIRenderEvent& event) {
         });
         cost.highlight = cost.lap();
     }
-    view::Late late;
     // A wanted item carries how many are wanted, where a stack has its count.
     // Owned keys: "x" on a panel drawn below takes the item out of the list while later panels still mark.
-    std::map<std::string, Count, std::less<>> wantedCounts;
     if (planOn) for (auto const& [key, amount] : state::wanted().targets) wantedCounts.emplace(key, amount);
     // What a feature handed over is wanted too.
-    auto const handed = state::handed(); // a copy: asking for the plan below may replace the list
+    f.handed = state::handed(); // a copy: asking for the plan below may replace the list
+    auto const& handed = f.handed;
     if (planOn) for (auto const& target : handed) wantedCounts[target.key] += target.count;
-    auto mark = [&](std::string const& key, float x, float y, bool framed) {
-        // A favorite carries no mark (L-369): it stands in the favorites' panel; green means chosen.
-        (void)framed;
-        auto wanted = wantedCounts.find(key);
-        if (wanted == wantedCounts.end()) return;
-        // As a slot's count: thousands and millions above three digits (slotCountText).
-        Count const n = wanted->second;
-        late.counts.push_back({x, y, slotCountText(n)});
-    };
     // Taking in creative (L-360): the take keys queued last frame, on this screen.
-    bool const taking = player->isCreative() && creativeTake::available();
+    f.taking = player->isCreative() && creativeTake::available();
+    bool const taking = f.taking;
     if (auto asked = std::exchange(takeAsked, std::nullopt); asked && taking && asked->screen == screenName && recipesOn)
         sayRefusal(creativeTake::take(screenView, asked->key, asked->stack, true));
-    // A press on an item shows its recipes, a right press what it is used in, also beside an open view. Shift + a
-    // press does what its list says (TakePress.h): take a stack into the inventory, lay in as many as divide
-    // evenly, or show the recipes; with Ctrl it crafts one round onto the pointer (L-379); where the item cannot
-    // be (its recipes show the reason), it shows them. A plan row comes here only to be taken (BandPages.cpp).
-    auto show = [&](std::string const& item, take::List list) {
-        if (leftPress && shiftHeld.load() && !ctrlHeld.load()) {
-            switch (take::shiftPress(list, taking)) {
-            case take::ShiftPress::TakeStack:
-                pressed = false;
-                sayRefusal(creativeTake::take(screenView, item, true, false));
-                return;
-            case take::ShiftPress::PlaceMany:
-                if (placeItem(screenView, item, true, *player)) {
-                    pressed = false, view::close(), planView::close();
-                    return;
-                }
-                break;
-            case take::ShiftPress::Own: return;
-            case take::ShiftPress::Recipes: break;
-            }
-        }
-        if (list == take::List::Plan) return;
-        // Where nothing can be crafted (no grid, nothing that fits it, something missing) the press shows the recipes.
-        if (leftPress && ctrlHeld.load())
-            if (auto placer = gridPlacer(screenView, *player))
-                if (auto const ask = craftAsk(*placer, itemOf(*placer->table, item)); ask.recipe >= 0 && ask.check != CraftOnto::Missing) {
-                    pressed = false;
-                    placer->craft(ask.recipe);
-                    return;
-                }
-        view::open(item, !leftPress);
-        viewScreen = screenName;
-        pressed = false;
-    };
     // The item list on the right: Recipes'.
     if (recipesOn && layout.usable()) {
         cost.lap();
@@ -811,16 +903,42 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 late.tip = item.name;
             }
             if (auto const* stack = schematic::items::iconStack(item.icon)) late.icons.push_back({stack, x + 1, y + 1});
-            mark(nameAt(i), x, y, true);
+            f.mark(nameAt(i), x, y, true);
         }
         if (pressed && hovered >= 0 && first + hovered < count) {
             // Under "can be made" a press lays the recipe into the screen's grid, as the game's recipe book does;
             // where nothing can be laid (no grid, nothing that fits) it shows the recipes as elsewhere.
             if (filter == Filter::CanMake && leftPress && !ctrlHeld.load() && placeItem(screenView, nameAt(hovered), shiftHeld.load(), *player))
                 pressed = false, view::close(), planView::close();
-            else show(nameAt(hovered), filter == Filter::CanMake ? take::List::CanMake : take::List::All);
+            else f.show(nameAt(hovered), filter == Filter::CanMake ? take::List::CanMake : take::List::All);
         }
     }
+}
+// The bands' other pages, the store button and, while arranging, the editor over them.
+void drawBands(Frame& f) {
+    auto& context = f.event.uiRenderContext();
+    auto& screenView = f.screenView;
+    auto& cost = f.cost;
+    auto const& screenName = f.screenName;
+    auto* player = f.player;
+    auto const at = f.at, size = f.size;
+    float const windowLeft = f.windowLeft;
+    auto const& prefs = f.prefs;
+    bool const planOn = f.planOn, editing = f.editing, leftPress = f.leftPress, editPress = f.editPress, taking = f.taking;
+    auto const& openPlace = f.openPlace;
+    auto const& regions = f.regions;
+    auto const& pagesOn = f.pagesOn;
+    auto const& placed = f.placed;
+    float const px = f.px, py = f.py;
+    auto& input = f.input;
+    auto& pressed = f.pressed;
+    auto& late = f.late;
+    auto& hoverItem = f.hoverItem;
+    auto const& handed = f.handed;
+    auto& favoritesBox = f.favoritesBox;
+    auto& bandBoxes = f.bandBoxes;
+    auto mark = [&f](std::string const& key, float x, float y, bool framed) { f.mark(key, x, y, framed); };
+    auto show = [&f](std::string const& item, take::List list) { f.show(item, list); };
     // The bands' other pages, each in its panel (L-374): the favorites, the plan, and the open container's
     // line at the left region's end.
     bandPages::Frame frame{context, px, py, leftPress, pressed, late, hoverItem, mark, show, input.sideTurns, shiftHeld.load(), leftHeld.load(),
@@ -829,8 +947,6 @@ bool drawList(ll::event::UIRenderEvent& event) {
     frame.placer = bandPlacer ? &*bandPlacer : nullptr;
     frame.ctrl = ctrlHeld.load();
     frame.taking = taking;
-    ListBox favoritesBox;
-    std::vector<ListBox> bandBoxes; // where a press stays from the game and the view
     for (auto const& panel : placed) {
         if (panel.page == band::Page::Items) continue;
         bandPages::ground(frame, panel.box, !panel.first);
@@ -864,6 +980,18 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (editing) input.close = false;
     cost.at("bands");
     if (!pressed) input.clicks.clear();
+}
+// The bottom row: the search field, its switches and buttons, and the platform keyboard while it is typed in.
+void drawRow(Frame& f) {
+    using namespace lamium::ui;
+    auto& context = f.event.uiRenderContext();
+    auto& cost = f.cost;
+    auto& client = f.client;
+    bool const recipesOn = f.recipesOn, planOn = f.planOn, storesOn = f.storesOn, editing = f.editing;
+    bool const windowButton = f.windowButton, layoutButton = f.layoutButton, caretPress = f.caretPress;
+    auto const field = f.field, windowBox = f.windowBox, layoutBox = f.layoutBox;
+    float const px = f.px, py = f.py;
+    auto& late = f.late;
     if (!recipesOn) searchFocus = false;
     else drawTextField(context, field.x, field.y, field.w, field.h, searchFocus, &search, search.value(), translated("recipes.search"), 4, Align::Left, true);
     if (caretPress) placeCaret(context, search, px, py);
@@ -874,7 +1002,7 @@ bool drawList(ll::event::UIRenderEvent& event) {
         if (over) late.tip = translated("recipes.highlight", translated(on ? "on" : "off"));
     }
     // The keys button (L-398): the key hints as its tip, filled in below where the keys' names are read.
-    bool keysOver = false;
+    auto& keysOver = f.keysOver;
     if (recipesOn || planOn) {
         auto const box = keysButtonAt(field);
         keysOver = box.has(px, py);
@@ -925,6 +1053,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
         searchHistory.typed(search.value(), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count());
     wasFocused = searchFocus;
     cost.at("field");
+}
+// The recipe view, or under it the Recipes window.
+void drawWindows(Frame& f) {
+    auto& context = f.event.uiRenderContext();
+    auto& screenView = f.screenView;
+    auto const& screenName = f.screenName;
+    auto* player = f.player;
+    auto const screen = f.screen;
+    bool const recipesOn = f.recipesOn, planOn = f.planOn, storesOn = f.storesOn, favoritesOn = f.favoritesOn;
+    float const right = f.right, coverLeft = f.coverLeft;
+    float const px = f.px, py = f.py;
+    auto& input = f.input;
+    auto& late = f.late;
     // The wheel over a group's slot the pointer has rested on looks through its members instead (L-369); the
     // slots drawn below say where the pointer rests now.
     if (input.viewTurns)
@@ -951,9 +1092,19 @@ bool drawList(ll::event::UIRenderEvent& event) {
     }
     // A recipe laid into the grid: nothing of Lamium's stays over it.
     if (late.placed) view::close(), planView::close(), countEdit::cancel();
+}
+// The keys' names, read once a second; the keys button's tip; what the thing under the pointer does, or a notice.
+void drawKeysAndHints(Frame& f) {
+    using namespace lamium::ui;
+    auto& context = f.event.uiRenderContext();
+    auto& client = f.client;
+    auto const at = f.at, size = f.size, screen = f.screen;
+    bool const recipesOn = f.recipesOn, planOn = f.planOn, favoritesOn = f.favoritesOn, taking = f.taking, keysOver = f.keysOver;
+    auto const& viewLayout = f.viewLayout;
+    auto& late = f.late;
     // The key hints keep one place, the view's last line; closed, only where the game's window leaves it free.
-    bool const open = anyView() || bandEditor::active();
-    static std::vector<int> inventoryKeys;
+    f.open = anyView() || bandEditor::active();
+    bool const open = f.open;
     static std::string backKey, favoriteKey, wantedKey, takeOneKey, takeStackKey, recipesKey, usesKey; // the actions' keys as the keymap names them; empty without one
     static std::chrono::steady_clock::time_point keysRead;
     if (auto const now = std::chrono::steady_clock::now(); now - keysRead > std::chrono::seconds(1)) {
@@ -1039,11 +1190,26 @@ bool drawList(ll::event::UIRenderEvent& event) {
                         palette::vanilla::windowFaint, Align::Center, false);
         }
     }
+}
+// The item under the pointer, also a slot of the game's, and what the frame showed, for the listeners.
+void publishShown(Frame& f) {
+    auto& screenView = f.screenView;
+    bool const recipesOn = f.recipesOn, windowButton = f.windowButton, layoutButton = f.layoutButton, open = f.open;
+    auto const& viewLayout = f.viewLayout;
+    float const right = f.right, coverLeft = f.coverLeft;
+    auto const& layout = f.layout;
+    auto const& side = f.side;
+    auto const fieldArea = f.fieldArea;
+    float const px = f.px, py = f.py;
+    auto& late = f.late;
+    auto& hoverItem = f.hoverItem;
+    auto& tipItem = f.tipItem;
+    auto const& bandBoxes = f.bandBoxes;
+    auto const favoritesBox = f.favoritesBox;
     if (hoverItem.empty()) hoverItem = late.hovered;
     bool const hoverOurs = !hoverItem.empty(); // the take keys act on Lamium's lists and windows only (L-360)
     // An item the wheel took to 0 goes out once the pointer has left it (or the wanted key is up).
     state::settleWanted(wantedHeld.load() ? std::string_view(wantedItem) : !late.wantedRow.empty() ? std::string_view(late.wantedRow) : std::string_view(hoverItem));
-    std::string tipItem;
     // Under an open window, as wide as it is drawn, the game's slots are covered: they name no item.
     bool const covered = open && item_input::covered(viewLayout, coverLeft, right, px, py);
     if (covered) inspection::dropDeferredTooltip();
@@ -1070,6 +1236,21 @@ bool drawList(ll::event::UIRenderEvent& event) {
         shown.hoverOurs = hoverOurs;
         if (planView::isOpen() && !view::isOpen()) shown.boxes.window = item_input::windowSpan(viewLayout, coverLeft, right);
     }
+}
+// The lists' icons and counts, the held item over the panels, and the stonecutter's notice.
+void drawOnTop(Frame& f) {
+    using namespace lamium::ui;
+    auto& context = f.event.uiRenderContext();
+    auto& screenView = f.screenView;
+    auto& cost = f.cost;
+    float const shownOpacity = f.shownOpacity;
+    bool const editing = f.editing, open = f.open;
+    auto const& viewLayout = f.viewLayout;
+    float const right = f.right, coverLeft = f.coverLeft;
+    auto const& layout = f.layout;
+    auto const field = f.field;
+    auto& late = f.late;
+    auto const& bandBoxes = f.bandBoxes;
     context.flushText(0, std::nullopt);
     // Painted after the screen, the bands and the windows cover the item held on the pointer: where it
     // lies over one of them it is drawn once more, last so it is on top.
@@ -1110,6 +1291,17 @@ bool drawList(ll::event::UIRenderEvent& event) {
                 context.flushText(0, std::nullopt);
             }
         }
+}
+// The tip under the pointer as the game's tooltip box, with the game's lines for an item and a group's members.
+void drawTip(Frame& f) {
+    using namespace lamium::ui;
+    auto& context = f.event.uiRenderContext();
+    auto& cost = f.cost;
+    auto* player = f.player;
+    auto const screen = f.screen;
+    float const px = f.px, py = f.py;
+    auto& late = f.late;
+    auto const& tipItem = f.tipItem;
     if (!late.tip.empty()) {
         // What the game says of an item, with Lamium's item details (L-363), only under a tip whose title is that
         // item's name (2026-11-22): a button, a count or a group over the item's row is not about the item, though the
@@ -1195,6 +1387,24 @@ bool drawList(ll::event::UIRenderEvent& event) {
         }
     }
     cost.at("tooltip");
+}
+// False when nothing was drawn. The listeners then keep nothing once `fresh` runs out.
+bool drawList(ll::event::UIRenderEvent& event) {
+    using namespace lamium::ui;
+    FrameCost cost;
+    Frame f{event, cost, event.screenView()};
+    if (!readScreen(f)) return false;
+    DrawOpacity const fade{f.shownOpacity};
+    placeParts(f);
+    routeInput(f);
+    drawItemList(f);
+    drawBands(f);
+    drawRow(f);
+    drawWindows(f);
+    drawKeysAndHints(f);
+    publishShown(f);
+    drawOnTop(f);
+    drawTip(f);
     return true;
 }
 }
