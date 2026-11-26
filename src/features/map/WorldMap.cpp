@@ -1791,10 +1791,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         auto const& area = *areaRows[static_cast<size_t>(state.listFirst + r)];
         float ry = y + r * rowH;
         bool selected = state.rows.contains(area.key), over = overRow(ry);
-        if (selected) {
-            ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::accent, .16f);
-            ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
-        } else if (over) ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::white, .07f);
+        ui::rowBackground(context, x0 + 1, ry, rowW - 1, rowH, selected, over); // the shared list row (maintainer 2026-11-26)
         state.hits.push_back({x0, ry, rowW, rowH, Target::Row, -2, area.key});
         float iconAlpha = area.visible ? 1.f : .4f;
         if (area.key.layer == MarkLayer::Placement) footprintIcon(context, x + 1, ry + rowH / 2, rgb(area.color), iconAlpha);
@@ -1815,10 +1812,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         auto mark = waypointKey(set.waypoints[static_cast<size_t>(index)].id);
         float ry = y + r * rowH;
         bool selected = state.rows.contains(mark), over = overRow(ry);
-        if (selected) {
-            ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::accent, .16f);
-            ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
-        } else if (over) ui::fill(context, x0 + 1, ry, rowW - 1, rowH, ui::palette::white, .07f);
+        ui::rowBackground(context, x0 + 1, ry, rowW - 1, rowH, selected, over); // the shared list row (maintainer 2026-11-26)
         state.hits.push_back({x0, ry, rowW, rowH, Target::Row, index, mark});
         auto const& p = set.waypoints[static_cast<size_t>(index)];
         if (Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]); p.death)

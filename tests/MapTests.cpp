@@ -343,6 +343,10 @@ void image() {
           && lamium::ui::packed(lamium::ui::palette::shapeWhite) == packColor(242, 242, 242) && lamium::ui::packed(lamium::ui::palette::shapeCyan) == packColor(64, 209, 224),
           "a palette color packs to the map's bytes, rounded");
     check(lamium::ui::packed(lamium::ui::palette::panel, 150 / 255.f) == packColor(16, 17, 19, 150), "opacity packs into the top byte");
+    check(cameraArrowColor == packColor(108, 195, 73), "the FreeCamera arrow keeps its bytes as the accent");
+    check(lamium::ui::packed(lamium::ui::palette::previewNotPlaced) == 0xffffcc8cu && lamium::ui::packed(lamium::ui::palette::previewMismatch) == 0xff5a64ffu
+          && lamium::ui::packed(lamium::ui::palette::previewWrongState) == 0xff5ad7ffu && lamium::ui::packed(lamium::ui::palette::previewDim) == 0xff737373u,
+          "the check preview's tints keep their bytes as palette colors");
 
     TileCache cache;
     auto& tile = cache.put({-1, -1});

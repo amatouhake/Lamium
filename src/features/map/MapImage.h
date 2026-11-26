@@ -1,6 +1,7 @@
 #pragma once
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
+#include "ui/Widgets.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -244,9 +245,9 @@ inline double northUpArrowAngle(float yawDegrees) {
     auto f = heading(yawDegrees);
     return std::atan2(f.x, -f.z);
 }
-// The green arrow that marks where FreeCamera looks. The world map and the
+// The accent arrow that marks where FreeCamera looks. The world map and the
 // minimap draw the same marker (L-228, L-286).
-inline constexpr std::uint32_t cameraArrowColor = packColor(108, 195, 73);
+inline constexpr std::uint32_t cameraArrowColor = ui::packed(ui::palette::accent);
 
 // The thin frame: a dark line inside a faint light one, `width` pixels each.
 inline void drawFrame(std::vector<std::uint32_t>& pixels, int n, bool round, double width) {

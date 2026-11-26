@@ -1651,7 +1651,7 @@ void drawFileDetail(Body& b) {
                 // The clicked block stays lit, the rest dims.
                 std::optional<schematic::preview::Cell> pick = t.pickedFile == f.relative ? t.picked : std::nullopt;
                 schematic::preview::Tint tint{pick ? static_cast<std::uint64_t>((pick->x * 4099 + pick->y) * 4099 + pick->z) + 7 : 0,
-                    [pick](int x, int y, int z) -> std::uint32_t { return pick && !(*pick == schematic::preview::Cell{x, y, z}) ? 0xff737373u : 0xffffffffu; }};
+                    [pick](int x, int y, int z) -> std::uint32_t { return pick && !(*pick == schematic::preview::Cell{x, y, z}) ? packed(palette::previewDim) : 0xffffffffu; }};
                 float s = drawScale();
                 if (!schematic::preview::draw(context, structure, (dx + 1) * s, (top + 1) * s, (dw - 2) * s, (bottom - top - 2) * s,
                         schematic::preview::View{yaw, t.pitch, t.zoom, t.peel}, pick ? &tint : nullptr))
@@ -1817,9 +1817,9 @@ void drawCheckDetail(Body& b) {
             auto found = states.find({world.x, world.y, world.z});
             std::uint32_t color = 0xffffffffu;
             if (found != states.end()) switch (found->second) {
-            case schematic::CellState::Missing: color = 0xffffcc8cu; break; // light blue
-            case schematic::CellState::Wrong: case schematic::CellState::Extra: color = 0xff5a64ffu; break; // red
-            case schematic::CellState::State: color = 0xff5ad7ffu; break; // yellow
+            case schematic::CellState::Missing: color = packed(palette::previewNotPlaced); break;
+            case schematic::CellState::Wrong: case schematic::CellState::Extra: color = packed(palette::previewMismatch); break;
+            case schematic::CellState::State: color = packed(palette::previewWrongState); break;
             default: break;
             }
             if (!any) return color;

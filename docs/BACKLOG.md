@@ -229,7 +229,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
 - [L-399](backlog/L-399.md) Screens: one view shape, a tested mode order, logic out of the screen files (Refactor): Steps 1, 2 (the wheel only), 3 apart from clicks and 4's two splits checked in game 2026-11-24 (through `74cad706`); the rest open
-- [L-400](backlog/L-400.md) The UI token check sees packed colors (Refactor): Built and checked in game 2026-11-24 (`6f51abdd`, the shapes' colors as before); the Open choices remain
+- [L-400](backlog/L-400.md) The UI token check sees packed colors (Refactor): Every choice made (maintainer 2026-11-26) and built; the world map's framed rows not checked in game
 - [L-402](backlog/L-402.md) Check that every feature handles leaving the world, a dimension change and focus loss (Refactor): Open; the approach is not chosen
 - [L-403](backlog/L-403.md) Diagnostic build options: remove with their item, or keep them compiling (Refactor): Open; the policy is not chosen
 - [L-404](backlog/L-404.md) Keep the includes between source areas from growing (Refactor): Open; the check is not agreed

@@ -247,7 +247,7 @@ State state;
 // cave/surface choice (L-228). A forced HUD view does not change it.
 std::atomic<ViewMode> playerView{ViewMode::Surface};
 // Fill for ground not loaded yet: the card color, half transparent.
-constexpr std::uint32_t unknownFill = packColor(16, 17, 19, 150);
+constexpr std::uint32_t unknownFill = ui::packed(ui::palette::panel, 150 / 255.f);
 
 void releaseTexture(IClientInstance& client) {
     if (!state.uploaded) return;
