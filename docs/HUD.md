@@ -33,7 +33,10 @@ is fixed to the screen edges and is not an element.
   must be possible, but a small gap reads better and aligns layouts easily.
 - With Alt held, a drag or an arrow takes an element past the screen edge
   and nothing snaps; 8 units of it stay on the screen, so it can be grabbed
-  back (L-384). An offset pointing out past the held edge is kept on any
+  back (L-384). Alt pressed once during a drag holds until the button is
+  released, so letting go of Alt first does not pull the element back.
+  Scaled larger than the screen, an element (the game's chat too) is still
+  placed and runs off the far edge. An offset pointing out past the held edge is kept on any
   screen; an inward one is clamped inside as before, so a smaller window
   still brings elements in. Why: placing past the edge is rare, and flush
   edges must stay easy without a key.

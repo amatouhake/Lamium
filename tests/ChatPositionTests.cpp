@@ -104,8 +104,9 @@ void chatPositionTests() {
     auto part = translated(640, 360, {0, 60, 256, 30}, {2, 75}, big);
     check(part && part->x == 3 && part->y == grown->y + 22.5f, "a part keeps its place inside the scaled panel");
     big.scale = 200;
-    check(!placed(640, 360, 400, 30, big) && !translated(640, 360, {0, 60, 400, 30}, {2, 75}, big),
-          "a chat scaled past the screen is left as the game draws it");
+    auto wide = placed(640, 360, 400, 30, big);
+    check(wide && wide->w == 800 && wide->x == 0 && translated(640, 360, {0, 60, 400, 30}, {2, 75}, big),
+          "a chat scaled past the screen is still placed, running off the far edge (L-384)");
     auto small = sidebar;
     small.scale = 50;
     auto shrunk = placed(640, 360, 80, 50, small);

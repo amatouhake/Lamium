@@ -8,6 +8,7 @@
 #include "mc/client/gui/controls/UIControl.h"
 #include "mc/client/gui/controls/renderers/HudPlayerRenderer.h"
 #include "settings/Settings.h"
+#include "ui/HudElement.h"
 #include <atomic>
 #include <string>
 
@@ -37,7 +38,7 @@ struct DollPlacement {
         if (name != "hud_player" || control.mCachedPositionDirty) return;
         if (!versionSensitiveAllowed(capabilities::Id::PaperDollPosition)) return;
         float scale = dollScale.load();
-        if (!std::isfinite(scale) || scale < .5f || scale > 2) return;
+        if (!std::isfinite(scale) || scale < ui::hudScaleMin / 100 || scale > ui::hudScaleMax / 100) return;
         glm::vec2 current = *control.mSize;
         glm::vec2 scaled = current * scale;
         auto next = paperDoll::controlPosition({dollX.load(), dollY.load()}, scaled.x, scaled.y);

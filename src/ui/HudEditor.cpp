@@ -34,6 +34,9 @@ struct Drag {
     HudElementId id; float grabX, grabY, w, h, startX, startY;
     std::vector<HudElementId> under; bool cycle = false;
     bool moved = false; std::optional<Drop> drop;
+    // Alt pressed once during the drag keeps it free until the button is
+    // released, so letting go of Alt first does not pull it back (L-384).
+    bool free = false;
 };
 // A scale handle being dragged: the element's anchor point stays put.
 struct Resize { HudElementId id; Point anchor, handle; float scale; float start; };
@@ -421,7 +424,8 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         layoutElement(preview.layout, resize->id).scale = resize->scale;
     }
     if (drag) {
-        auto next = dragBox(pointerX, pointerY, drag->grabX, drag->grabY, drag->w, drag->h, width, height, screen::heldAlt());
+        drag->free = drag->free || screen::heldAlt();
+        auto next = dragBox(pointerX, pointerY, drag->grabX, drag->grabY, drag->w, drag->h, width, height, drag->free);
         if (std::abs(next.box.x - drag->startX) >= 1 || std::abs(next.box.y - drag->startY) >= 1) drag->moved = true;
         if (drag->moved) {
             drag->drop = next;

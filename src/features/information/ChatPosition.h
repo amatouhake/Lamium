@@ -7,13 +7,14 @@ namespace lamium::information::chatPosition {
 // Translation and a uniform scale only: the game's measured layout (line
 // breaks, spacing) and all of its styling stay. `chatW`, `chatH` are the
 // game's measured size; the placed box has the element's scale applied.
-// Shared with the scoreboard (L-321).
+// Shared with the scoreboard (L-321). Scaled larger than the screen it is
+// still placed, partly off screen (L-384); only the game's own size must fit.
 inline float zoom(ui::HudElement const& element) { return ui::clampHudScale(element.scale) / 100; }
 inline std::optional<ui::hud_editor::Box> placed(float width, float height, float chatW, float chatH,
                                                ui::HudElement const& element) {
     for (float v : {width, height, chatW, chatH}) if (!std::isfinite(v)) return std::nullopt;
     float w = chatW * zoom(element), h = chatH * zoom(element);
-    if (width <= 0 || height <= 0 || chatW <= 0 || chatH <= 0 || w > width || h > height)
+    if (width <= 0 || height <= 0 || chatW <= 0 || chatH <= 0 || chatW > width || chatH > height)
         return std::nullopt;
     auto at = ui::placeElement(width, height, w, h, element);
     return ui::hud_editor::Box{at.x, at.y, w, h};
