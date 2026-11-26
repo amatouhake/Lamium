@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Review fixes after 0.8.0; an elder guardian's radar face uneven (2026-11-26)
+
+`03b23488` (DLL
+`eb92303ee2db79c8f02779370b731c871d43f5e16a38755e399005f39b3fc1a3`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the settings screen's description wraps as before (between
+  characters, no line beginning with "。" or "、"); in creative the middle
+  button on a list item puts one on the pointer, Shift + the middle button a
+  stack; nothing else changed.
+- Not as expected: the radar's elder guardians (several, one face for all)
+  were pale but taller than wide with uneven edges, not the square face of
+  `ab28fd79`'s check; the guardian beside them was as before. Not explained:
+  `a08d22f1` reads the same texels for any picture no smaller than its shrink
+  step, and the face built at world entry (radar-sweep) is 8 by 8.
+- Not seen: Cyrillic or accented words wrapping, a take dropped with its
+  screen, a face thinner than its step, the paused notice counting Recipes
+  (the game is the verified one).
+
 ## World map drag cost (2026-11-26)
 
 `f9ce19c5` with `ui_draw_trace`, 1.26.60.05 Dev, the maintainer dragging the
