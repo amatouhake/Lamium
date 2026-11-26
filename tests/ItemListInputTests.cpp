@@ -88,6 +88,22 @@ void itemListInputTests() {
     check(span.x == 100 && span.w == 300 && span.y == view.top && span.h == view.height, "the Notes window's span as drawn");
     auto const narrow = windowSpan(view, view.left + 20, view.left + 40);
     check(narrow.x == view.left && narrow.w == RecipeViewLayout::width, "never narrower than the recipe view");
+
+    using Rows = std::vector<KeyRow>;
+    KeysBound const bound{true, true, true, true, true};
+    check(keyRows({}, bound).empty(), "with every feature off the keys tip has no rows");
+    check(keyRows({.recipes = true}, {}) == Rows{KeyRow::Click, KeyRow::RightClick, KeyRow::ShiftClick},
+          "with Recipes the presses show, with no key bound");
+    check(keyRows({.recipes = true, .favorites = true, .plan = true, .viewOpen = true, .taking = true}, bound)
+              == Rows{KeyRow::Click, KeyRow::RightClick, KeyRow::ShiftClick, KeyRow::Favorite, KeyRow::Wanted, KeyRow::Back, KeyRow::TakeOne,
+                      KeyRow::TakeStack},
+          "everything on and bound, in the tip's order");
+    check(keyRows({.recipes = true, .favorites = true, .plan = true, .viewOpen = true, .taking = true}, {})
+              == Rows{KeyRow::Click, KeyRow::RightClick, KeyRow::ShiftClick},
+          "a key without a binding has no row");
+    check(keyRows({.plan = true, .taking = true}, bound) == Rows{KeyRow::Wanted}, "the take keys only with Recipes");
+    check(keyRows({.recipes = true, .favorites = true}, bound) == Rows{KeyRow::Click, KeyRow::RightClick, KeyRow::ShiftClick, KeyRow::Favorite},
+          "Back only with the recipe view open, the take keys only in creative");
 }
 void itemListLayoutTests() {
     using namespace lamium::recipes;

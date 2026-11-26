@@ -66,6 +66,21 @@ inline RowControl rowControl(RowShown const& s, ListBox field, ListBox row, floa
 inline bool endsArranging(RowShown const& s, bool leftPress, ListBox row, float x, float y) {
     return s.editing && leftPress && s.layoutButton && layoutButtonAt(row).has(x, y);
 }
+// The keys button's tip (L-398): a row per key that does something in this mode with these features, in its
+// order. The presses come with Recipes, the take keys in creative with it; a key without a binding has no row.
+struct KeyTipOn { bool recipes = false, favorites = false, plan = false, viewOpen = false, taking = false; };
+struct KeysBound { bool favorite = false, wanted = false, back = false, takeOne = false, takeStack = false; };
+enum class KeyRow { Click, RightClick, ShiftClick, Favorite, Wanted, Back, TakeOne, TakeStack };
+inline std::vector<KeyRow> keyRows(KeyTipOn const& on, KeysBound const& bound) {
+    std::vector<KeyRow> rows;
+    if (on.recipes) rows.insert(rows.end(), {KeyRow::Click, KeyRow::RightClick, KeyRow::ShiftClick});
+    if (on.favorites && bound.favorite) rows.push_back(KeyRow::Favorite);
+    if (on.plan && bound.wanted) rows.push_back(KeyRow::Wanted);
+    if (on.viewOpen && bound.back) rows.push_back(KeyRow::Back);
+    if (on.recipes && on.taking && bound.takeOne) rows.push_back(KeyRow::TakeOne);
+    if (on.recipes && on.taking && bound.takeStack) rows.push_back(KeyRow::TakeStack);
+    return rows;
+}
 // A key while a wanted item's count is typed (L-370), with the search field's keys: Esc leaves the count as it
 // was, Enter and Tab keep it (both end the frame's keys); any other key goes to the digits (CountEdit.h).
 enum class CountKey { Cancel, Keep, Erase, Left, Right, Home, End, SelectAll, Digits };

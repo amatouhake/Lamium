@@ -983,19 +983,24 @@ bool drawList(ll::event::UIRenderEvent& event) {
     if (keysOver && late.tip.empty()) {
         auto& rows = late.tipTable;
         late.tip = translated("recipes.keys");
-        if (recipesOn) {
-            // The press, and the key that does the same over any item (ShowRecipes, ShowUses), where bound.
-            auto both = [&](char const* press, std::string const& key) { return translated(press) + (key.empty() ? "" : " / " + key); };
-            rows.push_back({both("recipes.keys.click", recipesKey), translated("recipes.keys.recipes")});
-            rows.push_back({both("recipes.keys.rightClick", usesKey), translated("recipes.keys.uses")});
-            rows.push_back({translated("recipes.keys.shiftClick"),
-                            translated(take::shiftHint(taking) == take::ShiftHint::IntoInventory ? "recipes.keys.intoInventory" : "recipes.keys.placeMany")});
-        }
-        if (favoritesOn && !favoriteKey.empty()) rows.push_back({favoriteKey, translated("recipes.keys.favorite")});
-        if (planOn && !wantedKey.empty()) rows.push_back({wantedKey, translated("recipes.keys.wanted")});
-        if (view::isOpen() && !backKey.empty()) rows.push_back({backKey, translated("recipes.keys.back")});
-        if (recipesOn && taking && !takeOneKey.empty()) rows.push_back({takeOneKey, translated("recipes.keys.takeOne")});
-        if (recipesOn && taking && !takeStackKey.empty()) rows.push_back({takeStackKey, translated("recipes.keys.takeStack")});
+        // The press, and the key that does the same over any item (ShowRecipes, ShowUses), where bound.
+        auto both = [&](char const* press, std::string const& key) { return translated(press) + (key.empty() ? "" : " / " + key); };
+        using item_input::KeyRow;
+        for (KeyRow const shownRow : item_input::keyRows({recipesOn, favoritesOn, planOn, view::isOpen(), taking},
+                                                         {!favoriteKey.empty(), !wantedKey.empty(), !backKey.empty(), !takeOneKey.empty(), !takeStackKey.empty()}))
+            switch (shownRow) {
+            case KeyRow::Click: rows.push_back({both("recipes.keys.click", recipesKey), translated("recipes.keys.recipes")}); break;
+            case KeyRow::RightClick: rows.push_back({both("recipes.keys.rightClick", usesKey), translated("recipes.keys.uses")}); break;
+            case KeyRow::ShiftClick:
+                rows.push_back({translated("recipes.keys.shiftClick"),
+                                translated(take::shiftHint(taking) == take::ShiftHint::IntoInventory ? "recipes.keys.intoInventory" : "recipes.keys.placeMany")});
+                break;
+            case KeyRow::Favorite: rows.push_back({favoriteKey, translated("recipes.keys.favorite")}); break;
+            case KeyRow::Wanted: rows.push_back({wantedKey, translated("recipes.keys.wanted")}); break;
+            case KeyRow::Back: rows.push_back({backKey, translated("recipes.keys.back")}); break;
+            case KeyRow::TakeOne: rows.push_back({takeOneKey, translated("recipes.keys.takeOne")}); break;
+            case KeyRow::TakeStack: rows.push_back({takeStackKey, translated("recipes.keys.takeStack")}); break;
+            }
     }
     // Right above the search row (L-360, maintainer 2026-11-24), small and faint: what the thing under the pointer
     // does, wrapped onto as many lines as it needs (ItemListLayout.h). A notice stands in its place while it lasts.
