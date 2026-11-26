@@ -1198,7 +1198,42 @@ void render(ll::event::UIRenderEvent& event) {
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         auto at = map::world::namePosition();
         syncTextKeyboard(at.x, at.y);
+#ifdef LAMIUM_UI_DRAW_TRACE
+        {
+            // One line a second while the world map is open: its frames, time
+            // in render and between renders, and the widgets' fills in it.
+            using Clock = std::chrono::steady_clock;
+            static Clock::time_point windowStart{}, lastCall{};
+            static int frames = 0;
+            static double renderMs = 0, gapMs = 0, gapMax = 0, fillMs = 0, batchMs = 0;
+            static long fills = 0, batchRects = 0;
+            auto start = Clock::now();
+            takeDrawTrace();
+            map::world::render(context, size, view.mPointerLocationPrevious, Runtime::instance().snapshot()->map);
+            auto end = Clock::now();
+            auto drawn = takeDrawTrace();
+            if (!frames || end - lastCall > std::chrono::milliseconds(500)) {
+                windowStart = start; frames = 0; renderMs = gapMs = gapMax = fillMs = batchMs = 0; fills = batchRects = 0;
+            } else {
+                double gap = std::chrono::duration<double, std::milli>(start - lastCall).count();
+                gapMs += gap; gapMax = std::max(gapMax, gap);
+            }
+            lastCall = end;
+            ++frames;
+            renderMs += std::chrono::duration<double, std::milli>(end - start).count();
+            fills += drawn.fills; batchRects += drawn.batchRects; fillMs += drawn.fillMs; batchMs += drawn.batchMs;
+            if (end - windowStart >= std::chrono::seconds(1)) {
+                Runtime::instance().self().getLogger().info(std::format(
+                    "World map draw: {} frames; render avg {:.2f} ms, between renders avg {:.2f} max {:.2f} ms; per frame {} fill() calls in {:.2f} ms, "
+                    "{} fills() rects in {:.2f} ms",
+                    frames, renderMs / frames, frames > 1 ? gapMs / (frames - 1) : 0., gapMax, fills / frames, fillMs / frames,
+                    batchRects / frames, batchMs / frames));
+                frames = 0;
+            }
+        }
+#else
         map::world::render(context, size, view.mPointerLocationPrevious, Runtime::instance().snapshot()->map);
+#endif
         return;
     }
     if (prompt) {

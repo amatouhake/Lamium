@@ -30,6 +30,9 @@
 #ifdef LAMIUM_RESEARCH_TRACE
 #include "app/Runtime.h"
 #endif
+#ifdef LAMIUM_UI_DRAW_TRACE
+#include <chrono>
+#endif
 
 namespace lamium::ui {
 namespace {
@@ -83,14 +86,33 @@ float textWidthScaled(MinecraftUIRenderContext& context, std::string_view text, 
     if (!(size > 0) || !std::isfinite(size)) size = 1;
     return measured(defaultFont(context), text, size);
 }
+#ifdef LAMIUM_UI_DRAW_TRACE
+namespace {
+DrawTrace drawTrace;
+struct DrawTimer {
+    double& ms;
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    ~DrawTimer() { ms += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count(); }
+};
+}
+DrawTrace takeDrawTrace() { return std::exchange(drawTrace, {}); }
+#endif
 void fill(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
     if (width <= 0 || height <= 0 || currentOpacity <= 0) return;
+#ifdef LAMIUM_UI_DRAW_TRACE
+    ++drawTrace.fills;
+    DrawTimer timer{drawTrace.fillMs};
+#endif
     float s = currentScale;
     context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f) * currentOpacity);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
 }
 void fills(MinecraftUIRenderContext& context, std::vector<ImageRect> const& rects, Rgb value, float opacity) {
     if (rects.empty() || currentOpacity <= 0) return;
+#ifdef LAMIUM_UI_DRAW_TRACE
+    drawTrace.batchRects += static_cast<long>(rects.size());
+    DrawTimer timer{drawTrace.batchMs};
+#endif
     float s = currentScale, alpha = std::clamp(opacity,0.f,1.f) * currentOpacity;
     // Each fillRectangle costs about 10 us whether flushed or not (HUD editor
     // trace, 2026-11-26); quads on the game's white texture, tinted, are one

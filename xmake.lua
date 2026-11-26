@@ -87,6 +87,12 @@ option("hud_editor_trace")
     set_description("Log the HUD layout editor's frame rate, pointer updates and lag behind the OS cursor while dragging")
 option_end()
 
+option("ui_draw_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Log the world map's frame time and the rectangles Lamium's widgets fill per frame")
+option_end()
+
 option("inventorymove_trace")
     set_default(false)
     set_showmenu(true)
@@ -223,6 +229,7 @@ target("Lamium")
     if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
     if has_config("edge_trace") then add_defines("LAMIUM_EDGE_TRACE") end
     if has_config("hud_editor_trace") then add_defines("LAMIUM_HUD_EDITOR_TRACE") end
+    if has_config("ui_draw_trace") then add_defines("LAMIUM_UI_DRAW_TRACE") end
     if has_config("feature_skip") then add_defines("LAMIUM_FEATURE_SKIP") end
     if has_config("unverified_game") then add_defines("LAMIUM_UNVERIFIED_GAME") end
     -- L-305: remove once the SDK links what it still holds back.

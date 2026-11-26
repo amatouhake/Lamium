@@ -242,6 +242,11 @@ void images(MinecraftUIRenderContext&, std::string_view texture, std::vector<Ima
 // Many rectangles of one color as one draw on the game's white texture
 // (the editor's hatching and dashes, L-334) instead of a fill per rect.
 void fills(MinecraftUIRenderContext&, std::vector<ImageRect> const& rects, Rgb color, float opacity = 1);
+#ifdef LAMIUM_UI_DRAW_TRACE
+// fill() calls and fills() rectangles with the time in them, since last taken.
+struct DrawTrace { long fills = 0, batchRects = 0; double fillMs = 0, batchMs = 0; };
+DrawTrace takeDrawTrace();
+#endif
 // One rectangle with an explicit sub-rectangle of the texture (uv in 0-1);
 // used for block textures whose source image holds several animation frames.
 // `tint` multiplies the texture (water's gray texture, L-294).
