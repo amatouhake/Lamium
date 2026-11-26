@@ -387,6 +387,9 @@ void modelFaces() {
     check(variantTexture("minecraft:horse", 3) == "textures/entity/horse2/horse_brown" && variantTexture("minecraft:horse", 7).empty()
               && variantTexture("minecraft:horse", -1).empty() && variantTexture("minecraft:pig", 0).empty(),
           "a horse's coat follows its variant; out of range or a kind without, the default skin");
+    check(variantTexture("minecraft:rabbit", 2) == "textures/entity/rabbit/rabbit_black"
+              && variantTexture("minecraft:mooshroom", 1) == "textures/entity/cow/brown_mooshroom_v2",
+          "a rabbit and a mooshroom take the skins of the models in use (the render controllers of 1.26.10)");
     check(lookTexture("minecraft:guardian", -1, true) == "textures/entity/guardian_elder" && lookTexture("minecraft:guardian", -1, false).empty()
               && lookTexture("minecraft:shulker", 16, false) == "textures/entity/shulker/shulker_undyed",
           "an elder guardian takes the elder skin, a shulker its color");

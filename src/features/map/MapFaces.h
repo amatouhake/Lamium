@@ -114,12 +114,15 @@ inline std::string variantTexture(std::string_view renderer, int variant) {
     if (kind == "llama" || kind == "trader_llama") return pick({"llama/llama_creamy", "llama/llama_white", "llama/llama_brown", "llama/llama_gray"});
     if (kind == "parrot") return pick({"parrot/parrot_red_blue", "parrot/parrot_blue", "parrot/parrot_green", "parrot/parrot_yellow_blue", "parrot/parrot_grey"});
     if (kind == "cat") return pick({"cat/white", "cat/tuxedo", "cat/redtabby", "cat/siamesecat", "cat/britishshorthair", "cat/calico", "cat/persian", "cat/ragdoll", "cat/tabby", "cat/allblackcat", "cat/jellie"});
-    if (kind == "rabbit") return pick({"rabbit/brown", "rabbit/white", "rabbit/blackrabbit", "rabbit/white_splotched", "rabbit/gold", "rabbit/salt"});
+    // The skins of the model in use (1.26.10's): the files of the one before it are still in the packs, laid out otherwise.
+    if (kind == "rabbit")
+        return pick({"rabbit/rabbit_brown", "rabbit/rabbit_white", "rabbit/rabbit_black", "rabbit/rabbit_white_splotched", "rabbit/rabbit_gold",
+                     "rabbit/rabbit_salt"});
     if (kind == "axolotl") return pick({"axolotl/axolotl_lucy", "axolotl/axolotl_cyan", "axolotl/axolotl_gold", "axolotl/axolotl_wild", "axolotl/axolotl_blue"});
     if (kind == "fox") return pick({"fox/fox", "fox/arctic_fox"});
     if (kind == "frog") return pick({"frog/temperate_frog", "frog/cold_frog", "frog/warm_frog"});
     if (kind == "wolf") return pick({"wolf/wolf", "wolf/wolf_ashen", "wolf/wolf_black", "wolf/wolf_chestnut", "wolf/wolf_rusty", "wolf/wolf_snowy", "wolf/wolf_spotted", "wolf/wolf_striped", "wolf/wolf_woods"});
-    if (kind == "mooshroom") return pick({"cow/mooshroom", "cow/brown_mooshroom"});
+    if (kind == "mooshroom") return pick({"cow/mooshroom_v2", "cow/brown_mooshroom_v2"});
     if (kind == "panda") return pick({"panda/panda", "panda/panda_lazy", "panda/panda_worried", "panda/panda_playful", "panda/panda_brown", "panda/panda_sneezy", "panda/panda_aggressive"});
     if (kind == "shulker")
         return pick({"shulker/shulker_black", "shulker/shulker_red", "shulker/shulker_green", "shulker/shulker_brown", "shulker/shulker_blue",
