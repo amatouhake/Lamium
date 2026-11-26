@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Lighter control edges, the drawn remove cross, raised row buttons (2026-11-26)
+
+`ed3fc14b` (DLL
+`30cd4364625b7aa11137b3cc70fc44a50e8dcacc2d11e0802b5773917544d2aa`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the Notes window's switch and button edges a lighter grey, neither
+  standing out nor heavy.
+- Seen: the Wanted rows' remove button draws its cross on the window and
+  the side panel, centred left to right, and takes the item out.
+- Seen: "Make all" and the stores tab's "Remove" raised as the place and
+  make buttons, and pressable; nothing else changed.
+- Remarked: the cross does not look centred top to bottom (the button is
+  10 units high, so a 5-unit cross leaves 2 above and 3 below).
+
 ## The Check pane, its clicks and the item list split by part (L-399, 2026-11-26)
 
 `a0831fa4` (DLL
