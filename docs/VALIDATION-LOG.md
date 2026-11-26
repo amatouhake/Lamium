@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak placement reset on world exit (L-402, 2026-11-26)
+
+`e82ea651` (DLL
+`ac8dfd0e27d892f402a8ebdcb0279a9b4fb55dafb6e90b05102b09ed9f9a50e3`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: with Sneak placement on, a block placed against a chest goes down
+  without opening it, also as the first placement after leaving and
+  re-entering the world.
+- Seen: nothing else changed.
+
 ## The thread trace removed; the adjust key's client cleared (L-353, 2026-11-26)
 
 `d293c739` (DLL
