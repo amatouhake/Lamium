@@ -293,8 +293,10 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     {
         float lx = box.x + (box.w - legend) / 2, ly = box.y + edge + 3 * rowH + legendTop;
         float sy = ly + (rowH - swatchH) / 2;
+        std::vector<ImageRect> swatch;
         for (auto const& dash : dashedFrame({lx, sy, swatchW, swatchH}, 2, 1))
-            fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, .6f);
+            swatch.push_back({dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length});
+        fills(context, swatch, palette::white, .6f);
         lx += swatchW + swatchGap;
         label(context, lx, ly, textWidth(context, situational) + 2, situational, palette::dim, Align::Left);
         lx += textWidth(context, situational) + pairGap;
@@ -688,16 +690,20 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
                   isFocus ? palette::accent : hudGameDrawn(id) ? palette::info : palette::white, hudGameDrawn(id) && !isFocus ? opacity + .25f : opacity);
             continue;
         }
+        // One batch per frame: a flush per dash made the editor crawl.
+        std::vector<ImageRect> dashRects;
         for (auto const& dash : dashedFrame(outer))
-            fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length,
-                 hudGameDrawn(id) ? palette::info : palette::white, hudGameDrawn(id) ? opacity + .4f : opacity + .15f);
+            dashRects.push_back({dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length});
+        fills(context, dashRects, hudGameDrawn(id) ? palette::info : palette::white, hudGameDrawn(id) ? opacity + .4f : opacity + .15f);
         // Its faint contents say what it is: named only when pointed at or
         // selected, as a shown element is. Only a hidden one keeps its name.
     }
     if (focus && active) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
+            std::vector<ImageRect> dots;
             for (auto const& dot : dashes(anchorPoint(*active, width, height), elementPoint(*active, *box)))
-                fill(context, dot.x - .5f, dot.y - .5f, 1, 1, palette::accent);
+                dots.push_back({dot.x - .5f, dot.y - .5f, 1, 1});
+            fills(context, dots, palette::accent);
         }
     }
     // After every frame, so a tag is never crossed by another frame's dashes:
