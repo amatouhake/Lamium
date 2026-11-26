@@ -2,6 +2,7 @@
 #ifdef LAMIUM_RESTOCK_TRACE
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
+#include "mc/client/gui/screens/controllers/HudScreenController.h"
 #include "mc/client/gui/screens/models/ClientInstanceScreenModel.h"
 #include "mc/world/containers/managers/controllers/HudContainerManagerController.h"
 #include "mc/world/containers/managers/models/ContainerManagerModel.h"

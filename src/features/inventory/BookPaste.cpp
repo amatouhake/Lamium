@@ -21,21 +21,6 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-#include "mc/network/LoopbackPacketSender.h"
-#include "mc/network/MinecraftPacketIds.h"
-#include "mc/network/packet/BookEditPacket.h"
-#include <Windows.h>
-#include <atomic>
-#include <format>
-#include <variant>
-#endif
-
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-#define BOOK_PASTE_TRACE(...) do { try { log(std::format(__VA_ARGS__)); } catch (...) {} } while (false)
-#else
-#define BOOK_PASTE_TRACE(...) do {} while (false)
-#endif
 
 namespace lamium::inventory::bookPaste {
 namespace {
@@ -73,13 +58,6 @@ unsigned long long generations = 0;
 constexpr auto screenAlive = std::chrono::milliseconds(250);
 // Our own text writes must not be taken for a new paste.
 thread_local bool insidePaste = false;
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-// Defined with the trace hooks further down; the new path's own trace lines
-// come first in this file.
-std::string sizes(std::string_view text);
-void log(std::string line) noexcept;
-void noteLimit(TextEditComponent const* box, uint maxLength, bool constrain) noexcept;
-#endif
 
 // The page box is the only book text box with the page's character limit and
 // the page rectangle's constraint; the title and author take 512 and do not
@@ -161,55 +139,40 @@ struct Outcome {
 // L-259 crash at origin()).
 Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     auto at = current();
-    auto reject = [&](char const* reason) {
-        BOOK_PASTE_TRACE("paste gate={} limit={} box={} editable={} view={}", reason, context.mMaxLength,
-                         at && at->box, at ? static_cast<bool>(at->controller->mEditable) : false,
-                         at ? static_cast<int>(at->controller->mCurrentView) : -1);
-        return Outcome{};
-    };
-    if (paste.empty()) return reject("empty");
+    if (paste.empty()) return {};
     auto settings = Runtime::instance().snapshot();
-    if (!settings->ui.bookPaste) return reject("option");
-    if (!versionSensitiveAllowed(capabilities::Id::BookPastePages)) return reject("unverified-game");
-    if (!pageContextLimit(context.mMaxLength)) return reject("limit"); // not the page box L-259 knows
-    if (!at) return reject("screen");
+    if (!settings->ui.bookPaste) return {};
+    if (!versionSensitiveAllowed(capabilities::Id::BookPastePages)) return {};
+    if (!pageContextLimit(context.mMaxLength)) return {}; // not the page box L-259 knows
+    if (!at) return {};
     auto& controller = *at->controller;
-    if (!at->box) return reject("box");
-    if (!controller.mEditable) return reject("not-editable");
+    if (!at->box) return {};
+    if (!controller.mEditable) return {};
     {
         // A second paste before the next book frame would replace the first
         // one's kept pages, and its first part would already be on the page:
         // paste nothing until those pages are in.
         std::lock_guard lock(stateMutex);
-        if (pending && !pending->pages.extra.empty()) {
-            BOOK_PASTE_TRACE("paste gate=busy extra={}", pending->pages.extra.size());
-            return Outcome{Outcome::Kind::Refused};
-        }
+        if (pending && !pending->pages.extra.empty()) return Outcome{Outcome::Kind::Refused};
     }
-    if (controller.mCurrentView != BookScreenController::BookView::Viewing) return reject("view");
+    if (controller.mCurrentView != BookScreenController::BookView::Viewing) return {};
     auto& pages = controller.mPages.get();
     auto const& cursor = controller.mPageHasCursor.get();
-    BOOK_PASTE_TRACE("paste where currentPage={} currentPageIndex={} editing={}:{} cursor={}:{} pages={}",
-                     controller.mCurrentPage, controller.mCurrentPageIndex, static_cast<bool>(controller.mEditingLeft),
-                     static_cast<bool>(controller.mEditingRight), cursor[0], cursor[1], pages.size());
     // The green caret names the page, and the box's own text is what its position
     // counts. Nothing here reads the page model's text: it lags the box until the
     // player leaves the page. A photo page holds no text to edit.
     int const index = caretPage(controller.mCurrentPage, cursor[0], cursor[1], static_cast<int>(pages.size()));
-    if (index < 0) return reject("no-caret");
+    if (index < 0) return {};
     PageContent& page = pages[static_cast<std::size_t>(index)];
-    if (!page.mPhotoName.get().empty()) return reject("photo");
+    if (!page.mPhotoName.get().empty()) return {};
     std::string_view const text = context.mCurrentUtf8Text.get();
     int const chars = codePointCount(text);
     auto const& selection = context.mSelection.get();
     // The game counts characters; a caret past the end means the units or the
     // text changed under us, so the game keeps the paste.
     if (context.mCaret < 0 || context.mCaret > chars || selection.mStartCaretPos > chars
-        || selection.mEndCaretPos > chars) {
-        BOOK_PASTE_TRACE("paste gate=caret caret={} sel={}:{} chars={}", context.mCaret, selection.mStartCaretPos,
-                         selection.mEndCaretPos, chars);
-        return Outcome{};
-    }
+        || selection.mEndCaretPos > chars)
+        return {};
     int caret = context.mCaret;
     int start = caret, end = caret;
     int const from = selection.mStartCaretPos;
@@ -227,11 +190,7 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
         return codePointCount(candidate) <= pageLimit && at->box->_textFitsInControl(candidate);
     };
     auto split = splitPaste(before, after, paste, free, pageLimit, fits);
-    if (split.kind == SplitKind::Vanilla) {
-        BOOK_PASTE_TRACE("paste decision=vanilla page={} caret={} sel={}:{} paste {}", index, caret, from, to,
-                         sizes(paste));
-        return Outcome{};
-    }
+    if (split.kind == SplitKind::Vanilla) return {};
     if (split.kind == SplitKind::Refused) {
         {
             std::lock_guard lock(stateMutex);
@@ -243,7 +202,6 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
             pending = std::move(item);
         }
         // Shown from the next book frame, never from the paste's own call.
-        BOOK_PASTE_TRACE("paste decision=refused needed={} free={} paste {}", split.needed, split.free, sizes(paste));
         return Outcome{Outcome::Kind::Refused};
     }
     // The page keeps the text before the caret plus the part of the paste that
@@ -252,7 +210,7 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     Outcome outcome;
     outcome.kind = Outcome::Kind::Insert;
     outcome.head = split.pages[0];
-    if (!outcome.head.starts_with(before)) return reject("split"); // the split must keep the page's head
+    if (!outcome.head.starts_with(before)) return {}; // the split must keep the page's head
     outcome.insert = outcome.head.substr(before.size());
     outcome.trim = !after.empty();
     outcome.caret = codePointCount(outcome.head);
@@ -262,10 +220,6 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     plan.index = index;
     plan.head = outcome.head;
     plan.extra.assign(std::make_move_iterator(split.pages.begin() + 1), std::make_move_iterator(split.pages.end()));
-    BOOK_PASTE_TRACE("paste decision=split page={} caret={} sel={}:{} pages={} needed={} free={} paste {}", index,
-                     caret, from, to, split.pages.size(), split.needed, split.free, sizes(paste));
-    BOOK_PASTE_TRACE("paste defer index={} frame={} extra={} head {} trim={}", plan.index, plan.frame, plan.extra.size(),
-                     sizes(outcome.head), outcome.trim);
     {
         std::lock_guard lock(stateMutex);
         Pending item;
@@ -301,13 +255,11 @@ void applyPages(BookScreenController& controller) noexcept {
         try {
             pages[static_cast<std::size_t>(plan->index)].mText.get() = plan->head;
             controller._parsePageText(plan->index);
-        } catch (...) { BOOK_PASTE_TRACE("paste head sync failed"); }
+        } catch (...) {}
     }
     if (plan->extra.empty()) return;
     ApplyPlan const decision = planApply(*plan, id, static_cast<bool>(controller.mEditable), count);
     if (!decision.apply()) {
-        BOOK_PASTE_TRACE("paste apply skipped={} index={} extra={} pages={}", applySkipReason(decision.skip),
-                         plan->index, plan->extra.size(), count);
         // The first page is already in; the rest stays on the clipboard only.
         if (decision.skip != ApplySkip::Screen)
             try { ui::showWarningToast(ui::translated("bookPaste.restDropped")); } catch (...) {}
@@ -334,11 +286,7 @@ void applyPages(BookScreenController& controller) noexcept {
         // two addresses across every add, seen in game 2026-11-06), and no focus
         // call follows when the shown page does not change, so forgetting it here
         // sent the next paste to the game.
-        BOOK_PASTE_TRACE("paste apply index={} added={} pages={}->{} current={}", decision.index, decision.add, count,
-                         static_cast<int>(controller.mPages.get().size()), controller.mCurrentPageIndex);
-    } catch (std::exception const& error) {
-        BOOK_PASTE_TRACE("paste apply failed: {}", error.what());
-    } catch (...) { BOOK_PASTE_TRACE("paste apply failed"); }
+    } catch (...) {}
 }
 // The refusal's toast waits for the book's next frame too: the HUD is not drawn
 // while the book is open, so it is shown again when the screen goes away.
@@ -376,12 +324,6 @@ LL_TYPE_INSTANCE_HOOK(BookScreenValid, ll::memory::HookPriority::Normal, BookScr
 }
 LL_TYPE_INSTANCE_HOOK(PageBoxFocus, ll::memory::HookPriority::Normal, TextEditComponent,
     &TextEditComponent::handleFocusSet, void, bool focused) {
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-    try {
-        log(std::format("focus box={} focused={} maxLength={} constrain={} selected={}", static_cast<void const*>(this),
-                        focused, mMaxLength, static_cast<bool>(mConstrainToRect), static_cast<bool>(mSelected)));
-    } catch (...) {}
-#endif
     if (focused) {
         try { if (pageBox(*this)) rememberBox(*this); } catch (...) {}
     }
@@ -389,30 +331,12 @@ LL_TYPE_INSTANCE_HOOK(PageBoxFocus, ll::memory::HookPriority::Normal, TextEditCo
 }
 LL_TYPE_INSTANCE_HOOK(TextTrySet, ll::memory::HookPriority::Normal, TextEditComponent,
     &TextEditComponent::trySetText, bool, std::string text) {
-    std::string before;
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-    try { before = sizes(text); } catch (...) {}
-#endif
     bool accepted = origin(std::move(text));
     try { if (accepted && pageBox(*this)) rememberBox(*this); } catch (...) {}
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-    try {
-        noteLimit(this, mMaxLength, mConstrainToRect);
-        log(std::format("trySetText {} maxLength={} constrain={} accepted={}", before, mMaxLength,
-                        static_cast<bool>(mConstrainToRect), accepted));
-    } catch (...) {}
-#endif
     return accepted;
 }
 LL_TYPE_INSTANCE_HOOK(ContextText, ll::memory::HookPriority::Normal, TextEditContext,
     &TextEditContext::feedText, void, std::string_view utf8Text) {
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-    try {
-        auto const& selection = mSelection.get();
-        log(std::format("feedText {} caret={} sel={}:{} maxLength={} text {}", sizes(utf8Text), mCaret,
-                        selection.mStartCaretPos, selection.mEndCaretPos, mMaxLength, sizes(mCurrentUtf8Text.get())));
-    } catch (...) {}
-#endif
     Outcome outcome;
     if (!insidePaste) {
         try { outcome = handlePaste(*this, utf8Text); } catch (...) { outcome = Outcome{}; }
@@ -447,222 +371,9 @@ LL_TYPE_INSTANCE_HOOK(ContextText, ll::memory::HookPriority::Normal, TextEditCon
         }
     } catch (...) {
         cancelPending();
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-        try { log("paste insert failed"); } catch (...) {}
-#endif
     }
     insidePaste = false;
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-    try {
-        auto const& selection = mSelection.get();
-        log(std::format("feedText done caret={} sel={}:{} text {}", mCaret, selection.mStartCaretPos,
-                        selection.mEndCaretPos, sizes(mCurrentUtf8Text.get())));
-    } catch (...) {}
-#endif
 }
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-// The trace's own helpers: one window for every stage, so a whole book pasted
-// into a full page cannot push more than this many lines into the log.
-class Window {
-    std::atomic<long long> start{-1};
-    std::atomic<unsigned> used{0};
-public:
-    static constexpr unsigned limit = 300;
-    static constexpr long long span = 5000;
-    bool take() noexcept {
-        auto elapsed = [] {
-            return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count();
-        };
-        long long now = elapsed();
-        long long since = start.load(std::memory_order_relaxed);
-        if (since < 0 || now - since >= span) {
-            if (start.compare_exchange_strong(since, now, std::memory_order_relaxed)) used.store(0, std::memory_order_relaxed);
-        }
-        return used.fetch_add(1, std::memory_order_relaxed) < limit;
-    }
-};
-Window window;
-// Diagnostics must never interrupt the hooked call: errors stay swallowed and
-// the budget never throws.
-void log(std::string line) noexcept {
-    if (!window.take()) return;
-    try { Runtime::instance().self().getLogger().info("book paste trace: {} tid={}", line, GetCurrentThreadId()); } catch (...) {}
-}
-// The two units L-259 has to tell apart.
-std::string sizes(std::string_view text) { return std::format("bytes={} chars={}", text.size(), codePointCount(text)); }
-#ifndef LAMIUM_MCAPI_PENDING // L-305: these hooks' targets do not link yet.
-char const* actionName(TextEditContext::TextEditAction action) {
-    switch (action) {
-    case TextEditContext::TextEditAction::Backspace: return "backspace";
-    case TextEditContext::TextEditAction::Copy: return "copy";
-    case TextEditContext::TextEditAction::Cut: return "cut";
-    case TextEditContext::TextEditAction::Delete: return "delete";
-    case TextEditContext::TextEditAction::Newline: return "newline";
-    case TextEditContext::TextEditAction::Paste: return "paste";
-    case TextEditContext::TextEditAction::SelectAll: return "selectAll";
-    }
-    return "unknown";
-}
-#endif
-char const* operationName(size_t index) {
-    switch (index) {
-    case 0: return "replace";
-    case 1: return "add";
-    case 2: return "delete";
-    case 3: return "swap";
-    case 4: return "finalize";
-    }
-    return "unknown";
-}
-// The page text box's limit, once per box: the JSON variable itself is not in
-// the SDK (Json::Value is forward declared only), so the resolved component
-// value is the readable form.
-void noteLimit(TextEditComponent const* box, uint maxLength, bool constrain) noexcept {
-    static thread_local TextEditComponent const* lastBox = nullptr;
-    static thread_local uint lastLimit = 0;
-    if (box == lastBox && maxLength == lastLimit) return;
-    lastBox = box;
-    lastLimit = maxLength;
-    try { log(std::format("page limit maxLength={} constrain={}", maxLength, constrain)); } catch (...) {}
-}
-std::string pageText(std::vector<PageContent>& pages, int index) {
-    return index >= 0 && index < static_cast<int>(pages.size()) ? sizes(pages[index].mText.get()) : std::string("page=none");
-}
-#ifndef LAMIUM_MCAPI_PENDING
-LL_TYPE_INSTANCE_HOOK(TextCharKey, ll::memory::HookPriority::Normal, TextEditComponent,
-    &TextEditComponent::handleTextCharEvent, TextCharEventResult, VisualTree& visualTree, std::string const& inputUtf8) {
-    TextCharEventResult result = origin(visualTree, inputUtf8);
-    try {
-        noteLimit(this, mMaxLength, mConstrainToRect);
-        log(std::format("key {} maxLength={} constrain={} result={}", sizes(inputUtf8), mMaxLength,
-                        static_cast<bool>(mConstrainToRect), static_cast<int>(result)));
-    } catch (...) {}
-    return result;
-}
-LL_TYPE_INSTANCE_HOOK(BookScreenOpen, ll::memory::HookPriority::Normal, BookScreenController,
-    &BookScreenController::$addStaticScreenVars, void, Json::Value& globalVars) {
-    try {
-        log(std::format("screen open editable={} pages={} page={} view={}", static_cast<bool>(mEditable),
-                        mPages.get().size(), mCurrentPageIndex, static_cast<int>(mCurrentView)));
-    } catch (...) {}
-    origin(globalVars);
-}
-#endif
-LL_TYPE_INSTANCE_HOOK(TextFits, ll::memory::HookPriority::Normal, TextEditComponent,
-    &TextEditComponent::_textFitsInControl, bool, std::string const& text) {
-    bool fits = origin(text);
-    try {
-        noteLimit(this, mMaxLength, mConstrainToRect);
-        log(std::format("fits {} maxLength={} constrain={} fits={}", sizes(text), mMaxLength,
-                        static_cast<bool>(mConstrainToRect), fits));
-    } catch (...) {}
-    return fits;
-}
-#ifndef LAMIUM_MCAPI_PENDING
-LL_TYPE_INSTANCE_HOOK(ContextAction, ll::memory::HookPriority::Normal, TextEditContext,
-    &TextEditContext::feedAction, void, TextEditAction action) {
-    try {
-        auto const& selection = mSelection.get();
-        log(std::format("feedAction action={}({}) caret={} sel={}:{} maxLength={} text {}", static_cast<int>(action),
-                        actionName(action), mCaret, selection.mStartCaretPos, selection.mEndCaretPos, mMaxLength,
-                        sizes(mCurrentUtf8Text.get())));
-    } catch (...) {}
-    origin(action);
-    try {
-        auto const& selection = mSelection.get();
-        log(std::format("feedAction done action={}({}) caret={} sel={}:{} text {}", static_cast<int>(action),
-                        actionName(action), mCaret, selection.mStartCaretPos, selection.mEndCaretPos,
-                        sizes(mCurrentUtf8Text.get())));
-    } catch (...) {}
-}
-#endif
-LL_TYPE_INSTANCE_HOOK(PageParse, ll::memory::HookPriority::Normal, BookScreenController,
-    &BookScreenController::_parsePageText, void, int index) {
-    origin(index);
-    try {
-        auto& pages = mPages.get();
-        log(std::format("parsePage index={} pages={} {}", index, pages.size(), pageText(pages, index)));
-    } catch (...) {}
-}
-#ifndef LAMIUM_MCAPI_PENDING
-LL_TYPE_INSTANCE_HOOK(PageSetText, ll::memory::HookPriority::Normal, BookScreenController,
-    &BookScreenController::_setPageText, void, int index, std::string const& text) {
-    try { log(std::format("setPage index={} pages={} {}", index, mPages.get().size(), sizes(text))); } catch (...) {}
-    origin(index, text);
-    try {
-        auto& pages = mPages.get();
-        log(std::format("setPage stored index={} pages={} {}", index, pages.size(), pageText(pages, index)));
-    } catch (...) {}
-}
-#endif
-LL_TYPE_INSTANCE_HOOK(PageAddAt, ll::memory::HookPriority::Normal, BookScreenController,
-    &BookScreenController::_addPageAt, void, int index, PageContent const& page) {
-    try {
-        log(std::format("addPage index={} pages={} {} photo={}", index, mPages.get().size(), sizes(page.mText.get()),
-                        page.mPhotoName.get().size()));
-    } catch (...) {}
-    origin(index, page);
-    try { log(std::format("addPage stored index={} pages={}", index, mPages.get().size())); } catch (...) {}
-}
-#ifndef LAMIUM_MCAPI_PENDING
-LL_TYPE_INSTANCE_HOOK(ManagerEditPage, ll::memory::HookPriority::Normal, BookScreenManager,
-    &BookScreenManager::editPage, void, int index, PageContent const& page) {
-    try {
-        log(std::format("manager editPage index={} slot={} edited={} {}", index, mBookSlot, static_cast<bool>(mEdited),
-                        sizes(page.mText.get())));
-    } catch (...) {}
-    origin(index, page);
-}
-LL_TYPE_INSTANCE_HOOK(ManagerAddPage, ll::memory::HookPriority::Normal, BookScreenManager,
-    &BookScreenManager::addPageAt, void, int index, PageContent const& page) {
-    try {
-        log(std::format("manager addPageAt index={} slot={} edited={} {}", index, mBookSlot,
-                        static_cast<bool>(mEdited), sizes(page.mText.get())));
-    } catch (...) {}
-    origin(index, page);
-}
-#endif
-// Only the fields the packet header declares as plain values are read; the
-// operation variant is inspected by index, so an unknown one logs as unknown.
-void logBookEdit(char const* channel, Packet& packet) noexcept {
-    try {
-        auto const& edit = static_cast<BookEditPacket&>(packet);
-        auto const& payload = static_cast<BookEditPacketPayload const&>(edit);
-        auto const& operation = payload.mOperation.get();
-        int index = -1;
-        std::string text;
-        switch (operation.index()) {
-        case 0: {
-            auto const& page = std::get<BookEditAction::ReplacePage>(operation);
-            index = page.mPageIndex;
-            text = page.mPageText.get();
-            break;
-        }
-        case 1: {
-            auto const& page = std::get<BookEditAction::AddPage>(operation);
-            index = page.mPageIndex;
-            text = page.mPageText.get();
-            break;
-        }
-        case 2: index = std::get<BookEditAction::DeletePage>(operation).mPageIndex; break;
-        case 3: index = std::get<BookEditAction::SwapPages>(operation).mPageIndex; break;
-        default: break;
-        }
-        log(std::format("packet via={} slot={} action={} page={} bytes={} chars={}", channel, payload.mBookSlot,
-                        operationName(operation.index()), index, text.size(), codePointCount(text)));
-    } catch (...) {}
-}
-LL_TYPE_INSTANCE_HOOK(BookEditSend, ll::memory::HookPriority::Normal, LoopbackPacketSender,
-    &LoopbackPacketSender::$send, void, Packet& packet) {
-    if (packet.getId() == MinecraftPacketIds::BookEdit) logBookEdit("send", packet);
-    origin(packet);
-}
-LL_TYPE_INSTANCE_HOOK(BookEditSendToServer, ll::memory::HookPriority::Normal, LoopbackPacketSender,
-    &LoopbackPacketSender::$sendToServer, void, Packet& packet) {
-    if (packet.getId() == MinecraftPacketIds::BookEdit) logBookEdit("sendToServer", packet);
-    origin(packet);
-}
-#endif
 struct Hook {
     char const* name;
     int (*install)(bool);
@@ -675,21 +386,6 @@ Hook hooks[] = {
     {"PageBoxFocus", PageBoxFocus::hook, PageBoxFocus::unhook},
     {"TextTrySet", TextTrySet::hook, TextTrySet::unhook},
     {"ContextText", ContextText::hook, ContextText::unhook},
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-#ifndef LAMIUM_MCAPI_PENDING
-    {"BookScreenOpen", BookScreenOpen::hook, BookScreenOpen::unhook},
-    {"TextCharKey", TextCharKey::hook, TextCharKey::unhook},
-    {"ContextAction", ContextAction::hook, ContextAction::unhook},
-    {"PageSetText", PageSetText::hook, PageSetText::unhook},
-    {"ManagerEditPage", ManagerEditPage::hook, ManagerEditPage::unhook},
-    {"ManagerAddPage", ManagerAddPage::hook, ManagerAddPage::unhook},
-#endif
-    {"TextFits", TextFits::hook, TextFits::unhook},
-    {"PageParse", PageParse::hook, PageParse::unhook},
-    {"PageAddAt", PageAddAt::hook, PageAddAt::unhook},
-    {"BookEditSend", BookEditSend::hook, BookEditSend::unhook},
-    {"BookEditSendToServer", BookEditSendToServer::hook, BookEditSendToServer::unhook},
-#endif
 };
 }
 bool start() {
@@ -712,13 +408,6 @@ bool start() {
             } catch (...) {}
         } catch (...) {}
     }
-#ifdef LAMIUM_BOOK_PASTE_TRACE
-    try {
-        Runtime::instance().self().getLogger().warn(
-            "L-259 book paste trace enabled: {} hooks; lines start with 'book paste trace: ', at most {} per {} ms",
-            static_cast<unsigned>(sizeof(hooks) / sizeof(hooks[0])), Window::limit, Window::span);
-    } catch (...) {}
-#endif
     return true;
 }
 void stop() {

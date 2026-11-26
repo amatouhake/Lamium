@@ -8,8 +8,8 @@
 namespace lamium::information {
 // Bedrock slime chunks (BACKLOG L-232): a function of the chunk coordinates
 // alone, the same in every world and on every server. Source and checks in
-// docs/PROVENANCE.md; the game's own spawn rule is compared against it by the
-// slime_trace build.
+// docs/PROVENANCE.md; the game's own spawn rule was compared against it by the
+// removed slime_trace build (VALIDATION-LOG).
 //
 // The rule seeds MT19937 with x * 0x1f1f1f1f ^ z and takes its first output.
 // That output needs only state words 0, 1 and 397, so the seeding stops at

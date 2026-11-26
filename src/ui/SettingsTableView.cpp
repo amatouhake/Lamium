@@ -66,7 +66,6 @@
 #include "features/camera/CameraSessions.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "features/information/InfoHud.h"
-#include "features/information/HungerTrace.h"
 #include "features/information/SaturationHud.h"
 #include "features/information/InfoLines.h"
 #include "ui/HudEditor.h"

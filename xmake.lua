@@ -51,12 +51,6 @@ option("recipe_trace")
     set_description("L-116: write the recipe table the client holds to logs/recipe-table-*.txt (read-only)")
 option_end()
 
-option("slime_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Compare the L-232 slime chunk rule against the game's slime spawn rule")
-option_end()
-
 option("spawn_area_trace")
     set_default(false)
     set_showmenu(true)
@@ -67,12 +61,6 @@ option("icon_trace")
     set_default(false)
     set_showmenu(true)
     set_description("Enable bounded diagnostics for L-91/L-119 (vanilla slot icon routes vs Lamium's icon calls)")
-option_end()
-
-option("playerlist_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Enable L-131 diagnostics: what the client knows about each listed player (permission, locator, loaded)")
 option_end()
 
 option("feature_skip")
@@ -87,12 +75,6 @@ option("unverified_game")
     set_description("L-137 test build: treat the game as unverified so every version-sensitive path stays vanilla")
 option_end()
 
-option("portal_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Log the Nether portal's client effects: effect time and screens (L-148/L-149)")
-option_end()
-
 option("edge_trace")
     set_default(false)
     set_showmenu(true)
@@ -105,28 +87,10 @@ option("inventorymove_trace")
     set_description("Enable L-132 trial: feed the movement keys while the inventory screen is open, with a log")
 option_end()
 
-option("trade_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Enable L-129 diagnostics: dump the trade data the server sends when a trade screen opens")
-option_end()
-
-option("slot_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-378 read-only diagnostics: the item screens' controls, their sizes and collection cells")
-option_end()
-
 option("craft_trace")
     set_default(false)
     set_showmenu(true)
     set_description("L-359/L-165 read-only diagnostics: recipe book picks, craft requests and answers, item screens' controls")
-option_end()
-
-option("creative_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-360 diagnostics: creative list presses, cells and requests; F6-F9 take Lamium's hovered item")
 option_end()
 
 option("repeat_trade_trace")
@@ -147,46 +111,10 @@ option("server_pack_skip")
     set_description("L-167 research only, with language_trace: accept server resource packs but apply none of them locally")
 option_end()
 
-option("hunger_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Log hunger/saturation and the vanilla hunger bar position for the L-63 research")
-option_end()
-
-option("consumption_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Observe use/consumption callbacks and held-slot counts for the L-66 trigger spike")
-option_end()
-
-option("offhand_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Observe item-use and selection lifecycles for L-95")
-option_end()
-
-option("pick_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Log the game's pick hit and the ghost search for L-285")
-option_end()
-
-option("sneak_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Log the sneak state around block uses on the client and the local server for L-293")
-option_end()
-
 option("transfer_trace")
     set_default(false)
     set_showmenu(true)
     set_description("Observe Inventory Transfer input, queue and requests")
-option_end()
-
-option("book_paste_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-259: record the book and quill paste path (no behavior change)")
 option_end()
 
 option("placement_trace")
@@ -199,12 +127,6 @@ option("shape_trace")
     set_default(false)
     set_showmenu(true)
     set_description("Enable bounded local shape world-identity diagnostics")
-option_end()
-
-option("effects_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Observe bounded UI renderer routes and immersion fog selection for L-42")
 option_end()
 
 option("server_trace")
@@ -235,24 +157,6 @@ option("schematic_perf_trace")
     set_default(false)
     set_showmenu(true)
     set_description("Schematic C: log ghost frame time, section rebuilds and their reasons every 5 s")
-option_end()
-
-option("edge_guard_perf")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-250: log the collision queries and time Edge Guard spends every 5 s")
-option_end()
-
-option("schematic_quad_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-268: log the quads one ghost of each non-cube block draws, and which were dropped")
-option_end()
-
-option("doll_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-309: draw the paper doll three more times (moved, resized, through a matrix)")
 option_end()
 
 option("schematic_model_trace")
@@ -287,7 +191,6 @@ if not has_config("vs_runtime") then
 end
 
 target("Lamium")
-    if has_config("effects_trace") then add_defines("LAMIUM_EFFECTS_TRACE") end
     if has_config("server_trace") then add_defines("LAMIUM_SERVER_TRACE") end
     if has_config("automation_trace") then add_defines("LAMIUM_AUTOMATION_TRACE") end
     if has_config("restock_trace") then add_defines("LAMIUM_RESTOCK_TRACE") end
@@ -300,34 +203,19 @@ target("Lamium")
     if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
     if has_config("world_probe") then add_defines("LAMIUM_WORLD_PROBE") end
     if has_config("ghost_probe") then add_defines("LAMIUM_GHOST_PROBE") end
-    if has_config("doll_trace") then add_defines("LAMIUM_DOLL_TRACE") end
     if has_config("schematic_model_trace") then add_defines("LAMIUM_SCHEMATIC_MODEL_TRACE") end
     if has_config("schematic_perf_trace") then add_defines("LAMIUM_SCHEMATIC_PERF_TRACE") end
-    if has_config("edge_guard_perf") then add_defines("LAMIUM_EDGE_PERF") end
-    if has_config("schematic_quad_trace") then add_defines("LAMIUM_SCHEMATIC_QUAD_TRACE") end
-    if has_config("consumption_trace") then add_defines("LAMIUM_CONSUMPTION_TRACE") end
-    if has_config("offhand_trace") then add_defines("LAMIUM_OFFHAND_TRACE") end
     if has_config("transfer_trace") then add_defines("LAMIUM_TRANSFER_TRACE") end
-    if has_config("pick_trace") then add_defines("LAMIUM_PICK_TRACE") end
-    if has_config("sneak_trace") then add_defines("LAMIUM_SNEAK_TRACE") end
-    if has_config("book_paste_trace") then add_defines("LAMIUM_BOOK_PASTE_TRACE") end
-    if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
     if has_config("item_screen_probe") then add_defines("LAMIUM_ITEM_SCREEN_PROBE") end
     if has_config("recipe_trace") then add_defines("LAMIUM_RECIPE_TRACE") end
-    if has_config("slime_trace") then add_defines("LAMIUM_SLIME_TRACE") end
     if has_config("spawn_area_trace") then add_defines("LAMIUM_SPAWN_AREA_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
-    if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end
     if has_config("craft_trace") then add_defines("LAMIUM_CRAFT_TRACE") end
-    if has_config("creative_trace") then add_defines("LAMIUM_CREATIVE_TRACE") end
-    if has_config("slot_trace") then add_defines("LAMIUM_SLOT_TRACE") end
     if has_config("language_trace") then add_defines("LAMIUM_LANGUAGE_TRACE") end
     if has_config("server_pack_skip") then add_defines("LAMIUM_SERVER_PACK_SKIP") end
-    if has_config("playerlist_trace") then add_defines("LAMIUM_PLAYERLIST_TRACE") end
     if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
     if has_config("edge_trace") then add_defines("LAMIUM_EDGE_TRACE") end
-    if has_config("portal_trace") then add_defines("LAMIUM_PORTAL_TRACE") end
     if has_config("feature_skip") then add_defines("LAMIUM_FEATURE_SKIP") end
     if has_config("unverified_game") then add_defines("LAMIUM_UNVERIFIED_GAME") end
     -- L-305: remove once the SDK links what it still holds back.
