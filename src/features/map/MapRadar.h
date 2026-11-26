@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace lamium::map {
@@ -70,7 +71,10 @@ struct PlacedDot {
     bool operator==(PlacedDot const&) const = default;
 };
 // Dots inside the map (square or round, `margin` pixels in), lowest kind
-// first so players end on top. At most `limit`, nearest kept.
+// first so players end on top. At most `limit`, nearest kept. Within a kind
+// they are ordered by their pixel, the higher of two on one pixel last: by
+// their distance in the world a rider and its mount changed places from
+// frame to frame (a skeleton and a spider, remarked 2026-11-26).
 inline std::vector<PlacedDot> placeDots(std::vector<Dot> dots, RadarSwitches const& switches, ViewTransform const& view,
                                         double centerX, double centerZ, double blocks, int pixels, bool round,
                                         double margin, size_t limit = 256) {
@@ -78,19 +82,25 @@ inline std::vector<PlacedDot> placeDots(std::vector<Dot> dots, RadarSwitches con
     std::sort(dots.begin(), dots.end(), [&](Dot const& a, Dot const& b) {
         return std::hypot(a.x - centerX, a.z - centerZ) < std::hypot(b.x - centerX, b.z - centerZ);
     });
-    std::vector<PlacedDot> placed;
+    struct Kept { PlacedDot dot; double from, dy; };
+    std::vector<Kept> kept;
     for (auto const& d : dots) {
-        if (placed.size() >= limit) break;
+        if (kept.size() >= limit) break;
         auto p = worldToPixel(view, centerX, centerZ, d.x, d.z, blocks, pixels, margin);
         if (!p.inside) continue;
         if (round && std::hypot(p.x - pixels / 2.0, p.y - pixels / 2.0) > pixels / 2.0 - margin) continue;
         // Whole pixels: a mob shuffling within a pixel does not redraw the map.
         // Players never fade with height: for them faint means out of range (L-89).
         float alpha = d.kind != DotKind::Player ? dotAlpha(d.dy) : d.distant ? distantAlpha : 1.f;
-        placed.push_back({d.kind, std::round(p.x), std::round(p.y), alpha, d.kind == DotKind::Player ? d.name : "",
-                          d.face, d.distant});
+        double const px = std::round(p.x), py = std::round(p.y);
+        kept.push_back({{d.kind, px, py, alpha, d.kind == DotKind::Player ? d.name : "", d.face, d.distant},
+                        std::hypot(px - pixels / 2.0, py - pixels / 2.0), d.dy});
     }
-    std::stable_sort(placed.begin(), placed.end(), [](PlacedDot const& a, PlacedDot const& b) { return a.kind < b.kind; });
+    std::stable_sort(kept.begin(), kept.end(), [](Kept const& a, Kept const& b) {
+        return std::tuple(a.dot.kind, a.from, a.dy) < std::tuple(b.dot.kind, b.from, b.dy);
+    });
+    std::vector<PlacedDot> placed;
+    for (auto& k : kept) placed.push_back(std::move(k.dot));
     return placed;
 }
 // A filled dot with a black ring, smoothed over one pixel.
