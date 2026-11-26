@@ -92,6 +92,17 @@ void fill(MinecraftUIRenderContext& context, float x, float y, float width, floa
 void fills(MinecraftUIRenderContext& context, std::vector<ImageRect> const& rects, Rgb value, float opacity) {
     if (rects.empty() || currentOpacity <= 0) return;
     float s = currentScale, alpha = std::clamp(opacity,0.f,1.f) * currentOpacity;
+    // Each fillRectangle costs about 10 us whether flushed or not (HUD editor
+    // trace, 2026-11-26); quads on the game's white texture, tinted, are one
+    // draw for all of them.
+    auto pointer = context.getTexture(ResourceLocation(Core::PathView("textures/ui/white")), false);
+    if (std::shared_ptr<BedrockTextureData const> const& data = pointer.mClientTexture) {
+        for (auto const& r : rects)
+            if (r.w > 0 && r.h > 0)
+                context.drawImage(*data->mClientTexture, glm::vec2{r.x, r.y} * s, glm::vec2{r.w, r.h} * s, glm::vec2{0, 0}, glm::vec2{1, 1}, false);
+        context.flushImages(color(value), alpha, HashedString{"ui_textured_and_glcolor"});
+        return;
+    }
     for (auto const& r : rects)
         if (r.w > 0 && r.h > 0)
             context.fillRectangle(RectangleArea{r.x*s,(r.x+r.w)*s,r.y*s,(r.y+r.h)*s}, color(value), alpha);
