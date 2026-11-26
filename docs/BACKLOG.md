@@ -228,8 +228,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); the calculation feeds the plan (L-359); the schematic's raw list is gone (L-383)
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
-- [L-399](backlog/L-399.md) Screens: one view shape, a tested mode order, logic out of the screen files (Refactor): Steps 1-4 done apart from clicks and the two long draws; both choices made 2026-11-26 (wheel under a prompt, screens moved), not checked in game
-- [L-400](backlog/L-400.md) The UI token check sees packed colors (Refactor): Every choice made (maintainer 2026-11-26) and built; the world map's framed rows not checked in game
+- [L-399](backlog/L-399.md) Screens: one view shape, a tested mode order, logic out of the screen files (Refactor): Steps 1-4 done apart from clicks and the two long draws; the wheel under a prompt and the moved screens seen in game 2026-11-26 (`52babf18`)
 - [L-402](backlog/L-402.md) Check that every feature handles leaving the world, a dimension change and focus loss (Refactor): The table and its check are built (2026-11-26); three findings left for the maintainer
 - [L-406](backlog/L-406.md) Edge Guard reads the client's player while guarding the local server's copy (Research): Open; read in the code only, never seen to go wrong
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)

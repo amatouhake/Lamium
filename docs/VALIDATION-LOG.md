@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Framed map rows, the wheel under a prompt, moved screens; input on the client thread (L-400, L-399, L-353, 2026-11-26)
+
+`52babf18` with `thread_trace` (DLL
+`a7a26826fe1abfb0c1d6123f236ac43c0239ea5ea7fdd3d2b493837690065382`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the world map's list frames the selected row like the settings
+  screen's lists, no accent bar (L-400).
+- Seen: turning the wheel while typing a waypoint or area-save name moves
+  nothing behind the prompt, also after it closes (L-399).
+- Seen as before: the Waypoints, Schematics and enchantment screens after
+  their move, and the Check preview's light blue, red and yellow (L-399,
+  L-400).
+- Seen in the log (L-353): UI render, mouse and key events, the client
+  tick, focus loss, world exit and `Runtime::disable` at quit all ran on
+  one thread; the game quit without a crash. Each place logged its first
+  three calls only.
+
 ## Settings read from the published snapshot; the recipe thread joined (L-407, 2026-11-26)
 
 `89b8aabf` (DLL

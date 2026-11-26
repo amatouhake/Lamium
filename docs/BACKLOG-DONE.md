@@ -338,6 +338,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Refactor
 
+- [L-400](backlog/done/L-400.md) The UI token check sees packed colors
 - [L-403](backlog/done/L-403.md) Diagnostic build options: remove with their item, or keep them compiling
 - [L-404](backlog/done/L-404.md) Keep the includes between source areas from growing
 - [L-405](backlog/done/L-405.md) Client pointers kept across frames: change the rule or the code
