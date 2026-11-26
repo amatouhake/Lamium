@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item list cells at the screen's edge; rabbit and mooshroom faces (2026-11-26)
+
+`4935f074` (DLL
+`d273c7f08a8176ffd3a8665165f30c3f6220e76ed5b052c379f2c4759c446d2f`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: the item list's last column touches the screen's right edge and the
+  width without cells is beside the game's window; a press opens the
+  pressed cell's item; the radar's rabbit has a rabbit's face with ears,
+  the mooshroom is as before; nothing else changed.
+- Remarked: the item list is as specified, but the width without cells
+  reads wrong beside the window too (L-409 stays open). Radar faces the
+  maintainer finds hard to read are listed in L-411.
+
 ## Radar faces from the model's rest pose (2026-11-26)
 
 `2eeca87b` with `radar_icon_probe` (DLL
