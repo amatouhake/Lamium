@@ -1760,12 +1760,14 @@ void start() {
             int const rows = event.buttonData() > 0 ? -3 : 3, notch = event.buttonData() > 0 ? 1 : -1;
             auto const* tool = toolView();
             switch (screen_mode::wheel({.rowPage = row_pages::any(), .calculator = calculatorOpen, .schematicMenu = schematicMenu.has_value(),
-                                        .worldMap = worldMapOpen, .prompt = prompt.has_value(), .hudEditor = hudEditorView(),
+                                        .worldMap = worldMapOpen, .prompt = prompt.has_value(), .savePrompt = savePrompt.has_value(),
+                                        .hudEditor = hudEditorView(),
                                         .tool = tool != nullptr})) {
             case screen_mode::Wheel::RowPage: pendingWheels.push_back({x, y, rows}); break;
             case screen_mode::Wheel::Calculator: calculator_view::wheel(notch); break;
             case screen_mode::Wheel::SchematicMenu: pendingWheels.push_back({x, y, notch}); break;
             case screen_mode::Wheel::WorldMap: if (scaled) pendingWheels.push_back({x, y, notch}); break;
+            case screen_mode::Wheel::Prompt: break;
             case screen_mode::Wheel::HudEditor: hud_editor::wheel(rows, lastPointer.x, lastPointer.y); break;
             case screen_mode::Wheel::Tool: tool->wheel(rows, lastPointer, heldShift()); break;
             case screen_mode::Wheel::Table: table_view::wheel(rows, lastPointer.x, lastPointer.y); break;
@@ -1888,7 +1890,7 @@ void start() {
         }
         // Keep search reachable from anywhere in the table. Capture handles
         // keys above this point, so Ctrl+F remains bindable.
-        if (!worldMapOpen && !toolView() && event.keyCode() == 0x46 && heldCtrl()) {
+        if (!worldMapOpen && !schematicMenu && !toolView() && event.keyCode() == 0x46 && heldCtrl()) {
             event.cancel();
             pendingSearch = true;
             return;
