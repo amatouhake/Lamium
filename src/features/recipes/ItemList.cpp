@@ -108,7 +108,7 @@ struct VisibleFor {
 std::string viewScreen; // the screen the recipe view was opened on; it closes with it
 std::string lastScreen; // the item screen drawn last
 // What the last frame showed, for the input listeners, and what they kept from the game for the next frame.
-// The listeners run off the client thread: they only decide whether the game gets the event, and queue it.
+// The listeners run between client ticks (L-353): they only decide whether the game gets the event, and queue it.
 std::mutex shownLock;
 struct Shown {
     std::chrono::steady_clock::time_point at{};

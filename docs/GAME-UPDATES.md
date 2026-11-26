@@ -192,8 +192,6 @@ L-403): when an L-item closes, its build option, its Trace or Probe files,
 its `#if` guards and its inventory entries below are deleted in the same
 commit; git keeps them, and a later item that needs one restores it from
 there. `unverified_game` and `feature_skip` are standing tools, not traces.
-`thread_trace` (L-353) has no hook either: it logs the thread of existing
-listeners and hooks (`app/ThreadTrace.h`).
 `spawn_area_trace` (issue #32, built on 26.60 2026-11-13) has no hook and so
 no inventory entry: it reads `LevelChunk::mSpawningAreas` and the storages of
 `LevelChunkVolumeData::mDataRegistry` for the chunks around the player, on the

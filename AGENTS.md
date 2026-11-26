@@ -83,8 +83,11 @@ tests          Pure unit tests (no game types). tests-native: SDK-type tests
 1. **Pure logic in headers, game glue in .cpp.** Layout, geometry, planning
    and state machines live in `*.h` without Minecraft types, tested in
    `tests/`. First ask "which part can be a pure function with a test?".
-2. **No game pointers kept across frames.** Key and mouse events arrive
-   outside the client tick: never touch game state there; queue the action
+2. **No game pointers kept across frames**, except the client instance,
+   which outlives a world: a feature may keep it while it runs and clears it
+   when it stops. Key and mouse events, focus loss and disable run on the
+   client thread but between ticks (seen 2026-11-26, L-353): reading there
+   is safe; never change game state there, queue the action
    (`input/CustomInput.cpp`).
 3. **Every feature restores vanilla behavior** when disabled, on world exit
    and dimension change; one that holds input or changes game state also on

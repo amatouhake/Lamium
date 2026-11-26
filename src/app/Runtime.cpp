@@ -1,6 +1,5 @@
 #include "app/Runtime.h"
 #include "app/Versions.h"
-#include "app/ThreadTrace.h"
 #include "features/information/ChatPosition.h"
 #include "features/information/ScoreboardPosition.h"
 #include "features/information/BossBarPosition.h"
@@ -273,7 +272,6 @@ bool Runtime::enable() {
     return true;
 }
 bool Runtime::disable() {
-    LAMIUM_NOTE_THREAD("Runtime::disable");
     running = false;
     for (auto feature = std::rbegin(features); feature != std::rend(features); ++feature) feature->stop();
     // Started in load(); Fake offhand above still releases through periodic input.

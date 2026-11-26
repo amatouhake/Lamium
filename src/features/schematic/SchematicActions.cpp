@@ -881,6 +881,7 @@ void stopAdjust() {
         wheelListener.reset();
     }
     adjustHeld = false;
+    adjustClient = nullptr;
     pendingWheel = 0;
     remembered.reset();
     moveTarget = MoveTarget::Placement;

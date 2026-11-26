@@ -311,6 +311,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Research
 
+- [L-353](backlog/done/L-353.md) Input events and the client thread: what is still touched outside the tick
 - [L-323](backlog/done/L-323.md) Game HUD placement: boss bars
 - [L-301](backlog/done/L-301.md) Show block entity values the client never refreshes
 - [L-196](backlog/done/L-196.md) Review license notices, source access and provenance classification
