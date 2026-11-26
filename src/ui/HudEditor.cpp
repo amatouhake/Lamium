@@ -425,6 +425,15 @@ struct DragTrace {
     float lastX = -1, lastY = -1;
     // Inside render: the settings copy, the two drawHud passes, drawHud's parts.
     double prefs = 0, pass1 = 0, pass2 = 0;
+    // renderFrame by stretch: setup, shade/anchors/hotbar, pass 1 + flush,
+    // pass 2 + flush, tags, handles, flush/toolbar/panel.
+    std::array<double, 7> stretch{};
+    Clock::time_point markAt{};
+    void mark(int i) {
+        auto now = Clock::now();
+        stretch[static_cast<size_t>(i)] += std::chrono::duration<double, std::milli>(now - markAt).count();
+        markAt = now;
+    }
     std::array<double, information::hudTraceSections> sections{};
     void reset() { *this = DragTrace{}; }
     void frame(bool dragging, float px, float py, float w, float h, double renderMs) {
@@ -465,6 +474,11 @@ struct DragTrace {
             "target {:.2f} durability/effects {:.2f} inventory {:.2f} schematic {:.2f} zoom/toast {:.2f} info/list {:.2f}",
             prefs / calls, pass1 / calls, pass2 / calls, sections[0] / calls, sections[1] / calls, sections[2] / calls, sections[3] / calls,
             sections[4] / calls, sections[5] / calls, sections[6] / calls, sections[7] / calls, sections[8] / calls));
+        Runtime::instance().self().getLogger().info(std::format(
+            "HUD editor drag, avg ms by stretch: setup {:.2f}, shade/anchors/hotbar {:.2f}, pass 1+flush {:.2f}, pass 2+flush {:.2f}, "
+            "tags {:.2f}, handles {:.2f}, flush/toolbar {:.2f}",
+            stretch[0] / calls, stretch[1] / calls, stretch[2] / calls, stretch[3] / calls, stretch[4] / calls, stretch[5] / calls,
+            stretch[6] / calls));
     }
 };
 DragTrace dragTrace;
@@ -474,8 +488,12 @@ struct TraceTimer {
     ~TraceTimer() { into += std::chrono::duration<double, std::milli>(DragTrace::Clock::now() - start).count(); }
 };
 #define HUD_EDITOR_TIME(field) TraceTimer traceTimer##field{dragTrace.field}
+#define HUD_EDITOR_MARK_START() (dragTrace.markAt = DragTrace::Clock::now())
+#define HUD_EDITOR_MARK(i) dragTrace.mark(i)
 #else
 #define HUD_EDITOR_TIME(field)
+#define HUD_EDITOR_MARK_START()
+#define HUD_EDITOR_MARK(i)
 #endif
 void renderFrame(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY);
 void render(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
@@ -489,6 +507,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
 #endif
 }
 void renderFrame(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
+    HUD_EDITOR_MARK_START();
     screenW = width;
     screenH = height;
     controls.clear();
@@ -516,6 +535,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
             element = placeAt(element, next.box.x, next.box.y, next.box.w, next.box.h, width, height);
         }
     }
+    HUD_EDITOR_MARK(0);
     fill(context, 0, 0, width, height, palette::shade, .25f);
     std::optional<HudElementId> focus = drag ? std::optional(drag->id) : resize ? std::optional(resize->id) : selected;
     // Elements that appear only by situation are drawn faint (half) with a
@@ -569,9 +589,11 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
                     behind = *box;
         preview.hidden[static_cast<size_t>(*focus)] = true;
     }
+    HUD_EDITOR_MARK(1);
     auto boxes = [&] { HUD_EDITOR_TIME(pass1); return information::drawHud(context, width, height, value.information, &preview); }();
     // The elements' text first: what follows goes over it.
     context.flushText(0, std::nullopt);
+    HUD_EDITOR_MARK(2);
     if (focus) {
         // Only where it lies on another element: a darker ground sets it apart.
         if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, palette::shade, .45f);
@@ -581,6 +603,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
         boxes[static_cast<size_t>(*focus)] = front[static_cast<size_t>(*focus)];
         context.flushText(0, std::nullopt);
     }
+    HUD_EDITOR_MARK(3);
     lastBoxes = boxes;
     if (drag && drag->drop) {
         if (drag->drop->lineX) fill(context, *drag->drop->lineX - .5f, 0, 1, height, palette::warning, .8f);
@@ -691,6 +714,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
         toggleSwitch(context, box.x + 2, box.y + (box.h - switchHeight) / 2, shown);
         controls.push_back({box, Command::Shown, static_cast<int>(*focus)});
     }
+    HUD_EDITOR_MARK(4);
     // Scale handles on the corners away from the anchor; the chat is placed only.
     handles.clear();
     if (selected && active && !(drag && drag->moved))
@@ -701,6 +725,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
                 frame(context, handle.box.x, handle.box.y, handle.box.w, handle.box.h, palette::panel);
             }
         }
+    HUD_EDITOR_MARK(5);
     context.flushText(0, std::nullopt);
     if (selected && !resize && !(drag && drag->moved)) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) {
@@ -717,6 +742,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
         }
     } else if (!selected && !drag) drawIdlePanel(context, pointerX, pointerY);
     context.flushText(0, std::nullopt);
+    HUD_EDITOR_MARK(6);
 }
 Result press(float x, float y) {
     // Controls drawn last sit on top, so test them in reverse.
