@@ -192,7 +192,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-411](backlog/L-411.md) Radar faces that are hard to read (Design): Both rounds' faces checked in game (`af3e9f53`); the sulfur cube's averaging built, not checked
+- [L-411](backlog/L-411.md) Radar faces that are hard to read (Design): Both rounds' faces checked in game (through `86e3a892`); aligning every kind's grid is open
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
 - [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Built, not checked in game (tips cut to what rows lack, 2026-11-22)
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started

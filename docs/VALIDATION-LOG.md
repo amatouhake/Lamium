@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A rider's radar face over its mount's; the sulfur cube averaged (2026-11-27)
+
+`86e3a892` (DLL
+`a9c3d56ad1ea9a4a5e105eeab32791408f0adce767e39e9750277e279b0431c4`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: a skeleton riding a spider keeps its face on top on the minimap
+  and the world map, without changing places; the sulfur cube's face
+  halved by averaging, 9 a side; nothing else changed.
+
 ## The second round's radar faces; the mount's face over its rider's (2026-11-27)
 
 `af3e9f53` (DLL
