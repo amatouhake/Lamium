@@ -88,7 +88,9 @@ tests          Pure unit tests (no game types). tests-native: SDK-type tests
 3. **Every feature restores vanilla behavior** when disabled, on world exit
    and dimension change; one that holds input or changes game state also on
    focus loss, so nothing stays stuck. Draw-only changes (HUD placement and
-   hiding) are decided per draw and kept while the window is unfocused.
+   hiding) are decided per draw and kept while the window is unfocused. A
+   lock the player switched on (Permanent Sneak and Sprint) stays on through
+   focus loss.
 4. **Settings**: field in `Settings.h`, entry in `Options.h`, load/save in
    `SettingsStore.cpp` (tolerate missing keys), row in `SettingsRows.h`,
    strings in all four languages. The tests catch most omissions.
