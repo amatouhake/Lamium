@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.9.0 release smoke (2026-11-27)
+
+The commit's CI package of `c8db65b2` (run 45874915732, DLL
+`38878744c074c2a659b6372a33bd94a850cbf216727d412596116aa3838e41ef`,
+manifest 0.9.0), DLL, PDB and manifest copied into the 1.26.60.05 Dev
+instance (LeviLamina 26.60.5), the maintainer:
+- Seen: the game starts, LeviLamina enables "Lamium v0.9.0", a world
+  opens and `L` opens the settings.
+- Seen: the radar draws mobs as faces.
+- Seen: a Target Info row key switches its row with one press; HUD layout
+  scales an element past 200 %.
+- Seen: in creative, middle click takes one from the recipe item list and
+  Shift + middle click a stack.
+- The log has no error; one warning, a 12 ms Recipes frame when the item
+  names were first built (read by the agent).
+Not seen: the tag's own build (a fresh build of the same commit), servers.
+
 ## Pre-release checks: creative take, line breaks, transfer at stations, rockets (2026-11-27)
 
 `6632e781` (DLL
