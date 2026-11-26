@@ -694,7 +694,7 @@ void routeInput(Frame& f) {
         std::scoped_lock lock(shownLock);
         // What was queued before a pause belongs to a screen that is gone.
         if (fresh()) input = std::move(queued);
-        else countEdit::cancel();
+        else countEdit::cancel(), takeAsked.reset();
         queued = {};
     }
     // The table is read while the list shows, a part a frame, so the first recipe opens at once.
