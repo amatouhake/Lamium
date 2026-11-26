@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.8.0 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.9.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -121,7 +121,8 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Saturation | Saturation as gold outlines on the hunger bar | — | On |
 | Status effects HUD | Effects with levels and remaining time | — | Off |
 
-The HUD layout view moves and styles Lamium's HUD elements.
+The HUD layout view moves and styles Lamium's HUD elements, scaled 25-400 %;
+holding Alt while dragging lets an element go past the screen edge.
 
 ### World
 
@@ -167,7 +168,7 @@ Waypoints also show in the world, with both maps off.
 | Repeated trades | Shift + right click repeats a trade | — | On |
 | Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
 | Paste across book pages | A long paste into a book continues on new pages | — | On |
-| Recipes *Exp.* | List and search every item beside item screens, show recipes and uses, keep favorites; arrange the panels in an editor | `R` recipes, `U` uses, `A` favorite, `Backspace` back | Off |
+| Recipes *Exp.* | List and search every item beside item screens, show recipes and uses, keep favorites, take items out in creative; arrange the panels in an editor | `R` recipes, `U` uses, `A` favorite, `Backspace` back, middle click take | Off |
 | Plan *Exp.* | A list of wanted items with what to gather and what to make for them | `W` wanted | Off |
 | Stores *Exp.* | Count marked containers and the ender chest as held, for the plan and the schematic | — | Off |
 | Mass Craft *Exp.* | While a key is held over an item on a crafting screen: craft its recipe again and again and throw the products out | unbound | Off |
@@ -289,9 +290,10 @@ requests are handled. What has been checked in game, per feature, is in
   address and port; when a server is reached under another address, Saved
   data gives it its earlier data. A friend's world over a rejoin and Realms
   are untested.
-- A few mob faces are not right yet (silverfish and tadpoles stay dots;
-  camel and hoglin faces may look off), and skins with custom head models
-  are untested.
+- Radar mob faces are drawn from the game's own models; armor stands stay
+  dots. Other resource packs' models and skins with custom head models are
+  untested. A saved setting from before keeps dots; switch "Players and
+  mobs as faces" on under Radar to see them.
 
 **Schematics**
 
@@ -313,8 +315,9 @@ requests are handled. What has been checked in game, per feature, is in
 - **All trader levels:** the locked trades are checked only in local worlds.
 - **Inventory transfer:** bulk and leave-one moves are checked in chest,
   furnace, brewing stand and beacon screens, locally and on a test BDS.
-  Other screen families, other servers and rejected moves on laggy servers
-  are untested. The held-stack Shift + click and drop gestures are checked in
+  The stonecutter, the furnace and the crafting table's sides are checked in a
+  local world. Other screen families, other servers and rejected moves on
+  laggy servers are untested. The held-stack Shift + click and drop gestures are checked in
   a chest screen in a local world only.
 - **Enchantment order:** checked in a local Creative world with swords, a pickaxe, a mace and
   books. Survival (the 40-level refusal and the level warning), servers and other GUI scales are
@@ -326,8 +329,9 @@ requests are handled. What has been checked in game, per feature, is in
 - **Recipes, Plan, Stores and Mass Craft:** checked in local worlds and on a
   local dedicated server; servers with real latency are untested, and a
   server that refuses a craft may make "Make" count rounds that were not
-  made. Items that differ only in their data (enchanted books, a filled
-  map) are one item in the lists. The search field takes no pasted text.
+  made. Enchanted books, rockets and the ominous banner are listed one by
+  one; other items that differ only in their data (a filled map) are one
+  item in the lists. The search field takes no pasted text.
 
 **Player**
 

@@ -100,8 +100,8 @@ pane. The flat-notch corner texel is kept whenever Connected Textures is on.
 
 ### HUD layout and toggle toasts
 
-A live HUD layout editor places and scales Lamium's HUD elements (50-200 %),
-switches them on or off from a check on their name tag (a switched-off element
+A live HUD layout editor places and scales Lamium's HUD elements (25-400 %; Alt held while
+dragging lets an element go past the screen edge), switches them on or off from a check on their name tag (a switched-off element
 is drawn faint and hatched) and shows where the game's hotbar is. Toggle toasts give a short notice when a key turns a
 feature on or off.
 
@@ -232,8 +232,8 @@ them from both maps; the world drawing is unchanged.
 
 #### Radar
 
-Nearby players, mobs and dropped items as dots on the minimap, or optionally
-as mob faces and player skin heads. "Shown on" also puts them on the world
+Nearby players, mobs and dropped items on the minimap: mobs as faces drawn
+from the game's own models and players as their skins' heads, or as dots. "Shown on" also puts them on the world
 map, where mobs and items appear once zoomed in far enough.
 
 #### Slime chunks
@@ -476,7 +476,8 @@ Lists every item beside the inventory and other item screens (not the
 anvil). Click an item for its recipes, right click for what it is used in;
 `R` and `U` do the same for the item under the pointer, also in the game's
 own slots. A search field at the bottom narrows the list, as does "Can be
-made". `A` keeps an item as a favorite, on the left. The panels' layout is
+made". `A` keeps an item as a favorite, on the left. In creative the middle
+button takes one of the item under the pointer, Shift + it a stack. The panels' layout is
 arranged in an editor over the inventory ("Panel layout" in the
 settings). Off by default;
 details and what is still to come in [RECIPES.md](RECIPES.md).

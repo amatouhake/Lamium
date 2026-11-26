@@ -9,7 +9,7 @@ Do not infer game success from a build or unit-test result.
 
 ## For the next release
 
-Not decided yet (BACKLOG "Current execution order" 7).
+0.9.0: main as of the version bump (maintainer 2026-11-27).
 
 Only what the release needs and can be brought about locally is checked in
 game before a release (maintainer 2026-11-27); servers, Realms, a second
@@ -17,7 +17,10 @@ account and unverified game builds stay follow-up coverage below. The cases
 left open since 0.8.0 that qualified (the creative take's three cases, line
 breaks in Russian and both Chinese, Item Transfer at the stonecutter and
 furnace, a rocket crafted in the inventory) passed on `6632e781`
-(VALIDATION-LOG 2026-11-27). Left: the release build's smoke.
+(VALIDATION-LOG 2026-11-27). Left: the smoke of the version bump commit's
+CI package: it loads as 0.9.0, the settings open, and a look at the changed
+features (radar faces, Target Info's row keys, the creative take, HUD scale
+past 200 %).
 
 Left from 0.8.0 (published 2026-11-23): the published ZIP itself, and the
 LIP registry, Bedrinth and LeviLauncher offering 0.8.0 (DISTRIBUTION.md).
