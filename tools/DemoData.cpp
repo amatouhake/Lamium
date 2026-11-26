@@ -52,6 +52,7 @@ json palette() {
     json lamium = {TOKEN(panel), TOKEN(white), TOKEN(text), TOKEN(dim), TOKEN(faint), TOKEN(accent), TOKEN(accentDeep), TOKEN(off),
         TOKEN(keyFill), TOKEN(keyEdge), TOKEN(experimental), TOKEN(warning), TOKEN(danger), TOKEN(dangerEdge), TOKEN(dangerText),
         TOKEN(info), TOKEN(knobOn), TOKEN(knobOff), TOKEN(shade), TOKEN(mismatch), TOKEN(wrongState), TOKEN(notPlaced),
+        TOKEN(previewMismatch), TOKEN(previewWrongState), TOKEN(previewNotPlaced), TOKEN(previewDim),
         TOKEN(cornerOne), TOKEN(cornerTwo), TOKEN(controlEdge), TOKEN(gripOn), TOKEN(gripOff), TOKEN(syntaxOperator),
         TOKEN(syntaxUnit), TOKEN(syntaxVariable), TOKEN(syntaxFunction), TOKEN(shapeCyan), TOKEN(shapePink), TOKEN(shapeYellow),
         TOKEN(shapeWhite), TOKEN(mapGround)};
