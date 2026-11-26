@@ -245,6 +245,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-330](backlog/done/L-330.md) Radar: mob icons that draw wrongly, then icons by default
 - [L-398](backlog/done/L-398.md) The recipe key hints as a tooltip of their own
 - [L-360](backlog/done/L-360.md) Take items out of the item list in creative
 - [L-371](backlog/done/L-371.md) Recipe screens: groundwork before the next features

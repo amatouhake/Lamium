@@ -115,7 +115,7 @@ Experimental badge, as it stands (the `experimental` flag in
 
 - Carry it: Inventory transfer (L-299; off for new installs, a saved on
   stays on), Death layout restore (L-240, L-338), Enchantment order, the
-  Map features (minimap, map marks, Radar for L-330, Waypoints, world map),
+  Map features (minimap, map marks, Radar, Waypoints, world map),
   Schematics (open bugs), and Recipes, Plan, Stores and Mass Craft (first
   released in 0.8.0, off by default).
 - Settled without it: everything else. Remaining limits stay in the
@@ -136,7 +136,7 @@ from the file); never restate them here.
    pose is low priority. What waits for more game symbols is collected in
    L-315.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10), in this order: L-330 radar icons, L-166 trade helpers, L-167
+   2026-10-10), in this order: L-166 trade helpers, L-167
    resource packs, L-168 trade finder, L-169 transfer extensions, L-173
    quick shapes, L-163 a Lamium inventory screen, L-249 simulation distance
    and L-265 placement assist.
@@ -199,7 +199,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
 - [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Design): Key names and the game's drop key seen in game 2026-11-23; the targets and Esc order open
-- [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Design): Faces rebuilt from the turned model and seen in game (2026-11-26, `1caa29ca`); horse colors, large mobs and the default wait for the maintainer
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target

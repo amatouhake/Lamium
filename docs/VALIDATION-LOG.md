@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Horses at 30°, the whole frog, even half-unit edges (L-330, 2026-11-26)
+
+`ec0af34c` with `radar_icon_probe` (DLL
+`d60e6d0253c3ffd2f959249cca1721229ca0a2faa8fbeb39d670ff7c48f8e5e4`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: horses, donkeys and mules from an angle with an eye, the muzzle
+  and both ears; the frog whole from the front, its feet alike on both
+  sides; the turtle in profile with its pupil; nothing else changed.
+
 ## Radar faces by default; elder guardians, shulker colors, sheared golems (L-330, 2026-11-26)
 
 `ab28fd79` with `radar_icon_probe` (DLL
