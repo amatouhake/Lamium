@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD scale 25-400 % and Alt past the edge (L-384, 2026-11-26)
+
+`1026a641` (DLL
+`edb78147e4e3e725dbed409bbef788077a0de55a3f5d3c56edb0c431c06fa80f`),
+1.26.60.05 Dev, the maintainer, from the checklist page:
+- Seen: scale down to 25 % and up to 400 %; 25 % is barely legible but fine
+  as the floor; Lamium's own elements at any scale, also larger than the
+  screen. Alt with a drag or the arrows goes past the edge without snapping
+  and keeps 8 units on screen; without Alt as before. Paper doll, chat and
+  scoreboard moved past the edge stay there in play. The idle panel's Alt
+  hint; nothing else changed.
+- Failed: the paper doll below 50 % or above 200 %, and the chat at 250 % or
+  more (wider than the screen), looked right in the editor but were drawn at
+  the game's place in play; the chat vanished from the editor.
+- Remark: letting go of Alt before the mouse button pulled the element
+  back inside at once.
+
 ## Horses at 30°, the whole frog, even half-unit edges (L-330, 2026-11-26)
 
 `ec0af34c` with `radar_icon_probe` (DLL
