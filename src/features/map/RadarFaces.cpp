@@ -10,7 +10,9 @@
 #include "mc/deps/core/image/Image.h"
 #include "mc/client/model/geom/Cube.h"
 #include "mc/client/model/geom/ModelPart.h"
+#include "mc/client/model/models/DataDrivenGeometry.h"
 #include "mc/client/model/models/Model.h"
+#include "mc/world/actor/animation/BoneOrientation.h"
 #include "mc/deps/core/math/Vec3.h"
 #include "mc/client/renderer/TextureGroup.h"
 #include "mc/client/renderer/actor/ActorRenderDispatcher.h"
@@ -34,6 +36,8 @@
 #include <cmath>
 #include <format>
 #include <fstream>
+#include <functional>
+#include <numbers>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -81,18 +85,60 @@ Vec3d pivotOf(ModelPart const& part, int depth = 0) {
     Vec3d const parent = pivotOf(*part.mParent, depth + 1);
     return {parent.x + pos.x, parent.y - pos.y, parent.z + pos.z};
 }
-std::vector<Turn> partTurns(ModelPart const& part) {
+// A part's bone in the geometry that holds it: its rest turn and pivot. The parts' own mRot and mPos are not
+// the model's: the game writes the pose of the mob it drew last into the shared model (as
+// schematic/EntityModels.cpp found), and a face built from them was that mob's, a guardian looking down
+// (elder guardians, seen 2026-11-26).
+BoneOrientation const* restBone(Model const& model, ModelPart const& part) {
+    std::less<ModelPart const*> const before;
+    for (auto const& geometry : *model.mGeometries) {
+        if (!geometry) continue;
+        auto const& parts = *geometry->mModelParts;
+        if (parts.empty() || before(&part, parts.data()) || !before(&part, parts.data() + parts.size())) continue;
+        auto const& bones = *geometry->mDefaultBoneOrientations;
+        int const index = part.mBoneOrientationIndex;
+        return index >= 0 && index < static_cast<int>(bones.size()) ? &bones[static_cast<size_t>(index)] : nullptr;
+    }
+    return nullptr;
+}
+#ifdef LAMIUM_RADAR_ICON_PROBE
+// Research builds: where a part's live turn or pivot is not its rest one when a face is built.
+void probePose(ModelPart const& part, Turn const& live, Turn const& rest) {
+    static int lines = 0;
+    auto far = [](Vec3d a, Vec3d b) { return std::abs(a.x - b.x) + std::abs(a.y - b.y) + std::abs(a.z - b.z) > .01; };
+    bool const turned = far(live.angles, rest.angles), moved = far(live.pivot, rest.pivot);
+    if ((!turned && !moved) || ++lines > 200) return;
+    try {
+        Runtime::instance().self().getLogger().info(
+            "Radar faces: {} live rot ({:.3f},{:.3f},{:.3f}) rest ({:.3f},{:.3f},{:.3f}); live pivot ({:.2f},{:.2f},{:.2f}) rest ({:.2f},{:.2f},{:.2f})",
+            part.mName->getString(), live.angles.x, live.angles.y, live.angles.z, rest.angles.x, rest.angles.y, rest.angles.z,
+            live.pivot.x, live.pivot.y, live.pivot.z, rest.pivot.x, rest.pivot.y, rest.pivot.z);
+    } catch (...) {}
+}
+#endif
+std::vector<Turn> partTurns(Model const& model, ModelPart const& part) {
     std::vector<Turn> turns;
     int depth = 0;
     for (ModelPart const* at = &part; at && depth < 16; at = at->mParent, ++depth) {
         auto const& rot = *at->mRot;
-        if (rot.x != 0 || rot.y != 0 || rot.z != 0) turns.push_back({pivotOf(*at), {rot.x, rot.y, rot.z}});
+        Turn turn{pivotOf(*at), {rot.x, rot.y, rot.z}};
+        if (auto const* bone = restBone(model, *at)) {
+            // Degrees in the file's signs, which the parts keep in radians (L-330).
+            Vec3 const rest = reinterpret_cast<Vec3 const*>(&bone->mDefaultTransform->mData)[1];
+            constexpr double radians = std::numbers::pi / 180;
+            Turn const still{{bone->mPivot->x, bone->mPivot->y, bone->mPivot->z}, {rest.x * radians, rest.y * radians, rest.z * radians}};
+#ifdef LAMIUM_RADAR_ICON_PROBE
+            probePose(*at, turn, still);
+#endif
+            turn = still;
+        } else log(std::format("no rest pose for the part {}; its pose as last drawn is used", at->mName->getString()));
+        if (turn.angles.x != 0 || turn.angles.y != 0 || turn.angles.z != 0) turns.push_back(turn);
     }
     return turns;
 }
-void addPart(ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelBox>& out, int depth) {
+void addPart(Model const& model, ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelBox>& out, int depth) {
     if (depth > 4 || !drawnPart(recipe, part.mName->getString())) return;
-    std::vector<Turn> const turns = partTurns(part);
+    std::vector<Turn> const turns = partTurns(model, part);
     for (auto const& cube : *part.mCubes) {
         auto const origin = *cube.mOrigin, size = *cube.mSize;
         ModelBox box{{origin.x, origin.y, origin.z}, {origin.x + size.x, origin.y + size.y, origin.z + size.z}, cube.mMirrored, {}, {},
@@ -108,7 +154,7 @@ void addPart(ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelB
     }
     if (recipe.children)
         for (auto const* child : *part.mChildren)
-            if (child) addPart(*child, recipe, out, depth + 1);
+            if (child) addPart(model, *child, recipe, out, depth + 1);
 }
 double partVolume(ModelPart const& part, int depth = 0) {
     double volume = 0;
@@ -135,7 +181,7 @@ std::optional<ModelBoxes> modelBoxes(Model const& model, FaceRecipe const& recip
             if (part && part->mName->getString() == name && partVolume(*part) >= largest * .75) { best = part; break; }
         if (!best) continue;
         if (out.textureWidth <= 0) out.textureWidth = best->mTexSize->x;
-        addPart(*best, recipe, out.boxes, 0);
+        addPart(model, *best, recipe, out.boxes, 0);
     }
     if (out.boxes.empty()) return std::nullopt;
     return out;
