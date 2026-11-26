@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Settings read from the published snapshot; the recipe thread joined (L-407, 2026-11-26)
+
+`89b8aabf` (DLL
+`74b73ad2683a9773164427f220e76a3d9c433f8410a3799700e3300d7d5cb98e`),
+1.26.60.05 Dev, the maintainer, from the checklist page. Refactors meant to
+change nothing:
+- Seen: the HUD as before, following a HUD setting changed in the settings
+  screen at once; the world map's map, panel and list, and the panel's
+  open and close.
+- Seen: the item list (recipes) in the inventory; leaving and entering a
+  world after it did not hang, and the game exited without a crash.
+- Seen as before: Lamium's keys, Item Transfer in a chest, Hand restock,
+  shulker previews. The maintainer found the shulker and bundle previews'
+  frame darker than they remembered: not this build's change; the frame
+  took the game tooltip's line color on 2026-11-21 (`f1b5823c`, L-369).
+- Not seen: a disable while the recipe table is being built.
+
 ## The schematic preview's slice along the height only (L-114, 2026-11-25)
 
 `f34bfdd6` (DLL
