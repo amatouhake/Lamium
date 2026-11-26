@@ -13,6 +13,8 @@
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/input/ClientMoveInputHandler.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/deps/vanilla_components/ActorDataFlagComponent.h"
+#include "mc/world/actor/ActorFlags.h"
 #include "mc/entity/components/MoveInputComponent.h"
 #include "mc/entity/components/RawMoveInputComponent.h"
 #include "mc/input/MoveInputState.h"
@@ -86,6 +88,42 @@ bool holds(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face
         return held;
     } catch (...) { return false; }
 }
+// Send only (L-410): the server decides the use with the sneak state it was sent, the client's own use call
+// with the local player's flag, which that method leaves alone. A block the client toggles itself (a door)
+// then opened here and stayed shut there. For the length of that one call the flag reads as the state sent;
+// nothing else of sneaking (pose, speed, input) is touched. Left alone unless the bit is the one the game
+// reads back.
+class AsSent {
+    ActorDataFlagComponent* flags = nullptr;
+    bool was = false;
+    static constexpr size_t bit = static_cast<size_t>(ActorFlags::Sneaking);
+
+public:
+    explicit AsSent(Player& actor) noexcept {
+        try {
+            auto* player = localPlayer();
+            if (!player || static_cast<Player*>(player) != &actor || !edited || !packetMode() || !on()) return;
+            auto found = actor.getEntityContext().tryGetComponent<ActorDataFlagComponent>();
+            if (!found) return;
+            bool const local = found->mValue.test(bit);
+            if (local != actor.isSneaking() || local == serverSneak) return;
+            found->mValue.set(bit, serverSneak);
+            if (actor.isSneaking() != serverSneak) {
+                found->mValue.set(bit, local);
+                return;
+            }
+            flags = &*found, was = local;
+            static int logged = 0;
+            if (++logged <= 6)
+                Runtime::instance().self().getLogger().info("Sneak placement: the client's use runs with sneak {} as sent", serverSneak);
+        } catch (...) {}
+    }
+    ~AsSent() {
+        if (flags) flags->mValue.set(bit, was);
+    }
+    AsSent(AsSent const&) = delete;
+    AsSent& operator=(AsSent const&) = delete;
+};
 void set(PlayerAuthInputPacket& auth, Auth flag, bool value) {
     auth.mInputData->mContainer.set(static_cast<size_t>(flag), value);
 }
@@ -185,6 +223,7 @@ LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##UseOn, ll::memory::HookPriority::Nor
     &Mode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face, \
     Vec3 const& hit, HandSlot hand, Block const* target, bool first) { \
     if (holds(mPlayer, item, pos, face)) return InteractionResult{false, false}; \
+    AsSent const sneak(mPlayer); \
     return origin(item, pos, face, hit, hand, target, first); \
 }
 GATE_HOOKS(GameMode)
