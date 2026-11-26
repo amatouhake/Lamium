@@ -1112,7 +1112,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.tag.metal_nuggets", "Metal nuggets", "金属のナゲット"},
     {"schematic.entityTag", "entity", "エンティティ"},
     {"mapRadarFaces", "Players and mobs as faces: {}", "プレイヤーとモブを顔で表示: {}"},
-    {"help.map.radarFaces", "Draw each mob as its face, built from the texture your game already has (resource packs included), and each player as the head of their skin, with their name beside it. Mobs and skins without a usable face, and dropped items, stay dots; some faces may not look right yet. The key on this row flips faces and dots while held.", "モブを顔で、プレイヤーをスキンの頭で表示します（名前は横に表示）。モブの顔はゲームが持っているテクスチャ（リソースパックを含む）から作ります。使える顔の無いモブやスキンと、落ちているアイテムは点のままです。一部の顔は正しく見えないことがあります。この行のキーを押している間は、顔と点が入れ替わります。"},
+    {"help.map.radarFaces", "Draw each mob as its face, built from the texture your game already has (resource packs included), and each player as the head of their skin, with their name beside it. Mobs and skins without a usable face, and dropped items, stay dots. The key on this row flips faces and dots while held.", "モブを顔で、プレイヤーをスキンの頭で表示します（名前は横に表示）。モブの顔はゲームが持っているテクスチャ（リソースパックを含む）から作ります。使える顔の無いモブやスキンと、落ちているアイテムは点のままです。この行のキーを押している間は、顔と点が入れ替わります。"},
     {"mapCache", "Saved map (this world)", "保存した地図（このワールド）"},
     {"mapCacheClear", "Delete", "削除"},
     {"mapCacheNone", "not in a saved world", "保存先のあるワールドにいません"},

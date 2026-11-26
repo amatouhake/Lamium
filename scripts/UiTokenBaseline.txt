@@ -12,6 +12,6 @@ packed src/features/map/MapFaces.h 1
 packed src/features/map/MapRadar.h 4
 packed src/features/map/MapRegion.h 1
 packed src/features/map/Minimap.cpp 1
-packed src/features/map/RadarFaces.cpp 2
+packed src/features/map/RadarFaces.cpp 1
 packed src/features/map/Waypoints.h 12
 packed src/features/schematic/GhostMarks.cpp 1

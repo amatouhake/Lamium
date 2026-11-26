@@ -377,6 +377,11 @@ void modelFaces() {
     check(variantTexture("minecraft:horse", 3) == "textures/entity/horse2/horse_brown" && variantTexture("minecraft:horse", 7).empty()
               && variantTexture("minecraft:horse", -1).empty() && variantTexture("minecraft:pig", 0).empty(),
           "a horse's coat follows its variant; out of range or a kind without, the default skin");
+    check(lookTexture("minecraft:guardian", -1, true) == "textures/entity/guardian_elder" && lookTexture("minecraft:guardian", -1, false).empty()
+              && lookTexture("minecraft:shulker", 16, false) == "textures/entity/shulker/shulker_undyed",
+          "an elder guardian takes the elder skin, a shulker its color");
+    check(faceRecipe("minecraft:snow_golem", true).image.empty() && faceRecipe("minecraft:snow_golem", true).parts == std::vector<std::string_view>{"head"},
+          "a sheared snow golem shows the head under its pumpkin");
     auto horse = faceRecipe("minecraft:horse"), pig = faceRecipe("minecraft:pig");
     check(!drawnPart(horse, "muleearl") && drawnPart(horse, "earl") && !drawnPart(faceRecipe("minecraft:donkey"), "earl"),
           "a horse leaves out the mule's ears, a donkey the horse's");

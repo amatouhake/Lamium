@@ -22,6 +22,7 @@
 #include "mc/deps/core_graphics/enums/TextureFormat.h"
 #include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
 #include "mc/world/actor/Actor.h"
+#include "mc/world/actor/ActorFlags.h"
 #include "mc/world/actor/player/Player.h"
 #include "mc/world/actor/player/SerializedSkinImpl.h"
 #include "mc/world/actor/player/SerializedSkinRef.h"
@@ -150,17 +151,13 @@ std::string faceTexture(DataDrivenRenderer& dataDriven, std::string const& rende
 std::optional<Face> pictureFace(IClientInstance& client, std::string_view path) {
     auto image = visuals::readPackImage(client.getResourcePackManager(), std::string(path));
     if (!image || image->width <= 0 || image->height <= 0) return std::nullopt;
-    std::vector<std::uint32_t> full(static_cast<size_t>(image->width) * image->height);
-    for (size_t i = 0; i < full.size(); ++i) {
-        auto const* p = &image->rgba[i * 4];
-        full[i] = p[3] ? packColor(p[0], p[1], p[2]) : 0;
-    }
-    return reduceFace(full, image->width, image->height, image->width / 8.0);
+    if (image->rgba.size() < static_cast<size_t>(image->width) * image->height * 4) return std::nullopt;
+    return reduceFace(packedPicture(image->rgba.data(), image->width, image->height), image->width, image->height, image->width / 8.0);
 }
 // `variant`: the texture the mob's variant picks (variantTexture), or empty for the kind's own.
 std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven, std::string const& renderer,
-                         std::string const& variant = {}) {
-    FaceRecipe const recipe = faceRecipe(renderer);
+                         std::string const& variant = {}, bool sheared = false) {
+    FaceRecipe const recipe = faceRecipe(renderer, sheared);
     if (!recipe.image.empty()) return pictureFace(client, recipe.image);
     auto model = dataDriven.mModel.get();
     if (!model) return std::nullopt;
@@ -175,14 +172,16 @@ std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven
     double texels = boxes->textureWidth > 0 ? width / boxes->textureWidth : 1;
     return projectFace(image->rgba.data(), width, height, texels, boxes->boxes, {recipe.yaw, recipe.pitch, recipe.rows, recipe.columns});
 }
-std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer, std::string const& variant) {
+std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer, std::string const& variant, bool sheared) {
     auto dispatcher = client.getEntityRenderDispatcher();
     if (!dispatcher) return std::nullopt;
     auto dataDriven = dispatcher->getDataDrivenRenderer(actor.getActorRendererId());
     if (!dataDriven) return std::nullopt;
-    return load(client, *dataDriven, renderer, variant);
+    return load(client, *dataDriven, renderer, variant, sheared);
 }
 #ifdef LAMIUM_RADAR_ICON_PROBE
+// The research pictures' background, behind clear pixels.
+constexpr std::uint32_t probeGray = packColor(96, 96, 96);
 void writeBmp(std::string const& name, std::uint32_t const* px, int width, int height) {
     try {
         std::ofstream out(Runtime::instance().self().getModDir() / "logs" / name, std::ios::binary);
@@ -204,7 +203,7 @@ void dumpFaces() {
     constexpr int zoom = 4, cell = faceCellSide * zoom + 4, perRow = 8;
     int count = static_cast<int>(found.size()), rows = (count + perRow - 1) / perRow;
     int width = perRow * cell, height = std::max(1, rows) * cell;
-    std::vector<std::uint32_t> px(static_cast<size_t>(width) * height, packColor(96, 96, 96));
+    std::vector<std::uint32_t> px(static_cast<size_t>(width) * height, probeGray);
     for (int i = 0; i < count; ++i) {
         auto at = faceAtlasCell(i);
         int ox = (i % perRow) * cell + 2, oy = (i / perRow) * cell + 2;
@@ -222,7 +221,7 @@ void dumpSkin(int n, std::uint8_t const* rgba, int width, int height, std::initi
     std::vector<std::uint32_t> px(static_cast<size_t>(width) * height);
     for (size_t i = 0; i < px.size(); ++i) {
         auto const* p = rgba + i * 4;
-        px[i] = p[3] ? packColor(p[0], p[1], p[2]) : packColor(96, 96, 96);
+        px[i] = p[3] ? packColor(p[0], p[1], p[2]) : probeGray;
     }
     writeBmp(std::format("skin-{}.bmp", n), px.data(), width, height);
     int part = 0;
@@ -302,7 +301,7 @@ void sweepAll(IClientInstance& client) {
     if (sheet.empty()) return;
     constexpr int zoom = 4, cell = faceCellSide * zoom + 4, perRow = 8;
     int const rows = (count + perRow - 1) / perRow, width = perRow * cell, height = std::max(1, rows) * cell;
-    std::vector<std::uint32_t> px(static_cast<size_t>(width) * height, packColor(96, 96, 96));
+    std::vector<std::uint32_t> px(static_cast<size_t>(width) * height, probeGray);
     for (int i = 0; i < count; ++i) {
         auto at = faceAtlasCell(i);
         int ox = (i % perRow) * cell + 2, oy = (i / perRow) * cell + 2;
@@ -335,14 +334,19 @@ int add(std::optional<Face> face, std::string const& name) {
 int faceOf(IClientInstance& client, Actor& actor) {
     std::string renderer = actor.getActorRendererId().getString();
     if (renderer.empty()) return -1;
-    // A kind whose look follows the mob's variant (a horse's coat) has a face per variant.
-    std::string variant = variantTexture(renderer, 0).empty() ? std::string() : variantTexture(renderer, actor.getVariant());
+    // A kind whose look follows the mob (a horse's coat, an elder guardian, a sheared snow golem) has a face
+    // per look.
+    bool const guardian = renderer == "minecraft:guardian" || renderer == "minecraft:elder_guardian";
+    std::string variant = lookTexture(renderer, variantTexture(renderer, 0).empty() ? -1 : actor.getVariant(),
+                                      guardian && actor.getStatusFlag(ActorFlags::Elder));
+    bool const sheared = renderer == "minecraft:snow_golem" && actor.getStatusFlag(ActorFlags::Sheared);
     std::string key = variant.empty() ? renderer : renderer + "#" + variant;
+    if (sheared) key += "#sheared";
     if (auto at = byRenderer.find(key); at != byRenderer.end()) return at->second;
     if (loadsLeft <= 0) return -1;
     --loadsLeft;
     int index = -1;
-    try { index = add(load(client, actor, renderer, variant), key); } catch (...) {}
+    try { index = add(load(client, actor, renderer, variant, sheared), key); } catch (...) {}
     if (index < 0) log(std::format("no face for {}; it stays a dot", key));
     byRenderer.emplace(std::move(key), index);
     return index;

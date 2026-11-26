@@ -1103,7 +1103,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"recipes.tag.metal_nuggets", "金屬粒"},
     {"schematic.entityTag", "實體"},
     {"mapRadarFaces", "以頭像顯示玩家和生物: {}"},
-    {"help.map.radarFaces", "用遊戲已有的材質（包括資源包）畫出每種生物的臉，並以每位玩家外觀的頭部表示玩家，旁邊顯示名稱。沒有可用臉部的生物和外觀，以及掉落物，仍顯示為圓點；有些頭像可能還不太正確。按住此列的按鍵會在頭像和圓點之間切換。"},
+    {"help.map.radarFaces", "用遊戲已有的材質（包括資源包）畫出每種生物的臉，並以每位玩家外觀的頭部表示玩家，旁邊顯示名稱。沒有可用臉部的生物和外觀，以及掉落物，仍顯示為圓點。按住此列的按鍵會在頭像和圓點之間切換。"},
     {"mapCache", "已儲存的地圖（此世界）"},
     {"mapCacheClear", "刪除"},
     {"mapCacheNone", "不在已儲存的世界中"},

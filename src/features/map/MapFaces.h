@@ -37,6 +37,7 @@ inline std::string_view baseTexture(std::string_view renderer) {
     if (renderer == "minecraft:llama" || renderer == "minecraft:trader_llama") return "textures/entity/llama/llama_creamy";
     if (renderer == "minecraft:fox") return "textures/entity/fox/fox";
     if (renderer == "minecraft:happy_ghast") return "textures/entity/happy_ghast/happy_ghast";
+    if (renderer == "minecraft:elder_guardian") return "textures/entity/guardian_elder";
     return {};
 }
 // Parts drawn over a head that are not the face itself (worn layers and tack).
@@ -61,7 +62,8 @@ struct FaceRecipe {
     std::vector<std::string_view> onTop;             // drawn over the rest: an eye set inside the head
     std::string_view image; // a picture used whole instead of the model (the snow golem's carved pumpkin)
 };
-inline FaceRecipe faceRecipe(std::string_view renderer) {
+// `sheared`: a snow golem without its pumpkin shows the head under it.
+inline FaceRecipe faceRecipe(std::string_view renderer, bool sheared = false) {
     std::string_view const kind = renderer.substr(renderer.starts_with("minecraft:") ? 10 : 0);
     FaceRecipe r;
     auto only = [&](std::initializer_list<std::string_view> parts) { r.parts = parts; r.children = false; };
@@ -86,7 +88,7 @@ inline FaceRecipe faceRecipe(std::string_view renderer) {
     else if (kind == "tadpole") r.parts = {"body", "tail"}, side();
     else if (kind == "cod" || kind == "tropicalfish") r.parts = {"body"}, side();
     else if (kind == "salmon") r.parts = {"body_front"}, side();
-    else if (kind == "snow_golem") r.image = "textures/blocks/pumpkin_face_off";
+    else if (kind == "snow_golem" && !sheared) r.image = "textures/blocks/pumpkin_face_off";
     else if (kind == "armor_stand") r.parts.clear();
     return r;
 }
@@ -118,7 +120,18 @@ inline std::string variantTexture(std::string_view renderer, int variant) {
     if (kind == "wolf") return pick({"wolf/wolf", "wolf/wolf_ashen", "wolf/wolf_black", "wolf/wolf_chestnut", "wolf/wolf_rusty", "wolf/wolf_snowy", "wolf/wolf_spotted", "wolf/wolf_striped", "wolf/wolf_woods"});
     if (kind == "mooshroom") return pick({"cow/mooshroom", "cow/brown_mooshroom"});
     if (kind == "panda") return pick({"panda/panda", "panda/panda_lazy", "panda/panda_worried", "panda/panda_playful", "panda/panda_brown", "panda/panda_sneezy", "panda/panda_aggressive"});
+    if (kind == "shulker")
+        return pick({"shulker/shulker_black", "shulker/shulker_red", "shulker/shulker_green", "shulker/shulker_brown", "shulker/shulker_blue",
+                     "shulker/shulker_purple", "shulker/shulker_cyan", "shulker/shulker_silver", "shulker/shulker_gray", "shulker/shulker_pink",
+                     "shulker/shulker_lime", "shulker/shulker_yellow", "shulker/shulker_light_blue", "shulker/shulker_magenta",
+                     "shulker/shulker_orange", "shulker/shulker_white", "shulker/shulker_undyed"});
     return {};
+}
+// The texture this mob's state picks: an elder guardian shares the guardian's renderer and takes its own skin
+// by a flag; else its variant's (variantTexture). Empty: the kind's own.
+inline std::string lookTexture(std::string_view renderer, int variant, bool elder) {
+    if (elder && (renderer == "minecraft:guardian" || renderer == "minecraft:elder_guardian")) return "textures/entity/guardian_elder";
+    return variantTexture(renderer, variant);
 }
 
 // A face picture at its image's resolution, reduced to fit maxFaceSide (larger ones halved, maintainer
@@ -148,6 +161,16 @@ inline std::optional<Face> reduceFace(std::vector<std::uint32_t> const& full, in
         }
     if (!any) return std::nullopt;
     return face;
+}
+
+// An RGBA image as face pixels: alpha 0 clear, any other drawn opaque (composeFace).
+inline std::vector<std::uint32_t> packedPicture(std::uint8_t const* rgba, int width, int height) {
+    std::vector<std::uint32_t> out(static_cast<size_t>(std::max(0, width)) * std::max(0, height));
+    for (size_t i = 0; i < out.size(); ++i) {
+        auto const* p = rgba + i * 4;
+        out[i] = p[3] ? packColor(p[0], p[1], p[2]) : 0;
+    }
+    return out;
 }
 
 // One cube's front: where it covers the head (model units, y up), how near
