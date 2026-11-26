@@ -1351,6 +1351,7 @@ void cancelEditing() {
 }
 bool heldCtrl() { return ui::heldCtrl(); }
 bool heldShift() { return ui::heldShift(); }
+bool heldAlt() { return ui::heldAlt(); }
 void close() { ui::close(); }
 bool leaveDirectTool() {
     if (!directTool) return false;
