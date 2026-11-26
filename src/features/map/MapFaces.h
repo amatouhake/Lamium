@@ -5,7 +5,9 @@
 #include <cstdint>
 #include <initializer_list>
 #include <iterator>
+#include <numbers>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -15,8 +17,9 @@ namespace lamium::map {
 // the game is stored. Pure; RadarFaces.cpp reads the model and texture,
 // Minimap.cpp draws the faces on screen pixels.
 
-// A face at its texture's own resolution (at most maxFaceSide a side).
-inline constexpr int maxFaceSide = 16;
+// A face at its texture's own resolution (at most maxFaceSide a side; a
+// larger one is halved, maintainer 2026-11-26).
+inline constexpr int maxFaceSide = 15;
 struct Face {
     int width = 0, height = 0;
     std::vector<std::uint32_t> pixels; // RGBA, row-major; alpha 0 is see-through.
@@ -45,42 +48,83 @@ inline bool faceLayer(std::string_view part) {
 
 // How a kind's face is seen (L-330, maintainer 2026-11-26): from the front of its "head" with the parts
 // hanging from it by default; a kind without a head shows the part where its face is; long necks are cut
-// below the face; fish and parrots are seen from the side.
-enum class FaceView { Front, Side };
+// below the face; kinds whose eyes are on their sides (fish, parrots, horses, turtles, camels) are seen from
+// the side, a few from an angle.
 struct FaceRecipe {
-    std::vector<std::string_view> parts{"head"};
-    bool children = true;             // the parts hanging from those, as a head's nose and ears
-    FaceView view = FaceView::Front;
-    bool crop = false;                // at most two rows more than its width, from the top
-    std::vector<std::string_view> leftOut; // parts the game hides on this kind (a horse's mule ears)
+    std::vector<std::string_view> parts{"head"}; // none: the kind stays a dot
+    bool children = true;  // the parts hanging from those, as a head's nose and ears
+    double yaw = 0;        // degrees turned before it is seen: 90 shows its +x side, its front on the right
+    double pitch = 0;      // degrees tipped toward the viewer, to see its top
+    int rows = 0, columns = 0; // at most this many model units from the top, and from the front (0: all)
+    std::vector<std::string_view> leftOut;           // parts the game hides on this kind (a horse's mule ears)
+    std::vector<std::string_view> leftOutContaining; // and by part of their name (a guardian's spikes)
+    std::vector<std::string_view> onTop;             // drawn over the rest: an eye set inside the head
+    std::string_view image; // a picture used whole instead of the model (the snow golem's carved pumpkin)
 };
 inline FaceRecipe faceRecipe(std::string_view renderer) {
     std::string_view const kind = renderer.substr(renderer.starts_with("minecraft:") ? 10 : 0);
     FaceRecipe r;
     auto only = [&](std::initializer_list<std::string_view> parts) { r.parts = parts; r.children = false; };
-    if (kind == "horse" || kind == "skeleton_horse" || kind == "zombie_horse") r.leftOut = {"muleearl", "muleearr"};
-    else if (kind == "donkey" || kind == "mule") r.leftOut = {"earl", "earr"};
-    else if (kind == "llama" || kind == "trader_llama" || kind == "camel" || kind == "camel_husk") r.crop = true;
+    auto side = [&] { r.yaw = 90; };
+    if (kind == "horse" || kind == "skeleton_horse" || kind == "zombie_horse") r.leftOut = {"muleearl", "muleearr"}, side();
+    else if (kind == "donkey" || kind == "mule") r.leftOut = {"earl", "earr"}, side();
+    else if (kind == "llama" || kind == "trader_llama") r.rows = 10;
+    else if (kind == "camel" || kind == "camel_husk") side(), r.rows = 11, r.columns = 13;
+    else if (kind == "turtle" || kind == "parrot") side();
+    else if (kind == "armadillo") r.yaw = 45;
+    else if (kind == "frog") r.yaw = 45, r.pitch = 25;
     else if (kind == "squid" || kind == "glow_squid" || kind == "ghast" || kind == "happy_ghast" || kind == "bee" || kind == "strider")
         only({"body"});
-    else if (kind == "slime") r.parts = {"cube"};
+    else if (kind == "slime") only({"cube", "eye0", "eye1", "mouth"}), r.onTop = {"eye0", "eye1", "mouth"};
     else if (kind == "magma_cube") r.parts = {"insidecube"};
+    else if (kind == "shulker") only({"lid", "base", "head"});
+    else if (kind == "guardian" || kind == "elder_guardian") r.leftOutContaining = {"spikepart"}, r.onTop = {"eye"};
     else if (kind == "silverfish") only({"bodypart_0", "bodypart_1"});
     else if (kind == "endermite") only({"section_0", "section_1"});
     else if (kind == "wither") r.parts = {"head1"};
     else if (kind == "pufferfish") r.parts = {"body"};
-    else if (kind == "tadpole") r.parts = {"body", "tail"}, r.view = FaceView::Side;
-    else if (kind == "cod" || kind == "tropicalfish") r.parts = {"body"}, r.view = FaceView::Side;
-    else if (kind == "salmon") r.parts = {"body_front"}, r.view = FaceView::Side;
-    else if (kind == "parrot") r.view = FaceView::Side;
+    else if (kind == "tadpole") r.parts = {"body", "tail"}, side();
+    else if (kind == "cod" || kind == "tropicalfish") r.parts = {"body"}, side();
+    else if (kind == "salmon") r.parts = {"body_front"}, side();
+    else if (kind == "snow_golem") r.image = "textures/blocks/pumpkin_face_off";
+    else if (kind == "armor_stand") r.parts.clear();
     return r;
 }
 inline bool drawnPart(FaceRecipe const& recipe, std::string_view part) {
-    return faceLayer(part) && std::find(recipe.leftOut.begin(), recipe.leftOut.end(), part) == recipe.leftOut.end();
+    if (!faceLayer(part) || std::find(recipe.leftOut.begin(), recipe.leftOut.end(), part) != recipe.leftOut.end()) return false;
+    for (auto piece : recipe.leftOutContaining)
+        if (part.find(piece) != std::string_view::npos) return false;
+    return true;
+}
+inline bool drawnOnTop(FaceRecipe const& recipe, std::string_view part) {
+    return std::find(recipe.onTop.begin(), recipe.onTop.end(), part) != recipe.onTop.end();
+}
+// Kinds whose look the game picks by the mob's variant (from its render controllers): the texture for this
+// variant, or empty for a kind without them or a variant out of range (the default skin is used then).
+inline std::string variantTexture(std::string_view renderer, int variant) {
+    std::string_view const kind = renderer.substr(renderer.starts_with("minecraft:") ? 10 : 0);
+    auto pick = [&](std::initializer_list<std::string_view> textures) -> std::string {
+        if (variant < 0 || variant >= static_cast<int>(textures.size())) return {};
+        return std::string("textures/entity/") + std::string(textures.begin()[variant]);
+    };
+    if (kind == "horse") return pick({"horse2/horse_white", "horse2/horse_creamy", "horse2/horse_chestnut", "horse2/horse_brown", "horse2/horse_black", "horse2/horse_gray", "horse2/horse_darkbrown"});
+    if (kind == "llama" || kind == "trader_llama") return pick({"llama/llama_creamy", "llama/llama_white", "llama/llama_brown", "llama/llama_gray"});
+    if (kind == "parrot") return pick({"parrot/parrot_red_blue", "parrot/parrot_blue", "parrot/parrot_green", "parrot/parrot_yellow_blue", "parrot/parrot_grey"});
+    if (kind == "cat") return pick({"cat/white", "cat/tuxedo", "cat/redtabby", "cat/siamesecat", "cat/britishshorthair", "cat/calico", "cat/persian", "cat/ragdoll", "cat/tabby", "cat/allblackcat", "cat/jellie"});
+    if (kind == "rabbit") return pick({"rabbit/brown", "rabbit/white", "rabbit/blackrabbit", "rabbit/white_splotched", "rabbit/gold", "rabbit/salt"});
+    if (kind == "axolotl") return pick({"axolotl/axolotl_lucy", "axolotl/axolotl_cyan", "axolotl/axolotl_gold", "axolotl/axolotl_wild", "axolotl/axolotl_blue"});
+    if (kind == "fox") return pick({"fox/fox", "fox/arctic_fox"});
+    if (kind == "frog") return pick({"frog/temperate_frog", "frog/cold_frog", "frog/warm_frog"});
+    if (kind == "wolf") return pick({"wolf/wolf", "wolf/wolf_ashen", "wolf/wolf_black", "wolf/wolf_chestnut", "wolf/wolf_rusty", "wolf/wolf_snowy", "wolf/wolf_spotted", "wolf/wolf_striped", "wolf/wolf_woods"});
+    if (kind == "mooshroom") return pick({"cow/mooshroom", "cow/brown_mooshroom"});
+    if (kind == "panda") return pick({"panda/panda", "panda/panda_lazy", "panda/panda_worried", "panda/panda_playful", "panda/panda_brown", "panda/panda_sneezy", "panda/panda_aggressive"});
+    return {};
 }
 
-// A face picture at its image's resolution, reduced to fit maxFaceSide: a high-resolution face drops to one
-// texel per model unit when that fits, else to the smallest whole factor that does. None when nothing shows.
+// A face picture at its image's resolution, reduced to fit maxFaceSide (larger ones halved, maintainer
+// 2026-11-26): a high-resolution face drops to one texel per model unit when that fits, else to the
+// smallest whole factor that does. Each texel is the mean of the visible ones it covers, visible when at
+// least half are, so eyes are not dropped. None when nothing shows.
 inline std::optional<Face> reduceFace(std::vector<std::uint32_t> const& full, int fullW, int fullH, double texelsPerUnit) {
     if (fullW <= 0 || fullH <= 0 || full.size() < static_cast<size_t>(fullW) * fullH) return std::nullopt;
     int step = std::max(1, (std::max(fullW, fullH) + maxFaceSide - 1) / maxFaceSide);
@@ -91,9 +135,16 @@ inline std::optional<Face> reduceFace(std::vector<std::uint32_t> const& full, in
     bool any = false;
     for (int y = 0; y < face.height; ++y)
         for (int x = 0; x < face.width; ++x) {
-            auto c = full[static_cast<size_t>(y * step) * fullW + x * step];
-            face.pixels[static_cast<size_t>(y * face.width + x)] = c;
-            any = any || (c >> 24);
+            int seen = 0, r = 0, g = 0, b = 0;
+            for (int dy = 0; dy < step; ++dy)
+                for (int dx = 0; dx < step; ++dx) {
+                    auto c = full[static_cast<size_t>(y * step + dy) * fullW + x * step + dx];
+                    if (!(c >> 24)) continue;
+                    ++seen, r += channel(c, 0), g += channel(c, 1), b += channel(c, 2);
+                }
+            if (!seen || seen * 2 < step * step) continue;
+            face.pixels[static_cast<size_t>(y * face.width + x)] = packColor(r / seen, g / seen, b / seen);
+            any = true;
         }
     if (!any) return std::nullopt;
     return face;
@@ -160,6 +211,7 @@ struct ModelBox {
     bool mirrored = false;
     FaceRect faces[6]{};
     std::vector<Turn> turns; // applied in order: the box's own first
+    bool onTop = false;      // drawn over every other box (FaceRecipe::onTop)
 };
 // The models' order and signs: x, then y, then z, with x and z turned the
 // other way (checked against the game's models: a hoglin's head pitched
@@ -184,12 +236,18 @@ inline void faceCorners(FaceSide side, Vec3d a, Vec3d b, Vec3d out[3]) {
     case sideDown: out[0] = {b.x, a.y, a.z}; out[1] = {a.x, a.y, a.z}; out[2] = {b.x, a.y, b.z}; break;
     }
 }
-// The picture of `boxes` at `texelsPerUnit` image pixels per model unit, cropped to what is drawn; `crop`
-// keeps at most two rows more than its width from the top. Reduced as composeFace's to fit maxFaceSide.
+// How the picture is taken: turned by `yaw` degrees (90 shows the +x side, the front on the right) and
+// tipped by `pitch`, then seen from the front; cut to at most `rows` model units from the top and `columns`
+// from the front (0: all).
+struct FaceShot { double yaw = 0, pitch = 0; int rows = 0, columns = 0; };
+// The picture of `boxes` at `texelsPerUnit` image pixels per model unit, cropped to what is drawn and to the
+// shot's cut. Reduced as composeFace's to fit maxFaceSide.
 inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int height, double texelsPerUnit,
-                                       std::vector<ModelBox> const& boxes, FaceView view, bool crop = false) {
+                                       std::vector<ModelBox> const& boxes, FaceShot const& shot = {}) {
     if (!rgba || width <= 0 || height <= 0 || !(texelsPerUnit > 0) || boxes.empty()) return std::nullopt;
-    struct Quad { double ax, ay, az, e1x, e1y, e1z, e2x, e2y, e2z, det; FaceRect uv; };
+    struct Quad { double ax, ay, az, e1x, e1y, e1z, e2x, e2y, e2z, det; FaceRect uv; bool onTop; };
+    double const yaw = shot.yaw * std::numbers::pi / 180, pitch = shot.pitch * std::numbers::pi / 180;
+    double const cy = std::cos(yaw), sy = std::sin(yaw), cp = std::cos(pitch), sp = std::sin(pitch);
     std::vector<Quad> quads;
     double minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
     for (auto const& box : boxes) {
@@ -207,12 +265,13 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
             double p[3][3];
             for (int k = 0; k < 3; ++k) {
                 for (auto const& t : box.turns) c[k] = turned(c[k], t);
-                // Seen from the front: +x on the left, y down, smaller z nearer. From the side (+x): the front on the right.
-                if (view == FaceView::Front) p[k][0] = -c[k].x, p[k][1] = -c[k].y, p[k][2] = c[k].z;
-                else p[k][0] = -c[k].z, p[k][1] = -c[k].y, p[k][2] = -c[k].x;
+                // The shot's turn, then seen from the front: +x on the left, y down, smaller z nearer.
+                double const x = c[k].x * cy + c[k].z * sy, z = -c[k].x * sy + c[k].z * cy;
+                double const y = c[k].y * cp - z * sp, z2 = c[k].y * sp + z * cp;
+                p[k][0] = -x, p[k][1] = -y, p[k][2] = z2;
             }
             Quad q{p[0][0], p[0][1], p[0][2], p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2],
-                   p[2][0] - p[0][0], p[2][1] - p[0][1], p[2][2] - p[0][2], 0, faces[side]};
+                   p[2][0] - p[0][0], p[2][1] - p[0][1], p[2][2] - p[0][2], 0, faces[side], box.onTop};
             q.det = q.e1x * q.e2y - q.e1y * q.e2x;
             if (!(q.det > 1e-9)) continue; // facing away, or seen edge on
             for (double s : {0., 1.})
@@ -237,7 +296,7 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
                 double const dx = x0 + (gx + .5) / texelsPerUnit - q.ax, dy = y0 + (gy + .5) / texelsPerUnit - q.ay;
                 double const s = (dx * q.e2y - dy * q.e2x) / q.det, t = (q.e1x * dy - q.e1y * dx) / q.det;
                 if (s < 0 || s >= 1 || t < 0 || t >= 1) continue;
-                double const z = q.az + s * q.e1z + t * q.e2z;
+                double const z = q.az + s * q.e1z + t * q.e2z - (q.onTop ? 1e6 : 0);
                 size_t const at = static_cast<size_t>(gy) * gridW + gx;
                 if (z >= depth[at]) continue;
                 // The texel holding this point; a face read right to left (negative width) steps back.
@@ -254,9 +313,11 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
         for (int x = 0; x < gridW; ++x)
             if (grid[static_cast<size_t>(y) * gridW + x] >> 24) left = std::min(left, x), right = std::max(right, x), top = std::min(top, y), bottom = std::max(bottom, y);
     if (right < 0) return std::nullopt;
-    int const w = right - left + 1;
     int h = bottom - top + 1;
-    if (crop) h = std::min(h, w + 2 * std::max(1, static_cast<int>(std::lround(texelsPerUnit))));
+    if (shot.rows > 0) h = std::min(h, static_cast<int>(std::lround(shot.rows * texelsPerUnit)));
+    // From the front: on the right when its side is seen (yaw > 0), else the whole width.
+    if (shot.columns > 0 && shot.yaw > 0) left = std::max(left, right + 1 - static_cast<int>(std::lround(shot.columns * texelsPerUnit)));
+    int const w = right - left + 1;
     std::vector<std::uint32_t> cut(static_cast<size_t>(w) * h);
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) cut[static_cast<size_t>(y) * w + x] = grid[static_cast<size_t>(top + y) * gridW + left + x];
@@ -271,7 +332,7 @@ inline std::optional<Face> projectFace(std::uint8_t const* rgba, int width, int 
 inline std::optional<Face> playerHead(std::uint8_t const* rgba, int width, int height) {
     if (!rgba || width < 64 || width % 64 || (height != width && height * 2 != width)) return std::nullopt;
     int unit = width / 64, side = 8 * unit;
-    int step = (side + maxFaceSide - 1) / maxFaceSide;
+    int step = side > maxFaceSide ? side / 8 : 1; // a finer skin drops to the classic eight texels
     Face face{side / step, side / step, {}};
     face.pixels.assign(static_cast<size_t>(face.width) * face.height, 0);
     bool any = false;

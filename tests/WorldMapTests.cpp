@@ -298,7 +298,7 @@ void radarFaces() {
     writeFace(atlas, 15, *face);
     auto cell = faceAtlasCell(15);
     auto at = [&](int x, int y) { return atlas[static_cast<size_t>(cell.y + y) * faceAtlasSide + cell.x + x]; };
-    check(cell.x == 18 && cell.y == 18 && at(1, 1) == face->pixels[0], "faces sit in their own atlas cells inside an outline");
+    check(cell.x == (15 % faceAtlasCells) * faceCellSide && cell.y == (15 / faceAtlasCells) * faceCellSide && at(1, 1) == face->pixels[0], "faces sit in their own atlas cells inside an outline");
     check(at(0, 0) == faceOutline && at(3, 4) == faceOutline && outlinedWidth(*face) == 4, "a one-texel black outline surrounds the face");
     check(faceTexelPixels(8, 24) == 3 && faceTexelPixels(11, 24) == 3 && faceTexelPixels(8, 2) == 1 && faceTexelPixels(0, 24) == 1,
           "texels take whole screen pixels, the same for taller faces, at least one");
@@ -322,36 +322,61 @@ void modelFaces() {
         return b;
     };
     FaceRect const red{0, 0, 2, 2, true}, green{2, 0, 2, 2, true}, blue{4, 0, 2, 2, true};
-    auto front = projectFace(image.data(), 8, 8, 1, {box(sideNorth, green)}, FaceView::Front);
+    auto front = projectFace(image.data(), 8, 8, 1, {box(sideNorth, green)});
     check(front && front->width == 2 && front->height == 2 && channel(front->pixels[0], 1) == 255, "a box's front is seen from the front");
-    check(!projectFace(image.data(), 8, 8, 1, {box(sideSouth, green)}, FaceView::Front), "a face turned away is not drawn");
+    check(!projectFace(image.data(), 8, 8, 1, {box(sideSouth, green)}), "a face turned away is not drawn");
     auto pitched = box(sideUp, red);
     pitched.faces[sideNorth] = green;
     pitched.turns = {{{1, 1, 1}, {std::numbers::pi / 2, 0, 0}}};
-    auto down = projectFace(image.data(), 8, 8, 1, {pitched}, FaceView::Front);
+    auto down = projectFace(image.data(), 8, 8, 1, {pitched});
     check(down && channel(down->pixels[0], 0) == 255 && channel(down->pixels[0], 1) == 0,
           "a part pitched down by +90° shows its top from the front (hoglin, goat)");
     check(turned({0, 0, -1}, {{0, 0, 0}, {.8726646, 0, 0}}).y < 0, "a positive pitch lowers what is in front");
-    auto side = projectFace(image.data(), 8, 8, 1, {box(sideEast, blue)}, FaceView::Side);
+    auto side = projectFace(image.data(), 8, 8, 1, {box(sideEast, blue)}, {90});
     check(side && channel(side->pixels[0], 2) == 255, "seen from the side, the +x face shows (fish, parrots)");
     // A white then black row read left to right; mirrored, right to left.
     ModelBox row{{0, 0, 0}, {2, 1, 1}, false, {}, {}};
     row.faces[sideNorth] = {6, 0, 2, 1, true};
-    auto plain = projectFace(image.data(), 8, 8, 1, {row}, FaceView::Front);
+    auto plain = projectFace(image.data(), 8, 8, 1, {row});
     row.mirrored = true;
-    auto mirrored = projectFace(image.data(), 8, 8, 1, {row}, FaceView::Front);
+    auto mirrored = projectFace(image.data(), 8, 8, 1, {row});
     check(plain && mirrored && channel(plain->pixels[0], 0) == 255 && channel(mirrored->pixels[0], 0) == 1,
           "a mirrored box reads its face right to left");
     ModelBox tall{{0, 0, 0}, {2, 10, 1}, false, {}, {}};
     tall.faces[sideNorth] = {0, 0, 2, 2, true};
-    auto neck = projectFace(image.data(), 8, 8, 1, {tall}, FaceView::Front, true);
-    auto whole = projectFace(image.data(), 8, 8, 1, {tall}, FaceView::Front);
-    check(neck && whole && neck->height == 4 && whole->height == 10, "a long neck is cut two rows below its width");
+    auto neck = projectFace(image.data(), 8, 8, 1, {tall}, {0, 0, 4});
+    auto whole = projectFace(image.data(), 8, 8, 1, {tall});
+    check(neck && whole && neck->height == 4 && whole->height == 10, "a long neck is cut to the shot's rows from the top");
+    // A wide box seen from its side: the shot keeps the columns at the front, on the right.
+    ModelBox longHead{{0, 0, 0}, {1, 2, 6}, false, {}, {}};
+    longHead.faces[sideEast] = {0, 0, 6, 2, true};
+    auto snout = projectFace(image.data(), 8, 8, 1, {longHead}, {90, 0, 0, 2});
+    check(snout && snout->width == 2 && channel(snout->pixels[0], 2) == 255, "a side view keeps its front columns, on the right (camel)");
+    // An eye set inside the head is drawn over its front.
+    ModelBox head = box(sideNorth, green), eye{{.5, .5, 1}, {1.5, 1.5, 1.5}, false, {}, {}, true};
+    eye.faces[sideNorth] = {0, 0, 1, 1, true};
+    auto eyed = projectFace(image.data(), 8, 8, 1, {head, eye});
+    check(eyed && channel(eyed->pixels[0], 0) == 255 && channel(eyed->pixels[0], 1) == 0, "a part on top shows through the head");
+    eye.onTop = false;
+    auto hidden = projectFace(image.data(), 8, 8, 1, {head, eye});
+    check(hidden && channel(hidden->pixels[0], 1) == 255, "without it the head hides it");
+    // Halving takes each texel's mean: a 16-wide face of alternating red and blue is purple, not red.
+    std::vector<std::uint32_t> stripes(16 * 2);
+    for (int i = 0; i < 32; ++i) stripes[static_cast<size_t>(i)] = i % 2 ? packColor(0, 0, 200) : packColor(200, 0, 0);
+    auto halved = reduceFace(stripes, 16, 2, 1);
+    check(halved && halved->width == 8 && channel(halved->pixels[0], 0) == 100 && channel(halved->pixels[0], 2) == 100,
+          "a face wider than 15 is halved by averaging, so thin features stay");
     check(faceRecipe("minecraft:squid").parts == std::vector<std::string_view>{"body"} && !faceRecipe("minecraft:squid").children,
           "a squid's face is its body alone");
-    check(faceRecipe("minecraft:parrot").view == FaceView::Side && faceRecipe("minecraft:cod").view == FaceView::Side
-              && faceRecipe("minecraft:pig").view == FaceView::Front && faceRecipe("minecraft:llama").crop,
-          "fish and parrots are seen from the side, long necks cut");
+    check(faceRecipe("minecraft:parrot").yaw == 90 && faceRecipe("minecraft:cod").yaw == 90 && faceRecipe("minecraft:horse").yaw == 90
+              && faceRecipe("minecraft:pig").yaw == 0 && faceRecipe("minecraft:llama").rows == 10,
+          "kinds with eyes on their sides are seen from the side, long necks cut");
+    check(faceRecipe("minecraft:armor_stand").parts.empty() && !faceRecipe("minecraft:snow_golem").image.empty()
+              && !drawnPart(faceRecipe("minecraft:guardian"), "spikepart3") && drawnOnTop(faceRecipe("minecraft:guardian"), "eye"),
+          "an armor stand stays a dot, a snow golem shows its pumpkin, a guardian its eye without spikes");
+    check(variantTexture("minecraft:horse", 3) == "textures/entity/horse2/horse_brown" && variantTexture("minecraft:horse", 7).empty()
+              && variantTexture("minecraft:horse", -1).empty() && variantTexture("minecraft:pig", 0).empty(),
+          "a horse's coat follows its variant; out of range or a kind without, the default skin");
     auto horse = faceRecipe("minecraft:horse"), pig = faceRecipe("minecraft:pig");
     check(!drawnPart(horse, "muleearl") && drawnPart(horse, "earl") && !drawnPart(faceRecipe("minecraft:donkey"), "earl"),
           "a horse leaves out the mule's ears, a donkey the horse's");
@@ -384,7 +409,7 @@ void playerHeads() {
     auto fine = skin(256, 256);
     paint(fine, 256, 32, 32, 50, 255);
     auto hd = playerHead(fine.data(), 256, 256);
-    check(hd && hd->width == 16 && channel(hd->pixels[0], 0) == 50, "a 256-pixel skin shrinks its 32-texel head to 16");
+    check(hd && hd->width == 8 && channel(hd->pixels[0], 0) == 50, "a 256-pixel skin shrinks its 32-texel head to the classic 8");
     check(!playerHead(skin(64, 64).data(), 64, 64), "a clear head is no head");
     check(!playerHead(classic.data(), 48, 64) && !playerHead(classic.data(), 64, 48) && !playerHead(nullptr, 64, 64),
           "other layouts have no head");

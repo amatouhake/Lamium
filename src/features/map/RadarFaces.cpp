@@ -94,7 +94,8 @@ void addPart(ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelB
     std::vector<Turn> const turns = partTurns(part);
     for (auto const& cube : *part.mCubes) {
         auto const origin = *cube.mOrigin, size = *cube.mSize;
-        ModelBox box{{origin.x, origin.y, origin.z}, {origin.x + size.x, origin.y + size.y, origin.z + size.z}, cube.mMirrored, {}, {}};
+        ModelBox box{{origin.x, origin.y, origin.z}, {origin.x + size.x, origin.y + size.y, origin.z + size.z}, cube.mMirrored, {}, {},
+                     drawnOnTop(recipe, part.mName->getString())};
         for (int side = 0; side < 6; ++side) {
             auto const& face = (*cube.mFaceData)[static_cast<size_t>(side)];
             box.faces[side] = {face.mUV->x, face.mUV->y, face.mUVSize->x, face.mUVSize->y, face.mFaceValid};
@@ -120,16 +121,17 @@ struct ModelBoxes {
     std::vector<ModelBox> boxes;
     float textureWidth = 0;
 };
-// A renderer holds its adult's and its baby's geometry (or variants): of the parts with a wanted name, the
-// largest is the adult's.
+// A renderer holds its adult's and its baby's geometry, or its variants' (a cow's per climate): of the parts
+// with a wanted name, the first near the largest, so the adult's, and of variants the default skin's.
 std::optional<ModelBoxes> modelBoxes(Model const& model, FaceRecipe const& recipe) {
     ModelBoxes out;
     for (auto name : recipe.parts) {
-        ModelPart const* best = nullptr;
-        double bestVolume = -1;
+        double largest = 0;
         for (auto const* part : *model.mAllParts)
-            if (part && part->mName->getString() == name)
-                if (double const v = partVolume(*part); v > bestVolume) best = part, bestVolume = v;
+            if (part && part->mName->getString() == name) largest = std::max(largest, partVolume(*part));
+        ModelPart const* best = nullptr;
+        for (auto const* part : *model.mAllParts)
+            if (part && part->mName->getString() == name && partVolume(*part) >= largest * .75) { best = part; break; }
         if (!best) continue;
         if (out.textureWidth <= 0) out.textureWidth = best->mTexSize->x;
         addPart(*best, recipe, out.boxes, 0);
@@ -144,27 +146,41 @@ std::string faceTexture(DataDrivenRenderer& dataDriven, std::string const& rende
             texture = location->mPath->value;
     return texture;
 }
-std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven, std::string const& renderer) {
+// A picture used whole (FaceRecipe::image), at eight texels a side as a head.
+std::optional<Face> pictureFace(IClientInstance& client, std::string_view path) {
+    auto image = visuals::readPackImage(client.getResourcePackManager(), std::string(path));
+    if (!image || image->width <= 0 || image->height <= 0) return std::nullopt;
+    std::vector<std::uint32_t> full(static_cast<size_t>(image->width) * image->height);
+    for (size_t i = 0; i < full.size(); ++i) {
+        auto const* p = &image->rgba[i * 4];
+        full[i] = p[3] ? packColor(p[0], p[1], p[2]) : 0;
+    }
+    return reduceFace(full, image->width, image->height, image->width / 8.0);
+}
+// `variant`: the texture the mob's variant picks (variantTexture), or empty for the kind's own.
+std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven, std::string const& renderer,
+                         std::string const& variant = {}) {
+    FaceRecipe const recipe = faceRecipe(renderer);
+    if (!recipe.image.empty()) return pictureFace(client, recipe.image);
     auto model = dataDriven.mModel.get();
     if (!model) return std::nullopt;
-    FaceRecipe const recipe = faceRecipe(renderer);
     auto boxes = modelBoxes(*model, recipe);
     if (!boxes) return std::nullopt;
-    std::string texture = faceTexture(dataDriven, renderer);
+    std::string texture = variant.empty() ? faceTexture(dataDriven, renderer) : variant;
     if (texture.empty()) return std::nullopt;
     auto image = visuals::readPackImage(client.getResourcePackManager(), texture);
     if (!image || image->width <= 0 || image->height <= 0) return std::nullopt;
     int width = image->width, height = image->height;
     // Textures may be finer than the model's texture units.
     double texels = boxes->textureWidth > 0 ? width / boxes->textureWidth : 1;
-    return projectFace(image->rgba.data(), width, height, texels, boxes->boxes, recipe.view, recipe.crop);
+    return projectFace(image->rgba.data(), width, height, texels, boxes->boxes, {recipe.yaw, recipe.pitch, recipe.rows, recipe.columns});
 }
-std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer) {
+std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer, std::string const& variant) {
     auto dispatcher = client.getEntityRenderDispatcher();
     if (!dispatcher) return std::nullopt;
     auto dataDriven = dispatcher->getDataDrivenRenderer(actor.getActorRendererId());
     if (!dataDriven) return std::nullopt;
-    return load(client, *dataDriven, renderer);
+    return load(client, *dataDriven, renderer, variant);
 }
 #ifdef LAMIUM_RADAR_ICON_PROBE
 void writeBmp(std::string const& name, std::uint32_t const* px, int width, int height) {
@@ -272,6 +288,11 @@ void sweepAll(IClientInstance& client) {
                 text += std::format("  face {}x{} in cell {}\n", face->width, face->height, faces.size());
                 faces.push_back(std::move(*face));
             } else text += "  no face\n";
+            for (int v = 1; !variantTexture(name, v).empty(); ++v)
+                if (auto face = load(client, *renderer, name, variantTexture(name, v))) {
+                    text += std::format("  variant {} face {}x{} in cell {}\n", v, face->width, face->height, faces.size());
+                    faces.push_back(std::move(*face));
+                }
         } catch (...) { text += "  failed\n"; }
     }
     try { std::ofstream(Runtime::instance().self().getModDir() / "logs" / "radar-sweep.txt") << text; } catch (...) {}
@@ -314,13 +335,16 @@ int add(std::optional<Face> face, std::string const& name) {
 int faceOf(IClientInstance& client, Actor& actor) {
     std::string renderer = actor.getActorRendererId().getString();
     if (renderer.empty()) return -1;
-    if (auto at = byRenderer.find(renderer); at != byRenderer.end()) return at->second;
+    // A kind whose look follows the mob's variant (a horse's coat) has a face per variant.
+    std::string variant = variantTexture(renderer, 0).empty() ? std::string() : variantTexture(renderer, actor.getVariant());
+    std::string key = variant.empty() ? renderer : renderer + "#" + variant;
+    if (auto at = byRenderer.find(key); at != byRenderer.end()) return at->second;
     if (loadsLeft <= 0) return -1;
     --loadsLeft;
     int index = -1;
-    try { index = add(load(client, actor, renderer), renderer); } catch (...) {}
-    if (index < 0) log(std::format("no face for {}; it stays a dot", renderer));
-    byRenderer.emplace(std::move(renderer), index);
+    try { index = add(load(client, actor, renderer, variant), key); } catch (...) {}
+    if (index < 0) log(std::format("no face for {}; it stays a dot", key));
+    byRenderer.emplace(std::move(key), index);
     return index;
 }
 int headOf(Actor& actor) {
