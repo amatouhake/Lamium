@@ -338,6 +338,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Refactor
 
+- [L-407](backlog/done/L-407.md) Two small leftovers from the 2026-11-24 architecture review
 - [L-401](backlog/done/L-401.md) Per-frame work apart from the HUD's drawing
 - [L-388](backlog/done/L-388.md) One craft run for making a plan's steps and Mass Craft
 - [L-347](backlog/done/L-347.md) One place for passing notices, and the last UI leftovers

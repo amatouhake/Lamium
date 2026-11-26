@@ -235,7 +235,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-404](backlog/L-404.md) Keep the includes between source areas from growing (Refactor): Open; the check is not agreed
 - [L-405](backlog/L-405.md) Client pointers kept across frames: change the rule or the code (Refactor): Open; the choice is not made
 - [L-406](backlog/L-406.md) Edge Guard reads the client's player while guarding the local server's copy (Research): Open; read in the code only, never seen to go wrong
-- [L-407](backlog/L-407.md) Two small leftovers from the 2026-11-24 architecture review (Refactor): Open
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)
 
 ## Later / parked
