@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout drag lag: the editor's hatching (2026-11-26)
+
+`fa0c66d7` through `c056bca2` with `hud_editor_trace`, 1.26.60.05 Dev, the
+maintainer dragging in HUD layout, numbers from the log:
+- Seen: the editor ran at 18-35 fps while dragging. The game's pointer is
+  fresh every frame. drawHud's two passes took about 5 ms. The tags and
+  frames stretch took 24-40 ms; with 3 switched-off elements, their 1677
+  hatch squares alone took 20 ms (about 12 us per fillRectangle, batched or
+  not). Batching the dashes through fills() (`7f9c45ad`) changed nothing.
+  Drawing fills() as tinted quads on `textures/ui/white` (`c056bca2`): the
+  hatching 0.26 ms, render about 5 ms, about 85 fps, as in play; the
+  hatching, dashes, anchor dots and legend look as before.
+- Remarks: an Alt drag felt the same as a plain one; the world map's drag
+  felt alike before the fix (not rechecked after).
+
 ## The doll and a wide chat at any scale, Alt held per drag (L-384, 2026-11-26)
 
 `2bbe661d` (DLL
