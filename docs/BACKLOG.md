@@ -172,6 +172,8 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Bugs
 
+- [L-409](backlog/L-409.md) The item list leaves an empty dark strip at the screen's edge (Design): Open; the cause read in the code, the strip's place to be chosen (maintainer 2026-11-26)
+- [L-410](backlog/L-410.md) Sneak Placement "Send only" lets the client open a door the server keeps shut (Research): Open; read in the code only, not reproduced on purpose (maintainer's report 2026-11-26)
 - [L-358](backlog/L-358.md) Realms joined through a friend share one data set (Research): Built with L-365; a server join reads the cookie without a crash (2026-11-19); no Realm checked, the released log line is the check
 - [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; every question and answer checked on a local BDS (2026-11-19); a Realm not seen
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
