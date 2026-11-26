@@ -172,10 +172,12 @@ inline float anchorOrigin(float screen, float size, float factor) { return (scre
 // One axis of placeElement: inside the screen, unless the offset points out
 // past the edge the element is held by; then it may stay out (L-384), all
 // but hudKeepVisible of it. So an element moved in by a smaller window still
-// comes back in, and one put past the edge stays there.
+// comes back in, and one put past the edge stays there. One wider than the
+// screen (a 400 % element) is held by the middle when its overhangs are
+// alike, so it may stay out wherever it is held.
 inline float placeAxis(float origin, float offset, float size, float screen, float factor) {
     float const at = origin + offset;
-    if ((factor == 0 && offset < 0) || (factor == 1 && offset > 0)) return keepOnScreen(at, size, screen);
+    if (size > screen || (factor == 0 && offset < 0) || (factor == 1 && offset > 0)) return keepOnScreen(at, size, screen);
     return std::clamp(at, 0.f, std::max(0.f, screen - size));
 }
 // The anchor point stays put when the element grows; clamp to the screen.

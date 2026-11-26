@@ -118,7 +118,8 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false, b
     auto& tracker = inventory::game::ScreenTracker::getInstance();
     bool const container = tracker.current() && !inventory::game::TextInputTracker::getInstance().isEditing(tracker.currentView());
     ChordSet allowed;
-    auto const& inventoryPrefs = Runtime::instance().preferences().inventory;
+    auto const published = Runtime::instance().snapshot(); // as sync() reads the bindings
+    auto const& inventoryPrefs = published->inventory;
     InputState const state{currentLayers(gameplay, container, windowOpen, outside),
         CameraSessions::instance().blocksPerspective(), inventoryPrefs.recipes, inventoryPrefs.plan};
     for (size_t i = 0; i < allowed.size(); ++i)
