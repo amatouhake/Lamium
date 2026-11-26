@@ -5,6 +5,7 @@
 #include "features/map/SkinGeometry.h"
 #include "features/map/MapMarks.h"
 #include <cmath>
+#include <numbers>
 #include <format>
 void check(bool, char const*);
 namespace {
@@ -301,11 +302,64 @@ void radarFaces() {
     check(at(0, 0) == faceOutline && at(3, 4) == faceOutline && outlinedWidth(*face) == 4, "a one-texel black outline surrounds the face");
     check(faceTexelPixels(8, 24) == 3 && faceTexelPixels(11, 24) == 3 && faceTexelPixels(8, 2) == 1 && faceTexelPixels(0, 24) == 1,
           "texels take whole screen pixels, the same for taller faces, at least one");
-    check(faceTexelPixels(4, 24) == 4 && faceTexelPixels(2, 24) == 4, "tiny faces get bigger texels");
-    for (double target = 4; target <= 40; target += .5)
-        check(6 * faceTexelPixels(6, target) <= 8 * faceTexelPixels(8, target),
-              "a 6-texel face is never drawn larger than an 8-texel one");
-    check(faceTexelPixels(6, 24) == 4, "a 6-texel face still fills the target when it divides evenly");
+    check(faceTexelPixels(4, 24) == 3 && faceTexelPixels(2, 24) == 3 && faceTexelPixels(16, 24) == 3,
+          "every mob's texels are the same size, so outlines match and sizes follow the models (L-330)");
+}
+void modelFaces() {
+    using namespace lamium::map;
+    // An 8x8 image: red at (0..1, 0..1), green at (2..3, 0..1), blue at (4..5, 0..1), white at (6, 0), black (7, 0).
+    std::vector<std::uint8_t> image(8 * 8 * 4, 0);
+    auto paint = [&](int x, int y, std::uint8_t r, std::uint8_t g, std::uint8_t b) {
+        auto* p = &image[static_cast<size_t>((y * 8 + x) * 4)];
+        p[0] = r; p[1] = g; p[2] = b; p[3] = 255;
+    };
+    for (int y = 0; y < 2; ++y)
+        for (int x = 0; x < 2; ++x) paint(x, y, 255, 0, 0), paint(x + 2, y, 0, 255, 0), paint(x + 4, y, 0, 0, 255);
+    paint(6, 0, 255, 255, 255); paint(7, 0, 1, 1, 1);
+    auto box = [](FaceSide side, FaceRect rect) {
+        ModelBox b{{0, 0, 0}, {2, 2, 2}, false, {}, {}};
+        b.faces[side] = rect;
+        return b;
+    };
+    FaceRect const red{0, 0, 2, 2, true}, green{2, 0, 2, 2, true}, blue{4, 0, 2, 2, true};
+    auto front = projectFace(image.data(), 8, 8, 1, {box(sideNorth, green)}, FaceView::Front);
+    check(front && front->width == 2 && front->height == 2 && channel(front->pixels[0], 1) == 255, "a box's front is seen from the front");
+    check(!projectFace(image.data(), 8, 8, 1, {box(sideSouth, green)}, FaceView::Front), "a face turned away is not drawn");
+    auto pitched = box(sideUp, red);
+    pitched.faces[sideNorth] = green;
+    pitched.turns = {{{1, 1, 1}, {std::numbers::pi / 2, 0, 0}}};
+    auto down = projectFace(image.data(), 8, 8, 1, {pitched}, FaceView::Front);
+    check(down && channel(down->pixels[0], 0) == 255 && channel(down->pixels[0], 1) == 0,
+          "a part pitched down by +90° shows its top from the front (hoglin, goat)");
+    check(turned({0, 0, -1}, {{0, 0, 0}, {.8726646, 0, 0}}).y < 0, "a positive pitch lowers what is in front");
+    auto side = projectFace(image.data(), 8, 8, 1, {box(sideEast, blue)}, FaceView::Side);
+    check(side && channel(side->pixels[0], 2) == 255, "seen from the side, the +x face shows (fish, parrots)");
+    // A white then black row read left to right; mirrored, right to left.
+    ModelBox row{{0, 0, 0}, {2, 1, 1}, false, {}, {}};
+    row.faces[sideNorth] = {6, 0, 2, 1, true};
+    auto plain = projectFace(image.data(), 8, 8, 1, {row}, FaceView::Front);
+    row.mirrored = true;
+    auto mirrored = projectFace(image.data(), 8, 8, 1, {row}, FaceView::Front);
+    check(plain && mirrored && channel(plain->pixels[0], 0) == 255 && channel(mirrored->pixels[0], 0) == 1,
+          "a mirrored box reads its face right to left");
+    ModelBox tall{{0, 0, 0}, {2, 10, 1}, false, {}, {}};
+    tall.faces[sideNorth] = {0, 0, 2, 2, true};
+    auto neck = projectFace(image.data(), 8, 8, 1, {tall}, FaceView::Front, true);
+    auto whole = projectFace(image.data(), 8, 8, 1, {tall}, FaceView::Front);
+    check(neck && whole && neck->height == 4 && whole->height == 10, "a long neck is cut two rows below its width");
+    check(faceRecipe("minecraft:squid").parts == std::vector<std::string_view>{"body"} && !faceRecipe("minecraft:squid").children,
+          "a squid's face is its body alone");
+    check(faceRecipe("minecraft:parrot").view == FaceView::Side && faceRecipe("minecraft:cod").view == FaceView::Side
+              && faceRecipe("minecraft:pig").view == FaceView::Front && faceRecipe("minecraft:llama").crop,
+          "fish and parrots are seen from the side, long necks cut");
+    auto horse = faceRecipe("minecraft:horse"), pig = faceRecipe("minecraft:pig");
+    check(!drawnPart(horse, "muleearl") && drawnPart(horse, "earl") && !drawnPart(faceRecipe("minecraft:donkey"), "earl"),
+          "a horse leaves out the mule's ears, a donkey the horse's");
+    check(!drawnPart(pig, "bridle") && !drawnPart(pig, "bitl") && !drawnPart(pig, "reinsl") && drawnPart(pig, "head") && drawnPart(pig, "rabbit"),
+          "tack is left out");
+    check(baseTexture("minecraft:skeleton_horse") == "textures/entity/horse2/horse_skeleton"
+              && baseTexture("minecraft:fox") == "textures/entity/fox/fox",
+          "kinds whose default skin is an overlay or a baby's use their own texture");
 }
 void playerHeads() {
     auto skin = [](int width, int height) { return std::vector<std::uint8_t>(static_cast<size_t>(width) * height * 4, 0); };
@@ -398,6 +452,7 @@ void skinGeometry() {
 }
 void worldMapTests() {
     radarFaces();
+    modelFaces();
     playerHeads();
     skinGeometry();
     seedLinks();

@@ -30,6 +30,7 @@
 #include "mc/world/actor/player/AnimatedImageData.h"
 #include "mc/world/actor/player/persona/AnimatedTextureType.h"
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <fstream>
 #include <string>
@@ -68,38 +69,73 @@ void log(std::string const& text) {
     if (++logged > 12) return;
     try { Runtime::instance().self().getLogger().info("Radar faces: {}", text); } catch (...) {}
 }
-// The head seen from the front: the front face (index 2) of every cube of
-// the model's "head" part and of the parts hanging from it (nose, ears,
-// muzzle), worn layers left out. Cube origins are model coordinates, y up
-// (checked in game 2026-10-02: reading them as part-relative and y down
-// turned the pig's face over and scattered villagers' noses).
-struct HeadBoxes {
-    std::vector<FaceBox> boxes;
-    float textureWidth = 0, textureHeight = 0;
-};
-void addPart(ModelPart const& part, HeadBoxes& out, int depth) {
-    if (depth > 4 || !faceLayer(part.mName->getString())) return;
-    for (auto const& cube : *part.mCubes) {
-        auto const& face = (*cube.mFaceData)[2];
-        auto origin = *cube.mOrigin, size = *cube.mSize;
-        if (!face.mFaceValid || !(size.x > 0) || !(size.y > 0)) continue;
-        out.boxes.push_back({origin.x, origin.y, origin.x + size.x, origin.y + size.y, origin.z, face.mUV->x, face.mUV->y,
-                             face.mUVSize->x, face.mUVSize->y});
-    }
-    for (auto const* child : *part.mChildren)
-        if (child) addPart(*child, out, depth + 1);
+// The parts a kind's face is seen from (faceRecipe), as boxes with all six
+// faces and the turns that place them. Cube origins and pivots are model
+// coordinates, y up (checked in game 2026-10-02). A part keeps its pivot as
+// its offset from its parent's, y the other way, and a root's from y 24
+// (matched against the game's model files 2026-11-26, L-330).
+Vec3d pivotOf(ModelPart const& part, int depth = 0) {
+    auto const& pos = *part.mPos;
+    if (!part.mParent || depth > 16) return {pos.x, 24 - pos.y, pos.z};
+    Vec3d const parent = pivotOf(*part.mParent, depth + 1);
+    return {parent.x + pos.x, parent.y - pos.y, parent.z + pos.z};
 }
-std::optional<HeadBoxes> headBoxes(Model const& model) {
-    for (auto const* part : *model.mAllParts) {
-        if (!part || part->mName->getString() != "head") continue;
-        HeadBoxes head;
-        auto size = *part->mTexSize;
-        head.textureWidth = size.x;
-        head.textureHeight = size.y;
-        addPart(*part, head, 0);
-        if (!head.boxes.empty()) return head;
+std::vector<Turn> partTurns(ModelPart const& part) {
+    std::vector<Turn> turns;
+    int depth = 0;
+    for (ModelPart const* at = &part; at && depth < 16; at = at->mParent, ++depth) {
+        auto const& rot = *at->mRot;
+        if (rot.x != 0 || rot.y != 0 || rot.z != 0) turns.push_back({pivotOf(*at), {rot.x, rot.y, rot.z}});
     }
-    return std::nullopt;
+    return turns;
+}
+void addPart(ModelPart const& part, FaceRecipe const& recipe, std::vector<ModelBox>& out, int depth) {
+    if (depth > 4 || !drawnPart(recipe, part.mName->getString())) return;
+    std::vector<Turn> const turns = partTurns(part);
+    for (auto const& cube : *part.mCubes) {
+        auto const origin = *cube.mOrigin, size = *cube.mSize;
+        ModelBox box{{origin.x, origin.y, origin.z}, {origin.x + size.x, origin.y + size.y, origin.z + size.z}, cube.mMirrored, {}, {}};
+        for (int side = 0; side < 6; ++side) {
+            auto const& face = (*cube.mFaceData)[static_cast<size_t>(side)];
+            box.faces[side] = {face.mUV->x, face.mUV->y, face.mUVSize->x, face.mUVSize->y, face.mFaceValid};
+        }
+        auto const& rot = *cube.mRotation;
+        if (rot.x != 0 || rot.y != 0 || rot.z != 0) box.turns.push_back({{cube.mCubePivot->x, cube.mCubePivot->y, cube.mCubePivot->z}, {rot.x, rot.y, rot.z}});
+        box.turns.insert(box.turns.end(), turns.begin(), turns.end());
+        out.push_back(std::move(box));
+    }
+    if (recipe.children)
+        for (auto const* child : *part.mChildren)
+            if (child) addPart(*child, recipe, out, depth + 1);
+}
+double partVolume(ModelPart const& part, int depth = 0) {
+    double volume = 0;
+    for (auto const& cube : *part.mCubes) volume += std::abs(cube.mSize->x * cube.mSize->y * cube.mSize->z);
+    if (depth < 4)
+        for (auto const* child : *part.mChildren)
+            if (child) volume += partVolume(*child, depth + 1);
+    return volume;
+}
+struct ModelBoxes {
+    std::vector<ModelBox> boxes;
+    float textureWidth = 0;
+};
+// A renderer holds its adult's and its baby's geometry (or variants): of the parts with a wanted name, the
+// largest is the adult's.
+std::optional<ModelBoxes> modelBoxes(Model const& model, FaceRecipe const& recipe) {
+    ModelBoxes out;
+    for (auto name : recipe.parts) {
+        ModelPart const* best = nullptr;
+        double bestVolume = -1;
+        for (auto const* part : *model.mAllParts)
+            if (part && part->mName->getString() == name)
+                if (double const v = partVolume(*part); v > bestVolume) best = part, bestVolume = v;
+        if (!best) continue;
+        if (out.textureWidth <= 0) out.textureWidth = best->mTexSize->x;
+        addPart(*best, recipe, out.boxes, 0);
+    }
+    if (out.boxes.empty()) return std::nullopt;
+    return out;
 }
 std::string faceTexture(DataDrivenRenderer& dataDriven, std::string const& renderer) {
     std::string texture(baseTexture(renderer));
@@ -111,16 +147,17 @@ std::string faceTexture(DataDrivenRenderer& dataDriven, std::string const& rende
 std::optional<Face> load(IClientInstance& client, DataDrivenRenderer& dataDriven, std::string const& renderer) {
     auto model = dataDriven.mModel.get();
     if (!model) return std::nullopt;
-    auto head = headBoxes(*model);
-    if (!head) return std::nullopt;
+    FaceRecipe const recipe = faceRecipe(renderer);
+    auto boxes = modelBoxes(*model, recipe);
+    if (!boxes) return std::nullopt;
     std::string texture = faceTexture(dataDriven, renderer);
     if (texture.empty()) return std::nullopt;
     auto image = visuals::readPackImage(client.getResourcePackManager(), texture);
     if (!image || image->width <= 0 || image->height <= 0) return std::nullopt;
     int width = image->width, height = image->height;
     // Textures may be finer than the model's texture units.
-    double texels = head->textureWidth > 0 ? width / head->textureWidth : 1;
-    return composeFace(image->rgba.data(), width, height, texels, std::move(head->boxes));
+    double texels = boxes->textureWidth > 0 ? width / boxes->textureWidth : 1;
+    return projectFace(image->rgba.data(), width, height, texels, boxes->boxes, recipe.view, recipe.crop);
 }
 std::optional<Face> load(IClientInstance& client, Actor& actor, std::string const& renderer) {
     auto dispatcher = client.getEntityRenderDispatcher();
