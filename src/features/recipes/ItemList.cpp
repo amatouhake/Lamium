@@ -14,6 +14,7 @@
 #include "features/recipes/CountEdit.h"
 #include "features/recipes/CreativeTake.h"
 #include "features/recipes/ItemKey.h"
+#include "features/recipes/ItemListInput.h"
 #include "features/recipes/ItemListLayout.h"
 #include "features/recipes/ItemSearch.h"
 #include "features/recipes/SlotHighlight.h"
@@ -112,21 +113,15 @@ std::string lastScreen; // the item screen drawn last
 std::mutex shownLock;
 struct Shown {
     std::chrono::steady_clock::time_point at{};
-    ItemListLayout list;
-    RecipeViewLayout view;
-    bool viewOpen = false;
+    // The list, the view, the plan's list and the favorites (which the wheel scrolls), the search row, the other
+    // panels and an open Notes window's span: the wheel over any of that is the window's, also at its left end
+    // where a group's picture stands (L-369).
+    item_input::Boxes boxes;
     float pointerX = -1, pointerY = -1;
     std::string hoverItem;          // the item under the pointer: in the list, the view or a slot of the game's
     std::vector<int> inventoryKeys; // the game's own key for the inventory, which stays the game's
-    ListBox field;                  // the search field
-    SideLayout side;                // the plan's list, which the wheel scrolls
     bool searchFocus = false;
     bool countFocus = false;        // a wanted item's count is being typed
-    std::vector<ListBox> bands;     // the other panels and the open container's line
-    ListBox favorites;              // the favorites' panel, which the wheel scrolls
-    // An open Notes window's span, wider than the recipe view's: the wheel over any of it is the window's, also
-    // at its left end where a group's picture stands (L-369).
-    ListBox window;
     bool hoverOurs = false; // the item under the pointer is in Lamium's lists or windows, not a slot of the game's
 } shown;
 struct Queued {
@@ -1070,12 +1065,13 @@ bool drawList(ll::event::UIRenderEvent& event) {
     {
         std::scoped_lock lock(shownLock);
         tipItem = hoverItem; // kept for the tooltip: what is shown takes the string
-        shown = {std::chrono::steady_clock::now(), layout, viewLayout, open, px, py, std::move(hoverItem), inventoryKeys, (recipesOn || windowButton || layoutButton) ? fieldArea : ListBox{}, side, searchFocus,
-                 countEdit::active(), bandBoxes, favoritesBox};
+        shown = {std::chrono::steady_clock::now(),
+                 {layout, viewLayout, open, side, (recipesOn || windowButton || layoutButton) ? fieldArea : ListBox{}, bandBoxes, favoritesBox},
+                 px, py, std::move(hoverItem), inventoryKeys, searchFocus, countEdit::active()};
         shown.hoverOurs = hoverOurs;
         if (planView::isOpen() && !view::isOpen()) {
             float const from = std::min(coverLeft, viewLayout.left), to = std::max(right, viewLayout.left + RecipeViewLayout::width);
-            shown.window = {from, viewLayout.top, to - from, viewLayout.height};
+            shown.boxes.window = {from, viewLayout.top, to - from, viewLayout.height};
         }
     }
     context.flushText(0, std::nullopt);
@@ -1209,18 +1205,20 @@ bool drawList(ll::event::UIRenderEvent& event) {
 bool wheel(int pages) {
     std::scoped_lock lock(shownLock);
     if (!fresh()) return false;
-    if (wantedHeld.load()) { queued.wantedTurns += pages; return true; }
-    if (shown.viewOpen && (shown.view.has(shown.pointerX, shown.pointerY) || shown.window.has(shown.pointerX, shown.pointerY))) queued.viewTurns += pages;
-    else if (shown.list.has(shown.pointerX, shown.pointerY)) queued.listTurns += pages;
-    else if (shown.side.has(shown.pointerX, shown.pointerY)) queued.sideTurns += pages;
-    else if (shown.favorites.has(shown.pointerX, shown.pointerY)) queued.favoriteTurns += pages;
-    else return shown.viewOpen; // an open view lies over the game's window: its slots must not scroll
-    return true;
+    switch (item_input::wheel(shown.boxes, wantedHeld.load(), shown.pointerX, shown.pointerY)) {
+    case item_input::Wheel::Wanted: queued.wantedTurns += pages; return true;
+    case item_input::Wheel::View: queued.viewTurns += pages; return true;
+    case item_input::Wheel::List: queued.listTurns += pages; return true;
+    case item_input::Wheel::Side: queued.sideTurns += pages; return true;
+    case item_input::Wheel::Favorites: queued.favoriteTurns += pages; return true;
+    case item_input::Wheel::Kept: return true; // an open view lies over the game's window: its slots must not scroll
+    case item_input::Wheel::Game: return false;
+    }
+    return false;
 }
 bool press(int button, bool left, bool right, bool down) {
     std::scoped_lock lock(shownLock);
-    bool const ours = fresh() && (shown.viewOpen || shown.list.has(shown.pointerX, shown.pointerY) || shown.field.has(shown.pointerX, shown.pointerY)
-        || std::any_of(shown.bands.begin(), shown.bands.end(), [](ListBox const& b) { return b.has(shown.pointerX, shown.pointerY); }));
+    bool const ours = fresh() && item_input::ownsPress(shown.boxes, shown.pointerX, shown.pointerY);
     if (!ours && down && fresh() && (shown.searchFocus || shown.countFocus)) queued.outside = true;
     if (!ours && down && left) gamePress = true;
     bool first = false;
@@ -1255,7 +1253,7 @@ bool key(int code, bool down) {
             queued.fieldKeys.push_back(code | (ctrlHeld ? 0x10000 : 0));
         return true;
     }
-    if (!keptKeys.decide(code, down, fresh() && shown.viewOpen, &first)) return false;
+    if (!keptKeys.decide(code, down, fresh() && shown.boxes.viewOpen, &first)) return false;
     // Esc and the game's inventory key close the view and leave the screen under it open: the key that
     // closes the inventory closes what is on top first.
     bool const games = std::find(shown.inventoryKeys.begin(), shown.inventoryKeys.end(), code) != shown.inventoryKeys.end();
@@ -1288,11 +1286,11 @@ bool type(std::string const& text) {
 }
 bool viewOpen() {
     std::scoped_lock lock(shownLock);
-    return fresh() && shown.viewOpen;
+    return fresh() && shown.boxes.viewOpen;
 }
 void back() {
     std::scoped_lock lock(shownLock);
-    if (fresh() && shown.viewOpen) queued.back = true;
+    if (fresh() && shown.boxes.viewOpen) queued.back = true;
 }
 namespace {
 std::string hovered() {

@@ -51,6 +51,8 @@ int main() try {
     craftRunTests();
     extern void takePressTests();
     takePressTests();
+    extern void itemListInputTests();
+    itemListInputTests();
     extern void sectionLayersTests();
     sectionLayersTests();
     extern void checkIgnoresTests();
