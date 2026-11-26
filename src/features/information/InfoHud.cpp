@@ -84,7 +84,10 @@
 #include "ui/Animations.h"
 #include "ui/HudLines.h"
 #include <algorithm>
+#include <array>
 #include <atomic>
+#include <chrono>
+#include <utility>
 #include <mutex>
 #include <cmath>
 #include <ctime>
@@ -1516,8 +1519,31 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
     context.flushText(0, std::nullopt);
     return ui::hud_editor::Box{at.x, at.y, boxWidth, boxHeight};
 }
+#ifdef LAMIUM_HUD_EDITOR_TRACE
+// Time per part of drawHud, summed until the HUD editor's trace takes it.
+namespace {
+std::array<double, hudTraceSections> traceMs{};
+std::chrono::steady_clock::time_point traceAt;
+int traceSection = 0;
+void traceStep(int next) {
+    auto now = std::chrono::steady_clock::now();
+    traceMs[static_cast<size_t>(traceSection)] += std::chrono::duration<double, std::milli>(now - traceAt).count();
+    traceAt = now;
+    traceSection = next;
+}
+}
+std::array<double, hudTraceSections> takeHudTrace() { return std::exchange(traceMs, {}); }
+#define HUD_TRACE(n) traceStep(n)
+#else
+#define HUD_TRACE(n)
+#endif
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, float height,
                               Settings::Information const& preferences, HudPreview const* preview) {
+#ifdef LAMIUM_HUD_EDITOR_TRACE
+    traceAt = std::chrono::steady_clock::now();
+    traceSection = 0;
+    struct TraceEnd { ~TraceEnd() { traceStep(0); } } traceEnd;
+#endif
     ui::hud_editor::Boxes boxes;
     auto box = [&](ui::HudElementId id) -> auto& { return boxes[static_cast<size_t>(id)]; };
     auto settings = preferences;
@@ -1608,12 +1634,14 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         return boxes;
     }
     // Drawn first so every other element sits on top of the map.
+    HUD_TRACE(1);
     if (skipped(ui::HudElementId::Minimap)) {}
     else if (preview || (runtime.map.minimap && !(settings.debug && runtime.map.debugHide))) {
         Fading fading{preview, ui::HudElementId::Minimap};
         box(ui::HudElementId::Minimap) = map::drawMinimap(context, width, height, hud.minimap, runtime.map, preview != nullptr, cardOpacity);
     }
     else if (!runtime.map.minimap) map::drawMinimap(context, width, height, hud.minimap, runtime.map, false);
+    HUD_TRACE(2);
     if (skipped(ui::HudElementId::Status)) {}
     // The element's switch hides all of it, the restriction lines included.
     else if (preview || runtime.ui.automationStatus) {
@@ -1659,6 +1687,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     // The player list shares the top center with the target card and is drawn
     // over everything (L-128); the card waits while the list is held.
     bool listHeld = !preview && playerList::held();
+    HUD_TRACE(3);
     auto drawList = [&] {
         Measuring measuring{preview, ui::HudElementId::PlayerList};
         Fading fading{preview, ui::HudElementId::PlayerList};
@@ -1697,6 +1726,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (cardTarget) box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, *cardTarget, settings, !preview);
         else if (!preview) cardMorph = {};
     }
+    HUD_TRACE(4);
     if (skipped(ui::HudElementId::Durability)) {}
     else if (preview || settings.durabilityHud) {
         Fading fading{preview, ui::HudElementId::Durability};
@@ -1708,6 +1738,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         box(ui::HudElementId::StatusEffects) = drawStatusEffects(context, width, height, hud.statusEffects, settings, preview != nullptr);
     }
     else statusEffects::covers(false);
+    HUD_TRACE(5);
     if (preview || settings.inventoryHud || settings.usedSlots) {
         if (auto sample = sampleInventory(context.mClient, preview != nullptr)) {
             if ((preview || settings.inventoryHud) && !skipped(ui::HudElementId::Inventory)) {
@@ -1720,12 +1751,14 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             }
         }
     }
+    HUD_TRACE(6);
     if (skipped(ui::HudElementId::Schematic)) {}
     else if (preview || (runtime.schematic.enabled && runtime.schematic.hud)) {
         Measuring measuring{preview, ui::HudElementId::Schematic};
         Fading fading{preview, ui::HudElementId::Schematic};
         box(ui::HudElementId::Schematic) = drawSchematicHud(context, width, height, hud.schematic, runtime.schematic, preview != nullptr);
     }
+    HUD_TRACE(7);
     if (skipped(ui::HudElementId::Magnification)) {}
     else if (preview || runtime.camera.showMagnification) {
         Measuring measuring{preview, ui::HudElementId::Magnification};
@@ -1788,6 +1821,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             context.flushText(0, std::nullopt);
         }
     }
+    HUD_TRACE(8);
     if (skipped(ui::HudElementId::Info) || (!preview && (!settings.hud || (settings.debug && settings.debugHideHud)))) { drawList(); return boxes; }
     PlayerInfoRequest request;
     request.coordinates = settings.coordinates || settings.scaledCoordinates || settings.block || settings.chunk

@@ -423,10 +423,13 @@ struct DragTrace {
     double renderSum = 0, renderMax = 0, gapSum = 0, gapMax = 0, lagSum = 0, lagMax = 0;
     int lagCount = 0;
     float lastX = -1, lastY = -1;
+    // Inside render: the settings copy, the two drawHud passes, drawHud's parts.
+    double prefs = 0, pass1 = 0, pass2 = 0;
+    std::array<double, information::hudTraceSections> sections{};
     void reset() { *this = DragTrace{}; }
     void frame(bool dragging, float px, float py, float w, float h, double renderMs) {
         auto now = Clock::now();
-        if (!dragging) { if (calls) flush(now); reset(); return; }
+        if (!dragging) { if (calls) flush(now); reset(); information::takeHudTrace(); return; }
         if (!calls) windowStart = now;
         else {
             double gap = std::chrono::duration<double, std::milli>(now - lastCall).count();
@@ -437,6 +440,8 @@ struct DragTrace {
         if (px != lastX || py != lastY) ++moved;
         lastX = px; lastY = py;
         renderSum += renderMs; renderMax = std::max(renderMax, renderMs);
+        auto parts = information::takeHudTrace();
+        for (size_t i = 0; i < parts.size(); ++i) sections[i] += parts[i];
         if (HWND window = GetForegroundWindow()) {
             POINT cursor;
             RECT client;
@@ -455,9 +460,22 @@ struct DragTrace {
             "game pointer behind OS cursor avg {:.2f} max {:.2f} units",
             calls, seconds, moved, renderSum / calls, renderMax, calls > 1 ? gapSum / (calls - 1) : 0., gapMax,
             lagCount ? lagSum / lagCount : 0., lagMax));
+        Runtime::instance().self().getLogger().info(std::format(
+            "HUD editor drag, avg ms: settings copy {:.2f}, drawHud pass 1 {:.2f}, pass 2 {:.2f}; parts: game {:.2f} minimap {:.2f} status {:.2f} "
+            "target {:.2f} durability/effects {:.2f} inventory {:.2f} schematic {:.2f} zoom/toast {:.2f} info/list {:.2f}",
+            prefs / calls, pass1 / calls, pass2 / calls, sections[0] / calls, sections[1] / calls, sections[2] / calls, sections[3] / calls,
+            sections[4] / calls, sections[5] / calls, sections[6] / calls, sections[7] / calls, sections[8] / calls));
     }
 };
 DragTrace dragTrace;
+struct TraceTimer {
+    double& into;
+    DragTrace::Clock::time_point start = DragTrace::Clock::now();
+    ~TraceTimer() { into += std::chrono::duration<double, std::milli>(DragTrace::Clock::now() - start).count(); }
+};
+#define HUD_EDITOR_TIME(field) TraceTimer traceTimer##field{dragTrace.field}
+#else
+#define HUD_EDITOR_TIME(field)
 #endif
 void renderFrame(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY);
 void render(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
@@ -474,7 +492,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
     screenW = width;
     screenH = height;
     controls.clear();
-    auto const value = Runtime::instance().preferences();
+    auto const value = [] { HUD_EDITOR_TIME(prefs); return Runtime::instance().preferences(); }();
     information::HudPreview preview{value.hud};
     // Game parts left Standard are not here at all (L-334).
     if (selected && !settings::hudInEditor(value, *selected)) select(std::nullopt);
@@ -551,7 +569,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
                     behind = *box;
         preview.hidden[static_cast<size_t>(*focus)] = true;
     }
-    auto boxes = information::drawHud(context, width, height, value.information, &preview);
+    auto boxes = [&] { HUD_EDITOR_TIME(pass1); return information::drawHud(context, width, height, value.information, &preview); }();
     // The elements' text first: what follows goes over it.
     context.flushText(0, std::nullopt);
     if (focus) {
@@ -559,7 +577,7 @@ void renderFrame(MinecraftUIRenderContext& context, float width, float height, f
         if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, palette::shade, .45f);
         preview.hidden.fill(true);
         preview.hidden[static_cast<size_t>(*focus)] = !settings::hudInEditor(value, *focus);
-        auto front = information::drawHud(context, width, height, value.information, &preview);
+        auto front = [&] { HUD_EDITOR_TIME(pass2); return information::drawHud(context, width, height, value.information, &preview); }();
         boxes[static_cast<size_t>(*focus)] = front[static_cast<size_t>(*focus)];
         context.flushText(0, std::nullopt);
     }

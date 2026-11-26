@@ -20,6 +20,13 @@ struct HudPreview {
     std::array<float, ui::hudElementCount> opacity = [] { std::array<float, ui::hudElementCount> all; all.fill(1); return all; }();
 };
 // Returns where each element was drawn this frame (for editor hit tests).
+#ifdef LAMIUM_HUD_EDITOR_TRACE
+#include <array>
+// Sections: game parts, minimap, status, target, durability and effects,
+// inventory, schematic, magnification and toast, info and player list.
+inline constexpr size_t hudTraceSections = 9;
+std::array<double, hudTraceSections> takeHudTrace();
+#endif
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext&, float width, float height, Settings::Information const&,
                               HudPreview const* preview = nullptr);
 // The offhand item beside the game's hotbar (L-75); `view` is the HUD view.
