@@ -95,9 +95,8 @@ portal screen added 2026-10-12 (L-148).
 - Settings: `Settings::Visuals` (`hideEffects` and the children); row
   `hideEffects` in `SettingsRows.h`; game dependencies in
   [GAME-UPDATES.md](GAME-UPDATES.md) under `HideEffects.cpp`.
-- `effects_trace` (xmake option, `EffectTrace.cpp`): opt-in, read-only
-  research trace for undiscovered routes (below). Ordinary builds contain no
-  trace hooks.
+- No trace build: the `effects_trace` research trace for undiscovered
+  routes was removed with L-403 (described below; git keeps it).
 
 ### Route rules the code keeps
 
@@ -206,9 +205,9 @@ frames (continued in L-79):
   `camera_renderer` draw every frame.
 - Next step is a texture-substitution test pack (L-79), not more hooks.
 
-The `effects_trace` build (`xmake f --effects_trace=y`, then build; reset
-with `--effects_trace=n` before an ordinary build; deploy only when the
-maintainer asks for a trace build) keeps that tooling:
+That tooling was the `effects_trace` build option, removed with L-403;
+git keeps it (`src/features/visuals/EffectTrace.cpp` and the option in
+`xmake.lua` at `89b8aabf`). What it did, for whoever restores it:
 
 - Gate comparison: with the gate closed it records every mesh, blit,
   tessellator and UI route key (stage, material, resource or texture

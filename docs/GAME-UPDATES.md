@@ -184,8 +184,14 @@ asks for them, with the mangled names from the linker. A granted function turns
 linking. `LAMIUM_MCAPI_PENDING` in `xmake.lua` holds back what still waits for
 one (L-305).
 
-Trace options are not built in CI. Of the existing ones only `transfer_trace`
-was built on 26.60 (L-305); build the one you need before relying on it.
+Trace options are not built in CI, and some do not link: with the kept
+`research_trace`, `restock_trace` and `edge_trace` on, 16 game symbols the
+SDK does not export are unresolved (2026-11-26). Build the one you need
+before relying on it. A trace leaves with its item (decided 2026-11-26,
+L-403): when an L-item closes, its build option, its Trace or Probe files,
+its `#if` guards and its inventory entries below are deleted in the same
+commit; git keeps them, and a later item that needs one restores it from
+there. `unverified_game` and `feature_skip` are standing tools, not traces.
 `spawn_area_trace` (issue #32, built on 26.60 2026-11-13) has no hook and so
 no inventory entry: it reads `LevelChunk::mSpawningAreas` and the storages of
 `LevelChunkVolumeData::mDataRegistry` for the chunks around the player, on the
