@@ -83,6 +83,12 @@ void schematicsRowsTests() {
     check(at(80, 205).target == CheckTarget::None && at(10, 212).target == CheckTarget::None, "a control's right and bottom edges are outside");
     check(at(320, 36).target == CheckTarget::Control && at(320, 36).index == 2, "a control below Ignore settings is still pressed");
 
+    auto layered = c;
+    layered.controls.insert(layered.controls.begin(), Box{0, 30, 130, 12});
+    layered.ignoreSettings = {100, 30, 40, 12};
+    check(checkPress(layered, 20, 35).target == CheckTarget::Chip, "a chip wins over a control under it");
+    check(checkPress(layered, 110, 35).target == CheckTarget::IgnoreSettings, "Ignore settings wins over a chip under it");
+
     auto view = c;
     view.ignoreView = true;
     view.controls.push_back({10, 30, 30, 10});
