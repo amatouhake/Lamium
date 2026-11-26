@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-410](backlog/done/L-410.md) Sneak Placement "Send only" lets the client open a door the server keeps shut
 - [L-409](backlog/done/L-409.md) The item list leaves an empty dark strip at the screen's edge
 - [L-394](backlog/done/L-394.md) Target card banner icon shows its color but not its patterns
 - [L-393](backlog/done/L-393.md) Target card icon loses the item's data (glint, dye, modded icons)

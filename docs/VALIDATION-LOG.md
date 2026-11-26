@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak Placement "Send only" at doors and switches, default build (2026-11-27)
+
+`dfd807ab` (DLL
+`5ff5183aee408a41cffaafef927979a20a39e4eb0861f31de99f18c0690aef4e`),
+1.26.60.05 Dev, a local world, the maintainer, from the checklist page:
+- Seen: in "Send only" a door clicked with a spawn egg or a block stays
+  shut and the block is placed; a trapdoor, fence gate, lever and button
+  clicked with an item do not move and do not part from the server;
+  placing on a chest, opening with an empty hand and "Crouch briefly" as
+  before; no crouch pose or slowing.
+- Not seen: a server.
+
 ## Sneak Placement "Send only" at a door with the move input's flags set (2026-11-27)
 
 `cf793f85` with `sneak_trace` (DLL
