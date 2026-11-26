@@ -1680,16 +1680,46 @@ void drawFileDetail(Body& b) {
     fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     drawButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,translated("schematic.openFolder"),over(ShapeZone::Action,1));
 }
-void drawCheckDetail(Body& b) {
+// The Check pane (L-399): what its top works out for the three states drawn
+// below it (one row, several, the ignore view). Built by checkPaneTop.
+struct CheckPane {
+    using IgnoreKind = schematic::IgnoreRow::Kind;
+    Body& b;
+    bool several;
+    schematic::IgnoreRow const* picked;
+    std::shared_ptr<schematic::Structure const> fileStructure;
+    std::string title;
+    float titleEnd;
+    bool editable;
+    schematic::Mismatch const* selected;
+    std::vector<schematic::Mismatch const*> chosenRows;
+    float pvTop, pvHeight, textTop, textEnd;
+    bool fits(float y) const { return y + 10 <= textEnd; }
+    bool pointed(float x, float top, float w, float h) const {
+        auto const pointer = b.pointer;
+        return pointer.x >= x && pointer.x < x + w && pointer.y >= top && pointer.y < top + h;
+    }
+    void drawPreview(std::vector<schematic::Point> const& cells, std::string const& block, bool kinds);
+    float lineButton(float right, float top, std::string text, IgnoreControlKind kind, std::vector<schematic::IgnoreEntry> entries);
+    // The action row's two slots, the left action and the one at the right
+    // edge, each widened for its text where the pane has room, never into
+    // the other (long labels such as "Stop ignoring this place").
+    struct Slots { float lx, lw, rx, rw; };
+    Slots actionSlots(std::string_view leftText, std::string_view rightText) const;
+    std::string distanceTo(schematic::Point p) const;
+    LineScroll scrollItems(std::string of, size_t count, float top, float bottom, float pitch);
+    void drawIgnoreView();
+    void drawSeveral();
+    void drawOneRow();
+};
+CheckPane checkPaneTop(Body& b) {
     auto& context = b.context;
     auto const& l = b.l;
     auto const pointer = b.pointer;
     float const dx = b.dx, dw = b.dw;
     auto const* checked = b.checked;
     auto const& loadProblem = b.loadProblem;
-    bool const unloadable = b.unloadable, checkOff = b.checkOff, counting = b.counting;
-    auto const& feet = b.feet;
-    if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); return; }
+    bool const unloadable = b.unloadable, checkOff = b.checkOff;
     // Several rows (L-190): the selection pane's count stands in for the
     // name; the preview stays (L-183) and the names go below it.
     bool const several = !ignoreView && checkRows.several();
@@ -1724,8 +1754,6 @@ void drawCheckDetail(Body& b) {
         if (!titleIcon.empty()) { drawItemIcon(context, titleIcon, dx, l.nameY + 1, 12); tx += 14; }
         label(context,tx,l.nameY+1+boxTextInset(),titleEnd-tx,title);
     }
-    auto const& t = verification->visible;
-    auto const& ignored = checked->ignored;
     // Rows from before a move point elsewhere (L-177): nothing is changed from them.
     bool const editable = !verification->stale;
     schematic::Mismatch const* selected = !several && verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())
@@ -1747,10 +1775,6 @@ void drawCheckDetail(Body& b) {
     }
     float pvTop = l.previewY - 2, pvHeight = previewHeight(l.actionsY - pvTop, itemLines, itemsBelow, 12);
     float textTop = pvTop + pvHeight + 5, textEnd = l.actionsY - 6;
-    auto fits = [&](float y) { return y + 10 <= textEnd; };
-    auto pointed = [&](float x, float top, float w, float h) {
-        return pointer.x >= x && pointer.x < x + w && pointer.y >= top && pointer.y < top + h;
-    };
     // The preview marks a set of cells (white, the rest dimmed): the
     // selected rows, or the block clicked in it; the other rows of the
     // shown kinds keep their kind's tint.
@@ -1763,248 +1787,275 @@ void drawCheckDetail(Body& b) {
     } else if (several) {
         for (auto const* m : chosenRows) if (!m->entity) focus.push_back(m->position);
     } else if (selected && !selected->entity) focus.push_back(selected->position);
-    auto drawPreview = [&](std::vector<schematic::Point> const& cells, std::string const& block, bool kinds) {
-        fill(context,dx,pvTop,dw,pvHeight,palette::shade,.25f);
-        frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
-        if (counting) { label(context,dx+4,pvTop+3,dw-8,translated("schematic.counting"),palette::dim); return; }
-        auto structure = schematic::session::structure(checked->file);
-        if (!structure) return;
-        auto marked = std::make_shared<std::set<std::tuple<int, int, int>>>();
-        std::uint64_t key = reinterpret_cast<std::uintptr_t>(verification.get()) * 31 + static_cast<std::uint64_t>(checkFilter) * 1000003
-            + (kinds ? 17 : 5);
-        auto mix = [&](std::uint64_t v) { key = (key ^ v) * 1099511628211ull; };
-        for (auto const& c : cells) {
-            marked->insert({c.x, c.y, c.z});
-            mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(c.x)) << 32 ^ static_cast<std::uint32_t>(c.z));
-            mix(static_cast<std::uint32_t>(c.y));
-        }
-        if (!cells.empty() || !block.empty()) {}
-        else if (!ignoreView && checkTurn.picked && checkTurn.pickedFile == checked->file) {
-            auto w = checkCellWorld(*checked, *checkTurn.picked);
-            marked->insert({w.x, w.y, w.z});
-            mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(w.x)) << 32 ^ static_cast<std::uint32_t>(w.z));
-            mix(static_cast<std::uint32_t>(w.y));
-        }
-        // A picked block type marks every cell holding it.
-        std::vector<bool> blockCells;
-        if (!block.empty()) {
-            blockCells.resize(structure->palette.size());
-            for (size_t i = 0; i < structure->palette.size(); ++i) blockCells[i] = structure->palette[i].name == block;
-            for (char ch : block) mix(static_cast<unsigned char>(ch));
-        }
-        static std::map<std::tuple<int, int, int>, schematic::CellState> states;
-        static std::uint64_t statesKey = 0;
-        if (key != statesKey) {
-            statesKey = key;
-            states.clear();
-            if (kinds)
-                for (auto const& m : verification->mismatches)
-                    if (!m.entity && verifyMatches(m) && schematic::liveMark(m, ignored) == schematic::IgnoreMark::None)
-                        states[{m.position.x, m.position.y, m.position.z}] = m.state;
-        }
-        bool const any = !marked->empty() || std::find(blockCells.begin(), blockCells.end(), true) != blockCells.end();
-        // Drawn as placed: a preview cell is the placement's corner plus the cell.
-        auto const shown = placedView(structure, checked->placement);
-        auto const origin = checked->placement.origin;
-        schematic::preview::Tint tint{key, [origin, shown, marked, blockCells, any](int x, int y, int z) -> std::uint32_t {
-            schematic::Point world{origin.x + x, origin.y + y, origin.z + z};
-            bool hit = marked->contains({world.x, world.y, world.z});
-            if (!hit && !blockCells.empty()) {
-                auto index = shown->blocks[static_cast<size_t>(shown->cell(x, y, z))];
-                hit = index != schematic::voidCell && static_cast<size_t>(index) < blockCells.size() && blockCells[static_cast<size_t>(index)];
-            }
-            if (any && hit) return 0xffffffffu;
-            auto found = states.find({world.x, world.y, world.z});
-            std::uint32_t color = 0xffffffffu;
-            if (found != states.end()) switch (found->second) {
-            case schematic::CellState::Missing: color = packed(palette::previewNotPlaced); break;
-            case schematic::CellState::Wrong: case schematic::CellState::Extra: color = packed(palette::previewMismatch); break;
-            case schematic::CellState::State: color = packed(palette::previewWrongState); break;
-            default: break;
-            }
-            if (!any) return color;
-            // Dim the rest to 45%.
-            auto dim = [&](int shift) { return ((((color >> shift) & 255) * 115 / 255) << shift); };
-            return dim(0) | dim(8) | dim(16) | 0xff000000u;
-        }};
-        auto& turn = checkTurn;
-        turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
-        if (turn.file != checked->file) startFile(turn, checked->file);
-        // Turned or mirrored since: the picked cell and the slice were the old shape's.
-        if (int key = schematic::quarterTurns(checked->placement.rotation) * 3 + static_cast<int>(checked->placement.mirror); key != turn.placedTurn) {
-            turn.placedTurn = key;
-            turn.picked.reset();
-            turn.peel = 0;
-        }
-        if (b.pointer.x >= turn.x && b.pointer.x < turn.x + turn.w && b.pointer.y >= turn.y && b.pointer.y < turn.y + turn.h)
-            b.fieldHelp = translated("schematic.previewHint");
-        float s = drawScale();
-        if (!schematic::preview::draw(context, shown, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
-                schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel}, &tint,
-                &checked->placement))
-            turn.w = 0;
-        else drawPreviewLabel(context, turn, dx, pvTop, dw, checked->placement.origin.y);
-    };
+    CheckPane p{b, several, picked, fileStructure, std::move(title), titleEnd, editable, selected, chosenRows,
+                pvTop, pvHeight, textTop, textEnd};
     if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
     else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
-    else drawPreview(focus, focusBlock, !ignoreView);
-    // A line's button sized by its text, ending at `right`; returns its left edge.
-    auto lineButton = [&](float right, float top, std::string text, IgnoreControlKind kind,
-                          std::vector<schematic::IgnoreEntry> entries) {
-        float w = textWidth(context, text) + 10, x = right - w;
-        drawButton(context,x,top,w,10,std::move(text),pointed(x,top,w,10));
-        ignoreControls.push_back({x, top, w, 10, kind, std::move(entries)});
-        return x;
-    };
-    // The action row's two slots, the left action and the one at the right
-    // edge, each widened for its text where the pane has room, never into
-    // the other (long labels such as "Stop ignoring this place").
-    struct Slots { float lx, lw, rx, rw; };
-    auto actionSlots = [&](std::string_view leftText, std::string_view rightText) {
-        float edge = l.detailLeft + l.detailWidth - ShapesLayout::pad, start = l.actionX(0), room = edge - start - 4;
-        float rw = std::min(std::max(ShapesLayout::deleteWidth, textWidth(context, rightText) + 10),
-                            std::max(ShapesLayout::deleteWidth, room - l.firstActionWidth));
-        float lw = std::max(l.firstActionWidth, std::min(textWidth(context, leftText) + 10, room - rw));
-        return Slots{start, lw, edge - rw, rw};
-    };
-    auto distanceTo = [&](schematic::Point p) {
-        double ddx = p.x + .5 - feet.x, ddy = p.y + .5 - feet.y, ddz = p.z + .5 - feet.z;
-        return translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(ddx * ddx + ddy * ddy + ddz * ddz))));
-    };
-    // Item lines that do not fit scroll under the wheel (the heading and
-    // the preview stay); `of` names what they list, and a new one starts
-    // at the top. The bar is the lists' own, at the pane's right edge.
-    auto scrollItems = [&](std::string of, size_t count, float top, float bottom, float pitch) {
-        if (of != itemScroll.of) { itemScroll.of = std::move(of); itemScroll.first = 0; }
-        itemScroll.drawn = true;
-        auto s = lineScroll(static_cast<int>(count), itemScroll.first, top, bottom, pitch, 10);
-        itemScroll.first = s.first;
-        itemScroll.count = s.count;
-        itemScroll.visible = s.visible;
-        if (s.overflows() && s.visible > 0) {
-            float track = s.visible * pitch, barX = dx + dw - 2;
-            itemScroll.x = dx; itemScroll.y = top - 1; itemScroll.w = dw; itemScroll.h = track;
-            auto const& bar = itemScroll.bar = rowScrollBar(barX, top - 1, track, s.count, s.visible, s.first, 6);
-            drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,screen::scrollHeld(&itemScroll.first) || bar.hit(pointer.x,pointer.y));
-        }
-        return s;
-    };
-    if (ignoreView) {
-        // A place's facts, or a block's items each ruled on every such
-        // block or given back; "pick one" with nothing picked.
-        float y = textTop;
-        auto measure = [&](std::string_view text) { return textWidth(context, text) + 10; };
-        if (!picked) paragraph(context,dx,y,dw,translated("schematic.ignore.pick"),3,palette::faint);
-        else if (picked->kind == IgnoreKind::Place) {
-            auto const& e = picked->entry;
-            if (fileStructure) {
-                auto w = schematic::toWorld(fileStructure->size, checked->placement, e.cell);
-                label(context,dx,y,dw,translated("schematic.check.here", std::format("{}, {}, {}", w.x, w.y, w.z)),palette::dim);
-                y += 12;
-            }
-            if (e.kind == schematic::IgnoreKind::CellItem) {
-                paragraph(context,dx,y,dw,translated("schematic.ignore.oldFormInfo",
-                    schematic::ghosts::itemName(e.item, e.block)),3,palette::faint);
-            } else if (picked->stale) paragraph(context,dx,y,dw,translated("schematic.ignore.placeStale"),3,palette::faint);
-            else {
-                if (auto const* m = rowAt(e)) {
-                    label(context,dx,y,dw,mismatchKind(m->state),mismatchColor(m->state));
-                    y += 12;
-                    if (!m->expectedName.empty() && fits(y)) {
-                        drawItemIcon(context, m->expected, dx, y - 2, 12);
-                        label(context,dx+14,y,dw-14,translated("schematic.expected", m->expectedName),palette::dim);
-                        y += 13;
-                    }
-                    if (!m->actualName.empty() && fits(y)) {
-                        drawItemIcon(context, m->actual, dx, y - 2, 12);
-                        label(context,dx+14,y,dw-14,translated("schematic.actual", m->actualName),palette::dim);
-                        y += 13;
-                    }
-                }
-                if (fits(y)) paragraph(context,dx,y,dw,translated("schematic.ignore.notCounted"),2,palette::faint);
-            }
-        } else if (picked->kind == IgnoreKind::StaleBlock) {
-            paragraph(context,dx,y,dw,translated("schematic.ignore.blockStale"),3,palette::faint);
-            y += 12.f * paragraphLines(context, dw, translated("schematic.ignore.blockStale"), 3) + 3;
-            std::vector<schematic::IgnoreEntry> rules;
-            for (auto const& item : picked->rules) rules.push_back(schematic::ruleEntry(picked->block, item));
-            if (fits(y)) lineButton(dx + dw, y - 1, translated("schematic.ignore.undo"), IgnoreControlKind::Remove, std::move(rules));
-        } else {
-            // Every item the check compares on this block, those ruled and
-            // those differing now included.
-            std::vector<std::string> items;
-            auto const& compared = comparedItemsOf(fileStructure);
-            if (auto found = compared.find(picked->block); found != compared.end()) items = found->second;
-            auto addItem = [&](std::string const& item) {
-                if (std::find(items.begin(), items.end(), item) == items.end()) items.push_back(item);
-            };
-            for (auto const& item : picked->rules) addItem(item);
+    else p.drawPreview(focus, focusBlock, !ignoreView);
+    return p;
+}
+void CheckPane::drawPreview(std::vector<schematic::Point> const& cells, std::string const& block, bool kinds) {
+    auto& context = b.context;
+    float const dx = b.dx, dw = b.dw;
+    auto const* checked = b.checked;
+    bool const counting = b.counting;
+    auto const& ignored = checked->ignored;
+    fill(context,dx,pvTop,dw,pvHeight,palette::shade,.25f);
+    frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
+    if (counting) { label(context,dx+4,pvTop+3,dw-8,translated("schematic.counting"),palette::dim); return; }
+    auto structure = schematic::session::structure(checked->file);
+    if (!structure) return;
+    auto marked = std::make_shared<std::set<std::tuple<int, int, int>>>();
+    std::uint64_t key = reinterpret_cast<std::uintptr_t>(verification.get()) * 31 + static_cast<std::uint64_t>(checkFilter) * 1000003
+        + (kinds ? 17 : 5);
+    auto mix = [&](std::uint64_t v) { key = (key ^ v) * 1099511628211ull; };
+    for (auto const& c : cells) {
+        marked->insert({c.x, c.y, c.z});
+        mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(c.x)) << 32 ^ static_cast<std::uint32_t>(c.z));
+        mix(static_cast<std::uint32_t>(c.y));
+    }
+    if (!cells.empty() || !block.empty()) {}
+    else if (!ignoreView && checkTurn.picked && checkTurn.pickedFile == checked->file) {
+        auto w = checkCellWorld(*checked, *checkTurn.picked);
+        marked->insert({w.x, w.y, w.z});
+        mix(static_cast<std::uint64_t>(static_cast<std::uint32_t>(w.x)) << 32 ^ static_cast<std::uint32_t>(w.z));
+        mix(static_cast<std::uint32_t>(w.y));
+    }
+    // A picked block type marks every cell holding it.
+    std::vector<bool> blockCells;
+    if (!block.empty()) {
+        blockCells.resize(structure->palette.size());
+        for (size_t i = 0; i < structure->palette.size(); ++i) blockCells[i] = structure->palette[i].name == block;
+        for (char ch : block) mix(static_cast<unsigned char>(ch));
+    }
+    static std::map<std::tuple<int, int, int>, schematic::CellState> states;
+    static std::uint64_t statesKey = 0;
+    if (key != statesKey) {
+        statesKey = key;
+        states.clear();
+        if (kinds)
             for (auto const& m : verification->mismatches)
-                if (m.state == schematic::CellState::State && m.fileBlock == picked->block)
-                    for (auto const& d : m.states) addItem(schematic::itemId(d));
-            label(context,dx,y,dw,translated("schematic.ignore.compared"),palette::faint);
+                if (!m.entity && verifyMatches(m) && schematic::liveMark(m, ignored) == schematic::IgnoreMark::None)
+                    states[{m.position.x, m.position.y, m.position.z}] = m.state;
+    }
+    bool const any = !marked->empty() || std::find(blockCells.begin(), blockCells.end(), true) != blockCells.end();
+    // Drawn as placed: a preview cell is the placement's corner plus the cell.
+    auto const shown = placedView(structure, checked->placement);
+    auto const origin = checked->placement.origin;
+    schematic::preview::Tint tint{key, [origin, shown, marked, blockCells, any](int x, int y, int z) -> std::uint32_t {
+        schematic::Point world{origin.x + x, origin.y + y, origin.z + z};
+        bool hit = marked->contains({world.x, world.y, world.z});
+        if (!hit && !blockCells.empty()) {
+            auto index = shown->blocks[static_cast<size_t>(shown->cell(x, y, z))];
+            hit = index != schematic::voidCell && static_cast<size_t>(index) < blockCells.size() && blockCells[static_cast<size_t>(index)];
+        }
+        if (any && hit) return 0xffffffffu;
+        auto found = states.find({world.x, world.y, world.z});
+        std::uint32_t color = 0xffffffffu;
+        if (found != states.end()) switch (found->second) {
+        case schematic::CellState::Missing: color = packed(palette::previewNotPlaced); break;
+        case schematic::CellState::Wrong: case schematic::CellState::Extra: color = packed(palette::previewMismatch); break;
+        case schematic::CellState::State: color = packed(palette::previewWrongState); break;
+        default: break;
+        }
+        if (!any) return color;
+        // Dim the rest to 45%.
+        auto dim = [&](int shift) { return ((((color >> shift) & 255) * 115 / 255) << shift); };
+        return dim(0) | dim(8) | dim(16) | 0xff000000u;
+    }};
+    auto& turn = checkTurn;
+    turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
+    if (turn.file != checked->file) startFile(turn, checked->file);
+    // Turned or mirrored since: the picked cell and the slice were the old shape's.
+    if (int key = schematic::quarterTurns(checked->placement.rotation) * 3 + static_cast<int>(checked->placement.mirror); key != turn.placedTurn) {
+        turn.placedTurn = key;
+        turn.picked.reset();
+        turn.peel = 0;
+    }
+    if (b.pointer.x >= turn.x && b.pointer.x < turn.x + turn.w && b.pointer.y >= turn.y && b.pointer.y < turn.y + turn.h)
+        b.fieldHelp = translated("schematic.previewHint");
+    float s = drawScale();
+    if (!schematic::preview::draw(context, shown, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
+            schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel}, &tint,
+            &checked->placement))
+        turn.w = 0;
+    else drawPreviewLabel(context, turn, dx, pvTop, dw, checked->placement.origin.y);
+}
+// A line's button sized by its text, ending at `right`; returns its left edge.
+float CheckPane::lineButton(float right, float top, std::string text, IgnoreControlKind kind,
+                            std::vector<schematic::IgnoreEntry> entries) {
+    auto& context = b.context;
+    float w = textWidth(context, text) + 10, x = right - w;
+    drawButton(context,x,top,w,10,std::move(text),pointed(x,top,w,10));
+    ignoreControls.push_back({x, top, w, 10, kind, std::move(entries)});
+    return x;
+}
+CheckPane::Slots CheckPane::actionSlots(std::string_view leftText, std::string_view rightText) const {
+    auto& context = b.context;
+    auto const& l = b.l;
+    float edge = l.detailLeft + l.detailWidth - ShapesLayout::pad, start = l.actionX(0), room = edge - start - 4;
+    float rw = std::min(std::max(ShapesLayout::deleteWidth, textWidth(context, rightText) + 10),
+                        std::max(ShapesLayout::deleteWidth, room - l.firstActionWidth));
+    float lw = std::max(l.firstActionWidth, std::min(textWidth(context, leftText) + 10, room - rw));
+    return Slots{start, lw, edge - rw, rw};
+}
+std::string CheckPane::distanceTo(schematic::Point p) const {
+    auto const& feet = b.feet;
+    double ddx = p.x + .5 - feet.x, ddy = p.y + .5 - feet.y, ddz = p.z + .5 - feet.z;
+    return translated("waypoint.meters", static_cast<int>(std::lround(std::sqrt(ddx * ddx + ddy * ddy + ddz * ddz))));
+}
+// Item lines that do not fit scroll under the wheel (the heading and
+// the preview stay); `of` names what they list, and a new one starts
+// at the top. The bar is the lists' own, at the pane's right edge.
+LineScroll CheckPane::scrollItems(std::string of, size_t count, float top, float bottom, float pitch) {
+    auto& context = b.context;
+    auto const pointer = b.pointer;
+    float const dx = b.dx, dw = b.dw;
+    if (of != itemScroll.of) { itemScroll.of = std::move(of); itemScroll.first = 0; }
+    itemScroll.drawn = true;
+    auto s = lineScroll(static_cast<int>(count), itemScroll.first, top, bottom, pitch, 10);
+    itemScroll.first = s.first;
+    itemScroll.count = s.count;
+    itemScroll.visible = s.visible;
+    if (s.overflows() && s.visible > 0) {
+        float track = s.visible * pitch, barX = dx + dw - 2;
+        itemScroll.x = dx; itemScroll.y = top - 1; itemScroll.w = dw; itemScroll.h = track;
+        auto const& bar = itemScroll.bar = rowScrollBar(barX, top - 1, track, s.count, s.visible, s.first, 6);
+        drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,screen::scrollHeld(&itemScroll.first) || bar.hit(pointer.x,pointer.y));
+    }
+    return s;
+}
+void CheckPane::drawIgnoreView() {
+    auto& context = b.context;
+    auto const& l = b.l;
+    float const dx = b.dx, dw = b.dw;
+    auto const* checked = b.checked;
+    auto const& ignored = checked->ignored;
+    // A place's facts, or a block's items each ruled on every such
+    // block or given back; "pick one" with nothing picked.
+    float y = textTop;
+    auto measure = [&](std::string_view text) { return textWidth(context, text) + 10; };
+    if (!picked) paragraph(context,dx,y,dw,translated("schematic.ignore.pick"),3,palette::faint);
+    else if (picked->kind == IgnoreKind::Place) {
+        auto const& e = picked->entry;
+        if (fileStructure) {
+            auto w = schematic::toWorld(fileStructure->size, checked->placement, e.cell);
+            label(context,dx,y,dw,translated("schematic.check.here", std::format("{}, {}, {}", w.x, w.y, w.z)),palette::dim);
             y += 12;
-            auto const scroll = scrollItems("b" + picked->block, items.size(), y, textEnd, 12);
-            float const edge = scroll.overflows() ? dx + dw - 1 - rowBarGutter : dx + dw;
-            for (int i = scroll.first; i < scroll.first + scroll.visible; ++i) {
-                auto const& item = items[static_cast<size_t>(i)];
-                bool const ruled = ignored.ruled(picked->block, item);
-                auto rule = schematic::ruleEntry(picked->block, item);
-                float right = edge;
-                if (ruled) right = lineButton(right, y - 1, translated("schematic.ignore.undo"), IgnoreControlKind::Remove, {rule});
-                else {
-                    std::string full = translated("schematic.ignore.onAll", title), brief = translated("schematic.ignore.onAllShort");
-                    right = lineButton(right, y - 1, fittingText(full, brief, dw * .45f, measure), IgnoreControlKind::Add, {rule});
-                }
-                right -= 4;
-                std::string name = schematic::ghosts::itemName(item, picked->block);
-                float nameW = std::min((right - dx) * .5f, textWidth(context, name) + 6);
-                label(context,dx,y,nameW-4,name,palette::dim);
-                auto differing = schematic::differingRows(verification->mismatches, picked->block, item);
-                if (ruled) label(context,dx+nameW,y,right-dx-nameW,translated("schematic.ignore.onAllActive", title),palette::dim);
-                else if (differing) label(context,dx+nameW,y,right-dx-nameW,translated("schematic.ignore.differAt", differing),palette::warning);
-                y += 12;
-            }
         }
-        // The action row: the picked place given back, and Undo all (two presses).
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        float const ay = l.actionsY + 2;
-        bool const placePicked = picked && picked->kind == IgnoreKind::Place;
-        std::string const unplace = translated("schematic.ignore.unplace"), undoAll = translated("schematic.ignore.undoAll"),
-                          undoConfirm = translated("confirm.undoAll");
-        auto slots = actionSlots(unplace, textWidth(context, undoAll) >= textWidth(context, undoConfirm) ? undoAll : undoConfirm);
-        float ux = slots.lx, uw = slots.lw;
-        drawButton(context,ux,ay,uw,12,unplace,placePicked && pointed(ux,ay,uw,12),ButtonKind::Plain,placePicked);
-        if (placePicked) ignoreControls.push_back({ux, ay, uw, 12, IgnoreControlKind::Remove, {picked->entry}});
-        float ax = slots.rx, aw = slots.rw;
-        if (ignored.empty()) drawButton(context,ax,ay,aw,12,undoAll,false,ButtonKind::Plain,false);
+        if (e.kind == schematic::IgnoreKind::CellItem) {
+            paragraph(context,dx,y,dw,translated("schematic.ignore.oldFormInfo",
+                schematic::ghosts::itemName(e.item, e.block)),3,palette::faint);
+        } else if (picked->stale) paragraph(context,dx,y,dw,translated("schematic.ignore.placeStale"),3,palette::faint);
         else {
-            drawDangerButton(context,ax,ay,aw,12,armedLabel(context,undoAll,undoConfirm,verifyUndoAllArmed,aw),pointed(ax,ay,aw,12),
-                verifyUndoAllArmed);
-            ignoreControls.push_back({ax, ay, aw, 12, IgnoreControlKind::UndoAll, {}});
+            if (auto const* m = rowAt(e)) {
+                label(context,dx,y,dw,mismatchKind(m->state),mismatchColor(m->state));
+                y += 12;
+                if (!m->expectedName.empty() && fits(y)) {
+                    drawItemIcon(context, m->expected, dx, y - 2, 12);
+                    label(context,dx+14,y,dw-14,translated("schematic.expected", m->expectedName),palette::dim);
+                    y += 13;
+                }
+                if (!m->actualName.empty() && fits(y)) {
+                    drawItemIcon(context, m->actual, dx, y - 2, 12);
+                    label(context,dx+14,y,dw-14,translated("schematic.actual", m->actualName),palette::dim);
+                    y += 13;
+                }
+            }
+            if (fits(y)) paragraph(context,dx,y,dw,translated("schematic.ignore.notCounted"),2,palette::faint);
         }
-        return;
-    }
-    if (several) {
-        // The names below the preview; Show in world, Ignore places, Stop
-        // ignoring. No item is ignored from several rows.
-        auto pane = l.selectionPane(static_cast<int>(chosenRows.size()), 0, textTop);
-        pane.countW = titleEnd - pane.x;
-        std::vector<SelectedName> names;
-        for (auto const* m : chosenRows) {
-            if (names.size() >= static_cast<size_t>(pane.fit.names)) break;
-            std::string name = m->state == schematic::CellState::Extra ? m->actualName : m->expectedName;
-            names.push_back({std::move(name), false, distanceTo(m->position), {}});
+    } else if (picked->kind == IgnoreKind::StaleBlock) {
+        paragraph(context,dx,y,dw,translated("schematic.ignore.blockStale"),3,palette::faint);
+        y += 12.f * paragraphLines(context, dw, translated("schematic.ignore.blockStale"), 3) + 3;
+        std::vector<schematic::IgnoreEntry> rules;
+        for (auto const& item : picked->rules) rules.push_back(schematic::ruleEntry(picked->block, item));
+        if (fits(y)) lineButton(dx + dw, y - 1, translated("schematic.ignore.undo"), IgnoreControlKind::Remove, std::move(rules));
+    } else {
+        // Every item the check compares on this block, those ruled and
+        // those differing now included.
+        std::vector<std::string> items;
+        auto const& compared = comparedItemsOf(fileStructure);
+        if (auto found = compared.find(picked->block); found != compared.end()) items = found->second;
+        auto addItem = [&](std::string const& item) {
+            if (std::find(items.begin(), items.end(), item) == items.end()) items.push_back(item);
+        };
+        for (auto const& item : picked->rules) addItem(item);
+        for (auto const& m : verification->mismatches)
+            if (m.state == schematic::CellState::State && m.fileBlock == picked->block)
+                for (auto const& d : m.states) addItem(schematic::itemId(d));
+        label(context,dx,y,dw,translated("schematic.ignore.compared"),palette::faint);
+        y += 12;
+        auto const scroll = scrollItems("b" + picked->block, items.size(), y, textEnd, 12);
+        float const edge = scroll.overflows() ? dx + dw - 1 - rowBarGutter : dx + dw;
+        for (int i = scroll.first; i < scroll.first + scroll.visible; ++i) {
+            auto const& item = items[static_cast<size_t>(i)];
+            bool const ruled = ignored.ruled(picked->block, item);
+            auto rule = schematic::ruleEntry(picked->block, item);
+            float right = edge;
+            if (ruled) right = lineButton(right, y - 1, translated("schematic.ignore.undo"), IgnoreControlKind::Remove, {rule});
+            else {
+                std::string full = translated("schematic.ignore.onAll", title), brief = translated("schematic.ignore.onAllShort");
+                right = lineButton(right, y - 1, fittingText(full, brief, dw * .45f, measure), IgnoreControlKind::Add, {rule});
+            }
+            right -= 4;
+            std::string name = schematic::ghosts::itemName(item, picked->block);
+            float nameW = std::min((right - dx) * .5f, textWidth(context, name) + 6);
+            label(context,dx,y,nameW-4,name,palette::dim);
+            auto differing = schematic::differingRows(verification->mismatches, picked->block, item);
+            if (ruled) label(context,dx+nameW,y,right-dx-nameW,translated("schematic.ignore.onAllActive", title),palette::dim);
+            else if (differing) label(context,dx+nameW,y,right-dx-nameW,translated("schematic.ignore.differAt", differing),palette::warning);
+            y += 12;
         }
-        // A button that would change nothing is disabled.
-        std::vector<bool> enabled{true, editable && !schematic::placesToAdd(chosenRows, ignored).empty(),
-                                  editable && !schematic::placesToRemove(chosenRows, ignored).empty()};
-        drawSelectionPane(context,pane,chosenRows.size(),names,[&](size_t i, float gx, float gy) {
-            drawKindSquare(context,gx-3,gy,mismatchColor(chosenRows[i]->state),schematic::liveMark(*chosenRows[i], ignored) != schematic::IgnoreMark::None);
-        },l.selecting,checkBulk,pointer.x,pointer.y,0,0,enabled);
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        return;
     }
+    // The action row: the picked place given back, and Undo all (two presses).
+    fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
+    float const ay = l.actionsY + 2;
+    bool const placePicked = picked && picked->kind == IgnoreKind::Place;
+    std::string const unplace = translated("schematic.ignore.unplace"), undoAll = translated("schematic.ignore.undoAll"),
+                      undoConfirm = translated("confirm.undoAll");
+    auto slots = actionSlots(unplace, textWidth(context, undoAll) >= textWidth(context, undoConfirm) ? undoAll : undoConfirm);
+    float ux = slots.lx, uw = slots.lw;
+    drawButton(context,ux,ay,uw,12,unplace,placePicked && pointed(ux,ay,uw,12),ButtonKind::Plain,placePicked);
+    if (placePicked) ignoreControls.push_back({ux, ay, uw, 12, IgnoreControlKind::Remove, {picked->entry}});
+    float ax = slots.rx, aw = slots.rw;
+    if (ignored.empty()) drawButton(context,ax,ay,aw,12,undoAll,false,ButtonKind::Plain,false);
+    else {
+        drawDangerButton(context,ax,ay,aw,12,armedLabel(context,undoAll,undoConfirm,verifyUndoAllArmed,aw),pointed(ax,ay,aw,12),
+            verifyUndoAllArmed);
+        ignoreControls.push_back({ax, ay, aw, 12, IgnoreControlKind::UndoAll, {}});
+    }
+}
+void CheckPane::drawSeveral() {
+    auto& context = b.context;
+    auto const& l = b.l;
+    auto const pointer = b.pointer;
+    auto const& ignored = b.checked->ignored;
+    // The names below the preview; Show in world, Ignore places, Stop
+    // ignoring. No item is ignored from several rows.
+    auto pane = l.selectionPane(static_cast<int>(chosenRows.size()), 0, textTop);
+    pane.countW = titleEnd - pane.x;
+    std::vector<SelectedName> names;
+    for (auto const* m : chosenRows) {
+        if (names.size() >= static_cast<size_t>(pane.fit.names)) break;
+        std::string name = m->state == schematic::CellState::Extra ? m->actualName : m->expectedName;
+        names.push_back({std::move(name), false, distanceTo(m->position), {}});
+    }
+    // A button that would change nothing is disabled.
+    std::vector<bool> enabled{true, editable && !schematic::placesToAdd(chosenRows, ignored).empty(),
+                              editable && !schematic::placesToRemove(chosenRows, ignored).empty()};
+    drawSelectionPane(context,pane,chosenRows.size(),names,[&](size_t i, float gx, float gy) {
+        drawKindSquare(context,gx-3,gy,mismatchColor(chosenRows[i]->state),schematic::liveMark(*chosenRows[i], ignored) != schematic::IgnoreMark::None);
+    },l.selecting,checkBulk,pointer.x,pointer.y,0,0,enabled);
+    fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
+}
+void CheckPane::drawOneRow() {
+    auto& context = b.context;
+    auto const& l = b.l;
+    float const dx = b.dx, dw = b.dw;
+    auto const* checked = b.checked;
+    bool const unloadable = b.unloadable, counting = b.counting;
+    auto const& t = verification->visible;
+    auto const& ignored = checked->ignored;
     // Counts on the left, the selected row on the right.
     float half = std::floor(dw * .42f), rx = dx + half + 8, rw = dw - half - 8;
     // What the counts cover spans the pane above both columns.
@@ -2150,6 +2201,17 @@ void drawCheckDetail(Body& b) {
             ignoreControls.push_back({px, ay, pw, 12, placeOn ? IgnoreControlKind::Remove : IgnoreControlKind::Add,
                                       {schematic::placeEntry(m.local, m.fileBlock)}});
     }
+}
+void drawCheckDetail(Body& b) {
+    auto& context = b.context;
+    auto const& l = b.l;
+    float const dx = b.dx, dw = b.dw;
+    auto const* checked = b.checked;
+    if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); return; }
+    auto p = checkPaneTop(b);
+    if (ignoreView) p.drawIgnoreView();
+    else if (p.several) p.drawSeveral();
+    else p.drawOneRow();
 }
 void drawMaterialsDetail(Body& b) {
     auto& context = b.context;
