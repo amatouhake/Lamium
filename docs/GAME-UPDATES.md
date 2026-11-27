@@ -519,8 +519,11 @@ Hooks: `ExtractSneakInput`, `SneakDimensionChange`
 Meaning: the sneak bit in the extracted input.
 
 ### `src/features/interaction/PlacementTrace.cpp`
-Hooks: `Calculate`, `TryPlace`
-Trace.
+Hooks: `Calculate`, `PlacementTraceGameModeUseOn`, `PlacementTraceSurvivalModeUseOn`, `PlacementTraceSend`
+Trace (`placement_trace`). L-265 lines: both sides of `useItemOn` (client
+and local server) with the actor's rotation and the blocks before and after,
+and the sent `PlayerAuthInputPacket` rotations and `InventoryTransactionPacket`
+item use fields around a use. Read only.
 
 ### `src/features/inventory/FakeOffhand.cpp`
 Hooks: `BuildAction`, `ReportUse`, `ReportOn`, `EquipmentEcho`, `HotbarEcho`, `ChangeDimension`

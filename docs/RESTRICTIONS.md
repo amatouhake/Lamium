@@ -126,10 +126,10 @@ Rules any placement gate must meet before it is connected:
   steps. They do not prove hook or placement behavior.
 - `xmake f --placement_trace=y` (then `xmake`; reset with `=n`):
   `features/interaction/PlacementTrace.cpp` logs entry/exit positions and
-  return values of `Item::calculatePlacePos` and
-  `Item::_sendTryPlaceBlockEvent` for the local player only, at most 200
-  calls per enable, with increasing IDs that pair entries and exits and show
-  nesting. The hooks call vanilla once and return its result. Normal builds
+  return values of `Item::calculatePlacePos` for the local player only, at
+  most 200 calls per enable, with increasing IDs that pair entries and exits
+  and show nesting (`_sendTryPlaceBlockEvent` is no longer exported on
+  26.60). L-265 lines are written by the same option. The hooks call vanilla once and return its result. Normal builds
   do not install them; never distribute a trace build.
 
 ## Known
