@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-372 game-key warning on item screens (2026-11-27)
+
+`589ca728` (DLL
+`d188ec0fd4e2364953d64952babe390091aa3fd1f61261f6c4cf44dba88b2f7e`),
+1.26.60.05 Dev, the maintainer:
+- Seen: Sort bound to E, Q or 3 shows warning caps and the tip's line for
+  the game's inventory, drop or hotbar key; a play-only action on E or Q
+  shows none; the settings screen's keys as usual.
+- Seen, wrong: the footer line after binding stayed when another row or
+  a sidebar page was chosen.
+- Asked: play actions should warn too, since the game uses E and Q in play.
+
 ## L-406 Edge Guard server copy from a snapshot (2026-11-27)
 
 `b8e035b1` (DLL

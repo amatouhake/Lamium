@@ -428,17 +428,33 @@ void bindingTests() {
         check(gameClick(Action::Zoom, {middle}) == GameClick::Pick && gameClick(Action::Sort, {middle}) == GameClick::None
               && gameClick(Action::Transfer, {right}) == GameClick::Use,
               "only an action that works in play is told it shares the game's click");
-        GameScreenKeys const game{{'E'}, {'Q'}, {'1', '2', '3', '4', '5', '6', '7', '8', '9'}};
-        Token const e{Device::Key, 'E'}, q{Device::Key, 'Q'}, three{Device::Key, '3'}, shift{Device::Key, 0x10};
-        check(gameScreenKey(Action::Sort, {e}, game) == GameScreenKey::Inventory
-              && gameScreenKey(Action::Sort, {shift, q}, game) == GameScreenKey::Drop
-              && gameScreenKey(Action::RecipeBack, {three}, game) == GameScreenKey::Hotbar,
+        auto index = [](std::string_view name) {
+            return static_cast<size_t>(std::find_if(gameKeys.begin(), gameKeys.end(), [&](GameKey k) { return k.name == name; }) - gameKeys.begin());
+        };
+        GameKeyCodes game{};
+        game[index("key.inventory")] = {'E'};
+        game[index("key.drop")] = {'Q'};
+        game[index("key.hotbar.3")] = {'3'};
+        game[index("key.sneak")] = {0x10};
+        game[index("key.chat")] = {'T', 0x0D};
+        Token const e{Device::Key, 'E'}, q{Device::Key, 'Q'}, three{Device::Key, '3'}, t{Device::Key, 'T'},
+            lshift{Device::Key, 0xA0}, ctrl{Device::Key, 0x11}, f{Device::Key, 'F'};
+        auto uses = [&](Action action, Chord const& chord, std::string_view name) {
+            auto use = gameKeyUse(action, chord, game);
+            return use && gameKeys[use->key].name == name;
+        };
+        check(uses(Action::Sort, {e}, "key.inventory") && uses(Action::Sort, {lshift, q}, "key.drop")
+              && uses(Action::RecipeBack, {three}, "key.hotbar.3"),
               "an item-screen or window binding on the game's inventory, drop or hotbar key is marked");
-        check(gameScreenKey(Action::Zoom, {e}, game) == GameScreenKey::None
-              && gameScreenKey(Action::Sort, {Token{Device::Key, 'R'}}, game) == GameScreenKey::None
-              && gameScreenKey(Action::Sort, {Token{Device::Mouse, 'E'}}, game) == GameScreenKey::None
-              && gameScreenKey(Action::Sort, {e}, GameScreenKeys{}) == GameScreenKey::None,
-              "play-only actions, other keys, mouse buttons and unread game keys are not marked");
+        check(uses(Action::Zoom, {e}, "key.inventory") && uses(Action::Zoom, {t}, "key.chat")
+              && gameKeyUse(Action::Zoom, {e}, game)->where == layer::gameplay,
+              "a play binding on a key the game uses in play is marked, in play");
+        check(uses(Action::Zoom, {lshift}, "key.sneak") && !gameKeyUse(Action::Zoom, {lshift, f}, game)
+              && !gameKeyUse(Action::Zoom, {ctrl, f}, game),
+              "a modifier counts bound alone, not inside a longer chord");
+        check(!gameKeyUse(Action::Sort, {t}, game) && !gameKeyUse(Action::Sort, {Token{Device::Key, 'R'}}, game)
+              && !gameKeyUse(Action::Sort, {Token{Device::Mouse, 'E'}}, game) && !gameKeyUse(Action::Sort, {e}, GameKeyCodes{}),
+              "play-only game keys on item screens, other keys, mouse buttons and unread game keys are not marked");
         Keys keys;
         keys.bind(shortA, {right});
         keys.bind(Action::DebugView, {alt, right});

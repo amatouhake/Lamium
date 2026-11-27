@@ -168,10 +168,14 @@ append-only action ids and default keys in `src/input/Binding.h`.
   per press, the top first: typing in the search field or a count (the
   inventory key types there), the bands' editor, the recipe view, the
   plan window, then the game's screen.
-- (Decided 2026-11-27) An item-screen binding on a key the game uses
-  there (its inventory and drop keys, the hotbar numbers) is warned
-  about like a conflict: warning caps, and the tip names the game's use.
-  The binding stays and Lamium takes the key first.
+- (Decided 2026-11-27) A binding on a key the game uses where the action
+  works is warned about like a conflict: warning caps, and the tip names
+  the game's action in the game's words. In play that is every key in the
+  game's keyboard controls (movement, jump, sneak, chat, ...); on an item
+  screen its inventory and drop keys and the hotbar numbers
+  (`input::gameKeys`). Shift, Ctrl or Alt count only bound alone, not
+  inside a longer chord. The binding stays and Lamium takes the key first.
+  The footer line after binding goes when another row or page is chosen.
 - (Decided 2026-11-23) Hotkeys has a place column before the key column:
   short names (Play, Screen, Window, Outside) for every action. The
   footer names the places in full, with on what and the condition.

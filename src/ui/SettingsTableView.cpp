@@ -1,5 +1,7 @@
 #include "ui/SettingsTableView.h"
 #include "ll/api/service/TargetedBedrock.h"
+#include "mc/locale/I18n.h"
+#include "mc/locale/Localization.h"
 #include "mc/client/input/KeyboardRemappingLayout.h"
 #include "mc/client/input/Keymapping.h"
 #include "mc/client/options/IOptionRegistry.h"
@@ -152,6 +154,9 @@ int captureRow = -1; // The edited row: its buttons replace its switch or steppe
 input::BindingCapture capture;
 struct BindingEdit { input::Action action; std::optional<input::Chord> binding; };
 std::optional<BindingEdit> bindingEdit;
+// The game-key note a binding left in the footer, and the page and row it belongs to: it goes on leaving them.
+struct FooterNote { int nav, row; std::string text; };
+std::optional<FooterNote> footerNote;
 // Find by key (Hotkeys): waiting for the inputs, the inputs pressed (applied
 // with the next frame, outside input events), then the inputs shown.
 bool findingKey = false;
@@ -178,21 +183,15 @@ std::vector<int> gameKeys(IClientInstance& current, char const* name) {
     return keys;
 }
 std::vector<int> gameDropKeys(IClientInstance& current) { return gameKeys(current, "key.drop"); }
-// The game's keys on an item screen, read again at most once a second: every key cell asks.
-input::GameScreenKeys const& gameScreenKeys(IClientInstance& current) {
-    static input::GameScreenKeys keys;
+// The game's own keys (input::gameKeys), read again at most once a second: every key cell asks.
+input::GameKeyCodes const& gameKeyCodes(IClientInstance& current) {
+    static input::GameKeyCodes codes;
     static std::chrono::steady_clock::time_point read{};
     if (auto const now = std::chrono::steady_clock::now(); now - read > std::chrono::seconds(1)) {
         read = now;
-        keys.inventory = gameKeys(current, "key.inventory");
-        keys.drop = gameDropKeys(current);
-        keys.hotbar.clear();
-        for (char slot = '1'; slot <= '9'; ++slot) {
-            std::string const name = std::string{"key.hotbar."} + slot;
-            for (int code : gameKeys(current, name.c_str())) keys.hotbar.push_back(code);
-        }
+        for (size_t i = 0; i < input::gameKeys.size(); ++i) codes[i] = gameKeys(current, std::string{input::gameKeys[i].name}.c_str());
     }
-    return keys;
+    return codes;
 }
 void rebuild_(bool keepSelection) {
     std::optional<SettingsRow> previous;
@@ -631,12 +630,13 @@ std::string gameNote(input::Action action, input::Chord const& chord) {
     }
     auto client = ll::service::getClientInstance();
     if (!client) return {};
-    switch (input::gameScreenKey(action, chord, gameScreenKeys(*client))) {
-    case input::GameScreenKey::Inventory: return translated("tip.gameInventory");
-    case input::GameScreenKey::Drop: return translated("tip.gameDrop");
-    case input::GameScreenKey::Hotbar: return translated("tip.gameHotbar");
-    default: return {};
-    }
+    auto const use = input::gameKeyUse(action, chord, gameKeyCodes(*client));
+    if (!use) return {};
+    // The game's own words for its key, as its controls screen names it.
+    std::string const key{input::gameKeys[use->key].name};
+    std::string name = getI18n().get(key, getI18n().getCurrentLanguage());
+    if (name.empty() || name == key) name = key;
+    return translated(use->where & input::layer::gameplay ? "tip.gameKeyPlay" : "tip.gameKeyScreen", name);
 }
 // Open buttons on tool rows (L-231). The 24 px state cell is too narrow for
 // the word, so the button borrows the gap and a little of the name cell.
@@ -1347,6 +1347,10 @@ void drawTableRows(MinecraftUIRenderContext& context, IClientInstance& current, 
 void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer, SettingsTable::Hit const& hover,
                      Settings const& preferences, std::string const& fullDescription, float descriptionWidth) {
     // Footer: description and hints, or the binding editor's buttons.
+    if (footerNote && (footerNote->nav != screen::currentNav() || footerNote->row != selected)) {
+        if (screen::message() == footerNote->text) screen::clearMessage();
+        footerNote.reset();
+    }
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
     bool warns = valid(selected) && rows[selected].option
@@ -1518,6 +1522,7 @@ void applyBinding() {
     auto note = gameNote(bindingEdit->action, input::effectiveChord(value.bindings, bindingEdit->action));
     cancelCapture_();
     screen::setMessage(saved ? note : translated("saveError"));
+    if (saved && !note.empty()) footerNote = FooterNote{screen::currentNav(), selected, std::move(note)};
 }
 bool onCaptureButton(float x, float y) {
     if (findingKey) {
