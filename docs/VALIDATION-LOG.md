@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-406 Edge Guard server copy from a snapshot (2026-11-27)
+
+`b8e035b1` (DLL
+`ce20e03f60d351757f7a8d6e4918288bef86a3b2221aa22b34b608397bfd6ee8`),
+1.26.60.05 Dev, local world, the maintainer:
+- Seen: walking, sprinting and diagonal approaches to a block edge stop
+  without falling; releasing sneak at the edge does not drop the player;
+  nothing else changed.
+- Log (read by the agent): "also guarding the local server's copy of the
+  player" still appears, so the snapshot match finds the server's copy.
+- Not seen: a server (the server's copy exists only in a local world).
+  The commit that removes `edge_trace` changes only code that was compiled
+  out and is not separately checked in game.
+
 ## L-406 Edge Guard thread trace (2026-11-27)
 
 Trace build of `6e5b100d` plus the uncommitted `edge_thread_trace` line

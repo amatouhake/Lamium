@@ -316,6 +316,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Research
 
+- [L-406](backlog/done/L-406.md) Edge Guard reads the client's player while guarding the local server's copy
 - [L-353](backlog/done/L-353.md) Input events and the client thread: what is still touched outside the tick
 - [L-323](backlog/done/L-323.md) Game HUD placement: boss bars
 - [L-301](backlog/done/L-301.md) Show block entity values the client never refreshes

@@ -186,7 +186,8 @@ one (L-305).
 
 Trace options are not built in CI, and some do not link: with the kept
 `research_trace`, `restock_trace` and `edge_trace` on, 16 game symbols the
-SDK does not export are unresolved (2026-11-26). Build the one you need
+SDK does not export were unresolved (2026-11-26; `edge_trace` left with
+L-406). Build the one you need
 before relying on it. A trace leaves with its item (decided 2026-11-26,
 L-403): when an L-item closes, its build option, its Trace or Probe files,
 its `#if` guards and its inventory entries below are deleted in the same
@@ -432,7 +433,7 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardSendHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`, `EdgeTraceSelectedInput`, `EdgeTraceCapture`, `EdgeTracePreApply`, `EdgeTracePostApply`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardSendHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`
 Meaning: the movement request's fields and collision shapes in
 `fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
 vector the client both simulates and sends (move x positive to the left), called
