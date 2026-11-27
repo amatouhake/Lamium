@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-412 review fixes in the overlap tips (2026-11-27)
+
+`7546bf86` with the changes committed as `b894253e` (DLL
+`3de737f81a4017dca5819f404c80251c3032511b369323b7e3eaf2b5a5500ed8`),
+1.26.60.05 Dev, the maintainer:
+- Seen: the recipes' fixed Click row with Show the recipes on a lone left
+  click says both happen and outlines that key; a fixed row low in the table
+  keeps its tip inside, the rest as "N more"; an action on E in play and item
+  screens gets one game line for each; key cell colors as before and
+  following a changed binding at once.
+- Noted: with Inventory transfer on E the conflict tip cuts its last line
+  ("…") although the screen has room for a taller tip.
+
 ## L-387 the recipe tips' spare line (2026-11-27)
 
 `708ca0d1` (DLL
