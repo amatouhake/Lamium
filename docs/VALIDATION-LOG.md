@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 vanilla placement trace (2026-11-28)
+
+`bdbe48b3` built with `placement_trace` (DLL
+`80340c62a21f373c898e0b09bbe83e72b79b659bf152f2b65dda1b9150c478d0`),
+1.26.60.05 Dev, local world, the maintainer. Read-only trace: oak stairs
+facing each way (one upside down), oak slabs on the upper and lower half of
+a side face, oak logs on side and top faces, one stair while walking.
+- Seen: every placement worked as usual; no pull-back or stutter while
+  walking (nothing was faked in this build).
+- Log: a placement is still its own `InventoryTransactionPacket` (action
+  Place, trigger PlayerInput, then an air Use), never in the auth input
+  (`PerformItemInteraction` off). The transaction carries `mFromPos` equal
+  to the auth input's position.
+- The local server's `useItemOn` ran with the rotation of the auth input
+  sent just before the transaction (`mRot`, e.g. yaw 177.4), not the
+  client's newer one at the use (176.6). `mYHeadRot` differed by a few
+  tenths, `mInteractRotation` is the same angle unwrapped (-182.3).
+- Client and server placed the same state every time. Stairs:
+  `weirdo_direction` from yaw, `upside_down_bit` from the click height on a
+  side face; slabs: `minecraft:vertical_half` from the click height; logs:
+  `pillar_axis` from the clicked face.
+- Not checked: a faked rotation, a click on a face the ray did not hit, a
+  dedicated server.
+
 ## L-412 overlap tips' long notes (2026-11-27)
 
 `f5cea8fd` with the change committed as `ed7fd5d1` (DLL
