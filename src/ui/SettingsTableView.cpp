@@ -1405,19 +1405,13 @@ void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, 
     std::string hint = !screen::message().empty() ? screen::message()
         : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint"
             : valid(selected) && rows[selected].option && rows[selected].option->numeric ? "numberControl" : "tableHint");
-    // The game's own use of the keys found, which no row lists (L-412): while the keys are pressed and after.
-    std::string gameUse;
-    if (keyQuery && hotkeysView() && screen::message().empty())
-        for (auto const& entry : input::overlaps(input::layer::gameplay | input::layer::itemScreen, *keyQuery, input::Bindings{}, currentGameKeys()))
-            if (auto line = gameLine(entry); !line.empty()) { gameUse = std::move(line); break; }
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
         drawButton(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,translated("cancelShort"),over);
         float after = t.footerButtonX(1);
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
-            !screen::message().empty() ? screen::message() : !gameUse.empty() ? gameUse : fullDescription,
-            !screen::message().empty() ? screen::messageColor() : !gameUse.empty() ? palette::warning : palette::dim);
+            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
@@ -1433,11 +1427,9 @@ void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, 
             auto bar = descriptionBar(t, helpLineCount, helpFirst);
             drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,
                 screen::scrollHeld(&helpFirst) || t.onDescriptionScrollbar(pointer.x,pointer.y,helpLineCount));
-            if (screen::message().empty() && gameUse.empty()) hint = translated("description.hint") + " | " + hint;
+            if (screen::message().empty()) hint = translated("description.hint") + " | " + hint;
         }
-        if (!gameUse.empty()) hint = gameUse;
-        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),
-            !screen::message().empty() ? screen::messageColor() : !gameUse.empty() ? palette::warning : palette::faint);
+        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : screen::messageColor());
     }
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {

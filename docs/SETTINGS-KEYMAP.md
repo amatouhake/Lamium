@@ -173,9 +173,9 @@ append-only action ids and default keys in `src/input/Binding.h`.
   a game key inside a longer chord such as F3 + B); the tip counts all
   of them, lists the game's as lines, then bindings by relation and fixed
   presses in their own group; the capture line and the footer after
-  binding say the game's line or the count with the first one met; Find
-  by key says in the footer when the game uses the keys, while they are
-  pressed and while the found rows show. In play, pressing one of the
+  binding say the game's line or the count with the first one met. Find
+  by key does not name the game's use (maintainer 2026-11-27: the footer
+  keeps its guidance; binding the key shows it). In play, pressing one of the
   game's Ctrl + Alt or Alt keys (coordinate copies, macros) with its
   modifiers held starts no binding without them, so the game gets it. A fixed row keeps
   its look; its tip lists the bindings that take it. The game's click is

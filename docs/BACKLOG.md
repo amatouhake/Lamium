@@ -143,7 +143,7 @@ from the file); never restate them here.
    Agree open choices before building.
    L-359 material plan (with L-116 raw materials) runs beside this list,
    neither ahead of it nor behind it; its next steps are L-370, L-362,
-   L-368, L-412 and L-363.
+   L-368 and L-363.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
    remaining L-117 schematic name tags.
@@ -224,7 +224,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); the calculation feeds the plan (L-359); the schematic's raw list is gone (L-383)
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
-- [L-412](backlog/L-412.md) One overlap check for bindings, fixed presses and the game's keys (Ready): Built; the one list seen in game (`62cdb2b4`), the game's modifier chords and the last fixes not checked
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)
 
 ## Later / parked

@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-412 the game's modifier chords pass (2026-11-27)
+
+`0917b9a3` (DLL
+`5074ac421f565e6524d7ce9546abe624ab7bc038e7b77c56e548951cea110da0`),
+1.26.60.05 Dev, the maintainer:
+- Seen: with Zoom on C, Ctrl + Alt + C copies coordinates and does not
+  zoom; C alone zooms; a held zoom stays when Ctrl + Alt join it.
+- Seen: Hitboxes' F3 + B outlined; Zoom on E alone filled.
+- Seen: Find by key's game line stays while the rows are filtered; the
+  maintainer chose to drop it (it replaced the footer's guidance), so the
+  next commit removes it, not checked in game.
+
 ## L-412 one overlap list (2026-11-27)
 
 `62cdb2b4` (DLL
