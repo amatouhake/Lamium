@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 faked look while moving, two variants (2026-11-28)
+
+`fde038e5` built with `placement_trace` and `placement_fake` (DLL
+`158d690de939094ba5b6d2aba7e4a8658461b4c82a1f78a548c47beb4d88060b`),
+1.26.60.05 Dev, local world, the maintainer. At most one faked stair a
+second, placed through `GameMode::buildBlock` for the held cell; the
+variants alternated: move vectors and direction flags turned, or the move
+input left alone.
+- Seen: standing, both stairs turned. Walking: no pull-back, or none worth
+  noticing. Sprinting: no strong pull-back as before, but a short stop a
+  moment after placing. A long click went on placing with vanilla's facing.
+- Log: 14 fakes (7 per variant), each placed after exactly one faked auth
+  input; the server used the faked yaw every time. Movement steps in the
+  two ticks after each fake were normal for both variants; later ticks were
+  not logged (the client's own use reset the follow count to two), so the
+  sprint stop is not tied to a variant.
+- `buildBlock` for a held cell sends the Place transaction itself, but
+  takes the click position from the current crosshair hit: after the aim
+  moved it was outside the block (z 1.139, x -0.045, z 1.030). The server
+  still placed. Further vanilla placements of the held button went out with
+  trigger 2 (simulation tick).
+- Not checked: a dedicated server, a click on a face the ray did not hit.
+
 ## L-265 faked-look experiment (2026-11-28)
 
 `72658c5e` built with `placement_trace` and `placement_fake` (DLL
