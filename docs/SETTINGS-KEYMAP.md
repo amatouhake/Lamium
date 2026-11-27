@@ -161,6 +161,17 @@ append-only action ids and default keys in `src/input/Binding.h`.
 - Two bindings conflict only where their layers meet; the same test
   derives what fires and what is warned about. Back (window only) and
   Sort (item screen only) on one key are no conflict.
+- (Decided 2026-11-27) A key has one meaning per layer: what is under
+  the pointer (an item in Lamium's lists, a game slot) never gives it a
+  second one or keeps bindings apart.
+- (Decided 2026-11-27) Esc and the game's inventory key close one thing
+  per press, the top first: typing in the search field or a count (the
+  inventory key types there), the bands' editor, the recipe view, the
+  plan window, then the game's screen.
+- (Decided 2026-11-27) An item-screen binding on a key the game uses
+  there (its inventory and drop keys, the hotbar numbers) is warned
+  about like a conflict: warning caps, and the tip names the game's use.
+  The binding stays and Lamium takes the key first.
 - (Decided 2026-11-23) Hotkeys has a place column before the key column:
   short names (Play, Screen, Window, Outside) for every action. The
   footer names the places in full, with on what and the condition.
