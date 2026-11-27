@@ -73,6 +73,7 @@
 #include "ui/HudEditor.h"
 #include <chrono>
 #include "mc/client/gui/controls/VisualTree.h"
+#include "input/Overlaps.h"
 #include "input/Actions.h"
 #include "input/BindingCapture.h"
 #include "ll/api/event/EventBus.h"
@@ -201,7 +202,10 @@ void rebuild_(bool keepSelection) {
     std::optional<KeyFilter> keys;
     if (keyQuery && hotkeysView()) {
         keys = KeyFilter{*keyQuery, preferences.bindings};
-        if (auto client = ll::service::getClientInstance()) keys->dropKeys = gameDropKeys(*client);
+        if (auto client = ll::service::getClientInstance()) {
+            keys->dropKeys = gameDropKeys(*client);
+            keys->inventoryKeys = gameKeys(*client, "key.inventory");
+        }
     }
     std::string search = query.value();
     if (keyQuery) for (auto token : *keyQuery) search += "|" + std::to_string(static_cast<int>(token.device)) + ":" + std::to_string(token.code);
@@ -611,42 +615,61 @@ std::vector<std::string> chordKeys(IClientInstance& current, input::Chord const&
     for (auto token : chord) keys.push_back(bindingChordName(current, input::Chord{token}));
     return keys;
 }
-input::Relation strongestConflict(std::vector<input::Conflict> const& conflicts) {
-    auto relation = input::Relation::None;
-    for (auto conflict : conflicts) relation = std::max(relation, conflict.relation);
-    return relation;
-}
-// A game key the binding takes counts as the same key: the game's action stops there. The game's click
-// still happens beside the action, so it counts as an overlap.
-enum class GameUse { None, Click, Key };
-KeyTone conflictTone(input::Relation relation, GameUse game = GameUse::None) {
-    return relation == input::Relation::Shared || game == GameUse::Key ? KeyTone::Filled
-        : relation == input::Relation::Overlap || game == GameUse::Click ? KeyTone::Outline : KeyTone::Plain;
+// The caps a binding meeting something gets (L-412): filled when it takes a whole chord, a fixed press or a
+// game key (that stops there), outlined when it only overlaps or shares a click (both happen).
+KeyTone conflictTone(input::Relation relation) {
+    return relation == input::Relation::Shared ? KeyTone::Filled
+        : relation == input::Relation::Overlap ? KeyTone::Outline : KeyTone::Plain;
 }
 // The tone of a binding listed in the conflict tip, by how it meets the one the tip is for.
 KeyTone linkTone(input::Link link) { return link == input::Link::Same ? KeyTone::Filled : KeyTone::Outline; }
-GameUse gameUse(input::Action action, input::Chord const& chord) {
-    if (input::gameClick(action, chord) != input::GameClick::None) return GameUse::Click;
+input::GameKeyCodes const& currentGameKeys() {
+    static input::GameKeyCodes const none{};
     auto client = ll::service::getClientInstance();
-    return client && input::gameKeyUse(action, chord, gameKeyCodes(*client)) ? GameUse::Key : GameUse::None;
+    return client ? gameKeyCodes(*client) : none;
 }
-// The tip's line for a binding that is the game's own click or one of its keys, empty otherwise.
-std::string gameNote(input::Action action, input::Chord const& chord) {
-    switch (input::gameClick(action, chord)) {
-    case input::GameClick::Attack: return translated("tip.gameAttack");
-    case input::GameClick::Use: return translated("tip.gameUse");
-    case input::GameClick::Pick: return translated("tip.gamePick");
-    default: break;
-    }
-    auto client = ll::service::getClientInstance();
-    if (!client) return {};
-    auto const use = input::gameKeyUse(action, chord, gameKeyCodes(*client));
-    if (!use) return {};
-    // The game's own words for its key, as its controls screen names it.
-    std::string const key{input::gameKeys[use->key].name};
+// Everything the chord meets where it works (input::overlaps), for every display.
+std::vector<input::Overlap> overlapsOf(input::Action action, input::Chord const& chord) {
+    return input::overlaps(input::whereActs(action).layers, chord, Runtime::instance().preferences().bindings, currentGameKeys(), action);
+}
+std::vector<input::Overlap> overlapsOf(input::Action action) {
+    return overlapsOf(action, input::effectiveChord(Runtime::instance().preferences().bindings, action));
+}
+std::string fixedName(input::FixedPress const& press);
+std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress const& press);
+// The game's own words for one of its keys, as its controls screen names it.
+std::string gameKeyName(size_t index) {
+    std::string const key{input::gameKeys[index].name};
     std::string name = getI18n().get(key, getI18n().getCurrentLanguage());
-    if (name.empty() || name == key) name = key;
-    return translated(use->where & input::layer::gameplay ? "tip.gameKeyPlay" : "tip.gameKeyScreen", name);
+    return name.empty() ? key : name;
+}
+// The tip's line for the game's click or key, empty for another binding or a fixed press.
+std::string gameLine(input::Overlap const& entry) {
+    if (entry.source == input::OverlapSource::GameClick) {
+        switch (entry.click) {
+        case input::GameClick::Attack: return translated("tip.gameAttack");
+        case input::GameClick::Use: return translated("tip.gameUse");
+        case input::GameClick::Pick: return translated("tip.gamePick");
+        default: return translated("tip.screenClick");
+        }
+    }
+    if (entry.source == input::OverlapSource::GameKey)
+        return translated(entry.where & input::layer::gameplay ? "tip.gameKeyPlay" : "tip.gameKeyScreen", gameKeyName(entry.index));
+    return {};
+}
+// What a listed binding or fixed press is called alone: "Feature > child" for a fixed press.
+std::string overlapName(input::Overlap const& entry) {
+    if (entry.source == input::OverlapSource::Binding) return actionTitle(entry.action);
+    auto const& press = input::fixedPresses[entry.index];
+    return translated(featureNameKey(press.feature)) + " > " + fixedName(press);
+}
+// One line for the capture line and the footer after binding: the game's line alone, or the count with the
+// first thing met; empty when nothing is met.
+std::string overlapSummary(std::vector<input::Overlap> const& list) {
+    if (list.empty()) return {};
+    if (list.size() == 1 && !gameLine(list.front()).empty()) return gameLine(list.front());
+    auto const first = std::find_if(list.begin(), list.end(), [](auto const& e) { return gameLine(e).empty(); });
+    return translated("tip.overlapLine", std::to_string(list.size()), first != list.end() ? overlapName(*first) : gameLine(list.front()));
 }
 // Open buttons on tool rows (L-231). The 24 px state cell is too narrow for
 // the word, so the button borrows the gap and a little of the name cell.
@@ -678,9 +701,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     }
     auto keys = bindingKeys(current, action);
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
-    auto const& bindings = Runtime::instance().preferences().bindings;
-    auto relation = strongestConflict(input::bindingConflicts(bindings, action));
-    keycaps(context,x,cy,width,keys,conflictTone(relation, gameUse(action, input::effectiveChord(bindings, action))));
+    keycaps(context,x,cy,width,keys,conflictTone(input::strongest(overlapsOf(action))));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -757,10 +778,10 @@ std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress c
     std::vector<std::string> keys;
     for (int i = 0; i < input::fixedCapCount(press); ++i) {
         auto const& cap = press.caps[i];
-        if (cap.drop) {
-            // The key the game has for dropping, as its keymap names it; the words where it has none.
-            auto const drop = gameDropKeys(current);
-            keys.push_back(drop.empty() ? translated(cap.text) : keyName(current, drop.front()));
+        if (cap.game()) {
+            // The key the game has for dropping or its inventory, as its keymap names it; the words where it has none.
+            auto const codes = cap.drop ? gameDropKeys(current) : gameKeys(current, "key.inventory");
+            keys.push_back(codes.empty() ? translated(cap.text) : keyName(current, codes.front()));
             continue;
         }
         if (!cap.text.empty()) { keys.push_back(translated(cap.text)); continue; }
@@ -907,66 +928,79 @@ std::string linkTitle(input::Link link) {
     default: return "tip.reordered";
     }
 }
-// Lists every binding related to the action's chord, grouped by how it
-// relates, below the key cell (above it when there is more room there).
+// Lists everything the action's chord meets (L-412): the game's click and keys as lines, then other
+// bindings grouped by how they relate and fixed presses, below the key cell (above it when there is more
+// room there).
 bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, int row,
                      input::Action action, bool hoveredKey) {
     auto const preferences = Runtime::instance().preferences();
     auto const chord = input::effectiveChord(preferences.bindings, action);
     if (chord.empty()) return false;
-    auto const conflicts = input::bindingConflicts(preferences.bindings, action);
+    auto const met = overlapsOf(action, chord);
     auto const keys = chordKeys(current, chord);
-    auto const gameLine = gameNote(action, chord);
+    // The listed rows: other bindings and fixed presses; the game's uses are lines above them.
+    struct Item { std::vector<std::string> caps; std::string name, where, group, groupNote; KeyTone tone; };
+    std::vector<Item> items;
+    std::vector<std::string> notes;
+    for (auto const& entry : met) {
+        if (auto line = gameLine(entry); !line.empty()) { notes.push_back(std::move(line)); continue; }
+        if (entry.source == input::OverlapSource::Binding) {
+            items.push_back({chordKeys(current, input::effectiveChord(preferences.bindings, entry.action)), overlapName(entry),
+                whereText(entry.where), translated(linkTitle(entry.link)), translated(linkTitle(entry.link) + "Note"), linkTone(entry.link)});
+        } else {
+            items.push_back({fixedKeys(current, input::fixedPresses[entry.index]), overlapName(entry), whereText(entry.where),
+                translated("tip.fixed"), translated(entry.both ? "tip.fixedBothNote" : "tip.fixedNote"),
+                entry.relation == input::Relation::Shared && !entry.both ? KeyTone::Filled : KeyTone::Outline});
+        }
+    }
     // Hovering the key cell reveals a binding only when the cell clips it; the
-    // keyboard tip still appears only when there is a conflict (L-235) or the game's click.
-    bool const warns = !conflicts.empty() || !gameLine.empty();
+    // keyboard tip still appears only when the chord meets something (L-235).
+    bool const warns = !met.empty();
     if (!hoveredKey && !warns) return false;
     if (hoveredKey && !warns && keycapsWidth(context, keys) <= t.keyWidth) return false;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     // Size the tip to the chord it reveals: the count on the right must not
     // squeeze the caps the row clipped (L-235).
-    auto relation = strongestConflict(conflicts);
-    std::string count = conflicts.empty() ? std::string{}
-        : translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count", std::to_string(conflicts.size()));
+    auto const relation = input::strongest(met);
+    std::string count = met.empty() ? std::string{}
+        : translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count", std::to_string(met.size()));
     float capsWidth = keycapsWidth(context, keys);
     float countWidth = count.empty() ? 0 : textWidth(context, count) + 8;
     float available = std::max(80.0f, t.width - 2*SettingsTable::pad);
     // Wide enough for a note in two lines and for each listed binding's caps, name and place on one (L-372).
-    float width = std::max(conflicts.empty() && gameLine.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth);
-    for (auto const& conflict : conflicts) {
-        float caps = keycapsWidth(context, chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
-        float text = 5 + textWidth(context, actionTitle(conflict.action)) + 6 + textWidth(context, whereText(conflict.where));
+    float width = std::max(met.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth);
+    for (auto const& item : items) {
+        float caps = keycapsWidth(context, item.caps);
+        float text = 5 + textWidth(context, item.name) + 6 + textWidth(context, item.where);
         width = std::max(width, 2*pad + std::max(caps / .45f, caps + text));
     }
     width = std::min(available, width);
     float inner = width - 2*pad;
     float headerWidth = std::max(40.0f, inner - countWidth);
     float capsHeight = keycapsWrapHeight(context, headerWidth, keys, 3);
-    // With a conflict the caps share the top row with the count and leave a
-    // little space below; alone they keep equal padding.
-    float header = conflicts.empty() ? capsHeight : std::max(headHeight, capsHeight + 4);
-    std::vector<std::string> notes;
-    if (!gameLine.empty()) notes.push_back(gameLine);
-    bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
+    // With a count the caps share the top row with it and leave a little
+    // space below; alone they keep equal padding.
+    float header = met.empty() ? capsHeight : std::max(headHeight, capsHeight + 4);
+    bool leads = std::any_of(met.begin(), met.end(), [](auto const& e) {
+        return e.source == input::OverlapSource::Binding && e.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
     else if (leads && input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold)
         notes.push_back(translated("tip.holdLeads"));
     auto lines = [&](std::string const& text) { return textWidth(context, text) > inner ? size_t{2} : size_t{1}; };
-    auto groupNote = [](input::Link link) { return translated(linkTitle(link) + "Note"); };
     float notesHeight = 0;
     for (auto const& note : notes) notesHeight += lines(note) * lineHeight;
     // Items that fit the budget; the rest are counted on a last line.
     auto fitting = [&](float budget, float& height) {
         height = 2*pad + header + notesHeight;
         size_t shown = 0;
-        for (; shown < conflicts.size(); ++shown) {
-            bool group = shown == 0 || conflicts[shown].link != conflicts[shown-1].link;
-            float need = (group ? titleHeight + lines(groupNote(conflicts[shown].link)) * lineHeight : 0) + itemHeight;
-            float reserve = shown + 1 < conflicts.size() ? lineHeight : 0;
+        for (; shown < items.size(); ++shown) {
+            bool group = shown == 0 || items[shown].group != items[shown-1].group;
+            float need = (group ? titleHeight + lines(items[shown].groupNote) * lineHeight : 0) + itemHeight;
+            float reserve = shown + 1 < items.size() ? lineHeight : 0;
             if (height + need + reserve > budget) break;
             height += need;
         }
-        if (shown < conflicts.size()) height += lineHeight;
+        if (shown < items.size()) height += lineHeight;
         return shown;
     };
     float rowTop = t.rowY(row), rowBottom = rowTop + SettingsTable::rowHeight;
@@ -980,7 +1014,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
 
     drawTipBox(context,x,y,width,height,warns);
     float cursor = y + pad;
-    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, gameUse(action, chord)),3);
+    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation),3);
     if (!count.empty())
         label(context,x+pad,cursor+boxTextInset(),inner,count,palette::warning,Align::Right);
     cursor += header;
@@ -989,25 +1023,22 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
         cursor += lines(note) * lineHeight;
     }
     for (size_t i = 0; i < shown; ++i) {
-        auto const& conflict = conflicts[i];
-        if (i == 0 || conflict.link != conflicts[i-1].link) {
+        auto const& item = items[i];
+        if (i == 0 || item.group != items[i-1].group) {
             fill(context,x+pad,cursor+1,inner,1,palette::white,.1f);
-            label(context,x+pad,cursor+3,inner,translated(linkTitle(conflict.link)),palette::dim);
-            auto note = groupNote(conflict.link);
-            paragraph(context,x+pad,cursor+3+lineHeight,inner,note,lines(note),palette::faint);
-            cursor += titleHeight + lines(note) * lineHeight;
+            label(context,x+pad,cursor+3,inner,item.group,palette::dim);
+            paragraph(context,x+pad,cursor+3+lineHeight,inner,item.groupNote,lines(item.groupNote),palette::faint);
+            cursor += titleHeight + lines(item.groupNote) * lineHeight;
         }
-        float used = keycaps(context,x+pad,cursor+1,inner*.45f,
-            chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)), linkTone(conflict.link));
-        auto name = actionTitle(conflict.action);
+        float used = keycaps(context,x+pad,cursor+1,inner*.45f,item.caps,item.tone);
         float const nameX = x + pad + used + 5, room = inner - used - 5;
-        label(context,nameX,cursor+1+boxTextInset(),room,name);
-        if (float const nameW = textWidth(context, name) + 6; nameW < room)
-            label(context,nameX+nameW,cursor+1+boxTextInset(),room-nameW,whereText(conflict.where),palette::faint);
+        label(context,nameX,cursor+1+boxTextInset(),room,item.name);
+        if (float const nameW = textWidth(context, item.name) + 6; nameW < room)
+            label(context,nameX+nameW,cursor+1+boxTextInset(),room-nameW,item.where,palette::faint);
         cursor += itemHeight;
     }
-    if (shown < conflicts.size())
-        label(context,x+pad,cursor+1,inner,translated("tip.more", std::to_string(conflicts.size() - shown)),palette::faint);
+    if (shown < items.size())
+        label(context,x+pad,cursor+1,inner,translated("tip.more", std::to_string(items.size() - shown)),palette::faint);
     return true;
 }
 // The full version line and shared reasons for unavailable capabilities.
@@ -1038,15 +1069,38 @@ int drawFixedTip(MinecraftUIRenderContext& context, IClientInstance& current, Se
         : entry.kind == RowKind::Option && !(hotkeysView()) ? fixedPressOf(entry.option->id) : nullptr;
     if (!press) return -1;
     auto keys = fixedKeys(current, *press);
-    if (keycapsWidth(context, keys) <= t.keyWidth) return -1;
-    constexpr float pad = 4;
-    float width = std::min(t.width - 2*SettingsTable::pad, keycapsWidth(context, keys) + 2*pad);
-    float height = keycapsWrapHeight(context, width - 2*pad, keys, 3) + 2*pad;
+    // The bindings that take this press where it works (L-412): the cell keeps its look, the tip lists them.
+    auto const bindings = Runtime::instance().preferences().bindings;
+    auto const takers = input::fixedOverlaps(static_cast<size_t>(press - input::fixedPresses.data()), bindings, currentGameKeys());
+    if (takers.empty() && keycapsWidth(context, keys) <= t.keyWidth) return -1;
+    constexpr float pad = 4, lineHeight = 12, titleHeight = 13, itemHeight = 14;
+    float width = std::min(t.width - 2*SettingsTable::pad, std::max(takers.empty() ? 0.0f : 240.0f, keycapsWidth(context, keys) + 2*pad));
+    float inner = width - 2*pad;
+    auto const note = translated("tip.takenByNote");
+    auto lines = [&](std::string const& text) { return textWidth(context, text) > inner ? 2.0f : 1.0f; };
+    float capsHeight = keycapsWrapHeight(context, inner, keys, 3);
+    float height = capsHeight + 2*pad + (takers.empty() ? 0 : 4 + titleHeight + lines(note) * lineHeight + takers.size() * itemHeight);
     float rowTop = t.rowY(hover.index), rowBottom = rowTop + SettingsTable::rowHeight;
     bool under = rowBottom + 1 + height <= t.top + t.height - 2;
     float x = std::max(t.left + 2, t.keyX + t.keyWidth - width), y = under ? rowBottom + 1 : rowTop - 1 - height;
-    drawTipBox(context,x,y,width,height,false);
-    keycapsWrap(context,x+pad,y+pad,width-2*pad,keys,KeyTone::Fixed,3);
+    drawTipBox(context,x,y,width,height,!takers.empty());
+    float cursor = y + pad;
+    keycapsWrap(context,x+pad,cursor,inner,keys,KeyTone::Fixed,3);
+    if (takers.empty()) return hover.index;
+    cursor += capsHeight + 4;
+    fill(context,x+pad,cursor+1,inner,1,palette::white,.1f);
+    label(context,x+pad,cursor+3,inner,translated("tip.takenBy"),palette::dim);
+    paragraph(context,x+pad,cursor+3+lineHeight,inner,note,static_cast<size_t>(lines(note)),palette::faint);
+    cursor += titleHeight + lines(note) * lineHeight;
+    for (auto const& taker : takers) {
+        float used = keycaps(context,x+pad,cursor+1,inner*.45f,chordKeys(current, input::effectiveChord(bindings, taker.action)),linkTone(taker.link));
+        auto name = actionTitle(taker.action);
+        float const nameX = x + pad + used + 5, room = inner - used - 5;
+        label(context,nameX,cursor+1+boxTextInset(),room,name);
+        if (float const nameW = textWidth(context, name) + 6; nameW < room)
+            label(context,nameX+nameW,cursor+1+boxTextInset(),room-nameW,whereText(taker.where),palette::faint);
+        cursor += itemHeight;
+    }
     return hover.index;
 }
 // A stepper value cut with "..." shows whole below the stepper, like a key
@@ -1373,12 +1427,18 @@ void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, 
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
         drawButton(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,translated("cancelShort"),over);
         float after = t.footerButtonX(1);
+        // The game's own use of the keys pressed, which no row lists (L-412).
+        std::string gameUse;
+        if (keyQuery && screen::message().empty())
+            for (auto const& entry : input::overlaps(input::layer::gameplay | input::layer::itemScreen, *keyQuery, input::Bindings{}, currentGameKeys()))
+                if (auto line = gameLine(entry); !line.empty()) { gameUse = std::move(line); break; }
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
-            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
+            !screen::message().empty() ? screen::message() : !gameUse.empty() ? gameUse : fullDescription,
+            !screen::message().empty() ? screen::messageColor() : !gameUse.empty() ? palette::warning : palette::dim);
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
-        if (auto note = gameNote(*capturing_, capture.value()); !note.empty())
+        if (auto note = overlapSummary(overlapsOf(*capturing_, capture.value())); !note.empty())
             label(context,textLeft,t.footerTop+16,textWidthAvailable,note,palette::warning);
         label(context,textLeft,t.footerTop+30,textWidthAvailable,captureText(*capturing_),palette::faint);
     } else {
@@ -1528,8 +1588,8 @@ void applyBinding() {
     auto value = Runtime::instance().preferences();
     value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
     bool saved = Runtime::instance().save(value);
-    // A binding on the game's own click keeps saying so in the footer after the button is let go.
-    auto note = gameNote(bindingEdit->action, input::effectiveChord(value.bindings, bindingEdit->action));
+    // What the new binding meets keeps being said in the footer after the button is let go (L-412).
+    auto note = saved ? overlapSummary(overlapsOf(bindingEdit->action)) : std::string{};
     cancelCapture_();
     screen::setMessage(saved ? note : translated("saveError"));
     if (saved && !note.empty()) footerNote = FooterNote{screen::currentNav(), selected, std::move(note)};

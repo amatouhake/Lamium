@@ -1,4 +1,7 @@
 #include "input/Binding.h"
+#include "input/Overlaps.h"
+#include <cstdio>
+#include <string>
 #include "input/BindingCapture.h"
 #include "input/ToggleAction.h"
 #include "settings/Options.h"
@@ -444,8 +447,8 @@ void bindingTests() {
             return use && gameKeys[use->key].name == name;
         };
         check(uses(Action::Sort, {e}, "key.inventory") && uses(Action::Sort, {lshift, q}, "key.drop")
-              && uses(Action::RecipeBack, {three}, "key.hotbar.3"),
-              "an item-screen or window binding on the game's inventory, drop or hotbar key is marked");
+              && uses(Action::Sort, {three}, "key.hotbar.3") && !gameKeyUse(Action::RecipeBack, {three}, game),
+              "an item-screen binding on the game's inventory, drop or hotbar key is marked; a window takes every key");
         check(uses(Action::Zoom, {e}, "key.inventory") && uses(Action::Zoom, {t}, "key.chat")
               && gameKeyUse(Action::Zoom, {e}, game)->where == layer::gameplay,
               "a play binding on a key the game uses in play is marked, in play");
@@ -460,6 +463,46 @@ void bindingTests() {
               "the coordinate copy is taken only with the Ctrl + Alt the game holds for it");
         check(!gameKeyUse(Action::Zoom, {k}, game) && uses(Action::Zoom, {alt, k}, "key.commandmacro.1"),
               "a command macro is taken only with Alt");
+        {
+            // The game's default keyboard controls (1.26.60): what a default binding may meet.
+            GameKeyCodes defaults{};
+            auto set = [&](std::string_view name, std::vector<int> codes) { defaults[*gameKeyIndex(name)] = std::move(codes); };
+            set("key.inventory", {'E'}); set("key.drop", {'Q'});
+            for (char n = '1'; n <= '9'; ++n) set(std::string{"key.hotbar."} + n, {n});
+            set("key.forward", {'W'}); set("key.back", {'S'}); set("key.left", {'A'}); set("key.right", {'D'});
+            set("key.jump", {0x20}); set("key.sneak", {0x10}); set("key.sprint", {0x11}); set("key.togglePerspective", {0x74});
+            set("key.mobEffects", {'Z'}); set("key.chat", {'T', 0x0D}); set("key.command", {0xBF}); set("key.copyCoordinates", {'C'});
+            set("key.copyFacingCoordinates", {'X'}); set("key.emote", {'B'}); set("key.screenshot", {0x71}); set("key.socialDrawer", {0x73});
+            set("key.interactwithtoast", {'N'});
+            Bindings const none{};
+            std::string found;
+            for (size_t i = 0; i < actions.size(); ++i)
+                for (auto const& entry : overlaps(none, static_cast<Action>(i), defaults))
+                    if (entry.source != OverlapSource::Binding) { found += std::string(actions[i].id) + " "; break; }
+            std::printf("defaults meeting a fixed press or the game: %s\n", found.c_str());
+            check(found == "hitboxes fakeoffhanduse takeone ",
+                  "by default only Hitboxes' F3 + B (the game's emote), Fake Offhand's right click and Take One's middle click meet the game");
+            auto const fixedRow = static_cast<size_t>(std::ranges::find_if(fixedPresses, [](auto const& p) {
+                return p.option == "inventory.transferWheelMatching"; }) - fixedPresses.begin());
+            Bindings sortOnCtrlWheel{};
+            sortOnCtrlWheel[static_cast<size_t>(Action::Sort)] = Chord{{Device::Key, 0xA2}, {Device::Wheel, -1}};
+            auto const sort = overlaps(sortOnCtrlWheel, Action::Sort, defaults);
+            check(std::ranges::any_of(sort, [&](Overlap const& o) {
+                      return o.source == OverlapSource::Fixed && o.index == fixedRow && o.relation == Relation::Shared && !o.both; })
+                  && std::ranges::any_of(fixedOverlaps(fixedRow, sortOnCtrlWheel, defaults), [](Overlap const& o) { return o.action == Action::Sort; }),
+                  "Sort on Ctrl + Wheel takes Item transfer's Ctrl + Wheel, and both rows say so");
+            Bindings recipesOnLeft{};
+            recipesOnLeft[static_cast<size_t>(Action::ShowRecipes)] = Chord{Token{Device::Mouse, 1}};
+            auto const left = overlaps(recipesOnLeft, Action::ShowRecipes, defaults);
+            check(std::ranges::any_of(left, [](Overlap const& o) { return o.source == OverlapSource::Fixed && o.both; })
+                  && std::ranges::any_of(left, [](Overlap const& o) { return o.source == OverlapSource::GameClick && o.where == layer::itemScreen; })
+                  && strongest(left) == Relation::Overlap,
+                  "a lone click on an item screen shares the slot's and the list's click; both happen");
+            check(!std::ranges::any_of(overlaps(Bindings{}, Action::RecipeBack, defaults), [](Overlap const& o) { return o.source == OverlapSource::GameKey; })
+                  && std::ranges::any_of(overlaps(layer::window, Chord{{Device::Key, 'E'}}, Bindings{}, defaults), [](Overlap const& o) {
+                         return o.source == OverlapSource::Fixed && fixedPresses[o.index].name == "fixed.recipesCloseInventory"; }),
+                  "in the recipe view E is Lamium's close, not the game's inventory key");
+        }
         check(!gameKeyUse(Action::Sort, {t}, game) && !gameKeyUse(Action::Sort, {Token{Device::Key, 'R'}}, game)
               && !gameKeyUse(Action::Sort, {Token{Device::Mouse, 'E'}}, game) && !gameKeyUse(Action::Sort, {e}, GameKeyCodes{}),
               "play-only game keys on item screens, other keys, mouse buttons and unread game keys are not marked");

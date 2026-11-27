@@ -12,13 +12,15 @@
 namespace lamium::input {
 // One cap: a token Find by key matches, named as a binding names it. `text`
 // (a translation key) names it instead where no binding has the input: the
-// wheel in either direction, a drag. `drop` is the game's own drop key, named
-// and matched by the key the game has for it, `text` where that is unknown.
+// wheel in either direction, a drag. `drop` and `inventory` are the game's
+// own drop and inventory keys, named and matched by the keys the game has for
+// them, `text` where those are unknown.
 struct FixedCap {
     Token token{Device::Key, 0};
     std::string_view text;
-    bool drop = false;
+    bool drop = false, inventory = false;
     bool matches() const { return token.code != 0; }
+    bool game() const { return drop || inventory; }
 };
 enum class FixedTarget { None, LamiumList, GameSlot };
 struct FixedPress {
@@ -35,6 +37,7 @@ inline constexpr FixedCap leftClick{{Device::Mouse, 1}}, rightClick{{Device::Mou
 inline constexpr FixedCap click = leftClick;
 inline constexpr FixedCap leftDrag{{Device::Mouse, 1}, "mouse.leftDrag"}, rightDrag{{Device::Mouse, 2}, "mouse.rightDrag"};
 inline constexpr FixedCap dropKey{{Device::Key, 0}, "fixed.cap.dropKey", true};
+inline constexpr FixedCap inventoryKey{{Device::Key, 0}, "fixed.cap.inventoryKey", false, true};
 }
 inline constexpr auto fixedPresses = [] {
     using namespace fixed_caps;
@@ -65,6 +68,7 @@ inline constexpr auto fixedPresses = [] {
         {"recipes", "fixed.recipesCtrlClick", "", both, list, {ctrl, leftClick}},
         {"recipes", "fixed.recipesWheel", "", both, list, {wheel}},
         {"recipes", "fixed.recipesClose", "", layer::window, FixedTarget::None, {esc}},
+        {"recipes", "fixed.recipesCloseInventory", "", layer::window, FixedTarget::None, {inventoryKey}},
     });
 }();
 // The caps a press shows, in order; empty slots end the list.
@@ -73,16 +77,19 @@ inline int fixedCapCount(FixedPress const& press) {
     while (count < static_cast<int>(press.caps.size()) && (press.caps[count].matches() || !press.caps[count].text.empty())) ++count;
     return count;
 }
+// The game's drop and inventory keys, as its keymap has them.
+struct FixedGameKeys { std::span<int const> drop, inventory; };
 // Find by key: every input pressed is one of the press's (a wheel in either
-// direction; the drop key by the keys the game has for it).
-inline bool fixedUses(FixedPress const& press, Chord const& pressed, std::span<int const> dropKeys = {}) {
+// direction; the drop and inventory keys by the keys the game has for them).
+inline bool fixedUses(FixedPress const& press, Chord const& pressed, FixedGameKeys game = {}) {
     if (pressed.empty()) return false;
     for (auto token : pressed) {
         bool found = false;
         for (int i = 0; i < fixedCapCount(press); ++i) {
             auto const& cap = press.caps[i];
-            if (cap.drop) {
-                found = found || (token.device == Device::Key && std::ranges::find(dropKeys, token.code) != dropKeys.end());
+            if (cap.game()) {
+                auto const codes = cap.drop ? game.drop : game.inventory;
+                found = found || (token.device == Device::Key && std::ranges::find(codes, token.code) != codes.end());
                 continue;
             }
             if (!cap.matches()) continue;

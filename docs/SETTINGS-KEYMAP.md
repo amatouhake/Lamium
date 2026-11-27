@@ -161,9 +161,22 @@ append-only action ids and default keys in `src/input/Binding.h`.
 - Two bindings conflict only where their layers meet; the same test
   derives what fires and what is warned about. Back (window only) and
   Sort (item screen only) on one key are no conflict.
-- (Decided 2026-11-27) A key has one meaning per layer: what is under
+- (Decided 2026-11-27) A binding has one meaning per layer: what is under
   the pointer (an item in Lamium's lists, a game slot) never gives it a
-  second one or keeps bindings apart.
+  second one or keeps bindings apart. Fixed presses may still differ by
+  target (Shift + click on a list and on a slot).
+- (Decided 2026-11-27, L-412) Every display reads one list of what a
+  chord meets where it works (`input::overlaps`): other bindings, fixed
+  presses, the game's click and the game's keys. The caps are filled when
+  something stops (the same chord, a fixed press taken whole, a game key)
+  and outlined when both happen (an overlap, a click); the tip counts all
+  of them, lists the game's as lines, then bindings by relation and fixed
+  presses in their own group; the capture line and the footer after
+  binding say the game's line or the count with the first one met; Find
+  by key says in the footer when the game uses the keys. A fixed row keeps
+  its look; its tip lists the bindings that take it. The game's click is
+  warned in play and on item screens; a Lamium window takes every key and
+  click, so the game's are not warned there.
 - (Decided 2026-11-27) Esc and the game's inventory key close one thing
   per press, the top first: typing in the search field or a count (the
   inventory key types there), the bands' editor, the recipe view, the

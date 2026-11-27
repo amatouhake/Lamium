@@ -396,6 +396,13 @@ struct Conflict { Action action; Relation relation; Link link; unsigned where = 
 inline bool startsWith(Chord const& longer, Chord const& prefix) {
     return longer.size() > prefix.size() && std::equal(prefix.begin(), prefix.end(), longer.begin());
 }
+// How `other` relates to `chord`, given their relation (not None).
+inline Link linkOf(Chord const& chord, Chord const& other, Relation relation) {
+    return relation == Relation::Shared ? Link::Same
+        : startsWith(other, chord) ? Link::StartsWithThis
+        : other.size() > chord.size() ? Link::ContainsThis
+        : chord.size() > other.size() ? Link::InsideThis : Link::Reordered;
+}
 // Ordered by link, then by action.
 inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action action) {
     std::vector<Conflict> result;
@@ -407,11 +414,7 @@ inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action a
         auto otherChord = effectiveChord(bindings, other);
         auto relation = bindingRelation(chord, otherChord);
         if (relation == Relation::None) continue;
-        Link link = relation == Relation::Shared ? Link::Same
-            : startsWith(otherChord, chord) ? Link::StartsWithThis
-            : otherChord.size() > chord.size() ? Link::ContainsThis
-            : chord.size() > otherChord.size() ? Link::InsideThis : Link::Reordered;
-        result.push_back({other, relation, link, where});
+        result.push_back({other, relation, linkOf(chord, otherChord, relation), where});
     }
     std::stable_sort(result.begin(), result.end(), [](Conflict a, Conflict b) { return a.link < b.link; });
     return result;
@@ -436,14 +439,14 @@ inline GameClick gameClick(Action action, Chord const& chord) {
     return whereActs(action).layers & layer::gameplay ? gameClick(chord) : GameClick::None;
 }
 // The game's own keys (L-372), by its keymap names, and where the game uses
-// each: the inventory, drop and hotbar keys in play and on item screens (and
-// in a window over one), the rest in play. A binding where the game uses one
+// each: the inventory, drop and hotbar keys in play and on item screens, the
+// rest in play. A Lamium window over an item screen takes every key (L-412). A binding where the game uses one
 // is marked in Hotkeys; Lamium takes the key first. `modifiers`: what the game
 // holds with the key (its controls screen: the coordinate copies with
 // Ctrl + Alt, the command macros with Alt), as generic key codes.
 struct GameKey { std::string_view name; unsigned layers; int modifiers[2] = {}; };
 inline constexpr int ctrlKey = 0x11, altKey = 0x12;
-inline constexpr unsigned gameScreenLayers = layer::gameplay | layer::itemScreen | layer::window;
+inline constexpr unsigned gameScreenLayers = layer::gameplay | layer::itemScreen;
 inline constexpr auto gameKeys = std::to_array<GameKey>({
     {"key.inventory", gameScreenLayers}, {"key.drop", gameScreenLayers},
     {"key.hotbar.1", gameScreenLayers}, {"key.hotbar.2", gameScreenLayers}, {"key.hotbar.3", gameScreenLayers},
@@ -470,27 +473,31 @@ constexpr int genericModifier(int code) {
     return code;
 }
 constexpr bool modifierKey(int code) { return genericModifier(code) >= 0x10 && genericModifier(code) <= 0x12; }
+// Whether the chord takes game key `i`: it holds the modifiers the game holds
+// for it and presses one of its keys. A modifier in a longer chord (Ctrl + F)
+// is not taken: only the game's sprint or sneak bound alone would be.
+inline bool takesGameKey(Chord const& chord, size_t i, GameKeyCodes const& codes) {
+    bool const held = std::all_of(std::begin(gameKeys[i].modifiers), std::end(gameKeys[i].modifiers), [&](int needed) {
+        return !needed || std::any_of(chord.begin(), chord.end(), [&](Token t) {
+            return t.device == Device::Key && genericModifier(t.code) == needed;
+        });
+    });
+    if (!held) return false;
+    return std::any_of(chord.begin(), chord.end(), [&](Token t) {
+        return t.device == Device::Key && !(modifierKey(t.code) && chord.size() > 1)
+            && std::find(codes[i].begin(), codes[i].end(), genericModifier(t.code)) != codes[i].end();
+    });
+}
 struct GameKeyUse { size_t key; unsigned where; }; // where: the layers both use it in
-// The first game key the binding takes where the action works, with the
-// modifiers the game holds for it. A modifier in a longer chord (Ctrl + F) is
-// not taken: only the game's sprint or sneak bound alone would be.
+// The first game key the binding takes where the action works.
 inline std::optional<GameKeyUse> gameKeyUse(Action action, Chord const& chord, GameKeyCodes const& codes) {
     auto const layers = whereActs(action).layers;
-    for (size_t i = 0; i < gameKeys.size(); ++i) {
-        auto const where = layers & gameKeys[i].layers;
-        if (!where) continue;
-        bool const held = std::all_of(std::begin(gameKeys[i].modifiers), std::end(gameKeys[i].modifiers), [&](int needed) {
-            return !needed || std::any_of(chord.begin(), chord.end(), [&](Token t) {
-                return t.device == Device::Key && genericModifier(t.code) == needed;
-            });
-        });
-        if (!held) continue;
-        for (Token t : chord) {
-            if (t.device != Device::Key || (modifierKey(t.code) && chord.size() > 1)) continue;
-            int const code = genericModifier(t.code);
-            if (std::find(codes[i].begin(), codes[i].end(), code) != codes[i].end()) return GameKeyUse{i, where};
-        }
-    }
+    for (size_t i = 0; i < gameKeys.size(); ++i)
+        if (auto const where = layers & gameKeys[i].layers; where && takesGameKey(chord, i, codes)) return GameKeyUse{i, where};
+    return std::nullopt;
+}
+inline std::optional<size_t> gameKeyIndex(std::string_view name) {
+    for (size_t i = 0; i < gameKeys.size(); ++i) if (gameKeys[i].name == name) return i;
     return std::nullopt;
 }
 

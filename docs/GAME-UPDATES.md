@@ -234,7 +234,10 @@ keys items by name and aux. The left band stays clear of the game's
 recipe book by the control `recipe_book` and its `mVisible`; the search
 field claims the platform keyboard (`KeyboardManager`) while focused and
 takes its text from the `UIScene::handleTextChar` hook; the game's
-inventory key is read from the keymapping `key.inventory`. A shape that does not fit the
+inventory key is read from the keymapping `key.inventory`. Hotkeys reads every keyboard control by
+its keymapping name (`input::gameKeys`, L-372/L-412), the modifiers the game holds with some of
+them (coordinate copies Ctrl + Alt, command macros Alt; 1.26.60's controls screen) and the game's
+names for them through I18n; recheck that table on a version move. A shape that does not fit the
 ingredient count is ignored, and the log says how many did. The item held
 on the pointer is drawn again over the bands and the windows as beside the
 anvil (`inspection/render/HeldItem.cpp`: the container manager's

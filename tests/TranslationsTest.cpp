@@ -55,6 +55,7 @@ void translationTests() {
             else if (entry.key == "autoInterval" || entry.key == "autoClicks")
                 rendered = std::vformat(pattern, std::make_format_args(number, number));
             else if (entry.key == "hudEditor.anchorReadout" || entry.key == "recipes.place.tipPlace" || entry.key == "where.withNote" || entry.key == "fixed.sentences") rendered = std::vformat(pattern, std::make_format_args(key, key));
+            else if (entry.key == "tip.overlapLine") rendered = std::vformat(pattern, std::make_format_args(remaining, key));
             else if (entry.key == "fixed.summary") rendered = std::vformat(pattern, std::make_format_args(key, key, key));
             else if (entry.key == "worldMap.layer" || entry.key == "schematic.layerValue" || entry.key == "calc.history" || entry.key == "schematic.summary.correct"
                 || entry.key == "schematic.materials.left" || entry.key == "list.shownHidden" || entry.key == "recipes.heldShort")

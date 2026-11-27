@@ -33,8 +33,8 @@ void settingsRowsTests() {
     {
         auto const& drop = *std::ranges::find_if(input::fixedPresses, [](auto const& p) { return p.option == "inventory.transferDropAll"; });
         std::vector<int> q{0x51};
-        check(input::fixedUses(drop, {{input::Device::Key, 0x51}}, q) && !input::fixedUses(drop, {{input::Device::Key, 0x51}})
-              && input::fixedUses(drop, {{input::Device::Key, 0x10}, {input::Device::Key, 0x51}}, q),
+        check(input::fixedUses(drop, {{input::Device::Key, 0x51}}, {q}) && !input::fixedUses(drop, {{input::Device::Key, 0x51}})
+              && input::fixedUses(drop, {{input::Device::Key, 0x10}, {input::Device::Key, 0x51}}, {q}),
               "find by key finds a drop gesture by the game's drop key");
     }
     check(ui::actionTitle(input::Action::Zoom, translate) == "Zoom"
@@ -141,7 +141,7 @@ void settingsRowsTests() {
             settingsFixed += row.kind == RowKind::Fixed;
             gestureKeys += row.option && ui::fixedPressOf(row.option->id) != nullptr;
         }
-        check(settingsFixed == 6 && gestureKeys == 15,
+        check(settingsFixed == 7 && gestureKeys == 15,
               "the settings screen shows the recipe lists' presses as rows and each gesture's keys on its switch's row");
         // One tree (L-372): Hotkeys shows every feature always open, its children in grey under it.
         bool open = true, children = true;
