@@ -519,11 +519,16 @@ Hooks: `ExtractSneakInput`, `SneakDimensionChange`
 Meaning: the sneak bit in the extracted input.
 
 ### `src/features/interaction/PlacementTrace.cpp`
-Hooks: `Calculate`, `PlacementTraceGameModeUseOn`, `PlacementTraceSurvivalModeUseOn`, `PlacementTraceSend`
+Hooks: `Calculate`, `PlacementTraceGameModeUseOn`, `PlacementTraceSurvivalModeUseOn`, `PlacementTraceSend`, `PlacementFakeGameModeBuild`, `PlacementFakeGameModeStartBuild`, `PlacementFakeSurvivalModeBuild`, `PlacementFakeSurvivalModeStartBuild`
 Trace (`placement_trace`). L-265 lines: both sides of `useItemOn` (client
 and local server) with the actor's rotation and the blocks before and after,
 and the sent `PlayerAuthInputPacket` rotations and `InventoryTransactionPacket`
-item use fields around a use. Read only.
+item use fields around a use. Read only, except the `placement_fake`
+experiment (L-265, option only, ungated): the `PlacementFake*` hooks hold a
+stair placement, every auth input until its Place transaction leaves is
+sent with yaw + 180 (move vectors turned with it), and the use is replayed
+with the local player's rotation written the same for the call. The real
+feature asks `versionSensitiveAllowed()` before any of this.
 
 ### `src/features/inventory/FakeOffhand.cpp`
 Hooks: `BuildAction`, `ReportUse`, `ReportOn`, `EquipmentEcho`, `HotbarEcho`, `ChangeDimension`
