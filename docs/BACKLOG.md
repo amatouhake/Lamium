@@ -192,7 +192,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Feature work and research
 
 - [L-359](backlog/L-359.md) Material plan across features, from the game's recipes (Design): Open; the viewer, search, favorites, the wanted items and placing are built behind the Recipes setting and were seen in game; so were the schematic hand-over and the counted places. The look was reviewed, and what was agreed is built and was seen in game (RECIPES.md "The look")
-- [L-387](backlog/L-387.md) One way of writing counts in the recipe tips (Ready): Seen in game 2026-11-27 (`960b8d4d`); the spare line not checked
 - [L-362](backlog/L-362.md) What a recipe gives back (Design): Open, not started
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): The tip is built and seen in game (2026-11-19); keys with data, rocket recipes by their stars and the tip colored by the game's font are built and seen in game (2026-11-24, merged from branch `l363-data-keys`); a food's hunger icons are left
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)

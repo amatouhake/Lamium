@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-387 the recipe tips' spare line (2026-11-27)
+
+`708ca0d1` (DLL
+`080c94dbf78019b80f1cb6c8a3d0ce4c4f3fbbd8ec2b05acf7d5245c88f46d17`),
+1.26.60.05 Dev, the maintainer:
+- Seen: a wanted row held beyond its need says "余り: … チェスト + …
+  スタック + …" in the window and on the panel; a "to gather" row held
+  beyond the plan's use says "余り: 2" and nothing when exactly enough;
+  nothing else changed. L-387 is done.
+
 ## L-387 wanted rows' remaining amount and done panel rows (2026-11-27)
 
 `960b8d4d` (DLL
