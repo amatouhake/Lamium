@@ -51,6 +51,7 @@
 #endif
 #include <atomic>
 #include <chrono>
+#include <mutex>
 #include <stdexcept>
 #include <thread>
 #include <tuple>
@@ -72,12 +73,22 @@ constexpr double groundFriction = 0.546;
 // player fell after its correction with 0.02 (L-161).
 float overlapMargin() { return Runtime::instance().snapshot()->interaction.edgeMargin; }
 bool installed = false;
-bool reportedServerCopy = false;
+std::atomic<bool> reportedServerCopy = false;
 bool reportedInput = false;
 bool reportedPacket = false;
 // A local world's server computes move vectors on its own thread; only the
 // client's are guarded there, and client state is read only on its thread.
 std::atomic<std::thread::id> clientThread;
+// What the server's copy is guarded with: the client player as its last
+// client-thread move left it. Older than a few ticks, nothing is guarded.
+struct ClientCopy {
+    AABB box;
+    bool walking = false;
+    std::chrono::steady_clock::time_point at;
+};
+constexpr auto clientCopyLife = std::chrono::milliseconds{250};
+std::mutex clientCopyMutex;
+ClientCopy clientCopy;
 #ifdef LAMIUM_EDGE_TRACE
 // L-160 trace: the last lines around the guard's activity are kept in memory
 // and written out only when the player falls soon after the guard acted.
@@ -304,40 +315,44 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
            IConstBlockSource const& region, GetCollisionShapeInterface const& collisionShape) {
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->interaction.edgeGuard) return;
-    auto client = ll::service::getClientInstance();
-    auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player) return;
-    // In a local world the integrated server moves its own copy of this
-    // player and corrects the client to it, so that copy is guarded too. It
-    // is the other registry's entity whose box sits where the player's does.
-    if (!isLocal(entity, *player)) {
-        auto const& own = player->getAABB();
-        auto const& other = shape.mAABB.get();
-        if (std::abs(own.min.x - other.min.x) > .3f || std::abs(own.min.y - other.min.y) > .3f
-            || std::abs(own.min.z - other.min.z) > .3f || std::abs((own.max.x - own.min.x) - (other.max.x - other.min.x)) > .05f)
-            return;
-        if (!reportedServerCopy) {
-            reportedServerCopy = true;
+    auto boxOf = [](AABB const& b) { return Box{b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z}; };
+    auto reportServerCopy = [&] {
+        if (!reportedServerCopy.exchange(true))
             runtime.self().getLogger().info("Edge Guard: also guarding the local server's copy of the player");
+    };
+    bool walks;
+    if (std::this_thread::get_id() == clientThread.load()) {
+        auto client = ll::service::getClientInstance();
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        if (!player) return;
+        bool local = isLocal(entity, *player);
+        if (!local) {
+            if (!sameBodyNearby(boxOf(player->getAABB()), boxOf(shape.mAABB.get()))) return;
+            reportServerCopy();
         }
-    }
-#ifdef LAMIUM_EDGE_THREAD_TRACE
-    {
-        // L-406: which thread guards which copy; each combination logged once.
-        static std::atomic<int> seen = 0;
-        bool server = !isLocal(entity, *player), onClient = std::this_thread::get_id() == clientThread.load();
-        int bit = 1 << (server * 2 + onClient);
-        if (!(seen.fetch_or(bit) & bit)) {
-            auto id = std::this_thread::get_id(), client = clientThread.load();
-            runtime.self().getLogger().info("L-406 guard {} copy on {} thread (thread {}, client thread {})",
-                server ? "server" : "client", onClient ? "the client" : "another",
-                std::hash<std::thread::id>{}(id), std::hash<std::thread::id>{}(client));
+        // Walking on the ground, sneaking too: vanilla sneaking stops with the
+        // box only touching an edge, which a server treats as no support (L-160).
+        walks = walking(*player, true);
+        if (local) {
+            std::lock_guard lock{clientCopyMutex};
+            clientCopy = {player->getAABB(), walks, std::chrono::steady_clock::now()};
         }
+    } else {
+        // In a local world the integrated server moves its own copy of this
+        // player on its own thread and corrects the client to it, so that copy
+        // is guarded too, against the player as the client's last tick left
+        // it: the client player is never read from this thread (L-406).
+        ClientCopy own;
+        {
+            std::lock_guard lock{clientCopyMutex};
+            own = clientCopy;
+        }
+        if (std::chrono::steady_clock::now() - own.at > clientCopyLife) return;
+        if (!sameBodyNearby(boxOf(own.box), boxOf(shape.mAABB.get()))) return;
+        reportServerCopy();
+        walks = own.walking;
     }
-#endif
-    // Walking on the ground, sneaking too: vanilla sneaking stops with the box
-    // only touching an edge, which a server treats as no support (L-160).
-    if (!walking(*player, true)) return;
+    if (!walks) return;
     Vec3& speed = request.mSpeed;
     if (speed.y > 0) return; // A jump may leave the edge on purpose.
     AABB const& box = shape.mAABB;

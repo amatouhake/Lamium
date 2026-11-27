@@ -121,4 +121,12 @@ inline bool mergePushesOff(Box const& player, int cellX, int cellY, int cellZ, d
     double cx = (player.minX + player.maxX) / 2, cz = (player.minZ + player.maxZ) / 2;
     return !(cx >= cellX && cx < cellX + 1.0 && cz >= cellZ && cz < cellZ + 1.0);
 }
+
+// In a local world the integrated server's copy of the player is the entity
+// whose box sits where the client player's does, within a tick's movement.
+inline bool sameBodyNearby(Box const& player, Box const& other) {
+    return std::abs(player.minX - other.minX) <= .3 && std::abs(player.minY - other.minY) <= .3
+        && std::abs(player.minZ - other.minZ) <= .3
+        && std::abs((player.maxX - player.minX) - (other.maxX - other.minX)) <= .05;
+}
 }

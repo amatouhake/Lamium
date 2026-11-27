@@ -93,6 +93,12 @@ void edgeGuardTests() {
     check(!mergePushesOff(beside, -84, 67, 81), "a merge in a cell the player does not overlap is allowed");
     Box above{-84.57, 68.0, 80.817, -83.97, 69.8, 81.417};
     check(!mergePushesOff(above, -84, 67, 81), "standing on top of the cell does not count as inside it");
+    using lamium::interaction::sameBodyNearby;
+    Box client{10.2, 64.0, 5.2, 10.8, 65.8, 5.8};
+    check(sameBodyNearby(client, Box{10.48, 64.0, 5.2, 11.08, 65.8, 5.8}),
+        "the server's copy a sprint tick ahead (0.28) is the same body");
+    check(!sameBodyNearby(client, Box{10.6, 64.0, 5.2, 11.2, 65.8, 5.8}), "a box 0.4 away is another entity");
+    check(!sameBodyNearby(client, Box{10.2, 64.0, 5.2, 11.1, 65.8, 6.1}), "a wider box is another entity");
     auto [stillX, stillZ] = guardInput(0, 0, 0, 0, a, f, ground);
     check(stillX == 0 && stillZ == 0, "standing still stays still");
 }
