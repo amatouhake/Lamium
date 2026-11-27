@@ -117,6 +117,8 @@ int main() try {
     fakeOffhandTests();
     extern void sneakPlacementTests();
     sneakPlacementTests();
+    extern void assistPlanTests();
+    assistPlanTests();
     extern void fetchSlotTests();
     fetchSlotTests();
     extern void offhandSlotTests();
