@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 chosen face and click (2026-11-28)
+
+`d8a7c600` built with `placement_trace` and `placement_fake` (DLL
+`acdfa3186efdd50548100527c225b460e5a1cfd2d7237c029a2e6884faf743cd`),
+1.26.60.05 Dev, local world, the maintainer. Each faked stair (one a second,
+yaw + 180, move input untouched) went into the cell vanilla would fill,
+clicked from another solid neighbor when there was one, at a chosen click
+(side faces alternating upper and lower half), given to `buildBlock`
+through `Level::getHitResult` for the call.
+- Seen: next to a wall, the stairs were turned and every other one upside
+  down; on open ground turned. Walking and sprinting: a small pull-back
+  with both. No stair vanished or changed facing afterwards.
+- Log: 17 fakes, all placed. The sent click was exactly the chosen one
+  every time (no transaction needed rewriting). Clicks on a wall's face
+  the crosshair was not on (aiming at the ground beside it) were accepted;
+  client and server placed the same `upside_down_bit` and
+  `weirdo_direction`.
+- Movement in the six ticks after each fake: walking steps stayed even (no
+  position jump); one of three sprinting fakes slowed from 0.28 to 0.07
+  per tick five ticks later, the others did not. Untested guess: the
+  server ends a sprint it sees going backwards against the faked look.
+- Not checked: a dedicated server; blocks other than stairs.
+
 ## L-265 faked look while moving, two variants (2026-11-28)
 
 `fde038e5` built with `placement_trace` and `placement_fake` (DLL
