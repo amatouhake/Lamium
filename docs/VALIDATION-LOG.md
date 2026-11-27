@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-387 the gather tip's remaining amount (2026-11-27)
+
+`af1e813f` (DLL
+`993ab0d4e780dde38aa9b93aabfc4fd0d43a6dafa899b2cfa1882d32179c8285`),
+1.26.60.05 Dev, the maintainer:
+- Seen: a "to gather" row's tip says "残り: … チェスト + … スタック + …"
+  in the window and on the panel; nothing else changed.
+- Asked: the same on wanted rows, and the panel's done rows faint with
+  their counts as the Notes window draws them (built in `960b8d4d`).
+
 ## L-387 recipe tips' counts (2026-11-27)
 
 `44907a50` (DLL

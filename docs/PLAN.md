@@ -93,15 +93,17 @@ plan's recipes are in [L-116](backlog/L-116.md).
   bar, controls always shown: "wanted" the count in a box typed or
   stepped as in the window and "x"; "to make" the two buttons, a stores'
   chest before the counts of a step to take out for (the panel has no
-  headings). Done rows at the end, checked, kept in place while the
-  pointer is over the list; the panel lists the same rows as the window
-  (gathered ones too, faint).
+  headings). Done rows at the end, kept in place while the pointer is
+  over the list; the panel lists the same rows as the window, done wanted
+  and gathered ones faint with their counts as in the window, a done step
+  checked (maintainer 2026-11-27).
 - Tips say only what their row does not show, in the window and on the
   panel alike (L-387); a count cut to fit shows whole under the pointer.
   A "to gather" row: its name, what is left in chests and stacks for
   carrying ("Left: 25 chests + 23 stacks + 27", whenever some is left;
-  maintainer 2026-11-27), a group's members and the stores holding some. A wanted row: its name, whose a handed row is, a share taken
-  above. A step's product: its name (a group's step: the group's tip,
+  maintainer 2026-11-27), a group's members and the stores holding some.
+  A wanted row: its name, what is left in chests and stacks as on a "to
+  gather" row, whose a handed row is, a share taken above. A step's product: its name (a group's step: the group's tip,
   members and all) and the inputs short of what is carried, "Logs: 2
   more". An input: its name, "Held: 0 (2 more)" (its
   slot shows what is needed) and the stores holding some. "To make"'s
