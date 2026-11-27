@@ -143,7 +143,7 @@ from the file); never restate them here.
    Agree open choices before building.
    L-359 material plan (with L-116 raw materials) runs beside this list,
    neither ahead of it nor behind it; its next steps are L-370, L-362,
-   L-368, L-372 and L-363.
+   L-368, L-412 and L-363.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
    remaining L-117 schematic name tags.
@@ -197,7 +197,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-363](backlog/L-363.md) The game's tooltip and item details for a listed item (Research): The tip is built and seen in game (2026-11-19); keys with data, rocket recipes by their stars and the tip colored by the game's font are built and seen in game (2026-11-24, merged from branch `l363-data-keys`); a food's hunger icons are left
 - [L-368](backlog/L-368.md) The game's recipe book: its button and its state beside Lamium (Research): Open, not started; the button's choice is agreed (maintainer 2026-11-20)
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
-- [L-372](backlog/L-372.md) Hotkeys: where and on what each action works (Ready): Every choice agreed 2026-11-27; the play-key warning's fixes not checked in game
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
@@ -225,6 +224,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); the calculation feeds the plan (L-359); the schematic's raw list is gone (L-383)
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
+- [L-412](backlog/L-412.md) One overlap check for bindings, fixed presses and the game's keys (Design): Open; found by the 2026-11-27 review after L-372, nothing chosen
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)
 
 ## Later / parked

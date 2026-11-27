@@ -234,7 +234,8 @@ append-only action ids and default keys in `src/input/Binding.h`.
   caps are filled under "same key", outlined under the others; the tip
   widens so names and places fit on one line where the screen allows. Keyboard selection shows the same tip
   (keyboard users are not told to use the mouse); moving the mouse returns
-  to hover. The footer keeps only the description.
+  to hover. The footer keeps the description and, for a binding on the
+  game's click or keys, that note.
 - (Decided 2026-10-06, L-97) Colliding settings: when one option's value
   defeats another (a fetch slot equal to Fake Offhand's target slot), every
   row involved draws its stepper frame and value in the warning color, and

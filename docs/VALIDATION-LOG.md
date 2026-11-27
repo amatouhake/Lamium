@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-372 game keys with their modifiers (2026-11-27)
+
+`384c3626` (DLL
+`cda26674ded1cd955a58afe243fcf94f38dcaf3c1f664f2ab000424f159d0e01`),
+1.26.60.05 Dev, the maintainer:
+- Seen: Zoom's C and X no longer warn; Ctrl + Alt + C warns as the
+  coordinate copy; a game key fills the caps like the same key; the tip's
+  listed caps are filled under "same key" and outlined under the others.
+
 ## L-372 game-key warning in play (2026-11-27)
 
 `6c2d636d` (DLL

@@ -203,11 +203,11 @@ dark look. No control plays a sound.
   is a bare icon, as the game's lists draw theirs (maintainer 2026-11-21).
 - **Key caps** for bindings. The key column never shows Hold/Toggle/Press.
   A binding that relates to another draws warning-colored caps: filled for the
-  exact same chord, outlined for an overlap; hovering (or selecting with the
-  keyboard) lists the related bindings in a tip. A mouse button alone (left,
-  right, middle) is the game's own click: its caps are outlined too, the tip
-  and the capture footer say which game action it shares, and the click still
-  reaches the game, so both happen (a chord with a modifier takes the click).
+  exact same chord or one of the game's keys where it works (the game's action
+  stops there), outlined for an overlap; hovering (or selecting with the
+  keyboard) lists the related bindings in a tip. A mouse button alone is the
+  game's own click: outlined, the tip and capture footer name the game action,
+  and both happen (a chord with a modifier takes the click; SETTINGS-KEYMAP).
   This shows in Hotkeys whatever the toast settings are. While a binding is
   captured the selected row's fill and frame mark it, so its cell adds no fill
   or frame: "Press keys..." faint where "Unbound" sits, then the keys held as
