@@ -977,7 +977,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     float capsWidth = keycapsWidth(context, keys);
     float countWidth = count.empty() ? 0 : textWidth(context, count) + 8;
     float available = std::max(80.0f, t.width - 2*SettingsTable::pad);
-    // Wide enough for a note in two lines and for each listed binding's caps, name and place on one (L-372).
+    // Wide enough for a short note in two lines and for each listed binding's caps, name and place on one (L-372).
     float width = std::max(met.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth);
     for (auto const& item : items) {
         float caps = keycapsWidth(context, item.caps);
@@ -996,7 +996,8 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
     else if (leads && input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold)
         notes.push_back(translated("tip.holdLeads"));
-    auto lines = [&](std::string const& text) { return textWidth(context, text) > inner ? size_t{2} : size_t{1}; };
+    // As many lines as the note wraps to (a Japanese note can take three), not a guessed two.
+    auto lines = [&](std::string const& text) { return paragraphLines(context, inner, text, 4); };
     float notesHeight = 0;
     for (auto const& note : notes) notesHeight += lines(note) * lineHeight;
     // Items that fit the budget; the rest are counted on a last line.
@@ -1090,7 +1091,7 @@ int drawFixedTip(MinecraftUIRenderContext& context, IClientInstance& current, Se
     float width = std::min(t.width - 2*SettingsTable::pad, std::max(takers.empty() ? 0.0f : 240.0f, keycapsWidth(context, keys) + 2*pad));
     float inner = width - 2*pad;
     auto noteOf = [](input::Overlap const& e) { return translated(e.both ? "tip.fixedBothNote" : "tip.takenByNote"); };
-    auto lines = [&](std::string const& text) { return textWidth(context, text) > inner ? 2.0f : 1.0f; };
+    auto lines = [&](std::string const& text) { return static_cast<float>(paragraphLines(context, inner, text, 4)); };
     float capsHeight = keycapsWrapHeight(context, inner, keys, 3);
     float rowTop = t.rowY(hover.index), rowBottom = rowTop + SettingsTable::rowHeight;
     float const below = t.top + t.height - 2 - (rowBottom + 1), above = rowTop - 1 - t.top;
