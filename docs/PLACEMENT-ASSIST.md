@@ -36,7 +36,8 @@ agreed yet.
   vanilla does.
 - **State.** Where a state follows the player's facing (stairs, furnaces,
   ...), the auth input sent just before the placement carries the look
-  that gives the ghost's state; the next one carries the real look again.
+  that gives the ghost's state, with the move input turned with it so the
+  movement stays the same; the next one carries the real look again.
   Where no neighbor, click and look give the ghost's state, nothing is
   placed.
 - **Held block.** When the hand does not hold the ghost's block, it is
@@ -45,7 +46,7 @@ agreed yet.
   it). When it is not carried, nothing is placed.
 - **Holding use.** Holding the use button keeps placing on the ghost under
   the crosshair at vanilla's repeat rate. Placements that need a faked
-  look are limited to the rate the movement experiment allows (Open).
+  look need no slower rate (the fifth trace showed none at 0.1 s).
 - **Feedback.** When the assist places nothing, a short Lamium toast says
   why (wording proposed): "Not carried: <block>" or "Cannot be placed in
   this state from here: <block>". Placing leaves the HUD's counts to the Check as usual.
@@ -84,7 +85,7 @@ Planned (the experiment is `placement_fake` in
 
 ## Known
 
-From the four L-265 traces of 2026-11-28 (VALIDATION-LOG), local world,
+From the five L-265 traces of 2026-11-28 (VALIDATION-LOG), local world,
 1.26.60.05:
 
 - A placement is its own `InventoryTransactionPacket`; the transaction
@@ -92,20 +93,26 @@ From the four L-265 traces of 2026-11-28 (VALIDATION-LOG), local world,
   auth input sent just before it (the fakes changed `mRot`, `mYHeadRot`,
   `mInteractRotation` and `mCameraOrientation` together).
 - One auth input with yaw + 180 followed by the placement placed the stair
-  turned on both sides, standing and walking. Two fakes close together
-  without a placement pulled the player back; one a second only a little.
-  Once a sprint slowed five ticks after a fake (unexplained: a correction
-  or a sprint ended against the faked look).
-- `GameMode::buildBlock(neighbor, face)` sends the placement for any cell,
-  taking the click from `Level::getHitResult`; set for the call, the sent
-  click is exactly the chosen one, and a face the crosshair is not on is
-  accepted.
+  turned on both sides. With the move vectors and direction flags turned
+  with the look, faked placements one after another (down to one every
+  0.1 s, walking and sprinting) moved the player no differently. Without
+  turning them, two fakes close together pulled the player back, and once
+  a sprint slowed five ticks after a fake.
+- `GameMode::buildBlock(neighbor, face)` sends the placement for any cell
+  and a face the crosshair is not on is accepted. On a fresh press it takes
+  the click from `Level::getHitResult` (set for the call, the sent click is
+  the chosen one); while the button is held it took another click in 33 of
+  77 placements (relative to another cell), so the held case needs a click
+  source that does not depend on the build in progress.
+- `BlockType::getPlacementBlock(player, cell, face, click, aux)`, with the
+  click relative to the clicked block, matched the placed block in all 189
+  client placements tried (dirt, logs, stairs, furnace, door, trapdoor,
+  slab).
 - Stairs: facing from yaw, upside down from the click height on a side
   face; slabs: half from the click height; logs: axis from the face.
-- Not shown yet (L-265 step 1): what the game calls when the use press
-  meets a ghost with only air behind (the build hooks ran only on a block
-  hit); whether `getPlacementBlock` returns what the server places,
-  especially for data-driven blocks; a pick followed by a placement.
+- A use press that meets no block still reaches `GameMode::useItem` (hit
+  type NoHit): the trigger for a ghost with air behind.
+- Not shown yet: a pick followed by a placement; data-driven blocks.
 
 ## Tried
 

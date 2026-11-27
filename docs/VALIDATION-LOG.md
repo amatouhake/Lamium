@@ -12,6 +12,38 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 faked placements in a row (2026-11-28)
+
+`8a05681c` built with `placement_trace` and `placement_fake` (DLL
+`a121e89502b3394cd57d2e068f1f5bbfd07c2dc7d5052d985ca19381c384c846`),
+1.26.60.05 Dev, local world, the maintainer. Holding use with stairs made
+faked placements one after another at an interval that changed with each
+press (1, 0.5, 0.25 s, vanilla repeat); oak stairs also turned the move
+input, other stairs would not have.
+- Seen: walking and holding use on the ground ahead, placing stopped or
+  placed one or two stairs (vanilla's held placement follows its own
+  build direction, so the maintainer could not tell the experiment's part:
+  item not judged). Sprinting with oak stairs: no stop, no pull-back. The
+  "other stairs" runs were made with dirt, so only the turned variant was
+  tried. Furnace, door, trapdoor, slab and log placed as usual.
+- Log: 77 faked placements (all oak, turned), in 18 presses at all four
+  intervals, down to one every 0.1 s. Every auth position was logged
+  (1385 ticks): no backward step or jump after any fake (two 0.06-block
+  backward steps 16 and 18 ticks after one).
+- `BlockType::getPlacementBlock(player, cell, face, click, aux)` with the
+  click relative to the clicked block matched the block placed in all 189
+  client placements (dirt, logs, stairs, furnace, door, trapdoor, slab);
+  with the absolute click it differed 8 times.
+- In 33 of the 77 the sent click was not the one written into
+  `Level::getHitResult` (e.g. 0.5,1.0,-0.5 or 0.5,2.0,-0.5: relative to
+  another cell), mostly while the button was held; the transaction was
+  rewritten to the chosen click. During a held press `buildBlock` takes
+  the click from something other than the hit result.
+- A use press at the sky reached `GameMode::useItem` with the hit type
+  NoHit (3); on a block hit `useItem` also ran, with type Tile.
+- Not checked: the untouched move input at short intervals, a dedicated
+  server.
+
 ## L-265 chosen face and click (2026-11-28)
 
 `d8a7c600` built with `placement_trace` and `placement_fake` (DLL
