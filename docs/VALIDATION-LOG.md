@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-412 one overlap list (2026-11-27)
+
+`62cdb2b4` (DLL
+`463699649a0f3bf65bd8404520674992e15a872f146ae2c09098cb2f5f6e410e`),
+1.26.60.05 Dev, the maintainer:
+- Seen: Sort on Ctrl + Wheel fills its caps and lists Item transfer's
+  Ctrl + Wheel under fixed presses; that row's tip lists Sort. Take One's
+  middle click warns as the screen's click (Take Stack's Shift + middle
+  click warns too: it contains Take One's). Hitboxes' F3 + B warns as the
+  game's emote. Find by key on W names the game's forward; the footer
+  after binding names Lamium overlaps.
+- Seen, unclear: F3 + B is filled like an exact match though it is not;
+  the Find by key line shows only while keys are being pressed.
+- Seen: with Zoom unbound Ctrl + Alt + C copies coordinates; with Zoom on
+  C it zooms and nothing is copied.
+
 ## L-372 game keys with their modifiers (2026-11-27)
 
 `384c3626` (DLL

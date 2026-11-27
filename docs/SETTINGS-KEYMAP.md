@@ -168,12 +168,16 @@ append-only action ids and default keys in `src/input/Binding.h`.
 - (Decided 2026-11-27, L-412) Every display reads one list of what a
   chord meets where it works (`input::overlaps`): other bindings, fixed
   presses, the game's click and the game's keys. The caps are filled when
-  something stops (the same chord, a fixed press taken whole, a game key)
-  and outlined when both happen (an overlap, a click); the tip counts all
+  something stops (the same chord, a fixed press taken whole, a game key's
+  whole chord) and outlined when only part is shared (an overlap, a click,
+  a game key inside a longer chord such as F3 + B); the tip counts all
   of them, lists the game's as lines, then bindings by relation and fixed
   presses in their own group; the capture line and the footer after
   binding say the game's line or the count with the first one met; Find
-  by key says in the footer when the game uses the keys. A fixed row keeps
+  by key says in the footer when the game uses the keys, while they are
+  pressed and while the found rows show. In play, pressing one of the
+  game's Ctrl + Alt or Alt keys (coordinate copies, macros) with its
+  modifiers held starts no binding without them, so the game gets it. A fixed row keeps
   its look; its tip lists the bindings that take it. The game's click is
   warned in play and on item screens; a Lamium window takes every key and
   click, so the game's are not warned there.

@@ -13,7 +13,7 @@ namespace lamium::input {
 enum class OverlapSource { Binding, Fixed, GameClick, GameKey };
 struct Overlap {
     OverlapSource source;
-    Relation relation; // GameKey: Shared (the game's action stops there); GameClick: Overlap (both happen)
+    Relation relation; // GameKey: Shared for its whole chord (the game's action stops), else Overlap; GameClick: Overlap
     Link link = Link::Same;
     unsigned where = 0; // the layers both work in
     Action action = Action::Count; // Binding
@@ -91,7 +91,14 @@ inline std::vector<Overlap> overlaps(unsigned layers, Chord const& chord, Bindin
     for (size_t i = 0; i < gameKeys.size(); ++i) {
         auto const where = layers & gameKeys[i].layers;
         if (!where || !takesGameKey(chord, i, game)) continue;
-        Overlap entry{OverlapSource::GameKey, Relation::Shared, Link::Same, where};
+        // Only the game's whole chord stops its action; inside a longer one (F3 + B) it stops only there.
+        Chord whole;
+        for (int modifier : gameKeys[i].modifiers) if (modifier) whole.push_back({Device::Key, modifier});
+        auto const gameKey = std::find_if(chord.begin(), chord.end(), [&](Token t) {
+            return t.device == Device::Key && std::find(game[i].begin(), game[i].end(), genericModifier(t.code)) != game[i].end(); });
+        if (gameKey != chord.end()) whole.push_back({Device::Key, genericModifier(gameKey->code)});
+        bool const exact = unordered(chord) == unordered(whole);
+        Overlap entry{OverlapSource::GameKey, exact ? Relation::Shared : Relation::Overlap, exact ? Link::Same : Link::InsideThis, where};
         entry.index = i;
         result.push_back(entry);
     }

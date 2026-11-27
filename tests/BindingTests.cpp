@@ -502,6 +502,43 @@ void bindingTests() {
                   && std::ranges::any_of(overlaps(layer::window, Chord{{Device::Key, 'E'}}, Bindings{}, defaults), [](Overlap const& o) {
                          return o.source == OverlapSource::Fixed && fixedPresses[o.index].name == "fixed.recipesCloseInventory"; }),
                   "in the recipe view E is Lamium's close, not the game's inventory key");
+            Bindings hitboxesDefault{};
+            auto const f3b = overlaps(hitboxesDefault, Action::Hitboxes, defaults);
+            Bindings zoomOnE{};
+            zoomOnE[static_cast<size_t>(Action::Zoom)] = Chord{{Device::Key, 'E'}};
+            check(strongest(f3b) == Relation::Overlap && strongest(overlaps(zoomOnE, Action::Zoom, defaults)) == Relation::Shared,
+                  "a game key inside a longer chord is an overlap; the game's whole chord is the same key");
+            // The game's Ctrl + Alt + C passes; Zoom on C does not start on it.
+            Token const zc{Device::Key, 'C'}, zctrl{Device::Key, 0xA2}, zalt{Device::Key, 0xA4};
+            auto pressWithPass = [&](Keys& keys, Token token) {
+                bool fresh = keys.held.observe(token, true, true);
+                auto chords = keys.chords;
+                passGameChords(chords, keys.dispatch, keys.held.value(), token, defaults);
+                return keys.dispatch.update(chords, keys.held.value(), token, fresh);
+            };
+            {
+                Keys keys;
+                keys.bind(Action::Zoom, {zc});
+                pressWithPass(keys, zctrl);
+                pressWithPass(keys, zalt);
+                auto result = pressWithPass(keys, zc);
+                check(result.transitions.empty() && !result.consumed, "Ctrl + Alt + C goes to the game, not to Zoom on C");
+            }
+            {
+                Keys keys;
+                keys.bind(Action::Zoom, {zc});
+                check(only(pressWithPass(keys, zc), {on(Action::Zoom)}), "C alone still zooms");
+                pressWithPass(keys, zctrl);
+                pressWithPass(keys, zalt);
+                check(keys.dispatch.isActive(Action::Zoom), "a zoom already held stays on when Ctrl + Alt join it");
+            }
+            {
+                Keys keys;
+                keys.bind(Action::DebugView, {zctrl, zalt, zc});
+                pressWithPass(keys, zctrl);
+                pressWithPass(keys, zalt);
+                check(only(pressWithPass(keys, zc), {on(Action::DebugView)}), "a binding on Ctrl + Alt + C itself still fires");
+            }
         }
         check(!gameKeyUse(Action::Sort, {t}, game) && !gameKeyUse(Action::Sort, {Token{Device::Key, 'R'}}, game)
               && !gameKeyUse(Action::Sort, {Token{Device::Mouse, 'E'}}, game) && !gameKeyUse(Action::Sort, {e}, GameKeyCodes{}),

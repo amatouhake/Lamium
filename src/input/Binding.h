@@ -596,6 +596,7 @@ class ChordDispatch {
     }
 public:
     bool isActive(Action action) const { return phases[static_cast<size_t>(action)] == Phase::Active; }
+    bool idle(size_t index) const { return phases[index] == Phase::Idle; }
     // A chord of several inputs that fired or waits for its release owns each of them; an input bound alone
     // does not (a mouse button alone stays the game's click). Ask before reset().
     bool takes(ChordSet const& chords, Token token) const {
@@ -659,4 +660,25 @@ public:
         return released;
     }
 };
+// The game's own modifier chords pass (L-412): on the press of the key of one
+// of the game's keys while the modifiers the game holds for it are held (Ctrl
+// + Alt + C copies coordinates), a binding without those modifiers does not
+// start, so the key reaches the game. One already running keeps going. For
+// play, where those keys work.
+inline void passGameChords(ChordSet& chords, ChordDispatch const& dispatch, Chord const& held, Token press, GameKeyCodes const& codes) {
+    if (press.device != Device::Key || modifierKey(press.code)) return;
+    auto holds = [&](Chord const& keys, int modifier) {
+        return std::any_of(keys.begin(), keys.end(), [&](Token t) { return t.device == Device::Key && genericModifier(t.code) == modifier; });
+    };
+    for (size_t i = 0; i < gameKeys.size(); ++i) {
+        auto const& key = gameKeys[i];
+        if (!key.modifiers[0] || !(key.layers & layer::gameplay)) continue;
+        if (std::find(codes[i].begin(), codes[i].end(), press.code) == codes[i].end()) continue;
+        if (!std::all_of(std::begin(key.modifiers), std::end(key.modifiers), [&](int m) { return !m || holds(held, m); })) continue;
+        for (size_t j = 0; j < chords.size(); ++j)
+            if (!chords[j].empty() && dispatch.idle(j)
+                && !std::all_of(std::begin(key.modifiers), std::end(key.modifiers), [&](int m) { return !m || holds(chords[j], m); }))
+                chords[j].clear();
+    }
+}
 }

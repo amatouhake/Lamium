@@ -74,6 +74,7 @@
 #include <chrono>
 #include "mc/client/gui/controls/VisualTree.h"
 #include "input/Overlaps.h"
+#include "input/GameKeymap.h"
 #include "input/Actions.h"
 #include "input/BindingCapture.h"
 #include "ll/api/event/EventBus.h"
@@ -173,27 +174,9 @@ int nextSelectable(int from, int step) {
     for (int row = from; valid(row); row += step) if (rows[row].selectable()) return row;
     return -1;
 }
-// The keys the game binds to one of its actions (a keymap name such as "key.drop"); empty when unreadable.
-std::vector<int> gameKeys(IClientInstance& current, char const* name) {
-    auto layout = current.getOptions().getCurrentKeyboardRemapping();
-    if (!layout) return {};
-    auto const& mapped = layout->getKeymappingByAction(name).mKeys.get();
-    if (mapped.size() > 4) return {};
-    std::vector<int> keys;
-    for (int code : mapped) if (code > 0) keys.push_back(code);
-    return keys;
-}
+std::vector<int> gameKeys(IClientInstance& current, char const* name) { return input::gameKeymapKeys(current, name); }
 std::vector<int> gameDropKeys(IClientInstance& current) { return gameKeys(current, "key.drop"); }
-// The game's own keys (input::gameKeys), read again at most once a second: every key cell asks.
-input::GameKeyCodes const& gameKeyCodes(IClientInstance& current) {
-    static input::GameKeyCodes codes;
-    static std::chrono::steady_clock::time_point read{};
-    if (auto const now = std::chrono::steady_clock::now(); now - read > std::chrono::seconds(1)) {
-        read = now;
-        for (size_t i = 0; i < input::gameKeys.size(); ++i) codes[i] = gameKeys(current, std::string{input::gameKeys[i].name}.c_str());
-    }
-    return codes;
-}
+using input::gameKeyCodes;
 void rebuild_(bool keepSelection) {
     std::optional<SettingsRow> previous;
     if (keepSelection && valid(selected)) previous = rows[selected];
@@ -1422,16 +1405,16 @@ void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, 
     std::string hint = !screen::message().empty() ? screen::message()
         : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint"
             : valid(selected) && rows[selected].option && rows[selected].option->numeric ? "numberControl" : "tableHint");
+    // The game's own use of the keys found, which no row lists (L-412): while the keys are pressed and after.
+    std::string gameUse;
+    if (keyQuery && hotkeysView() && screen::message().empty())
+        for (auto const& entry : input::overlaps(input::layer::gameplay | input::layer::itemScreen, *keyQuery, input::Bindings{}, currentGameKeys()))
+            if (auto line = gameLine(entry); !line.empty()) { gameUse = std::move(line); break; }
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
         drawButton(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,translated("cancelShort"),over);
         float after = t.footerButtonX(1);
-        // The game's own use of the keys pressed, which no row lists (L-412).
-        std::string gameUse;
-        if (keyQuery && screen::message().empty())
-            for (auto const& entry : input::overlaps(input::layer::gameplay | input::layer::itemScreen, *keyQuery, input::Bindings{}, currentGameKeys()))
-                if (auto line = gameLine(entry); !line.empty()) { gameUse = std::move(line); break; }
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
             !screen::message().empty() ? screen::message() : !gameUse.empty() ? gameUse : fullDescription,
             !screen::message().empty() ? screen::messageColor() : !gameUse.empty() ? palette::warning : palette::dim);
@@ -1450,9 +1433,11 @@ void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, 
             auto bar = descriptionBar(t, helpLineCount, helpFirst);
             drawScrollbar(context,bar.x,bar.top,bar.track,bar.thumbTop(),bar.thumb,
                 screen::scrollHeld(&helpFirst) || t.onDescriptionScrollbar(pointer.x,pointer.y,helpLineCount));
-            if (screen::message().empty()) hint = translated("description.hint") + " | " + hint;
+            if (screen::message().empty() && gameUse.empty()) hint = translated("description.hint") + " | " + hint;
         }
-        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : screen::messageColor());
+        if (!gameUse.empty()) hint = gameUse;
+        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),
+            !screen::message().empty() ? screen::messageColor() : !gameUse.empty() ? palette::warning : palette::faint);
     }
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {

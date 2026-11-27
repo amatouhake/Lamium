@@ -1,5 +1,6 @@
 #include "features/recipes/ItemList.h"
 #include "features/research/ItemScreenProbe.h"
+#include "input/GameKeymap.h"
 #include "input/CustomInput.h"
 #include "features/camera/CameraSessions.h"
 #include "features/interaction/PermanentSneak.h"
@@ -124,6 +125,9 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false, b
         CameraSessions::instance().blocksPerspective(), inventoryPrefs.recipes, inventoryPrefs.plan};
     for (size_t i = 0; i < allowed.size(); ++i)
         if (actionAllowed(static_cast<Action>(i), state)) allowed[i] = previous[i];
+    // The game's Ctrl + Alt and Alt keys (coordinate copies, macros) reach the game in play (L-412).
+    if ((state.layers & layer::gameplay) && down && !cancelled)
+        passGameChords(allowed, dispatch, held.value(), token, gameKeyCodes(*current));
     // A different consumer (notably Zoom's wheel adjustment) may own this
     // event. Preserve held inputs, but always observe key-up releases.
     auto result = dispatch.update(allowed, held.value(), down && !cancelled ? std::optional<Token>(token) : std::nullopt, fresh);
