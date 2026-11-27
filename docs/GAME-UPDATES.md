@@ -519,14 +519,17 @@ Hooks: `ExtractSneakInput`, `SneakDimensionChange`
 Meaning: the sneak bit in the extracted input.
 
 ### `src/features/interaction/PlacementTrace.cpp`
-Hooks: `Calculate`, `PlacementTraceGameModeUseOn`, `PlacementTraceSurvivalModeUseOn`, `PlacementTraceSend`, `PlacementFakeGameModeBuild`, `PlacementFakeGameModeStartBuild`, `PlacementFakeSurvivalModeBuild`, `PlacementFakeSurvivalModeStartBuild`
+Hooks: `Calculate`, `PlacementTraceGameModeUseOn`, `PlacementTraceSurvivalModeUseOn`, `PlacementTraceSend`, `PlacementFakeGameModeBuild`, `PlacementFakeGameModeStartBuild`, `PlacementFakeSurvivalModeBuild`, `PlacementFakeSurvivalModeStartBuild`, `PlacementTraceUseItem`, `PlacementFakeStopBuild`
 Trace (`placement_trace`). L-265 lines: both sides of `useItemOn` (client
 and local server) with the actor's rotation and the blocks before and after,
 and the sent `PlayerAuthInputPacket` rotations and `InventoryTransactionPacket`
-item use fields around a use. Read only, except the `placement_fake`
+item use fields around a use, `BlockType::getPlacementBlock`'s answer
+beside each client use, and `GameMode::useItem` presses. Read only, except the `placement_fake`
 experiment (L-265, option only, ungated): the `PlacementFake*` hooks hold a
 stair placement (one a second), every auth input until its Place
-transaction leaves is sent with yaw + 180, and `GameMode::buildBlock` is
+transaction leaves is sent with yaw + 180 (with oak stairs the move input
+turned too), at an interval that changes with each press
+(`GameMode::stopBuildBlock` ends a press), and `GameMode::buildBlock` is
 called from another solid neighbor of the cell, with the local player's
 rotation and the level's `HitResult` (`Level::getHitResult`) written for the
 call; a sent click that differs from the chosen one is overwritten in the

@@ -24,6 +24,7 @@
 #include "mc/world/level/block/BlockType.h"
 #ifdef LAMIUM_PLACEMENT_FAKE
 #include "features/interaction/PeriodicInput.h"
+#include "ui/Toast.h"
 #include "ll/api/thread/ClientThreadExecutor.h"
 #include "mc/world/phys/HitResult.h"
 #include "mc/world/level/Level.h"
@@ -63,7 +64,7 @@ LL_TYPE_INSTANCE_HOOK(Calculate, ll::memory::HookPriority::Normal, Item,
 // local server's too, for the rotation it used) and the packets around a use.
 std::atomic<int> useLines{};
 void note(std::string const& text) noexcept {
-    if (++useLines > 800) return;
+    if (++useLines > 4000) return;
     try { Runtime::instance().self().getLogger().info("L-265 {}", text); } catch (...) {}
 }
 std::string blockText(Block const& block) {
@@ -109,6 +110,18 @@ InteractionResult useTraced(char const* mode, Player& actor, ItemStack const& it
         if (local) {
             if (!lastAuth.empty()) note("client auth before use: " + lastAuth);
             followAuth = std::max(followAuth, 2);
+            // What the block's own placement rule says for this use, read
+            // before the call: the cell is the target when it can be built
+            // over, else the one beside it.
+            if (Block const* held = item.mBlock) {
+                Block const& there = region.getBlock(at);
+                BlockPos const cell = there.getBlockType().canBeBuiltOver(there, region, at) ? at : beside(at, face);
+                Vec3 const relative{hit.x - static_cast<float>(at.x), hit.y - static_cast<float>(at.y), hit.z - static_cast<float>(at.z)};
+                Block const& byRelative = held->getBlockType().getPlacementBlock(actor, cell, face, relative, item.getAuxValue());
+                Block const& byAbsolute = held->getBlockType().getPlacementBlock(actor, cell, face, hit, item.getAuxValue());
+                note(std::format("predict: cell {},{},{} by relative click {}; by absolute click {}", cell.x, cell.y, cell.z,
+                                 blockText(byRelative), blockText(byAbsolute)));
+            }
         }
     } catch (...) {}
     InteractionResult const result = call();
@@ -128,19 +141,32 @@ LL_TYPE_INSTANCE_HOOK(PlacementTrace##Mode##UseOn, ll::memory::HookPriority::Nor
 USE_HOOK(GameMode)
 USE_HOOK(SurvivalMode)
 #undef USE_HOOK
+LL_TYPE_INSTANCE_HOOK(PlacementTraceUseItem, ll::memory::HookPriority::Normal, GameMode, &GameMode::$useItem, bool,
+                      ItemStack& item, HandSlot hand) {
+    if (isLocal(mPlayer)) try {
+        auto client = ll::service::getClientInstance();
+        auto const& hit = client->getLatestHitResult();
+        note(std::format("client useItem item {} hand {} hit type {} block {},{},{} indirect {}", item.isNull() ? "none" : item.getTypeName(),
+                         static_cast<int>(hand), static_cast<int>(hit.mType), hit.mBlock.x, hit.mBlock.y, hit.mBlock.z, hit.mIndirectHit));
+    } catch (...) {}
+    return origin(item, hand);
+}
 #ifdef LAMIUM_PLACEMENT_FAKE
-// L-265 experiment, third build: a stair placement is held, the auth inputs
-// until its Place transaction leaves say yaw + 180 (move input untouched),
-// and the stair is placed into the cell vanilla would fill, but clicked from
-// another solid neighbor when there is one, at a click position Lamium
-// chooses (side faces alternate upper and lower half). The level's hit result
-// says that click for the buildBlock call; the sent click is compared with it.
-// At most one fake a second; a stair used sooner is placed by vanilla.
-struct Held { BlockPos aimed; uchar aimedFace; BlockPos pos; uchar face; Vec3 click; };
+// L-265 experiment, fourth build: while use is held with stairs, faked
+// placements follow one another at an interval that changes with each new
+// press (1, 0.5, 0.25 s, then as fast as vanilla repeats), shown in a toast.
+// Oak stairs turn the move input with the look ("turned"); other stairs
+// leave it ("untouched"). Inside the interval nothing is placed. Each fake:
+// the auth inputs until its Place transaction say yaw + 180, and the stair
+// goes into the cell vanilla would fill, clicked from another solid
+// neighbor at a chosen click (side faces alternate upper and lower half),
+// with the level's hit result set for the buildBlock call.
+struct Held { BlockPos aimed; uchar aimedFace; BlockPos pos; uchar face; Vec3 click; bool turnMove; };
 std::optional<Held> held;
-bool replayQueued = false, replaying = false;
+bool replayQueued = false, replaying = false, pressing = false;
 int authsFaked = 0;
-unsigned upperCount = 0;
+unsigned upperCount = 0, pressCount = 0;
+double interval = 1.0;
 std::chrono::steady_clock::time_point lastFake{};
 float flip(float yaw) { return yaw >= 0 ? yaw - 180.0f : yaw + 180.0f; }
 void dropHeld(char const* why) {
@@ -149,12 +175,14 @@ void dropHeld(char const* why) {
     replayQueued = false;
     authsFaked = 0;
 }
-bool holdsStair(Player& actor, HandSlot hand) noexcept {
+std::string stairIn(Player& actor, HandSlot hand) noexcept {
     try {
-        if (replaying || !isLocal(actor)) return false;
+        if (replaying || !isLocal(actor)) return {};
         auto const& item = hand == HandSlot::Offhand ? actor.getOffhandSlot() : actor.getSelectedItem();
-        return !item.isNull() && item.getTypeName().ends_with("_stairs");
-    } catch (...) { return false; }
+        if (item.isNull()) return {};
+        std::string name = item.getTypeName();
+        return name.ends_with("_stairs") ? name : std::string{};
+    } catch (...) { return {}; }
 }
 uchar opposite(uchar face) { return static_cast<uchar>(face ^ 1); }
 // The point on `face` of a block, relative to the block; side faces at the
@@ -170,7 +198,7 @@ Vec3 clickOn(uchar face, bool upper) {
     default: return {1.0f, y, 0.5f};
     }
 }
-Held plan(Player& actor, BlockPos const& aimed, uchar aimedFace) {
+Held plan(Player& actor, BlockPos const& aimed, uchar aimedFace, bool turnMove) {
     BlockPos const cell = beside(aimed, aimedFace);
     bool const upper = (upperCount++ % 2) == 0;
     auto& region = actor.getDimensionBlockSource();
@@ -180,23 +208,37 @@ Held plan(Player& actor, BlockPos const& aimed, uchar aimedFace) {
         Block const& block = region.getBlock(from);
         if (block.getBlockType().canBeBuiltOver(block, region, from)) continue;
         uchar const face = opposite(dir);
-        return {aimed, aimedFace, from, face, clickOn(face, upper)};
+        return {aimed, aimedFace, from, face, clickOn(face, upper), turnMove};
     }
-    return {aimed, aimedFace, aimed, aimedFace, clickOn(aimedFace, upper)};
+    return {aimed, aimedFace, aimed, aimedFace, clickOn(aimedFace, upper), turnMove};
+}
+Held plan(Player& actor, BlockPos const& aimed, uchar aimedFace, bool turnMove);
+// A new press picks the next interval.
+void startPress() {
+    static constexpr double intervals[] = {1.0, 0.5, 0.25, 0.0};
+    interval = intervals[pressCount++ % 4];
+    pressing = true;
+    lastFake = {};
+    std::string const text = interval > 0 ? std::format("L-265: {} s", interval) : std::string("L-265: vanilla repeat");
+    note("fake: new press, interval " + text);
+    try { ui::showMessageToast(text, 1.5); } catch (...) {}
 }
 bool holdBuild(Player& actor, BlockPos const& pos, uchar face, HandSlot hand) noexcept {
     try {
-        if (!holdsStair(actor, hand)) return false;
+        std::string const stair = stairIn(actor, hand);
+        if (stair.empty()) return false;
         if (held) return true;
         auto const now = std::chrono::steady_clock::now();
-        if (now - lastFake < std::chrono::seconds(1)) return false;
+        if (now - lastFake < std::chrono::duration<double>(interval)) return true;
         lastFake = now;
-        held = plan(actor, pos, face);
+        bool const turnMove = stair == "minecraft:oak_stairs";
+        held = plan(actor, pos, face, turnMove);
         replayQueued = false;
         authsFaked = 0;
-        note(std::format("fake: held a stair use aimed at {},{},{} face {}; placing from {},{},{} face {} click {:.2f},{:.2f},{:.2f}{}",
+        note(std::format("fake: held a stair use aimed at {},{},{} face {}; placing from {},{},{} face {} click {:.2f},{:.2f},{:.2f}; "
+                         "interval {} s, move {}",
                          pos.x, pos.y, pos.z, face, held->pos.x, held->pos.y, held->pos.z, held->face, held->click.x, held->click.y,
-                         held->click.z, held->pos == pos ? " (no other neighbor)" : ""));
+                         held->click.z, interval, turnMove ? "turned" : "untouched"));
         return true;
     } catch (...) { return false; }
 }
@@ -242,14 +284,29 @@ void replay() {
     });
 }
 using AuthInput = PlayerAuthInputPacketPayload::InputData;
+void swapFlags(PlayerAuthInputPacket& auth, AuthInput a, AuthInput b) {
+    auto& bits = auth.mInputData->mContainer;
+    bool const hasA = bits.test(static_cast<size_t>(a)), hasB = bits.test(static_cast<size_t>(b));
+    bits.set(static_cast<size_t>(a), hasB);
+    bits.set(static_cast<size_t>(b), hasA);
+}
 void fakeAuth(PlayerAuthInputPacket& auth) {
     auth.mRot->y = flip(auth.mRot->y);
     auth.mYHeadRot = flip(static_cast<float>(auth.mYHeadRot));
     auth.mInteractRotation->y = flip(auth.mInteractRotation->y);
     auth.mCameraOrientation->x = -auth.mCameraOrientation->x;
     auth.mCameraOrientation->z = -auth.mCameraOrientation->z;
+    if (held->turnMove) {
+        *auth.mMove = Vec2{-auth.mMove->x, -auth.mMove->z};
+        *auth.mRawMoveVector = Vec2{-auth.mRawMoveVector->x, -auth.mRawMoveVector->z};
+        *auth.mAnalogMoveVector = Vec2{-auth.mAnalogMoveVector->x, -auth.mAnalogMoveVector->z};
+        swapFlags(auth, AuthInput::Up, AuthInput::Down);
+        swapFlags(auth, AuthInput::Left, AuthInput::Right);
+        swapFlags(auth, AuthInput::UpLeft, AuthInput::DownRight);
+        swapFlags(auth, AuthInput::UpRight, AuthInput::DownLeft);
+    }
     ++authsFaked;
-    followAuth = 6;
+    followAuth = 20;
 }
 #define HOLD_HOOKS(Mode) \
 LL_TYPE_INSTANCE_HOOK(PlacementFake##Mode##Build, ll::memory::HookPriority::High, Mode, \
@@ -259,11 +316,19 @@ LL_TYPE_INSTANCE_HOOK(PlacementFake##Mode##Build, ll::memory::HookPriority::High
 } \
 LL_TYPE_INSTANCE_HOOK(PlacementFake##Mode##StartBuild, ll::memory::HookPriority::High, Mode, \
     &Mode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) { \
+    if (!stairIn(mPlayer, hand).empty()) startPress(); \
     if (!holdBuild(mPlayer, pos, face, hand)) origin(pos, face, hand); \
 }
 HOLD_HOOKS(GameMode)
 HOLD_HOOKS(SurvivalMode)
 #undef HOLD_HOOKS
+LL_TYPE_INSTANCE_HOOK(PlacementFakeStopBuild, ll::memory::HookPriority::High, GameMode, &GameMode::$stopBuildBlock, void) {
+    if (pressing && isLocal(mPlayer)) {
+        pressing = false;
+        note("fake: press ended");
+    }
+    origin();
+}
 #endif
 using AuthFlag = PlayerAuthInputPacketPayload::InputData;
 LL_TYPE_INSTANCE_HOOK(PlacementTraceSend, ll::memory::HookPriority::Normal, LoopbackPacketSender,
@@ -297,7 +362,9 @@ LL_TYPE_INSTANCE_HOOK(PlacementTraceSend, ll::memory::HookPriority::Normal, Loop
 #endif
                 if (followAuth > 0) {
                     --followAuth;
-                    note("client auth after use: " + lastAuth);
+                    note(std::format("client auth after use: tick {} pos {:.3f},{:.3f} yaw {:.1f} move {:.2f},{:.2f}",
+                                     static_cast<unsigned long long>(auth.mClientTick->mValue), auth.mPos->x, auth.mPos->z, auth.mRot->y,
+                                     auth.mMove->x, auth.mMove->z));
                 }
             } else if (packet.getId() == MinecraftPacketIds::InventoryTransaction) {
                 auto& sent = static_cast<InventoryTransactionPacket&>(packet);
@@ -330,20 +397,22 @@ LL_TYPE_INSTANCE_HOOK(PlacementTraceSend, ll::memory::HookPriority::Normal, Loop
     } catch (...) {}
     origin(packet);
 }
-bool calculated = false, used = false, usedSurvival = false, sent = false;
+bool calculated = false, used = false, usedSurvival = false, sent = false, usedItem = false;
 #ifdef LAMIUM_PLACEMENT_FAKE
 bool holdHooks = false;
 bool installHolds() {
     return PlacementFakeGameModeBuild::hook(true) == 0 && PlacementFakeGameModeStartBuild::hook(true) == 0
-        && PlacementFakeSurvivalModeBuild::hook(true) == 0 && PlacementFakeSurvivalModeStartBuild::hook(true) == 0;
+        && PlacementFakeSurvivalModeBuild::hook(true) == 0 && PlacementFakeSurvivalModeStartBuild::hook(true) == 0
+        && PlacementFakeStopBuild::hook(true) == 0;
 }
 void removeHolds() {
+    PlacementFakeStopBuild::unhook(true);
     PlacementFakeSurvivalModeStartBuild::unhook(true);
     PlacementFakeSurvivalModeBuild::unhook(true);
     PlacementFakeGameModeStartBuild::unhook(true);
     PlacementFakeGameModeBuild::unhook(true);
     held.reset();
-    replayQueued = replaying = false;
+    replayQueued = replaying = pressing = false;
     authsFaked = 0;
 }
 #endif
@@ -357,18 +426,20 @@ void start() {
     used = PlacementTraceGameModeUseOn::hook(true) == 0;
     usedSurvival = PlacementTraceSurvivalModeUseOn::hook(true) == 0;
     sent = PlacementTraceSend::hook(true) == 0;
+    usedItem = PlacementTraceUseItem::hook(true) == 0;
 #ifdef LAMIUM_PLACEMENT_FAKE
     holdHooks = installHolds();
     if (!holdHooks) { stop(); throw std::runtime_error("Could not install the placement fake experiment"); }
     Runtime::instance().self().getLogger().warn("L-265 experiment: stair placements are sent looking the opposite way");
 #endif
-    if (!calculated || !used || !usedSurvival || !sent) { stop(); throw std::runtime_error("Could not install placement diagnostics"); }
+    if (!calculated || !used || !usedSurvival || !sent || !usedItem) { stop(); throw std::runtime_error("Could not install placement diagnostics"); }
     Runtime::instance().self().getLogger().warn("Placement diagnostics enabled: first 200 local calls and 800 L-265 lines only");
 }
 void stop() {
 #ifdef LAMIUM_PLACEMENT_FAKE
     if (holdHooks) { removeHolds(); holdHooks = false; }
 #endif
+    if (usedItem && PlacementTraceUseItem::unhook(true)) usedItem = false;
     if (sent && PlacementTraceSend::unhook(true)) sent = false;
     if (usedSurvival && PlacementTraceSurvivalModeUseOn::unhook(true)) usedSurvival = false;
     if (used && PlacementTraceGameModeUseOn::unhook(true)) used = false;
