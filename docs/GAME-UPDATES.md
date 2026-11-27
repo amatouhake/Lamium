@@ -525,9 +525,10 @@ and local server) with the actor's rotation and the blocks before and after,
 and the sent `PlayerAuthInputPacket` rotations and `InventoryTransactionPacket`
 item use fields around a use. Read only, except the `placement_fake`
 experiment (L-265, option only, ungated): the `PlacementFake*` hooks hold a
-stair placement, every auth input until its Place transaction leaves is
-sent with yaw + 180 (move vectors turned with it), and the use is replayed
-with the local player's rotation written the same for the call. The real
+stair placement (one a second), every auth input until its Place
+transaction leaves is sent with yaw + 180 (move input turned or untouched,
+alternating), and `GameMode::buildBlock` is called for the held cell with
+the local player's rotation written the same for the call. The real
 feature asks `versionSensitiveAllowed()` before any of this.
 
 ### `src/features/inventory/FakeOffhand.cpp`

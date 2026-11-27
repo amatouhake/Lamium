@@ -26,6 +26,7 @@
 #include "features/interaction/PeriodicInput.h"
 #include "ll/api/thread/ClientThreadExecutor.h"
 #include "mc/world/phys/HitResult.h"
+#include <chrono>
 #include <optional>
 #endif
 #include <atomic>
@@ -125,16 +126,19 @@ USE_HOOK(GameMode)
 USE_HOOK(SurvivalMode)
 #undef USE_HOOK
 #ifdef LAMIUM_PLACEMENT_FAKE
-// L-265 experiment: a stair placement is held back, the next auth input says
-// the player looks the opposite way (yaw + 180, move vectors turned with it
-// so the motion stays the same), and the use is replayed right after it with
-// the local player's yaw turned the same for the client's own call.
-struct Held { BlockPos pos; uchar face; };
-// Every auth input is faked from the hold until the Place transaction leaves
-// (the replay's timing against the next auth input is unknown).
+// L-265 experiment, second build: a stair placement is held, the auth inputs
+// until its Place transaction leaves say yaw + 180, and the placement is sent
+// for the held cell and face through buildBlock (not the use input), with the
+// local yaw turned the same for that call. Placements alternate between two
+// variants: "turned" turns the move vectors and swaps the direction flags,
+// "untouched" leaves the move input as it is. At most one fake a second; a
+// stair used sooner is placed by vanilla.
+struct Held { BlockPos pos; uchar face; bool turnMove; };
 std::optional<Held> held;
 bool replayQueued = false, replaying = false;
 int authsFaked = 0;
+unsigned variantCount = 0;
+std::chrono::steady_clock::time_point lastFake{};
 float flip(float yaw) { return yaw >= 0 ? yaw - 180.0f : yaw + 180.0f; }
 void dropHeld(char const* why) {
     if (held) note(std::string("fake: ") + why);
@@ -151,12 +155,16 @@ bool holdsStair(Player& actor, HandSlot hand) noexcept {
 }
 bool holdBuild(Player& actor, BlockPos const& pos, uchar face, HandSlot hand) noexcept {
     if (!holdsStair(actor, hand)) return false;
-    if (!held) {
-        held = Held{pos, face};
-        replayQueued = false;
-        authsFaked = 0;
-        note(std::format("fake: held a stair use at {},{},{} face {}", pos.x, pos.y, pos.z, face));
-    }
+    if (held) return true;
+    auto const now = std::chrono::steady_clock::now();
+    if (now - lastFake < std::chrono::seconds(1)) return false;
+    lastFake = now;
+    bool const turnMove = (variantCount++ % 2) == 0;
+    held = Held{pos, face, turnMove};
+    replayQueued = false;
+    authsFaked = 0;
+    note(std::format("fake: held a stair use at {},{},{} face {}; variant {}", pos.x, pos.y, pos.z, face,
+                     turnMove ? "turned" : "untouched"));
     return true;
 }
 // Puts the local yaw and the replay flag back whatever happens in between.
@@ -177,22 +185,30 @@ void replay() {
         try {
             auto client = ll::service::getClientInstance();
             auto* player = client ? client->getLocalPlayer() : nullptr;
-            if (!player || !held) return dropHeld("no player or nothing held at the replay");
+            if (!player || !held) return dropHeld("no player or nothing held at the placement");
+            GameMode* mode = player->mGameMode.get();
+            if (!mode) return dropHeld("no game mode");
             auto const& hit = client->getLatestHitResult();
-            if (hit.mType != HitResultType::Tile || hit.mBlock != held->pos || hit.mFacing != held->face)
-                return dropHeld("aim moved before the replay; dropped");
-            bool down = false;
+            bool const sameAim = hit.mType == HitResultType::Tile && hit.mBlock == held->pos && hit.mFacing == held->face;
+            bool placed = false;
             float yaw = 0;
             {
                 FlippedYaw const flipped(*player->mBuiltInComponents->mActorRotationComponent->mRot);
                 yaw = flipped.rot.y;
-                down = periodic::sendUseEdge(*client, true);
-                if (down) periodic::sendUseEdge(*client, false);
+                placed = mode->buildBlock(held->pos, held->face, HandSlot::Mainhand, false);
             }
-            note(std::format("fake: replayed (edge sent {}) with client yaw {:.1f}; held still {}", down, yaw, held.has_value()));
-            if (!down) dropHeld("the use edge was not sent");
-        } catch (...) { dropHeld("replay failed"); }
+            note(std::format("fake: buildBlock({},{},{} face {}) returned {} with client yaw {:.1f}; aim still there {}; held still {}",
+                             held->pos.x, held->pos.y, held->pos.z, held->face, placed, yaw, sameAim, held.has_value()));
+            if (held) dropHeld("buildBlock sent no Place transaction");
+        } catch (...) { dropHeld("placement failed"); }
     });
+}
+using AuthInput = PlayerAuthInputPacketPayload::InputData;
+void swapFlags(PlayerAuthInputPacket& auth, AuthInput a, AuthInput b) {
+    auto& bits = auth.mInputData->mContainer;
+    bool const hasA = bits.test(static_cast<size_t>(a)), hasB = bits.test(static_cast<size_t>(b));
+    bits.set(static_cast<size_t>(a), hasB);
+    bits.set(static_cast<size_t>(b), hasA);
 }
 void fakeAuth(PlayerAuthInputPacket& auth) {
     auth.mRot->y = flip(auth.mRot->y);
@@ -200,11 +216,17 @@ void fakeAuth(PlayerAuthInputPacket& auth) {
     auth.mInteractRotation->y = flip(auth.mInteractRotation->y);
     auth.mCameraOrientation->x = -auth.mCameraOrientation->x;
     auth.mCameraOrientation->z = -auth.mCameraOrientation->z;
-    *auth.mMove = Vec2{-auth.mMove->x, -auth.mMove->z};
-    *auth.mRawMoveVector = Vec2{-auth.mRawMoveVector->x, -auth.mRawMoveVector->z};
-    *auth.mAnalogMoveVector = Vec2{-auth.mAnalogMoveVector->x, -auth.mAnalogMoveVector->z};
+    if (held->turnMove) {
+        *auth.mMove = Vec2{-auth.mMove->x, -auth.mMove->z};
+        *auth.mRawMoveVector = Vec2{-auth.mRawMoveVector->x, -auth.mRawMoveVector->z};
+        *auth.mAnalogMoveVector = Vec2{-auth.mAnalogMoveVector->x, -auth.mAnalogMoveVector->z};
+        swapFlags(auth, AuthInput::Up, AuthInput::Down);
+        swapFlags(auth, AuthInput::Left, AuthInput::Right);
+        swapFlags(auth, AuthInput::UpLeft, AuthInput::DownRight);
+        swapFlags(auth, AuthInput::UpRight, AuthInput::DownLeft);
+    }
     ++authsFaked;
-    followAuth = 3;
+    followAuth = 6;
 }
 #define HOLD_HOOKS(Mode) \
 LL_TYPE_INSTANCE_HOOK(PlacementFake##Mode##Build, ll::memory::HookPriority::High, Mode, \
@@ -241,7 +263,8 @@ LL_TYPE_INSTANCE_HOOK(PlacementTraceSend, ll::memory::HookPriority::Normal, Loop
                     auth.mInputData->contains(AuthFlag::PerformItemInteraction), static_cast<bool>(auth.mItemUseTransaction.get()));
 #ifdef LAMIUM_PLACEMENT_FAKE
                 if (faking) {
-                    note(std::format("fake: auth {} sent as {}; move {:.2f},{:.2f}", authsFaked, lastAuth, auth.mMove->x, auth.mMove->z));
+                    note(std::format("fake: auth {} sent as {}; move {:.2f},{:.2f} variant {}", authsFaked, lastAuth, auth.mMove->x,
+                                     auth.mMove->z, held->turnMove ? "turned" : "untouched"));
                     origin(packet);
                     if (!replayQueued) {
                         replayQueued = true;
@@ -267,7 +290,8 @@ LL_TYPE_INSTANCE_HOOK(PlacementTraceSend, ll::memory::HookPriority::Normal, Loop
                         static_cast<int>(use.mClientPredictedResult)));
 #ifdef LAMIUM_PLACEMENT_FAKE
                     if (held && use.mActionType == ItemUseInventoryTransaction::ActionType::Place) {
-                        note(std::format("fake: Place left after {} faked auth input(s)", authsFaked));
+                        note(std::format("fake: Place left after {} faked auth input(s), variant {}", authsFaked,
+                                         held->turnMove ? "turned" : "untouched"));
                         held.reset();
                         replayQueued = false;
                         authsFaked = 0;
