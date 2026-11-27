@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-412 overlap tips' long notes (2026-11-27)
+
+`f5cea8fd` with the change committed as `ed7fd5d1` (DLL
+`bb94b6ed05a2e7f4c37718c14a0b3eef58f479c8142f7c128d651a651a07c288`),
+1.26.60.05 Dev, the maintainer:
+- Seen: with Inventory transfer on E the conflict tip grows and shows the
+  item screen line whole, inside the table; nothing else changed.
+
 ## L-412 review fixes in the overlap tips (2026-11-27)
 
 `7546bf86` with the changes committed as `b894253e` (DLL
