@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-412 Find by key without the game's line (2026-11-27)
+
+`44907a50` (DLL
+`dda2970276b2bd3279ad1df50dbc69cb7f031ec5700ae49b91297dd34bb63ad6`),
+1.26.60.05 Dev, the maintainer:
+- Seen: Find by key on W shows the footer's usual guidance, no game line;
+  nothing else changed.
+
 ## L-412 the game's modifier chords pass (2026-11-27)
 
 `0917b9a3` (DLL
