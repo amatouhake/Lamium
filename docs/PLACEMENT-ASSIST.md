@@ -12,8 +12,7 @@ off; the schematic HUD shows it while it is on.
 
 ## Behavior
 
-Decided by the maintainer on 2026-11-28; lines marked (proposed) are not
-agreed yet.
+Decided by the maintainer on 2026-11-28.
 
 - **Server rules.** Some servers forbid this kind of help; following a
   server's rules is the player's part, as for the rest of Lamium.
@@ -23,16 +22,15 @@ agreed yet.
   real neighbor's face the crosshair is not on. Any other change needs its
   own decision.
 - **When it acts.** With the mode on, a use press whose view ray meets a
-  ghost first (the ghost pick's ray, L-263; which placements count is
-  proposed: the shown ones, as for the ghost pick) is
-  the assist's; a real block in front of the ghost wins and stays vanilla.
+  ghost first (the ghost pick's ray, L-263: any shown placement's ghost)
+  is the assist's; a real block in front of the ghost wins and stays vanilla.
   With the mode off, or no ghost first on the ray, the use input is
   vanilla.
 - **Target.** The first ghost cell on the ray, not only the cell vanilla
   would fill. The placement is sent as a click on a real neighbor's face
   at a click position, chosen so that the placed block matches the ghost.
-  (Proposed) a ghost cell already holding a real block that cannot be
-  built over is left alone; one that can (grass) is placed over, as
+  A ghost cell holding a real block that cannot be built over is left
+  alone; one that can (grass, flowers, snow layer) is placed over, as
   vanilla does.
 - **State.** Where a state follows the player's facing (stairs, furnaces,
   ...), the auth input sent just before the placement carries the look
@@ -48,16 +46,16 @@ agreed yet.
   the crosshair at vanilla's repeat rate. Placements that need a faked
   look need no slower rate (the fifth trace showed none at 0.1 s).
 - **Feedback.** When the assist places nothing, a short Lamium toast says
-  why (wording proposed): "Not carried: <block>" or "Cannot be placed in
-  this state from here: <block>". Placing leaves the HUD's counts to the Check as usual.
+  why: "Not carried: <block>" or "Cannot be placed in this state from
+  here: <block>". Placing leaves the HUD's counts to the Check as usual.
 - **Lifecycle.** A held placement waits only for its pick and its one
   faked auth input, a few ticks at most; focus loss, world exit, dimension
   change and switching the mode off drop it, and the next auth input
   carries the real look (a LIFECYCLE.md line when built).
 - **Version.** The faked look, the hit result written for the call and the
   placement itself ask `versionSensitiveAllowed()` (a new capability);
-  without it the mode stays off (how the row shows that: proposed, as
-  other gated features do).
+  without it the mode stays off and its row and toggle toast say so, as
+  for the other gated features.
 
 ## Code
 
