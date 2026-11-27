@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-372 game-key warning in play (2026-11-27)
+
+`6c2d636d` (DLL
+`9ab3cc4fc2e4360ea90dc0404c3af96006dd3ff247f161f5150d12c25bfe9348`),
+1.26.60.05 Dev, the maintainer:
+- Seen: Zoom on E, Q or T warns with the game's own action name; Ctrl + F
+  does not; the footer line goes on another row or sidebar page; Zoom's
+  default C warns, no other default does.
+- Seen, wrong: C and X warned as the coordinate copies, which the game's
+  controls screen binds with Ctrl + Alt (command macros with Alt).
+- Asked: a game key to count like the same key; the tip's listed caps
+  toned by how they meet.
+
 ## L-372 game-key warning on item screens (2026-11-27)
 
 `589ca728` (DLL

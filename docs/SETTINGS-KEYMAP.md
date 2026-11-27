@@ -173,8 +173,13 @@ append-only action ids and default keys in `src/input/Binding.h`.
   the game's action in the game's words. In play that is every key in the
   game's keyboard controls (movement, jump, sneak, chat, ...); on an item
   screen its inventory and drop keys and the hotbar numbers
-  (`input::gameKeys`). Shift, Ctrl or Alt count only bound alone, not
-  inside a longer chord. The binding stays and Lamium takes the key first.
+  (`input::gameKeys`). A game key the game holds with modifiers (the
+  coordinate copies with Ctrl + Alt, the command macros with Alt) counts
+  only with them; Shift, Ctrl or Alt count only bound alone, not inside a
+  longer chord. The menu keys and menu cancel are no play keys. The caps
+  are filled like the same key, since the game's action stops there (the
+  game's click stays an outline: both happen). The binding stays and
+  Lamium takes the key first.
   The footer line after binding goes when another row or page is chosen.
 - (Decided 2026-11-23) Hotkeys has a place column before the key column:
   short names (Play, Screen, Window, Outside) for every action. The
@@ -225,7 +230,8 @@ append-only action ids and default keys in `src/input/Binding.h`.
   starts with this key / longer chords containing it / shorter chords inside
   it / same keys in another order, plus "fires on release" when that
   applies; overflow ends in "N more". Each listed binding is followed, in
-  faint text, by where the two meet ("On item screens", L-372); the tip
+  faint text, by where the two meet ("On item screens", L-372), and its
+  caps are filled under "same key", outlined under the others; the tip
   widens so names and places fit on one line where the screen allows. Keyboard selection shows the same tip
   (keyboard users are not told to use the mouse); moving the mouse returns
   to hover. The footer keeps only the description.

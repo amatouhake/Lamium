@@ -274,8 +274,9 @@ constexpr float changeArrowWidth = 7, changeArrowHeight = 5;
 constexpr float anyOrderMarkSize = 9;
 void anyOrderMark(MinecraftUIRenderContext&, float x, float y, Rgb color);
 void changeArrow(MinecraftUIRenderContext&, float x, float y, float scale, Rgb color);
-// Warning caps mark a binding that relates to another: Outline overlaps,
-// Filled is the exact same chord (all its actions fire together). Fixed is a
+// Warning caps mark a binding that relates to another: Outline overlaps (or
+// shares the game's click), Filled is the exact same chord (all its actions
+// fire together) or takes one of the game's keys (L-372). Fixed is a
 // press that cannot be rebound: an unfilled faint frame and faint text (L-372).
 enum class KeyTone { Plain, Outline, Filled, Fixed };
 // Draws key caps left to right within width and returns the width used.

@@ -452,6 +452,14 @@ void bindingTests() {
         check(uses(Action::Zoom, {lshift}, "key.sneak") && !gameKeyUse(Action::Zoom, {lshift, f}, game)
               && !gameKeyUse(Action::Zoom, {ctrl, f}, game),
               "a modifier counts bound alone, not inside a longer chord");
+        game[index("key.copyCoordinates")] = {'C'};
+        game[index("key.commandmacro.1")] = {'K'};
+        Token const c{Device::Key, 'C'}, k{Device::Key, 'K'}, alt{Device::Key, 0xA4};
+        check(!gameKeyUse(Action::Zoom, {c}, game) && !gameKeyUse(Action::Zoom, {alt, c}, game)
+              && uses(Action::Zoom, {ctrl, alt, c}, "key.copyCoordinates"),
+              "the coordinate copy is taken only with the Ctrl + Alt the game holds for it");
+        check(!gameKeyUse(Action::Zoom, {k}, game) && uses(Action::Zoom, {alt, k}, "key.commandmacro.1"),
+              "a command macro is taken only with Alt");
         check(!gameKeyUse(Action::Sort, {t}, game) && !gameKeyUse(Action::Sort, {Token{Device::Key, 'R'}}, game)
               && !gameKeyUse(Action::Sort, {Token{Device::Mouse, 'E'}}, game) && !gameKeyUse(Action::Sort, {e}, GameKeyCodes{}),
               "play-only game keys on item screens, other keys, mouse buttons and unread game keys are not marked");

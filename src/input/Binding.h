@@ -438,8 +438,11 @@ inline GameClick gameClick(Action action, Chord const& chord) {
 // The game's own keys (L-372), by its keymap names, and where the game uses
 // each: the inventory, drop and hotbar keys in play and on item screens (and
 // in a window over one), the rest in play. A binding where the game uses one
-// is marked in Hotkeys; Lamium takes the key first.
-struct GameKey { std::string_view name; unsigned layers; };
+// is marked in Hotkeys; Lamium takes the key first. `modifiers`: what the game
+// holds with the key (its controls screen: the coordinate copies with
+// Ctrl + Alt, the command macros with Alt), as generic key codes.
+struct GameKey { std::string_view name; unsigned layers; int modifiers[2] = {}; };
+inline constexpr int ctrlKey = 0x11, altKey = 0x12;
 inline constexpr unsigned gameScreenLayers = layer::gameplay | layer::itemScreen | layer::window;
 inline constexpr auto gameKeys = std::to_array<GameKey>({
     {"key.inventory", gameScreenLayers}, {"key.drop", gameScreenLayers},
@@ -449,13 +452,13 @@ inline constexpr auto gameKeys = std::to_array<GameKey>({
     {"key.forward", layer::gameplay}, {"key.back", layer::gameplay}, {"key.left", layer::gameplay},
     {"key.right", layer::gameplay}, {"key.jump", layer::gameplay}, {"key.sneak", layer::gameplay},
     {"key.sprint", layer::gameplay}, {"key.togglePerspective", layer::gameplay}, {"key.mobEffects", layer::gameplay},
-    {"key.chat", layer::gameplay}, {"key.command", layer::gameplay}, {"key.copyCoordinates", layer::gameplay},
-    {"key.copyFacingCoordinates", layer::gameplay}, {"key.emote", layer::gameplay}, {"key.describeBlock", layer::gameplay},
+    {"key.chat", layer::gameplay}, {"key.command", layer::gameplay}, {"key.copyCoordinates", layer::gameplay, {ctrlKey, altKey}},
+    {"key.copyFacingCoordinates", layer::gameplay, {ctrlKey, altKey}}, {"key.emote", layer::gameplay}, {"key.describeBlock", layer::gameplay},
     {"key.screenshot", layer::gameplay}, {"key.socialDrawer", layer::gameplay}, {"key.interactwithtoast", layer::gameplay},
-    {"key.commandmacro.0", layer::gameplay}, {"key.commandmacro.1", layer::gameplay}, {"key.commandmacro.2", layer::gameplay},
-    {"key.commandmacro.3", layer::gameplay}, {"key.commandmacro.4", layer::gameplay}, {"key.commandmacro.5", layer::gameplay},
-    {"key.commandmacro.6", layer::gameplay}, {"key.commandmacro.7", layer::gameplay}, {"key.commandmacro.8", layer::gameplay},
-    {"key.commandmacro.9", layer::gameplay},
+    {"key.commandmacro.0", layer::gameplay, {altKey}}, {"key.commandmacro.1", layer::gameplay, {altKey}}, {"key.commandmacro.2", layer::gameplay, {altKey}},
+    {"key.commandmacro.3", layer::gameplay, {altKey}}, {"key.commandmacro.4", layer::gameplay, {altKey}}, {"key.commandmacro.5", layer::gameplay, {altKey}},
+    {"key.commandmacro.6", layer::gameplay, {altKey}}, {"key.commandmacro.7", layer::gameplay, {altKey}}, {"key.commandmacro.8", layer::gameplay, {altKey}},
+    {"key.commandmacro.9", layer::gameplay, {altKey}},
 });
 // The keys the game has for each entry of gameKeys, as its keymap reads; empty when unread.
 using GameKeyCodes = std::array<std::vector<int>, gameKeys.size()>;
@@ -468,14 +471,20 @@ constexpr int genericModifier(int code) {
 }
 constexpr bool modifierKey(int code) { return genericModifier(code) >= 0x10 && genericModifier(code) <= 0x12; }
 struct GameKeyUse { size_t key; unsigned where; }; // where: the layers both use it in
-// The first game key the binding takes where the action works. A modifier in
-// a longer chord (Ctrl + F) is not taken: only the game's sprint or sneak
-// bound alone would be.
+// The first game key the binding takes where the action works, with the
+// modifiers the game holds for it. A modifier in a longer chord (Ctrl + F) is
+// not taken: only the game's sprint or sneak bound alone would be.
 inline std::optional<GameKeyUse> gameKeyUse(Action action, Chord const& chord, GameKeyCodes const& codes) {
     auto const layers = whereActs(action).layers;
     for (size_t i = 0; i < gameKeys.size(); ++i) {
         auto const where = layers & gameKeys[i].layers;
         if (!where) continue;
+        bool const held = std::all_of(std::begin(gameKeys[i].modifiers), std::end(gameKeys[i].modifiers), [&](int needed) {
+            return !needed || std::any_of(chord.begin(), chord.end(), [&](Token t) {
+                return t.device == Device::Key && genericModifier(t.code) == needed;
+            });
+        });
+        if (!held) continue;
         for (Token t : chord) {
             if (t.device != Device::Key || (modifierKey(t.code) && chord.size() > 1)) continue;
             int const code = genericModifier(t.code);

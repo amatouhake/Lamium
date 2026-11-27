@@ -616,11 +616,21 @@ input::Relation strongestConflict(std::vector<input::Conflict> const& conflicts)
     for (auto conflict : conflicts) relation = std::max(relation, conflict.relation);
     return relation;
 }
-KeyTone conflictTone(input::Relation relation, bool gameClick = false) {
-    return relation == input::Relation::Shared ? KeyTone::Filled
-        : relation == input::Relation::Overlap || gameClick ? KeyTone::Outline : KeyTone::Plain;
+// A game key the binding takes counts as the same key: the game's action stops there. The game's click
+// still happens beside the action, so it counts as an overlap.
+enum class GameUse { None, Click, Key };
+KeyTone conflictTone(input::Relation relation, GameUse game = GameUse::None) {
+    return relation == input::Relation::Shared || game == GameUse::Key ? KeyTone::Filled
+        : relation == input::Relation::Overlap || game == GameUse::Click ? KeyTone::Outline : KeyTone::Plain;
 }
-// The tip's line for a binding that is the game's own click or one of its item-screen keys, empty otherwise.
+// The tone of a binding listed in the conflict tip, by how it meets the one the tip is for.
+KeyTone linkTone(input::Link link) { return link == input::Link::Same ? KeyTone::Filled : KeyTone::Outline; }
+GameUse gameUse(input::Action action, input::Chord const& chord) {
+    if (input::gameClick(action, chord) != input::GameClick::None) return GameUse::Click;
+    auto client = ll::service::getClientInstance();
+    return client && input::gameKeyUse(action, chord, gameKeyCodes(*client)) ? GameUse::Key : GameUse::None;
+}
+// The tip's line for a binding that is the game's own click or one of its keys, empty otherwise.
 std::string gameNote(input::Action action, input::Chord const& chord) {
     switch (input::gameClick(action, chord)) {
     case input::GameClick::Attack: return translated("tip.gameAttack");
@@ -670,7 +680,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
     auto const& bindings = Runtime::instance().preferences().bindings;
     auto relation = strongestConflict(input::bindingConflicts(bindings, action));
-    keycaps(context,x,cy,width,keys,conflictTone(relation, !gameNote(action, input::effectiveChord(bindings, action)).empty()));
+    keycaps(context,x,cy,width,keys,conflictTone(relation, gameUse(action, input::effectiveChord(bindings, action))));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -970,7 +980,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
 
     drawTipBox(context,x,y,width,height,warns);
     float cursor = y + pad;
-    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, !gameLine.empty()),3);
+    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, gameUse(action, chord)),3);
     if (!count.empty())
         label(context,x+pad,cursor+boxTextInset(),inner,count,palette::warning,Align::Right);
     cursor += header;
@@ -988,7 +998,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
             cursor += titleHeight + lines(note) * lineHeight;
         }
         float used = keycaps(context,x+pad,cursor+1,inner*.45f,
-            chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
+            chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)), linkTone(conflict.link));
         auto name = actionTitle(conflict.action);
         float const nameX = x + pad + used + 5, room = inner - used - 5;
         label(context,nameX,cursor+1+boxTextInset(),room,name);
