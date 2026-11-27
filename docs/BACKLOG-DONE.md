@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-243](backlog/done/L-243.md) Large terrain gaps that only reload when the player comes near
 - [L-410](backlog/done/L-410.md) Sneak Placement "Send only" lets the client open a door the server keeps shut
 - [L-409](backlog/done/L-409.md) The item list leaves an empty dark strip at the screen's edge
 - [L-394](backlog/done/L-394.md) Target card banner icon shows its color but not its patterns

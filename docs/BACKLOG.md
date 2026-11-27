@@ -130,17 +130,17 @@ and status are in each item's file and on its index line below (generated
 from the file); never restate them here.
 
 1. **Bugs first**, in the order of the Bugs list below. Parked bugs (L-194
-   save corner marks, L-123 elytra pose, L-91 shield glint, L-132
-   inventory-screen movement, L-244 FreeCamera started inside a block, L-287
-   minimap arrow look) wait for their item's resume condition; L-181 trident
-   pose is low priority. What waits for more game symbols is collected in
-   L-315.
+   save corner marks, L-123 elytra pose and L-244 FreeCamera started inside
+   a block under Later / parked; L-91 shield glint, L-132 inventory-screen
+   movement, L-287 minimap arrow look) wait for their item's resume
+   condition; L-181 trident pose is low priority. What waits for more game
+   symbols is collected in L-315.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10), in this order: L-166 trade helpers, L-167
-   resource packs, L-168 trade finder, L-169 transfer extensions, L-173
-   quick shapes, L-163 a Lamium inventory screen, L-249 simulation distance
-   and L-265 placement assist.
-   Agree open choices before building.
+   2026-10-10), in this order: L-163 a Lamium inventory screen, L-249
+   simulation distance and L-265 placement assist. Agree open choices
+   before building. L-166 trade helpers, L-167 resource packs, L-168 trade
+   finder, L-169 transfer extensions and L-173 quick shapes wait for the
+   maintainer to choose what to build.
    L-359 material plan (with L-116 raw materials) runs beside this list,
    neither ahead of it nor behind it; its next steps are L-370, L-362,
    L-368 and L-363.
@@ -153,7 +153,7 @@ from the file); never restate them here.
 5. **Optional integration (L-111 shared controls between features):** shared spatial actions, a common menu,
    selection and cross-links; the required 0.2.0 steps are complete.
 6. **Research when convenient:** L-79 pumpkin/spyglass frames, L-71 glide
-   initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
+   initiation, L-30 dragon hitboxes, L-105 profiling, L-414 redstone power.
    L-151 body in first person, L-152 held map preview, L-153 last pressed
    movement key and the previously parked work remain later.
 7. **Before the next release:** what the next release takes is not decided
@@ -178,16 +178,12 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; one part left): Fixed by commit, none seen in game; 1-7's refused take needs a real server
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
-- [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
-- [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
 - [L-245](backlog/L-245.md) Ghost face disappears next to real glass or a beacon from some angles (Bug / Research): Open, not reproduced on purpose yet.
 - [L-257](backlog/L-257.md) FreeCamera culler reads blocks on the render thread (Research): Open, not started
 - [L-240](backlog/L-240.md) Death layout restore sometimes restores unexpectedly or wrongly (Bug / Research): Open; waiting to see whether L-338's time limit stops the unexpected restores
 - [L-227](backlog/L-227.md) FreeCamera outside the loaded area shows only the sky (Bug / Research): Waiting for the maintainer: whether it is worth two read-only trace rounds
 - [L-181](backlog/L-181.md) FreeCamera draws the held trident the wrong way round (Bug / Research): Open, not reproduced; drawing only, harmless (maintainer 2026-10-15)
-- [L-123](backlog/L-123.md) FreeCamera stretches the worn elytra on the inventory player model (Bug): Parked 2026-10-10 (maintainer) after two culling rounds; resume from the ideas in Next
 - [L-117](backlog/L-117.md) Schematic entity name tags render badly in Japanese (Bug): Partly fixed (`47534d7`, colored fringes gone); dark gray Japanese text accepted for now, item kept open
-- [L-194](backlog/L-194.md) Save corner marks over real glass or water change with the camera (Bug / Research): Parked 2026-10-15 after three tries; resume with one of the ideas in Next
 
 ## Feature work and research
 
@@ -229,6 +225,9 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Later / parked
 
+- [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
+- [L-123](backlog/L-123.md) FreeCamera stretches the worn elytra on the inventory player model (Bug): Parked 2026-10-10 (maintainer) after two culling rounds; resume from the ideas in Next
+- [L-194](backlog/L-194.md) Save corner marks over real glass or water change with the camera (Bug / Research): Parked 2026-10-15 after three tries; resume with one of the ideas in Next
 - [L-397](backlog/L-397.md) Lay recipes in with the game's own recipe-book request (Research): Parked (maintainer 2026-11-23): no symbol request for it; the calls do not link and a book cell exists only in the book's view
 - [L-329](backlog/L-329.md) Health a food would give back, beside its food values (idea): Parked; not pursued unless the maintainer takes it up
 - [L-151](backlog/L-151.md) Show the player's body in first person (Research): Open, not started; no runtime evidence
