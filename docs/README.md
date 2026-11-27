@@ -52,6 +52,7 @@ how it got there is in git.
 | The map's region file format (LMR2) | [MAP-FORMAT.md](MAP-FORMAT.md) |
 | Schematics, checking, materials and area save | [SCHEMATIC.md](SCHEMATIC.md) |
 | Schematic controls: move target, repeat, cut-plane layers, menu and keys | [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) |
+| Schematic placement assist: placing the ghost's block in its state | [PLACEMENT-ASSIST.md](PLACEMENT-ASSIST.md) |
 | Recipes: the item list, the recipe view, favorites, taking in creative (L-359, L-360) | [RECIPES.md](RECIPES.md) |
 | Mass Craft (L-165) | [MASS-CRAFT.md](MASS-CRAFT.md) |
 | The plan and the stores (L-359, L-373) | [PLAN.md](PLAN.md) |

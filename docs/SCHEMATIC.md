@@ -394,6 +394,6 @@ Game and SDK:
   [L-117 Schematic entity name tags render badly in Japanese](backlog/L-117.md);
   [L-184 Inspect ghost block data and schematic container contents](backlog/L-184.md);
   [L-185 Instantly load a schematic into the world when cheats allow it](backlog/L-185.md);
-  [L-265 Schematic placement assist: place the ghost's block in its state](backlog/L-265.md)
+  placement assist ([PLACEMENT-ASSIST.md](PLACEMENT-ASSIST.md))
   (L-116, L-183, L-186 and L-190 are linked above). Later, not chosen: area
   fill, layers by material.
