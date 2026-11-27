@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-387 wanted rows' remaining amount and done panel rows (2026-11-27)
+
+`960b8d4d` (DLL
+`c76d81407cf021bfbb87d860ed8a5a973ea4793bed8414cd6bff3f4f81afcfad`),
+1.26.60.05 Dev, the maintainer:
+- Seen: a wanted row not yet complete says "残り: … チェスト + … スタック
+  + …" in the window and on the panel; the panel's done wanted and
+  gathered rows show faint held and need counts, a done step its check;
+  nothing else changed.
+- Noted: "held" stops at the need and a done row has no "残り" line, so
+  what is held beyond the need cannot be seen.
+
 ## L-387 the gather tip's remaining amount (2026-11-27)
 
 `af1e813f` (DLL
