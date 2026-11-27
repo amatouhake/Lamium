@@ -611,12 +611,31 @@ input::GameKeyCodes const& currentGameKeys() {
     auto client = ll::service::getClientInstance();
     return client ? gameKeyCodes(*client) : none;
 }
-// Everything the chord meets where it works (input::overlaps), for every display.
+// Everything the chord meets where it works (input::overlaps), for every display. The snapshot is shared, not
+// copied as preferences() would.
 std::vector<input::Overlap> overlapsOf(input::Action action, input::Chord const& chord) {
-    return input::overlaps(input::whereActs(action).layers, chord, Runtime::instance().preferences().bindings, currentGameKeys(), action);
+    auto const published = Runtime::instance().snapshot();
+    return input::overlaps(input::whereActs(action).layers, chord, published->bindings, currentGameKeys(), action);
 }
 std::vector<input::Overlap> overlapsOf(input::Action action) {
-    return overlapsOf(action, input::effectiveChord(Runtime::instance().preferences().bindings, action));
+    auto const published = Runtime::instance().snapshot();
+    return input::overlaps(published->bindings, action, currentGameKeys());
+}
+// The key cells' tones, worked out again only when the bindings or the game's keys change (DESIGN rule 9).
+KeyTone keyCellTone(input::Action action) {
+    static std::shared_ptr<Settings const> settings;
+    static input::GameKeyCodes game;
+    static std::array<std::optional<KeyTone>, input::actions.size()> tones;
+    auto published = Runtime::instance().snapshot();
+    auto const& codes = currentGameKeys();
+    if (published != settings || codes != game) {
+        settings = std::move(published);
+        game = codes;
+        tones.fill(std::nullopt);
+    }
+    auto& tone = tones[static_cast<size_t>(action)];
+    if (!tone) tone = conflictTone(input::strongest(input::overlaps(settings->bindings, action, game)));
+    return *tone;
 }
 std::string fixedName(input::FixedPress const& press);
 std::vector<std::string> fixedKeys(IClientInstance& current, input::FixedPress const& press);
@@ -626,7 +645,15 @@ std::string gameKeyName(size_t index) {
     std::string name = getI18n().get(key, getI18n().getCurrentLanguage());
     return name.empty() ? key : name;
 }
-// The tip's line for the game's click or key, empty for another binding or a fixed press.
+// The tip's lines for the game's click or key, empty for another binding or a fixed press: a key taken in play
+// and on item screens has a line for each.
+std::vector<std::string> gameLines(input::Overlap const& entry) {
+    if (entry.source != input::OverlapSource::GameKey) return {};
+    std::vector<std::string> lines;
+    if (entry.where & input::layer::gameplay) lines.push_back(translated("tip.gameKeyPlay", gameKeyName(entry.index)));
+    if (entry.where & input::layer::itemScreen) lines.push_back(translated("tip.gameKeyScreen", gameKeyName(entry.index)));
+    return lines;
+}
 std::string gameLine(input::Overlap const& entry) {
     if (entry.source == input::OverlapSource::GameClick) {
         switch (entry.click) {
@@ -636,9 +663,8 @@ std::string gameLine(input::Overlap const& entry) {
         default: return translated("tip.screenClick");
         }
     }
-    if (entry.source == input::OverlapSource::GameKey)
-        return translated(entry.where & input::layer::gameplay ? "tip.gameKeyPlay" : "tip.gameKeyScreen", gameKeyName(entry.index));
-    return {};
+    auto const lines = gameLines(entry);
+    return lines.empty() ? std::string{} : lines.front();
 }
 // What a listed binding or fixed press is called alone: "Feature > child" for a fixed press.
 std::string overlapName(input::Overlap const& entry) {
@@ -684,7 +710,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     }
     auto keys = bindingKeys(current, action);
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
-    keycaps(context,x,cy,width,keys,conflictTone(input::strongest(overlapsOf(action))));
+    keycaps(context,x,cy,width,keys,keyCellTone(action));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -926,6 +952,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     std::vector<Item> items;
     std::vector<std::string> notes;
     for (auto const& entry : met) {
+        if (auto lines = gameLines(entry); !lines.empty()) { notes.insert(notes.end(), lines.begin(), lines.end()); continue; }
         if (auto line = gameLine(entry); !line.empty()) { notes.push_back(std::move(line)); continue; }
         if (entry.source == input::OverlapSource::Binding) {
             items.push_back({chordKeys(current, input::effectiveChord(preferences.bindings, entry.action)), overlapName(entry),
@@ -1052,31 +1079,50 @@ int drawFixedTip(MinecraftUIRenderContext& context, IClientInstance& current, Se
         : entry.kind == RowKind::Option && !(hotkeysView()) ? fixedPressOf(entry.option->id) : nullptr;
     if (!press) return -1;
     auto keys = fixedKeys(current, *press);
-    // The bindings that take this press where it works (L-412): the cell keeps its look, the tip lists them.
-    auto const bindings = Runtime::instance().preferences().bindings;
-    auto const takers = input::fixedOverlaps(static_cast<size_t>(press - input::fixedPresses.data()), bindings, currentGameKeys());
+    // The bindings that take this press where it works (L-412): the cell keeps its look, the tip lists them,
+    // those that take it whole first, then lone clicks, where both happen.
+    auto const published = Runtime::instance().snapshot();
+    auto const& bindings = published->bindings;
+    auto takers = input::fixedOverlaps(static_cast<size_t>(press - input::fixedPresses.data()), bindings, currentGameKeys());
+    std::stable_partition(takers.begin(), takers.end(), [](auto const& e) { return !e.both; });
     if (takers.empty() && keycapsWidth(context, keys) <= t.keyWidth) return -1;
     constexpr float pad = 4, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     float width = std::min(t.width - 2*SettingsTable::pad, std::max(takers.empty() ? 0.0f : 240.0f, keycapsWidth(context, keys) + 2*pad));
     float inner = width - 2*pad;
-    auto const note = translated("tip.takenByNote");
+    auto noteOf = [](input::Overlap const& e) { return translated(e.both ? "tip.fixedBothNote" : "tip.takenByNote"); };
     auto lines = [&](std::string const& text) { return textWidth(context, text) > inner ? 2.0f : 1.0f; };
     float capsHeight = keycapsWrapHeight(context, inner, keys, 3);
-    float height = capsHeight + 2*pad + (takers.empty() ? 0 : 4 + titleHeight + lines(note) * lineHeight + takers.size() * itemHeight);
     float rowTop = t.rowY(hover.index), rowBottom = rowTop + SettingsTable::rowHeight;
-    bool under = rowBottom + 1 + height <= t.top + t.height - 2;
+    float const below = t.top + t.height - 2 - (rowBottom + 1), above = rowTop - 1 - t.top;
+    // Takers that fit the room on the roomier side; the rest are counted on a last line (as drawConflictTip).
+    float height = capsHeight + 2*pad + (takers.empty() ? 0 : 4);
+    size_t shown = 0;
+    for (float const budget = std::max(below, above); shown < takers.size(); ++shown) {
+        bool const group = shown == 0 || takers[shown].both != takers[shown-1].both;
+        float const need = (group ? titleHeight + lines(noteOf(takers[shown])) * lineHeight : 0) + itemHeight;
+        float const reserve = shown + 1 < takers.size() ? lineHeight : 0;
+        if (shown > 0 && height + need + reserve > budget) break;
+        height += need;
+    }
+    if (shown < takers.size()) height += lineHeight;
+    bool under = height <= below || below >= above;
     float x = std::max(t.left + 2, t.keyX + t.keyWidth - width), y = under ? rowBottom + 1 : rowTop - 1 - height;
     drawTipBox(context,x,y,width,height,!takers.empty());
     float cursor = y + pad;
     keycapsWrap(context,x+pad,cursor,inner,keys,KeyTone::Fixed,3);
     if (takers.empty()) return hover.index;
     cursor += capsHeight + 4;
-    fill(context,x+pad,cursor+1,inner,1,palette::white,.1f);
-    label(context,x+pad,cursor+3,inner,translated("tip.takenBy"),palette::dim);
-    paragraph(context,x+pad,cursor+3+lineHeight,inner,note,static_cast<size_t>(lines(note)),palette::faint);
-    cursor += titleHeight + lines(note) * lineHeight;
-    for (auto const& taker : takers) {
-        float used = keycaps(context,x+pad,cursor+1,inner*.45f,chordKeys(current, input::effectiveChord(bindings, taker.action)),linkTone(taker.link));
+    for (size_t i = 0; i < shown; ++i) {
+        auto const& taker = takers[i];
+        if (i == 0 || taker.both != takers[i-1].both) {
+            auto const note = noteOf(taker);
+            fill(context,x+pad,cursor+1,inner,1,palette::white,.1f);
+            label(context,x+pad,cursor+3,inner,translated("tip.takenBy"),palette::dim);
+            paragraph(context,x+pad,cursor+3+lineHeight,inner,note,static_cast<size_t>(lines(note)),palette::faint);
+            cursor += titleHeight + lines(note) * lineHeight;
+        }
+        float used = keycaps(context,x+pad,cursor+1,inner*.45f,chordKeys(current, input::effectiveChord(bindings, taker.action)),
+            taker.both ? KeyTone::Outline : linkTone(taker.link));
         auto name = actionTitle(taker.action);
         float const nameX = x + pad + used + 5, room = inner - used - 5;
         label(context,nameX,cursor+1+boxTextInset(),room,name);
@@ -1084,6 +1130,8 @@ int drawFixedTip(MinecraftUIRenderContext& context, IClientInstance& current, Se
             label(context,nameX+nameW,cursor+1+boxTextInset(),room-nameW,whereText(taker.where),palette::faint);
         cursor += itemHeight;
     }
+    if (shown < takers.size())
+        label(context,x+pad,cursor+1,inner,translated("tip.more", std::to_string(takers.size() - shown)),palette::faint);
     return hover.index;
 }
 // A stepper value cut with "..." shows whole below the stepper, like a key

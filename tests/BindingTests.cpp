@@ -498,6 +498,11 @@ void bindingTests() {
                   && std::ranges::any_of(left, [](Overlap const& o) { return o.source == OverlapSource::GameClick && o.where == layer::itemScreen; })
                   && strongest(left) == Relation::Overlap,
                   "a lone click on an item screen shares the slot's and the list's click; both happen");
+            auto const clickRow = static_cast<size_t>(std::ranges::find_if(fixedPresses, [](auto const& p) {
+                return p.name == "fixed.recipesClick"; }) - fixedPresses.begin());
+            check(std::ranges::any_of(fixedOverlaps(clickRow, recipesOnLeft, defaults), [](Overlap const& o) {
+                      return o.action == Action::ShowRecipes && o.both; }),
+                  "the list's click row says too that a lone click binding lets it happen");
             check(!std::ranges::any_of(overlaps(Bindings{}, Action::RecipeBack, defaults), [](Overlap const& o) { return o.source == OverlapSource::GameKey; })
                   && std::ranges::any_of(overlaps(layer::window, Chord{{Device::Key, 'E'}}, Bindings{}, defaults), [](Overlap const& o) {
                          return o.source == OverlapSource::Fixed && fixedPresses[o.index].name == "fixed.recipesCloseInventory"; }),

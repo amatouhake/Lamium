@@ -19,7 +19,7 @@ struct Overlap {
     Action action = Action::Count; // Binding
     size_t index = 0; // Fixed: into fixedPresses; GameKey: into gameKeys
     GameClick click = GameClick::None; // GameClick: in play; None for an item screen's click
-    bool both = false; // Fixed: a lone mouse button is not taken, so the press happens too
+    bool both = false; // Fixed, and a binding in fixedOverlaps: a lone mouse button is not taken, so the press happens too
 };
 // A fixed press as a chord to compare with: the drop and inventory keys by
 // the game's first key for them; none when the game has none.
@@ -132,7 +132,10 @@ inline std::vector<Overlap> fixedOverlaps(size_t press, Bindings const& bindings
         if (theirs.empty()) continue;
         auto const relation = bindingRelation(mine, theirs) == Relation::None ? Relation::None
             : mine == theirs ? Relation::Shared : Relation::Overlap;
-        if (relation != Relation::None) result.push_back({OverlapSource::Binding, relation, linkOf(mine, theirs, relation), where, other});
+        if (relation == Relation::None) continue;
+        Overlap entry{OverlapSource::Binding, relation, linkOf(mine, theirs, relation), where, other};
+        entry.both = loneClick(effectiveChord(bindings, other)); // as overlaps(): the press happens too
+        result.push_back(entry);
     }
     std::stable_sort(result.begin(), result.end(), [](Overlap const& a, Overlap const& b) { return a.link < b.link; });
     return result;

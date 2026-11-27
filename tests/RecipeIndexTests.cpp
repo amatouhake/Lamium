@@ -337,7 +337,7 @@ void recipeIndexTests() {
         check(spare == std::map<Item, Count>{{at("oak_planks"), 2}, {at("oak_log"), 1}} && heldOf(woods, spare, planksItem) == 2,
               "what a group's members hold beyond what it takes is spare, and a group's spare is its members'");
         auto const view = rawView(woods, picked, chest);
-        auto const step =std::find_if(view.steps.begin(), view.steps.end(), [&](StepLine const& s) { return s.item == planksItem; });
+        auto const step = std::find_if(view.steps.begin(), view.steps.end(), [&](StepLine const& s) { return s.item == planksItem; });
         check(step != view.steps.end() && groupStep(woods, *step) && step->made == 8 && woods.recipes[static_cast<size_t>(step->recipe)].makes == at("oak_planks"),
               "the group's step shows, laying in the member whose input is most held");
         check(step != view.steps.end() && stepInputs(woods, chest, *step) == std::vector<std::pair<Item, Count>>{{logsItem, 2}}
