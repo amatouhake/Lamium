@@ -26,7 +26,10 @@
 #include "features/interaction/PeriodicInput.h"
 #include "ll/api/thread/ClientThreadExecutor.h"
 #include "mc/world/phys/HitResult.h"
+#include "mc/world/level/Level.h"
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <optional>
 #endif
 #include <atomic>
@@ -105,7 +108,7 @@ InteractionResult useTraced(char const* mode, Player& actor, ItemStack const& it
             hit.z, rot.x, rot.y, blockText(region.getBlock(at)), blockText(region.getBlock(beside(at, face))));
         if (local) {
             if (!lastAuth.empty()) note("client auth before use: " + lastAuth);
-            followAuth = 2;
+            followAuth = std::max(followAuth, 2);
         }
     } catch (...) {}
     InteractionResult const result = call();
@@ -126,18 +129,18 @@ USE_HOOK(GameMode)
 USE_HOOK(SurvivalMode)
 #undef USE_HOOK
 #ifdef LAMIUM_PLACEMENT_FAKE
-// L-265 experiment, second build: a stair placement is held, the auth inputs
-// until its Place transaction leaves say yaw + 180, and the placement is sent
-// for the held cell and face through buildBlock (not the use input), with the
-// local yaw turned the same for that call. Placements alternate between two
-// variants: "turned" turns the move vectors and swaps the direction flags,
-// "untouched" leaves the move input as it is. At most one fake a second; a
-// stair used sooner is placed by vanilla.
-struct Held { BlockPos pos; uchar face; bool turnMove; };
+// L-265 experiment, third build: a stair placement is held, the auth inputs
+// until its Place transaction leaves say yaw + 180 (move input untouched),
+// and the stair is placed into the cell vanilla would fill, but clicked from
+// another solid neighbor when there is one, at a click position Lamium
+// chooses (side faces alternate upper and lower half). The level's hit result
+// says that click for the buildBlock call; the sent click is compared with it.
+// At most one fake a second; a stair used sooner is placed by vanilla.
+struct Held { BlockPos aimed; uchar aimedFace; BlockPos pos; uchar face; Vec3 click; };
 std::optional<Held> held;
 bool replayQueued = false, replaying = false;
 int authsFaked = 0;
-unsigned variantCount = 0;
+unsigned upperCount = 0;
 std::chrono::steady_clock::time_point lastFake{};
 float flip(float yaw) { return yaw >= 0 ? yaw - 180.0f : yaw + 180.0f; }
 void dropHeld(char const* why) {
@@ -153,30 +156,68 @@ bool holdsStair(Player& actor, HandSlot hand) noexcept {
         return !item.isNull() && item.getTypeName().ends_with("_stairs");
     } catch (...) { return false; }
 }
-bool holdBuild(Player& actor, BlockPos const& pos, uchar face, HandSlot hand) noexcept {
-    if (!holdsStair(actor, hand)) return false;
-    if (held) return true;
-    auto const now = std::chrono::steady_clock::now();
-    if (now - lastFake < std::chrono::seconds(1)) return false;
-    lastFake = now;
-    bool const turnMove = (variantCount++ % 2) == 0;
-    held = Held{pos, face, turnMove};
-    replayQueued = false;
-    authsFaked = 0;
-    note(std::format("fake: held a stair use at {},{},{} face {}; variant {}", pos.x, pos.y, pos.z, face,
-                     turnMove ? "turned" : "untouched"));
-    return true;
+uchar opposite(uchar face) { return static_cast<uchar>(face ^ 1); }
+// The point on `face` of a block, relative to the block; side faces at the
+// upper or lower half.
+Vec3 clickOn(uchar face, bool upper) {
+    float const y = upper ? 0.8f : 0.2f;
+    switch (face) {
+    case 0: return {0.5f, 0.0f, 0.5f};
+    case 1: return {0.5f, 1.0f, 0.5f};
+    case 2: return {0.5f, y, 0.0f};
+    case 3: return {0.5f, y, 1.0f};
+    case 4: return {0.0f, y, 0.5f};
+    default: return {1.0f, y, 0.5f};
+    }
 }
-// Puts the local yaw and the replay flag back whatever happens in between.
-struct FlippedYaw {
+Held plan(Player& actor, BlockPos const& aimed, uchar aimedFace) {
+    BlockPos const cell = beside(aimed, aimedFace);
+    bool const upper = (upperCount++ % 2) == 0;
+    auto& region = actor.getDimensionBlockSource();
+    for (uchar dir : {uchar{2}, uchar{3}, uchar{4}, uchar{5}, uchar{0}, uchar{1}}) {
+        BlockPos const from = beside(cell, dir);
+        if (from == aimed) continue;
+        Block const& block = region.getBlock(from);
+        if (block.getBlockType().canBeBuiltOver(block, region, from)) continue;
+        uchar const face = opposite(dir);
+        return {aimed, aimedFace, from, face, clickOn(face, upper)};
+    }
+    return {aimed, aimedFace, aimed, aimedFace, clickOn(aimedFace, upper)};
+}
+bool holdBuild(Player& actor, BlockPos const& pos, uchar face, HandSlot hand) noexcept {
+    try {
+        if (!holdsStair(actor, hand)) return false;
+        if (held) return true;
+        auto const now = std::chrono::steady_clock::now();
+        if (now - lastFake < std::chrono::seconds(1)) return false;
+        lastFake = now;
+        held = plan(actor, pos, face);
+        replayQueued = false;
+        authsFaked = 0;
+        note(std::format("fake: held a stair use aimed at {},{},{} face {}; placing from {},{},{} face {} click {:.2f},{:.2f},{:.2f}{}",
+                         pos.x, pos.y, pos.z, face, held->pos.x, held->pos.y, held->pos.z, held->face, held->click.x, held->click.y,
+                         held->click.z, held->pos == pos ? " (no other neighbor)" : ""));
+        return true;
+    } catch (...) { return false; }
+}
+// Puts the local yaw, the level's hit result and the replay flag back whatever happens in between.
+struct AsPlanned {
     Vec2& rot;
     Vec2 was;
-    explicit FlippedYaw(Vec2& r) : rot(r), was(r) {
+    HitResult& hit;
+    HitResult hitWas;
+    AsPlanned(Vec2& r, HitResult& h, Held const& at) : rot(r), was(r), hit(h), hitWas(h) {
         rot.y = flip(was.y);
+        hit.mType = HitResultType::Tile;
+        hit.mBlock = at.pos;
+        hit.mFacing = at.face;
+        hit.mPos = Vec3{static_cast<float>(at.pos.x) + at.click.x, static_cast<float>(at.pos.y) + at.click.y,
+                        static_cast<float>(at.pos.z) + at.click.z};
         replaying = true;
     }
-    ~FlippedYaw() {
+    ~AsPlanned() {
         rot = was;
+        hit = hitWas;
         replaying = false;
     }
 };
@@ -188,43 +229,25 @@ void replay() {
             if (!player || !held) return dropHeld("no player or nothing held at the placement");
             GameMode* mode = player->mGameMode.get();
             if (!mode) return dropHeld("no game mode");
-            auto const& hit = client->getLatestHitResult();
-            bool const sameAim = hit.mType == HitResultType::Tile && hit.mBlock == held->pos && hit.mFacing == held->face;
+            Held const at = *held;
             bool placed = false;
-            float yaw = 0;
             {
-                FlippedYaw const flipped(*player->mBuiltInComponents->mActorRotationComponent->mRot);
-                yaw = flipped.rot.y;
-                placed = mode->buildBlock(held->pos, held->face, HandSlot::Mainhand, false);
+                AsPlanned const planned(*player->mBuiltInComponents->mActorRotationComponent->mRot, player->getLevel().getHitResult(), at);
+                placed = mode->buildBlock(at.pos, at.face, HandSlot::Mainhand, false);
             }
-            note(std::format("fake: buildBlock({},{},{} face {}) returned {} with client yaw {:.1f}; aim still there {}; held still {}",
-                             held->pos.x, held->pos.y, held->pos.z, held->face, placed, yaw, sameAim, held.has_value()));
+            note(std::format("fake: buildBlock({},{},{} face {}) returned {}; held still {}", at.pos.x, at.pos.y, at.pos.z, at.face,
+                             placed, held.has_value()));
             if (held) dropHeld("buildBlock sent no Place transaction");
         } catch (...) { dropHeld("placement failed"); }
     });
 }
 using AuthInput = PlayerAuthInputPacketPayload::InputData;
-void swapFlags(PlayerAuthInputPacket& auth, AuthInput a, AuthInput b) {
-    auto& bits = auth.mInputData->mContainer;
-    bool const hasA = bits.test(static_cast<size_t>(a)), hasB = bits.test(static_cast<size_t>(b));
-    bits.set(static_cast<size_t>(a), hasB);
-    bits.set(static_cast<size_t>(b), hasA);
-}
 void fakeAuth(PlayerAuthInputPacket& auth) {
     auth.mRot->y = flip(auth.mRot->y);
     auth.mYHeadRot = flip(static_cast<float>(auth.mYHeadRot));
     auth.mInteractRotation->y = flip(auth.mInteractRotation->y);
     auth.mCameraOrientation->x = -auth.mCameraOrientation->x;
     auth.mCameraOrientation->z = -auth.mCameraOrientation->z;
-    if (held->turnMove) {
-        *auth.mMove = Vec2{-auth.mMove->x, -auth.mMove->z};
-        *auth.mRawMoveVector = Vec2{-auth.mRawMoveVector->x, -auth.mRawMoveVector->z};
-        *auth.mAnalogMoveVector = Vec2{-auth.mAnalogMoveVector->x, -auth.mAnalogMoveVector->z};
-        swapFlags(auth, AuthInput::Up, AuthInput::Down);
-        swapFlags(auth, AuthInput::Left, AuthInput::Right);
-        swapFlags(auth, AuthInput::UpLeft, AuthInput::DownRight);
-        swapFlags(auth, AuthInput::UpRight, AuthInput::DownLeft);
-    }
     ++authsFaked;
     followAuth = 6;
 }
@@ -263,8 +286,7 @@ LL_TYPE_INSTANCE_HOOK(PlacementTraceSend, ll::memory::HookPriority::Normal, Loop
                     auth.mInputData->contains(AuthFlag::PerformItemInteraction), static_cast<bool>(auth.mItemUseTransaction.get()));
 #ifdef LAMIUM_PLACEMENT_FAKE
                 if (faking) {
-                    note(std::format("fake: auth {} sent as {}; move {:.2f},{:.2f} variant {}", authsFaked, lastAuth, auth.mMove->x,
-                                     auth.mMove->z, held->turnMove ? "turned" : "untouched"));
+                    note(std::format("fake: auth {} sent as {}", authsFaked, lastAuth));
                     origin(packet);
                     if (!replayQueued) {
                         replayQueued = true;
@@ -290,8 +312,13 @@ LL_TYPE_INSTANCE_HOOK(PlacementTraceSend, ll::memory::HookPriority::Normal, Loop
                         static_cast<int>(use.mClientPredictedResult)));
 #ifdef LAMIUM_PLACEMENT_FAKE
                     if (held && use.mActionType == ItemUseInventoryTransaction::ActionType::Place) {
-                        note(std::format("fake: Place left after {} faked auth input(s), variant {}", authsFaked,
-                                         held->turnMove ? "turned" : "untouched"));
+                        Vec3 const sentClick = *use.mClickPos;
+                        bool const off = std::abs(sentClick.x - held->click.x) > 0.01f || std::abs(sentClick.y - held->click.y) > 0.01f
+                                      || std::abs(sentClick.z - held->click.z) > 0.01f;
+                        if (off) *const_cast<ItemUseInventoryTransaction&>(use).mClickPos = held->click;
+                        note(std::format("fake: Place left after {} faked auth input(s); click sent {:.3f},{:.3f},{:.3f}, wanted {:.2f},{:.2f},{:.2f}{}",
+                                         authsFaked, sentClick.x, sentClick.y, sentClick.z, held->click.x, held->click.y, held->click.z,
+                                         off ? "; patched to the wanted click" : ""));
                         held.reset();
                         replayQueued = false;
                         authsFaked = 0;

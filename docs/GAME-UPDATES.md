@@ -526,9 +526,11 @@ and the sent `PlayerAuthInputPacket` rotations and `InventoryTransactionPacket`
 item use fields around a use. Read only, except the `placement_fake`
 experiment (L-265, option only, ungated): the `PlacementFake*` hooks hold a
 stair placement (one a second), every auth input until its Place
-transaction leaves is sent with yaw + 180 (move input turned or untouched,
-alternating), and `GameMode::buildBlock` is called for the held cell with
-the local player's rotation written the same for the call. The real
+transaction leaves is sent with yaw + 180, and `GameMode::buildBlock` is
+called from another solid neighbor of the cell, with the local player's
+rotation and the level's `HitResult` (`Level::getHitResult`) written for the
+call; a sent click that differs from the chosen one is overwritten in the
+transaction. The real
 feature asks `versionSensitiveAllowed()` before any of this.
 
 ### `src/features/inventory/FakeOffhand.cpp`
