@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 faked-look experiment (2026-11-28)
+
+`72658c5e` built with `placement_trace` and `placement_fake` (DLL
+`ddf85c798f4e39204d2f412b10d28b165e83c8188047fc9bbf6297728a188ac9`),
+1.26.60.05 Dev, local world, the maintainer. Every stair placement was held,
+the auth inputs until its Place transaction said yaw + 180 with the move
+vectors negated, and the use was replayed with the local yaw flipped.
+- Seen: standing still, each stair was placed facing the opposite way, with
+  no flicker to another facing. Walking and sprinting: pulled back. Slabs
+  and logs as usual. The button was held a little by mistake.
+- Log: 25 holds, 16 placed. Each placement followed exactly one faked auth
+  input and left before the next real one (the replay ran in time). The
+  local server's `useItemOn` ran with the faked yaw, and client and server
+  placed the same `weirdo_direction`.
+- The other 9 were dropped, all while walking: the crosshair had moved to
+  another block before the replay, which goes through the use input.
+- The four pull-backs in the log (about 0.7 blocks, two ticks after) each
+  came after two faked auth inputs in quick succession whose placements
+  were dropped; no jump followed a single faked auth that placed. This run
+  cannot tell the rotation from the move-vector negation (the movement
+  flags Up/Down/Left/Right were not changed).
+- One standing placement on short grass failed on both sides (unexplained).
+- Not checked: a dedicated server, which field the server reads.
+
 ## L-265 vanilla placement trace (2026-11-28)
 
 `bdbe48b3` built with `placement_trace` (DLL
