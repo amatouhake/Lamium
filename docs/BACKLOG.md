@@ -224,7 +224,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); the calculation feeds the plan (L-359); the schematic's raw list is gone (L-383)
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
-- [L-412](backlog/L-412.md) One overlap check for bindings, fixed presses and the game's keys (Design): Open; found by the 2026-11-27 review after L-372, nothing chosen
+- [L-412](backlog/L-412.md) One overlap check for bindings, fixed presses and the game's keys (Ready): Choices agreed 2026-11-27 (maintainer); building
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)
 
 ## Later / parked
