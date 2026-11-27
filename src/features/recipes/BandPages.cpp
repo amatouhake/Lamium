@@ -269,8 +269,9 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
         bool const hot = whole.has(px, py);
         if (hot) fill(context, panel.left + 1, y, rowsEnd - panel.left - 1, SideLayout::row, palette::white, .08f);
         Rgb const ink = row.faint ? palette::faint : palette::text;
-        if (row.done) {
-            // Held: a small check where the needed count would be.
+        // A done step: a small check where the needed count would be. Done wanted and gathered rows keep their
+        // counts, faint, as the Notes window's do (maintainer 2026-11-27).
+        if (row.done && sideList == SideList::Make) {
             drawCheckMark(context, needX + numW - 7, y + 3, palette::faint);
         } else {
             if (heldShown) number(heldX, y, row.held, ink);
@@ -283,7 +284,7 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                     drawEditField(context, needX, y, 12, numW + 3, *editing, Align::Right); // room = width - 3: the count's right edge
                     if (leftPress && took(box)) placeCaret(context, countEdit::typed, px, py);
                 } else {
-                    label(context, needX, y + 1 + boxTextInset(), numW, std::to_string(row.count), row.count == 0 ? palette::faint : palette::text, Align::Right);
+                    label(context, needX, y + 1 + boxTextInset(), numW, std::to_string(row.count), row.count == 0 || row.done ? palette::faint : palette::text, Align::Right);
                     if (leftPress && took(box)) countEdit::begin(row.key, row.count, countEdit::Where::Panel);
                     else if (frame.sideTurns && box.has(px, py)) state::stepWanted(row.key, frame.sideTurns < 0, frame.shift, false);
                 }
@@ -315,8 +316,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 if (shares && static_cast<size_t>(row.entry) < shares->entries.size()) {
                     auto const e = static_cast<size_t>(row.entry);
                     bool const above = e < shares->targets.size() && shares->targets[e].item >= 0 && shares->targets[e].sharedAbove();
-                    planView::wantedTip(late, shares->entries[e], above);
-                } else planView::wantedTip(late, {row.key, row.count, row.source}, false);
+                    planView::wantedTip(late, shares->entries[e], above, row.count - row.held);
+                } else planView::wantedTip(late, {row.key, row.count, row.source}, false, row.count - row.held);
             } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
             else if (!panel.wide()) late.tip = row.name;
         }

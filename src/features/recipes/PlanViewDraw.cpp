@@ -137,10 +137,15 @@ std::string checkedPlacement() {
     auto const& at = placed.placement.origin;
     return std::format("{} ({}, {}, {})", placed.name, at.x, at.y, at.z);
 }
-void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove) {
+// What is left in chests and stacks, for carrying (maintainer 2026-11-27): the columns have it in items.
+std::string remainingLine(Count left, std::string const& key) {
+    return ui::translated("recipes.gatherRemaining", ui::amountText(static_cast<std::uint64_t>(left), schematic::items::shown(key).stack));
+}
+void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove, Count left) {
     using namespace lamium::ui;
     late.tip = schematic::items::shown(entry.key).name, late.hovered = entry.key;
     late.tipLines.clear();
+    if (left > 0) late.tipLines.push_back(remainingLine(left, entry.key));
     // The schematic's rows name the placement they come from.
     if (std::string const from = entry.source == "schematic" ? checkedPlacement() : std::string(); !from.empty())
         late.tipLines.push_back(translated("recipes.from." + entry.source) + ": " + from);
@@ -163,9 +168,7 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
         if (picture.empty() && line.id >= 0) picture = index.items[static_cast<size_t>(line.id)];
         late.tip = schematic::items::shown(picture).name, late.hovered = picture;
     }
-    // What is left to gather in chests and stacks, for carrying (maintainer 2026-11-27): the columns have it in items.
-    if (line.left > 0)
-        late.tipLines.insert(late.tipLines.begin(), translated("recipes.gatherRemaining", amountText(line.left, schematic::items::shown(picture).stack)));
+    if (line.left > 0) late.tipLines.insert(late.tipLines.begin(), remainingLine(line.left, picture));
     // What the counted stores held when last seen, place by place, beside what is carried.
     if (key.empty() && line.id >= 0 && line.id < itemCount) storedLines(late, plan, line.id);
 }
@@ -634,7 +637,7 @@ struct Lists : Window {
                 } else labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);
                 if (late.tip.empty() && hot && !onControl) {
                     // As the panel's (L-387): the columns' counts repeated.
-                    wantedTip(late, entry, known && target->sharedAbove());
+                    wantedTip(late, entry, known && target->sharedAbove(), entry.count - have);
                 }
                 if (known && !onControl && took(left, y, controlsX - left, rowHeight)) openEntry = openEntry == id ? std::string() : id;
             }
