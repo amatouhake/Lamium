@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-406 Edge Guard thread trace (2026-11-27)
+
+Trace build of `6e5b100d` plus the uncommitted `edge_thread_trace` line
+(DLL `b833875119d76be68f91d8049461f6c6c47feb3eecc68953efb2a6f3824694a9`),
+1.26.60.05 Dev, local world, the maintainer:
+- Seen: walking to block edges with and without sneaking, Edge Guard stops
+  as usual; nothing else changed.
+- Log (read by the agent): `guard()` for the client's copy on the client
+  thread, for the local server's copy on another thread. The case "server
+  copy on the client thread" did not appear.
+- Not seen: a server (the server's copy exists only in a local world).
+
 ## 0.9.0 tagged and published (2026-11-27)
 
 Tagged `v0.9.0` on `c8db65b2`, the commit whose CI package passed the

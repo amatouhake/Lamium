@@ -321,6 +321,20 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
             runtime.self().getLogger().info("Edge Guard: also guarding the local server's copy of the player");
         }
     }
+#ifdef LAMIUM_EDGE_THREAD_TRACE
+    {
+        // L-406: which thread guards which copy; each combination logged once.
+        static std::atomic<int> seen = 0;
+        bool server = !isLocal(entity, *player), onClient = std::this_thread::get_id() == clientThread.load();
+        int bit = 1 << (server * 2 + onClient);
+        if (!(seen.fetch_or(bit) & bit)) {
+            auto id = std::this_thread::get_id(), client = clientThread.load();
+            runtime.self().getLogger().info("L-406 guard {} copy on {} thread (thread {}, client thread {})",
+                server ? "server" : "client", onClient ? "the client" : "another",
+                std::hash<std::thread::id>{}(id), std::hash<std::thread::id>{}(client));
+        }
+    }
+#endif
     // Walking on the ground, sneaking too: vanilla sneaking stops with the box
     // only touching an edge, which a server treats as no support (L-160).
     if (!walking(*player, true)) return;
