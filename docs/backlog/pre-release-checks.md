@@ -115,9 +115,11 @@ not seen was still not seen in 0.7.0.
   2026-11-14). The notice in docked panels passed too. Left for when one
   is available (maintainer 2026-11-14): a friend's world keeping its data
   over a rejoin; a Realm.
-- Realm ids and worlds behind one key (L-358, L-365): servers, friends'
-  worlds and every world question answer passed on a local BDS
-  (VALIDATION-LOG 2026-11-19); a Realm is left for the reporter's log.
+- Realm ids and worlds behind one key (L-358, L-365, L-343): servers,
+  friends' worlds and every world question answer passed on a local BDS
+  (VALIDATION-LOG 2026-11-19). A Realm and a server whose port changes
+  between visits cannot be checked by the maintainer: left to user
+  reports.
 - Work of 2026-11-15 and 16 passed in game (VALIDATION-LOG 2026-11-15/16):
   Game HUD placement's position and days played switches (L-348), the
   minimap's Text size and Nether view rows and the Map size row's removal

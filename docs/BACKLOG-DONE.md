@@ -7,6 +7,10 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-390](backlog/done/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0
+- [L-358](backlog/done/L-358.md) Realms joined through a friend share one data set
+- [L-365](backlog/done/L-365.md) The world behind a server, Realm or friend's world can change
+- [L-343](backlog/done/L-343.md) A server's map, waypoints and placements are lost when its address changes
 - [L-243](backlog/done/L-243.md) Large terrain gaps that only reload when the player comes near
 - [L-410](backlog/done/L-410.md) Sneak Placement "Send only" lets the client open a door the server keeps shut
 - [L-409](backlog/done/L-409.md) The item list leaves an empty dark strip at the screen's edge
@@ -320,6 +324,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Research
 
+- [L-116](backlog/done/L-116.md) Raw materials from the game's recipes
 - [L-406](backlog/done/L-406.md) Edge Guard reads the client's player while guarding the local server's copy
 - [L-353](backlog/done/L-353.md) Input events and the client thread: what is still touched outside the tick
 - [L-323](backlog/done/L-323.md) Game HUD placement: boss bars

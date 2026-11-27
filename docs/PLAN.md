@@ -6,7 +6,7 @@ what must be gathered and what to make; the **Stores** are the containers
 counted as held, for the plan and for Schematics. Both are in the Inventory
 section, experimental and off by default. The plan's design is
 [L-359](backlog/L-359.md) and [L-370](backlog/L-370.md); the rules of a
-plan's recipes are in [L-116](backlog/L-116.md).
+plan's recipes are in [L-116](backlog/done/L-116.md).
 
 ## Behavior
 
@@ -195,7 +195,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
 - The schematic Materials tab shows what is left as things to gather, no
   more. The steps to make belong to the plan.
 - Which recipe makes an item by default, groups, fuel, spare output and
-  held items: the rules in [L-116](backlog/L-116.md).
+  held items: the rules in [L-116](backlog/done/L-116.md).
 - Its key is W; its pages are the panel's lower part on the left. With
   Recipes off the panel holds the plan alone, there is no item list or
   search field, and a press on an item opens no recipe view.
@@ -269,7 +269,7 @@ plan's recipes are in [L-116](backlog/L-116.md).
 - The wanted items' and the counted places' files go when a world's or a
   server's saved data is deleted, and the Saved data screen lists data
   holding only them, but does not count them, and moving a server's data to another key leaves it
-  ([L-358](backlog/L-358.md)).
+  ([L-358](backlog/done/L-358.md)).
 - Builds before the per-server places file kept every server's counted
   places in one `config/wanted/places.json`. It is not read and not
   deleted, since nothing tells whose it was.

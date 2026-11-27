@@ -7,7 +7,7 @@ as ghost blocks, compare it with what is built, list the materials still
 needed, and save an area of the world as a file. Experimental, default off.
 Controls (move target, menu, Repeat, cut-plane layers and their storage,
 looked-at selection) are in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md).
-Open follow-ups are indexed by [L-93 Schematic: load, place, project, verify and list materials (experimental)](backlog/L-93.md).
+Open follow-ups are listed under BACKLOG.md's execution order (Schematic follow-ups); the first scope's record is [L-93 Schematic: load, place, project, verify and list materials (experimental)](backlog/done/L-93.md).
 
 Settings (Schematics category, `schematic.*`): `enabled` (with key and
 screen opener); menu and Repeat rows (SCHEMATIC-CONTROLS); `ghostTint`
@@ -389,7 +389,7 @@ Game and SDK:
   faces and lines glow after closing the inventory until the player moves.
 - Next to real see-through blocks: [L-194 Save corner marks over real glass or water change with the camera](backlog/L-194.md),
   [L-245 Ghost face disappears next to real glass or a beacon from some angles](backlog/L-245.md).
-- A server's placements are lost when its address changes: [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/L-343.md).
+- A server's placements are lost when its address changes: [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/done/L-343.md).
 - Open work: [L-114 3D previews in the schematic screen](backlog/L-114.md);
   [L-115 Entity ghosts drawn as models](backlog/L-115.md);
   [L-117 Schematic entity name tags render badly in Japanese](backlog/L-117.md);

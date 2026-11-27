@@ -141,12 +141,12 @@ from the file); never restate them here.
    before building. L-166 trade helpers, L-167 resource packs, L-168 trade
    finder, L-169 transfer extensions and L-173 quick shapes wait for the
    maintainer to choose what to build.
-   L-359 material plan (with L-116 raw materials) runs beside this list,
-   neither ahead of it nor behind it; its next steps are L-370, L-362,
-   L-368 and L-363.
-3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
-   previews, L-115 entity ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186 ghost legibility, and the
-   remaining L-117 schematic name tags.
+   L-359 material plan runs beside this list, neither ahead of it nor
+   behind it; its next steps are L-370, L-362, L-368 and L-363.
+3. **Schematic follow-ups:** choose among L-114 3D previews, L-115 entity
+   ghosts as models, L-184 inspect ghost data, L-185 instant load, L-186
+   ghost legibility, L-265 placement assist and the remaining L-117
+   schematic name tags.
    The initial feature and 0.1.8 work are complete, not new tasks.
 4. **Placement/breaking:** L-15 breaking and placement restrictions
    (breaking redesign before placement); L-59 held placement style waits for the maintainer's go-ahead.
@@ -172,11 +172,8 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Bugs
 
-- [L-358](backlog/L-358.md) Realms joined through a friend share one data set (Research): Built with L-365; a server join reads the cookie without a crash (2026-11-19); no Realm checked, the released log line is the check
-- [L-365](backlog/L-365.md) The world behind a server, Realm or friend's world can change (Ready): Built; every question and answer checked on a local BDS (2026-11-19); a Realm not seen
-- [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) built and checked in game; a Realm and a changing port not seen
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-390](backlog/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0 (mixed; one part left): Fixed by commit, none seen in game; 1-7's refused take needs a real server
+- [L-415](backlog/L-415.md) Mouse bindings act while a field is typed (Ready): Open, not started (from L-390's questions 5 and 2, 2026-11-28)
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-245](backlog/L-245.md) Ghost face disappears next to real glass or a beacon from some angles (Bug / Research): Open, not reproduced on purpose yet.
 - [L-257](backlog/L-257.md) FreeCamera culler reads blocks on the render thread (Research): Open, not started
@@ -214,11 +211,9 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-91](backlog/L-91.md) Shield glint missing in Lamium's item icons (Research): Parked 2026-11-17 (maintainer): only the shield glint is left. Known issue
 - [L-79](backlog/L-79.md) Carved pumpkin and spyglass frame draw path (Research): Open; next step is the transparent-texture test pack (no code)
 - [L-71](backlog/L-71.md) Start an elytra glide from the mod (Research): Open; headers read 2026-11-12, next trace not run
-- [L-93](backlog/L-93.md) Schematic: load, place, project, verify and list materials (experimental) (Follow-up tracking; each L-item below owns its kind and open choices): Initial scope shipped in 0.1.7, 0.1.8 rendering/compatibility work done; follow-ups open
 - [L-30](backlog/L-30.md) Ender Dragon multipart hitboxes on Bedrock (Research): Probed: parts are readable on the client; waiting for a real End dragon check, a server check and the color choice
 - [L-114](backlog/L-114.md) 3D previews in the schematic screen (Research): Partly done: Files and Check tab previews shipped (0.1.8); the Check tab's mistake look, see-through emphasis and moving the zoomed view are open
 - [L-115](backlog/L-115.md) Entity ghosts drawn as models (Research): A compromise version shipped in 0.1.8; the limits below are open
-- [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): The client's recipe table read in game 2026-11-17 (local and an Endstone server, identical); the calculation feeds the plan (L-359); the schematic's raw list is gone (L-383)
 - [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
 - [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
 - [L-408](backlog/L-408.md) Recipes: find enchanted books by their enchantments in English (Design): Open; to start from a design conversation (maintainer 2026-11-25)

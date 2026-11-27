@@ -393,7 +393,7 @@ Under `src/features/map/` unless stated; pure parts tested in
   [L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether](backlog/done/L-317.md);
   [L-324 Map: custom blocks are drawn in a dirt-like brown](backlog/done/L-324.md);
   [L-337 Minimap: one size setting instead of two](backlog/done/L-337.md);
-  [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/L-343.md);
+  [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/done/L-343.md);
   [L-243 Large terrain gaps that only reload when the player comes near](backlog/done/L-243.md);
   [L-249 Show the chunks within simulation distance](backlog/L-249.md);
   map findings in [L-339 Smaller bugs found by the 2026-11-14 code review](backlog/done/L-339.md)

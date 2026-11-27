@@ -338,7 +338,7 @@ What bothered is in VALIDATION-LOG of that day; what was agreed is built:
   to a file and logs sample plans.
 
 ## Known
-What the client's table holds and how it reads: [L-116](backlog/L-116.md)
+What the client's table holds and how it reads: [L-116](backlog/done/L-116.md)
 "Known" and VALIDATION-LOG 2026-11-17.
 
 ## Limits
