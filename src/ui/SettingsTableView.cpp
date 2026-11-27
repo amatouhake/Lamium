@@ -167,14 +167,31 @@ int nextSelectable(int from, int step) {
     for (int row = from; valid(row); row += step) if (rows[row].selectable()) return row;
     return -1;
 }
-// The keys the game binds to dropping an item (its keymap's "key.drop"); empty when unreadable.
-std::vector<int> gameDropKeys(IClientInstance& current) {
+// The keys the game binds to one of its actions (a keymap name such as "key.drop"); empty when unreadable.
+std::vector<int> gameKeys(IClientInstance& current, char const* name) {
     auto layout = current.getOptions().getCurrentKeyboardRemapping();
     if (!layout) return {};
-    auto const& mapped = layout->getKeymappingByAction("key.drop").mKeys.get();
+    auto const& mapped = layout->getKeymappingByAction(name).mKeys.get();
     if (mapped.size() > 4) return {};
     std::vector<int> keys;
     for (int code : mapped) if (code > 0) keys.push_back(code);
+    return keys;
+}
+std::vector<int> gameDropKeys(IClientInstance& current) { return gameKeys(current, "key.drop"); }
+// The game's keys on an item screen, read again at most once a second: every key cell asks.
+input::GameScreenKeys const& gameScreenKeys(IClientInstance& current) {
+    static input::GameScreenKeys keys;
+    static std::chrono::steady_clock::time_point read{};
+    if (auto const now = std::chrono::steady_clock::now(); now - read > std::chrono::seconds(1)) {
+        read = now;
+        keys.inventory = gameKeys(current, "key.inventory");
+        keys.drop = gameDropKeys(current);
+        keys.hotbar.clear();
+        for (char slot = '1'; slot <= '9'; ++slot) {
+            std::string const name = std::string{"key.hotbar."} + slot;
+            for (int code : gameKeys(current, name.c_str())) keys.hotbar.push_back(code);
+        }
+    }
     return keys;
 }
 void rebuild_(bool keepSelection) {
@@ -604,12 +621,20 @@ KeyTone conflictTone(input::Relation relation, bool gameClick = false) {
     return relation == input::Relation::Shared ? KeyTone::Filled
         : relation == input::Relation::Overlap || gameClick ? KeyTone::Outline : KeyTone::Plain;
 }
-// The tip's line for a binding that is the game's own click, empty otherwise.
-std::string gameClickNote(input::Action action, input::Chord const& chord) {
+// The tip's line for a binding that is the game's own click or one of its item-screen keys, empty otherwise.
+std::string gameNote(input::Action action, input::Chord const& chord) {
     switch (input::gameClick(action, chord)) {
     case input::GameClick::Attack: return translated("tip.gameAttack");
     case input::GameClick::Use: return translated("tip.gameUse");
     case input::GameClick::Pick: return translated("tip.gamePick");
+    default: break;
+    }
+    auto client = ll::service::getClientInstance();
+    if (!client) return {};
+    switch (input::gameScreenKey(action, chord, gameScreenKeys(*client))) {
+    case input::GameScreenKey::Inventory: return translated("tip.gameInventory");
+    case input::GameScreenKey::Drop: return translated("tip.gameDrop");
+    case input::GameScreenKey::Hotbar: return translated("tip.gameHotbar");
     default: return {};
     }
 }
@@ -645,7 +670,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
     auto const& bindings = Runtime::instance().preferences().bindings;
     auto relation = strongestConflict(input::bindingConflicts(bindings, action));
-    keycaps(context,x,cy,width,keys,conflictTone(relation, input::gameClick(action, input::effectiveChord(bindings, action)) != input::GameClick::None));
+    keycaps(context,x,cy,width,keys,conflictTone(relation, !gameNote(action, input::effectiveChord(bindings, action)).empty()));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -881,10 +906,10 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (chord.empty()) return false;
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
     auto const keys = chordKeys(current, chord);
-    auto const gameNote = gameClickNote(action, chord);
+    auto const gameLine = gameNote(action, chord);
     // Hovering the key cell reveals a binding only when the cell clips it; the
     // keyboard tip still appears only when there is a conflict (L-235) or the game's click.
-    bool const warns = !conflicts.empty() || !gameNote.empty();
+    bool const warns = !conflicts.empty() || !gameLine.empty();
     if (!hoveredKey && !warns) return false;
     if (hoveredKey && !warns && keycapsWidth(context, keys) <= t.keyWidth) return false;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
@@ -897,7 +922,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     float countWidth = count.empty() ? 0 : textWidth(context, count) + 8;
     float available = std::max(80.0f, t.width - 2*SettingsTable::pad);
     // Wide enough for a note in two lines and for each listed binding's caps, name and place on one (L-372).
-    float width = std::max(conflicts.empty() && gameNote.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth);
+    float width = std::max(conflicts.empty() && gameLine.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth);
     for (auto const& conflict : conflicts) {
         float caps = keycapsWidth(context, chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
         float text = 5 + textWidth(context, actionTitle(conflict.action)) + 6 + textWidth(context, whereText(conflict.where));
@@ -911,7 +936,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     // little space below; alone they keep equal padding.
     float header = conflicts.empty() ? capsHeight : std::max(headHeight, capsHeight + 4);
     std::vector<std::string> notes;
-    if (!gameNote.empty()) notes.push_back(gameNote);
+    if (!gameLine.empty()) notes.push_back(gameLine);
     bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
     else if (leads && input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold)
@@ -945,7 +970,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
 
     drawTipBox(context,x,y,width,height,warns);
     float cursor = y + pad;
-    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, !gameNote.empty()),3);
+    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, !gameLine.empty()),3);
     if (!count.empty())
         label(context,x+pad,cursor+boxTextInset(),inner,count,palette::warning,Align::Right);
     cursor += header;
@@ -1339,7 +1364,7 @@ void drawTableFooter(MinecraftUIRenderContext& context, SettingsTable const& t, 
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
-        if (auto note = gameClickNote(*capturing_, capture.value()); !note.empty())
+        if (auto note = gameNote(*capturing_, capture.value()); !note.empty())
             label(context,textLeft,t.footerTop+16,textWidthAvailable,note,palette::warning);
         label(context,textLeft,t.footerTop+30,textWidthAvailable,captureText(*capturing_),palette::faint);
     } else {
@@ -1490,7 +1515,7 @@ void applyBinding() {
     value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
     bool saved = Runtime::instance().save(value);
     // A binding on the game's own click keeps saying so in the footer after the button is let go.
-    auto note = gameClickNote(bindingEdit->action, input::effectiveChord(value.bindings, bindingEdit->action));
+    auto note = gameNote(bindingEdit->action, input::effectiveChord(value.bindings, bindingEdit->action));
     cancelCapture_();
     screen::setMessage(saved ? note : translated("saveError"));
 }

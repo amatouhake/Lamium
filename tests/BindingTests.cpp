@@ -428,6 +428,17 @@ void bindingTests() {
         check(gameClick(Action::Zoom, {middle}) == GameClick::Pick && gameClick(Action::Sort, {middle}) == GameClick::None
               && gameClick(Action::Transfer, {right}) == GameClick::Use,
               "only an action that works in play is told it shares the game's click");
+        GameScreenKeys const game{{'E'}, {'Q'}, {'1', '2', '3', '4', '5', '6', '7', '8', '9'}};
+        Token const e{Device::Key, 'E'}, q{Device::Key, 'Q'}, three{Device::Key, '3'}, shift{Device::Key, 0x10};
+        check(gameScreenKey(Action::Sort, {e}, game) == GameScreenKey::Inventory
+              && gameScreenKey(Action::Sort, {shift, q}, game) == GameScreenKey::Drop
+              && gameScreenKey(Action::RecipeBack, {three}, game) == GameScreenKey::Hotbar,
+              "an item-screen or window binding on the game's inventory, drop or hotbar key is marked");
+        check(gameScreenKey(Action::Zoom, {e}, game) == GameScreenKey::None
+              && gameScreenKey(Action::Sort, {Token{Device::Key, 'R'}}, game) == GameScreenKey::None
+              && gameScreenKey(Action::Sort, {Token{Device::Mouse, 'E'}}, game) == GameScreenKey::None
+              && gameScreenKey(Action::Sort, {e}, GameScreenKeys{}) == GameScreenKey::None,
+              "play-only actions, other keys, mouse buttons and unread game keys are not marked");
         Keys keys;
         keys.bind(shortA, {right});
         keys.bind(Action::DebugView, {alt, right});

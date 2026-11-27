@@ -435,6 +435,24 @@ inline GameClick gameClick(Chord const& chord) {
 inline GameClick gameClick(Action action, Chord const& chord) {
     return whereActs(action).layers & layer::gameplay ? gameClick(chord) : GameClick::None;
 }
+// Keys the game uses on an item screen (L-372): its inventory key closes the
+// screen, its drop key drops the item under the pointer, a hotbar number swaps
+// it into that slot. A binding there that includes one is marked in Hotkeys;
+// Lamium takes the key first.
+enum class GameScreenKey { None, Inventory, Drop, Hotbar };
+struct GameScreenKeys { std::vector<int> inventory, drop, hotbar; };
+inline GameScreenKey gameScreenKey(Action action, Chord const& chord, GameScreenKeys const& keys) {
+    if (!(whereActs(action).layers & (layer::itemScreen | layer::window))) return GameScreenKey::None;
+    auto uses = [&](std::vector<int> const& codes) {
+        return std::any_of(chord.begin(), chord.end(), [&](Token t) {
+            return t.device == Device::Key && std::find(codes.begin(), codes.end(), t.code) != codes.end();
+        });
+    };
+    if (uses(keys.inventory)) return GameScreenKey::Inventory;
+    if (uses(keys.drop)) return GameScreenKey::Drop;
+    if (uses(keys.hotbar)) return GameScreenKey::Hotbar;
+    return GameScreenKey::None;
+}
 
 using ChordSet = std::array<Chord, actions.size()>;
 // Like Java's F3: a Press/Toggle action whose chord begins a longer bound
