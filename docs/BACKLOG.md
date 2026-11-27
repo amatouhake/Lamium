@@ -172,8 +172,8 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Bugs
 
-- [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
 - [L-415](backlog/L-415.md) Mouse bindings act while a field is typed (Ready): Open, not started (from L-390's questions 5 and 2, 2026-11-28)
+- [L-419](backlog/L-419.md) Enchantment Order: planner and anvil panel slips (Ready): Open, not started (from L-342, rechecked in code 2026-11-28)
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-245](backlog/L-245.md) Ghost face disappears next to real glass or a beacon from some angles (Bug / Research): Open, not reproduced on purpose yet.
 - [L-257](backlog/L-257.md) FreeCamera culler reads blocks on the render thread (Research): Open, not started
@@ -194,6 +194,10 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; the maintainer wants it (2026-11-28, GitHub issue #85)
 - [L-414](backlog/L-414.md) Redstone power level overlay (Research): Open; first step is finding why the resource pack way stopped working
+- [L-416](backlog/L-416.md) Settings rows: names and placement made consistent (Design): Open, not started (from L-342, rechecked in code 2026-11-28)
+- [L-417](backlog/L-417.md) Keyboard and Esc behave alike on every page (Design): Open, not started; the Tab bug can be fixed first (from L-342, rechecked 2026-11-28)
+- [L-418](backlog/L-418.md) Screens: small behavior differences (Design): Open, not started (from L-342, rechecked in code 2026-11-28)
+- [L-420](backlog/L-420.md) Shared code for repeated drawing and placement (Refactor): Open, not started (from L-342, rechecked in code 2026-11-28)
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release

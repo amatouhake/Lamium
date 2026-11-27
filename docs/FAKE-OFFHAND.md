@@ -231,4 +231,4 @@ Observed in game (trace builds):
   everyday use.
 - Unchecked in game: the "Fake Offhand (L-49, L-95)" row in
   [VALIDATION.md](VALIDATION.md); the own key with eating, a bow, a shield
-  or a trident ([L-342 Lower findings of the 2026-11-14 review, kept for later](backlog/L-342.md)).
+  or a trident ([L-342 Lower findings of the 2026-11-14 review, kept for later](backlog/done/L-342.md)).

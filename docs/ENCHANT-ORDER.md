@@ -390,7 +390,7 @@ Icons and glints (`inspection/render/ItemIcon.cpp`, shared):
 - The runtime checks in VALIDATION.md's row; [L-170 Enchantment order
   planner](backlog/done/L-170.md) is closed, a further change gets an item of
   its own.
-- [L-342 Lower findings of the 2026-11-14 review, kept for later](backlog/L-342.md),
+- [L-342 Lower findings of the 2026-11-14 review, kept for later](backlog/done/L-342.md),
   "Enchantment order": reported rough spots, none agreed.
 - [L-319 Item details: Work Penalty first, then the unshown rest](backlog/done/L-319.md)
   (closed): the work penalty in an item's tooltip.

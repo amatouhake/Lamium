@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-342](backlog/done/L-342.md) Lower findings of the 2026-11-14 review, kept for later
 - [L-390](backlog/done/L-390.md) Findings of the 2026-11-23 review of the changes since 0.7.0
 - [L-358](backlog/done/L-358.md) Realms joined through a friend share one data set
 - [L-365](backlog/done/L-365.md) The world behind a server, Realm or friend's world can change
