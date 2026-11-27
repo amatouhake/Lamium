@@ -1048,6 +1048,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"recipes.makeAt", "制作地点: {}"},
     {"recipes.hint.placeStep", "Shift: 所需数量 | Ctrl: 制作一次到光标上"},
     {"recipes.stepShort", "还差 {}"},
+    {"recipes.gatherRemaining", "剩余: {}"},
     {"recipes.heldIs", "持有: {}"},
     {"recipes.heldShort", "持有: {}（还差 {}）"},
     {"recipes.howTo.showAll", "也显示以前选择的"},

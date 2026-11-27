@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-387 recipe tips' counts (2026-11-27)
+
+`44907a50` (DLL
+`dda2970276b2bd3279ad1df50dbc69cb7f031ec5700ae49b91297dd34bb63ad6`),
+1.26.60.05 Dev, the maintainer:
+- Seen: a step's product names only the inputs short ("原木: あと 2"),
+  an input reads "所持: 0（あと 2）", window and panel alike; "作る物"'s
+  columns read "作れる" and "作る"; a cut count's tip is the number alone.
+- Not answered (the check was unclear): gather and wanted rows. Seen: a
+  gather row's tip is the name alone; a wanted row's has the name and its
+  source. The maintainer missed the chests-and-stacks amount, so it
+  comes back as "残り: …".
+
 ## L-412 Find by key without the game's line (2026-11-27)
 
 `44907a50` (DLL

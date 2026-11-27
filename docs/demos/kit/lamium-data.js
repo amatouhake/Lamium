@@ -1853,6 +1853,7 @@ window.LAMIUM_DATA = {
  "recipes.makeAt": ["Made at: {}","作る場所: {}","制作地点: {}","製作地點: {}"],
  "recipes.hint.placeStep": ["Shift: what is needed | Ctrl: one round onto the pointer","Shift: 要る分 | Ctrl: 1 回分作ってカーソルへ","Shift: 所需数量 | Ctrl: 制作一次到光标上","Shift: 所需數量 | Ctrl: 製作一次到游標上"],
  "recipes.stepShort": ["{} more","あと {}","还差 {}","還差 {}"],
+ "recipes.gatherRemaining": ["Left: {}","残り: {}","剩余: {}","剩餘: {}"],
  "recipes.heldIs": ["Held: {}","所持: {}","持有: {}","持有: {}"],
  "recipes.heldShort": ["Held: {} ({} more)","所持: {}（あと {}）","持有: {}（还差 {}）","持有: {}（還差 {}）"],
  "recipes.howTo.showAll": ["Also what was chosen before","これまでに選んだ物も出す","也显示以前选择的","也顯示以前選擇的"],

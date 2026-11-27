@@ -163,6 +163,9 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
         if (picture.empty() && line.id >= 0) picture = index.items[static_cast<size_t>(line.id)];
         late.tip = schematic::items::shown(picture).name, late.hovered = picture;
     }
+    // What is left to gather in chests and stacks, for carrying (maintainer 2026-11-27): the columns have it in items.
+    if (line.left > 0)
+        late.tipLines.insert(late.tipLines.begin(), translated("recipes.gatherRemaining", amountText(line.left, schematic::items::shown(picture).stack)));
     // What the counted stores held when last seen, place by place, beside what is carried.
     if (key.empty() && line.id >= 0 && line.id < itemCount) storedLines(late, plan, line.id);
 }
