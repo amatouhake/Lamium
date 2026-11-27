@@ -101,9 +101,10 @@ plan's recipes are in [L-116](backlog/L-116.md).
   panel alike (L-387); a count cut to fit shows whole under the pointer.
   A "to gather" row: its name, what is left in chests and stacks for
   carrying ("Left: 25 chests + 23 stacks + 27", whenever some is left;
-  maintainer 2026-11-27), a group's members and the stores holding some.
-  A wanted row: its name, what is left in chests and stacks as on a "to
-  gather" row, whose a handed row is, a share taken above. A step's product: its name (a group's step: the group's tip,
+  maintainer 2026-11-27), what is held beyond what the whole plan uses
+  the same way ("Spare: …"; the held column stops at the need), a group's
+  members and the stores holding some. A wanted row: its name, what is
+  left and what is spare as on a "to gather" row, whose a handed row is, a share taken above. A step's product: its name (a group's step: the group's tip,
   members and all) and the inputs short of what is carried, "Logs: 2
   more". An input: its name, "Held: 0 (2 more)" (its
   slot shows what is needed) and the stores holding some. "To make"'s

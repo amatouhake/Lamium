@@ -316,8 +316,8 @@ void plan(Frame& frame, SideLayout const& panel, LocalPlayer& player, std::vecto
                 if (shares && static_cast<size_t>(row.entry) < shares->entries.size()) {
                     auto const e = static_cast<size_t>(row.entry);
                     bool const above = e < shares->targets.size() && shares->targets[e].item >= 0 && shares->targets[e].sharedAbove();
-                    planView::wantedTip(late, shares->entries[e], above, row.count - row.held);
-                } else planView::wantedTip(late, {row.key, row.count, row.source}, false, row.count - row.held);
+                    planView::wantedTip(late, shares->entries[e], above, row.count - row.held, planView::spareOf(*plan, row.key));
+                } else planView::wantedTip(late, {row.key, row.count, row.source}, false, row.count - row.held, plan ? planView::spareOf(*plan, row.key) : 0);
             } else if (row.done) late.tip = row.name, late.tipLines = {translated("recipes.heldSteps")};
             else if (!panel.wide()) late.tip = row.name;
         }

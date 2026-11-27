@@ -1058,6 +1058,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"recipes.hint.placeStep", "Shift: what is needed | Ctrl: one round onto the pointer", "Shift: 要る分 | Ctrl: 1 回分作ってカーソルへ"},
     {"recipes.stepShort", "{} more", "あと {}"},
     {"recipes.gatherRemaining", "Left: {}", "残り: {}"},
+    {"recipes.gatherSpare", "Spare: {}", "余り: {}"},
     {"recipes.heldIs", "Held: {}", "所持: {}"},
     {"recipes.heldShort", "Held: {} ({} more)", "所持: {}（あと {}）"},
     {"recipes.howTo.showAll", "Also what was chosen before", "これまでに選んだ物も出す"},

@@ -317,7 +317,9 @@ Plan const* plan(LocalPlayer& player) {
     auto both = plan.held;
     for (auto const& [id, count] : plan.stored) both[id] += count;
     plan.request.held.assign(both.begin(), both.end());
-    plan.view = rawView(table->index, *plan.choice, plan.request);
+    auto planned = recipes::planned(table->index, *plan.choice, plan.request);
+    plan.unused = unusedStock(table->index, plan.request, planned);
+    plan.view = rawView(table->index, *plan.choice, std::move(planned));
     plannedNow.revision = revision;
     plannedNow.at = now;
     return &plan;

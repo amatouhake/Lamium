@@ -159,7 +159,7 @@ inline void apply(Index const& index, Wanted const& wanted, std::vector<Handed> 
 // counts as held, by item name.
 struct LooseLine {
     std::string key;
-    Count need = 0, held = 0, left = 0;
+    Count need = 0, held = 0, left = 0, spare = 0; // spare: held beyond the need
     bool operator==(LooseLine const&) const = default;
 };
 inline std::vector<LooseLine> looseLines(Index const& index, Wanted const& wanted, std::vector<Handed> const& handed,
@@ -175,8 +175,10 @@ inline std::vector<LooseLine> looseLines(Index const& index, Wanted const& wante
     for (auto& line : out) {
         auto const parts = splitItemKey(line.key);
         auto const have = heldByName.find(parts.data.empty() ? std::string(parts.name) : line.key);
-        line.held = std::min(line.need, have == heldByName.end() ? Count{0} : have->second);
+        Count const all = have == heldByName.end() ? Count{0} : have->second;
+        line.held = std::min(line.need, all);
         line.left = line.need - line.held;
+        line.spare = all - line.held;
     }
     return out;
 }

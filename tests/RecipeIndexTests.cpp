@@ -331,8 +331,13 @@ void recipeIndexTests() {
         check(std::find(made.result.steps.begin(), made.result.steps.end(), rawMaterials::Step{planksItem, 2, 3}) != made.result.steps.end()
                   && made.covered == std::vector<Cover>{{planks, at("oak_planks"), 3}, {trace.kind, at("oak_log"), 1}},
               "the group is made from its kind for what held planks leave, and the members that cover each are named");
+        check(unusedStock(woods, chest, made).empty(), "stock the plan uses whole leaves nothing spare");
+        Request plenty{{{at("chest"), 1}}, {{at("oak_planks"), 10}, {at("oak_log"), 1}}, {}, {}};
+        auto const spare = unusedStock(woods, plenty, planned(woods, picked, plenty));
+        check(spare == std::map<Item, Count>{{at("oak_planks"), 2}, {at("oak_log"), 1}} && heldOf(woods, spare, planksItem) == 2,
+              "what a group's members hold beyond what it takes is spare, and a group's spare is its members'");
         auto const view = rawView(woods, picked, chest);
-        auto const step = std::find_if(view.steps.begin(), view.steps.end(), [&](StepLine const& s) { return s.item == planksItem; });
+        auto const step =std::find_if(view.steps.begin(), view.steps.end(), [&](StepLine const& s) { return s.item == planksItem; });
         check(step != view.steps.end() && groupStep(woods, *step) && step->made == 8 && woods.recipes[static_cast<size_t>(step->recipe)].makes == at("oak_planks"),
               "the group's step shows, laying in the member whose input is most held");
         check(step != view.steps.end() && stepInputs(woods, chest, *step) == std::vector<std::pair<Item, Count>>{{logsItem, 2}}
@@ -978,8 +983,8 @@ void recipeIndexTests() {
         check(both.wanted.size() == 1 && view.gather.size() == 1 && view.gather[0].id == index.find("oak_planks") && view.gather[0].left == 4 && view.steps.size() == 1,
               "the plan makes sticks from the picked planks and gathers those, as they are marked");
         check(looseLines(index, list, {{"grass", 100, "schematic"}, {"grass", 58, "schematic"}, {"stick", 4, "schematic"}}, {{"grass", 30}, {"unknown_item", 9}})
-                  == std::vector<LooseLine>{{"unknown_item", 3, 3, 0}, {"grass", 158, 30, 128}},
-              "a wanted item no recipe knows is gathered as it is: its need summed, what is held taken off");
+                  == std::vector<LooseLine>{{"unknown_item", 3, 3, 0, 6}, {"grass", 158, 30, 128, 0}},
+              "a wanted item no recipe knows is gathered as it is: its need summed, what is held taken off, held beyond it spare");
         check(groupKey(index, 0) == "planks", "a tag is noted by its name");
         check(index.findKey("stick@7") == index.find("stick") && index.findKey("stick") == index.find("stick") && index.findKey("none@2") < 0,
               "a key that carries an aux the table does not tell apart finds the item all the same");

@@ -141,11 +141,21 @@ std::string checkedPlacement() {
 std::string remainingLine(Count left, std::string const& key) {
     return ui::translated("recipes.gatherRemaining", ui::amountText(static_cast<std::uint64_t>(left), schematic::items::shown(key).stack));
 }
-void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove, Count left) {
+// What is held beyond what the whole plan uses, the same way: the columns' held count stops at the need.
+std::string spareLine(Count spare, std::string const& key) {
+    return ui::translated("recipes.gatherSpare", ui::amountText(static_cast<std::uint64_t>(spare), schematic::items::shown(key).stack));
+}
+Count spareOf(state::Plan const& plan, std::string const& key) {
+    if (Item const id = plan.table->index.findKey(key); id >= 0) return heldOf(plan.table->index, plan.unused, id);
+    for (auto const& line : plan.loose) if (line.key == key) return line.spare;
+    return 0;
+}
+void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove, Count left, Count spare) {
     using namespace lamium::ui;
     late.tip = schematic::items::shown(entry.key).name, late.hovered = entry.key;
     late.tipLines.clear();
     if (left > 0) late.tipLines.push_back(remainingLine(left, entry.key));
+    if (spare > 0) late.tipLines.push_back(spareLine(spare, entry.key));
     // The schematic's rows name the placement they come from.
     if (std::string const from = entry.source == "schematic" ? checkedPlacement() : std::string(); !from.empty())
         late.tipLines.push_back(translated("recipes.from." + entry.source) + ": " + from);
@@ -168,6 +178,8 @@ void gatherTip(view::Late& late, state::Plan const& plan, GatherLine const& line
         if (picture.empty() && line.id >= 0) picture = index.items[static_cast<size_t>(line.id)];
         late.tip = schematic::items::shown(picture).name, late.hovered = picture;
     }
+    Count const spare = !key.empty() ? spareOf(plan, key) : heldOf(index, plan.unused, line.id);
+    if (spare > 0) late.tipLines.insert(late.tipLines.begin(), spareLine(spare, picture));
     if (line.left > 0) late.tipLines.insert(late.tipLines.begin(), remainingLine(line.left, picture));
     // What the counted stores held when last seen, place by place, beside what is carried.
     if (key.empty() && line.id >= 0 && line.id < itemCount) storedLines(late, plan, line.id);
@@ -637,7 +649,7 @@ struct Lists : Window {
                 } else labelScaled(context, controlsX, y + 6, controlsW, translated("recipes.from." + entry.source), .75f, v::windowFaint, Align::Right, false);
                 if (late.tip.empty() && hot && !onControl) {
                     // As the panel's (L-387): the columns' counts repeated.
-                    wantedTip(late, entry, known && target->sharedAbove(), entry.count - have);
+                    wantedTip(late, entry, known && target->sharedAbove(), entry.count - have, plan ? spareOf(*plan, entry.key) : 0);
                 }
                 if (known && !onControl && took(left, y, controlsX - left, rowHeight)) openEntry = openEntry == id ? std::string() : id;
             }

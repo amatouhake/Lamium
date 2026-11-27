@@ -66,6 +66,18 @@ inline RawView rawView(Index const& index, Choice const& choice, Planned plan) {
     }
     return out;
 }
+// What held stock the plan leaves unused, by item (maintainer 2026-11-27: the rows' held counts stop at the need).
+// A group's members lent to it count as used; `heldOf` adds up a group's members.
+inline std::map<Item, Count> unusedStock(Index const& index, Request const& request, Planned const& plan) {
+    std::map<Item, Count> out;
+    Item const items = static_cast<Item>(index.items.size());
+    for (auto [item, have] : request.held) out[item] += have;
+    auto take = [&](Item item, Count used) { auto& have = out[item]; have -= std::min(have, used); };
+    for (auto [item, used] : plan.result.fromHeld) if (item < items) take(item, used);
+    for (auto const& cover : plan.result.covered) take(cover.member, cover.count);
+    std::erase_if(out, [](auto const& entry) { return entry.second <= 0; });
+    return out;
+}
 inline RawView rawView(Index const& index, Choice const& choice, Request const& request) {
     return rawView(index, choice, planned(index, choice, request));
 }

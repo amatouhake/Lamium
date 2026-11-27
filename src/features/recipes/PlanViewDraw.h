@@ -28,7 +28,9 @@ std::string checkedPlacement();
 // A wanted row under the pointer, the same in the window and on the panel: whose a handed row is, and whether rows
 // above took a share of what is held; the counts are the row's.
 // `left`: what is still wanted beyond what is held, said in chests and stacks.
-void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove, Count left);
+void wantedTip(view::Late& late, WantedEntry const& entry, bool sharedAbove, Count left, Count spare);
+// Held beyond what the whole plan uses of a wanted item, by its key.
+Count spareOf(state::Plan const& plan, std::string const& key);
 // An item or a group of the plan as its picture's key: a group as the member it shows (GroupLook.h).
 std::string planPicture(state::Plan const& plan, Item id);
 // What the counted stores hold of `item`, with what is carried, as tip lines (L-359, L-385).
