@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 placement assist, first build (2026-11-28)
+
+`56722e3c` (DLL
+`3098de560a42a80e1ed6cebe05a4c7d7bb923343b43f1baadc997600c1dbad42`),
+1.26.60.05 Dev, local world, the maintainer.
+- Seen: the "Placement assist" row under Schematics and the HUD line
+  "配置アシスト オン"; ghosts placed in the schematic's facing and upside
+  down, also with air behind when a neighbor was there; the block brought
+  into the hand from another hotbar slot and the inventory, with an empty
+  hand too; "持っていません" when not carried; food used as usual; held use
+  while walking placed one ghost after another without a pull-back
+  (strafing with a sideways stair too).
+- Faults: a ghost surrounded by other ghosts could not be reached (only
+  with a layer view); holding use sometimes placed blocks the schematic
+  does not have; sometimes nothing was placed with no message; cobblestone
+  got "ここからはこの状態で置けません"; a ghost with blocks only above and
+  below seemed not to be placeable.
+- Log: 74 placements of grass-block ghosts over water came back as water
+  (the use repeated every tick while held); 35 refusals "no neighbor to
+  click" (logs, stairs, cobblestone) and two logs refused for their axis
+  ("pillar_axis x not y": only a side neighbor); one log placement left
+  air. No click needed correcting.
+- Not checked: a dedicated server, furnaces and doors placed by the assist.
+
 ## L-265 faked placements in a row (2026-11-28)
 
 `8a05681c` built with `placement_trace` and `placement_fake` (DLL
