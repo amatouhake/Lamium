@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 held presses (2026-11-28)
+
+`0f7a444c` built with `assist_trace` (DLL
+`57ee04ba30cef57af6230cf8da387e715fbb712aa430d722e2fc121b2d25d319`),
+1.26.60.05 Dev, local world, the maintainer. Ghosts placed from mid angles
+with animals far off; nearby animals and blocks used as before. A held
+press sometimes did not place where a short press would (20:14-20:15).
+Trace: while held, the game repeats `buildBlock` every ~50 ms only while
+its hit is within reach (the just-placed block); when the crosshair moved
+onto a ghost whose hit was past reach, one call came (taken, no placement:
+the previous one presumably still pending) and then none until the hit
+was in reach again. Short presses there go through `useItem` and place.
+
 ## L-265 presses with a far hit (2026-11-28)
 
 `62bd0ca5` built with `assist_trace` (DLL
