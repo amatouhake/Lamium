@@ -43,6 +43,11 @@ int bringToHand(LocalPlayer& player, std::string_view item, short aux) {
         return notCarried;
     return selected;
 }
+bool carried(LocalPlayer& player, std::string_view item, short aux) {
+    auto* supplies = player.mInventory.get();
+    if (!supplies || supplies->mSelectedContainerId != ContainerID::Inventory) return false;
+    return pickFor(handSlots(player), supplies->mSelected, item, aux).kind != HandPick::None;
+}
 namespace {
 bool listedInCreative(CreativeItemRegistry const& registry, ItemStack const& item) {
     auto const& name = item.getTypeName();

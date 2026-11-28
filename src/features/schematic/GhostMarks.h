@@ -24,6 +24,10 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, ove
 // gets its reversed quad.
 void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided);
 void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapshot, int dimension, Vec3 const& camera);
+// The ghost the placement assist would place now (L-265, assist-preview A):
+// a white outline one step wider than the ghosts' (at least 1/64 block), red
+// where a press would not place it.
+void drawAssistAim(ScreenContext& screen, int dimension, Vec3 const& camera);
 void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snapshot const& snapshot, int dimension, Vec3 const& camera,
                   std::vector<Resolved> const& resolved);
 void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& region, BaseActorRenderer& renderer, Vec3 const& camera);

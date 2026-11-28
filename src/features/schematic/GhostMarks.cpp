@@ -3,6 +3,10 @@
 #include "features/schematic/EntityModels.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostCommon.h"
+#include "features/schematic/GhostFaces.h"
+#include "features/schematic/PlacementAssist.h"
+#include "app/Runtime.h"
+#include "ui/Widgets.h"
 #include "overlay/CellMesh.h"
 #include "overlay/LineColor.h"
 #include "features/schematic/Selection.h"
@@ -228,6 +232,32 @@ void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapsho
             frameMesh.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, frameMesh.vertices,
                 OffscreenCaptureDescription{}, nullptr);
         });
+    });
+}
+void drawAssistAim(ScreenContext& screen, int dimension, Vec3 const& camera) {
+    assist::Aim aim;
+    if (!assist::aimed(aim) || aim.dimension != dimension) return;
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
+    if (!lineMaterial.mRenderMaterialInfoPtr) return;
+    int const width = std::max(1, Runtime::instance().snapshot()->schematic.ghostLineWidth);
+    // Just outside the ghost's own bars, so the two never share a plane.
+    float const half = faces::barHalfWidth(width) + .003f, grow = .003f;
+    glm::vec3 a{static_cast<float>(aim.low[0] - camera.x) - grow, static_cast<float>(aim.low[1] - camera.y) - grow,
+                static_cast<float>(aim.low[2] - camera.z) - grow};
+    glm::vec3 b{static_cast<float>(aim.high[0] - camera.x) + grow, static_cast<float>(aim.high[1] - camera.y) + grow,
+                static_cast<float>(aim.high[2] - camera.z) + grow};
+    glm::vec3 c[8];
+    for (int k = 0; k < 8; ++k) c[k] = {k & 1 ? b.x : a.x, k & 2 ? b.y : a.y, k & 4 ? b.z : a.z};
+    constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
+    ui::Rgb const color = aim.placeable ? ui::palette::white : ui::palette::mismatch;
+    Tessellator bars(screen.tessellator.mBufferResourceService);
+    bars.begin({}, mce::PrimitiveMode::QuadList, 12 * 32, false);
+    bars.color(color.r, color.g, color.b, 1.f);
+    for (auto [p, q] : edges)
+        for (auto const& v : faces::barQuads({c[p].x, c[p].y, c[p].z}, {c[q].x, c[q].y, c[q].z}, half)) bars.vertex(v[0], v[1], v[2]);
+    translated(screen, glm::vec3{0}, [&] {
+        overlay::lines::colored(screen, color.r, color.g, color.b,
+                                [&] { MeshHelpers::renderMeshImmediately(screen, bars, lineMaterial, OffscreenCaptureDescription{}); });
     });
 }
 // Missing entities: their game model with part outlines (L-115), or a dashed

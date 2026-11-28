@@ -625,6 +625,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     if (actorView) actorView->answer = nullptr;
     LAMIUM_PERF_LAP(actorsNs);
     drawPlacementFrames(screen, snapshot, dimension, camera);
+    drawAssistAim(screen, dimension, camera);
     LAMIUM_PERF_LAP(framesNs);
     drawEntities(screen, client, snapshot, dimension, camera, resolved);
     LAMIUM_PERF_LAP(entitiesNs);
@@ -950,24 +951,29 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
             auto index = overlap::paletteAt(shown, dimension, cell);
             if (!index || static_cast<size_t>(*index) >= resolved[i].blocks.size()) continue;
             if (auto const* block = resolved[i].blocks[static_cast<size_t>(*index)]) {
+                // The block's outline against the placement's ghosts, within
+                // its cell (0-1); the whole cell when the game gives none.
+                SchematicRegion view(region);
+                view.answer = [&](BlockPos const& at) { return ghostDrawnAt(region, shown, resolved[i], {at.x, at.y, at.z}).block; };
+                AABB buffer;
+                AABB const& shape = block->getBlockType().getOutline(*block, view, pos, buffer);
+                std::array<double, 3> low{shape.min.x - double(cell.x), shape.min.y - double(cell.y), shape.min.z - double(cell.z)};
+                std::array<double, 3> high{shape.max.x - double(cell.x), shape.max.y - double(cell.y), shape.max.z - double(cell.z)};
+                // Some outlines come relative to the cell.
+                if (std::abs(low[0]) > 2 || std::abs(low[1]) > 2 || std::abs(low[2]) > 2) {
+                    low = {shape.min.x, shape.min.y, shape.min.z};
+                    high = {shape.max.x, shape.max.y, shape.max.z};
+                }
+                bool usable = true;
+                for (int k = 0; k < 3; ++k) usable = usable && high[k] - low[k] > 1e-3 && low[k] > -1e-3 && high[k] < 1 + 1e-3;
+                if (!usable) { low = {0, 0, 0}; high = {1, 1, 1}; }
+                auto const partner = modelPartner(*block);
+                // A shrunk ghost is aimed at through its outline's box (L-424).
                 if (scale < 1.) {
-                    // Through its outline's box (L-424), as the drawn outline
-                    // is shaped: the block's outline against the placement's ghosts.
-                    SchematicRegion view(region);
-                    view.answer = [&](BlockPos const& at) { return ghostDrawnAt(region, shown, resolved[i], {at.x, at.y, at.z}).block; };
-                    AABB buffer;
-                    AABB const& shape = block->getBlockType().getOutline(*block, view, pos, buffer);
-                    std::array<double, 3> low{shape.min.x - double(cell.x), shape.min.y - double(cell.y), shape.min.z - double(cell.z)};
-                    std::array<double, 3> high{shape.max.x - double(cell.x), shape.max.y - double(cell.y), shape.max.z - double(cell.z)};
-                    // Some outlines come relative to the cell.
-                    if (std::abs(low[0]) > 2 || std::abs(low[1]) > 2 || std::abs(low[2]) > 2)
-                        for (int k = 0; k < 3; ++k) { low[k] = (&shape.min.x)[k]; high[k] = (&shape.max.x)[k]; }
-                    bool usable = true;
-                    for (int k = 0; k < 3; ++k) usable = usable && high[k] - low[k] > 1e-3 && low[k] > -1e-3 && high[k] < 1 + 1e-3;
-                    if (!usable) { low = {0, 0, 0}; high = {1, 1, 1}; }
-                    auto [aimLow, aimHigh] = faces::aimBox(low, high, {cell.x, cell.y, cell.z}, modelPartner(*block), scale);
+                    auto [aimLow, aimHigh] = faces::aimBox(low, high, {cell.x, cell.y, cell.z}, partner, scale);
                     if (!faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, aimLow, aimHigh, reach)) break; // the next cell along the ray
                 }
+                auto const drawn = faces::aimBox(low, high, {cell.x, cell.y, cell.z}, partner, scale, 0.);
                 auto fileAt = [&](int dy) -> GhostAt::Neighbor {
                     auto near = overlap::fileCellAt(shown, Point{cell.x, cell.y + dy, cell.z});
                     if (!near) return {};
@@ -978,7 +984,7 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
                 };
                 GhostAt found{cell, block, shown.placement.name, shown.structure,
                               overlap::blockEntityAt(shown, dimension, cell), fileAt(-1), fileAt(1),
-                              shown.placement.placement};
+                              shown.placement.placement, drawn.first, drawn.second};
                 if (accept && !accept(found)) break; // the next cell along the ray
                 return found;
             }

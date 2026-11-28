@@ -60,6 +60,9 @@ struct GhostAt {
     Neighbor below, above;
     // How the placement turns the file: a head's rotation reads turned (L-303).
     Placement turn;
+    // Its outline's box as drawn (shrunk with the ghost size), in the world:
+    // the placement assist outlines the ghost it aims at there (L-265).
+    std::array<double, 3> low{}, high{};
 };
 // The first ghost along a ray. Real water and lava do not stop the search
 // (L-264); another real block does, unless

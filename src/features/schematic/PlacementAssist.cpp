@@ -33,6 +33,7 @@
 #include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/phys/HitResult.h"
 #include <chrono>
+#include <mutex>
 #include <cmath>
 #include <format>
 #include <optional>
@@ -65,6 +66,7 @@ struct Pending {
     bool swapped = false;
 };
 std::optional<Pending> pending;
+inline constexpr int swapWait = 4; // auth inputs after a swap or give
 // Placements read back a few auth inputs later (a held run makes several).
 struct Sent {
     BlockPos cell;
@@ -76,6 +78,9 @@ struct Sent {
     bool swapped = false;
 };
 std::vector<Sent> sent;
+// Two seconds: an inventory-only block was seen reverted after the half
+// second this used to wait, with no line logged (2026-11-28).
+inline constexpr int readBackAfter = 40;
 // The ghost and item the assist last could not place: a held button asks
 // again every tick, and the answer stays the same until one changes.
 struct Refused {
@@ -233,6 +238,93 @@ void toast(char const* key, std::string const& block) {
     try { ui::showMessageToast(ui::translated(key, block), 2.0); } catch (...) {}
 }
 
+// What a press now would do: the ghost it aims at and whether and how that
+// ghost can be placed. No side effects, so the aim shown before a press
+// (L-265) and the press itself decide alike.
+struct Plan {
+    enum Verdict { NoGhost, RealBlock, NoItem, SecondHalf, NoWay, Placeable } verdict = NoGhost;
+    std::optional<ghosts::GhostAt> ghost;
+    BlockPos cell;
+    Block const* want = nullptr;
+    ItemStack stack;
+    std::string item, name, wantName, difference;
+    short aux = 0;
+    States wantStates;
+    std::optional<Candidate> chosen;
+};
+Plan planFor(LocalPlayer& player, HitResult const& hit) {
+    Plan plan;
+    auto& region = player.getDimensionBlockSource();
+    // A neighbor that opens or toggles when used is clicked only while sneaking.
+    bool const sneaking = player.isSneaking();
+    auto clickableAround = [&](BlockPos const& cell) {
+        std::array<bool, 6> out{};
+        for (unsigned char dir = 0; dir < 6; ++dir) {
+            BlockPos const at = step(cell, dir);
+            out[dir] = !buildable(region, at) && (sneaking || !region.getBlock(at).getBlockType().isInteractiveBlock());
+        }
+        return out;
+    };
+    auto first = ghosts::aimedGhost(player, hit);
+    if (!first || !first->block) return plan;
+    // The first ghost on the ray that has a neighbor to be clicked from
+    // (maintainer 2026-11-28): ghosts around it no longer hide an inner one.
+    plan.ghost = ghosts::aimedGhost(player, hit, [&](ghosts::GhostAt const& g) {
+        BlockPos const at{g.cell.x, g.cell.y, g.cell.z};
+        if (!buildable(region, at)) return false;
+        for (bool c : clickableAround(at))
+            if (c) return true;
+        return false;
+    });
+    if (!plan.ghost) plan.ghost = first;
+    if (!plan.ghost->block) return plan;
+    Block const& want = *plan.ghost->block;
+    plan.want = &want;
+    plan.cell = BlockPos{plan.ghost->cell.x, plan.ghost->cell.y, plan.ghost->cell.z};
+    plan.verdict = Plan::RealBlock;
+    if (!buildable(region, plan.cell)) return plan;
+    plan.verdict = Plan::NoItem;
+    plan.stack = ghosts::ghostItem(want);
+    if (plan.stack.isNull() || !plan.stack.mBlock) return plan; // fire, water: nothing to place by hand
+    plan.item = plan.stack.getTypeName();
+    plan.aux = plan.stack.getAuxValue();
+    plan.name = ghosts::describe(want, plan.item).name;
+    // A second half (a door's top, a bed's head) comes with its first.
+    plan.verdict = Plan::SecondHalf;
+    if (ghosts::describe(want, plan.item).perBlock == 0) return plan;
+    // Asked of the ghost's own item before the hand changes: nothing
+    // switches where nothing places.
+    Block const* placed = plan.stack.mBlock;
+    std::array<bool, 6> const clickable = clickableAround(plan.cell);
+    Vec2 const rot = lastSentLook.value_or(player.getRotation());
+    plan.wantName = nameOf(want);
+    plan.wantStates = ghosts::blockStates(want);
+    for (Candidate const& c : candidates(clickable, rot.x, rot.y)) {
+        Vec3 const click{c.click[0], c.click[1], c.click[2]};
+        Block const* predicted = nullptr;
+        {
+            AsLook const look(player, c.look);
+            predicted = &placed->getBlockType().getPlacementBlock(player, plan.cell, c.face, click, plan.aux);
+        }
+        std::string const predictedName = nameOf(*predicted);
+        States const predictedStates = ghosts::blockStates(*predicted);
+        if (placesAs(predictedName, predictedStates, plan.wantName, plan.wantStates)) {
+            plan.chosen = c;
+            plan.verdict = Plan::Placeable;
+            return plan;
+        }
+        if (plan.difference.empty())
+            plan.difference = predictedName != plan.wantName ? predictedName : firstDifference(predictedStates, plan.wantStates);
+    }
+    std::string around;
+    for (unsigned char dir = 0; dir < 6; ++dir)
+        around += std::format("{}{}{}", dir ? ", " : "", nameOf(region.getBlock(step(plan.cell, dir))), clickable[dir] ? "" : " (no)");
+    if (plan.difference.empty()) plan.difference = "no neighbor to click among " + around;
+    else plan.difference += "; neighbors " + around;
+    plan.verdict = Plan::NoWay;
+    return plan;
+}
+
 // Whether the assist takes this press. Called from vanilla's build and use
 // calls; the placement itself is queued. Whatever the hand holds: a tool or
 // food is used by looking off the ghost (maintainer 2026-11-28, once ghosts
@@ -250,94 +342,38 @@ bool takePress(Player& actor) noexcept {
             pressTaken = now;
             return true; // one placement at a time; a held button tries again
         }
-        auto& region = player->getDimensionBlockSource();
-        // A neighbor that opens or toggles when used is clicked only while sneaking.
-        bool const sneaking = player->isSneaking();
-        auto clickableAround = [&](BlockPos const& cell) {
-            std::array<bool, 6> out{};
-            for (unsigned char dir = 0; dir < 6; ++dir) {
-                BlockPos const at = step(cell, dir);
-                out[dir] = !buildable(region, at) && (sneaking || !region.getBlock(at).getBlockType().isInteractiveBlock());
-            }
-            return out;
-        };
-        auto const& hitNow = client->getLatestHitResult();
-        auto first = ghosts::aimedGhost(*player, hitNow);
-        if (!first || !first->block) {
+        Plan const plan = planFor(*player, client->getLatestHitResult());
+        if (plan.verdict == Plan::NoGhost) {
             if (!held) return decline("no ghost aimed");
             pressTaken = now; // the press stays the assist's: no vanilla block where no ghost is aimed
             return true;
         }
         pressTaken = now;
-        // The first ghost on the ray that has a neighbor to be clicked from
-        // (maintainer 2026-11-28): ghosts around it no longer hide an inner one.
-        auto ghost = ghosts::aimedGhost(*player, hitNow, [&](ghosts::GhostAt const& g) {
-            BlockPos const at{g.cell.x, g.cell.y, g.cell.z};
-            if (!buildable(region, at)) return false;
-            for (bool c : clickableAround(at))
-                if (c) return true;
-            return false;
-        });
-        if (!ghost) ghost = first;
-        if (!ghost->block) return true;
-        Block const& want = *ghost->block;
-        BlockPos const cell{ghost->cell.x, ghost->cell.y, ghost->cell.z};
-        if (!buildable(region, cell)) return held || decline("real block in the ghost's cell"); // a real block there stays the player's
-        ItemStack stack = ghosts::ghostItem(want);
-        if (stack.isNull()) return decline("no item"); // fire, water: nothing to place by hand
-        std::string const item = stack.getTypeName();
-        short const aux = stack.getAuxValue();
-        if (refused && refused->cell == cell && (refused->item == item || refused->item.empty()) && now - refused->at < refusalKept)
+        if (!plan.want) return true;
+        if (plan.verdict == Plan::RealBlock) return held || decline("real block in the ghost's cell"); // a real block there stays the player's
+        if (plan.verdict == Plan::NoItem) return decline("no item");
+        BlockPos const cell = plan.cell;
+        if (refused && refused->cell == cell && (refused->item == plan.item || refused->item.empty()) && now - refused->at < refusalKept)
             return true;
-        auto const info = ghosts::describe(want, item);
         auto refuse = [&](char const* key) {
-            toast(key, info.name);
-            refused = Refused{cell, item, now};
+            toast(key, plan.name);
+            refused = Refused{cell, plan.item, now};
             return true;
         };
-        // A second half (a door's top, a bed's head) comes with its first.
-        if (info.perBlock == 0) return refuse("schematic.assist.noWay");
-        // Whether and how it can be placed, asked of the ghost's own item
-        // before the hand changes: nothing switches where nothing places.
-        Block const* placed = stack.mBlock;
-        if (!placed) return decline("no block for the item");
-        std::array<bool, 6> const clickable = clickableAround(cell);
-        Vec2 const rot = lastSentLook.value_or(player->getRotation());
-        std::string const wantName = nameOf(want);
-        States const wantStates = ghosts::blockStates(want);
-        std::string difference;
-        std::optional<Candidate> chosen;
-        for (Candidate const& c : candidates(clickable, rot.x, rot.y)) {
-            Vec3 const click{c.click[0], c.click[1], c.click[2]};
-            Block const* predicted = nullptr;
-            {
-                AsLook const look(*player, c.look);
-                predicted = &placed->getBlockType().getPlacementBlock(*player, cell, c.face, click, aux);
-            }
-            std::string const predictedName = nameOf(*predicted);
-            States const predictedStates = ghosts::blockStates(*predicted);
-            if (placesAs(predictedName, predictedStates, wantName, wantStates)) {
-                chosen = c;
-                break;
-            }
-            if (difference.empty()) difference = predictedName != wantName ? predictedName : firstDifference(predictedStates, wantStates);
-        }
-        if (!chosen) {
-            std::string around;
-            for (unsigned char dir = 0; dir < 6; ++dir)
-                around += std::format("{}{}{}", dir ? ", " : "", nameOf(region.getBlock(step(cell, dir))), clickable[dir] ? "" : " (no)");
-            if (difference.empty()) difference = "no neighbor to click among " + around;
-            else difference += "; neighbors " + around;
-            log(std::format("cannot place {} at {},{},{}: {}", wantName, cell.x, cell.y, cell.z, difference));
+        if (plan.verdict == Plan::SecondHalf) return refuse("schematic.assist.noWay");
+        if (plan.verdict == Plan::NoWay) {
+            log(std::format("cannot place {} at {},{},{}: {}", plan.wantName, cell.x, cell.y, cell.z, plan.difference));
             return refuse("schematic.assist.noWay");
         }
+        std::string const& item = plan.item;
+        short const aux = plan.aux;
         bool swapped = false;
         if (!holds(*player, item, aux)) {
             int const selectedWas = player->mInventory->mSelected;
             bool given = false;
             int slot = inventory::bringToHand(*player, item, aux);
             if (slot < 0 && player->isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick)) {
-                slot = inventory::giveToHand(*player, stack);
+                slot = inventory::giveToHand(*player, plan.stack);
                 given = slot >= 0;
             }
             if (slot < 0 || !holds(*player, item, aux)) return refuse("schematic.assist.notCarried");
@@ -345,19 +381,45 @@ bool takePress(Player& actor) noexcept {
             swapped = given || slot == selectedWas;
         }
         if (!player->getSelectedItem().mBlock) return decline("hand holds no block after the pick");
-        Candidate const& c = *chosen;
+        Candidate const& c = *plan.chosen;
         Vec3 const click{c.click[0], c.click[1], c.click[2]};
         refused.reset();
         pending = Pending{cell, step(cell, c.dir), c.face, click, c.look, item, aux, static_cast<int>(player->getDimensionId()),
-                          wantName, wantStates};
+                          plan.wantName, plan.wantStates};
         pending->swapped = swapped;
-        if (swapped) pending->waitAuths = 2;
+        if (swapped) pending->waitAuths = swapWait;
         if (!c.look.faked && !swapped) {
             pending->queued = true;
             ll::thread::ClientThreadExecutor::getDefault().execute([] { placeNow(); });
         }
         return true;
     } catch (...) { return decline("exception"); }
+}
+// The aim shown before a press, from the client thread each auth input and
+// read by the ghost pass (any thread).
+std::mutex aimLock;
+std::optional<Aim> aimNow;
+void updateAim() noexcept {
+    std::optional<Aim> next;
+    try {
+        auto client = ll::service::getClientInstance();
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        if (player && on() && !placing) {
+            Plan const plan = planFor(*player, client->getLatestHitResult());
+            if (plan.ghost && plan.want && plan.verdict != Plan::RealBlock) {
+                Aim aim;
+                aim.dimension = static_cast<int>(player->getDimensionId());
+                for (int k = 0; k < 3; ++k) { aim.low[k] = plan.ghost->low[k]; aim.high[k] = plan.ghost->high[k]; }
+                bool const inHand = plan.verdict == Plan::Placeable
+                    && (holds(*player, plan.item, plan.aux) || inventory::carried(*player, plan.item, plan.aux)
+                        || (player->isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick)));
+                aim.placeable = inHand;
+                next = aim;
+            }
+        }
+    } catch (...) { next.reset(); }
+    std::lock_guard lock(aimLock);
+    aimNow = next;
 }
 }
 // Sends the pending placement. Queued to the client thread after the auth
@@ -385,7 +447,7 @@ void placeNow() {
         Vec3 const eye = player->getEyePos();
         double const fx = at.from.x + .5 - eye.x, fy = at.from.y + .5 - eye.y, fz = at.from.z + .5 - eye.z;
         if (sent.size() < 16)
-            sent.push_back({at.cell, at.wantName, at.wantStates, at.dimension, 10, at.from, std::sqrt(fx * fx + fy * fy + fz * fz), at.swapped});
+            sent.push_back({at.cell, at.wantName, at.wantStates, at.dimension, readBackAfter, at.from, std::sqrt(fx * fx + fy * fy + fz * fz), at.swapped});
     } catch (...) {
         placing = false;
         pending.reset();
@@ -469,6 +531,7 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistSend, ll::memory::HookPriority::Normal, Loo
             if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket) {
                 readBack();
                 Vec2 const realLook = *static_cast<PlayerAuthInputPacket&>(packet).mRot;
+                ll::thread::ClientThreadExecutor::getDefault().execute([] { updateAim(); });
                 if (holding && !pending && std::chrono::steady_clock::now() - lastTry >= repeatGap)
                     ll::thread::ClientThreadExecutor::getDefault().execute([] { repeatPress(); });
                 // Every auth input until the placement leaves carries its look:
@@ -568,6 +631,10 @@ Hook hooks[] = {
     {PlacementAssistStopBuild::hook, PlacementAssistStopBuild::unhook},
 };
 void reset() {
+    {
+        std::lock_guard lock(aimLock);
+        aimNow.reset();
+    }
     holding = false;
     pressTaken.reset();
     pending.reset();
@@ -576,6 +643,12 @@ void reset() {
     lastSentLook.reset();
     placing = false;
 }
+}
+bool aimed(Aim& out) {
+    std::lock_guard lock(aimLock);
+    if (!aimNow) return false;
+    out = *aimNow;
+    return true;
 }
 void focusLost() {
     pending.reset();

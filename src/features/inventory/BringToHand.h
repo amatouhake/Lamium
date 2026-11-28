@@ -10,6 +10,9 @@ namespace lamium::inventory {
 // inventory move is in progress.
 inline constexpr int notCarried = -1;
 int bringToHand(LocalPlayer& player, std::string_view item, short aux);
+// Whether bringToHand would find it (held, in the hotbar or the inventory),
+// changing nothing.
+bool carried(LocalPlayer& player, std::string_view item, short aux);
 // Creative mode, `item` not carried (L-263): gives it from the
 // creative inventory into the hotbar slot creativeSlotFor chooses and
 // selects that slot. The slot it went to, or notSent / notListed.

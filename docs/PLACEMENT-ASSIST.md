@@ -53,7 +53,7 @@ Decided by the maintainer on 2026-11-28.
   nothing places), it is brought into the hand with the ghost pick's step (hotbar slot, else
   from the inventory; in creative given when the creative inventory lists
   it). When it is not carried, nothing is placed. A block that came by a
-  swap or a give is placed two auth inputs later: sent at once, the
+  swap or a give is placed four auth inputs later: sent at once, the
   placement read back as air and the slot went back (2026-11-28, cause to
   confirm by the readback log, which names the clicked neighbor, its
   distance and the swap).
@@ -66,6 +66,13 @@ Decided by the maintainer on 2026-11-28.
   nothing is placed (vanilla's held placement had put blocks the schematic
   does not have). A refusal is said again only after 1 s while the button stays held. Placements that need a faked
   look need no slower rate (the fifth trace showed none at 0.1 s).
+- **Before the press** (maintainer 2026-11-28, assist-preview A): while
+  the mode is on, the ghost a press would place gets a white outline one
+  step wider than the ghost outline setting (at least 1/64 block), red
+  where a press would not place it (no way, not carried, a second half);
+  why is left to the toast. Worked out each auth input by the same plan as
+  the press (`planFor`), drawn by `drawAssistAim`; nothing with the mode
+  off, the target card unchanged.
 - **Feedback.** When the assist places nothing, a short Lamium toast says
   why: "Not carried: <block>" or "Cannot be placed in this state from
   here: <block>". Placing leaves the HUD's counts to the Check as usual.
