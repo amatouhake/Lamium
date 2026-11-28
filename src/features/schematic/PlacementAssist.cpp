@@ -101,7 +101,8 @@ inline constexpr auto pressGap = std::chrono::milliseconds(400);
 // reach, so the assist repeats by itself (2026-11-28 trace).
 bool holding = false;
 std::chrono::steady_clock::time_point lastTry{};
-inline constexpr auto repeatGap = std::chrono::milliseconds(250);
+// Two ticks: 250 ms felt slow next to vanilla's held placement (2026-11-28).
+inline constexpr auto repeatGap = std::chrono::milliseconds(100);
 bool placing = false, installed = false;
 ll::event::ListenerPtr exitListener;
 

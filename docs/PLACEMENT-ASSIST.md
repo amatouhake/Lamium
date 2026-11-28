@@ -60,7 +60,7 @@ Decided by the maintainer on 2026-11-28.
 - **Holding use.** Holding the use button keeps placing on the ghost under
   the crosshair. The game repeats its build call only while its hit is in
   reach (2026-11-28 trace), so after a press it took the assist aims again
-  every 250 ms itself until `stopBuildBlock` (the release; the game also
+  every 100 ms itself until `stopBuildBlock` (the release; the game also
   calls it every tick while nothing is held). A press the assist took stays its
   own until the button is let go: where no ghost is aimed meanwhile,
   nothing is placed (vanilla's held placement had put blocks the schematic
