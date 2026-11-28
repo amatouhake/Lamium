@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 refusals without a hand switch, next to a fence (2026-11-28)
+
+`11837222` built with `assist_trace` (DLL
+`c1353dd82e404902abfb0b5b9ce485e82e207eedafcc2149dd63eaf28927d98d`),
+1.26.60.05 Dev, local world, the maintainer. Seen: an unplaceable ghost
+gives the toast with no hand switch; held, the toast comes about once a
+second; placeable ghosts, held presses and inventory swaps as before.
+Right against a fence (about 21:15:30 and 21:15:50) nothing was placed and
+no toast came; the trace shows presses looking steeply up (pitch -64), no
+block hit, "no ghost aimed". Likely cause: the ghost search stopped at any
+cell holding a real block, and against a fence post the eye shares the
+post's cell column. The second `useItem` per press in the trace is the
+local server's player (not the local player), which the hook skips.
+
 ## L-265 held repeat, swaps, fences, any item (2026-11-28)
 
 `06c82e27` built with `assist_trace` (DLL
