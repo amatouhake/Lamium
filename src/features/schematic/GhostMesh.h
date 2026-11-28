@@ -96,6 +96,9 @@ struct BuildCamera {
     // the player then shows as blocks instead of hollow space.
     std::array<std::optional<Point>, 2> cells;
     Vec3 eye{};
+    // The eye inside the ghost box of its cell (shrunk with the size): that
+    // ghost is not drawn (maintainer 2026-11-28).
+    bool inCore = false;
     // Vibrant Visuals (or ray tracing): mistake faces are plain quads drawn
     // with the overlay face material, which keeps its color there; the
     // blended mesh and the hologram material drew them colorless.

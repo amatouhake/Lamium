@@ -270,7 +270,13 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         };
         std::array<std::optional<Point>, 2> now{cellAt(camera.x, camera.y, camera.z), cellAt(camera.x, camera.y - 1.62, camera.z)};
         buildCamera.eye = camera;
-        if (now != buildCamera.cells) {
+        // Whether the eye is inside the ghost box of its cell (shrunk with
+        // the size): that ghost is left out, so crossing its box rebuilds too.
+        double const half = faces::ghostScale(Runtime::instance().snapshot()->schematic.ghostSize) / 2.;
+        bool const inCore = std::abs(camera.x - std::floor(camera.x) - .5) < half && std::abs(camera.y - std::floor(camera.y) - .5) < half
+            && std::abs(camera.z - std::floor(camera.z) - .5) < half;
+        if (now != buildCamera.cells || inCore != buildCamera.inCore) {
+            buildCamera.inCore = inCore;
             auto section = [](int v) { return static_cast<int>(std::floor(v / static_cast<double>(sectionSize))); };
             auto const at = Clock::now();
             auto mark = [&](std::optional<Point> const& c) {
@@ -974,6 +980,10 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
                     if (!faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, aimLow, aimHigh, reach)) break; // the next cell along the ray
                 }
                 auto const drawn = faces::aimBox(low, high, {cell.x, cell.y, cell.z}, partner, scale, 0.);
+                // The ghost the eye is in shows nothing and is not aimed at.
+                if (auto [cellLow, cellHigh] = faces::shrunkCell({cell.x, cell.y, cell.z}, partner, scale);
+                    faces::insideBox({x, y, z}, cellLow, cellHigh))
+                    break; // the next cell along the ray
                 auto fileAt = [&](int dy) -> GhostAt::Neighbor {
                     auto near = overlap::fileCellAt(shown, Point{cell.x, cell.y + dy, cell.z});
                     if (!near) return {};

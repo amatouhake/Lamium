@@ -68,6 +68,12 @@ inline std::pair<std::array<double, 3>, std::array<double, 3>> aimBox(std::array
     }
     return {low, high};
 }
+// Whether `p` lies inside the box [low, high]: the eye inside a ghost hides
+// that ghost and takes it out of the aim (maintainer 2026-11-28), as the
+// inside of a block shows nothing.
+inline bool insideBox(std::array<double, 3> p, std::array<double, 3> low, std::array<double, 3> high) {
+    return p[0] > low[0] && p[0] < high[0] && p[1] > low[1] && p[1] < high[1] && p[2] > low[2] && p[2] < high[2];
+}
 // Whether a ray from `from` along `along` meets the box [low, high] within
 // `reach` blocks: a shrunk ghost is aimed at only where it is drawn, so the
 // ray may pass between ghosts (L-424).

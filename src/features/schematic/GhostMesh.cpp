@@ -568,6 +568,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 // Within two cells of the camera a ghost may own the face the
                 // camera sees, so it is never skipped as enclosed.
                 if (shrink >= 1.f && !camera.near({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
+                // The ghost the eye is in is not drawn, as the inside of a
+                // block shows nothing (faces kept from where it was entered did).
+                if (camera.inCore && camera.cells[0] && *camera.cells[0] == Point{x, y, z}) continue;
                 airCell = &actual;
                 drawing = {x, y, z};
                 drawn = paletteIndex;

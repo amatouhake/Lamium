@@ -83,8 +83,8 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   ghost, its block actor and outline shrink about the cell's centre (a bed,
   one model, about its middle), every face kept, aimed at only through its
   outline's box, each side at least 1/4 (`aimBox`); marks beside it keep their faces;
-  liquids stay whole. Below 100% opacity faces blend (order unstable).
-  Defaults stay (L-186).
+  liquids stay whole. The ghost the eye is in is neither drawn nor aimed at
+  (2026-11-28). Below 100% opacity faces blend (unstable). Defaults stay.
 - Where neighbors' bars meet, only the strongest result's copy is drawn within
   a section, slightly wider to cover the other across sections: wrong block >
   unknown block > wrong state > ghost/missing.

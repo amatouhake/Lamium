@@ -1561,6 +1561,9 @@ void ghostLook() {
         check(near(carpetLo[1], .25) && near(carpetHi[1], .375),
               "a carpet keeps a hittable height at the bottom of its shrunk cell");
     }
+    using lamium::schematic::faces::insideBox;
+    check(insideBox({.5, .5, .5}, low, high) && !insideBox({.1, .5, .5}, low, high) && !insideBox({.2, .5, .5}, low, high),
+          "the eye is inside a shrunk ghost only within its box");
     check(rayMeetsBox({-1, -1, .5}, {1, 1, 0}, low, high, 5) && !rayMeetsBox({-1, -.3, .5}, {1, 1, 0}, low, high, 5),
           "a slanted ray through the gap beside a shrunk ghost passes it by");
     auto bar = barQuads({0, 0, 0}, {1, 0, 0}, .01f);
