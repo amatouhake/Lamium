@@ -26,7 +26,7 @@ namespace lamium::schematic::ghosts {
 // The first ghost the pick ray meets in front of what the game picked. On
 // the game's own ray (as the target card does, L-222), so the ghost picked
 // is the one the card names.
-std::optional<GhostAt> aimedGhost(LocalPlayer& player, HitResult const& hit) {
+std::optional<GhostAt> aimedGhost(LocalPlayer& player, HitResult const& hit, std::function<bool(GhostAt const&)> const& accept) {
     Vec3 from = hit.mStartPos, way = hit.mRayDir;
     double length = std::sqrt(double(way.x) * way.x + double(way.y) * way.y + double(way.z) * way.z);
     // L-285: when the view ray meets nothing the game picks the block under
@@ -58,7 +58,7 @@ std::optional<GhostAt> aimedGhost(LocalPlayer& player, HitResult const& hit) {
     // proves nothing about the blocks, so a real block still stops the search.
     bool throughBlocks = aimed || hit.mType == HitResultType::Tile;
     auto ghost = ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y,
-                            from.z, way.x / length, way.y / length, way.z / length, reach, throughBlocks);
+                            from.z, way.x / length, way.y / length, way.z / length, reach, throughBlocks, accept);
     return ghost;
 }
 // The ghost's block as one item, as the game's own pick would give it: the

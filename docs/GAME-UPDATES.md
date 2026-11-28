@@ -792,15 +792,16 @@ Hooks: `EffectsPassHook`
 Trace (ghost probe).
 
 ### `src/features/schematic/PlacementAssist.cpp`
-Hooks: `PlacementAssistSend`, `PlacementAssistGameModeBuild`, `PlacementAssistGameModeStartBuild`, `PlacementAssistSurvivalModeBuild`, `PlacementAssistSurvivalModeStartBuild`, `PlacementAssistUseItem`
+Hooks: `PlacementAssistSend`, `PlacementAssistGameModeBuild`, `PlacementAssistGameModeStartBuild`, `PlacementAssistSurvivalModeBuild`, `PlacementAssistSurvivalModeStartBuild`, `PlacementAssistUseItem`, `PlacementAssistStopBuild`
 Meaning (L-265, docs/PLACEMENT-ASSIST.md "Known"): the build hooks and
 `GameMode::useItem` (a press that meets no block, hit type `NoHit`) are where
-a use press on a ghost is taken. `BlockType::getPlacementBlock(player, cell,
+a use press on a ghost is taken; `GameMode::stopBuildBlock` ends the press.
+`BlockType::getPlacementBlock(player, cell,
 face, click, aux)` with the click relative to the clicked block says what a
 placement makes (matched the placed block in 189 placements); it is asked
 with the local player's `ActorRotationComponent::mRot` set to each look for
 the call. The placement is `GameMode::buildBlock(neighbor, face)` with
-`Level::getHitResult` set to the chosen face and click and the game mode's
+`Level::getHitResult` set to the chosen face and click (no liquid hit) and the game mode's
 `BuildContext` cleared of its build direction for the call (both put back).
 The local server places with the rotation of the auth input sent before the
 placement, so `PlacementAssistSend` writes the look into `mRot`,

@@ -28,8 +28,10 @@ Decided by the maintainer on 2026-11-28.
   With the mode off, or no ghost first on the ray, the use input is
   vanilla; so it is while the hand holds an item that is not a block (food,
   a bucket, a tool), which keeps its own use (maintainer 2026-11-28).
-- **Target.** The first ghost cell on the ray, not only the cell vanilla
-  would fill. The placement is sent as a click on a real neighbor's face
+- **Target.** The first ghost cell on the ray that has a real neighbor to
+  be clicked from, not only the cell vanilla would fill; ghosts in front of
+  it without one do not hide it (maintainer 2026-11-28, after the first
+  run: an inner ghost was out of reach). The placement is sent as a click on a real neighbor's face
   at a click position, chosen so that the placed block matches the ghost.
   A neighbor that opens or toggles when used (a chest, a door, a lever) is
   clicked only while the player sneaks.
@@ -47,7 +49,10 @@ Decided by the maintainer on 2026-11-28.
   from the inventory; in creative given when the creative inventory lists
   it). When it is not carried, nothing is placed.
 - **Holding use.** Holding the use button keeps placing on the ghost under
-  the crosshair at vanilla's repeat rate. Placements that need a faked
+  the crosshair at vanilla's repeat rate. A press the assist took stays its
+  own until the button is let go: where no ghost is aimed meanwhile,
+  nothing is placed (vanilla's held placement had put blocks the schematic
+  does not have). A refusal is not repeated while the button stays held. Placements that need a faked
   look need no slower rate (the fifth trace showed none at 0.1 s).
 - **Feedback.** When the assist places nothing, a short Lamium toast says
   why: "Not carried: <block>" or "Cannot be placed in this state from
@@ -81,12 +86,16 @@ Decided by the maintainer on 2026-11-28.
   creative `giveToHand`), then asks the held block's
   `getPlacementBlock` for each candidate (local rotation set for faked
   looks; the player's own look is the one last sent) and keeps the first
-  that `placesAs` the ghost. A refusal is kept for a second for that cell
-  and item, so a held button does not ask again every tick, and the log
-  names the first state that differed. `placeNow` runs
+  that `placesAs` the ghost. A refusal (and a placement read back as not
+  the ghost's) is kept for that cell until the button is let go
+  (`PlacementAssistStopBuild`) or for a second, so a held button does not
+  ask again every tick; the log names the first state that differed, or
+  the six neighbors when none can be clicked. `ghostAlong` takes an
+  `accept` test, so the search walks past ghosts with no clickable
+  neighbor. `placeNow` runs
   queued: `buildBlock` on the chosen neighbor and face with the hit result
   and build context set (`AsClicked`: no build direction, the initial click
-  at the chosen point) and the rotation set (`AsLook`).
+  at the chosen point, no liquid hit) and the rotation set (`AsLook`).
   `PlacementAssistSend` fakes every auth input until the Place
   transaction leaves (at most three) and corrects a differing click; each
   placed block is compared with the ghost ten auth inputs later and logged

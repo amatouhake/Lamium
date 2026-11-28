@@ -64,9 +64,11 @@ struct GhostAt {
 // (L-264); another real block does, unless
 // `throughBlocks`: the caller knows nothing solid lies within `reach` (the
 // game's own pick) and a block cell met there is only the walk grazing an
-// edge (L-224).
+// edge (L-224). With `accept`, a ghost it turns down does not end the walk
+// (the placement assist looks for the first ghost it can place, L-265).
 std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, double y, double z, double dx, double dy,
-                                  double dz, double reach, bool throughBlocks = false);
+                                  double dz, double reach, bool throughBlocks = false,
+                                  std::function<bool(GhostAt const&)> const& accept = {});
 // Whether a block hides the neighbor faces it touches: an opaque full block
 // that the in-world tessellation draws (a honey block draws nothing there).
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);

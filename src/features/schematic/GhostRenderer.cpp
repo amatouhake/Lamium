@@ -911,7 +911,7 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 
 std::optional<Mismatch> mismatchAt(BlockSource& region, Point world) { return checkedCell(region, world, resolved); }
 std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, double y, double z, double dx, double dy,
-                                  double dz, double reach, bool throughBlocks) {
+                                  double dz, double reach, bool throughBlocks, std::function<bool(GhostAt const&)> const& accept) {
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return std::nullopt;
     auto snapshot = session::snapshot();
@@ -939,9 +939,11 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
                         ? resolved[i].blocks[static_cast<size_t>(*near)] : nullptr;
                     return {found != nullptr, found};
                 };
-                return GhostAt{cell, block, shown.placement.name, shown.structure,
-                               overlap::blockEntityAt(shown, dimension, cell), fileAt(-1), fileAt(1),
-                               shown.placement.placement};
+                GhostAt found{cell, block, shown.placement.name, shown.structure,
+                              overlap::blockEntityAt(shown, dimension, cell), fileAt(-1), fileAt(1),
+                              shown.placement.placement};
+                if (accept && !accept(found)) break; // the next cell along the ray
+                return found;
             }
         }
     }

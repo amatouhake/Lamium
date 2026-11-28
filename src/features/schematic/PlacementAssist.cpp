@@ -80,6 +80,12 @@ inline constexpr auto refusalKept = std::chrono::seconds(1);
 // The look the server last got: it places with the auth input sent before the
 // placement, not the client's newer rotation (L-265 first trace).
 std::optional<Vec2> lastSentLook;
+// A press the assist took: while the button stays held, vanilla's repeated
+// build calls place nothing of their own (a held run put blocks the
+// schematic does not have where no ghost was aimed). Ends with the press, or
+// when no build call came for a moment (a press in the air ends unseen).
+std::optional<std::chrono::steady_clock::time_point> pressTaken;
+inline constexpr auto pressGap = std::chrono::milliseconds(400);
 bool placing = false, installed = false;
 ll::event::ListenerPtr exitListener;
 
@@ -146,6 +152,7 @@ public:
         hit.mPos = Vec3{static_cast<float>(at.from.x) + at.click.x, static_cast<float>(at.from.y) + at.click.y,
                         static_cast<float>(at.from.z) + at.click.z};
         hit.mIndirectHit = false;
+        hit.mIsHitLiquid = false;
         mode.mBuildContext->mHasBuildDirection = false;
         mode.mBuildContext->mHasLastBuiltPosition = false;
         mode.mBuildContext->mInitialClickPos = hit.mPos;
@@ -171,19 +178,51 @@ bool takePress(Player& actor) noexcept {
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (placing || !player || static_cast<Player*>(player) != &actor || !on()) return false;
         if (auto const& hand = player->getSelectedItem(); !hand.isNull() && !hand.mBlock) return false;
-        if (pending) return true; // one placement at a time; a held button tries again
-        auto ghost = ghosts::aimedGhost(*player, client->getLatestHitResult());
-        if (!ghost || !ghost->block) return false;
+        auto const now = std::chrono::steady_clock::now();
+        bool const held = pressTaken && now - *pressTaken < pressGap;
+        if (pending) {
+            pressTaken = now;
+            return true; // one placement at a time; a held button tries again
+        }
+        auto& region = player->getDimensionBlockSource();
+        // A neighbor that opens or toggles when used is clicked only while sneaking.
+        bool const sneaking = player->isSneaking();
+        auto clickableAround = [&](BlockPos const& cell) {
+            std::array<bool, 6> out{};
+            for (unsigned char dir = 0; dir < 6; ++dir) {
+                BlockPos const at = step(cell, dir);
+                out[dir] = !buildable(region, at) && (sneaking || !region.getBlock(at).getBlockType().isInteractiveBlock());
+            }
+            return out;
+        };
+        auto const& hitNow = client->getLatestHitResult();
+        auto first = ghosts::aimedGhost(*player, hitNow);
+        if (!first || !first->block) {
+            if (!held) return false;
+            pressTaken = now; // the press stays the assist's: no vanilla block where no ghost is aimed
+            return true;
+        }
+        pressTaken = now;
+        // The first ghost on the ray that has a neighbor to be clicked from
+        // (maintainer 2026-11-28): ghosts around it no longer hide an inner one.
+        auto ghost = ghosts::aimedGhost(*player, hitNow, [&](ghosts::GhostAt const& g) {
+            BlockPos const at{g.cell.x, g.cell.y, g.cell.z};
+            if (!buildable(region, at)) return false;
+            for (bool c : clickableAround(at))
+                if (c) return true;
+            return false;
+        });
+        if (!ghost) ghost = first;
+        if (!ghost->block) return true;
         Block const& want = *ghost->block;
         BlockPos const cell{ghost->cell.x, ghost->cell.y, ghost->cell.z};
-        auto& region = player->getDimensionBlockSource();
-        if (!buildable(region, cell)) return false; // a real block there stays the player's
+        if (!buildable(region, cell)) return held; // a real block there stays the player's
         ItemStack stack = ghosts::ghostItem(want);
         if (stack.isNull()) return false; // fire, water: nothing to place by hand
         std::string const item = stack.getTypeName();
         short const aux = stack.getAuxValue();
-        auto const now = std::chrono::steady_clock::now();
-        if (refused && refused->cell == cell && refused->item == item && now - refused->at < refusalKept) return true;
+        if (refused && refused->cell == cell && (refused->item == item || refused->item.empty()) && now - refused->at < refusalKept)
+            return true;
         auto const info = ghosts::describe(want, item);
         auto refuse = [&](char const* key) {
             toast(key, info.name);
@@ -200,13 +239,7 @@ bool takePress(Player& actor) noexcept {
         }
         Block const* placed = player->getSelectedItem().mBlock;
         if (!placed) return false;
-        // A neighbor that opens or toggles when used is clicked only while sneaking.
-        bool const sneaking = player->isSneaking();
-        std::array<bool, 6> clickable{};
-        for (unsigned char dir = 0; dir < 6; ++dir) {
-            BlockPos const at = step(cell, dir);
-            clickable[dir] = !buildable(region, at) && (sneaking || !region.getBlock(at).getBlockType().isInteractiveBlock());
-        }
+        std::array<bool, 6> const clickable = clickableAround(cell);
         Vec2 const rot = lastSentLook.value_or(player->getRotation());
         std::string const wantName = nameOf(want);
         States const wantStates = ghosts::blockStates(want);
@@ -234,8 +267,12 @@ bool takePress(Player& actor) noexcept {
             }
             return true;
         }
-        log(std::format("cannot place {} at {},{},{}: {}", wantName, cell.x, cell.y, cell.z,
-                        difference.empty() ? std::string("no neighbor to click") : difference));
+        if (difference.empty()) {
+            std::string around;
+            for (unsigned char dir = 0; dir < 6; ++dir) around += (dir ? ", " : "") + nameOf(region.getBlock(step(cell, dir)));
+            difference = "no neighbor to click among " + around;
+        }
+        log(std::format("cannot place {} at {},{},{}: {}", wantName, cell.x, cell.y, cell.z, difference));
         return refuse("schematic.assist.noWay");
     } catch (...) { return false; }
 }
@@ -314,9 +351,12 @@ void readBack() {
                 Block const& now = player->getDimensionBlockSource().getBlock(it->cell);
                 std::string const name = nameOf(now);
                 States const states = ghosts::blockStates(now);
-                if (!placesAs(name, states, it->wantName, it->wantStates))
+                if (!placesAs(name, states, it->wantName, it->wantStates)) {
+                    // Not asked again while the button stays held.
+                    refused = Refused{it->cell, "", std::chrono::steady_clock::now()};
                     log(std::format("{},{},{} holds {} after the placement, not the ghost's {} ({})", it->cell.x, it->cell.y, it->cell.z,
                                     name, it->wantName, name == it->wantName ? firstDifference(states, it->wantStates) : "other block"));
+                }
             }
             it = sent.erase(it);
         }
@@ -389,6 +429,17 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistUseItem, ll::memory::HookPriority::Highest,
     } catch (...) {}
     return origin(item, hand);
 }
+// The button let go: the press and what it refused end with it.
+LL_TYPE_INSTANCE_HOOK(PlacementAssistStopBuild, ll::memory::HookPriority::Highest, GameMode, &GameMode::$stopBuildBlock, void) {
+    try {
+        auto* player = localPlayer();
+        if (player && static_cast<Player*>(player) == &mPlayer) {
+            pressTaken.reset();
+            refused.reset();
+        }
+    } catch (...) {}
+    origin();
+}
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {
     {PlacementAssistSend::hook, PlacementAssistSend::unhook},
@@ -397,8 +448,10 @@ Hook hooks[] = {
     {PlacementAssistSurvivalModeBuild::hook, PlacementAssistSurvivalModeBuild::unhook},
     {PlacementAssistSurvivalModeStartBuild::hook, PlacementAssistSurvivalModeStartBuild::unhook},
     {PlacementAssistUseItem::hook, PlacementAssistUseItem::unhook},
+    {PlacementAssistStopBuild::hook, PlacementAssistStopBuild::unhook},
 };
 void reset() {
+    pressTaken.reset();
     pending.reset();
     sent.clear();
     refused.reset();
