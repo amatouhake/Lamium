@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 first ghost only, body cells, doors (2026-11-28)
+
+`228eaedb` (DLL
+`c4f9f47e961cbb461faf3e3c6cdca7f023e5099a9393712efbf1faa811866ea1`),
+1.26.60.05 Dev, local world, the maintainer. Seen: the outline stays on
+the first ghost on the ray, red when that one cannot be placed; a ghost
+the body overlaps is red and refused with a toast; a door's lower half is
+white and placed, its upper half red. Found: an inventory-only block
+still sometimes reverts (also right after start; no log line). With the
+eye inside a ghost, that ghost keeps only the faces on the side it was
+entered from; the maintainer doubts the ghost holding the eye should be
+the target, as its faces mostly do not show.
+
 ## L-265 outline before the press (2026-11-28)
 
 `52fba212` (DLL
