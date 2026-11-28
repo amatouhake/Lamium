@@ -30,7 +30,6 @@
 #include "app/CapabilityHooks.h"
 #include <format>
 #include <glm/gtc/matrix_transform.hpp>
-#include <optional>
 #include <set>
 #include <atomic>
 
@@ -140,17 +139,18 @@ void renderBlockActor(BaseActorRenderContext& context, SchematicRegion& view, Bl
     // Its renderer lights it from this source: full brightness (GhostActorShader).
     ghostActorSource.store(&view, std::memory_order_relaxed);
     struct Restore { ~Restore() { ghostActorSource.store(nullptr, std::memory_order_relaxed); } } restore;
+    auto draw = [&] { dispatcher.render(context, view, *component, block, renderPos, worldPos, false, none, nullptr, 0, std::nullopt); };
+    if (scale >= 1.f) return draw();
     // Renderers place the actor on the world matrix; scaling it about the
-    // cell's centre shrinks what they draw (L-424).
-    std::optional<MatrixStack::MatrixStackRef> shrunk;
-    if (scale < 1.f) {
-        glm::vec3 const center{renderPos.x + .5f, renderPos.y + .5f, renderPos.z + .5f};
-        shrunk.emplace(context.mScreenContext.camera.worldMatrixStack->push(false));
-        shrunk->stack->_isDirty = true;
-        shrunk->mat->_m = shrunk->mat->_m.get() * glm::translate(glm::mat4{1.f}, center) * glm::scale(glm::mat4{1.f}, glm::vec3{scale})
-                          * glm::translate(glm::mat4{1.f}, -center);
-    }
-    dispatcher.render(context, view, *component, block, renderPos, worldPos, false, none, nullptr, 0, std::nullopt);
+    // cell's centre shrinks what they draw (L-424). The pushed matrix is
+    // popped when `shrunk` ends: it must never be copied, or each copy pops
+    // once more and the stack under it breaks (crash, 2026-11-28).
+    glm::vec3 const center{renderPos.x + .5f, renderPos.y + .5f, renderPos.z + .5f};
+    auto shrunk = context.mScreenContext.camera.worldMatrixStack->push(false);
+    shrunk.stack->_isDirty = true;
+    shrunk.mat->_m = shrunk.mat->_m.get() * glm::translate(glm::mat4{1.f}, center) * glm::scale(glm::mat4{1.f}, glm::vec3{scale})
+                     * glm::translate(glm::mat4{1.f}, -center);
+    draw();
 }
 bool startActorLight() {
     bool shader = capabilities::attachHook<GhostActorShader>(shaderInstalled,{capabilities::Id::SchematicActorLight});

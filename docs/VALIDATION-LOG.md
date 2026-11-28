@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-424 ghost look settings: crash (2026-11-28)
+
+`dc52246f` (DLL
+`972d0db8d640d3fc6201bf290b37512a3d618a9fc58f6fe49fe6fb1b5d3e6499`),
+1.26.60.05 Dev, local world, the maintainer. Changing the tint worked;
+setting the size below 100% crashed the game, and so did entering a world
+afterwards with size 80% saved. Both crash traces end in the game under
+`drawPlacementFrames` (GhostMarks.cpp), right after the ghost block actors
+were drawn: the shrunk actors' world matrix was pushed into a
+`std::optional`, whose copy popped the stack twice. Nothing else was
+checked.
+
 ## L-421 shrunk ghost trial (2026-11-28)
 
 `65c3a603` built with `ghost_look_trial` (DLL
