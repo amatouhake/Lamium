@@ -791,6 +791,11 @@ overloads (the position overload gained `BlockLightingFlags` in 26.60). Used onl
 Hooks: `EffectsPassHook`
 Trace (ghost probe).
 
+### `src/features/schematic/PlacementAssistTrace.cpp`
+Hooks: `AssistTraceSlot`, `AssistTraceContent`, `AssistTraceBlock`
+Trace (`assist_trace`): the server's slot, container and block updates
+after the assist's placements and swaps.
+
 ### `src/features/schematic/PlacementAssist.cpp`
 Hooks: `PlacementAssistSend`, `PlacementAssistGameModeBuild`, `PlacementAssistGameModeStartBuild`, `PlacementAssistSurvivalModeBuild`, `PlacementAssistSurvivalModeStartBuild`, `PlacementAssistUseItem`, `PlacementAssistStopBuild`
 Meaning (L-265, docs/PLACEMENT-ASSIST.md "Known"): the build hooks and

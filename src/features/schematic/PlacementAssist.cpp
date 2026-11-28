@@ -2,6 +2,7 @@
 #include "features/schematic/AssistPlan.h"
 #include "features/schematic/GhostCommon.h"
 #include "features/schematic/GhostPick.h"
+#include "features/schematic/PlacementAssistTrace.h"
 #include "features/inventory/BringToHand.h"
 #include "app/Capabilities.h"
 #include "app/Runtime.h"
@@ -377,6 +378,9 @@ bool takePress(Player& actor) noexcept {
             if (slot < 0 || !holds(*player, item, aux)) return refuse("schematic.assist.notCarried");
             // A swap into the selected slot or a creative give went as a transaction.
             swapped = given || slot == selectedWas;
+#ifdef LAMIUM_ASSIST_TRACE
+            trace::line(std::format("brought {} into slot {} ({})", item, slot, given ? "give" : swapped ? "swap" : "select").c_str());
+#endif
         }
         Candidate const& c = *plan.chosen;
         Vec3 const click{c.click[0], c.click[1], c.click[2]};
@@ -525,6 +529,9 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistSend, ll::memory::HookPriority::Normal, Loo
     try {
         auto client = ll::service::getClientInstance();
         if (client && packet.mSenderSubId == client->getClientSubId()) {
+#ifdef LAMIUM_ASSIST_TRACE
+            trace::sent(packet);
+#endif
             if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket) {
                 readBack();
                 Vec2 const realLook = *static_cast<PlayerAuthInputPacket&>(packet).mRot;
@@ -661,6 +668,9 @@ void start() {
                 hook.installed = true;
             }
         installed = true;
+#ifdef LAMIUM_ASSIST_TRACE
+        trace::start();
+#endif
         exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { reset(); });
         capabilities::ready(capabilities::Id::PlacementAssist);
     } catch (...) {
@@ -674,6 +684,9 @@ void stop() {
     if (exitListener) ll::event::EventBus::getInstance().removeListener(exitListener);
     exitListener.reset();
     reset();
+#ifdef LAMIUM_ASSIST_TRACE
+    trace::stop();
+#endif
     for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it)
         if (it->installed && it->remove(true)) it->installed = false;
     installed = false;
