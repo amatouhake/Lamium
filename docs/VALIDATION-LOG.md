@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-424 ghost look settings (2026-11-28)
+
+`95133e32` (DLL
+`209f96affae3dbbe0153e66a1c76ccee9bfc53f5d252c74fa0df4a299761e3ce`),
+1.26.60.05 Dev, local world, the maintainer. Seen: no crash entering a
+world with size 80% saved or switching 60/80/100%; ghosts shrink as in the
+trial, chests and signs too; at 60% the ray passes between ghosts to inner
+ones and real blocks (target card); opacity blends; every outline width
+differs; settings screen and schematic look as before.
+Found: a shrunk block actor's light-blue outline stays whole; a bed shrinks
+as one model about its head cell. Mistake marks (red, yellow) leave out
+faces next to ghosts, which shows once ghosts are shrunk. Below 100%
+opacity, faces between opaque ghosts and a fence's faces against the logs
+above and below are drawn only up close; faces hide the inside while
+outlines show it, and there is no glass-like rule that hides the far face
+of each axis. With the size, the placement assist is liked: aim at a ghost
+to place it, aim beside it (a block's edge) to place freely, for example a
+temporary block to get a log's facing. Placing worked with the clicked face
+out of sight (two blocks stacked beside the player, ghost on top). Placement
+assist: at an angle where nothing is outlined (no block aimed, not clearly
+the sky) nothing is placed and no toast says why.
+Not seen: an old settings file's outline mapping (unit test only).
+
 ## L-424 ghost look settings: crash (2026-11-28)
 
 `dc52246f` (DLL

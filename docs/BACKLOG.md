@@ -194,7 +194,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Ready): Paused until L-421's aiming by the drawn boxes is settled (2026-11-28); off by default
 - [L-421](backlog/L-421.md) Schematic ghost look and aiming by what is drawn (Design): Look settings built as L-424 (2026-11-28); saved looks and which ghosts are drawn are next
-- [L-424](backlog/L-424.md) Schematic ghost look settings: size, opacity, outline width (Ready): Built; the first build crashed below 100% size, fixed (2026-11-28); in-game check next
+- [L-424](backlog/L-424.md) Schematic ghost look settings: size, opacity, outline width (Ready): Built and checked in game (`95133e32`, 2026-11-28); follow-ups open
 - [L-422](backlog/L-422.md) Schematic materials before placing, with their raw materials (Design): Open, not started; independent of the other schematic items (maintainer 2026-11-28)
 - [L-423](backlog/L-423.md) Schematic in-world 3D interaction: touch the placement to change it (Design / Research): Open; idea agreed as its own item (maintainer 2026-11-28)
 - [L-414](backlog/L-414.md) Redstone power level overlay (Research): Open; first step is finding why the resource pack way stopped working
