@@ -5,7 +5,13 @@
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/network/ClientNetworkHandler.h"
 #include "mc/client/network/LegacyClientNetworkHandler.h"
+#include "mc/network/LoopbackPacketSender.h"
+#include "mc/network/packet/ItemStackResponseContainerInfo.h"
+#include "mc/network/packet/ItemStackResponseInfo.h"
+#include "mc/network/packet/ItemStackResponseSlotInfo.h"
+#include "mc/network/packet/ItemStackResponsePacket.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/network/MinecraftPacketIds.h"
 #include "mc/network/packet/InventoryContentPacket.h"
@@ -88,8 +94,27 @@ LL_TYPE_INSTANCE_HOOK(AssistTraceBlock, ll::memory::HookPriority::Low, LegacyCli
                         now.getBlockType().mNameInfo->mFullName->getString()));
     } catch (...) {}
 }
+void sentAs(char const* path, Packet& packet) noexcept;
+// Packets sent by sendToServer, not send: the hand swap may go this way.
+LL_TYPE_INSTANCE_HOOK(AssistTraceToServer, ll::memory::HookPriority::Low, LoopbackPacketSender, &LoopbackPacketSender::$sendToServer,
+    void, Packet& packet) {
+    sentAs("toServer", packet);
+    origin(packet);
 }
-void sent(Packet& packet) noexcept {
+// The server's answers to item stack requests (legacy ones included).
+LL_TYPE_INSTANCE_HOOK(AssistTraceResponse, ll::memory::HookPriority::Low, ClientNetworkHandler, &ClientNetworkHandler::$handle,
+    void, NetworkIdentifier const& source, ItemStackResponsePacket const& packet) {
+    origin(source, packet);
+    try {
+        std::string results;
+        for (auto const& r : *packet.mResponses) results += std::format("{} ", static_cast<int>(r.mResult));
+        log(std::format("stack responses from server: {} (results {})", packet.mResponses->size(), results));
+    } catch (...) {}
+}
+}
+void sent(Packet& packet) noexcept { sentAs("send", packet); }
+namespace {
+void sentAs(char const* path, Packet& packet) noexcept {
     try {
         if (packet.getId() != MinecraftPacketIds::InventoryTransaction) return;
         auto& transaction = static_cast<InventoryTransactionPacket&>(packet);
@@ -100,22 +125,27 @@ void sent(Packet& packet) noexcept {
         if (complex->mType == ComplexInventoryTransaction::Type::ItemUseTransaction) {
             auto& use = static_cast<ItemUseInventoryTransaction&>(*complex);
             BlockPos const pos = *use.mPos;
-            log(std::format("sent item use: action {} at {},{},{} face {} slot {} (selected {} holds {})",
+            log(std::format("{} item use: action {} at {},{},{} face {} slot {} (selected {} holds {})", path,
                             static_cast<int>(use.mActionType), pos.x, pos.y, pos.z, static_cast<int>(use.mFace), static_cast<int>(use.mSlot), selected,
                             player ? slotText(*player, selected) : "?"));
             return;
         }
-        log(std::format("sent transaction type {} (selected {} holds {})", static_cast<int>(complex->mType), selected,
+        log(std::format("{} transaction type {} (selected {} holds {})", path, static_cast<int>(complex->mType), selected,
                         player ? slotText(*player, selected) : "?"));
     } catch (...) {}
+}
 }
 void line(char const* text) noexcept { log(text); }
 void start() {
     AssistTraceSlot::hook();
     AssistTraceContent::hook();
     AssistTraceBlock::hook();
+    AssistTraceToServer::hook();
+    AssistTraceResponse::hook();
 }
 void stop() {
+    AssistTraceResponse::unhook();
+    AssistTraceToServer::unhook();
     AssistTraceBlock::unhook();
     AssistTraceContent::unhook();
     AssistTraceSlot::unhook();

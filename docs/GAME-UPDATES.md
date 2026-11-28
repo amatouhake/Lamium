@@ -792,7 +792,7 @@ Hooks: `EffectsPassHook`
 Trace (ghost probe).
 
 ### `src/features/schematic/PlacementAssistTrace.cpp`
-Hooks: `AssistTraceSlot`, `AssistTraceContent`, `AssistTraceBlock`
+Hooks: `AssistTraceSlot`, `AssistTraceContent`, `AssistTraceBlock`, `AssistTraceToServer`, `AssistTraceResponse`
 Trace (`assist_trace`): the server's slot, container and block updates
 after the assist's placements and swaps.
 
