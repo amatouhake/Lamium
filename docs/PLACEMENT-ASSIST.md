@@ -29,6 +29,9 @@ Decided by the maintainer on 2026-11-28.
   vanilla. Whatever the hand holds, a tool or food too: it is used by
   looking off the ghost (maintainer 2026-11-28, replacing the block-only
   rule once ghosts could be shrunk).
+- **Real blocks on the ray.** A real block stops the search only where
+  the ray meets its outline: right against a fence post the eye shares the
+  post's cell column (2026-11-28).
 - **Target.** The first ghost cell on the ray that has a real neighbor to
   be clicked from, not only the cell vanilla would fill; ghosts in front of
   it without one do not hide it (maintainer 2026-11-28, after the first

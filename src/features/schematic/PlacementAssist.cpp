@@ -151,9 +151,10 @@ void tracePress(char const* call, bool taken) noexcept {
         auto ghost = ghosts::aimedGhost(*player, hit);
         Vec2 const rot = player->getRotation();
         Runtime::instance().self().getLogger().info(
-            "Assist trace: {} taken={} why={} on={} hit={} indirect={} block={},{},{} face={} dist={:.2f} liquid={} pitch={:.1f} reach={:.1f} ghost={}",
+            "Assist trace: {} taken={} why={} on={} hit={} indirect={} block={},{},{} face={} dist={:.2f} liquid={} pitch={:.1f} reach={:.1f} eye={:.2f},{:.2f},{:.2f} ghost={}",
             call, taken, taken ? "" : declined, on(), static_cast<int>(hit.mType), hit.mIndirectHit, hit.mBlock.x, hit.mBlock.y, hit.mBlock.z,
             static_cast<int>(hit.mFacing), std::sqrt(ex * ex + ey * ey + ez * ez), hit.mIsHitLiquid, rot.x, player->getPickRange(),
+            player->getEyePos().x, player->getEyePos().y, player->getEyePos().z,
             ghost ? std::format("{},{},{}", ghost->cell.x, ghost->cell.y, ghost->cell.z) : std::string{"none"});
     } catch (...) {}
 }

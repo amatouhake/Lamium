@@ -931,6 +931,17 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
         // not: the game's ray passes through them too (L-264).
         if (Block const& real = region.getBlock(pos); !real.isAir() && !liquidKind(real)) {
             if (throughBlocks) continue;
+            // Only the block's own shape stops the search: right against a
+            // fence post the eye shares its cell column and the ray passed
+            // beside the post, yet found no ghost (2026-11-28 run).
+            AABB buffer;
+            AABB const& shape = real.getBlockType().getOutline(real, region, pos, buffer);
+            std::array<double, 3> low{shape.min.x, shape.min.y, shape.min.z}, high{shape.max.x, shape.max.y, shape.max.z};
+            std::array<double, 3> const corner{double(cell.x), double(cell.y), double(cell.z)};
+            if (std::abs(low[0] - cell.x) > 2 || std::abs(low[1] - cell.y) > 2 || std::abs(low[2] - cell.z) > 2)
+                for (int k = 0; k < 3; ++k) { low[k] += corner[k]; high[k] += corner[k]; }
+            bool const shaped = high[0] - low[0] > 1e-3 && high[1] - low[1] > 1e-3 && high[2] - low[2] > 1e-3;
+            if (shaped && !faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, low, high, reach)) continue;
             return std::nullopt;
         }
         for (size_t i = 0; i < snapshot.placements.size() && i < resolved.size(); ++i) {
