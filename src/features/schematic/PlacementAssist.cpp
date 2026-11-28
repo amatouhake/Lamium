@@ -68,6 +68,13 @@ struct Pending {
 };
 std::optional<Pending> pending;
 inline constexpr int swapWait = 4; // auth inputs after a swap or give
+// After a press the assist took through `useItem`, the game still sends an
+// item use in the air; the server answered it by resending the inventory,
+// which undid a swap made a moment before (2026-11-28 trace). It is not sent.
+bool dropAirUse = false;
+// Normal inventory transactions sent: a swap that sent none was only on the
+// client, and the server put the old item back (2026-11-28 trace).
+int transactionsSent = 0;
 // Placements read back a few auth inputs later (a held run makes several).
 struct Sent {
     BlockPos cell;
@@ -368,7 +375,7 @@ bool takePress(Player& actor) noexcept {
         short const aux = plan.aux;
         bool swapped = false;
         if (!holds(*player, item, aux)) {
-            int const selectedWas = player->mInventory->mSelected;
+            int const selectedWas = player->mInventory->mSelected, sentBefore = transactionsSent;
             bool given = false;
             int slot = inventory::bringToHand(*player, item, aux);
             if (slot < 0 && player->isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick)) {
@@ -378,6 +385,10 @@ bool takePress(Player& actor) noexcept {
             if (slot < 0 || !holds(*player, item, aux)) return refuse("schematic.assist.notCarried");
             // A swap into the selected slot or a creative give went as a transaction.
             swapped = given || slot == selectedWas;
+            if (swapped && transactionsSent == sentBefore) {
+                log(std::format("{} came into slot {} without a transaction sent; not placed", item, slot));
+                return refuse("schematic.assist.notBrought");
+            }
 #ifdef LAMIUM_ASSIST_TRACE
             trace::line(std::format("brought {} into slot {} ({})", item, slot, given ? "give" : swapped ? "swap" : "select").c_str());
 #endif
@@ -532,7 +543,20 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistSend, ll::memory::HookPriority::Normal, Loo
 #ifdef LAMIUM_ASSIST_TRACE
             trace::sent(packet);
 #endif
+            if (packet.getId() == MinecraftPacketIds::InventoryTransaction) {
+                auto* complex = static_cast<InventoryTransactionPacket&>(packet).mTransaction.get();
+                if (complex && complex->mType == ComplexInventoryTransaction::Type::NormalTransaction) ++transactionsSent;
+                if (complex && dropAirUse && complex->mType == ComplexInventoryTransaction::Type::ItemUseTransaction
+                    && static_cast<ItemUseInventoryTransaction&>(*complex).mActionType == ItemUseInventoryTransaction::ActionType::Use) {
+                    dropAirUse = false;
+#ifdef LAMIUM_ASSIST_TRACE
+                    trace::line("item use in the air not sent");
+#endif
+                    return;
+                }
+            }
             if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket) {
+                dropAirUse = false;
                 readBack();
                 Vec2 const realLook = *static_cast<PlayerAuthInputPacket&>(packet).mRot;
                 ll::thread::ClientThreadExecutor::getDefault().execute([] { updateAim(); });
@@ -604,6 +628,7 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistUseItem, ll::memory::HookPriority::Highest,
         ASSIST_TRACE(hand == HandSlot::Mainhand ? "useItem" : "useItem offhand", taken);
         if (taken) {
             holding = true;
+            dropAirUse = true;
             return false;
         }
     } catch (...) {}
@@ -635,6 +660,7 @@ Hook hooks[] = {
     {PlacementAssistStopBuild::hook, PlacementAssistStopBuild::unhook},
 };
 void reset() {
+    dropAirUse = false;
     {
         std::lock_guard lock(aimLock);
         aimNow.reset();

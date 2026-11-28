@@ -927,6 +927,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.hud.assist", "Placement assist on", "配置アシスト オン"},
     {"schematic.assist.notCarried", "Not carried: {}", "持っていません: {}"},
     {"schematic.assist.noWay", "Cannot be placed in this state from here: {}", "ここからはこの状態で置けません: {}"},
+    {"schematic.assist.notBrought", "Could not bring it into your hand: {}", "手に持ち替えられませんでした: {}"},
     {"target.schematic", "Schematic", "設計図"},
     {"target.schematicMissing", "Not placed yet", "未設置"},
     {"target.schematicWrong", "Wrong block", "ブロック違い"},

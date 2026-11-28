@@ -918,6 +918,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.hud.assist", "放置辅助 开"},
     {"schematic.assist.notCarried", "未携带: {}"},
     {"schematic.assist.noWay", "无法从这里以此状态放置: {}"},
+    {"schematic.assist.notBrought", "无法换到手上: {}"},
     {"target.schematic", "蓝图"},
     {"target.schematicMissing", "尚未放置"},
     {"target.schematicWrong", "方块错误"},

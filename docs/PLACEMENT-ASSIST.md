@@ -54,10 +54,12 @@ Decided by the maintainer on 2026-11-28.
   nothing places), it is brought into the hand with the ghost pick's step (hotbar slot, else
   from the inventory; in creative given when the creative inventory lists
   it). When it is not carried, nothing is placed. A block that came by a
-  swap or a give is placed four auth inputs later: sent at once, the
-  placement read back as air and the slot went back (2026-11-28, cause to
-  confirm by the readback log, which names the clicked neighbor, its
-  distance and the swap).
+  swap or a give is placed four auth inputs later. A swap that sent no
+  inventory transaction (seen once, right after a world opened) is only on
+  the client: nothing is placed and a toast says it could not be brought
+  into the hand. After a press taken through `useItem` the game's own item
+  use in the air is not sent: the server answered it by resending the
+  inventory, which undid a fresh swap (2026-11-28 traces).
 - **Holding use.** Holding the use button keeps placing on the ghost under
   the crosshair. The game repeats its build call only while its hit is in
   reach (2026-11-28 trace), so after a press it took the assist aims again
@@ -75,8 +77,8 @@ Decided by the maintainer on 2026-11-28.
   the press (`planFor`), drawn by `drawAssistAim`; nothing with the mode
   off, the target card unchanged.
 - **Feedback.** When the assist places nothing, a short Lamium toast says
-  why: "Not carried: <block>" or "Cannot be placed in this state from
-  here: <block>". Placing leaves the HUD's counts to the Check as usual.
+  why: "Not carried: <block>", "Cannot be placed in this state from
+  here: <block>" or "Could not bring it into your hand: <block>". Placing leaves the HUD's counts to the Check as usual.
 - **Lifecycle.** A held placement waits only for its pick and its one
   faked auth input, a few ticks at most; focus loss, world exit, dimension
   change and switching the mode off drop it, and the next auth input

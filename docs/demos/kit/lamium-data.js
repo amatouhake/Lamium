@@ -1729,6 +1729,7 @@ window.LAMIUM_DATA = {
  "schematic.hud.assist": ["Placement assist on","配置アシスト オン","放置辅助 开","放置輔助 開"],
  "schematic.assist.notCarried": ["Not carried: {}","持っていません: {}","未携带: {}","未攜帶: {}"],
  "schematic.assist.noWay": ["Cannot be placed in this state from here: {}","ここからはこの状態で置けません: {}","无法从这里以此状态放置: {}","無法從這裡以此狀態放置: {}"],
+ "schematic.assist.notBrought": ["Could not bring it into your hand: {}","手に持ち替えられませんでした: {}","无法换到手上: {}","無法換到手上: {}"],
  "target.schematic": ["Schematic","設計図","蓝图","藍圖"],
  "target.schematicMissing": ["Not placed yet","未設置","尚未放置","尚未放置"],
  "target.schematicWrong": ["Wrong block","ブロック違い","方块错误","方塊錯誤"],
