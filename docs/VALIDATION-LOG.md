@@ -20,8 +20,8 @@ it was not a full re-run of every entry.
 outlines only, translucent 50% and 30%, on one shown layer and on the
 whole placement.
 - Outlines only: hard to read.
-- Translucent: the two strengths look different but read no better than
-  each other. The drawing order of translucent ghosts swaps with the
+- Translucent: easier to read than the tinted faces, since what lies
+  behind shows; 50% and 30% look different but read the same. The drawing order of translucent ghosts swaps with the
   viewing position (one ghost drawn over another, then under it), on one
   layer and on the whole placement; limited to a shown layer it might be
   acceptable.
