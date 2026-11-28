@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-421 ghost look trial (2026-11-28)
+
+`67304ad4` built with `ghost_look_trial` (DLL
+`49449e218e25edec7cf9c4c865a3bd065bd09f27f13959cf73ec40d410bfe6db`),
+1.26.60.05 Dev, local world, the maintainer. F8 cycled tinted faces,
+outlines only, translucent 50% and 30%, on one shown layer and on the
+whole placement.
+- Outlines only: hard to read.
+- Translucent: the two strengths look different but read no better than
+  each other. The drawing order of translucent ghosts swaps with the
+  viewing position (one ghost drawn over another, then under it), on one
+  layer and on the whole placement; limited to a shown layer it might be
+  acceptable.
+- Not compared: a fainter tint, smaller ghosts; glass and water nearby not
+  reported.
+
 ## L-265 placement assist, second build (2026-11-28)
 
 `d930d8a8` (DLL
