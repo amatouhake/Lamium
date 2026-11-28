@@ -99,11 +99,28 @@ bool on() {
     auto const& s = runtime.snapshot()->schematic;
     return runtime.enabled() && s.enabled && s.placementAssist && versionSensitiveAllowed(capabilities::Id::PlacementAssist);
 }
+LocalPlayer* localPlayer();
+// Whether the game's hit is no block the player can use: nothing, or a block
+// beyond the pick range (L-265: the press then reaches only the item use).
+bool meetsNoBlock(HitResult const& hit, Player& actor) {
+    auto* player = localPlayer();
+    if (!player || static_cast<Player*>(player) != &actor) return false;
+    if (hit.mType == HitResultType::NoHit) return true;
+    if (hit.mType != HitResultType::Tile || hit.mIndirectHit) return false;
+    double const ex = hit.mPos.x - hit.mStartPos.x, ey = hit.mPos.y - hit.mStartPos.y, ez = hit.mPos.z - hit.mStartPos.z;
+    return std::sqrt(ex * ex + ey * ey + ez * ez) > player->getPickRange() + 1e-3;
+}
 #ifdef LAMIUM_ASSIST_TRACE
 // L-265 research: a press that placed nothing and said nothing at some
 // angles. Which call it reached, what the game hit and the ghost aimed at.
+// The game calls stopBuildBlock every tick: a release is logged only after
+// a logged press.
 void tracePress(char const* call, bool taken) noexcept {
     static int lines = 0;
+    static bool pressed = false;
+    bool const release = std::string_view{call}.starts_with("stopBuildBlock");
+    if (release && !pressed) return;
+    pressed = !release;
     if (++lines > 400) return;
     try {
         auto client = ll::service::getClientInstance();
@@ -448,13 +465,13 @@ BUILD_HOOKS(GameMode)
 BUILD_HOOKS(SurvivalMode)
 #undef BUILD_HOOKS
 // A press that meets no block (a ghost with air behind) reaches only the
-// item use (L-265 fifth trace).
+// item use (L-265 fifth trace). The game's hit may still be a block far
+// past reach, with no outline (trace 2026-11-28): that is no block either.
 LL_TYPE_INSTANCE_HOOK(PlacementAssistUseItem, ll::memory::HookPriority::Highest, GameMode, &GameMode::$useItem, bool,
                       ItemStack& item, HandSlot hand) {
     try {
         auto client = ll::service::getClientInstance();
-        bool const taken =
-            client && hand == HandSlot::Mainhand && client->getLatestHitResult().mType == HitResultType::NoHit && takePress(mPlayer);
+        bool const taken = client && hand == HandSlot::Mainhand && meetsNoBlock(client->getLatestHitResult(), mPlayer) && takePress(mPlayer);
         ASSIST_TRACE(hand == HandSlot::Mainhand ? "useItem" : "useItem offhand", taken);
         if (taken) return false;
     } catch (...) {}
