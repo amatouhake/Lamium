@@ -12,6 +12,27 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 placement assist, second build (2026-11-28)
+
+`d930d8a8` (DLL
+`ff09c54c4b391175175f80d28b29327d183c6d4b91743915b08f31fb65ce94b7`),
+1.26.60.05 Dev, local world, the maintainer.
+- Seen: an inner ghost reached without a layer view; held use placed no
+  block the schematic lacks; a grass-block ghost over water placed (not
+  every time, see the log); a door placed. Furnaces not tried.
+- The maintainer found it very hard to use: placements fail with no
+  message; preferring the first placeable ghost means a ghost walled in by
+  placeable ghosts is reached only with care; after breaking a wrong block
+  the cell seemed not to take a placement; whether the look must face a
+  usable face is unclear. What happens differs from what the player sees
+  and expects. To be talked over before more work.
+- Log: 21 grass-block placements over water and 4 log placements came back
+  unchanged (water, air) with no message, the log ones four in a row while
+  held; a cobblestone refused because its only solid neighbor was a door
+  (interactive, not sneaking); a horizontal log beam refused 14 times for
+  its axis (only a log below to click); a grass block over water refused
+  (water and air all round).
+
 ## L-265 placement assist, first build (2026-11-28)
 
 `56722e3c` (DLL
