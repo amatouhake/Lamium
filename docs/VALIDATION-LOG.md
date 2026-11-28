@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 presses with a far hit (2026-11-28)
+
+`62bd0ca5` built with `assist_trace` (DLL
+`92506f898dc0b8d9533118b3620adb9c05b710ec163d7dfaeb644c62ead9ee43`),
+1.26.60.05 Dev, local world, the maintainer. At the angles that placed
+nothing before, aiming at a ghost now places it; aiming at a block and at
+the sky as before. Trace: such presses reach `useItem` with a block hit
+6-68 blocks away (past the 5.7 pick range), now taken and placed. Still
+left to vanilla: presses whose hit was an entity 21-25 blocks away (type
+Entity), and a few with a far block hit and an aimed ghost for an unlogged
+reason. The maintainer may have seen a held press not place where a short
+one would (unsure whether the aim was off).
+
 ## L-424 ghost look follow-ups, L-265 press trace (2026-11-28)
 
 `a26ec440` built with `assist_trace` (DLL
