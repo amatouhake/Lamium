@@ -99,6 +99,31 @@ bool on() {
     auto const& s = runtime.snapshot()->schematic;
     return runtime.enabled() && s.enabled && s.placementAssist && versionSensitiveAllowed(capabilities::Id::PlacementAssist);
 }
+#ifdef LAMIUM_ASSIST_TRACE
+// L-265 research: a press that placed nothing and said nothing at some
+// angles. Which call it reached, what the game hit and the ghost aimed at.
+void tracePress(char const* call, bool taken) noexcept {
+    static int lines = 0;
+    if (++lines > 400) return;
+    try {
+        auto client = ll::service::getClientInstance();
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        if (!player) return;
+        HitResult const& hit = client->getLatestHitResult();
+        double const ex = hit.mPos.x - hit.mStartPos.x, ey = hit.mPos.y - hit.mStartPos.y, ez = hit.mPos.z - hit.mStartPos.z;
+        auto ghost = ghosts::aimedGhost(*player, hit);
+        Vec2 const rot = player->getRotation();
+        Runtime::instance().self().getLogger().info(
+            "Assist trace: {} taken={} on={} hit={} indirect={} block={},{},{} face={} dist={:.2f} liquid={} pitch={:.1f} reach={:.1f} ghost={}",
+            call, taken, on(), static_cast<int>(hit.mType), hit.mIndirectHit, hit.mBlock.x, hit.mBlock.y, hit.mBlock.z,
+            static_cast<int>(hit.mFacing), std::sqrt(ex * ex + ey * ey + ez * ez), hit.mIsHitLiquid, rot.x, player->getPickRange(),
+            ghost ? std::format("{},{},{}", ghost->cell.x, ghost->cell.y, ghost->cell.z) : std::string{"none"});
+    } catch (...) {}
+}
+#define ASSIST_TRACE(call, taken) tracePress(call, taken)
+#else
+#define ASSIST_TRACE(call, taken) ((void)0)
+#endif
 LocalPlayer* localPlayer() {
     auto client = ll::service::getClientInstance();
     return client ? client->getLocalPlayer() : nullptr;
@@ -407,12 +432,16 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistSend, ll::memory::HookPriority::Normal, Loo
 #define BUILD_HOOKS(Mode) \
 LL_TYPE_INSTANCE_HOOK(PlacementAssist##Mode##Build, ll::memory::HookPriority::Highest, Mode, \
     &Mode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) { \
-    if (hand == HandSlot::Mainhand && takePress(mPlayer)) return false; \
+    bool const taken = hand == HandSlot::Mainhand && takePress(mPlayer); \
+    ASSIST_TRACE(#Mode " buildBlock", taken); \
+    if (taken) return false; \
     return origin(pos, face, hand, simTick); \
 } \
 LL_TYPE_INSTANCE_HOOK(PlacementAssist##Mode##StartBuild, ll::memory::HookPriority::Highest, Mode, \
     &Mode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) { \
-    if (hand == HandSlot::Mainhand && takePress(mPlayer)) return; \
+    bool const taken = hand == HandSlot::Mainhand && takePress(mPlayer); \
+    ASSIST_TRACE(#Mode " startBuildBlock", taken); \
+    if (taken) return; \
     origin(pos, face, hand); \
 }
 BUILD_HOOKS(GameMode)
@@ -424,8 +453,10 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistUseItem, ll::memory::HookPriority::Highest,
                       ItemStack& item, HandSlot hand) {
     try {
         auto client = ll::service::getClientInstance();
-        if (client && hand == HandSlot::Mainhand && client->getLatestHitResult().mType == HitResultType::NoHit && takePress(mPlayer))
-            return false;
+        bool const taken =
+            client && hand == HandSlot::Mainhand && client->getLatestHitResult().mType == HitResultType::NoHit && takePress(mPlayer);
+        ASSIST_TRACE(hand == HandSlot::Mainhand ? "useItem" : "useItem offhand", taken);
+        if (taken) return false;
     } catch (...) {}
     return origin(item, hand);
 }
@@ -434,6 +465,7 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistStopBuild, ll::memory::HookPriority::Highes
     try {
         auto* player = localPlayer();
         if (player && static_cast<Player*>(player) == &mPlayer) {
+            ASSIST_TRACE("stopBuildBlock (released)", false);
             pressTaken.reset();
             refused.reset();
         }

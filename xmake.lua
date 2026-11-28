@@ -183,6 +183,12 @@ option("ghost_probe")
     set_description("L-93 research: F7 draws test blocks with candidate ghost render paths")
 option_end()
 
+option("assist_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-265 research: log each use press the placement assist sees (hook, hit, aimed ghost)")
+option_end()
+
 option("camera_position_probe")
     set_default(false)
     set_showmenu(true)
@@ -212,6 +218,7 @@ target("Lamium")
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end
     if has_config("radar_icon_probe") then add_defines("LAMIUM_RADAR_ICON_PROBE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
+    if has_config("assist_trace") then add_defines("LAMIUM_ASSIST_TRACE") end
     if has_config("sneak_trace") then add_defines("LAMIUM_SNEAK_TRACE") end
     if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
     if has_config("world_probe") then add_defines("LAMIUM_WORLD_PROBE") end
