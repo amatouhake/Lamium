@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-424 ghost look follow-ups, L-265 press trace (2026-11-28)
+
+`a26ec440` built with `assist_trace` (DLL
+`989e3ae3f911f4a9d804d541506571c8ebc12e1af2908d5c8a5cd16a8242ab23`),
+1.26.60.05 Dev, local world, the maintainer. Seen at 60%: chest and sign
+outlines shrink with them; a bed shrinks as one about its middle with a
+matching outline, each half aimed at where drawn; mistake marks keep their
+faces beside ghosts. No warning that a bed's states disagree with the
+game's second part. Remarks: aiming uses the shrunk whole-cell box, not the
+block's shape (a glass pane), and nothing shows that box now the outline
+follows the shape; with opacity below 100, translucent entity ghosts behind
+block ghosts draw over them.
+Trace: `stopBuildBlock` runs every tick, so its lines filled the 400-line
+cap in 30 s before any press; no press was logged. They showed the game's
+hit as a block 45-62 blocks away (hit Tile, not indirect) while nothing was
+outlined: the likely cause of the silent presses (the `useItem` hook took
+only NoHit).
+
 ## L-424 ghost look settings (2026-11-28)
 
 `95133e32` (DLL
