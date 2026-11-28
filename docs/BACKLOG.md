@@ -193,7 +193,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Ready): Rebuilt on L-424's aiming and checked in game through `a9eddd79` (2026-11-28); off by default
-- [L-421](backlog/L-421.md) Schematic ghost look and aiming by what is drawn (Design): Look settings done as L-424 (2026-11-28); saved looks wait for L-265's pre-press display
+- [L-421](backlog/L-421.md) Schematic ghost look and aiming by what is drawn (Design): On hold (maintainer 2026-11-29) until L-423's clearer controls and better translucent ghosts (L-186); look settings done as L-424
 - [L-424](backlog/L-424.md) Schematic ghost look settings: size, opacity, outline width (Ready): Built and checked in game through `9993902c` (2026-11-28); saved looks next (L-421)
 - [L-422](backlog/L-422.md) Schematic materials before placing, with their raw materials (Design): Open, not started; independent of the other schematic items (maintainer 2026-11-28)
 - [L-423](backlog/L-423.md) Schematic in-world 3D interaction: touch the placement to change it (Design / Research): Open; idea agreed as its own item (maintainer 2026-11-28)
