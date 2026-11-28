@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 faster held repeat (2026-11-28)
+
+`d2af2279` (DLL
+`119a724b7b04787815e8994c75e0122883ad901db18217b3a0a04549943350a7`),
+1.26.60.05 Dev, local world, the maintainer. Seen: a held press places
+faster along ghosts, also at far-hit angles, without stray blocks; short
+presses and refusal toasts as before. Found: a glass pane carried only in
+the inventory sometimes looked placed, then was not, and the item went
+back; the log (21:49-21:51) has no readback line for it, so the revert
+came after the readback (10 auth inputs) or in a session not logged.
+
 ## L-265 ghost search past fences (2026-11-28)
 
 `a9eddd79` built with `assist_trace` (DLL
