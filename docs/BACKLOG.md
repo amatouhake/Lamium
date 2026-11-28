@@ -192,9 +192,9 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
-- [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Ready): Paused until L-421's placing view is designed (2026-11-28); off by default
-- [L-421](backlog/L-421.md) Schematic building view: what is shown and aimed at while placing (Design): Purpose agreed, stages dropped, look trials seen (2026-11-28); look options and layer switching are next
-- [L-422](backlog/L-422.md) Schematic materials before placing, with their raw materials (Design): Open; after L-421 (maintainer 2026-11-28)
+- [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Ready): Paused until L-421's aiming by the drawn boxes is settled (2026-11-28); off by default
+- [L-421](backlog/L-421.md) Schematic ghost look and aiming by what is drawn (Design): Purpose agreed, look trials seen (2026-11-28); look options and aiming by the drawn boxes are next
+- [L-422](backlog/L-422.md) Schematic materials before placing, with their raw materials (Design): Open, not started; independent of the other schematic items (maintainer 2026-11-28)
 - [L-423](backlog/L-423.md) Schematic in-world 3D interaction: touch the placement to change it (Design / Research): Open; idea agreed as its own item (maintainer 2026-11-28)
 - [L-414](backlog/L-414.md) Redstone power level overlay (Research): Open; first step is finding why the resource pack way stopped working
 - [L-416](backlog/L-416.md) Settings rows: names and placement made consistent (Design): Open, not started (from L-342, rechecked in code 2026-11-28)
