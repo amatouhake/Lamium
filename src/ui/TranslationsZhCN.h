@@ -763,7 +763,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematicOutlineDistance", "幽灵轮廓线绘制范围: {:.0f} 格以内"},
     {"help.schematic.outlineDistance", "超过此距离的浅蓝色幽灵轮廓线不绘制，大型放置时可减轻负担。0 表示无论距离多远都绘制。"},
     {"feature.schematicAssist", "放置辅助"},
-    {"help.schematicAssist", "开启后，对蓝图虚影使用方块时，会以虚影的状态（朝向、上下半、轴向）在该处放置虚影的方块，后面没有方块的虚影也可以。会先把方块换到手上；如果没有携带则不放置，并显示原因。对于状态取决于朝向的方块，Lamium 会仅在这一次放置时告诉服务器你看向所需的方向。有些服务器禁止这类辅助，请遵守服务器规则。"},
+    {"help.schematicAssist", "开启后，对准蓝图虚影按使用键时，无论手持什么，都会以虚影的状态（朝向、上下半、轴向）在该处放置虚影的方块（要使用工具或食物，请把视线移开虚影），后面没有方块的虚影也可以。会先把方块换到手上；如果没有携带则不放置，并显示原因。对于状态取决于朝向的方块，Lamium 会仅在这一次放置时告诉服务器你看向所需的方向。有些服务器禁止这类辅助，请遵守服务器规则。"},
     {"schematicAssist", "放置辅助: {}"},
     {"feature.schematicLook", "幽灵外观"},
     {"help.schematicLook", "幽灵方块的绘制方式：颜色、大小、不透明度和轮廓线。"},

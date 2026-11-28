@@ -763,7 +763,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"schematicOutlineDistance", "虛影外框繪製範圍: {:.0f} 格以內"},
     {"help.schematic.outlineDistance", "比這更遠的淺藍色虛影外框不繪製，可減輕大型放置的負擔。0 表示不論距離都繪製。"},
     {"feature.schematicAssist", "放置輔助"},
-    {"help.schematicAssist", "開啟後，對藍圖虛影使用方塊時，會以虛影的狀態（朝向、上下半、軸向）在該處放置虛影的方塊，後面沒有方塊的虛影也可以。會先把方塊換到手上；若未攜帶則不放置，並顯示原因。對於狀態取決於朝向的方塊，Lamium 會僅在這一次放置時告訴伺服器你看向所需的方向。有些伺服器禁止這類輔助，請遵守伺服器規則。"},
+    {"help.schematicAssist", "開啟後，對準藍圖虛影按使用鍵時，無論手持什麼，都會以虛影的狀態（朝向、上下半、軸向）在該處放置虛影的方塊（要使用工具或食物，請把視線移開虛影），後面沒有方塊的虛影也可以。會先把方塊換到手上；若未攜帶則不放置，並顯示原因。對於狀態取決於朝向的方塊，Lamium 會僅在這一次放置時告訴伺服器你看向所需的方向。有些伺服器禁止這類輔助，請遵守伺服器規則。"},
     {"schematicAssist", "放置輔助: {}"},
     {"feature.schematicLook", "虛影外觀"},
     {"help.schematicLook", "虛影方塊的繪製方式：色調、大小、不透明度和外框。"},

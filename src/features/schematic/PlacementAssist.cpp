@@ -30,6 +30,7 @@
 #include "mc/world/level/Level.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/phys/HitResult.h"
 #include <chrono>
 #include <cmath>
@@ -41,6 +42,7 @@
 
 namespace lamium::schematic::assist {
 void placeNow();
+void repeatPress();
 namespace {
 // Client thread only: the build calls, the use call, the auth input send and
 // the queued placement all run there.
@@ -56,6 +58,11 @@ struct Pending {
     States wantStates;
     int authsFaked = 0;
     bool queued = false;
+    // Auth inputs to let pass first: the block came into the hand by an
+    // inventory transaction, and a placement sent at once was refused and
+    // the slot put back (2026-11-28 run, to confirm by its log).
+    int waitAuths = 0;
+    bool swapped = false;
 };
 std::optional<Pending> pending;
 // Placements read back a few auth inputs later (a held run makes several).
@@ -64,6 +71,9 @@ struct Sent {
     std::string wantName;
     States wantStates;
     int dimension = 0, wait = 0;
+    BlockPos from;
+    double reachToFrom = 0; // eye to the clicked neighbor's centre
+    bool swapped = false;
 };
 std::vector<Sent> sent;
 // The ghost and item the assist last could not place: a held button asks
@@ -86,6 +96,12 @@ std::optional<Vec2> lastSentLook;
 // when no build call came for a moment (a press in the air ends unseen).
 std::optional<std::chrono::steady_clock::time_point> pressTaken;
 inline constexpr auto pressGap = std::chrono::milliseconds(400);
+// A press the assist took and the button still held (ended by
+// stopBuildBlock): the game repeats its build call only while its hit is in
+// reach, so the assist repeats by itself (2026-11-28 trace).
+bool holding = false;
+std::chrono::steady_clock::time_point lastTry{};
+inline constexpr auto repeatGap = std::chrono::milliseconds(250);
 bool placing = false, installed = false;
 ll::event::ListenerPtr exitListener;
 
@@ -216,15 +232,16 @@ void toast(char const* key, std::string const& block) {
 }
 
 // Whether the assist takes this press. Called from vanilla's build and use
-// calls; the placement itself is queued. Only with a block or nothing in the
-// hand (maintainer 2026-11-28): food, buckets and tools stay vanilla.
+// calls; the placement itself is queued. Whatever the hand holds: a tool or
+// food is used by looking off the ghost (maintainer 2026-11-28, once ghosts
+// could be shrunk; switching back after breaking a wrong block was a chore).
 bool takePress(Player& actor) noexcept {
     declined = "";
+    lastTry = std::chrono::steady_clock::now();
     try {
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (placing || !player || static_cast<Player*>(player) != &actor || !on()) return decline(placing ? "placing" : "off");
-        if (auto const& hand = player->getSelectedItem(); !hand.isNull() && !hand.mBlock) return decline("hand holds no block");
         auto const now = std::chrono::steady_clock::now();
         bool const held = pressTaken && now - *pressTaken < pressGap;
         if (pending) {
@@ -278,11 +295,18 @@ bool takePress(Player& actor) noexcept {
         };
         // A second half (a door's top, a bed's head) comes with its first.
         if (info.perBlock == 0) return refuse("schematic.assist.noWay");
+        bool swapped = false;
         if (!holds(*player, item, aux)) {
+            int const selectedWas = player->mInventory->mSelected;
+            bool given = false;
             int slot = inventory::bringToHand(*player, item, aux);
-            if (slot < 0 && player->isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick))
+            if (slot < 0 && player->isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick)) {
                 slot = inventory::giveToHand(*player, stack);
+                given = slot >= 0;
+            }
             if (slot < 0 || !holds(*player, item, aux)) return refuse("schematic.assist.notCarried");
+            // A swap into the selected slot or a creative give went as a transaction.
+            swapped = given || slot == selectedWas;
         }
         Block const* placed = player->getSelectedItem().mBlock;
         if (!placed) return decline("hand holds no block after the pick");
@@ -308,17 +332,19 @@ bool takePress(Player& actor) noexcept {
             refused.reset();
             pending = Pending{cell, step(cell, c.dir), c.face, click, c.look, item, aux, static_cast<int>(player->getDimensionId()),
                               wantName, wantStates};
-            if (!c.look.faked) {
+            pending->swapped = swapped;
+            if (swapped) pending->waitAuths = 2;
+            if (!c.look.faked && !swapped) {
                 pending->queued = true;
                 ll::thread::ClientThreadExecutor::getDefault().execute([] { placeNow(); });
             }
             return true;
         }
-        if (difference.empty()) {
-            std::string around;
-            for (unsigned char dir = 0; dir < 6; ++dir) around += (dir ? ", " : "") + nameOf(region.getBlock(step(cell, dir)));
-            difference = "no neighbor to click among " + around;
-        }
+        std::string around;
+        for (unsigned char dir = 0; dir < 6; ++dir)
+            around += std::format("{}{}{}", dir ? ", " : "", nameOf(region.getBlock(step(cell, dir))), clickable[dir] ? "" : " (no)");
+        if (difference.empty()) difference = "no neighbor to click among " + around;
+        else difference += "; neighbors " + around;
         log(std::format("cannot place {} at {},{},{}: {}", wantName, cell.x, cell.y, cell.z, difference));
         return refuse("schematic.assist.noWay");
     } catch (...) { return decline("exception"); }
@@ -346,11 +372,24 @@ void placeNow() {
         placing = false;
         if (pending) log(std::format("no placement left for {},{},{} (buildBlock {})", at.cell.x, at.cell.y, at.cell.z, built));
         pending.reset();
-        if (sent.size() < 16) sent.push_back({at.cell, at.wantName, at.wantStates, at.dimension, 10});
+        Vec3 const eye = player->getEyePos();
+        double const fx = at.from.x + .5 - eye.x, fy = at.from.y + .5 - eye.y, fz = at.from.z + .5 - eye.z;
+        if (sent.size() < 16)
+            sent.push_back({at.cell, at.wantName, at.wantStates, at.dimension, 10, at.from, std::sqrt(fx * fx + fy * fy + fz * fz), at.swapped});
     } catch (...) {
         placing = false;
         pending.reset();
     }
+}
+// The button still held after a press the assist took: aims again from the
+// crosshair now and places as a new press would (queued from the auth input).
+void repeatPress() {
+    try {
+        auto* player = localPlayer();
+        if (!holding || pending || placing || !player) return;
+        bool const taken = takePress(*player);
+        ASSIST_TRACE("repeat (held)", taken);
+    } catch (...) {}
 }
 namespace {
 using AuthInput = PlayerAuthInputPacketPayload::InputData;
@@ -401,8 +440,10 @@ void readBack() {
                 if (!placesAs(name, states, it->wantName, it->wantStates)) {
                     // Not asked again while the button stays held.
                     refused = Refused{it->cell, "", std::chrono::steady_clock::now()};
-                    log(std::format("{},{},{} holds {} after the placement, not the ghost's {} ({})", it->cell.x, it->cell.y, it->cell.z,
-                                    name, it->wantName, name == it->wantName ? firstDifference(states, it->wantStates) : "other block"));
+                    log(std::format("{},{},{} holds {} after the placement, not the ghost's {} ({}; clicked {},{},{} {:.2f} from the eye{})",
+                                    it->cell.x, it->cell.y, it->cell.z, name, it->wantName,
+                                    name == it->wantName ? firstDifference(states, it->wantStates) : "other block", it->from.x,
+                                    it->from.y, it->from.z, it->reachToFrom, it->swapped ? ", after a swap" : ""));
                 }
             }
             it = sent.erase(it);
@@ -418,9 +459,13 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistSend, ll::memory::HookPriority::Normal, Loo
             if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket) {
                 readBack();
                 Vec2 const realLook = *static_cast<PlayerAuthInputPacket&>(packet).mRot;
+                if (holding && !pending && std::chrono::steady_clock::now() - lastTry >= repeatGap)
+                    ll::thread::ClientThreadExecutor::getDefault().execute([] { repeatPress(); });
                 // Every auth input until the placement leaves carries its look:
                 // the queued placement may run after the next one.
-                if (pending && pending->look.faked) {
+                if (pending && pending->waitAuths > 0) {
+                    if (--pending->waitAuths == 0 && !pending->look.faked) queue = pending->queued = true;
+                } else if (pending && pending->look.faked) {
                     if (!on() || pending->authsFaked >= 3) pending.reset();
                     else {
                         fakeLook(static_cast<PlayerAuthInputPacket&>(packet), pending->look);
@@ -456,14 +501,14 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssist##Mode##Build, ll::memory::HookPriority::Hi
     &Mode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) { \
     bool const taken = hand == HandSlot::Mainhand && takePress(mPlayer); \
     ASSIST_TRACE(#Mode " buildBlock", taken); \
-    if (taken) return false; \
+    if (taken) { holding = true; return false; } \
     return origin(pos, face, hand, simTick); \
 } \
 LL_TYPE_INSTANCE_HOOK(PlacementAssist##Mode##StartBuild, ll::memory::HookPriority::Highest, Mode, \
     &Mode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) { \
     bool const taken = hand == HandSlot::Mainhand && takePress(mPlayer); \
     ASSIST_TRACE(#Mode " startBuildBlock", taken); \
-    if (taken) return; \
+    if (taken) { holding = true; return; } \
     origin(pos, face, hand); \
 }
 BUILD_HOOKS(GameMode)
@@ -480,7 +525,10 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistUseItem, ll::memory::HookPriority::Highest,
         if (!noBlock) declined = "hit within reach";
         bool const taken = noBlock && takePress(mPlayer);
         ASSIST_TRACE(hand == HandSlot::Mainhand ? "useItem" : "useItem offhand", taken);
-        if (taken) return false;
+        if (taken) {
+            holding = true;
+            return false;
+        }
     } catch (...) {}
     return origin(item, hand);
 }
@@ -490,6 +538,7 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistStopBuild, ll::memory::HookPriority::Highes
         auto* player = localPlayer();
         if (player && static_cast<Player*>(player) == &mPlayer) {
             ASSIST_TRACE("stopBuildBlock (released)", false);
+            holding = false;
             pressTaken.reset();
             refused.reset();
         }
@@ -507,6 +556,7 @@ Hook hooks[] = {
     {PlacementAssistStopBuild::hook, PlacementAssistStopBuild::unhook},
 };
 void reset() {
+    holding = false;
     pressTaken.reset();
     pending.reset();
     sent.clear();
@@ -515,7 +565,10 @@ void reset() {
     placing = false;
 }
 }
-void focusLost() { pending.reset(); }
+void focusLost() {
+    pending.reset();
+    holding = false;
+}
 void start() {
     if (installed) return;
     capabilities::begin(capabilities::Id::PlacementAssist);

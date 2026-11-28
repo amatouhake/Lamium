@@ -50,6 +50,10 @@ void assistPlanTests() {
     States openDoor = door;
     openDoor["open_bit"] = "1";
     check(placesAs("minecraft:wooden_door", door, "minecraft:wooden_door", openDoor), "L-265: an open ghost door is placed closed");
+    States lone{{"minecraft:connection_north", "0"}, {"minecraft:connection_south", "0"}};
+    States joined{{"minecraft:connection_north", "1"}, {"minecraft:connection_south", "0"}};
+    check(placesAs("minecraft:oak_fence", lone, "minecraft:oak_fence", joined),
+          "L-265: a fence placed before its neighbor counts; the neighbor connects it");
     openDoor["door_hinge_bit"] = "1";
     check(!placesAs("minecraft:wooden_door", door, "minecraft:wooden_door", openDoor), "L-265: the hinge side is the placement's");
     States slab{{"minecraft:vertical_half", "bottom"}};

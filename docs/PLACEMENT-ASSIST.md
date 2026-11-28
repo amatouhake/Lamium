@@ -26,8 +26,9 @@ Decided by the maintainer on 2026-11-28.
   ghost first (the ghost pick's ray, L-263: any shown placement's ghost)
   is the assist's; a real block in front of the ghost wins and stays vanilla.
   With the mode off, or no ghost first on the ray, the use input is
-  vanilla; so it is while the hand holds an item that is not a block (food,
-  a bucket, a tool), which keeps its own use (maintainer 2026-11-28).
+  vanilla. Whatever the hand holds, a tool or food too: it is used by
+  looking off the ghost (maintainer 2026-11-28, replacing the block-only
+  rule once ghosts could be shrunk).
 - **Target.** The first ghost cell on the ray that has a real neighbor to
   be clicked from, not only the cell vanilla would fill; ghosts in front of
   it without one do not hide it (maintainer 2026-11-28, after the first
@@ -47,9 +48,16 @@ Decided by the maintainer on 2026-11-28.
 - **Held block.** When the hand does not hold the ghost's block, it is
   brought into the hand first with the ghost pick's step (hotbar slot, else
   from the inventory; in creative given when the creative inventory lists
-  it). When it is not carried, nothing is placed.
+  it). When it is not carried, nothing is placed. A block that came by a
+  swap or a give is placed two auth inputs later: sent at once, the
+  placement read back as air and the slot went back (2026-11-28, cause to
+  confirm by the readback log, which names the clicked neighbor, its
+  distance and the swap).
 - **Holding use.** Holding the use button keeps placing on the ghost under
-  the crosshair at vanilla's repeat rate. A press the assist took stays its
+  the crosshair. The game repeats its build call only while its hit is in
+  reach (2026-11-28 trace), so after a press it took the assist aims again
+  every 250 ms itself until `stopBuildBlock` (the release; the game also
+  calls it every tick while nothing is held). A press the assist took stays its
   own until the button is let go: where no ghost is aimed meanwhile,
   nothing is placed (vanilla's held placement had put blocks the schematic
   does not have). A refusal is not repeated while the button stays held. Placements that need a faked
@@ -151,10 +159,9 @@ From the five L-265 traces of 2026-11-28 (VALIDATION-LOG), local world,
   server; data-driven blocks whose placement may not go through
   `getPlacementBlock`; the turned move input at quarter turns (the traces
   turned only by 180 degrees).
-- Holding use in the air places once per press: the game repeats only its
-  build calls, which need a block hit.
 - A double slab and the second half of a two-cell block (a door's top, a
   bed's head) are not placed ("Cannot be placed in this state from here");
   aim at a door's lower half.
-- States no placement makes (a stair's corner shape, fence connections)
-  follow the neighbors as in vanilla.
+- States no placement makes (a stair's corner shape, fence connections,
+  `minecraft:connection_*` since 2026-11-28) follow the neighbors as in
+  vanilla.

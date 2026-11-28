@@ -88,7 +88,9 @@ inline bool derivedState(std::string_view name) {
         "minecraft:corner", "wall_post_bit", "wall_connection_type_east", "wall_connection_type_north",
         "wall_connection_type_south", "wall_connection_type_west", "redstone_signal", "powered_bit", "open_bit",
         "in_wall_bit", "toggle_bit", "output_lit_bit", "output_subtract_bit", "age", "growth", "age_bit",
-        "attached_bit", "disarmed_bit", "suspended_bit", "button_pressed_bit", "occupied_bit"};
+        "attached_bit", "disarmed_bit", "suspended_bit", "button_pressed_bit", "occupied_bit",
+        // A fence's connections follow its neighbors (2026-11-28 run).
+        "minecraft:connection_east", "minecraft:connection_north", "minecraft:connection_south", "minecraft:connection_west"};
     for (auto n : names)
         if (n == name) return true;
     return false;
