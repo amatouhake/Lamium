@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-424 aiming by the outline, L-265 findings (2026-11-28)
+
+`9993902c` built with `assist_trace` (DLL
+`b2b03aaf049618e7ce1b9e536582305ec71a5a5cc1c6c7105d96c8ab76999213`),
+1.26.60.05 Dev, local world, the maintainer. Seen at 60%: panes and fences
+are aimed at only inside their outline, the side passes by; carpets and
+buttons are aimed at near their outline and placed by the assist; full
+blocks and 100% as before.
+Found (placement assist): a block brought from the inventory (not the
+hotbar) flashed placed and vanished, and the item seemed to go back; the
+log shows the cell read back as air after each try (glass pane,
+cobblestone, about 15 tries). Fences are refused: `minecraft:connection_*`
+is not among the derived states, so a fence must already connect as the
+ghost does. A wall button was refused (facing 1 not 3).
+
 ## L-265 held presses (2026-11-28)
 
 `0f7a444c` built with `assist_trace` (DLL
