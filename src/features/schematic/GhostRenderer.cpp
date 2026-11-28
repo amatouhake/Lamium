@@ -882,7 +882,11 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
         // change rebuilds them.
         auto const& look = runtime.snapshot()->schematic;
         int graphics = static_cast<int>(client.getOptions().getGraphicsMode());
-        if (int mode = (((graphics * 101 + look.ghostTint) * 4 + look.ghostLines) * 2 + look.mistakeMarks) * 8 + static_cast<int>(checkRules());
+        int trialLook = 0;
+#ifdef LAMIUM_GHOST_LOOK_TRIAL
+        trialLook = lookTrial();
+#endif
+        if (int mode = ((((graphics * 101 + look.ghostTint) * 4 + look.ghostLines) * 2 + look.mistakeMarks) * 8 + static_cast<int>(checkRules())) * 4 + trialLook;
             mode != lastGraphicsMode) {
             if (lastGraphicsMode >= 0) release();
             lastGraphicsMode = mode;
@@ -987,3 +991,34 @@ void stop() {
 }
 void invalidateResources() { releaseRequested = true; }
 }
+
+#ifdef LAMIUM_GHOST_LOOK_TRIAL
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/input/KeyInputEvent.h"
+#include "ui/Toast.h"
+#include <atomic>
+namespace lamium::schematic::ghosts {
+namespace {
+std::atomic<int> trialLookValue{0};
+ll::event::ListenerPtr trialKey;
+// Registered on first use; F8 down cycles the look and names it.
+struct TrialKey {
+    TrialKey() {
+        trialKey = ll::event::EventBus::getInstance().emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
+            if (event.keyCode() != 0x77 || !event.isDown()) return;
+            int const next = (trialLookValue.load() + 1) % 4;
+            trialLookValue = next;
+            static constexpr char const* names[] = {"L-421: tinted faces", "L-421: outlines only", "L-421: translucent 50%",
+                                                    "L-421: translucent 30%"};
+            try { ui::showMessageToast(names[next], 1.5); } catch (...) {}
+            event.cancel();
+        });
+    }
+};
+}
+int lookTrial() {
+    static TrialKey key;
+    return trialLookValue.load();
+}
+}
+#endif

@@ -448,6 +448,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     out.layers = sectionLayersOf(slab, shown, key);
     out.complete = true;
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
+    int trial = 0;
+#ifdef LAMIUM_GHOST_LOOK_TRIAL
+    trial = lookTrial();
+#endif
+    std::vector<std::pair<size_t, size_t>> faded; // see-mesh vertex ranges made translucent (trial)
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
     bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
     unsigned const relax = checkRules(); // L-262
@@ -540,6 +545,10 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 // Within two cells of the camera a ghost may own the face the
                 // camera sees, so it is never skipped as enclosed.
                 if (!camera.near({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
+                if (trial == 1) {
+                    outlines.push_back({boxLow, boxHigh, .35f, .85f, 1.f});
+                    continue;
+                }
                 drawing = {x, y, z};
                 drawn = paletteIndex;
                 glm::vec3 shapeLow{1e9f}, shapeHigh{-1e9f};
@@ -550,7 +559,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 auto entity = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
                 PotPlant plant(own, pos, *expected, entity != structure.blockEntities.end() ? &entity->second : nullptr);
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
-                    Tessellator& target = layer && blended(*layer) ? see : batch;
+                    Tessellator& target = trial >= 2 || (layer && blended(*layer)) ? see : batch;
                     size_t before = target.mMeshData->mPositions->size();
                     tessellateLayer(own, target, *expected, pos, layer);
                     cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
@@ -565,6 +574,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 });
                 dropDuplicateQuads(batch, batchFrom);
                 dropDuplicateQuads(see, seeFrom);
+                if (trial >= 2) faded.push_back({seeFrom, see.mMeshData->mPositions->size()});
                 // A piston's mesh is its base; the head and arm are its block
                 // actor's to draw (L-178), with the file's progress and state.
                 // So are a lectern's book and a framed item (L-302).
@@ -606,6 +616,12 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         out.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic ghosts", SupplementaryFieldAutoGenerationMode{}));
     }
     finishColors(see, tint[0], tint[1], tint[2]);
+    if (!faded.empty()) {
+        std::uint32_t const alpha = (trial == 2 ? 0x80u : 0x55u) << 24;
+        auto& colors = see.mMeshData->mColors.get();
+        for (auto [from, to] : faded)
+            for (size_t v = from; v < to && v < colors.size(); ++v) colors[v] = (colors[v] & 0x00ffffffu) | alpha;
+    }
     // The second layer: water in a waterlogged block, under its ghost (the
     // world's cell still empty). A placed block missing its water gets a
     // yellow mark instead: a shell there looked like real water.
