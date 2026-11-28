@@ -54,10 +54,12 @@ Decided by the maintainer on 2026-11-28.
   nothing places), it is brought into the hand with the ghost pick's step (hotbar slot, else
   from the inventory; in creative given when the creative inventory lists
   it). When it is not carried, nothing is placed. A block that came by a
-  swap or a give is placed four auth inputs later. A swap that sent no
-  inventory transaction (seen once, right after a world opened) is only on
-  the client: nothing is placed and a toast says it could not be brought
-  into the hand. After a press taken through `useItem` the game's own item
+  swap or a give is placed four auth inputs later. The block comes into the
+  hand a tick after the press (`bringNow`), not inside the game's item use,
+  where every swap sent no transaction (2026-11-28 trace); a move that
+  records nothing is undone (`movePair`), and the assist then says it could
+  not bring the block into the hand. An empty hand aimed far off reaches no
+  hook (no item use); known gap. After a press taken through `useItem` the game's own item
   use in the air is not sent: the server answered it by resending the
   inventory, which undid a fresh swap (2026-11-28 traces).
 - **Holding use.** Holding the use button keeps placing on the ghost under

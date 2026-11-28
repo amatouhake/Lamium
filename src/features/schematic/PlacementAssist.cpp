@@ -45,6 +45,7 @@
 namespace lamium::schematic::assist {
 void placeNow();
 void repeatPress();
+void bringNow();
 namespace {
 // Client thread only: the build calls, the use call, the auth input send and
 // the queued placement all run there.
@@ -65,6 +66,10 @@ struct Pending {
     // the slot put back (2026-11-28 run, to confirm by its log).
     int waitAuths = 0;
     bool swapped = false;
+    // Still to come into the hand (bringNow); the item and its name for that.
+    bool bring = false;
+    ItemStack stack;
+    std::string name;
 };
 std::optional<Pending> pending;
 inline constexpr int swapWait = 4; // auth inputs after a swap or give
@@ -373,34 +378,22 @@ bool takePress(Player& actor) noexcept {
         }
         std::string const& item = plan.item;
         short const aux = plan.aux;
-        bool swapped = false;
-        if (!holds(*player, item, aux)) {
-            int const selectedWas = player->mInventory->mSelected, sentBefore = transactionsSent;
-            bool given = false;
-            int slot = inventory::bringToHand(*player, item, aux);
-            if (slot < 0 && player->isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick)) {
-                slot = inventory::giveToHand(*player, plan.stack);
-                given = slot >= 0;
-            }
-            if (slot < 0 || !holds(*player, item, aux)) return refuse("schematic.assist.notCarried");
-            // A swap into the selected slot or a creative give went as a transaction.
-            swapped = given || slot == selectedWas;
-            if (swapped && transactionsSent == sentBefore) {
-                log(std::format("{} came into slot {} without a transaction sent; not placed", item, slot));
-                return refuse("schematic.assist.notBrought");
-            }
-#ifdef LAMIUM_ASSIST_TRACE
-            trace::line(std::format("brought {} into slot {} ({})", item, slot, given ? "give" : swapped ? "swap" : "select").c_str());
-#endif
-        }
         Candidate const& c = *plan.chosen;
         Vec3 const click{c.click[0], c.click[1], c.click[2]};
         refused.reset();
         pending = Pending{cell, step(cell, c.dir), c.face, click, c.look, item, aux, static_cast<int>(player->getDimensionId()),
                           plan.wantName, plan.wantStates};
-        pending->swapped = swapped;
-        if (swapped) pending->waitAuths = swapWait;
-        if (!c.look.faked && !swapped) {
+        // The block comes into the hand on the next tick, not inside the
+        // game's input call: a swap made there sent no transaction, every
+        // time in the 2026-11-28 trace, and lived only on the client.
+        if (!holds(*player, item, aux)) {
+            pending->bring = true;
+            pending->stack = plan.stack;
+            pending->name = plan.name;
+            ll::thread::ClientThreadExecutor::getDefault().execute([] { bringNow(); });
+            return true;
+        }
+        if (!c.look.faked) {
             pending->queued = true;
             ll::thread::ClientThreadExecutor::getDefault().execute([] { placeNow(); });
         }
@@ -464,6 +457,53 @@ void placeNow() {
         placing = false;
         pending.reset();
     }
+}
+// Brings the pending placement's block into the hand, a tick after the
+// press. A swap or give is placed a few auth inputs later; one that sent no
+// transaction is undone by the move and refused with a toast.
+void bringNow() {
+    try {
+        if (!pending || !pending->bring) return;
+        auto* player = localPlayer();
+        if (!player || static_cast<int>(player->getDimensionId()) != pending->dimension || !on()) {
+            pending.reset();
+            return;
+        }
+        auto refuse = [&](char const* key) {
+            toast(key, pending->name);
+            refused = Refused{pending->cell, pending->item, std::chrono::steady_clock::now()};
+            pending.reset();
+        };
+        int const selectedWas = player->mInventory->mSelected, sentBefore = transactionsSent;
+        bool given = false;
+        int slot = inventory::bringToHand(*player, pending->item, pending->aux);
+        if (slot < 0 && player->isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick)) {
+            slot = inventory::giveToHand(*player, pending->stack);
+            given = slot >= 0;
+        }
+        if (slot < 0 || !holds(*player, pending->item, pending->aux)) {
+            bool const carried = inventory::carried(*player, pending->item, pending->aux);
+            log(std::format("{} not brought into the hand ({})", pending->item, carried ? "carried" : "not carried"));
+            return refuse(carried ? "schematic.assist.notBrought" : "schematic.assist.notCarried");
+        }
+        // A swap into the selected slot or a creative give goes as a transaction.
+        bool const swapped = given || slot == selectedWas;
+#ifdef LAMIUM_ASSIST_TRACE
+        trace::line(std::format("brought {} into slot {} ({})", pending->item, slot, given ? "give" : swapped ? "swap" : "select").c_str());
+#endif
+        if (swapped && transactionsSent == sentBefore) {
+            log(std::format("{} came into slot {} without a transaction sent; not placed", pending->item, slot));
+            return refuse("schematic.assist.notBrought");
+        }
+        pending->bring = false;
+        pending->swapped = swapped;
+        pending->authsFaked = 0;
+        if (swapped) pending->waitAuths = swapWait;
+        else if (!pending->look.faked) {
+            pending->queued = true;
+            placeNow();
+        }
+    } catch (...) { pending.reset(); }
 }
 // The button still held after a press the assist took: aims again from the
 // crosshair now and places as a new press would (queued from the auth input).
@@ -564,7 +604,9 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistSend, ll::memory::HookPriority::Normal, Loo
                     ll::thread::ClientThreadExecutor::getDefault().execute([] { repeatPress(); });
                 // Every auth input until the placement leaves carries its look:
                 // the queued placement may run after the next one.
-                if (pending && pending->waitAuths > 0) {
+                if (pending && pending->bring) {
+                    if (++pending->authsFaked > 10) pending.reset(); // the bring never ran
+                } else if (pending && pending->waitAuths > 0) {
                     if (--pending->waitAuths == 0 && !pending->look.faked) queue = pending->queued = true;
                 } else if (pending && pending->look.faked) {
                     if (!on() || pending->authsFaked >= 3) pending.reset();
