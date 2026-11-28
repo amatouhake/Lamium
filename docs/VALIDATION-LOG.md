@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 swap a tick later; moves undone (2026-11-28)
+
+`6cb0609d` built with `assist_trace` (DLL
+`212e42aa015ce280ba2206c3a98d3b5b86035a2403e5030d0f5feac01605a480`),
+1.26.60.05 Dev, local world, the maintainer. Failed: Tool Switch from the
+inventory and Hand Restock stopped working, and the assist said it could
+not bring the block (cobblestone came into the hand for a moment and went
+back; items stayed movable). The trace shows why: every move sent its
+transaction and then a second one undoing it. The setters send their
+transaction at once, so "no transaction pending" after them is the normal
+success, and the new undo in `movePair` reverted every move. The swap a
+tick after the press did send its transaction (the deferral works).
+
 ## L-265 swaps refused (2026-11-28)
 
 `52d52cf3` built with `assist_trace` (DLL
