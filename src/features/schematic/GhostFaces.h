@@ -49,6 +49,25 @@ inline std::pair<std::array<double, 3>, std::array<double, 3>> shrunkCell(std::a
     }
     return {low, high};
 }
+// Where a shrunk ghost is aimed at (L-424, maintainer 2026-11-28): its
+// outline's box `low`-`high` within the cell (cell-relative, 0-1), each side
+// at least `thinnest` so a carpet or a button can still be hit, moved as
+// `shrunkCell` moves the cell.
+inline std::pair<std::array<double, 3>, std::array<double, 3>> aimBox(std::array<double, 3> low, std::array<double, 3> high,
+                                                                      std::array<int, 3> cell, std::array<int, 3> partner,
+                                                                      double scale, double thinnest = .25) {
+    for (int i = 0; i < 3; ++i) {
+        if (high[i] - low[i] < thinnest) {
+            double const mid = std::clamp((low[i] + high[i]) / 2, thinnest / 2, 1 - thinnest / 2);
+            low[i] = mid - thinnest / 2;
+            high[i] = mid + thinnest / 2;
+        }
+        double const pivot = .5 + partner[i] * .5;
+        low[i] = cell[i] + pivot + (low[i] - pivot) * scale;
+        high[i] = cell[i] + pivot + (high[i] - pivot) * scale;
+    }
+    return {low, high};
+}
 // Whether a ray from `from` along `along` meets the box [low, high] within
 // `reach` blocks: a shrunk ghost is aimed at only where it is drawn, so the
 // ray may pass between ghosts (L-424).

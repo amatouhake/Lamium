@@ -81,8 +81,8 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   Outline width: 0 none (mistake marks keep theirs, thin), 1 game lines, 2-5
   bars 1/64 to 4/64; saved `ghostLines` keep their look. Below 100% size a
   ghost, its block actor and outline shrink about the cell's centre (a bed,
-  one model, about its middle), every face kept, aimed at only through that
-  box (`shrunkCell`, `rayMeetsBox`); marks beside it keep their faces;
+  one model, about its middle), every face kept, aimed at only through its
+  outline's box, each side at least 1/4 (`aimBox`); marks beside it keep their faces;
   liquids stay whole. Below 100% opacity faces blend (order unstable).
   Defaults stay (L-186).
 - Where neighbors' bars meet, only the strongest result's copy is drawn within

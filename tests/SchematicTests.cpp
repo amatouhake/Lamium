@@ -1548,6 +1548,19 @@ void ghostLook() {
                   && near(headHi[1], .8),
               "a bed's halves shrink about the middle of the bed and still meet there");
     }
+    {
+        using lamium::schematic::faces::aimBox;
+        auto near = [](double a, double b) { return std::abs(a - b) < 1e-9; };
+        auto [cubeLo, cubeHi] = aimBox({0, 0, 0}, {1, 1, 1}, {2, 0, 0}, {0, 0, 0}, .6);
+        auto [paneLo, paneHi] = aimBox({.4375, 0, 0}, {.5625, 1, 1}, {0, 0, 0}, {0, 0, 0}, .6);
+        auto [carpetLo, carpetHi] = aimBox({0, 0, 0}, {1, .0625, 1}, {0, 0, 0}, {0, 0, 0}, .5);
+        check(near(cubeLo[0], 2.2) && near(cubeHi[0], 2.8) && near(cubeHi[1], .8),
+              "a full block is aimed at through its whole shrunk cell");
+        check(near(paneLo[0], .5 - .075) && near(paneHi[0], .5 + .075) && near(paneLo[2], .2),
+              "a pane is aimed at through its shrunk bar, widened to the thinnest side");
+        check(near(carpetLo[1], .25) && near(carpetHi[1], .375),
+              "a carpet keeps a hittable height at the bottom of its shrunk cell");
+    }
     check(rayMeetsBox({-1, -1, .5}, {1, 1, 0}, low, high, 5) && !rayMeetsBox({-1, -.3, .5}, {1, 1, 0}, low, high, 5),
           "a slanted ray through the gap beside a shrunk ghost passes it by");
     auto bar = barQuads({0, 0, 0}, {1, 0, 0}, .01f);

@@ -55,6 +55,7 @@
 #include "mc/world/level/block/BrightnessPair.h"
 #include "mc/world/level/block/actor/BlockActor.h"
 #include "mc/world/level/block/actor/BlockActorRendererId.h"
+#include "mc/world/phys/AABB.h"
 #include "mc/world/phys/HitResult.h"
 #include <glm/glm.hpp>
 #include <algorithm>
@@ -939,8 +940,22 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
             if (!index || static_cast<size_t>(*index) >= resolved[i].blocks.size()) continue;
             if (auto const* block = resolved[i].blocks[static_cast<size_t>(*index)]) {
                 if (scale < 1.) {
-                    auto [low, high] = faces::shrunkCell({cell.x, cell.y, cell.z}, modelPartner(*block), scale);
-                    if (!faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, low, high, reach)) break; // the next cell along the ray
+                    // Through its outline's box (L-424), as the drawn outline
+                    // is shaped: the block's outline against the placement's ghosts.
+                    SchematicRegion view(region);
+                    view.answer = [&](BlockPos const& at) { return ghostDrawnAt(region, shown, resolved[i], {at.x, at.y, at.z}).block; };
+                    AABB buffer;
+                    AABB const& shape = block->getBlockType().getOutline(*block, view, pos, buffer);
+                    std::array<double, 3> low{shape.min.x - double(cell.x), shape.min.y - double(cell.y), shape.min.z - double(cell.z)};
+                    std::array<double, 3> high{shape.max.x - double(cell.x), shape.max.y - double(cell.y), shape.max.z - double(cell.z)};
+                    // Some outlines come relative to the cell.
+                    if (std::abs(low[0]) > 2 || std::abs(low[1]) > 2 || std::abs(low[2]) > 2)
+                        for (int k = 0; k < 3; ++k) { low[k] = (&shape.min.x)[k]; high[k] = (&shape.max.x)[k]; }
+                    bool usable = true;
+                    for (int k = 0; k < 3; ++k) usable = usable && high[k] - low[k] > 1e-3 && low[k] > -1e-3 && high[k] < 1 + 1e-3;
+                    if (!usable) { low = {0, 0, 0}; high = {1, 1, 1}; }
+                    auto [aimLow, aimHigh] = faces::aimBox(low, high, {cell.x, cell.y, cell.z}, modelPartner(*block), scale);
+                    if (!faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, aimLow, aimHigh, reach)) break; // the next cell along the ray
                 }
                 auto fileAt = [&](int dy) -> GhostAt::Neighbor {
                     auto near = overlap::fileCellAt(shown, Point{cell.x, cell.y + dy, cell.z});
