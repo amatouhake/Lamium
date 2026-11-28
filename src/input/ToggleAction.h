@@ -81,6 +81,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleIgnoreGrowth: field = &value.schematic.ignoreGrowth; break;
     case Action::ToggleIgnoreSignText: field = &value.schematic.ignoreSignText; break;
     case Action::ToggleIgnoreBlockEntities: field = &value.schematic.ignoreBlockEntities; break;
+    case Action::TogglePlacementAssist: field = &value.schematic.placementAssist; break;
     case Action::ToggleBookPaste: field = &value.ui.bookPaste; break;
     case Action::PeriodicAttack: field = &value.interaction.autoAttack; break;
     case Action::PeriodicUse: field = &value.interaction.autoUse; break;

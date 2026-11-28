@@ -111,7 +111,9 @@ inline constexpr std::array<Category, 6> categories{{
 inline constexpr bool keyOnlyAccelerator(Action action) {
     return action == Action::SchematicMenu || action == Action::AdjustSchematic || action == Action::OpenSchematics
         || action == Action::ToggleIgnoreSignal || action == Action::ToggleLitAsState || action == Action::ToggleIgnoreGrowth
-        || action == Action::ToggleIgnoreSignText || action == Action::ToggleIgnoreBlockEntities;
+        || action == Action::ToggleIgnoreSignText || action == Action::ToggleIgnoreBlockEntities
+        // L-265: the placement assist is a settings row with an optional key (maintainer 2026-11-28).
+        || action == Action::TogglePlacementAssist;
 }
 // The "move ... ->" commands: which target they choose before opening Move.
 inline constexpr bool choosesTarget(Command command, Target& target) {

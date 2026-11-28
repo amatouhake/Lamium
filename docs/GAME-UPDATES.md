@@ -131,6 +131,7 @@ the package/SDK loader-policy alignment in CI.
 | Schematic ghosts (actor lighting) | `GhostActors.cpp` | vanilla ghost actor lighting | ghost rendering and checking |
 | Schematic pick (creative inventory give) | `GhostPick.cpp`, `InventoryMove.cpp` (`giveCreative`) | a creative ghost pick of a block not carried does nothing | picks of carried blocks, survival picks |
 | Sneak placement (use gate and sneak state) | `SneakPlacement.cpp` | every use goes through the game's own sneak state | the setting and key (no effect) |
+| Schematic placement assist (faked look, hit result and placement) | `PlacementAssist.cpp` | using a block on a ghost is vanilla | the setting, key and HUD line (no effect) |
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
@@ -519,22 +520,13 @@ Hooks: `ExtractSneakInput`, `SneakDimensionChange`
 Meaning: the sneak bit in the extracted input.
 
 ### `src/features/interaction/PlacementTrace.cpp`
-Hooks: `Calculate`, `PlacementTraceGameModeUseOn`, `PlacementTraceSurvivalModeUseOn`, `PlacementTraceSend`, `PlacementFakeGameModeBuild`, `PlacementFakeGameModeStartBuild`, `PlacementFakeSurvivalModeBuild`, `PlacementFakeSurvivalModeStartBuild`, `PlacementTraceUseItem`, `PlacementFakeStopBuild`
-Trace (`placement_trace`). L-265 lines: both sides of `useItemOn` (client
-and local server) with the actor's rotation and the blocks before and after,
-and the sent `PlayerAuthInputPacket` rotations and `InventoryTransactionPacket`
-item use fields around a use, `BlockType::getPlacementBlock`'s answer
-beside each client use, and `GameMode::useItem` presses. Read only, except the `placement_fake`
-experiment (L-265, option only, ungated): the `PlacementFake*` hooks hold a
-stair placement (one a second), every auth input until its Place
-transaction leaves is sent with yaw + 180 (with oak stairs the move input
-turned too), at an interval that changes with each press
-(`GameMode::stopBuildBlock` ends a press), and `GameMode::buildBlock` is
-called from another solid neighbor of the cell, with the local player's
-rotation and the level's `HitResult` (`Level::getHitResult`) written for the
-call; a sent click that differs from the chosen one is overwritten in the
-transaction. The real
-feature asks `versionSensitiveAllowed()` before any of this.
+Hooks: `Calculate`, `PlacementTraceGameModeUseOn`, `PlacementTraceSurvivalModeUseOn`, `PlacementTraceSend`, `PlacementTraceUseItem`
+Trace (`placement_trace`), read only. L-265 lines: both sides of
+`useItemOn` (client and local server) with the actor's rotation and the
+blocks before and after, `BlockType::getPlacementBlock`'s answer beside
+each client use, `GameMode::useItem` presses with the hit type, and the
+sent `PlayerAuthInputPacket` rotations and `InventoryTransactionPacket` item
+use fields around a use.
 
 ### `src/features/inventory/FakeOffhand.cpp`
 Hooks: `BuildAction`, `ReportUse`, `ReportOn`, `EquipmentEcho`, `HotbarEcho`, `ChangeDimension`
@@ -798,6 +790,25 @@ overloads (the position overload gained `BlockLightingFlags` in 26.60). Used onl
 ### `src/features/schematic/GhostProbe.cpp`
 Hooks: `EffectsPassHook`
 Trace (ghost probe).
+
+### `src/features/schematic/PlacementAssist.cpp`
+Hooks: `PlacementAssistSend`, `PlacementAssistGameModeBuild`, `PlacementAssistGameModeStartBuild`, `PlacementAssistSurvivalModeBuild`, `PlacementAssistSurvivalModeStartBuild`, `PlacementAssistUseItem`
+Meaning (L-265, docs/PLACEMENT-ASSIST.md "Known"): the build hooks and
+`GameMode::useItem` (a press that meets no block, hit type `NoHit`) are where
+a use press on a ghost is taken. `BlockType::getPlacementBlock(player, cell,
+face, click, aux)` with the click relative to the clicked block says what a
+placement makes (matched the placed block in 189 placements); it is asked
+with the local player's `ActorRotationComponent::mRot` set to each look for
+the call. The placement is `GameMode::buildBlock(neighbor, face)` with
+`Level::getHitResult` set to the chosen face and click and the game mode's
+`BuildContext` cleared of its build direction for the call (both put back).
+The local server places with the rotation of the auth input sent before the
+placement, so `PlacementAssistSend` writes the look into `mRot`,
+`mYHeadRot`, `mInteractRotation` and `mCameraOrientation` of each auth input
+until the Place transaction leaves, with the move vectors and direction
+flags turned to keep the movement; a Place transaction whose click differs
+from the chosen one gets the chosen click. Protected by the
+`PlacementAssist` capability; without it nothing is taken.
 
 ### `src/features/schematic/GhostPick.cpp`
 Hooks: `GhostPickHook`

@@ -253,6 +253,8 @@ struct Settings {
         // L-303: block entity data is left out of the check altogether, or
         // only a sign's text, colour and glow.
         bool ignoreBlockEntities = false, ignoreSignText = false;
+        // L-265: using a block on a ghost places the ghost's block in its state.
+        bool placementAssist = false;
     } schematic;
     struct Overlays {
         bool chunkBorders = false;

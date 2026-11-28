@@ -23,11 +23,10 @@
 #include <utility>
 
 namespace lamium::schematic::ghosts {
-namespace {
 // The first ghost the pick ray meets in front of what the game picked. On
 // the game's own ray (as the target card does, L-222), so the ghost picked
 // is the one the card names.
-std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
+std::optional<GhostAt> aimedGhost(LocalPlayer& player, HitResult const& hit) {
     Vec3 from = hit.mStartPos, way = hit.mRayDir;
     double length = std::sqrt(double(way.x) * way.x + double(way.y) * way.y + double(way.z) * way.z);
     // L-285: when the view ray meets nothing the game picks the block under
@@ -65,13 +64,14 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
 // The ghost's block as one item, as the game's own pick would give it: the
 // name and data value both paths use (skull kinds and monster eggs differ
 // only in the data value).
-ItemStack pickedStack(Block const& block) {
+ItemStack ghostItem(Block const& block) {
     ItemStack stack;
     auto item = block.getBlockType().asItemInstance(block, nullptr);
     if (item.isNull()) return stack;
     try { stack.reinit(item.getTypeName(), 1, item.getAuxValue()); } catch (...) { stack = ItemStack(); }
     return stack;
 }
+namespace {
 // The pick whose result is still to be read back, and the ghost-pass frame
 // it was sent on (L-263).
 inventory::PickPending pendingPick;
@@ -79,12 +79,12 @@ int pickFrame = 0;
 LL_TYPE_INSTANCE_HOOK(GhostPickHook, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::pickBlock, void,
                       HitResult const& hit, bool withData) {
     try {
-        if (auto ghost = pickedGhost(*this, hit); ghost && ghost->block) {
+        if (auto ghost = aimedGhost(*this, hit); ghost && ghost->block) {
             // The ghost's block or nothing: never the real block behind it.
             // A ghost without an item (fire, water) does nothing, and a
             // failure past this point cannot hand the pick back to vanilla.
             try {
-                ItemStack stack = pickedStack(*ghost->block);
+                ItemStack stack = ghostItem(*ghost->block);
                 if (!stack.isNull()) {
                     std::string name = stack.getTypeName();
                     short aux = stack.getAuxValue();

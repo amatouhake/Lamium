@@ -362,6 +362,8 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
         {ui::palette::mismatch, ui::translated("schematic.hud.wrong") + " " + std::to_string(tally.wrong + tally.extra)},
         {ui::palette::warning, ui::translated("schematic.kind.state") + " " + std::to_string(tally.state)}}};
     std::string nearText = nearest ? ui::translated("schematic.hud.nearest", *nearest) : std::string{};
+    // L-265: the placement assist's switch, shown while it is on.
+    std::string assistText = Runtime::instance().snapshot()->schematic.placementAssist ? ui::translated("schematic.hud.assist") : std::string{};
     float mark = 7 * tz;
     float columnA = std::max(widthOf(cells[0].text, small), widthOf(cells[2].text, small)) + mark;
     float columnB = std::max(widthOf(cells[1].text, small), widthOf(cells[3].text, small)) + mark;
@@ -375,9 +377,11 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     if (ready && verify) contentW = std::max({contentW, columnA + gap + columnB, widthOf(nearText, small)});
     if (!materials.empty()) contentW = std::max(contentW, nameW + 2 * (numW + gap));
     if (!ready && selected) contentW = std::max(contentW, widthOf(ui::translated("schematic.counting"), small));
+    if (!assistText.empty()) contentW = std::max(contentW, widthOf(assistText, small));
     contentW = std::clamp(contentW, 80 * tz, 170 * tz);
 
     float h = rowH + 4 * tz;
+    if (!assistText.empty()) h += rowH;
     if (!ready && selected) h += rowH;
     if (ready && verify) h += 2 * rowH + (nearest ? rowH : 0) + 2 * tz;
     if (!materials.empty()) h += 2 * tz + rowH * (1 + static_cast<float>(materials.size()));
@@ -397,6 +401,10 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     y += rowH + 1 * tz;
     rule(y);
     y += 3 * tz; // room under the rule before the counts
+    if (!assistText.empty()) {
+        text(x, y, contentW, assistText, ui::palette::accent, small);
+        y += rowH;
+    }
     if (!ready && selected) {
         text(x, y, contentW, ui::translated("schematic.counting"), ui::palette::dim, small);
         y += rowH;

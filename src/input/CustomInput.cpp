@@ -8,6 +8,7 @@
 #include "features/inventory/EnchantOrderGame.h"
 #include "features/inventory/FakeOffhand.h"
 #include "features/inventory/RepeatTrades.h"
+#include "features/schematic/PlacementAssist.h"
 #include "input/Binding.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -87,6 +88,7 @@ LL_TYPE_INSTANCE_HOOK(CustomInputFocusLost, ll::memory::HookPriority::Normal, Mi
     ui::cancelInputCapture();
     recipes::itemList::focusLost();
     inventory::enchantOrder::game::anvilFocusLost();
+    schematic::assist::focusLost();
     origin();
 }
 void sync(IClientInstance& client) {

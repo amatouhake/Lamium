@@ -39,6 +39,7 @@
 #include "features/inspection/EnglishSearch.h"
 #include "features/interaction/EdgeGuard.h"
 #include "features/interaction/SneakPlacement.h"
+#include "features/schematic/PlacementAssist.h"
 #include "features/interaction/ToolGuard.h"
 #include "features/interaction/MiningSessionHooks.h"
 #include "features/inventory/DeathRestore.h"
@@ -171,6 +172,7 @@ Feature const features[] = {
     {"Waypoint markers", started<map::markers::start>, map::markers::stop},
     {"Schematic ghosts", started<schematic::ghosts::start>, schematic::ghosts::stop},
     {"Schematic pick block", started<schematic::ghosts::startPick>, schematic::ghosts::stopPick},
+    {"Placement assist", started<schematic::assist::start>, schematic::assist::stop},
     {"Schematic adjust key", started<schematic::actions::startAdjust>, schematic::actions::stopAdjust},
     {"Schematic plan targets", started<schematic::planHandOver::start>, schematic::planHandOver::stop},
     {"Breaking Restriction", started<interaction::breaking::start>, interaction::breaking::stop},

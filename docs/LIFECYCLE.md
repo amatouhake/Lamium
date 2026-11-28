@@ -48,6 +48,7 @@ with why), **open** (a finding not settled, named in its backlog item).
 | Waypoint markers | n/a: draw-only | n/a: per frame | CustomInput (held key) |
 | Schematic ghosts | own | polled | n/a: draw-only |
 | Schematic pick block | n/a: one pick | n/a: one pick | n/a: one pick |
+| Placement assist | own | own: a placement for another dimension is dropped | own: the focus hook drops a waiting placement |
 | Schematic adjust key | polled | polled | CustomInput (held key) |
 | Schematic plan targets | n/a: no state | n/a: no state | n/a: no state |
 | Breaking Restriction | own | own | CustomInput (the attack press it follows) |

@@ -363,7 +363,8 @@ Json encode(Settings const& settings) {
                        {"mistakeMarks", settings.schematic.mistakeMarks}, {"ignoreSignal", settings.schematic.ignoreSignal},
                        {"litAsState", settings.schematic.litAsState}, {"ignoreGrowth", settings.schematic.ignoreGrowth},
                        {"ignoreBlockEntities", settings.schematic.ignoreBlockEntities},
-                       {"ignoreSignText", settings.schematic.ignoreSignText}}}
+                       {"ignoreSignText", settings.schematic.ignoreSignText},
+                       {"placementAssist", settings.schematic.placementAssist}}}
     };
 }
 }
@@ -704,6 +705,7 @@ Settings decodeSettings(std::string_view text) {
         value.schematic.litAsState = settingsValue(schematic, "litAsState", value.schematic.litAsState);
         value.schematic.ignoreGrowth = settingsValue(schematic, "ignoreGrowth", value.schematic.ignoreGrowth);
         value.schematic.ignoreBlockEntities = settingsValue(schematic, "ignoreBlockEntities", value.schematic.ignoreBlockEntities);
+        value.schematic.placementAssist = settingsValue(schematic, "placementAssist", value.schematic.placementAssist);
         value.schematic.ignoreSignText = settingsValue(schematic, "ignoreSignText", value.schematic.ignoreSignText);
     }
     if (data.contains("lighting") && data.at("lighting").is_object()) {

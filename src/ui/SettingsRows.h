@@ -34,7 +34,7 @@ inline constexpr std::string_view information[] = {"infoHud", "targetInfo", "pla
 inline constexpr std::string_view handStatus[] = {"durabilityHud", "inventoryHud", "usedSlots", "offhandSlot", "saturation", "statusEffects"};
 inline constexpr std::string_view inWorld[] = {"chunkBorders", "hitboxes", "lightOverlay", "shapes", "blockHighlight"};
 inline constexpr std::string_view map[] = {"minimap", "mapText", "mapMarks", "radar", "slimeChunks", "waypoints", "worldMap"};
-inline constexpr std::string_view schematics[] = {"schematic", "schematicMenu", "schematicRepeat", "schematicCheck", "schematicHud",
+inline constexpr std::string_view schematics[] = {"schematic", "schematicMenu", "schematicRepeat", "schematicCheck", "schematicAssist", "schematicHud",
     "schematicMove", "schematicPlacement", "schematicLayers", "schematicShow", "schematicSave", "schematicScreen"};
 inline constexpr std::string_view itemScreens[] = {"previews", "itemDetails", "englishSearch", "sorting", "transfer", "lockedTrades",
     "repeatTrades", "enchantOrder", "bookPaste"};
@@ -145,6 +145,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"schematicRepeat", "key.Lamium.adjustschematic", "help.key.adjustschematic", "", false, input::Action::AdjustSchematic},
     // What counts as a mistake and how it shows (L-266), without a switch of its own.
     {"schematicCheck", "feature.schematicCheck", "help.schematicCheck", ""},
+    {"schematicAssist", "feature.schematicAssist", "help.schematicAssist", "schematic.placementAssist", true, input::Action::TogglePlacementAssist},
     {"schematicHud", "feature.schematicHud", "help.schematicHud", "schematic.hud", true, input::Action::ToggleSchematicHud},
     // Key groups without a switch of their own (DESIGN: a keyless group
     // heading), named and ordered like the menu's categories (L-238).

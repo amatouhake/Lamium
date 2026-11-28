@@ -33,14 +33,16 @@ struct Candidate {
 // The point on `face` of a block, relative to the block; side faces at
 // height `y` (0..1), top and bottom at their middle.
 inline std::array<float, 3> clickOn(unsigned char face, float y) {
+    std::array<float, 3> at{0.5f, y, 0.5f};
     switch (face) {
-    case 0: return {0.5f, 0.0f, 0.5f};
-    case 1: return {0.5f, 1.0f, 0.5f};
-    case 2: return {0.5f, y, 0.0f};
-    case 3: return {0.5f, y, 1.0f};
-    case 4: return {0.0f, y, 0.5f};
-    default: return {1.0f, y, 0.5f};
+    case 0: at[1] = 0; break;
+    case 1: at[1] = 1; break;
+    case 2: at[2] = 0; break;
+    case 3: at[2] = 1; break;
+    case 4: at[0] = 0; break;
+    default: at[0] = 1; break;
     }
+    return at;
 }
 inline float wrapYaw(float yaw) {
     yaw = std::fmod(yaw, 360.0f);
@@ -103,6 +105,21 @@ inline bool placesAs(std::string_view predictedName, States const& predicted, st
     for (auto const& [name, value] : predicted)
         if (!derivedState(name) && !ghost.contains(name)) return false;
     return true;
+}
+
+// The first state that keeps `predicted` from counting as the ghost's, for
+// the log when nothing places it (so the derived list can grow); empty when
+// the blocks differ or nothing does.
+inline std::string firstDifference(States const& predicted, States const& ghost) {
+    for (auto const& [name, value] : ghost) {
+        if (derivedState(name)) continue;
+        auto found = predicted.find(name);
+        if (found == predicted.end()) return name + " missing";
+        if (found->second != value) return name + " " + found->second + " not " + value;
+    }
+    for (auto const& [name, value] : predicted)
+        if (!derivedState(name) && !ghost.contains(name)) return name + " not in the ghost";
+    return {};
 }
 
 // The faked look's auth input values (L-265 traces: the move input turned

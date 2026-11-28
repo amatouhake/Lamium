@@ -73,6 +73,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::SchematicBlocks: case Id::SchematicPiston: case Id::SchematicShulker: case Id::SchematicEntities:
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick:
         return s.schematic.enabled;
+    case Id::PlacementAssist: return s.schematic.enabled && s.schematic.placementAssist;
     // The item list with its recipe view, the plan and Mass Craft (L-359).
     case Id::RecipeTable: return s.inventory.recipes || s.inventory.plan || s.inventory.massCraft;
     case Id::CountedPlaces: return s.inventory.stores;

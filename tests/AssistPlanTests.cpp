@@ -55,6 +55,8 @@ void assistPlanTests() {
     States slab{{"minecraft:vertical_half", "bottom"}};
     check(!placesAs("minecraft:oak_slab", slab, "minecraft:oak_slab", {}), "L-265: a state the ghost lacks is a difference");
 
+    check(firstDifference(stair, ghostStair) == "upside_down_bit 0 not 1" && firstDifference(stair, stair).empty(),
+        "L-265: the log names the first state the placement could not make");
     Move forward{0, 1};
     auto back = turnedMove(forward, 0, 180);
     check(near(back.forward, -1) && near(back.strafe, 0), "L-265: turned around, walking on needs the back key");

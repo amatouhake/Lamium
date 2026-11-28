@@ -296,6 +296,13 @@ build them.
   Check list, ghosts too), or ignore one difference on every such block of a
   placement ("Hinge" on every door), before it even differs, from Ignore
   settings in the Check tab. Kept with the placement; undo one or all.
+- **Placement assist:** with "Placement assist" on, using a block on a
+  ghost places the ghost's block there in its state (facing, half, axis),
+  also on a ghost with only air behind it. The block comes into your hand
+  first; when you do not carry it, a message says so. Where the state
+  follows your facing, Lamium tells the server you look the needed way for
+  that one placement; some servers forbid this kind of help. Off by
+  default, with an optional key.
 - **Materials:** count the materials left against what you carry, Shulker
   Boxes included, in chests and stacks. A switch shows them as raw materials
   instead: what to gather, from the game's recipes. Another puts what is

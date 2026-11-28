@@ -192,7 +192,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-370](backlog/L-370.md) What the plan is for and how it shows (Design): The Notes tables and the panel's columns seen in game 2026-11-22
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
-- [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Research): Research done in a local world (2026-11-28); building is next
+- [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Ready): Built, not checked in game
 - [L-414](backlog/L-414.md) Redstone power level overlay (Research): Open; first step is finding why the resource pack way stopped working
 - [L-416](backlog/L-416.md) Settings rows: names and placement made consistent (Design): Open, not started (from L-342, rechecked in code 2026-11-28)
 - [L-417](backlog/L-417.md) Keyboard and Esc behave alike on every page (Design): Open, not started; the Tab bug can be fixed first (from L-342, rechecked 2026-11-28)

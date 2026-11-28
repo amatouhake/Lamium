@@ -4,11 +4,12 @@ A schematic mode in which using a block on a ghost places the ghost's block
 there in the ghost's state: facing, half, axis and the other states a
 placement decides. For players building from a schematic by hand (GitHub
 issue #85). Item: [L-265 Schematic placement assist: place the ghost's block in its state](backlog/L-265.md).
-Nothing is built yet; this is the agreed contract.
+Built; not yet checked in game.
 
-Settings: a row under Schematics that enables the mode (off by default).
-Keys: a toggle action, unbound by default, that switches the mode on and
-off; the schematic HUD shows it while it is on.
+Settings: "Placement assist" under Schematics (off by default, needs
+Schematics on). Keys: a toggle action, unbound by default, not in the
+schematic menu (a settings row with an optional key, like the Check rules);
+the schematic HUD shows "Placement assist on" while it is on.
 
 ## Behavior
 
@@ -25,10 +26,13 @@ Decided by the maintainer on 2026-11-28.
   ghost first (the ghost pick's ray, L-263: any shown placement's ghost)
   is the assist's; a real block in front of the ghost wins and stays vanilla.
   With the mode off, or no ghost first on the ray, the use input is
-  vanilla.
+  vanilla; so it is while the hand holds an item that is not a block (food,
+  a bucket, a tool), which keeps its own use (maintainer 2026-11-28).
 - **Target.** The first ghost cell on the ray, not only the cell vanilla
   would fill. The placement is sent as a click on a real neighbor's face
   at a click position, chosen so that the placed block matches the ghost.
+  A neighbor that opens or toggles when used (a chest, a door, a lever) is
+  clicked only while the player sneaks.
   A ghost cell holding a real block that cannot be built over is left
   alone; one that can (grass, flowers, snow layer) is placed over, as
   vanilla does.
@@ -59,27 +63,40 @@ Decided by the maintainer on 2026-11-28.
 
 ## Code
 
-Planned (the experiment is `placement_fake` in
-`src/features/interaction/PlacementTrace.cpp`, option only):
-
-- `src/features/schematic/AssistPlan.h` (pure, tested): for a target cell,
-  the neighbors that can be clicked (solid, not replaceable), their faces
-  and click positions (side faces: upper and lower half; top and bottom),
-  and the looks to try (the real look first, then the four horizontal
-  facings and up/down), ordered so that no fake is tried before a fake.
-- `src/features/schematic/PlacementAssist.cpp` (game glue): the build hooks
-  hold vanilla's placement when the assist takes the press; the candidates
-  are tried with `BlockType::getPlacementBlock` with the local player's
-  rotation set for the call, compared with the ghost by the Check's cell
-  rule; then, after one faked auth input if needed, `GameMode::buildBlock`
-  for the chosen neighbor and face with `Level::getHitResult` set to the
-  chosen face and click for the call. The placed block is read back on a
-  later frame.
-- Hook order: `buildBlock` and `useItemOn` are already hooked by
-  CameraInteraction, EdgeGuard and Sneak placement; the assist's hold must
-  run first and its own `buildBlock` call pass through the others.
-- Settings field, option, store, row and strings in four languages; the
-  toggle action appended to `Binding.h`; the HUD line in the schematic HUD.
+- `src/features/schematic/AssistPlan.h` (pure, `tests/AssistPlanTests.cpp`):
+  the candidates for a cell (the clickable neighbors below, beside, above;
+  side faces clicked at a quarter and three quarters high, top and bottom
+  in the middle) under thirteen looks (the player's own, then the four
+  facings level, looking down and looking up), unfaked ones first;
+  `placesAs`, the ghost match that leaves derived states (a stair's
+  corner, wall connections, open, powered, growth) to the neighbors and
+  later use; `turnedMove`/`keysOf`/`viewOf` for the faked auth input.
+- `src/features/schematic/PlacementAssist.cpp` (game glue, the `Placement
+  assist` feature row): `takePress` (from the build hooks and from
+  `useItem` with no block hit) finds the ghost with the ghost pick's ray
+  (`ghosts::aimedGhost`), leaves a cell holding a block that cannot be
+  built over to vanilla, refuses a second half (a door's top, a bed's head:
+  `describe(...).perBlock == 0`),
+  brings the ghost's item into the hand (`inventory::bringToHand`, in
+  creative `giveToHand`), then asks the held block's
+  `getPlacementBlock` for each candidate (local rotation set for faked
+  looks; the player's own look is the one last sent) and keeps the first
+  that `placesAs` the ghost. A refusal is kept for a second for that cell
+  and item, so a held button does not ask again every tick, and the log
+  names the first state that differed. `placeNow` runs
+  queued: `buildBlock` on the chosen neighbor and face with the hit result
+  and build context set (`AsClicked`: no build direction, the initial click
+  at the chosen point) and the rotation set (`AsLook`).
+  `PlacementAssistSend` fakes every auth input until the Place
+  transaction leaves (at most three) and corrects a differing click; each
+  placed block is compared with the ghost ten auth inputs later and logged
+  when it does not count as placed.
+- Hooks run at the highest priority, so the assist decides before
+  CameraInteraction, EdgeGuard and Sneak placement; its own `buildBlock`
+  call passes through them (`placing`).
+- Settings field `schematic.placementAssist`, option, store, row
+  (`schematicAssist`), action `TogglePlacementAssist`, capability
+  `PlacementAssist`, HUD line in `InfoHud.cpp`, strings in four languages.
 
 ## Known
 
@@ -119,8 +136,14 @@ From the five L-265 traces of 2026-11-28 (VALIDATION-LOG), local world,
 
 ## Limits
 
-- Not checked: a dedicated server, blocks other than stairs, slabs and
-  logs, data-driven blocks whose placement may not go through
-  `getPlacementBlock`.
+- Not checked: everything in game (VALIDATION row to come); a dedicated
+  server; data-driven blocks whose placement may not go through
+  `getPlacementBlock`; the turned move input at quarter turns (the traces
+  turned only by 180 degrees).
+- Holding use in the air places once per press: the game repeats only its
+  build calls, which need a block hit.
+- A double slab and the second half of a two-cell block (a door's top, a
+  bed's head) are not placed ("Cannot be placed in this state from here");
+  aim at a door's lower half.
 - States no placement makes (a stair's corner shape, fence connections)
   follow the neighbors as in vanilla.

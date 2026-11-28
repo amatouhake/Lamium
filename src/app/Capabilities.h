@@ -14,7 +14,7 @@ enum class Id {
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
     NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, BossBarPosition,
-    ItemDetails, MapMaterialInstances, EnglishSearchEnchants, WorkPenalty, WorldMapMaterialInstances, RecipeTable, CountedPlaces, RealmIdentity, SearchHighlight, CreativeTake, Count
+    ItemDetails, MapMaterialInstances, EnglishSearchEnchants, WorkPenalty, WorldMapMaterialInstances, RecipeTable, CountedPlaces, RealmIdentity, SearchHighlight, CreativeTake, PlacementAssist, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -84,6 +84,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::RealmIdentity, "Realm identity (reconnect cookie)", "", "", Impact::None, true, true},
     {Id::SearchHighlight, "Search highlight (the screen's slot controls)", "recipes", "capability.SearchHighlight", Impact::Partly, true, true},
     {Id::CreativeTake, "Taking items out in creative (the creative list's cells)", "recipes", "capability.CreativeTake", Impact::Partly, true, true},
+    {Id::PlacementAssist, "Schematic placement assist (faked look, hit result and placement)", "schematicAssist", "capability.PlacementAssist", Impact::Fully},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);
