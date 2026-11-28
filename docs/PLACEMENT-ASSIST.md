@@ -32,10 +32,10 @@ Decided by the maintainer on 2026-11-28.
 - **Real blocks on the ray.** A real block stops the search only where
   the ray meets its outline: right against a fence post the eye shares the
   post's cell column (2026-11-28).
-- **Target.** The first ghost cell on the ray that has a real neighbor to
-  be clicked from, not only the cell vanilla would fill; ghosts in front of
-  it without one do not hide it (maintainer 2026-11-28, after the first
-  run: an inner ghost was out of reach). The placement is sent as a click on a real neighbor's face
+- **Target.** The ghost under the crosshair, the first on the ray (its
+  drawn box), never one behind it (maintainer 2026-11-28, after the second
+  run; built with the pre-press outline): one that cannot be placed, or
+  that the player's body overlaps, is outlined red and refused. The placement is sent as a click on a real neighbor's face
   at a click position, chosen so that the placed block matches the ghost.
   A neighbor that opens or toggles when used (a chest, a door, a lever) is
   clicked only while the player sneaks.

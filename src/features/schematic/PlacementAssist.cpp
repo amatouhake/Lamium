@@ -242,7 +242,7 @@ void toast(char const* key, std::string const& block) {
 // ghost can be placed. No side effects, so the aim shown before a press
 // (L-265) and the press itself decide alike.
 struct Plan {
-    enum Verdict { NoGhost, RealBlock, NoItem, SecondHalf, NoWay, Placeable } verdict = NoGhost;
+    enum Verdict { NoGhost, RealBlock, NoItem, SecondHalf, InTheWay, NoWay, Placeable } verdict = NoGhost;
     std::optional<ghosts::GhostAt> ghost;
     BlockPos cell;
     Block const* want = nullptr;
@@ -265,19 +265,11 @@ Plan planFor(LocalPlayer& player, HitResult const& hit) {
         }
         return out;
     };
-    auto first = ghosts::aimedGhost(player, hit);
-    if (!first || !first->block) return plan;
-    // The first ghost on the ray that has a neighbor to be clicked from
-    // (maintainer 2026-11-28): ghosts around it no longer hide an inner one.
-    plan.ghost = ghosts::aimedGhost(player, hit, [&](ghosts::GhostAt const& g) {
-        BlockPos const at{g.cell.x, g.cell.y, g.cell.z};
-        if (!buildable(region, at)) return false;
-        for (bool c : clickableAround(at))
-            if (c) return true;
-        return false;
-    });
-    if (!plan.ghost) plan.ghost = first;
-    if (!plan.ghost->block) return plan;
+    // The ghost under the crosshair, the first on the ray, never one behind
+    // it (maintainer 2026-11-28); with shrunk ghosts the ray reaches an inner
+    // one between them. An unplaceable one is shown red, not walked past.
+    plan.ghost = ghosts::aimedGhost(player, hit);
+    if (!plan.ghost || !plan.ghost->block) return plan;
     Block const& want = *plan.ghost->block;
     plan.want = &want;
     plan.cell = BlockPos{plan.ghost->cell.x, plan.ghost->cell.y, plan.ghost->cell.z};
@@ -285,16 +277,22 @@ Plan planFor(LocalPlayer& player, HitResult const& hit) {
     if (!buildable(region, plan.cell)) return plan;
     plan.verdict = Plan::NoItem;
     plan.stack = ghosts::ghostItem(want);
-    if (plan.stack.isNull() || !plan.stack.mBlock) return plan; // fire, water: nothing to place by hand
+    if (plan.stack.isNull()) return plan; // fire, water: nothing to place by hand
     plan.item = plan.stack.getTypeName();
     plan.aux = plan.stack.getAuxValue();
     plan.name = ghosts::describe(want, plan.item).name;
     // A second half (a door's top, a bed's head) comes with its first.
     plan.verdict = Plan::SecondHalf;
     if (ghosts::describe(want, plan.item).perBlock == 0) return plan;
+    // The player's own body in the cell: the game would not place there.
+    plan.verdict = Plan::InTheWay;
+    if (auto const& body = player.getAABB(); body.min.x < plan.cell.x + 1 && body.max.x > plan.cell.x && body.min.y < plan.cell.y + 1
+        && body.max.y > plan.cell.y && body.min.z < plan.cell.z + 1 && body.max.z > plan.cell.z)
+        return plan;
     // Asked of the ghost's own item before the hand changes: nothing
-    // switches where nothing places.
-    Block const* placed = plan.stack.mBlock;
+    // switches where nothing places. An item that is no block (a door, a
+    // sign) asks the ghost's own block type.
+    Block const* placed = plan.stack.mBlock ? plan.stack.mBlock : &want;
     std::array<bool, 6> const clickable = clickableAround(plan.cell);
     Vec2 const rot = lastSentLook.value_or(player.getRotation());
     plan.wantName = nameOf(want);
@@ -360,7 +358,7 @@ bool takePress(Player& actor) noexcept {
             refused = Refused{cell, plan.item, now};
             return true;
         };
-        if (plan.verdict == Plan::SecondHalf) return refuse("schematic.assist.noWay");
+        if (plan.verdict == Plan::SecondHalf || plan.verdict == Plan::InTheWay) return refuse("schematic.assist.noWay");
         if (plan.verdict == Plan::NoWay) {
             log(std::format("cannot place {} at {},{},{}: {}", plan.wantName, cell.x, cell.y, cell.z, plan.difference));
             return refuse("schematic.assist.noWay");
@@ -380,7 +378,6 @@ bool takePress(Player& actor) noexcept {
             // A swap into the selected slot or a creative give went as a transaction.
             swapped = given || slot == selectedWas;
         }
-        if (!player->getSelectedItem().mBlock) return decline("hand holds no block after the pick");
         Candidate const& c = *plan.chosen;
         Vec3 const click{c.click[0], c.click[1], c.click[2]};
         refused.reset();
@@ -459,7 +456,7 @@ void repeatPress() {
     try {
         auto* player = localPlayer();
         if (!holding || pending || placing || !player) return;
-        bool const taken = takePress(*player);
+        [[maybe_unused]] bool const taken = takePress(*player);
         ASSIST_TRACE("repeat (held)", taken);
     } catch (...) {}
 }
