@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 swap revert trace (2026-11-28)
+
+`96c0f455` built with `assist_trace` (DLL
+`3428c68d8ffc4110dbe39b6aee5408e1d8ddc5e763a1b85f302dd40e4f30ca61`),
+1.26.60.05 Dev, local world, the maintainer; reverts seen about 22:57.
+Each failed try (cobblestone, glass pane, swapped into slot 4): the swap,
+then at once an item use "click air" (action 1, at 0,0,0) sent by the game
+after the assist took the press, then ~50 ms later an inventory content
+resync putting oak logs back in slot 4; the queued placement was then
+dropped (the hand no longer held the block), with no placement sent. No
+normal transaction was logged for the swap through `send`. Hotbar blocks:
+the same click-air and resync come, then the placement, accepted.
+
 ## Ghost the eye is in (2026-11-28)
 
 `1c73b324` (DLL
