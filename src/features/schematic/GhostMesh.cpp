@@ -449,9 +449,15 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     out.complete = true;
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
     int trial = 0;
+    float shrink = 1.f;
+    bool translucent = false;
 #ifdef LAMIUM_GHOST_LOOK_TRIAL
     trial = lookTrial();
+    shrink = trialScale(trial);
+    translucent = trialTranslucent(trial);
 #endif
+    // A shrunk ghost (trial) keeps every face: neighbors no longer touch it.
+    Block const* airCell = nullptr;
     std::vector<std::pair<size_t, size_t>> faded; // see-mesh vertex ranges made translucent (trial)
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
     bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
@@ -463,7 +469,14 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     prepareShapes(screen, own, blocks);
     Point drawing{};
     int drawn = -1;
-    view.answer = [&](BlockPos const& p) { return ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing, drawn, camera); };
+    view.answer = [&](BlockPos const& p) -> Block const* {
+        Block const* ghost = ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing, drawn, camera);
+        if (shrink < 1.f && airCell) {
+            Block const* near = ghost ? ghost : &region.getBlock(p);
+            if (near->getBlockType().mIsOpaqueFullBlock) return airCell;
+        }
+        return ghost;
+    };
     struct Clear { SchematicRegion& view; ~Clear() { view.answer = nullptr; } } clear{view};
     Tessellator batch(screen.tessellator.mBufferResourceService), see(screen.tessellator.mBufferResourceService);
     batch.begin({}, mce::PrimitiveMode::QuadList, 4096, false);
@@ -544,7 +557,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 }
                 // Within two cells of the camera a ghost may own the face the
                 // camera sees, so it is never skipped as enclosed.
-                if (!camera.near({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
+                if (shrink >= 1.f && !camera.near({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
+                airCell = &actual;
                 if (trial == 1) {
                     outlines.push_back({boxLow, boxHigh, .35f, .85f, 1.f});
                     continue;
@@ -559,10 +573,15 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 auto entity = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
                 PotPlant plant(own, pos, *expected, entity != structure.blockEntities.end() ? &entity->second : nullptr);
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
-                    Tessellator& target = trial >= 2 || (layer && blended(*layer)) ? see : batch;
+                    Tessellator& target = translucent || (layer && blended(*layer)) ? see : batch;
                     size_t before = target.mMeshData->mPositions->size();
                     tessellateLayer(own, target, *expected, pos, layer);
-                    cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
+                    if (shrink < 1.f) {
+                        glm::vec3 const center{x + .5f, y + .5f, z + .5f};
+                        auto& positions = target.mMeshData->mPositions.get();
+                        for (size_t v = before; v < positions.size(); ++v) positions[v] = center + (positions[v] - center) * shrink;
+                    } else
+                        cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
                     if (std::any_of(camera.cells.begin(), camera.cells.end(), [&](auto const& c) { return c == Point{x, y, z}; }))
                         dropBackFaces(target, before, camera);
                     auto const& positions = target.mMeshData->mPositions.get();
@@ -574,7 +593,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 });
                 dropDuplicateQuads(batch, batchFrom);
                 dropDuplicateQuads(see, seeFrom);
-                if (trial >= 2) faded.push_back({seeFrom, see.mMeshData->mPositions->size()});
+                if (translucent) faded.push_back({seeFrom, see.mMeshData->mPositions->size()});
                 // A piston's mesh is its base; the head and arm are its block
                 // actor's to draw (L-178), with the file's progress and state.
                 // So are a lectern's book and a framed item (L-302).

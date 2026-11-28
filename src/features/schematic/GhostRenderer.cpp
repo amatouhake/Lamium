@@ -886,7 +886,7 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 #ifdef LAMIUM_GHOST_LOOK_TRIAL
         trialLook = lookTrial();
 #endif
-        if (int mode = ((((graphics * 101 + look.ghostTint) * 4 + look.ghostLines) * 2 + look.mistakeMarks) * 8 + static_cast<int>(checkRules())) * 4 + trialLook;
+        if (int mode = ((((graphics * 101 + look.ghostTint) * 4 + look.ghostLines) * 2 + look.mistakeMarks) * 8 + static_cast<int>(checkRules())) * 8 + trialLook;
             mode != lastGraphicsMode) {
             if (lastGraphicsMode >= 0) release();
             lastGraphicsMode = mode;
@@ -1006,10 +1006,11 @@ struct TrialKey {
     TrialKey() {
         trialKey = ll::event::EventBus::getInstance().emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
             if (event.keyCode() != 0x77 || !event.isDown()) return;
-            int const next = (trialLookValue.load() + 1) % 4;
+            int const next = (trialLookValue.load() + 1) % 7;
             trialLookValue = next;
             static constexpr char const* names[] = {"L-421: tinted faces", "L-421: outlines only", "L-421: translucent 50%",
-                                                    "L-421: translucent 30%"};
+                                                    "L-421: translucent 30%", "L-421: tinted, 80% size", "L-421: tinted, 60% size",
+                                                    "L-421: translucent 50%, 80% size"};
             try { ui::showMessageToast(names[next], 1.5); } catch (...) {}
             event.cancel();
         });
