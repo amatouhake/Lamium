@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 swaps refused (2026-11-28)
+
+`52d52cf3` built with `assist_trace` (DLL
+`73fc48b6bf5dce0c12b801ccba80410ae10d03fb879c10e6377eb15b73bf938f`),
+1.26.60.05 Dev, local world, the maintainer. Failed: every swap from a
+far-off aim (3 of 3, 23:18-23:19) sent no transaction; the assist then
+refused it, but the slot stayed swapped on the client only, so items in it
+could not be moved until a drop (Q) resynced (like an old Hand Restock
+report). With an empty main hand a far-off press did nothing and said
+nothing (the game makes no item use with nothing in hand). The air use was
+dropped as meant. Food and tools off ghosts and hotbar blocks as before.
+
 ## L-265 swap revert, second trace (2026-11-28)
 
 `17aff9d1` built with `assist_trace` (DLL
