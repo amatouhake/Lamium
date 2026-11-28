@@ -56,9 +56,9 @@ Decided by the maintainer on 2026-11-28.
   it). When it is not carried, nothing is placed. A block that came by a
   swap or a give is placed four auth inputs later. The block comes into the
   hand a tick after the press (`bringNow`), not inside the game's item use,
-  where every swap sent no transaction (2026-11-28 trace); a move that
-  records nothing is undone (`movePair`), and the assist then says it could
-  not bring the block into the hand. An empty hand aimed far off reaches no
+  where every swap sent no transaction (2026-11-28 trace); a swap that
+  still sends none is refused with a toast (the client slot may then stay
+  swapped until the server resends the inventory). An empty hand aimed far off reaches no
   hook (no item use); known gap. After a press taken through `useItem` the game's own item
   use in the air is not sent: the server answered it by resending the
   inventory, which undid a fresh swap (2026-11-28 traces).

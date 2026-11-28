@@ -136,15 +136,7 @@ bool movePair(LocalPlayer& player, Location a, ItemStack const& newA, Location b
             source.mFlags = InventorySource::InventorySourceFlags::NoFlag;
             manager.addAction(InventoryAction{source,static_cast<uint>(at.place == Place::Offhand ? 0 : at.slot),*from,*to},false);
         }
-    } else {
-        // The setters recorded nothing, so nothing would be sent: the slots
-        // changed only on the client and the server kept the old ones (seen
-        // 2026-11-28, a swap made inside the game's item use). Undo it.
-        trace("recorded-nothing-pending",0);
-        set(player,a,oldA);
-        set(player,b,oldB);
-        return false;
-    }
+    } else trace("recorded-nothing-pending",0);
     if (manager.mCurrentTransaction.get()) player.updateInventoryTransactions();
     if (manager.mCurrentTransaction.get()) throw std::runtime_error("Inventory move transaction remained unbalanced");
     trace("sent",static_cast<int>(a.place) * 10 + static_cast<int>(b.place));
