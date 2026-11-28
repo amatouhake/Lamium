@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 ghost search past fences (2026-11-28)
+
+`a9eddd79` built with `assist_trace` (DLL
+`052ec03d8077e23180fc7db1d01d633c9f4e20843d501dee339cd235a307f67b`),
+1.26.60.05 Dev, local world, the maintainer. Seen: right against a fence
+the ghost above is placed where nothing happened before; the target card
+names a ghost seen right beside a fence or pane; a ghost behind a full
+block is still not aimed at, the real block is.
+
 ## L-265 refusals without a hand switch, next to a fence (2026-11-28)
 
 `11837222` built with `assist_trace` (DLL
