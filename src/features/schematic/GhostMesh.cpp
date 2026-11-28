@@ -637,10 +637,10 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                         low = pivot + (low - pivot) * shrink;
                         high = pivot + (high - pivot) * shrink;
                     }
-                    outlines.push_back(Outline{low, high, .35f, .85f, 1.f});
+                    outlines.push_back(Outline{low, high, ui::palette::ghost.r, ui::palette::ghost.g, ui::palette::ghost.b});
                     continue;
                 }
-                outlines.push_back({shapeLow, shapeHigh, .35f, .85f, 1.f});
+                outlines.push_back({shapeLow, shapeHigh, ui::palette::ghost.r, ui::palette::ghost.g, ui::palette::ghost.b});
             }
 
     if (batch.mCount) {

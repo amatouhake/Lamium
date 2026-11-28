@@ -37,7 +37,8 @@ inline constexpr Rgb panel{.063f,.067f,.075f}, white{1,1,1}, text{1,1,1}, dim{.7
     // blocks not picked.
     previewMismatch{1.f,100 / 255.f,90 / 255.f}, previewWrongState{1.f,215 / 255.f,90 / 255.f},
     previewNotPlaced{140 / 255.f,204 / 255.f,1.f}, previewDim{115 / 255.f,115 / 255.f,115 / 255.f},
-    cornerOne{1.f,.4f,.35f}, cornerTwo{.45f,.65f,1.f}; // schematic area corners, as their marks in the world
+    cornerOne{1.f,.4f,.35f}, cornerTwo{.45f,.65f,1.f}, // schematic area corners, as their marks in the world
+    ghost{.35f,.85f,1.f}; // a schematic ghost's light-blue outline (and its tint's hue)
 // Parts of the switch and slider drawing only: the off edge and the knob's grip line.
 inline constexpr Rgb controlEdge{.18f,.18f,.19f}, gripOn{.71f,.71f,.72f}, gripOff{.6f,.61f,.62f};
 // The calculator's expression colors: operators, units, variables, functions.

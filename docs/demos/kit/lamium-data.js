@@ -31,6 +31,7 @@ window.LAMIUM_DATA = {
   "mismatch": "#ff594d",
   "wrongState": "#ffcc40",
   "notPlaced": "#bfd9e6",
+  "ghost": "#59d9ff",
   "previewMismatch": "#ff645a",
   "previewWrongState": "#ffd75a",
   "previewNotPlaced": "#8cccff",
