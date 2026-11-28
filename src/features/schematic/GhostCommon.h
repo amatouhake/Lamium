@@ -6,6 +6,7 @@
 // LiquidShape.h and Verify.h.
 #include "features/schematic/Structure.h"
 #include "overlay/Depth.h"
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <map>
@@ -35,6 +36,9 @@ Block const* lookup(PaletteBlock const& entry);
 ItemInfo describe(Block const& block, std::string_view fallback);
 // A block's states as text, for naming what differs (the target card).
 std::map<std::string, std::string> blockStates(Block const& block);
+// The offset to the other cell of a model the game draws over two cells (a
+// bed's halves), or zero: a shrunk ghost of it shrinks as one (L-424).
+std::array<int, 3> modelPartner(Block const& block);
 // The check relaxations the settings turn on (rules::Category bits, L-262),
 // and whether `actual` passes for `expected`, or for its kind, under them.
 unsigned checkRules();

@@ -1532,6 +1532,22 @@ void ghostLook() {
               && !rayMeetsBox({-2, .5, .5}, {-1, 0, 0}, low, high, 5) && rayMeetsBox({.5, .5, .5}, {0, 1, 0}, low, high, 0)
               && !rayMeetsBox({-2, .5, .5}, {0, 0, 0}, low, high, 5),
           "a ray meets a shrunk ghost only through its box, within reach and ahead of it");
+    using lamium::schematic::faces::bedPartner;
+    using lamium::schematic::faces::shrunkCell;
+    check(bedPartner(0, false) == std::array<int, 3>{0, 0, 1} && bedPartner(0, true) == std::array<int, 3>{0, 0, -1}
+              && bedPartner(3, false) == std::array<int, 3>{1, 0, 0} && bedPartner(1, true) == std::array<int, 3>{1, 0, 0},
+          "a bed's foot finds its head along its direction, and the head its foot");
+    {
+        auto [lo, hi] = shrunkCell({0, 0, 0}, {0, 0, 0}, .6);
+        auto [footLo, footHi] = shrunkCell({0, 0, 0}, {1, 0, 0}, .6);
+        auto [headLo, headHi] = shrunkCell({1, 0, 0}, {-1, 0, 0}, .6);
+        auto near = [](double a, double b) { return std::abs(a - b) < 1e-9; };
+        check(near(lo[0], .2) && near(hi[0], .8) && near(lo[1], .2) && near(hi[2], .8),
+              "a lone ghost shrinks about its cell's centre");
+        check(near(footLo[0], .4) && near(footHi[0], 1) && near(headLo[0], 1) && near(headHi[0], 1.6) && near(footLo[2], .2)
+                  && near(headHi[1], .8),
+              "a bed's halves shrink about the middle of the bed and still meet there");
+    }
     check(rayMeetsBox({-1, -1, .5}, {1, 1, 0}, low, high, 5) && !rayMeetsBox({-1, -.3, .5}, {1, 1, 0}, low, high, 5),
           "a slanted ray through the gap beside a shrunk ghost passes it by");
     auto bar = barQuads({0, 0, 0}, {1, 0, 0}, .01f);

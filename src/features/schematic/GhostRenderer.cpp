@@ -616,7 +616,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                                        snapshot.placements[static_cast<size_t>(std::get<0>(key))].placement.placement, region);
             if (!*actor) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
-            renderBlockActor(context, *actorView, **actor, *block, renderPos, pos, actorScale);
+            auto const partner = actorScale < 1.f ? modelPartner(*block) : std::array<int, 3>{};
+            renderBlockActor(context, *actorView, **actor, *block, renderPos, pos, actorScale,
+                             std::array<float, 3>{partner[0] * .5f, partner[1] * .5f, partner[2] * .5f});
         }
     }
     if (actorView) actorView->answer = nullptr;
@@ -919,7 +921,7 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return std::nullopt;
     auto snapshot = session::snapshot();
     // A shrunk ghost is aimed at only through its drawn box (L-424).
-    double const half = faces::ghostScale(runtime.snapshot()->schematic.ghostSize) / 2.;
+    double const scale = faces::ghostScale(runtime.snapshot()->schematic.ghostSize);
     for (auto const& cell : CellWalk(x, y, z, dx, dy, dz, reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!region.getChunkAt(pos)) return std::nullopt;
@@ -930,18 +932,16 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
             if (throughBlocks) continue;
             return std::nullopt;
         }
-        if (half < .5) {
-            std::array<double, 3> const center{cell.x + .5, cell.y + .5, cell.z + .5};
-            if (!faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, {center[0] - half, center[1] - half, center[2] - half},
-                                    {center[0] + half, center[1] + half, center[2] + half}, reach))
-                continue;
-        }
         for (size_t i = 0; i < snapshot.placements.size() && i < resolved.size(); ++i) {
             auto const& shown = snapshot.placements[i];
             if (resolved[i].structure != shown.structure.get()) continue;
             auto index = overlap::paletteAt(shown, dimension, cell);
             if (!index || static_cast<size_t>(*index) >= resolved[i].blocks.size()) continue;
             if (auto const* block = resolved[i].blocks[static_cast<size_t>(*index)]) {
+                if (scale < 1.) {
+                    auto [low, high] = faces::shrunkCell({cell.x, cell.y, cell.z}, modelPartner(*block), scale);
+                    if (!faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, low, high, reach)) break; // the next cell along the ray
+                }
                 auto fileAt = [&](int dy) -> GhostAt::Neighbor {
                     auto near = overlap::fileCellAt(shown, Point{cell.x, cell.y + dy, cell.z});
                     if (!near) return {};

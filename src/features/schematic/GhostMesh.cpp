@@ -405,6 +405,20 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
     return signatureOf(region, shown, key, entityMistakes());
 }
 
+// The bed partner read from the states must be the game's own second part;
+// logged once if not, since the shrunk bed then sits off its cells (L-424).
+void checkPartner(Block const& block, SchematicRegion& view, BlockPos const& pos, std::array<int, 3> partner) {
+    static bool told = false;
+    if (told) return;
+    BlockPos other{};
+    if (!block.getBlockType().getSecondPart(view, pos, other)) return;
+    if (other.x - pos.x == partner[0] && other.y - pos.y == partner[1] && other.z - pos.z == partner[2]) return;
+    told = true;
+    try {
+        Runtime::instance().self().getLogger().warn("Schematic: a bed's other half is at {},{},{} by the game, {},{},{} by its states",
+                                                    other.x - pos.x, other.y - pos.y, other.z - pos.z, partner[0], partner[1], partner[2]);
+    } catch (...) {}
+}
 void prepareShapes(ScreenContext& screen, BlockTessellator& own, Resolved const& blocks) {
     if (blocks.meshless.size() == blocks.blocks.size()) return;
     auto& meshless = const_cast<Resolved&>(blocks).meshless;
@@ -613,7 +627,17 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     // Some outlines come relative to the cell.
                     if (glm::any(glm::greaterThan(glm::abs(low - cell), glm::vec3{2.f}))) { low += cell; high += cell; }
                     bool usable = glm::all(glm::greaterThan(high - low, glm::vec3{1e-3f})) && glm::all(glm::lessThan(high - low, glm::vec3{3.f}));
-                    outlines.push_back(usable ? Outline{low, high, .35f, .85f, 1.f} : Outline{boxLow, boxHigh, .35f, .85f, 1.f});
+                    if (!usable) { low = boxLow; high = boxHigh; }
+                    if (shrink < 1.f) {
+                        // Around the shrunk actor (L-424): a bed's halves about
+                        // the middle of the bed, which its renderer draws as one.
+                        auto const partner = modelPartner(*expected);
+                        if (partner != std::array<int, 3>{}) checkPartner(*expected, view, pos, partner);
+                        glm::vec3 const pivot = cell + glm::vec3{.5f} + glm::vec3{partner[0] * .5f, partner[1] * .5f, partner[2] * .5f};
+                        low = pivot + (low - pivot) * shrink;
+                        high = pivot + (high - pivot) * shrink;
+                    }
+                    outlines.push_back(Outline{low, high, .35f, .85f, 1.f});
                     continue;
                 }
                 outlines.push_back({shapeLow, shapeHigh, .35f, .85f, 1.f});
@@ -718,7 +742,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
             Point at{std::get<0>(cell), std::get<1>(cell), std::get<2>(cell)};
             auto hidesBox = [&](int side) {
                 auto const& d = faces::offsets[side];
-                return sameAt(cell, side, m.g) || ghostBoxAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]});
+                // A shrunk ghost no longer covers the face beside it (L-424).
+                return sameAt(cell, side, m.g)
+                    || (shrink >= 1.f && ghostBoxAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]}));
             };
             if (!white || camera.vibrant) {
                 quads.color(m.r, m.g, m.b, .3f);

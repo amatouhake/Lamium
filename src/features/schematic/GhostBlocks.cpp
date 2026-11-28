@@ -29,6 +29,7 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockRenderLayer.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
 #include "mc/world/level/block/TintMethod.h"
 #include "mc/world/level/block/VanillaStates.h"
 #include "mc/world/level/material/Material.h"
@@ -89,6 +90,15 @@ std::map<std::string, std::string> blockStates(Block const& block) {
         else if (auto* v = std::get_if<StringTag>(&value.mTagStorage)) out[key] = *v;
     }
     return out;
+}
+std::array<int, 3> modelPartner(Block const& block) {
+    if (block.getBlockType().mBlockEntityType != BlockActorType::Bed) return {};
+    auto const states = blockStates(block);
+    auto direction = states.find("direction"), head = states.find("head_piece_bit");
+    if (direction == states.end() || head == states.end()) return {};
+    int d = 0;
+    try { d = std::stoi(direction->second); } catch (...) { return {}; }
+    return faces::bedPartner(d, head->second != "0");
 }
 unsigned checkRules() {
     auto const& s = Runtime::instance().snapshot()->schematic;

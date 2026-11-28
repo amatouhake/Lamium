@@ -29,6 +29,26 @@ inline constexpr float barHalfWidth(int width) { return width <= 0 ? 0.f : .0078
 // The share of its cell a ghost is drawn and aimed at (L-424), from the
 // size setting in percent.
 inline constexpr float ghostScale(int percent) { return percent >= 100 ? 1.f : percent <= 50 ? .5f : static_cast<float>(percent) / 100.f; }
+// The other half of a bed, which the game draws as one model from its head:
+// `direction` 0-3 is south, west, north, east from foot to head (L-424).
+inline constexpr std::array<int, 3> bedPartner(int direction, bool head) {
+    constexpr int dx[4] = {0, -1, 0, 1}, dz[4] = {1, 0, -1, 0};
+    int const d = direction & 3, sign = head ? -1 : 1;
+    return {dx[d] * sign, 0, dz[d] * sign};
+}
+// Where a ghost's cell lands at `scale`: shrunk about its centre, or for a
+// model drawn over two cells (`partner` the offset to the other) about the
+// middle of both, so the whole model shrinks as one (L-424).
+inline std::pair<std::array<double, 3>, std::array<double, 3>> shrunkCell(std::array<int, 3> cell, std::array<int, 3> partner,
+                                                                          double scale) {
+    std::array<double, 3> low{}, high{};
+    for (int i = 0; i < 3; ++i) {
+        double const pivot = cell[i] + .5 + partner[i] * .5;
+        low[i] = pivot + (cell[i] - pivot) * scale;
+        high[i] = pivot + (cell[i] + 1 - pivot) * scale;
+    }
+    return {low, high};
+}
 // Whether a ray from `from` along `along` meets the box [low, high] within
 // `reach` blocks: a shrunk ghost is aimed at only where it is drawn, so the
 // ray may pass between ghosts (L-424).

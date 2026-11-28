@@ -131,7 +131,7 @@ std::shared_ptr<BlockActor> makeBlockActor(Block const& block, BlockPos const& p
     return actor;
 }
 void renderBlockActor(BaseActorRenderContext& context, SchematicRegion& view, BlockActor& actor, Block const& block, Vec3 const& renderPos,
-                      BlockPos const& worldPos, float scale) {
+                      BlockPos const& worldPos, float scale, std::array<float, 3> pivotShift) {
     auto* component = actor._getRenderComponent();
     if (!component) return;
     auto& dispatcher = context.mClientInstance.getBlockEntityRenderDispatcher();
@@ -145,7 +145,7 @@ void renderBlockActor(BaseActorRenderContext& context, SchematicRegion& view, Bl
     // cell's centre shrinks what they draw (L-424). The pushed matrix is
     // popped when `shrunk` ends: it must never be copied, or each copy pops
     // once more and the stack under it breaks (crash, 2026-11-28).
-    glm::vec3 const center{renderPos.x + .5f, renderPos.y + .5f, renderPos.z + .5f};
+    glm::vec3 const center{renderPos.x + .5f + pivotShift[0], renderPos.y + .5f + pivotShift[1], renderPos.z + .5f + pivotShift[2]};
     auto shrunk = context.mScreenContext.camera.worldMatrixStack->push(false);
     shrunk.stack->_isDirty = true;
     shrunk.mat->_m = shrunk.mat->_m.get() * glm::translate(glm::mat4{1.f}, center) * glm::scale(glm::mat4{1.f}, glm::vec3{scale})

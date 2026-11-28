@@ -77,14 +77,14 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
 ### Ghosts
 
 - Missing blocks are drawn as the real block model tinted light blue at
-  `ghostTint` with a light-blue outline; brightness never follows the
-  world's light (maintainer 2026-10-03). Outline width: 0 none (mistake
-  marks keep theirs, thin), 1 game lines (one pixel), 2-5 bars 1/64 to
-  4/64 wide; saved `ghostLines` choices keep their look. Below 100% size a
-  ghost, its block actor and its outline shrink about the cell's centre
-  with every face kept, and it is aimed at only through its shrunk cell
-  (`rayMeetsBox` in `ghostAlong`); liquids stay whole. Below 100% opacity
-  faces blend (drawing order unstable). Defaults stay (L-186).
+  `ghostTint` with a light-blue outline, never lit by the world (2026-10-03).
+  Outline width: 0 none (mistake marks keep theirs, thin), 1 game lines, 2-5
+  bars 1/64 to 4/64; saved `ghostLines` keep their look. Below 100% size a
+  ghost, its block actor and outline shrink about the cell's centre (a bed,
+  one model, about its middle), every face kept, aimed at only through that
+  box (`shrunkCell`, `rayMeetsBox`); marks beside it keep their faces;
+  liquids stay whole. Below 100% opacity faces blend (order unstable).
+  Defaults stay (L-186).
 - Where neighbors' bars meet, only the strongest result's copy is drawn within
   a section, slightly wider to cover the other across sections: wrong block >
   unknown block > wrong state > ghost/missing.
