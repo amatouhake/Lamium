@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ghost the eye is in (2026-11-28)
+
+`1c73b324` (DLL
+`9269d4810a119a2cd0ace14e3bd8383d05073ea1f216787824d8ff5a57ee684d`),
+1.26.60.05 Dev, local world, the maintainer. Seen: the ghost the eye is
+in is not drawn (at 60% only inside its small box) and not aimed at; the
+outline, the placement and the target card go to the next ghost seen; a
+ghost the body only overlaps is drawn and red; leaving a ghost redraws it.
+The log has one placement read back as air with no swap (cobblestone,
+clicked 3.28 blocks from the eye).
+
 ## L-265 first ghost only, body cells, doors (2026-11-28)
 
 `228eaedb` (DLL
