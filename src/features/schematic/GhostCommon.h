@@ -63,13 +63,5 @@ private:
     int x = 0, y = 0, z = 0;
 };
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on);
-#ifdef LAMIUM_GHOST_LOOK_TRIAL
-// L-421 trial build: the ghost look F8 cycles through. 0 tinted faces (as
-// released), 1 outlines only, 2 translucent faces at half, 3 at a third,
-// 4 and 5 tinted faces shrunk to 80% and 60%, 6 translucent at half and 80%.
-int lookTrial();
-inline float trialScale(int look) { return look == 4 || look == 6 ? .8f : look == 5 ? .6f : 1.f; }
-inline bool trialTranslucent(int look) { return look == 2 || look == 3 || look == 6; }
-#endif
 bool relaxedSameType(Block const& expected, Block const& actual, unsigned on);
 }

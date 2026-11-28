@@ -447,18 +447,14 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     out.signature = signatureOf(region, shown, key, entityMarks);
     out.layers = sectionLayersOf(slab, shown, key);
     out.complete = true;
-    auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
-    int trial = 0;
-    float shrink = 1.f;
-    bool translucent = false;
-#ifdef LAMIUM_GHOST_LOOK_TRIAL
-    trial = lookTrial();
-    shrink = trialScale(trial);
-    translucent = trialTranslucent(trial);
-#endif
-    // A shrunk ghost (trial) keeps every face: neighbors no longer touch it.
+    auto const& look = Runtime::instance().snapshot()->schematic;
+    auto const tint = faces::ghostTint(look.ghostTint);
+    // L-424: size and opacity. A shrunk ghost keeps every face, since its
+    // neighbors no longer touch it; a see-through one goes into the blended mesh.
+    float const shrink = faces::ghostScale(look.ghostSize);
+    bool const translucent = look.ghostOpacity < 100;
     Block const* airCell = nullptr;
-    std::vector<std::pair<size_t, size_t>> faded; // see-mesh vertex ranges made translucent (trial)
+    std::vector<std::pair<size_t, size_t>> faded; // see-mesh vertex ranges made see-through
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
     bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
     unsigned const relax = checkRules(); // L-262
@@ -559,10 +555,6 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 // camera sees, so it is never skipped as enclosed.
                 if (shrink >= 1.f && !camera.near({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
                 airCell = &actual;
-                if (trial == 1) {
-                    outlines.push_back({boxLow, boxHigh, .35f, .85f, 1.f});
-                    continue;
-                }
                 drawing = {x, y, z};
                 drawn = paletteIndex;
                 glm::vec3 shapeLow{1e9f}, shapeHigh{-1e9f};
@@ -636,7 +628,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     }
     finishColors(see, tint[0], tint[1], tint[2]);
     if (!faded.empty()) {
-        std::uint32_t const alpha = (trial == 2 ? 0x80u : 0x55u) << 24;
+        std::uint32_t const alpha = static_cast<std::uint32_t>(std::lround(look.ghostOpacity * 2.55)) << 24;
         auto& colors = see.mMeshData->mColors.get();
         for (auto [from, to] : faded)
             for (size_t v = from; v < to && v < colors.size(); ++v) colors[v] = (colors[v] & 0x00ffffffu) | alpha;
@@ -815,16 +807,16 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         // Ended either way, so the tessellator never stays open.
         see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
     }
-    // "None" (L-254) leaves out the light-blue ghost outlines; mistake and
-    // unknown-block outlines stay, thin.
-    int const lineChoice = Runtime::instance().snapshot()->schematic.ghostLines;
-    if (lineChoice == 3)
+    // Width 0, none (L-254), leaves out the light-blue ghost outlines;
+    // mistake and unknown-block outlines stay, thin. 1 is game lines, then bars.
+    int const lineWidth = look.ghostLineWidth;
+    if (lineWidth == 0)
         std::erase_if(outlines, [](Outline const& o) { return o.r == .35f && o.g == .85f && o.b == 1.f; });
     if (!outlines.empty()) {
         std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
         for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);
         constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
-        int const width = lineChoice == 3 ? 0 : lineChoice;
+        int const width = std::max(0, lineWidth - 1);
         // Thin: game lines; wider: bars as quads, drawn with the same material.
         int const perEdge = width > 0 ? 32 : 2;
         auto corners = [](Outline const& o, glm::vec3 grow, glm::vec3 shift, glm::vec3 (&c)[8]) {

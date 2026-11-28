@@ -358,7 +358,9 @@ Json encode(Settings const& settings) {
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
                        {"menuBackground", settings.schematic.menuBackground}, {"menuSmall", settings.schematic.menuSmall},
                        {"repeatAllSteps", settings.schematic.repeatAllSteps},
-                       {"ghostTintPercent", settings.schematic.ghostTint}, {"ghostLines", settings.schematic.ghostLines},
+                       {"ghostTintPercent", settings.schematic.ghostTint}, {"ghostLineWidth", settings.schematic.ghostLineWidth},
+                       {"ghostSizePercent", settings.schematic.ghostSize},
+                       {"ghostOpacityPercent", settings.schematic.ghostOpacity},
                        {"menuReopen", settings.schematic.menuReopen}, {"outlineDistance", settings.schematic.outlineDistance},
                        {"mistakeMarks", settings.schematic.mistakeMarks}, {"ignoreSignal", settings.schematic.ignoreSignal},
                        {"litAsState", settings.schematic.litAsState}, {"ignoreGrowth", settings.schematic.ignoreGrowth},
@@ -695,7 +697,12 @@ Settings decodeSettings(std::string_view text) {
         if (int choice = settingsValue(schematic, "ghostTint", -1); choice >= 0 && choice <= 2)
             value.schematic.ghostTint = std::array{100, 40, 0}[static_cast<size_t>(choice)];
         value.schematic.ghostTint = settingsValue(schematic, "ghostTintPercent", value.schematic.ghostTint);
-        value.schematic.ghostLines = settingsValue(schematic, "ghostLines", value.schematic.ghostLines);
+        // Before L-424 the width was a choice: 0 thin, 1 normal, 2 thick, 3 none.
+        if (schematic.contains("ghostLines"))
+            value.schematic.ghostLineWidth = std::array{1, 2, 3, 0}[static_cast<size_t>(std::clamp(settingsValue(schematic, "ghostLines", 1), 0, 3))];
+        value.schematic.ghostLineWidth = settingsValue(schematic, "ghostLineWidth", value.schematic.ghostLineWidth);
+        value.schematic.ghostSize = settingsValue(schematic, "ghostSizePercent", value.schematic.ghostSize);
+        value.schematic.ghostOpacity = settingsValue(schematic, "ghostOpacityPercent", value.schematic.ghostOpacity);
         value.schematic.menuSmall = settingsValue(schematic, "menuSmall", value.schematic.menuSmall);
         value.schematic.repeatAllSteps = settingsValue(schematic, "repeatAllSteps", value.schematic.repeatAllSteps);
         value.schematic.menuReopen = settingsValue(schematic, "menuReopen", value.schematic.menuReopen);

@@ -115,7 +115,8 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
                 || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed" || entry.key == "edgeMargin"
-                || entry.key == "mapWaypointDistance" || entry.key == "mapWaypointArrival" || entry.key == "schematicOutlineDistance")
+                || entry.key == "mapWaypointDistance" || entry.key == "mapWaypointArrival" || entry.key == "schematicOutlineDistance"
+                || entry.key == "schematicGhostSize" || entry.key == "schematicGhostOpacity")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             // Steps and parts as text (L-359).
             else if (entry.key == "schematic.raw.step") rendered = std::vformat(pattern, std::make_format_args(key, remaining, key));

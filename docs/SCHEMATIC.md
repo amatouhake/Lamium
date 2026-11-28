@@ -10,13 +10,14 @@ looked-at selection) are in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md).
 Open follow-ups are listed under BACKLOG.md's execution order (Schematic follow-ups); the first scope's record is [L-93 Schematic: load, place, project, verify and list materials (experimental)](backlog/done/L-93.md).
 
 Settings (Schematics category, `schematic.*`): `enabled` (with key and
-screen opener); menu and Repeat rows (SCHEMATIC-CONTROLS); `ghostTint`
-0-100% in 5% steps (70); `ghostLines` Thin / Normal / Thick / None (Normal);
-`outlineDistance` 0-192 in 16s (48, 0 draws all); Schematic HUD `hud` (off)
-with `hudVerify`, `hudMaterials` (on). Check heading: `mistakeMarks` (on),
-`litAsState`, then `ignoreSignal`, `ignoreGrowth`, `ignoreBlockEntities`,
-`ignoreSignText` (off), each with an optional key. Target Info: "Show
-schematic information" (`information.targetSchematic`, on).
+screen opener); menu and Repeat rows (SCHEMATIC-CONTROLS); Ghost look
+heading (L-424): `ghostTint` 0-100% (70), `ghostSize` 50-100% (100),
+`ghostOpacity` 10-100% (100, experimental), `ghostLineWidth` 0-5 (2, 1/64
+block), `outlineDistance` 0-192 in 16s (48, 0 draws all); Schematic HUD
+`hud` (off) with `hudVerify`, `hudMaterials` (on). Check heading:
+`mistakeMarks` (on), `litAsState`, then `ignoreSignal`, `ignoreGrowth`,
+`ignoreBlockEntities`, `ignoreSignText` (off), each with an optional key.
+Target Info: "Show schematic information" (`information.targetSchematic`, on).
 
 ## Behavior
 
@@ -76,11 +77,14 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
 ### Ghosts
 
 - Missing blocks are drawn as the real block model tinted light blue at
-  `ghostTint` with a light-blue outline (maintainer 2026-10-03: brightness
-  never follows the world's light, so a ghost in a cave reads as in
-  daylight). Outlines: Thin is game lines (one pixel), Normal and Thick are
-  solid bars on the edges, None draws no ghost outline (mistake marks keep
-  theirs, thin). Do not change the defaults without the maintainer (L-186).
+  `ghostTint` with a light-blue outline; brightness never follows the
+  world's light (maintainer 2026-10-03). Outline width: 0 none (mistake
+  marks keep theirs, thin), 1 game lines (one pixel), 2-5 bars 1/64 to
+  4/64 wide; saved `ghostLines` choices keep their look. Below 100% size a
+  ghost, its block actor and its outline shrink about the cell's centre
+  with every face kept, and it is aimed at only through its shrunk cell
+  (`rayMeetsBox` in `ghostAlong`); liquids stay whole. Below 100% opacity
+  faces blend (drawing order unstable). Defaults stay (L-186).
 - Where neighbors' bars meet, only the strongest result's copy is drawn within
   a section, slightly wider to cover the other across sections: wrong block >
   unknown block > wrong state > ghost/missing.
@@ -247,8 +251,7 @@ with the accent bar and shows progress as a percentage over a short bar
 background while the list is shown, "-" until done); when narrow, the name
 is cut first, then coordinates shorten or drop. Wherever a block or item is
 named, its icon comes first. With Schematics off, Check and Materials explain
-the off state (an unreadable file keeps its error first) and name the "Show
-and check" menu category.
+the off state (an unreadable file first says its error) and name "Show and check".
 
 ### Check tab review
 
@@ -258,10 +261,8 @@ and the selected mistake's details below, scrolling); the preview follows the
 kind filters; wheel zoom in both previews. Preview scope: view (turn, zoom,
 move, back to the whole, cut at a layer) and inspect (click a block for its
 name, states and result; in Check it picks the row). Editing blocks in the
-preview is a separate, later feature. Still open: how mistakes look in the
-preview and how the selected one is found inside a build, which wait for
-rendering work ([L-114 3D previews in the schematic screen](backlog/L-114.md),
-which also says how the previews are built).
+preview is a separate, later feature. Mistakes in the preview wait for
+[L-114 3D previews in the schematic screen](backlog/L-114.md).
 
 ## Code
 

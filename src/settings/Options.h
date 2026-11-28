@@ -13,6 +13,7 @@ struct NumericOption {
     void (*write)(Settings&, float);
     float step = 0; // > 0: shown as a slider that snaps to this step
     float secondary = 0; // > 0: the label also formats value * secondary (ticks -> seconds)
+    std::string_view const* names = nullptr; // set: whole values from minimum up shown by these translation keys
 };
 struct Option {
     std::string_view id;
@@ -91,7 +92,8 @@ inline constexpr std::array<std::string_view,3> menuBackgroundLabels{"menuBackgr
 inline constexpr std::array<std::string_view,4> freeCameraHideLabels{"freeCameraHide.nothing", "freeCameraHide.hand", "freeCameraHide.hotbar", "freeCameraHide.hud"};
 inline constexpr std::array<std::string_view,7> undergroundHoldLabels{"undergroundHold.0", "undergroundHold.1", "undergroundHold.3",
     "undergroundHold.5", "undergroundHold.10", "undergroundHold.30", "undergroundHold.always"};
-inline constexpr std::array<std::string_view,4> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick", "ghostLines.none"};
+inline constexpr std::array<std::string_view,6> ghostLineWidthLabels{"ghostLineWidth.none", "ghostLineWidth.pixel", "ghostLineWidth.bar1",
+                                                                     "ghostLineWidth.bar2", "ghostLineWidth.bar3", "ghostLineWidth.bar4"};
 // L-318: Tool Switch's drop priority, in inventory::DropPriority order.
 inline constexpr std::array<std::string_view,3> toolDropLabels{"toolDrop.speed", "toolDrop.fortune", "toolDrop.silk"};
 // A game HUD part (L-334): the game's own, placed by the layout, or hidden.
@@ -617,16 +619,28 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::worldMapNames>("map.worldMapNames", "worldMap", "worldMapNames"),
     toggle<&Settings::map, &Settings::Map::seedLink>("map.seedLink", "worldMap", "mapSeedLink"),
     toggle<&Settings::schematic, &Settings::Schematic::enabled>("schematic.enabled", "schematic", "schematicShown"),
-    {"schematic.ghostTint", "schematic", "schematicGhostTint",
+    {"schematic.ghostTint", "schematicLook", "schematicGhostTint",
         [](Settings const& s) -> OptionValue { return static_cast<float>(s.schematic.ghostTint); },
         [](Settings& s, int direction) { s.schematic.ghostTint += direction * 5; s.normalize(); },
         NumericOption{0, 100, [](Settings& s, float v) { s.schematic.ghostTint = static_cast<int>(std::lround(v)); }, 5}},
-    choice<&Settings::schematic, &Settings::Schematic::ghostLines, ghostLinesLabels>("schematic.ghostLines", "schematic", "schematicGhostLines"),
+    {"schematic.ghostSize", "schematicLook", "schematicGhostSize",
+        [](Settings const& s) -> OptionValue { return static_cast<float>(s.schematic.ghostSize); },
+        [](Settings& s, int direction) { s.schematic.ghostSize += direction * 10; s.normalize(); },
+        NumericOption{50, 100, [](Settings& s, float v) { s.schematic.ghostSize = static_cast<int>(std::lround(v)); }, 10}},
+    {"schematic.ghostOpacity", "schematicLook", "schematicGhostOpacity",
+        [](Settings const& s) -> OptionValue { return static_cast<float>(s.schematic.ghostOpacity); },
+        [](Settings& s, int direction) { s.schematic.ghostOpacity += direction * 10; s.normalize(); },
+        NumericOption{10, 100, [](Settings& s, float v) { s.schematic.ghostOpacity = static_cast<int>(std::lround(v)); }, 10}},
+    {"schematic.ghostLineWidth", "schematicLook", "schematicGhostLineWidth",
+        [](Settings const& s) -> OptionValue { return static_cast<float>(s.schematic.ghostLineWidth); },
+        [](Settings& s, int direction) { s.schematic.ghostLineWidth += direction; s.normalize(); },
+        NumericOption{0, 5, [](Settings& s, float v) { s.schematic.ghostLineWidth = static_cast<int>(std::lround(v)); }, 1, 0,
+                      ghostLineWidthLabels.data()}},
     choice<&Settings::schematic, &Settings::Schematic::menuBackground, menuBackgroundLabels>("schematic.menuBackground", "schematicMenu", "schematicMenuBackground"),
     toggle<&Settings::schematic, &Settings::Schematic::menuSmall>("schematic.menuSmall", "schematicMenu", "schematicMenuSmall"),
     toggle<&Settings::schematic, &Settings::Schematic::repeatAllSteps>("schematic.repeatAllSteps", "schematicRepeat", "schematicRepeatAll"),
     toggle<&Settings::schematic, &Settings::Schematic::menuReopen>("schematic.menuReopen", "schematicMenu", "schematicMenuReopen"),
-    {"schematic.outlineDistance", "schematic", "schematicOutlineDistance",
+    {"schematic.outlineDistance", "schematicLook", "schematicOutlineDistance",
         [](Settings const& s) -> OptionValue { return s.schematic.outlineDistance; },
         [](Settings& s, int direction) { s.schematic.outlineDistance += direction * 16.f; s.normalize(); },
         NumericOption{0, 192, [](Settings& s, float v) { s.schematic.outlineDistance = v; }, 16}},

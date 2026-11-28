@@ -396,16 +396,24 @@ void settingsStoreTests() {
     check(old.camera.freeCameraHide == 1 && decodeSettings(R"({"camera":{"freeCameraHide":3}})").camera.freeCameraHide == 3
               && decodeSettings(R"({"camera":{"freeCameraHide":8}})").camera.freeCameraHide == 3,
           "FreeCamera hides the hand by default; the setting loads and is clamped (L-191)");
-    check(old.schematic.ghostTint == 70 && old.schematic.ghostLines == 1,
-          "ghosts default to a 70% tint and normal outlines (L-186)");
+    check(old.schematic.ghostTint == 70 && old.schematic.ghostLineWidth == 2 && old.schematic.ghostSize == 100
+              && old.schematic.ghostOpacity == 100,
+          "ghosts default to a 70% tint, 1/64-block outlines, full size and opaque (L-186, L-424)");
     {
-        auto look = decodeSettings(R"({"schematic":{"ghostTintPercent":65,"ghostLines":2}})").schematic;
-        auto wild = decodeSettings(R"({"schematic":{"ghostTintPercent":190,"ghostLines":-3}})").schematic;
-        check(look.ghostTint == 65 && look.ghostLines == 2 && wild.ghostTint == 100 && wild.ghostLines == 0,
-              "the ghost tint and outline width load and are clamped");
-        check(decodeSettings(R"({"schematic":{"ghostLines":3}})").schematic.ghostLines == 3
-                  && decodeSettings(R"({"schematic":{"ghostLines":9}})").schematic.ghostLines == 3,
-              "None is the fourth outline width, after the saved three (L-254)");
+        auto look = decodeSettings(R"({"schematic":{"ghostTintPercent":65,"ghostLineWidth":4,"ghostSizePercent":60,"ghostOpacityPercent":50}})").schematic;
+        auto wild = decodeSettings(R"({"schematic":{"ghostTintPercent":190,"ghostLineWidth":-3,"ghostSizePercent":7,"ghostOpacityPercent":0}})").schematic;
+        check(look.ghostTint == 65 && look.ghostLineWidth == 4 && look.ghostSize == 60 && look.ghostOpacity == 50
+                  && wild.ghostTint == 100 && wild.ghostLineWidth == 0 && wild.ghostSize == 50 && wild.ghostOpacity == 10,
+              "the ghost tint, outline width, size and opacity load and are clamped");
+        check(decodeSettings(R"({"schematic":{"ghostSizePercent":73}})").schematic.ghostSize == 73
+                  && decodeSettings(R"({"schematic":{"ghostSizePercent":250}})").schematic.ghostSize == 100,
+              "a typed ghost size between the slider's steps is kept");
+        auto width = [](char const* json) { return decodeSettings(json).schematic.ghostLineWidth; };
+        check(width(R"({"schematic":{"ghostLines":0}})") == 1 && width(R"({"schematic":{"ghostLines":1}})") == 2
+                  && width(R"({"schematic":{"ghostLines":2}})") == 3 && width(R"({"schematic":{"ghostLines":3}})") == 0
+                  && width(R"({"schematic":{"ghostLines":9}})") == 0
+                  && width(R"({"schematic":{"ghostLines":0,"ghostLineWidth":5}})") == 5,
+              "the earlier thin, normal, thick and none outlines keep their look as widths 1, 2, 3 and 0 (L-424)");
         check(old.schematic.mistakeMarks && !decodeSettings(R"({"schematic":{"mistakeMarks":false}})").schematic.mistakeMarks,
               "mistake marks show by default and can be turned off (L-252)");
         auto relaxed = decodeSettings(R"({"schematic":{"ignoreSignal":true,"litAsState":true,"ignoreGrowth":true}})").schematic;
@@ -803,6 +811,11 @@ void settingsStoreTests() {
             check(!ui::translations::find(option.label, locale).empty(), "option labels exist");
         Settings edited;
         option.adjust(edited, 1);
+        // A setting whose default is its top (ghost size, L-424) is edited downward.
+        if (option.read(edited) == option.read(Settings{})) {
+            edited = Settings{};
+            option.adjust(edited, -1);
+        }
         check(option.read(edited) != option.read(Settings{}), "editing changes the target value");
         for (auto const& other : settings::options)
             if (other.id != option.id)

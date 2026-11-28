@@ -93,9 +93,10 @@ void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block co
 std::shared_ptr<BlockActor> makeBlockActor(Block const& block, BlockPos const& pos, nbt::Compound const* data,
                                            Placement const& placement, BlockSource& region);
 // Draws a ghost block actor at full brightness, against `view`, which must
-// answer the ghost's block at `worldPos` (a banner's mount, a head's kind).
+// answer the ghost's block at `worldPos` (a banner's mount, a head's kind),
+// shrunk about its cell's centre to `scale` (L-424).
 void renderBlockActor(BaseActorRenderContext& context, SchematicRegion& view, BlockActor& actor, Block const& block,
-                      Vec3 const& renderPos, BlockPos const& worldPos);
+                      Vec3 const& renderPos, BlockPos const& worldPos, float scale = 1.f);
 // 1 for water, 2 for lava, 0 for anything else.
 int liquidKind(Block const& block);
 // A liquid block's liquid_depth (0 for a source or anything else).

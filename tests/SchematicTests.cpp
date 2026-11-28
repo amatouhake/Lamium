@@ -1518,8 +1518,22 @@ void ghostLook() {
           "the tint runs from none at 0% to the earlier strong look at 100%");
     using lamium::schematic::faces::barHalfWidth;
     using lamium::schematic::faces::barQuads;
-    check(barHalfWidth(0) == 0.f && barHalfWidth(2) > barHalfWidth(1) && barHalfWidth(1) > 0.f,
-          "thin is a game line, normal and thick are bars of growing width");
+    check(barHalfWidth(0) == 0.f && barHalfWidth(2) > barHalfWidth(1) && barHalfWidth(1) > 0.f
+              && std::abs(barHalfWidth(1) * 2 - 1.f / 64) < 1e-7f && std::abs(barHalfWidth(4) * 2 - 4.f / 64) < 1e-7f,
+          "width 0 is a game line, then bars a 64th of a block wider each step (L-424)");
+    using lamium::schematic::faces::ghostScale;
+    check(ghostScale(100) == 1.f && ghostScale(60) == .6f && ghostScale(20) == .5f && ghostScale(140) == 1.f,
+          "the ghost size runs from half a cell to the whole cell (L-424)");
+    using lamium::schematic::faces::rayMeetsBox;
+    // A 60% ghost in the cell at the origin: centre .5, half size .3.
+    std::array<double, 3> low{.2, .2, .2}, high{.8, .8, .8};
+    check(rayMeetsBox({-2, .5, .5}, {1, 0, 0}, low, high, 5) && !rayMeetsBox({-2, .1, .5}, {1, 0, 0}, low, high, 5)
+              && !rayMeetsBox({-2, .5, .5}, {1, 0, 0}, low, high, 2) && rayMeetsBox({-2, .5, .5}, {3, 0, 0}, low, high, 2.3)
+              && !rayMeetsBox({-2, .5, .5}, {-1, 0, 0}, low, high, 5) && rayMeetsBox({.5, .5, .5}, {0, 1, 0}, low, high, 0)
+              && !rayMeetsBox({-2, .5, .5}, {0, 0, 0}, low, high, 5),
+          "a ray meets a shrunk ghost only through its box, within reach and ahead of it");
+    check(rayMeetsBox({-1, -1, .5}, {1, 1, 0}, low, high, 5) && !rayMeetsBox({-1, -.3, .5}, {1, 1, 0}, low, high, 5),
+          "a slanted ray through the gap beside a shrunk ghost passes it by");
     auto bar = barQuads({0, 0, 0}, {1, 0, 0}, .01f);
     bool around = bar.size() == 32;
     for (auto const& v : bar) around = around && (v[0] == 0.f || v[0] == 1.f) && std::abs(std::abs(v[1]) - .01f) < 1e-6f

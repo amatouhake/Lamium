@@ -373,9 +373,9 @@ std::vector<bool> draw(ScreenContext& screen, IClientInstance& client, Vec3 cons
         // Geometry x is mirrored in the world: the game draws the compiled
         // (y-flipped) cubes with a proper transform, so x flips too.
         base = glm::scale(glm::rotate(base, glm::radians(180.f - spot.yaw), glm::vec3{0, 1, 0}), glm::vec3{-1.f / 16, 1.f / 16, 1.f / 16});
-        // "None" (L-254) draws no light-blue ghost outlines, entity ghosts
-        // included: the help text promises none (L-279).
-        bool const outlineGhost = outlines && Runtime::instance().snapshot()->schematic.ghostLines != 3;
+        // Width 0, none (L-254), draws no light-blue ghost outlines, entity
+        // ghosts included: the help text promises none (L-279).
+        bool const outlineGhost = outlines && Runtime::instance().snapshot()->schematic.ghostLineWidth != 0;
         Tessellator faces(screen.tessellator.mBufferResourceService), lines(screen.tessellator.mBufferResourceService);
         faces.begin({}, mce::PrimitiveMode::QuadList, cubes * 48, false);
         if (outlineGhost) {

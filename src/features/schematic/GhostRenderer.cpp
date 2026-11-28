@@ -1,4 +1,5 @@
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/GhostFaces.h"
 #include "mc/world/level/block/actor/BlockActorType.h"
 #include "features/schematic/AreaSave.h"
 #include "features/schematic/PlacementOverlap.h"
@@ -546,6 +547,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     // actors set up their own after): the per-section setups and draws were
     // the largest fixed cost with many large placements (C, measured).
     float const lineDistance = Runtime::instance().snapshot()->schematic.outlineDistance; // 0: no limit
+    float const actorScale = faces::ghostScale(Runtime::instance().snapshot()->schematic.ghostSize); // L-424
     std::vector<std::pair<SectionKey const*, Section*>> shown;
     for (auto& [key, section] : sections)
         if (inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) shown.push_back({&key, &section});
@@ -614,7 +616,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                                        snapshot.placements[static_cast<size_t>(std::get<0>(key))].placement.placement, region);
             if (!*actor) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
-            renderBlockActor(context, *actorView, **actor, *block, renderPos, pos);
+            renderBlockActor(context, *actorView, **actor, *block, renderPos, pos, actorScale);
         }
     }
     if (actorView) actorView->answer = nullptr;
@@ -877,16 +879,13 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
     stepPick(*player);
     try {
         // A new graphics mode rebuilds the sections (mistake faces differ).
-        // The graphics mode, the ghost tint, the outline width, the mistake
-        // marks and the check relaxations are built into the sections: a
-        // change rebuilds them.
+        // The graphics mode, the ghost look (tint, outline width, size,
+        // opacity), the mistake marks and the check relaxations are built
+        // into the sections: a change rebuilds them.
         auto const& look = runtime.snapshot()->schematic;
         int graphics = static_cast<int>(client.getOptions().getGraphicsMode());
-        int trialLook = 0;
-#ifdef LAMIUM_GHOST_LOOK_TRIAL
-        trialLook = lookTrial();
-#endif
-        if (int mode = ((((graphics * 101 + look.ghostTint) * 4 + look.ghostLines) * 2 + look.mistakeMarks) * 8 + static_cast<int>(checkRules())) * 8 + trialLook;
+        if (int mode = (((((graphics * 101 + look.ghostTint) * 6 + look.ghostLineWidth) * 51 + look.ghostSize - 50) * 91
+                         + look.ghostOpacity - 10) * 2 + look.mistakeMarks) * 8 + static_cast<int>(checkRules());
             mode != lastGraphicsMode) {
             if (lastGraphicsMode >= 0) release();
             lastGraphicsMode = mode;
@@ -919,6 +918,8 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return std::nullopt;
     auto snapshot = session::snapshot();
+    // A shrunk ghost is aimed at only through its drawn box (L-424).
+    double const half = faces::ghostScale(runtime.snapshot()->schematic.ghostSize) / 2.;
     for (auto const& cell : CellWalk(x, y, z, dx, dy, dz, reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!region.getChunkAt(pos)) return std::nullopt;
@@ -928,6 +929,12 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
         if (Block const& real = region.getBlock(pos); !real.isAir() && !liquidKind(real)) {
             if (throughBlocks) continue;
             return std::nullopt;
+        }
+        if (half < .5) {
+            std::array<double, 3> const center{cell.x + .5, cell.y + .5, cell.z + .5};
+            if (!faces::rayMeetsBox({x, y, z}, {dx, dy, dz}, {center[0] - half, center[1] - half, center[2] - half},
+                                    {center[0] + half, center[1] + half, center[2] + half}, reach))
+                continue;
         }
         for (size_t i = 0; i < snapshot.placements.size() && i < resolved.size(); ++i) {
             auto const& shown = snapshot.placements[i];
@@ -991,35 +998,3 @@ void stop() {
 }
 void invalidateResources() { releaseRequested = true; }
 }
-
-#ifdef LAMIUM_GHOST_LOOK_TRIAL
-#include "ll/api/event/EventBus.h"
-#include "ll/api/event/input/KeyInputEvent.h"
-#include "ui/Toast.h"
-#include <atomic>
-namespace lamium::schematic::ghosts {
-namespace {
-std::atomic<int> trialLookValue{0};
-ll::event::ListenerPtr trialKey;
-// Registered on first use; F8 down cycles the look and names it.
-struct TrialKey {
-    TrialKey() {
-        trialKey = ll::event::EventBus::getInstance().emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
-            if (event.keyCode() != 0x77 || !event.isDown()) return;
-            int const next = (trialLookValue.load() + 1) % 7;
-            trialLookValue = next;
-            static constexpr char const* names[] = {"L-421: tinted faces", "L-421: outlines only", "L-421: translucent 50%",
-                                                    "L-421: translucent 30%", "L-421: tinted, 80% size", "L-421: tinted, 60% size",
-                                                    "L-421: translucent 50%, 80% size"};
-            try { ui::showMessageToast(names[next], 1.5); } catch (...) {}
-            event.cancel();
-        });
-    }
-};
-}
-int lookTrial() {
-    static TrialKey key;
-    return trialLookValue.load();
-}
-}
-#endif

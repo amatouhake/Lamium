@@ -240,12 +240,17 @@ struct Settings {
         bool menuReopen = false;  // Reopen where it was closed instead of at the list.
         float outlineDistance = 48; // Ghost outlines up to this many blocks away; 0 draws them all.
         // L-186: the light-blue tint over ghost textures in percent (100 is
-        // the look before 2026-10-15, 0 none); and the outline width, 0 thin
-        // (one pixel), 1 normal, 2 thick, 3 none (L-254: mistake outlines
-        // stay, thin).
+        // the look before 2026-10-15, 0 none).
         // Defaults chosen by the maintainer 2026-10-15: the block and that it is a ghost both read well.
         int ghostTint = 70;
-        int ghostLines = 1;
+        // L-424: the outline width, 0 none (mistake outlines stay, thin), 1
+        // game lines (one pixel), 2-5 bars 1/64 to 4/64 block wide. 2 is the
+        // former Normal.
+        int ghostLineWidth = 2;
+        // L-424: ghosts drawn and aimed at this percent of their cell; and
+        // their faces' opacity (experimental: below 100 they blend, and the
+        // drawing order shifts with the view).
+        int ghostSize = 100, ghostOpacity = 100;
         bool mistakeMarks = true; // L-252: red/yellow boxes in the world; the check runs either way.
         // L-262: how the check relaxes (features/schematic/CheckRules.h); the
         // off and on forms of a redstone block are a state mistake, not a wrong block.
@@ -423,7 +428,9 @@ struct Settings {
         camera.freeCameraHide = std::clamp(camera.freeCameraHide, 0, 3);
         camera.freeCameraUndergroundHold = std::clamp(camera.freeCameraUndergroundHold, 0, 6);
         schematic.ghostTint = std::clamp(schematic.ghostTint, 0, 100);
-        schematic.ghostLines = std::clamp(schematic.ghostLines, 0, 3);
+        schematic.ghostLineWidth = std::clamp(schematic.ghostLineWidth, 0, 5);
+        schematic.ghostSize = std::clamp(schematic.ghostSize, 50, 100);
+        schematic.ghostOpacity = std::clamp(schematic.ghostOpacity, 10, 100);
         if (!std::isfinite(schematic.outlineDistance)) schematic.outlineDistance = 48;
         schematic.outlineDistance = std::clamp(std::round(schematic.outlineDistance / 16) * 16, 0.f, 192.f);
         information.debugBackground = std::clamp(information.debugBackground, 0, 1);

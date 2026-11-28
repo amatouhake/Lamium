@@ -34,7 +34,7 @@ inline constexpr std::string_view information[] = {"infoHud", "targetInfo", "pla
 inline constexpr std::string_view handStatus[] = {"durabilityHud", "inventoryHud", "usedSlots", "offhandSlot", "saturation", "statusEffects"};
 inline constexpr std::string_view inWorld[] = {"chunkBorders", "hitboxes", "lightOverlay", "shapes", "blockHighlight"};
 inline constexpr std::string_view map[] = {"minimap", "mapText", "mapMarks", "radar", "slimeChunks", "waypoints", "worldMap"};
-inline constexpr std::string_view schematics[] = {"schematic", "schematicMenu", "schematicRepeat", "schematicCheck", "schematicAssist", "schematicHud",
+inline constexpr std::string_view schematics[] = {"schematic", "schematicMenu", "schematicRepeat", "schematicLook", "schematicCheck", "schematicAssist", "schematicHud",
     "schematicMove", "schematicPlacement", "schematicLayers", "schematicShow", "schematicSave", "schematicScreen"};
 inline constexpr std::string_view itemScreens[] = {"previews", "itemDetails", "englishSearch", "sorting", "transfer", "lockedTrades",
     "repeatTrades", "enchantOrder", "bookPaste"};
@@ -143,7 +143,9 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     // The menu and the adjust key first: where to start (L-93, 2026-10-07).
     {"schematicMenu", "feature.schematicMenu", "help.schematicMenu", "", false, input::Action::SchematicMenu},
     {"schematicRepeat", "key.Lamium.adjustschematic", "help.key.adjustschematic", "", false, input::Action::AdjustSchematic},
-    // What counts as a mistake and how it shows (L-266), without a switch of its own.
+    // How one ghost is drawn (L-424), then what counts as a mistake and how
+    // it shows (L-266), neither with a switch of its own.
+    {"schematicLook", "feature.schematicLook", "help.schematicLook", ""},
     {"schematicCheck", "feature.schematicCheck", "help.schematicCheck", ""},
     {"schematicAssist", "feature.schematicAssist", "help.schematicAssist", "schematic.placementAssist", true, input::Action::TogglePlacementAssist},
     {"schematicHud", "feature.schematicHud", "help.schematicHud", "schematic.hud", true, input::Action::ToggleSchematicHud},
@@ -564,6 +566,10 @@ std::string optionValueText(settings::Option const& option, settings::OptionValu
     try {
         if (auto choice = std::get_if<settings::ChoiceValue>(&value)) return std::string(translate(choice->label));
         if (auto number = std::get_if<float>(&value)) {
+            if (option.numeric && option.numeric->names)
+                return std::string(translate(option.numeric->names[static_cast<size_t>(
+                    std::clamp(std::lround(*number - option.numeric->minimum), 0L,
+                               std::lround(option.numeric->maximum - option.numeric->minimum)))]));
             float secondary = option.numeric ? *number * option.numeric->secondary : 0;
             return std::vformat(pattern, std::make_format_args(*number, secondary));
         }

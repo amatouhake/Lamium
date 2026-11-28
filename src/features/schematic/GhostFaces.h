@@ -22,10 +22,35 @@ inline constexpr std::array<float, 3> ghostTint(int percent) {
     float t = static_cast<float>(std::clamp(percent, 0, 100)) / 100.f;
     return {1.f - .38f * t, 1.f - .15f * t, 1.f};
 }
-// Half the width of a normal or thick outline bar, in blocks; 0 for thin
-// (game lines). Copies of a line at small offsets left visible gaps up
-// close (2026-10-15), so wider outlines are square bars.
-inline constexpr float barHalfWidth(int width) { return width <= 0 ? 0.f : width == 1 ? .008f : .016f; }
+// Half the width of an outline bar `width` 64ths of a block wide; 0 for
+// game lines. Copies of a line at small offsets left visible gaps up close
+// (2026-10-15), so wider outlines are square bars.
+inline constexpr float barHalfWidth(int width) { return width <= 0 ? 0.f : .0078125f * static_cast<float>(width); }
+// The share of its cell a ghost is drawn and aimed at (L-424), from the
+// size setting in percent.
+inline constexpr float ghostScale(int percent) { return percent >= 100 ? 1.f : percent <= 50 ? .5f : static_cast<float>(percent) / 100.f; }
+// Whether a ray from `from` along `along` meets the box [low, high] within
+// `reach` blocks: a shrunk ghost is aimed at only where it is drawn, so the
+// ray may pass between ghosts (L-424).
+inline bool rayMeetsBox(std::array<double, 3> from, std::array<double, 3> along, std::array<double, 3> low,
+                        std::array<double, 3> high, double reach) {
+    double const length = std::sqrt(along[0] * along[0] + along[1] * along[1] + along[2] * along[2]);
+    if (!(length > 0) || !(reach >= 0)) return false;
+    double enter = 0, leave = reach;
+    for (int i = 0; i < 3; ++i) {
+        double const step = along[i] / length;
+        if (std::abs(step) < 1e-12) {
+            if (from[i] < low[i] || from[i] > high[i]) return false;
+            continue;
+        }
+        double a = (low[i] - from[i]) / step, b = (high[i] - from[i]) / step;
+        if (a > b) std::swap(a, b);
+        enter = std::max(enter, a);
+        leave = std::min(leave, b);
+        if (enter > leave) return false;
+    }
+    return true;
+}
 // Neighbors' bars share an edge. Coplanar bars of two colors flickered, so a
 // stronger mistake's bar is a little wider and encloses the weaker one: wrong
 // block (red) over unknown block (orange) over wrong state (yellow) over a
