@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 held repeat, swaps, fences, any item (2026-11-28)
+
+`06c82e27` built with `assist_trace` (DLL
+`2606da64f09771f5cd7bfcd1c55dadcc484028306b3eb24353d3dc616270d6c5`),
+1.26.60.05 Dev, local world, the maintainer. Seen: a held press keeps
+placing from ghost to ghost, also at far-hit angles (13 repeats in the
+trace, all taken); a block from the inventory stays placed and stays in the
+hotbar (no readback as air this run); fences place before their
+neighbors; a wall button places where its wall is there, else a toast; a
+tool or food in hand places on a ghost and works as usual off it.
+Remarks: where a ghost cannot be placed the hand still seems to switch to
+its block for a moment (the block is brought before the placement is
+checked); standing right against a fence the assist sometimes did nothing
+(the trace had hit its 400-line cap by then). The log shows a refusal
+logged and toasted every ~0.2 s while held: `stopBuildBlock`, called every
+tick, clears the refusal.
+
 ## L-424 aiming by the outline, L-265 findings (2026-11-28)
 
 `9993902c` built with `assist_trace` (DLL
