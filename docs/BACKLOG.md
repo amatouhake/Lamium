@@ -195,6 +195,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Ready): Paused until L-421's placing view is designed (2026-11-28); off by default
 - [L-421](backlog/L-421.md) Schematic building view: what is shown and aimed at while placing (Design): Purpose agreed, stages dropped, look trials seen (2026-11-28); look options and layer switching are next
 - [L-422](backlog/L-422.md) Schematic materials before placing, with their raw materials (Design): Open; after L-421 (maintainer 2026-11-28)
+- [L-423](backlog/L-423.md) Schematic in-world 3D interaction: touch the placement to change it (Design / Research): Open; idea agreed as its own item (maintainer 2026-11-28)
 - [L-414](backlog/L-414.md) Redstone power level overlay (Research): Open; first step is finding why the resource pack way stopped working
 - [L-416](backlog/L-416.md) Settings rows: names and placement made consistent (Design): Open, not started (from L-342, rechecked in code 2026-11-28)
 - [L-417](backlog/L-417.md) Keyboard and Esc behave alike on every page (Design): Open, not started; the Tab bug can be fixed first (from L-342, rechecked 2026-11-28)
