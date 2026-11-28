@@ -45,8 +45,9 @@ Decided by the maintainer on 2026-11-28.
   movement stays the same; the next one carries the real look again.
   Where no neighbor, click and look give the ghost's state, nothing is
   placed.
-- **Held block.** When the hand does not hold the ghost's block, it is
-  brought into the hand first with the ghost pick's step (hotbar slot, else
+- **Held block.** When the hand does not hold the ghost's block and the
+  ghost can be placed (checked first, so the hand never switches where
+  nothing places), it is brought into the hand with the ghost pick's step (hotbar slot, else
   from the inventory; in creative given when the creative inventory lists
   it). When it is not carried, nothing is placed. A block that came by a
   swap or a give is placed two auth inputs later: sent at once, the
@@ -60,7 +61,7 @@ Decided by the maintainer on 2026-11-28.
   calls it every tick while nothing is held). A press the assist took stays its
   own until the button is let go: where no ghost is aimed meanwhile,
   nothing is placed (vanilla's held placement had put blocks the schematic
-  does not have). A refusal is not repeated while the button stays held. Placements that need a faked
+  does not have). A refusal is said again only after 1 s while the button stays held. Placements that need a faked
   look need no slower rate (the fifth trace showed none at 0.1 s).
 - **Feedback.** When the assist places nothing, a short Lamium toast says
   why: "Not carried: <block>" or "Cannot be placed in this state from
@@ -90,13 +91,13 @@ Decided by the maintainer on 2026-11-28.
   (`ghosts::aimedGhost`), leaves a cell holding a block that cannot be
   built over to vanilla, refuses a second half (a door's top, a bed's head:
   `describe(...).perBlock == 0`),
-  brings the ghost's item into the hand (`inventory::bringToHand`, in
-  creative `giveToHand`), then asks the held block's
-  `getPlacementBlock` for each candidate (local rotation set for faked
-  looks; the player's own look is the one last sent) and keeps the first
-  that `placesAs` the ghost. A refusal (and a placement read back as not
-  the ghost's) is kept for that cell until the button is let go
-  (`PlacementAssistStopBuild`) or for a second, so a held button does not
+  asks the ghost item's block `getPlacementBlock` for each candidate (local
+  rotation set for faked looks; the player's own look is the one last
+  sent) and keeps the first that `placesAs` the ghost, then brings the
+  item into the hand (`inventory::bringToHand`, in creative
+  `giveToHand`). A refusal (and a placement read back as not the ghost's)
+  is kept for that cell for a second (not cleared by
+  `PlacementAssistStopBuild`, which runs every tick while nothing is built), so a held button does not
   ask again every tick; the log names the first state that differed, or
   the six neighbors when none can be clicked. `ghostAlong` takes an
   `accept` test, so the search walks past ghosts with no clickable

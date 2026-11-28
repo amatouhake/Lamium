@@ -137,11 +137,11 @@ bool meetsNoBlock(HitResult const& hit, Player& actor) {
 // a logged press.
 void tracePress(char const* call, bool taken) noexcept {
     static int lines = 0;
-    static bool pressed = false;
+    static bool pressed = false; // a release is logged only after a logged press
     bool const release = std::string_view{call}.starts_with("stopBuildBlock");
     if (release && !pressed) return;
     pressed = !release;
-    if (++lines > 400) return;
+    if (++lines > 3000) return;
     try {
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
@@ -295,6 +295,40 @@ bool takePress(Player& actor) noexcept {
         };
         // A second half (a door's top, a bed's head) comes with its first.
         if (info.perBlock == 0) return refuse("schematic.assist.noWay");
+        // Whether and how it can be placed, asked of the ghost's own item
+        // before the hand changes: nothing switches where nothing places.
+        Block const* placed = stack.mBlock;
+        if (!placed) return decline("no block for the item");
+        std::array<bool, 6> const clickable = clickableAround(cell);
+        Vec2 const rot = lastSentLook.value_or(player->getRotation());
+        std::string const wantName = nameOf(want);
+        States const wantStates = ghosts::blockStates(want);
+        std::string difference;
+        std::optional<Candidate> chosen;
+        for (Candidate const& c : candidates(clickable, rot.x, rot.y)) {
+            Vec3 const click{c.click[0], c.click[1], c.click[2]};
+            Block const* predicted = nullptr;
+            {
+                AsLook const look(*player, c.look);
+                predicted = &placed->getBlockType().getPlacementBlock(*player, cell, c.face, click, aux);
+            }
+            std::string const predictedName = nameOf(*predicted);
+            States const predictedStates = ghosts::blockStates(*predicted);
+            if (placesAs(predictedName, predictedStates, wantName, wantStates)) {
+                chosen = c;
+                break;
+            }
+            if (difference.empty()) difference = predictedName != wantName ? predictedName : firstDifference(predictedStates, wantStates);
+        }
+        if (!chosen) {
+            std::string around;
+            for (unsigned char dir = 0; dir < 6; ++dir)
+                around += std::format("{}{}{}", dir ? ", " : "", nameOf(region.getBlock(step(cell, dir))), clickable[dir] ? "" : " (no)");
+            if (difference.empty()) difference = "no neighbor to click among " + around;
+            else difference += "; neighbors " + around;
+            log(std::format("cannot place {} at {},{},{}: {}", wantName, cell.x, cell.y, cell.z, difference));
+            return refuse("schematic.assist.noWay");
+        }
         bool swapped = false;
         if (!holds(*player, item, aux)) {
             int const selectedWas = player->mInventory->mSelected;
@@ -308,45 +342,19 @@ bool takePress(Player& actor) noexcept {
             // A swap into the selected slot or a creative give went as a transaction.
             swapped = given || slot == selectedWas;
         }
-        Block const* placed = player->getSelectedItem().mBlock;
-        if (!placed) return decline("hand holds no block after the pick");
-        std::array<bool, 6> const clickable = clickableAround(cell);
-        Vec2 const rot = lastSentLook.value_or(player->getRotation());
-        std::string const wantName = nameOf(want);
-        States const wantStates = ghosts::blockStates(want);
-        std::string difference;
-        for (Candidate const& c : candidates(clickable, rot.x, rot.y)) {
-            Vec3 const click{c.click[0], c.click[1], c.click[2]};
-            Block const* predicted = nullptr;
-            {
-                AsLook const look(*player, c.look);
-                predicted = &placed->getBlockType().getPlacementBlock(*player, cell, c.face, click, aux);
-            }
-            std::string const predictedName = nameOf(*predicted);
-            States const predictedStates = ghosts::blockStates(*predicted);
-            if (!placesAs(predictedName, predictedStates, wantName, wantStates)) {
-                if (difference.empty())
-                    difference = predictedName != wantName ? predictedName : firstDifference(predictedStates, wantStates);
-                continue;
-            }
-            refused.reset();
-            pending = Pending{cell, step(cell, c.dir), c.face, click, c.look, item, aux, static_cast<int>(player->getDimensionId()),
-                              wantName, wantStates};
-            pending->swapped = swapped;
-            if (swapped) pending->waitAuths = 2;
-            if (!c.look.faked && !swapped) {
-                pending->queued = true;
-                ll::thread::ClientThreadExecutor::getDefault().execute([] { placeNow(); });
-            }
-            return true;
+        if (!player->getSelectedItem().mBlock) return decline("hand holds no block after the pick");
+        Candidate const& c = *chosen;
+        Vec3 const click{c.click[0], c.click[1], c.click[2]};
+        refused.reset();
+        pending = Pending{cell, step(cell, c.dir), c.face, click, c.look, item, aux, static_cast<int>(player->getDimensionId()),
+                          wantName, wantStates};
+        pending->swapped = swapped;
+        if (swapped) pending->waitAuths = 2;
+        if (!c.look.faked && !swapped) {
+            pending->queued = true;
+            ll::thread::ClientThreadExecutor::getDefault().execute([] { placeNow(); });
         }
-        std::string around;
-        for (unsigned char dir = 0; dir < 6; ++dir)
-            around += std::format("{}{}{}", dir ? ", " : "", nameOf(region.getBlock(step(cell, dir))), clickable[dir] ? "" : " (no)");
-        if (difference.empty()) difference = "no neighbor to click among " + around;
-        else difference += "; neighbors " + around;
-        log(std::format("cannot place {} at {},{},{}: {}", wantName, cell.x, cell.y, cell.z, difference));
-        return refuse("schematic.assist.noWay");
+        return true;
     } catch (...) { return decline("exception"); }
 }
 }
@@ -540,7 +548,9 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistStopBuild, ll::memory::HookPriority::Highes
             ASSIST_TRACE("stopBuildBlock (released)", false);
             holding = false;
             pressTaken.reset();
-            refused.reset();
+            // The refusal stays for refusalKept: the game calls this every
+            // tick while nothing is built, so clearing it here toasted and
+            // logged a refusal every 0.2 s while held (2026-11-28 log).
         }
     } catch (...) {}
     origin();
