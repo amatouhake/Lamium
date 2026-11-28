@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 swap revert, second trace (2026-11-28)
+
+`17aff9d1` built with `assist_trace` (DLL
+`1586bf359c7646b9c0eaf85158a22e886b07e6bf5b160a5e544bef6cb7204b79`),
+1.26.60.05 Dev, local world, the maintainer: reverts only when aiming far
+off (about 23:13-23:14). The failed try sent no normal transaction for the
+swap at all (neither `send` nor `sendToServer`), then the game's item use
+in the air, then the server's inventory resync put oak logs back. Tries
+that worked sent the swap's transaction first, then the air use and the
+placement, which the server confirmed. Two placed blocks became air 1.5-2.4
+s later (cause not seen; possibly broken by hand between tries).
+
 ## L-265 swap revert trace (2026-11-28)
 
 `96c0f455` built with `assist_trace` (DLL
