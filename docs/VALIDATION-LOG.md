@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 inventory blocks placed (2026-11-28)
+
+`83e3da7e` built with `assist_trace` (DLL
+`0013e8bc1922bfe9f58501cb399a2dd8ab7901f66e6d3b7be2de1715b5b9774e`),
+1.26.60.05 Dev, local world, the maintainer. Seen: Tool Switch from the
+inventory and Hand Restock work again; a block carried only in the
+inventory is swapped in and placed and stays, aiming far off, at a block,
+and bare-handed at a block (12 swaps in the trace, each with its
+transaction sent first); toasts only where nothing could be placed. Still:
+a bare hand aimed far off does nothing (no item use to hook).
+
 ## L-265 swap a tick later; moves undone (2026-11-28)
 
 `6cb0609d` built with `assist_trace` (DLL
