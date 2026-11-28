@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-265 outline before the press (2026-11-28)
+
+`52fba212` (DLL
+`88c0ecbfa9e5af95196ea0d3381a010f3e89ca628848e3945ca6274a3dc62004`),
+1.26.60.05 Dev, local world, the maintainer. Seen: the ghost a press
+would place gets the white outline and is placed; red where it cannot be
+placed; gone with the assist off; the outline sits just outside the
+ghost's at 60% and 100% and every width. Found: a door was red even on
+its lower half (its item is no block, so the plan stopped at "no item");
+the target jumped between front and back ghosts and to cells the body
+overlapped (the code still walked past unplaceable ghosts, against the
+decision). An inventory-only block reverted again (22:25:15-30); the log
+ends at 22:25:21 with no readback line.
+
 ## L-265 faster held repeat (2026-11-28)
 
 `d2af2279` (DLL
