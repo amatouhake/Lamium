@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-421 shrunk ghost trial (2026-11-28)
+
+`65c3a603` built with `ghost_look_trial` (DLL
+`18cf7cdb0f83abac67c3eb2742cbfb8d268a5018aef5bf6c070bd699e5476037`),
+1.26.60.05 Dev, local world, the maintainer. F8 also cycled tinted faces
+at 80% and 60% size and translucent 50% at 80% size.
+- Tinted 60%: easy to read; tinted 80%: fairly easy; translucent at 80%:
+  hard to read. Every look keeps the light-blue outline, so a ghost is
+  never taken for a real block.
+- Finding where to place: about the same as at full size.
+- No holes in shrunk ghosts; stairs and fences kept their shape.
+- Translucent at 80%: drawing order seemed to swap less, but some faces
+  appear or vanish with distance, so it is still unstable.
+- Large placement in the whole view: no change in speed (already slow).
+
 ## L-421 ghost look trial (2026-11-28)
 
 `67304ad4` built with `ghost_look_trial` (DLL
