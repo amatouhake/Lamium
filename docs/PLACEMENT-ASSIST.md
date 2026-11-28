@@ -136,8 +136,8 @@ From the five L-265 traces of 2026-11-28 (VALIDATION-LOG), local world,
   face; slabs: half from the click height; logs: axis from the face.
 - A use press that meets no block still reaches `GameMode::useItem` (hit
   type NoHit): the trigger for a ghost with air behind. The game's hit may
-  also be a block far past reach with no outline (2026-11-28), taken the
-  same way (`meetsNoBlock`; to confirm by trace).
+  also be a block or an entity past reach with no outline (2026-11-28),
+  taken the same way (`meetsNoBlock`; blocks seen placing).
 - Not shown yet: a pick followed by a placement; data-driven blocks.
 
 ## Tried

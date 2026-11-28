@@ -100,13 +100,17 @@ bool on() {
     return runtime.enabled() && s.enabled && s.placementAssist && versionSensitiveAllowed(capabilities::Id::PlacementAssist);
 }
 LocalPlayer* localPlayer();
+// Why the last press was left to vanilla, for the trace.
+char const* declined = "";
+bool decline(char const* why) { declined = why; return false; }
 // Whether the game's hit is no block the player can use: nothing, or a block
-// beyond the pick range (L-265: the press then reaches only the item use).
+// or entity beyond the pick range (L-265: the press then reaches only the
+// item use; traces 2026-11-28 saw blocks 30-68 and entities 21-25 away).
 bool meetsNoBlock(HitResult const& hit, Player& actor) {
     auto* player = localPlayer();
     if (!player || static_cast<Player*>(player) != &actor) return false;
-    if (hit.mType == HitResultType::NoHit) return true;
-    if (hit.mType != HitResultType::Tile || hit.mIndirectHit) return false;
+    if (hit.mType == HitResultType::NoHit || hit.mType == HitResultType::EntityOutOfRange) return true;
+    if (hit.mIndirectHit) return false;
     double const ex = hit.mPos.x - hit.mStartPos.x, ey = hit.mPos.y - hit.mStartPos.y, ez = hit.mPos.z - hit.mStartPos.z;
     return std::sqrt(ex * ex + ey * ey + ez * ez) > player->getPickRange() + 1e-3;
 }
@@ -131,8 +135,8 @@ void tracePress(char const* call, bool taken) noexcept {
         auto ghost = ghosts::aimedGhost(*player, hit);
         Vec2 const rot = player->getRotation();
         Runtime::instance().self().getLogger().info(
-            "Assist trace: {} taken={} on={} hit={} indirect={} block={},{},{} face={} dist={:.2f} liquid={} pitch={:.1f} reach={:.1f} ghost={}",
-            call, taken, on(), static_cast<int>(hit.mType), hit.mIndirectHit, hit.mBlock.x, hit.mBlock.y, hit.mBlock.z,
+            "Assist trace: {} taken={} why={} on={} hit={} indirect={} block={},{},{} face={} dist={:.2f} liquid={} pitch={:.1f} reach={:.1f} ghost={}",
+            call, taken, taken ? "" : declined, on(), static_cast<int>(hit.mType), hit.mIndirectHit, hit.mBlock.x, hit.mBlock.y, hit.mBlock.z,
             static_cast<int>(hit.mFacing), std::sqrt(ex * ex + ey * ey + ez * ez), hit.mIsHitLiquid, rot.x, player->getPickRange(),
             ghost ? std::format("{},{},{}", ghost->cell.x, ghost->cell.y, ghost->cell.z) : std::string{"none"});
     } catch (...) {}
@@ -215,11 +219,12 @@ void toast(char const* key, std::string const& block) {
 // calls; the placement itself is queued. Only with a block or nothing in the
 // hand (maintainer 2026-11-28): food, buckets and tools stay vanilla.
 bool takePress(Player& actor) noexcept {
+    declined = "";
     try {
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
-        if (placing || !player || static_cast<Player*>(player) != &actor || !on()) return false;
-        if (auto const& hand = player->getSelectedItem(); !hand.isNull() && !hand.mBlock) return false;
+        if (placing || !player || static_cast<Player*>(player) != &actor || !on()) return decline(placing ? "placing" : "off");
+        if (auto const& hand = player->getSelectedItem(); !hand.isNull() && !hand.mBlock) return decline("hand holds no block");
         auto const now = std::chrono::steady_clock::now();
         bool const held = pressTaken && now - *pressTaken < pressGap;
         if (pending) {
@@ -240,7 +245,7 @@ bool takePress(Player& actor) noexcept {
         auto const& hitNow = client->getLatestHitResult();
         auto first = ghosts::aimedGhost(*player, hitNow);
         if (!first || !first->block) {
-            if (!held) return false;
+            if (!held) return decline("no ghost aimed");
             pressTaken = now; // the press stays the assist's: no vanilla block where no ghost is aimed
             return true;
         }
@@ -258,9 +263,9 @@ bool takePress(Player& actor) noexcept {
         if (!ghost->block) return true;
         Block const& want = *ghost->block;
         BlockPos const cell{ghost->cell.x, ghost->cell.y, ghost->cell.z};
-        if (!buildable(region, cell)) return held; // a real block there stays the player's
+        if (!buildable(region, cell)) return held || decline("real block in the ghost's cell"); // a real block there stays the player's
         ItemStack stack = ghosts::ghostItem(want);
-        if (stack.isNull()) return false; // fire, water: nothing to place by hand
+        if (stack.isNull()) return decline("no item"); // fire, water: nothing to place by hand
         std::string const item = stack.getTypeName();
         short const aux = stack.getAuxValue();
         if (refused && refused->cell == cell && (refused->item == item || refused->item.empty()) && now - refused->at < refusalKept)
@@ -280,7 +285,7 @@ bool takePress(Player& actor) noexcept {
             if (slot < 0 || !holds(*player, item, aux)) return refuse("schematic.assist.notCarried");
         }
         Block const* placed = player->getSelectedItem().mBlock;
-        if (!placed) return false;
+        if (!placed) return decline("hand holds no block after the pick");
         std::array<bool, 6> const clickable = clickableAround(cell);
         Vec2 const rot = lastSentLook.value_or(player->getRotation());
         std::string const wantName = nameOf(want);
@@ -316,7 +321,7 @@ bool takePress(Player& actor) noexcept {
         }
         log(std::format("cannot place {} at {},{},{}: {}", wantName, cell.x, cell.y, cell.z, difference));
         return refuse("schematic.assist.noWay");
-    } catch (...) { return false; }
+    } catch (...) { return decline("exception"); }
 }
 }
 // Sends the pending placement. Queued to the client thread after the auth
@@ -471,7 +476,9 @@ LL_TYPE_INSTANCE_HOOK(PlacementAssistUseItem, ll::memory::HookPriority::Highest,
                       ItemStack& item, HandSlot hand) {
     try {
         auto client = ll::service::getClientInstance();
-        bool const taken = client && hand == HandSlot::Mainhand && meetsNoBlock(client->getLatestHitResult(), mPlayer) && takePress(mPlayer);
+        bool const noBlock = client && hand == HandSlot::Mainhand && meetsNoBlock(client->getLatestHitResult(), mPlayer);
+        if (!noBlock) declined = "hit within reach";
+        bool const taken = noBlock && takePress(mPlayer);
         ASSIST_TRACE(hand == HandSlot::Mainhand ? "useItem" : "useItem offhand", taken);
         if (taken) return false;
     } catch (...) {}
