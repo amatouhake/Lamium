@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L-265 押す前に、狙ったゴーストと置けるかを見せる</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="kit/kit.css">
+<script src="kit/lamium-data.js"></script>
+<script src="kit/kit.js"></script>
+</head>
+<body>
+<main class="lk-page">
+  <div>
+    <h1>設置アシスト: 押す前に、狙ったゴーストと置けるかを見せる</h1>
+    <p class="lk-lede">左が今、右が案です。ワールドはテクスチャなしの箱で描いています（ゲームの絵は使えないため）。水色の箱がゴースト、灰色が本物のブロック、十字が照準です。「状態」で、置けるとき・置ける面がないとき・持っていないときを切り替えます。</p>
+    <p class="lk-meta">L-265 · 2026-11-28 · 決めること: 狙ったゴーストと、置けるか（置けない理由）を押す前にどう見せるか</p>
+  </div>
+  <div class="lk-controls" id="controls"></div>
+  <div id="view"></div>
+  <section class="lk-box">
+    <b>確認したいこと</b>
+    <ul>
+      <li><b>どの案にするか</b>（組み合わせも可。たとえば A の枠と C の文字）。</li>
+      <li><b>置けるときも見せるか</b>: 置けないときだけ見せる方が静かですが、どのゴーストを狙っているかは置けるときにこそ知りたい場面もあります。</li>
+      <li><b>アシストがオフのとき</b>は何も出さない、でよいか（今の対象カードはそのまま）。</li>
+      <li><b>色</b>: 置けない理由の色を、照合の印と同じ赤（違うブロック）と黄（状態違い）に借りるか、別の色にするか。案では 置ける面がない=赤、持っていない=黄 にしています。</li>
+      <li><b>案 B のクリック面の印</b>: どの面から置くかまで見せると情報が多いので、要るか。</li>
+      <li>見た目のプリセット（L-421）は、ここが決まってから選びます。</li>
+    </ul>
+  </section>
+</main>
+<script>
+const state = { proposal: 'A', status: 'ok', size: '60' };
+const PROPOSALS = [['A', '案 A: 狙ったゴーストの枠を強調'], ['B', '案 B: 置いたときの姿を先に見せる'], ['C', '案 C: 照準の横に文字で出す']];
+const STATUSES = [['ok', '置ける'], ['noWay', '置ける面がない'], ['notCarried', '持っていない']];
+const SIZES = [['100', '大きさ 100%'], ['60', '大きさ 60%']];
+const blockName = Lamium.text(['Oak Planks', 'オークの板材', '橡木木板', '橡木木材']);
+const canPlace = Lamium.text(['Can place: {}', '置ける: {}', '可以放置：{}', '可以放置：{}']);
+
+// The build: a floor, a half-built wall, ghosts where the wall goes on. The
+// aimed ghost has a real block below it, except when no face can be clicked.
+function cells(aim) {
+  const out = [];
+  for (let x = 0; x < 5; ++x) for (let z = 0; z < 3; ++z) out.push({ x, y: 0, z, kind: 'block', shade: 'faint' });
+  const wall = [[0, 1], [1, 1], [3, 1], [4, 1]];
+  for (const [x, y] of wall) out.push({ x, y, z: 1, kind: 'block', shade: 'dim' });
+  const size = Number(state.size) / 100;
+  for (const [x, y] of [[2, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [2, 3]]) out.push({ x, y, z: 1, kind: 'ghost', size });
+  return out.map((c) => (c.kind === 'ghost' && c.x === aim.x && c.y === aim.y && c.z === aim.z ? { ...c, aimed: true } : c));
+}
+function aimedCell() { return state.status === 'noWay' ? { x: 2, y: 3, z: 1 } : { x: 2, y: 1, z: 1 }; }
+const tone = () => (state.status === 'ok' ? 'accent' : state.status === 'noWay' ? 'mismatch' : 'wrongState');
+function reason() {
+  if (state.status === 'ok') return Lamium.pick(canPlace).replace('{}', Lamium.pick(blockName));
+  return Lamium.t(state.status === 'noWay' ? 'schematic.assist.noWay' : 'schematic.assist.notCarried', Lamium.pick(blockName));
+}
+function draw_(stage, style) {
+  const aim = aimedCell();
+  const list = cells(aim).map((c) => {
+    if (!c.aimed || style === 'today' || style === 'C') return c;
+    if (style === 'A') return { ...c, outline: state.status === 'ok' ? 'white' : tone(), lineWidth: 2.5 };
+    // B: the block as it would be placed, full size and more solid; where it
+    // cannot be placed, tinted by why.
+    if (state.status === 'ok') return { ...c, size: 1, fillAlpha: .6, outline: 'white', lineWidth: 1.5 };
+    return { ...c, size: 1, fillAlpha: .45, tint: tone(), outline: tone(), lineWidth: 1.5 };
+  });
+  if (style === 'B' && state.status === 'ok') {
+    const below = list.find((c) => c.kind === 'block' && c.x === aim.x && c.y === aim.y - 1 && c.z === aim.z);
+    if (below) below.face = { side: 'top', color: 'accent', alpha: .5 };
+  }
+  const at = Lamium.scene(stage, { x: 290, y: 195, unit: 52, cells: list });
+  const [cx, cy] = at(aim.x, aim.y, aim.z);
+  Lamium.crosshair(stage, cx, cy);
+  if (style === 'C') {
+    const text = reason();
+    const w = Lamium.textWidth(text) + 8;
+    Lamium.fill(stage, cx + 10, cy + 6, w, 12, 'shade', .55);
+    Lamium.label(stage, cx + 14, cy + 8, w, text, { color: tone() });
+  }
+}
+function controls() {
+  const c = document.getElementById('controls');
+  c.replaceChildren();
+  Lamium.page.choice(c, '案', PROPOSALS, state.proposal, (v) => { state.proposal = v; draw(); });
+  Lamium.page.choice(c, '状態', STATUSES, state.status, (v) => { state.status = v; draw(); });
+  Lamium.page.choice(c, 'ゴースト', SIZES, state.size, (v) => { state.size = v; draw(); });
+  Lamium.page.languages(c, () => { controls(); draw(); });
+}
+const NOTES = {
+  A: '狙ったゴーストの枠だけを太く白くします。置けないときは枠の色で理由を示します（赤: 置ける面がない、黄: 持っていない）。ほかのゴーストは今のまま。いちばん静かで、文字は出ません。',
+  B: '狙ったゴーストを、置いたときと同じ大きさで濃く描き、クリックする面（下の本物のブロックの上面）に緑の印を付けます。置けないときは理由の色で塗ります。小さいゴーストでも、何が置かれるかが分かります。',
+  C: 'ワールドは今のまま、照準の右下に一行で出します。置けないときの文は、今押したときに出る通知と同じです。理由まで読めますが、照準の近くに文字が増えます。',
+};
+function draw() {
+  const title = PROPOSALS.find(([v]) => v === state.proposal)[1];
+  Lamium.page.compare(document.getElementById('view'), [
+    { kind: 'today', title: '今: 押すまで分からない', draw: (stage) => draw_(stage, 'today'),
+      note: '狙ったゴーストも、ほかのゴーストと同じに見えます。置けるかは押して、置けなければ通知で分かります。' },
+    { kind: 'proposal', title, note: NOTES[state.proposal], draw: (stage) => draw_(stage, state.proposal) },
+  ]);
+}
+Lamium.ready(() => { controls(); draw(); });
+</script>
+</body>
+</html>

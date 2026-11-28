@@ -339,6 +339,58 @@
     return stage;
   };
 
+  // ---- World scene: blocks and schematic ghosts, untextured ----
+  // Not the game's drawing (no textures may be copied): flat isometric cubes in
+  // tokens, enough to show where a ghost, its outline and a mark sit.
+  // scene(p, {x, y, unit, cells}) draws `cells` and returns at(x, y, z) -> the
+  // screen point of a cell's centre. A cell: {x, y, z, kind: 'block' | 'ghost',
+  // shade ('dim' ... a token, blocks), size (ghosts, 0.5-1), outline (token),
+  // lineWidth, fillAlpha, face: {side: 'top'|'left'|'right', color}}.
+  L.scene = (p, { x = 320, y = 190, unit = 34, cells = [] } = {}) => {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    const { width, height } = p.size || { width: 640, height: 380 };
+    svg.setAttribute('width', width); svg.setAttribute('height', height);
+    Object.assign(svg.style, { position: 'absolute', left: 0, top: 0 });
+    p.append(svg);
+    const pt = (cx, cy, cz) => [x + (cx - cz) * unit, y + (cx + cz) * unit / 2 - cy * unit];
+    const poly = (points, fill, stroke, strokeWidth) => {
+      const e = document.createElementNS(ns, 'polygon');
+      e.setAttribute('points', points.map((q) => q.join(',')).join(' '));
+      e.setAttribute('fill', fill);
+      if (stroke) { e.setAttribute('stroke', stroke); e.setAttribute('stroke-width', strokeWidth); e.setAttribute('stroke-linejoin', 'round'); }
+      svg.append(e);
+    };
+    const sorted = [...cells].sort((a, b) => (a.x + a.z) - (b.x + b.z) || a.y - b.y || a.x - b.x);
+    for (const c of sorted) {
+      const s = c.kind === 'ghost' ? (c.size ?? 1) : 1, o = (1 - s) / 2;
+      const lo = [c.x + o, c.y + o, c.z + o], hi = [c.x + o + s, c.y + o + s, c.z + o + s];
+      const top = [pt(lo[0], hi[1], lo[2]), pt(hi[0], hi[1], lo[2]), pt(hi[0], hi[1], hi[2]), pt(lo[0], hi[1], hi[2])];
+      const left = [pt(lo[0], hi[1], hi[2]), pt(hi[0], hi[1], hi[2]), pt(hi[0], lo[1], hi[2]), pt(lo[0], lo[1], hi[2])];
+      const right = [pt(hi[0], hi[1], lo[2]), pt(hi[0], hi[1], hi[2]), pt(hi[0], lo[1], hi[2]), pt(hi[0], lo[1], lo[2])];
+      const faces = { top, left, right };
+      if (c.kind === 'block') {
+        const base = c.shade || 'dim';
+        poly(top, L.color(base), L.color('shade', .35), .6);
+        poly(left, L.color(base, .78), L.color('shade', .35), .6);
+        poly(right, L.color(base, .6), L.color('shade', .35), .6);
+        poly(left, L.color('shade', .22)); poly(right, L.color('shade', .38));
+      } else {
+        const a = c.fillAlpha ?? .3, tint = c.tint || 'ghost';
+        poly(top, L.color(tint, a)); poly(left, L.color(tint, a * .8)); poly(right, L.color(tint, a * .65));
+        const line = c.outline || 'ghost', w = c.lineWidth ?? 1;
+        if (w > 0) for (const f of [top, left, right]) poly(f, 'none', L.color(line), w);
+      }
+      if (c.face) poly(faces[c.face.side], L.color(c.face.color, c.face.alpha ?? .55), L.color(c.face.color), 1);
+    }
+    return (cx, cy, cz) => pt(cx + .5, cy + .5, cz + .5);
+  };
+  // The game's crosshair at (x, y): a small plus in white.
+  L.crosshair = (p, x, y) => {
+    L.fill(p, x - 7, y - 1, 14, 2, 'white', .95);
+    L.fill(p, x - 1, y - 7, 2, 14, 'white', .95);
+  };
+
   // ---- Rows ----
   // Copies of the real rows for a category ('section.view' ... or 'nav.hotkeys'), every feature open.
   L.rows = (nav) => {
